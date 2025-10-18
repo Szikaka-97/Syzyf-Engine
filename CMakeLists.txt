@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21 FATAL_ERROR)
-project(OpenGLGP VERSION 2.0)
+project(GL_Project VERSION 2.0)
 
 IF (WIN32)
   message(NOTICE "\n")
@@ -16,6 +16,8 @@ include(global_settings)
 
 # ---- Dependencies ----
 add_subdirectory(thirdparty)
+
+set(CMAKE_CXX_STANDARD 23)
 
 # ---- Main project's files ----
 add_subdirectory(src)
