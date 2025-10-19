@@ -5,7 +5,7 @@
 
 #include <GameObject.h>
 
-SceneNode::SceneNode(const Scene* scene) :
+SceneNode::SceneNode(Scene* scene) :
 scene(scene),
 transform(),
 children() {
@@ -64,6 +64,13 @@ void SceneNode::SetParent(SceneNode* newParent) {
 
 	this->parent = newParent;
 	this->parent->children.push_back(this);
+}
+
+bool SceneNode::IsChildOf(const SceneNode* node) {
+	if (this->parent == node) {
+		return true;
+	}
+	return this->parent->IsChildOf(node);
 }
 
 void SceneNode::MarkDirty() {

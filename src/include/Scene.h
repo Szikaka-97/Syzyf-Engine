@@ -32,12 +32,12 @@ class SceneNode {
 	friend class Scene;
 private:
 	SceneNode* parent;
-	const Scene* scene;
+	Scene* const scene;
 	std::vector<GameObject*> objects;
 	std::vector<SceneNode*> children;
 	Transform transform;
 
-	SceneNode(const Scene* scene);
+	SceneNode(Scene* scene);
 	SceneNode() = delete;
 
 	void RecalculateTransform();
@@ -49,7 +49,8 @@ public:
 	const std::vector<SceneNode*> GetChildren();
 	SceneNode* GetParent();
 	void SetParent(SceneNode* newParent);
-	
+	bool IsChildOf(const SceneNode* node);
+
 	void MarkDirty();
 	void MarkChildrenDirty();
 	
