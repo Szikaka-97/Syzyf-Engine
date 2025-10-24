@@ -2,21 +2,40 @@
 
 #include <concepts>
 
-class SceneNode;
-class Scene;
-class Transform;
+#include <Scene.h>
 
 class GameObject {
 	friend class Scene;
-private:
+protected:
 	SceneNode* node;
+	Transform& GetTransform() const;
+	SceneNode* GetNode() const;
+	Scene* GetScene() const;
 public:
 	Transform& GetTransform();
+	SceneNode* GetNode();
+	Scene* GetScene();
 
 	template<class T_GO>
 		requires std::derived_from<T_GO, GameObject>
-	T_GO* AddObject();
+	T_GO* AddObject() const;
+
+	template<class T_GO, typename... T_Param>
+		requires std::derived_from<T_GO, GameObject>
+	T_GO* AddObject(T_Param... params) const;
 };
+
+template<class T_GO>
+		requires std::derived_from<T_GO, GameObject>
+T_GO* GameObject::AddObject() const {
+	return this->node->AddObject<T_GO>();
+}
+
+template<class T_GO, typename... T_Param>
+	requires std::derived_from<T_GO, GameObject>
+T_GO* GameObject::AddObject(T_Param... params) const {
+	return this->node->AddObject<T_GO>(params...);
+}
 
 // template <class T_Required>
 // 	requires std::derived_from<T_Required, GameObject>

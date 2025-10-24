@@ -32,6 +32,13 @@ public:
 		RotationAccess Rotation();
 		ScaleAccess Scale();
 
+		glm::vec3 Forward() const;
+		glm::vec3 Backward() const;
+		glm::vec3 Up() const;
+		glm::vec3 Down() const;
+		glm::vec3 Right() const;
+		glm::vec3 Left() const;
+
 		glm::mat4 Value() const;
 		operator glm::mat4() const;
 

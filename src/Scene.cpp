@@ -3,12 +3,14 @@
 #include <algorithm>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include <spdlog/spdlog.h>
 #include <GameObject.h>
 
 SceneNode::SceneNode(Scene* scene) :
 scene(scene),
 transform(),
-children() {
+children(),
+parent(nullptr) {
 	this->transform.parent = this;
 }
 
@@ -49,6 +51,10 @@ Transform::TransformAccess& SceneNode::GlobalTransform() {
 	return this->GetTransform().GlobalTransform();
 }
 
+Scene* SceneNode::GetScene() {
+	return this->scene;
+}
+
 const std::vector<SceneNode*> SceneNode::GetChildren() {
 	return this->children;
 }
@@ -59,7 +65,10 @@ SceneNode* SceneNode::GetParent() {
 
 void SceneNode::SetParent(SceneNode* newParent) {
 	if (this->parent) {
-		this->parent->children.erase(std::find(this->parent->children.begin(), this->parent->children.end(), this));
+		auto posInParentChildren = std::find(this->parent->children.begin(), this->parent->children.end(), this);
+		if (posInParentChildren != this->parent->children.end()) {
+			this->parent->children.erase(posInParentChildren);
+		}
 	}
 
 	this->parent = newParent;
@@ -89,57 +98,14 @@ const std::vector<GameObject*> SceneNode::AttachedObjects() {
 	return this->objects;
 }
 
-template<class T_GO>
-	requires std::derived_from<T_GO, GameObject>
-T_GO* SceneNode::AddObject() {
-	return this->scene->CreateObjectOn<T_GO>(this);
-}
-
 Scene::Scene() :
-root(new SceneNode(this)) { }
+updateable(),
+renderable(),
+root(new SceneNode(this)),
+graphics(new SceneGraphics()) { }
 
 void Scene::MessageReceiver::Message() {
 	(*this->objPtr.*methodPtr)();
-}
-
-template<class T_GO>
-	requires std::derived_from<T_GO, GameObject>
-bool Scene::TryCreateAwakeable(T_GO* object) {
-	return false;
-}
-
-template<class T_GO>
-	requires std::derived_from<T_GO, GameObject> && Awakeable<T_GO>
-bool Scene::TryCreateAwakeable(T_GO* object) {
-#warning TODO
-	return true;
-}
-
-template<class T_GO>
-	requires std::derived_from<T_GO, GameObject>
-bool Scene::TryCreateUpdateable(T_GO* object) {
-	return false;
-}
-
-template<class T_GO>
-	requires std::derived_from<T_GO, GameObject> && Updateable<T_GO>
-bool Scene::TryCreateUpdateable(T_GO* object) {
-	this->updateable.push_back({ object, reinterpret_cast<MessageMethod>(&T_GO::Update) });
-
-	return true;
-}
-
-template<class T_GO>
-	requires std::derived_from<T_GO, GameObject>
-bool Scene::TryCreateEnableable(T_GO* object) {
-	return false;
-}
-
-template<class T_GO>
-	requires std::derived_from<T_GO, GameObject> && Enableable<T_GO>
-bool Scene::TryCreateEnableable(T_GO* object) {
-#warning TODO
-	return true;
 }
 
 SceneNode* Scene::CreateNode() {
@@ -158,17 +124,8 @@ SceneNode* Scene::CreateNode(SceneNode* parent) {
 	return result;
 }
 
-template<class T_GO>
-	requires std::derived_from<T_GO, GameObject>
-T_GO* Scene::CreateObjectOn(SceneNode* node) {
-	GameObject* created = new GameObject();
-	created->node = node;
-
-	TryCreateAwakeable(created);
-	TryCreateEnableable(created);
-	TryCreateUpdateable(created);
-
-	return created;
+SceneGraphics* Scene::GetGraphics() {
+	return this->graphics;
 }
 
 void Scene::Update() {
@@ -178,5 +135,9 @@ void Scene::Update() {
 }
 
 void Scene::Render() {
-#warning TODO
+	for (auto& msgObject : this->renderable) {
+		msgObject.Message();
+	}
+
+	this->graphics->Render();
 }

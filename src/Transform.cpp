@@ -73,6 +73,25 @@ Transform::ScaleAccess Transform::TransformAccess::Scale() {
 	return Transform::ScaleAccess(*this);
 }
 
+glm::vec3 Transform::TransformAccess::Forward() const {
+	return -glm::column(this->transformation, 2);
+}
+glm::vec3 Transform::TransformAccess::Backward() const {
+	return glm::column(this->transformation, 2);
+}
+glm::vec3 Transform::TransformAccess::Up() const {
+	return glm::column(this->transformation, 1);
+}
+glm::vec3 Transform::TransformAccess::Down() const {
+	return -glm::column(this->transformation, 1);
+}
+glm::vec3 Transform::TransformAccess::Right() const {
+	return glm::column(this->transformation, 0);
+}
+glm::vec3 Transform::TransformAccess::Left() const {
+	return -glm::column(this->transformation, 0);
+}
+
 glm::mat4 Transform::TransformAccess::Value() const {
 	return this->transformation;
 }
