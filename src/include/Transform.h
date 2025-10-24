@@ -55,6 +55,8 @@ public:
 		operator glm::vec3() const;
 		
 		PositionAccess& operator=(const glm::vec3& position);
+		PositionAccess& operator+=(const glm::vec3& position);
+		PositionAccess& operator-=(const glm::vec3& position);
 	};
 	class RotationAccess {
 	private:
@@ -66,6 +68,7 @@ public:
 
 		operator glm::quat() const;
 		RotationAccess& operator=(const glm::quat& rotation);
+		RotationAccess& operator*=(const glm::quat& rotation);
 	};
 	class ScaleAccess {
 	private:
@@ -77,6 +80,7 @@ public:
 
 		operator glm::vec3() const;
 		ScaleAccess& operator=(const glm::vec3& scale);
+		ScaleAccess& operator*=(const glm::vec3& scale);
 	};
 
 	Transform();

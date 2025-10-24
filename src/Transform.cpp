@@ -127,6 +127,22 @@ Transform::PositionAccess& Transform::PositionAccess::operator=(const glm::vec3&
 	return *this;
 }
 
+Transform::PositionAccess& Transform::PositionAccess::operator+=(const glm::vec3& position) {
+	this->source.transformation[3] += glm::vec4(position, 0.0f);
+
+	this->source.MarkDirty();
+
+	return *this;
+}
+
+Transform::PositionAccess& Transform::PositionAccess::operator-=(const glm::vec3& position) {
+	this->source.transformation[3] += glm::vec4(position, 0.0f);
+
+	this->source.MarkDirty();
+
+	return *this;
+}
+
 Transform::RotationAccess::RotationAccess(TransformAccess& source) :
 source(source) { }
 
@@ -162,6 +178,14 @@ Transform::RotationAccess& Transform::RotationAccess::operator=(const glm::quat&
 	return *this;
 }
 
+Transform::RotationAccess& Transform::RotationAccess::operator*=(const glm::quat& rotation) {
+	*this = Value() * rotation;
+
+	this->source.MarkDirty();
+
+	return *this;
+}
+
 Transform::ScaleAccess::ScaleAccess(TransformAccess& source) :
 source(source) { }
 
@@ -185,6 +209,18 @@ Transform::ScaleAccess& Transform::ScaleAccess::operator=(const glm::vec3& scale
 	this->source.transformation[1][1] /= current_scale.y;
 	this->source.transformation[1][1] *= scale.y;
 	this->source.transformation[2][2] /= current_scale.z;
+	this->source.transformation[2][2] *= scale.z;
+
+	this->source.MarkDirty();
+
+	return *this;
+}
+
+Transform::ScaleAccess& Transform::ScaleAccess::operator*=(const glm::vec3& scale) {
+	glm::vec3 current_scale = Value();
+
+	this->source.transformation[0][0] *= scale.x;
+	this->source.transformation[1][1] *= scale.y;
 	this->source.transformation[2][2] *= scale.z;
 
 	this->source.MarkDirty();
