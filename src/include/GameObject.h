@@ -9,10 +9,14 @@ class GameObject {
 protected:
 	SceneNode* node;
 	Transform& GetTransform() const;
+	Transform::TransformAccess& GlobalTransform() const;
+	Transform::TransformAccess& LocalTransform() const;
 	SceneNode* GetNode() const;
 	Scene* GetScene() const;
 public:
 	Transform& GetTransform();
+	Transform::TransformAccess& GlobalTransform();
+	Transform::TransformAccess& LocalTransform();
 	SceneNode* GetNode();
 	Scene* GetScene();
 

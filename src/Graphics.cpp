@@ -52,7 +52,7 @@ void SceneGraphics::Render() {
 		Material* mat = node.renderer->GetMaterial();
 		Mesh mesh = node.renderer->GetMesh();
 	
-		objectUniforms.Object_ModelMatrix = node.renderer->GetTransform().GlobalTransform();
+		objectUniforms.Object_ModelMatrix = node.renderer->GlobalTransform();
 		objectUniforms.Object_MVPMatrix = globalUniforms.Global_VPMatrix * objectUniforms.Object_ModelMatrix;
 
 		glBindBufferBase(GL_UNIFORM_BUFFER, 1, node.renderer->GetUniformBufferHandle());

@@ -14,8 +14,8 @@ farPlane(farPlane) {
 
 glm::mat4 Camera::ViewMatrix() const {
 	return glm::lookAt(
-		this->GetTransform().GlobalTransform().Position().Value(),
-		this->GetTransform().GlobalTransform().Position().Value() + this->GetTransform().GlobalTransform().Forward(),
+		this->GlobalTransform().Position().Value(),
+		this->GlobalTransform().Position().Value() + this->GlobalTransform().Forward(),
 		glm::vec3(0.0f, 1.0f, 0.0f)
 	);
 }
