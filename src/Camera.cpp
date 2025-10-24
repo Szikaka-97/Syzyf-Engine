@@ -13,7 +13,11 @@ farPlane(farPlane) {
 }
 
 glm::mat4 Camera::ViewMatrix() const {
-	return this->GetTransform().GlobalTransform();
+	return glm::lookAt(
+		this->GetTransform().GlobalTransform().Position().Value(),
+		this->GetTransform().GlobalTransform().Position().Value() + this->GetTransform().GlobalTransform().Forward(),
+		glm::vec3(0.0f, 1.0f, 0.0f)
+	);
 }
 glm::mat4 Camera::ProjectionMatrix() const {
 	return glm::perspective(this->fovy, this->aspectRatio, this->nearPlane, this->farPlane);
