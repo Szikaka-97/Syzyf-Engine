@@ -133,9 +133,9 @@ ShaderBase* ShaderBase::Load(fs::path filePath) {
 	std::string shaderCode(buf);
 	GLuint shaderHandle = glCreateShader(shaderType);
 
+	int versionOffset = VersionPresent(shaderCode);
+
 	if (shaderType == GL_VERTEX_SHADER) {
-		int versionOffset = VersionPresent(shaderCode);
-	
 		const char* shaderCodeParts[4];
 		int shaderCodeLengths[4] {-1, -1, -1, -1};
 	
@@ -154,7 +154,21 @@ ShaderBase* ShaderBase::Load(fs::path filePath) {
 		glShaderSource(shaderHandle, 4, shaderCodeParts, shaderCodeLengths);
 	}
 	else {
-		glShaderSource(shaderHandle, 1, &buf, nullptr);
+		const char* shaderCodeParts[3];
+		int shaderCodeLengths[3] {-1, -1, -1};
+	
+		if (versionOffset > 0) {
+			shaderCodeParts[0] = buf;
+			shaderCodeLengths[0] = versionOffset;
+		}
+		else {
+			shaderCodeParts[0] = versionHeader.c_str();
+		}
+	
+		shaderCodeParts[1] = builtinUniformsHeader.c_str();
+		shaderCodeParts[2] = buf + versionOffset;
+	
+		glShaderSource(shaderHandle, 3, shaderCodeParts, shaderCodeLengths);
 	}
 	
 	glCompileShader(shaderHandle);
