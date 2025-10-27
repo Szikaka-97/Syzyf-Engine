@@ -333,11 +333,7 @@ bool IsUniformTypeSupported(GLenum type) {
 		type == GL_FLOAT_MAT3
 		||
 		type == GL_FLOAT_MAT4
-	);
-}
-
-bool IsTextureTypeSupported(GLenum type) {
-	return (
+		||
 		type == GL_SAMPLER_2D
 	);
 }
@@ -353,15 +349,8 @@ UniformType GLEnumToUniformType(GLenum type) {
 		{ GL_UNSIGNED_INT_VEC3, UniformType::Uint3 },
 		{ GL_UNSIGNED_INT_VEC4, UniformType::Uint4 },
 		{ GL_FLOAT_MAT3, UniformType::Matrix3x3 },
-		{ GL_FLOAT_MAT4, UniformType::Matrix4x4 }
-	};
-
-	return dict.at(type);
-}
-
-TextureType GLEnumToTextureType(GLenum type) {
-	const static std::map<GLenum, TextureType> dict {
-		{ GL_SAMPLER_2D, TextureType::Texture2D }
+		{ GL_FLOAT_MAT4, UniformType::Matrix4x4 },
+		{ GL_SAMPLER_2D, UniformType::Sampler2D },
 	};
 
 	return dict.at(type);
@@ -391,10 +380,6 @@ handle(handle) {
 		if (IsUniformTypeSupported(uniformType) && !std::string(uniformName).starts_with("Object_") && !std::string(uniformName).starts_with("Global_")) {
 			uniforms.push_back({ GLEnumToUniformType(uniformType), std::string(uniformName) });
 		}
-		else if (IsTextureTypeSupported(uniformType)) {
-			textures.push_back({ GLEnumToTextureType(uniformType), std::string(uniformName) });
-			uniforms.push_back({ UniformType::Sampler2D, uniformName });
-		}
 		else {
 			uniforms.push_back({ UniformType::Unsupported, uniformName });
 		}
@@ -402,7 +387,7 @@ handle(handle) {
 		spdlog::info("name: {}, index: {}, location: {}, type: 0x{:x}", std::string(uniformName), i, glGetUniformLocation(handle, uniformName), (int) uniformType);
 	}
 
-	this->uniforms = UniformSpec(uniforms, textures);
+	this->uniforms = UniformSpec(uniforms);
 
 	// for (int i = 0; i < uniformCount; i++) {
 	// 	spdlog::info("Uniform at {}: name = {}, type = {}, offset = {}", i, this->uniforms.variables[i].name, (int) this->uniforms.variables[i].type, this->uniforms.offsets[i]);

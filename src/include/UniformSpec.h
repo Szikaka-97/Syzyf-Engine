@@ -69,11 +69,10 @@ class IncompatibleUniformTypeException : public std::runtime_error {
 
 struct UniformSpec {
 	std::vector<UniformVariable> variables;
-	std::vector<TextureVariable> textures;
 	std::vector<int> offsets;
 
 	UniformSpec();
-	UniformSpec(std::vector<UniformVariable> variables, std::vector<TextureVariable> textures);
+	UniformSpec(std::vector<UniformVariable> variables);
 
 	unsigned int GetBufferSize() const;
 };

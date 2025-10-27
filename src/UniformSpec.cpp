@@ -19,9 +19,8 @@ unsigned int UniformTypeSizes[] {
 
 UniformSpec::UniformSpec() { }
 
-UniformSpec::UniformSpec(std::vector<UniformVariable> variables, std::vector<TextureVariable> textures):
-variables(variables),
-textures(textures) {
+UniformSpec::UniformSpec(std::vector<UniformVariable> variables):
+variables(variables){
 	int offset = 0;
 	for (const auto& var : variables) {
 		this->offsets.push_back(offset);
