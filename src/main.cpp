@@ -160,7 +160,7 @@ int main(int, char**) {
 		rendererChild->AddObject<MeshRenderer>(cube, orbiterMat);
 	}
 
-	Camera* camera = cameraObject->AddObject<Camera>(glm::radians(40.0f), 16.0f/9.0f, 1.0f, 100.0f);
+	Camera* camera = cameraObject->AddObject<Camera>(Camera::Perspective(40.0f, 16.0f/9.0f, 1.0f, 100.0f));
 	cameraObject->AddObject<Mover>();
 
 	camera->LocalTransform().Position() = glm::vec3(0.0f, 0.0f, -10.0f);
