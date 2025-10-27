@@ -1,6 +1,7 @@
 #include <Shader.h>
 
 #include <fstream>
+#include <sstream>
 
 #include <PreComp.h>
 
@@ -181,16 +182,27 @@ ShaderBase* ShaderBase::Load(fs::path filePath) {
 	glGetShaderiv(shaderHandle, GL_COMPILE_STATUS, &compileSuccess);
 
 	if (!compileSuccess) {
-		glGetShaderInfoLog(shaderHandle, 512, NULL, compileMsg);
+		int logLength = 0;
+		glGetShaderiv(shaderHandle, GL_INFO_LOG_LENGTH, &logLength);
+		glGetShaderInfoLog(shaderHandle, logLength, nullptr, compileMsg);
 
 		spdlog::error("Error compiling shader {}:\n{}", filePath.string(), compileMsg);
 
 		int sourceLength = 0;
-		char shaderSource[4096];
+		glGetShaderiv(shaderHandle, GL_SHADER_SOURCE_LENGTH, &sourceLength);
+		char shaderSource[sourceLength];
 
-		glGetShaderSource(shaderHandle, 4096, &sourceLength, shaderSource);
+		glGetShaderSource(shaderHandle, sourceLength, nullptr, shaderSource);
 
-		spdlog::error("Shader source: \n{}", shaderSource);
+		std::istringstream inss(shaderSource);
+		std::stringstream outss;
+
+		int lineNum = 1;
+		for (std::string line; std::getline(inss, line); ) {
+			outss << std::setw(3) << lineNum++ << "| " << line << "\n";
+		}
+
+		spdlog::error("Shader source: \n{}", outss.str());
 
 		return nullptr;
 
