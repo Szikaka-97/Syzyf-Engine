@@ -2,6 +2,10 @@
 
 #include <Scene.h>
 
+GameObject::~GameObject() {
+	this->node->DeleteObject(this);
+}
+
 Transform& GameObject::GetTransform() const {
 	return this->node->GetTransform();
 }
@@ -38,4 +42,20 @@ SceneNode* GameObject::GetNode() {
 
 Scene* GameObject::GetScene() {
 	return this->node->GetScene();
+}
+
+bool GameObject::IsEnabled() const {
+	return this->enabled;
+}
+void GameObject::SetEnabled(bool enabled) {
+	if (enabled == this->enabled) {
+		return;
+	}
+
+	if (enabled && this->onEnable) {
+		(*this.*this->onEnable)();
+	}
+	else if (!enabled && this->onDisable) {
+		(*this.*this->onDisable)();
+	}
 }

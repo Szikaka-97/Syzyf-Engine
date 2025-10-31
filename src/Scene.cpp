@@ -15,6 +15,32 @@ parent(nullptr) {
 	this->transform.parent = this;
 }
 
+SceneNode::~SceneNode() {
+	spdlog::info("Deleting node");
+
+	int objectsCount = this->objects.size();
+	GameObject* objectsCopy[objectsCount];
+
+	std::copy(this->objects.begin(), this->objects.end(), objectsCopy);
+
+	for (int i = 0; i < objectsCount; i++) {
+		delete objectsCopy[i];
+	}
+
+	this->SetParent(nullptr);
+
+	int childrenCount = this->children.size();
+	SceneNode* childrenCopy[childrenCount];
+
+	std::copy(this->children.begin(), this->children.end(), childrenCopy);
+
+	for (int i = 0; i < childrenCount; i++) {
+		delete childrenCopy[i];
+	}
+
+	this->scene->DeleteNodeInternal(this);
+}
+
 void SceneNode::RecalculateTransform() {
 	if (this->transform.LocalTransform().IsDirty()) {
 		if (this->parent) {
@@ -73,7 +99,10 @@ void SceneNode::SetParent(SceneNode* newParent) {
 	}
 
 	this->parent = newParent;
-	this->parent->children.push_back(this);
+
+	if (this->parent) {
+		this->parent->children.push_back(this);
+	}
 }
 
 bool SceneNode::IsChildOf(const SceneNode* node) {
@@ -99,6 +128,12 @@ const std::vector<GameObject*> SceneNode::AttachedObjects() {
 	return this->objects;
 }
 
+void SceneNode::DeleteObject(GameObject* obj) {
+	this->objects.erase(std::find(this->objects.begin(), this->objects.end(), obj));
+
+	this->scene->DeleteObjectInternal(obj);
+}
+
 Scene::Scene() :
 updateable(),
 renderable(),
@@ -106,7 +141,23 @@ root(new SceneNode(this)),
 graphics(new SceneGraphics()) { }
 
 void Scene::MessageReceiver::Message() {
-	(*this->objPtr.*methodPtr)();
+	(*this->objPtr.*this->methodPtr)();
+}
+
+void Scene::DeleteObjectInternal(GameObject* obj) {
+	this->updateable.remove_if( [obj](const MessageReceiver& msgRcvr) {
+		return msgRcvr.objPtr == obj;
+	} );
+
+	this->renderable.remove_if( [obj](const MessageReceiver& msgRcvr) {
+		return msgRcvr.objPtr == obj;
+	} );
+}
+
+void Scene::DeleteNodeInternal(SceneNode* node) {
+	if (node == this->root) {
+		this->root = new SceneNode(this);
+	}
 }
 
 SceneNode* Scene::CreateNode() {
@@ -127,6 +178,14 @@ SceneNode* Scene::CreateNode(SceneNode* parent) {
 
 SceneGraphics* Scene::GetGraphics() {
 	return this->graphics;
+}
+
+void Scene::DeleteObject(GameObject* obj) {
+	delete obj;
+}
+
+void Scene::DeleteNode(SceneNode* node) {
+	delete node;
 }
 
 void Scene::Update() {

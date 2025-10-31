@@ -18,6 +18,27 @@ orthoData(orthoData) {
 	SetAsMainCamera();
 }
 
+Camera::~Camera() {
+	if (this == mainCamera) {
+		std::vector<Camera*> cameras = this->GetScene()->FindObjectsOfType<Camera>();
+		
+		if (cameras.size() > 0) {
+			for (int i = 0; i < cameras.size(); i++) {
+				if (cameras[i] != this) {
+					mainCamera = cameras[i];
+
+					return;
+				}
+			}
+
+			mainCamera = nullptr;
+		}
+		else {
+			mainCamera = nullptr;
+		}
+	}
+}
+
 void Camera::MakePerspective() {
 	this->type = CameraType::Perspective;
 }

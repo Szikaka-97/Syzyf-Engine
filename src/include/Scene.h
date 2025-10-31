@@ -30,6 +30,10 @@ concept Renderable = requires (T a) {
 template<class T>
 concept Enableable = requires (T a) {
 	{ a.Enable() } -> std::same_as<void>;
+};
+
+template<class T>
+concept Disableable = requires (T a) {
 	{ a.Disable() } -> std::same_as<void>;
 };
 
@@ -49,6 +53,8 @@ private:
 
 	void RecalculateTransform();
 public:
+	~SceneNode();
+
 	Transform& GetTransform();
 	Transform::TransformAccess& LocalTransform();
 	Transform::TransformAccess& GlobalTransform();
@@ -65,13 +71,35 @@ public:
 	
 	const std::vector<GameObject*> AttachedObjects();
 	
-	template<class T_GO>
-		requires std::derived_from<T_GO, GameObject>
-	T_GO* AddObject();
-
 	template<class T_GO, typename... T_Param>
 		requires std::derived_from<T_GO, GameObject>
 	T_GO* AddObject(T_Param... params);
+
+	template<class T_GO>
+		requires std::derived_from<T_GO, GameObject>
+	T_GO* GetObject() const;
+
+	template<class T_GO>
+		requires std::derived_from<T_GO, GameObject>
+	bool TryGetObject(T_GO*& found) const;
+
+	template<class T_GO>
+		requires std::derived_from<T_GO, GameObject>
+	std::vector<T_GO*> GetAllObjects() const;
+
+	template<class T_GO>
+		requires std::derived_from<T_GO, GameObject>
+	T_GO* GetObjectInChildren() const;
+
+	template<class T_GO>
+		requires std::derived_from<T_GO, GameObject>
+	bool TryGetObjectInChildren(T_GO*& found) const;
+
+	template<class T_GO>
+		requires std::derived_from<T_GO, GameObject>
+	std::vector<T_GO*> GetAllObjectsInChildren() const;
+
+	void DeleteObject(GameObject* obj);
 };
 
 class Scene {
@@ -121,6 +149,17 @@ private:
 	template<class T_GO>
 		requires std::derived_from<T_GO, GameObject> && Enableable<T_GO>
 	bool TryCreateEnableable(T_GO* object);
+
+	template<class T_GO>
+		requires std::derived_from<T_GO, GameObject>
+	bool TryCreateDisableable(T_GO* object);
+
+	template<class T_GO>
+		requires std::derived_from<T_GO, GameObject> && Disableable<T_GO>
+	bool TryCreateDisableable(T_GO* object);
+
+	void DeleteObjectInternal(GameObject* obj);
+	void DeleteNodeInternal(SceneNode* node);
 public:
 	Scene();
 	SceneNode* CreateNode();
@@ -128,28 +167,130 @@ public:
 
 	SceneGraphics* GetGraphics();
 
-	template<class T_GO>
-		requires std::derived_from<T_GO, GameObject>
-	T_GO* CreateObjectOn(SceneNode* node);
-
 	template<class T_GO, typename... T_Param>
 		requires std::derived_from<T_GO, GameObject>
 	T_GO* CreateObjectOn(SceneNode* node, T_Param... params);
+
+	void DeleteObject(GameObject* obj);
+	void DeleteNode(SceneNode* node);
+
+	template<class T_GO>
+		requires std::derived_from<T_GO, GameObject>
+	std::vector<T_GO*> FindObjectsOfType();
+
+	template<class T_GO>
+		requires std::derived_from<T_GO, GameObject> && Updateable<T_GO>
+	std::vector<T_GO*> FindObjectsOfType();
+
+	template<class T_GO>
+		requires std::derived_from<T_GO, GameObject> && Renderable<T_GO>
+	std::vector<T_GO*> FindObjectsOfType();
+
+	template<class T_GO>
+		requires std::derived_from<T_GO, GameObject> && Updateable<T_GO> && Renderable<T_GO>
+	std::vector<T_GO*> FindObjectsOfType();
 
 	void Update();
 	void Render();
 };
 
-template<class T_GO>
-	requires std::derived_from<T_GO, GameObject>
-T_GO* SceneNode::AddObject() {
-	return this->scene->CreateObjectOn<T_GO>(this);
-}
+#include <GameObject.h>
 
 template<class T_GO, typename... T_Param>
 	requires std::derived_from<T_GO, GameObject>
 T_GO* SceneNode::AddObject(T_Param... params) {
 	return this->scene->CreateObjectOn<T_GO>(this, params...);
+}
+
+template<class T_GO>
+	requires std::derived_from<T_GO, GameObject>
+T_GO* SceneNode::GetObject() const {
+	for (GameObject* obj : this->objects) {
+		if (dynamic_cast<T_GO*>(obj)) {
+			return (T_GO*) obj;
+		}
+	}
+
+	return nullptr;
+}
+
+template<class T_GO>
+	requires std::derived_from<T_GO, GameObject>
+bool SceneNode::TryGetObject(T_GO*& found) const {
+	T_GO* ptr = GetObject<T_GO>();
+	
+	if (ptr) {
+		found = ptr;
+		return true;
+	}
+	
+	return false;
+}
+
+template<class T_GO>
+	requires std::derived_from<T_GO, GameObject>
+std::vector<T_GO*> SceneNode::GetAllObjects() const {
+	std::vector<T_GO*> result;
+
+	for (GameObject* obj : this->objects) {
+		T_GO* converted = dynamic_cast<T_GO*>(obj);
+
+		if (converted) {
+			result.push_back(converted);
+		}
+	}
+
+	return result;
+}
+
+template<class T_GO>
+	requires std::derived_from<T_GO, GameObject>
+T_GO* SceneNode::GetObjectInChildren() const {
+	T_GO* result;
+
+	if (TryGetObject(result)) {
+		return result;
+	}
+
+	for (const auto& child : this->children) {
+		if (child->TryGetObjectInChildren(result)) {
+			return result;
+		}
+	}
+
+	return nullptr;
+}
+
+template<class T_GO>
+	requires std::derived_from<T_GO, GameObject>
+bool SceneNode::TryGetObjectInChildren(T_GO*& found) const {
+	if (TryGetObject(found)) {
+		return true;
+	}
+
+	for (const auto& child : this->children) {
+		if (child->TryGetObjectInChildren(found)) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+template<class T_GO>
+	requires std::derived_from<T_GO, GameObject>
+std::vector<T_GO*> SceneNode::GetAllObjectsInChildren() const {
+	std::vector<T_GO*> result = GetAllObjects<T_GO>();
+
+	for (const auto& child : this->children) {
+		std::vector<T_GO*> partial = child->GetAllObjectsInChildren<T_GO>();
+
+		for (const auto& obj : partial) {
+			result.push_back(obj);
+		}
+	}
+
+	return result;
 }
 
 template<class T_GO>
@@ -161,7 +302,8 @@ bool Scene::TryCreateAwakeable(T_GO* object) {
 template<class T_GO>
 	requires std::derived_from<T_GO, GameObject> && Awakeable<T_GO>
 bool Scene::TryCreateAwakeable(T_GO* object) {
-#warning TODO
+	object->Awake();
+
 	return true;
 }
 
@@ -182,13 +324,34 @@ bool Scene::TryCreateUpdateable(T_GO* object) {
 template<class T_GO>
 	requires std::derived_from<T_GO, GameObject>
 bool Scene::TryCreateEnableable(T_GO* object) {
+	object->onEnable = nullptr;
+
 	return false;
 }
 
 template<class T_GO>
 	requires std::derived_from<T_GO, GameObject> && Enableable<T_GO>
 bool Scene::TryCreateEnableable(T_GO* object) {
-#warning TODO
+	object->onEnable = reinterpret_cast<MessageMethod>(&T_GO::Enable);
+	
+	object->Enable();
+
+	return true;
+}
+
+template<class T_GO>
+	requires std::derived_from<T_GO, GameObject>
+bool Scene::TryCreateDisableable(T_GO* object) {
+	object->onDisable = nullptr;
+
+	return false;
+}
+
+template<class T_GO>
+	requires std::derived_from<T_GO, GameObject> && Disableable<T_GO>
+bool Scene::TryCreateDisableable(T_GO* object) {
+	object->onDisable = reinterpret_cast<MessageMethod>(&T_GO::Disable);
+	
 	return true;
 }
 
@@ -206,12 +369,13 @@ bool Scene::TryCreateRenderable(T_GO* object) {
 	return true;
 }
 
-
-template<class T_GO>
+template<class T_GO, typename... T_Param>
 	requires std::derived_from<T_GO, GameObject>
-T_GO* Scene::CreateObjectOn(SceneNode* node) {
-	T_GO* created = new T_GO();
+T_GO* Scene::CreateObjectOn(SceneNode* node, T_Param... params) {
+	T_GO* created = new T_GO(params...);
 	created->node = node;
+
+	node->objects.push_back(created);
 
 	TryCreateAwakeable(created);
 	TryCreateEnableable(created);
@@ -221,16 +385,67 @@ T_GO* Scene::CreateObjectOn(SceneNode* node) {
 	return created;
 }
 
-template<class T_GO, typename... T_Param>
+template<class T_GO>
 	requires std::derived_from<T_GO, GameObject>
-T_GO* Scene::CreateObjectOn(SceneNode* node, T_Param... params) {
-	T_GO* created = new T_GO(params...);
-	created->node = node;
+std::vector<T_GO*> Scene::FindObjectsOfType() {
+	return this->root->GetAllObjectsInChildren<T_GO>();
+}
 
-	TryCreateAwakeable(created);
-	TryCreateEnableable(created);
-	TryCreateUpdateable(created);
-	TryCreateRenderable(created);
+template<class T_GO>
+	requires std::derived_from<T_GO, GameObject> && Updateable<T_GO>
+std::vector<T_GO*> Scene::FindObjectsOfType() {
+	std::vector<T_GO*> result;
 
-	return created;
+	for (const auto& updateableObj : this->updateable) {
+		T_GO* objPtr = dynamic_cast<T_GO*>(updateableObj.objPtr);
+
+		if (objPtr) {
+			result.push_back(objPtr);
+		}
+	}
+
+	return result;
+}
+
+template<class T_GO>
+	requires std::derived_from<T_GO, GameObject> && Renderable<T_GO>
+std::vector<T_GO*> Scene::FindObjectsOfType() {
+	std::vector<T_GO*> result;
+
+	for (const auto& renderableObj : this->renderable) {
+		T_GO* objPtr = dynamic_cast<T_GO*>(renderableObj.objPtr);
+
+		if (objPtr) {
+			result.push_back(objPtr);
+		}
+	}
+
+	return result;
+}
+
+template<class T_GO>
+	requires std::derived_from<T_GO, GameObject> && Updateable<T_GO> && Renderable<T_GO>
+std::vector<T_GO*> Scene::FindObjectsOfType() {
+	std::vector<T_GO*> result;
+
+	if (this->updateable.size() <= this->renderable.size()) {
+		for (const auto& updateableObj : this->updateable) {
+			T_GO* objPtr = dynamic_cast<T_GO*>(updateableObj.objPtr);
+
+			if (objPtr) {
+				result.push_back(objPtr);
+			}
+		}
+	}
+	else {
+		for (const auto& renderableObj : this->renderable) {
+			T_GO* objPtr = dynamic_cast<T_GO*>(renderableObj.objPtr);
+
+			if (objPtr) {
+				result.push_back(objPtr);
+			}
+		}
+	}
+
+	return result;
 }

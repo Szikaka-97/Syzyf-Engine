@@ -6,19 +6,29 @@
 
 class GameObject {
 	friend class Scene;
+private:
+	bool enabled;
+	MessageMethod onEnable;
+	MessageMethod onDisable;
 protected:
 	SceneNode* node;
+	
 	Transform& GetTransform() const;
 	Transform::TransformAccess& GlobalTransform() const;
 	Transform::TransformAccess& LocalTransform() const;
 	SceneNode* GetNode() const;
 	Scene* GetScene() const;
 public:
+	virtual ~GameObject();
+
 	Transform& GetTransform();
 	Transform::TransformAccess& GlobalTransform();
 	Transform::TransformAccess& LocalTransform();
 	SceneNode* GetNode();
 	Scene* GetScene();
+
+	bool IsEnabled() const;
+	void SetEnabled(bool enabled);
 
 	template<class T_GO>
 		requires std::derived_from<T_GO, GameObject>
@@ -27,6 +37,14 @@ public:
 	template<class T_GO, typename... T_Param>
 		requires std::derived_from<T_GO, GameObject>
 	T_GO* AddObject(T_Param... params) const;
+
+	template<class T_GO, typename... T_Param>
+		requires std::derived_from<T_GO, GameObject>
+	T_GO* GetObject() const;
+
+	template<class T_GO, typename... T_Param>
+		requires std::derived_from<T_GO, GameObject>
+	bool TryGetObject(T_GO*& target) const;
 };
 
 template<class T_GO>
@@ -39,6 +57,18 @@ template<class T_GO, typename... T_Param>
 	requires std::derived_from<T_GO, GameObject>
 T_GO* GameObject::AddObject(T_Param... params) const {
 	return this->node->AddObject<T_GO>(params...);
+}
+
+template<class T_GO, typename... T_Param>
+	requires std::derived_from<T_GO, GameObject>
+T_GO* GameObject::GetObject() const {
+	return this->node->GetObject<T_GO>();
+}
+
+template<class T_GO, typename... T_Param>
+	requires std::derived_from<T_GO, GameObject>
+bool GameObject::TryGetObject(T_GO*& target) const {
+	return this->node->TryGetObject<T_GO>(target);
 }
 
 // template <class T_Required>

@@ -32,6 +32,7 @@ private:
 public:
 	Camera(Perspective perspectiveData);
 	Camera(Orthographic orthoData);
+	virtual ~Camera();
 
 	void MakePerspective();
 	void MakePerspective(float fovyDegrees, float aspectRatio, float nearPlane, float farPlane);
