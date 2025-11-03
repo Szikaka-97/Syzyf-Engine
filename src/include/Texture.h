@@ -48,7 +48,7 @@ public:
 	template <class T_Tex>
 	static T_Tex* Load(fs::path texturePath, TextureFormat format) = delete;
 
-	virtual ~Texture() = default;
+	virtual ~Texture();
 
 	virtual constexpr TextureType GetType() const = 0;
 

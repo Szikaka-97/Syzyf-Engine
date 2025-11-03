@@ -36,6 +36,10 @@ bool MagFilterValid(GLenum magFilter) {
 	);
 }
 
+Texture::~Texture() {
+	glDeleteTextures(1, &this->handle);
+}
+
 GLenum Texture::TextureFormatToGL(TextureFormat format) {
 	static GLenum glFormats[] {
 		GL_RED,
