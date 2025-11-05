@@ -372,9 +372,14 @@ bool Scene::TryCreateRenderable(T_GO* object) {
 template<class T_GO, typename... T_Param>
 	requires std::derived_from<T_GO, GameObject>
 T_GO* Scene::CreateObjectOn(SceneNode* node, T_Param... params) {
-	T_GO* created = new T_GO(params...);
-	created->node = node;
+	alignas(T_GO) unsigned char* dataBuf = new unsigned char[sizeof(T_GO)];
+	memset(dataBuf, 0, sizeof(T_GO));
+	volatile T_GO* bufAsObjPtr = reinterpret_cast<T_GO*>(dataBuf);
 
+	bufAsObjPtr->node = node;
+
+	T_GO* created = new(const_cast<T_GO*>(bufAsObjPtr)) T_GO(params...);
+	
 	node->objects.push_back(created);
 
 	TryCreateAwakeable(created);
