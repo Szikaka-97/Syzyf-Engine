@@ -13,17 +13,17 @@ private:
 protected:
 	SceneNode* node;
 	
-	Transform& GetTransform() const;
-	Transform::TransformAccess& GlobalTransform() const;
-	Transform::TransformAccess& LocalTransform() const;
+	SceneTransform& GetTransform() const;
+	SceneTransform::TransformAccess& GlobalTransform() const;
+	SceneTransform::TransformAccess& LocalTransform() const;
 	SceneNode* GetNode() const;
 	Scene* GetScene() const;
 public:
 	virtual ~GameObject();
 
-	Transform& GetTransform();
-	Transform::TransformAccess& GlobalTransform();
-	Transform::TransformAccess& LocalTransform();
+	SceneTransform& GetTransform();
+	SceneTransform::TransformAccess& GlobalTransform();
+	SceneTransform::TransformAccess& LocalTransform();
 	SceneNode* GetNode();
 	Scene* GetScene();
 

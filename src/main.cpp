@@ -59,10 +59,10 @@ public:
 		glm::quat rotation = glm::identity<glm::quat>();
 
 		if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-			movement += this->GlobalTransform().Left();
+			movement += this->GlobalTransform().Right();
 		}
 		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-			movement += this->GlobalTransform().Right();
+			movement += this->GlobalTransform().Left();
 		}
 		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
 			movement += this->GlobalTransform().Forward();
@@ -267,4 +267,3 @@ void EndFrame() {
 	glfwMakeContextCurrent(window);
 	glfwSwapBuffers(window);
 }
-

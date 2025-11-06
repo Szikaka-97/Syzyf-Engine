@@ -8,31 +8,31 @@
 
 #include <spdlog/spdlog.h>
 
-bool Transform::IsDirty() const {
+bool SceneTransform::IsDirty() const {
 	return localTransform.IsDirty() || globalTransform.IsDirty();
 }
 
-Transform::TransformAccess& Transform::GlobalTransform() {
+SceneTransform::TransformAccess& SceneTransform::GlobalTransform() {
 	return this->globalTransform;
 }
 
-Transform::TransformAccess& Transform::LocalTransform() {
+SceneTransform::TransformAccess& SceneTransform::LocalTransform() {
 	return this->localTransform;
 }
 
-Transform::Transform() :
+SceneTransform::SceneTransform() :
 globalTransform(*this),
 localTransform(*this),
 parent(nullptr) { }
 
-Transform::Transform(const glm::mat4 transformation) :
+SceneTransform::SceneTransform(const glm::mat4& transformation) :
 globalTransform(*this),
 localTransform(*this),
 parent(nullptr) {
 	this->globalTransform = transformation;
 }
 
-Transform::Transform(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale) :
+SceneTransform::SceneTransform(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale) :
 globalTransform(*this),
 localTransform(*this),
 parent(nullptr) {
@@ -41,17 +41,17 @@ parent(nullptr) {
 	this->globalTransform.Scale() = scale;
 }
 
-void Transform::ClearDirty() {
+void SceneTransform::ClearDirty() {
 	this->globalTransform.dirty = false;
 	this->localTransform.dirty = false;
 }
  
-Transform::TransformAccess::TransformAccess(Transform& source) :
+SceneTransform::TransformAccess::TransformAccess(SceneTransform& source) :
 dirty(false),
 source(source),
 transformation(glm::identity<glm::mat4>()) { }
 
-void Transform::TransformAccess::MarkDirty() {
+void SceneTransform::TransformAccess::MarkDirty() {
 	this->dirty = true;
 
 	if (this->source.parent) {
@@ -59,48 +59,48 @@ void Transform::TransformAccess::MarkDirty() {
 	}
 }
 
-bool Transform::TransformAccess::IsDirty() const {
+bool SceneTransform::TransformAccess::IsDirty() const {
 	return this->dirty;
 }
 
-Transform::PositionAccess Transform::TransformAccess::Position() {
-	return Transform::PositionAccess(*this);
+SceneTransform::PositionAccess SceneTransform::TransformAccess::Position() {
+	return SceneTransform::PositionAccess(*this);
 }
-Transform::RotationAccess Transform::TransformAccess::Rotation() {
-	return Transform::RotationAccess(*this);
+SceneTransform::RotationAccess SceneTransform::TransformAccess::Rotation() {
+	return SceneTransform::RotationAccess(*this);
 }
-Transform::ScaleAccess Transform::TransformAccess::Scale() {
-	return Transform::ScaleAccess(*this);
+SceneTransform::ScaleAccess SceneTransform::TransformAccess::Scale() {
+	return SceneTransform::ScaleAccess(*this);
 }
 
-glm::vec3 Transform::TransformAccess::Forward() const {
+glm::vec3 SceneTransform::TransformAccess::Forward() const {
 	return glm::column(this->transformation, 2);
 }
-glm::vec3 Transform::TransformAccess::Backward() const {
+glm::vec3 SceneTransform::TransformAccess::Backward() const {
 	return -glm::column(this->transformation, 2);
 }
-glm::vec3 Transform::TransformAccess::Up() const {
+glm::vec3 SceneTransform::TransformAccess::Up() const {
 	return glm::column(this->transformation, 1);
 }
-glm::vec3 Transform::TransformAccess::Down() const {
+glm::vec3 SceneTransform::TransformAccess::Down() const {
 	return -glm::column(this->transformation, 1);
 }
-glm::vec3 Transform::TransformAccess::Right() const {
-	return -glm::column(this->transformation, 0);
-}
-glm::vec3 Transform::TransformAccess::Left() const {
+glm::vec3 SceneTransform::TransformAccess::Right() const {
 	return glm::column(this->transformation, 0);
 }
+glm::vec3 SceneTransform::TransformAccess::Left() const {
+	return -glm::column(this->transformation, 0);
+}
 
-glm::mat4 Transform::TransformAccess::Value() const {
+glm::mat4 SceneTransform::TransformAccess::Value() const {
 	return this->transformation;
 }
 
-Transform::TransformAccess::operator glm::mat4() const {
+SceneTransform::TransformAccess::operator glm::mat4() const {
 	return this->transformation;
 }
 
-Transform::TransformAccess& Transform::TransformAccess::operator=(const glm::mat4& transformation) {
+SceneTransform::TransformAccess& SceneTransform::TransformAccess::operator=(const glm::mat4& transformation) {
 	this->transformation = transformation;
 
 	MarkDirty();
@@ -108,45 +108,47 @@ Transform::TransformAccess& Transform::TransformAccess::operator=(const glm::mat
 	return *this;
 }
 
-Transform::PositionAccess::PositionAccess(TransformAccess& source) :
-source(source) { }
+SceneTransform::PositionAccess::PositionAccess(TransformAccess& source) :
+source(source),
+value(glm::column(source.transformation, 3)) { }
 
-glm::vec3 Transform::PositionAccess::Value() const {
-	return glm::column(this->source.transformation, 3);
+SceneTransform::PositionAccess::~PositionAccess() {
+	glm::vec3 oldValue = glm::column(source.transformation, 3);
+
+	if (oldValue != this->value) {
+		this->source.transformation[3] = glm::vec4(this->value, 1.0f);
+		this->source.MarkDirty();
+	}
 }
 
-Transform::PositionAccess::operator glm::vec3() const {
+glm::vec3 SceneTransform::PositionAccess::Value() const {
+	return this->value;
+}
+
+SceneTransform::PositionAccess::operator glm::vec3() const {
 	return Value();
 }
 
-Transform::PositionAccess& Transform::PositionAccess::operator=(const glm::vec3& position) {
-	this->source.transformation[3] = glm::vec4(position, 1.0f);
-
-	this->source.MarkDirty();
+SceneTransform::PositionAccess& SceneTransform::PositionAccess::operator=(const glm::vec3& position) {
+	this->value = position;
 
 	return *this;
 }
 
-Transform::PositionAccess& Transform::PositionAccess::operator+=(const glm::vec3& position) {
-	this->source.transformation[3] += glm::vec4(position, 0.0f);
-
-	this->source.MarkDirty();
+SceneTransform::PositionAccess& SceneTransform::PositionAccess::operator+=(const glm::vec3& position) {
+	this->value += position;
 
 	return *this;
 }
 
-Transform::PositionAccess& Transform::PositionAccess::operator-=(const glm::vec3& position) {
-	this->source.transformation[3] += glm::vec4(position, 0.0f);
-
-	this->source.MarkDirty();
+SceneTransform::PositionAccess& SceneTransform::PositionAccess::operator-=(const glm::vec3& position) {
+	this->value -= position;
 
 	return *this;
 }
 
-Transform::RotationAccess::RotationAccess(TransformAccess& source) :
-source(source) { }
-
-glm::quat Transform::RotationAccess::Value() const {
+SceneTransform::RotationAccess::RotationAccess(TransformAccess& source) :
+source(source) {
 	glm::vec3 scale = this->source.Scale();
 
 	glm::mat3 rotationMatrix = (glm::mat3) this->source.transformation;
@@ -155,83 +157,147 @@ glm::quat Transform::RotationAccess::Value() const {
 	rotationMatrix[1] /= scale.y;
 	rotationMatrix[2] /= scale.z;
 
-	return glm::normalize(glm::quat(rotationMatrix));
+	this->value = glm::normalize(glm::quat(rotationMatrix));
 }
 
-Transform::RotationAccess::operator glm::quat() const {
-	return Value();
-}
-
-Transform::RotationAccess& Transform::RotationAccess::operator=(const glm::quat& rotation) {
+SceneTransform::RotationAccess::~RotationAccess() {
 	glm::vec3 scale = this->source.Scale();
 
-	glm::mat3 rotationMatrix = glm::mat3_cast(glm::normalize(rotation));
-	
+	glm::mat3 rotationMatrix = glm::mat3_cast(glm::normalize(this->value));
+
 	rotationMatrix[0] *= scale.x;
 	rotationMatrix[1] *= scale.y;
 	rotationMatrix[2] *= scale.z;
 
-	this->source.transformation[0][0] = rotationMatrix[0][0];
-	this->source.transformation[0][1] = rotationMatrix[0][1];
-	this->source.transformation[0][2] = rotationMatrix[0][2];
-	this->source.transformation[1][0] = rotationMatrix[1][0];
-	this->source.transformation[1][1] = rotationMatrix[1][1];
-	this->source.transformation[1][2] = rotationMatrix[1][2];
-	this->source.transformation[2][0] = rotationMatrix[2][0];
-	this->source.transformation[2][1] = rotationMatrix[2][1];
-	this->source.transformation[2][2] = rotationMatrix[2][2];
+	if (rotationMatrix != (glm::mat3) this->source.transformation) {
+		this->source.transformation[0][0] = rotationMatrix[0][0];
+		this->source.transformation[0][1] = rotationMatrix[0][1];
+		this->source.transformation[0][2] = rotationMatrix[0][2];
+		this->source.transformation[1][0] = rotationMatrix[1][0];
+		this->source.transformation[1][1] = rotationMatrix[1][1];
+		this->source.transformation[1][2] = rotationMatrix[1][2];
+		this->source.transformation[2][0] = rotationMatrix[2][0];
+		this->source.transformation[2][1] = rotationMatrix[2][1];
+		this->source.transformation[2][2] = rotationMatrix[2][2];
+	
+		this->source.MarkDirty();
+	}
+}
 
-	this->source.MarkDirty();
+glm::quat SceneTransform::RotationAccess::Value() const {
+	return this->value;
+}
+
+SceneTransform::RotationAccess::operator glm::quat() const {
+	return Value();
+}
+
+SceneTransform::RotationAccess& SceneTransform::RotationAccess::operator=(const glm::quat& rotation) {
+	this->value = rotation;
 
 	return *this;
 }
 
-Transform::RotationAccess& Transform::RotationAccess::operator*=(const glm::quat& rotation) {
-	*this = Value() * rotation;
-
-	this->source.MarkDirty();
+SceneTransform::RotationAccess& SceneTransform::RotationAccess::operator*=(const glm::quat& rotation) {
+	this->value *= rotation;
 
 	return *this;
 }
 
-Transform::ScaleAccess::ScaleAccess(TransformAccess& source) :
-source(source) { }
+SceneTransform::RotationAccess& SceneTransform::RotationAccess::operator=(const glm::vec3& rotationEuler) {
+	this->value = glm::quat(rotationEuler);
 
-glm::vec3 Transform::ScaleAccess::Value() const {
-	return glm::vec3(
+	return *this;
+}
+
+SceneTransform::RotationAccess& SceneTransform::RotationAccess::operator*=(const glm::vec3& rotationEuler) {
+	this->value *= glm::quat(rotationEuler);;
+
+	return *this;
+}
+
+SceneTransform::ScaleAccess::ScaleAccess(TransformAccess& source) :
+source(source),
+value(
+	glm::length(glm::column(this->source.transformation, 0)),
+	glm::length(glm::column(this->source.transformation, 1)),
+	glm::length(glm::column(this->source.transformation, 2))
+) { }
+
+SceneTransform::ScaleAccess::~ScaleAccess() {
+	glm::vec3 oldScale = glm::vec3(
 		glm::length(glm::column(this->source.transformation, 0)),
 		glm::length(glm::column(this->source.transformation, 1)),
 		glm::length(glm::column(this->source.transformation, 2))
 	);
+
+	if (this->value != oldScale) {
+		this->source.transformation[0][0] /= oldScale.x;
+		this->source.transformation[0][0] *= this->value.x;
+		this->source.transformation[1][1] /= oldScale.y;
+		this->source.transformation[1][1] *= this->value.y;
+		this->source.transformation[2][2] /= oldScale.z;
+		this->source.transformation[2][2] *= this->value.z;
+
+		this->source.MarkDirty();
+	}
 }
 
-Transform::ScaleAccess::operator glm::vec3() const {
+glm::vec3 SceneTransform::ScaleAccess::Value() const {
+	return this->value;
+}
+
+SceneTransform::ScaleAccess::operator glm::vec3() const {
 	return Value();
 }
 
-Transform::ScaleAccess& Transform::ScaleAccess::operator=(const glm::vec3& scale) {
-	glm::vec3 current_scale = Value();
-
-	this->source.transformation[0][0] /= current_scale.x;
-	this->source.transformation[0][0] *= scale.x;
-	this->source.transformation[1][1] /= current_scale.y;
-	this->source.transformation[1][1] *= scale.y;
-	this->source.transformation[2][2] /= current_scale.z;
-	this->source.transformation[2][2] *= scale.z;
-
-	this->source.MarkDirty();
+SceneTransform::ScaleAccess& SceneTransform::ScaleAccess::operator=(const glm::vec3& scale) {
+	this->value = scale;
 
 	return *this;
 }
 
-Transform::ScaleAccess& Transform::ScaleAccess::operator*=(const glm::vec3& scale) {
-	glm::vec3 current_scale = Value();
-
-	this->source.transformation[0][0] *= scale.x;
-	this->source.transformation[1][1] *= scale.y;
-	this->source.transformation[2][2] *= scale.z;
-
-	this->source.MarkDirty();
+SceneTransform::ScaleAccess& SceneTransform::ScaleAccess::operator*=(const glm::vec3& scale) {
+	this->value *= scale;
 
 	return *this;
+}
+
+SceneTransform::ScaleAccess& SceneTransform::ScaleAccess::operator/=(const glm::vec3& scale) {
+	this->value *= 1.0f / scale;
+
+	return *this;
+}
+
+glm::vec3 operator+(const SceneTransform::PositionAccess& lh, const glm::vec3& rh) {
+	return lh.value + rh;
+}
+glm::vec3 operator+(const glm::vec3& lh, const SceneTransform::PositionAccess& rh) {
+	return lh + rh.value;
+}
+glm::vec3 operator-(const SceneTransform::PositionAccess& lh, const glm::vec3& rh) {
+	return lh.value - rh;
+}
+glm::vec3 operator-(const glm::vec3& lh, const SceneTransform::PositionAccess& rh) {
+	return lh - rh.value;
+}
+
+glm::quat operator*(const SceneTransform::RotationAccess& lh, const glm::quat& rh) {
+	return lh.value * rh;
+}
+glm::quat operator*(const glm::quat& lh, const SceneTransform::RotationAccess& rh) {
+	return lh * rh.value;
+}
+
+glm::vec3 operator*(const SceneTransform::ScaleAccess& lh, const glm::vec3& rh) {
+	return lh.value * rh;
+}
+glm::vec3 operator*(const glm::vec3& lh, const SceneTransform::ScaleAccess& rh) {
+	return lh * rh.value;
+}
+glm::vec3 operator/(const SceneTransform::ScaleAccess& lh, const glm::vec3& rh) {
+	return lh.value / rh;
+}
+glm::vec3 operator/(const glm::vec3& lh, const SceneTransform::ScaleAccess& rh) {
+	return lh / rh.value;
 }

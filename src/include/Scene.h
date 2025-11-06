@@ -46,7 +46,7 @@ private:
 	Scene* const scene;
 	std::vector<GameObject*> objects;
 	std::vector<SceneNode*> children;
-	Transform transform;
+	SceneTransform transform;
 
 	SceneNode(Scene* scene);
 	SceneNode() = delete;
@@ -55,9 +55,9 @@ private:
 public:
 	~SceneNode();
 
-	Transform& GetTransform();
-	Transform::TransformAccess& LocalTransform();
-	Transform::TransformAccess& GlobalTransform();
+	SceneTransform& GetTransform();
+	SceneTransform::TransformAccess& LocalTransform();
+	SceneTransform::TransformAccess& GlobalTransform();
 
 	Scene* GetScene();
 
@@ -379,7 +379,7 @@ T_GO* Scene::CreateObjectOn(SceneNode* node, T_Param... params) {
 	bufAsObjPtr->node = node;
 
 	T_GO* created = new(const_cast<T_GO*>(bufAsObjPtr)) T_GO(params...);
-	
+
 	created->node = node;
 	
 	node->objects.push_back(created);

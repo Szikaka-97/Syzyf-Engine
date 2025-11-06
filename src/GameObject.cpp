@@ -6,14 +6,14 @@ GameObject::~GameObject() {
 	this->node->DeleteObject(this);
 }
 
-Transform& GameObject::GetTransform() const {
+SceneTransform& GameObject::GetTransform() const {
 	return this->node->GetTransform();
 }
 
-Transform::TransformAccess& GameObject::GlobalTransform() const {
+SceneTransform::TransformAccess& GameObject::GlobalTransform() const {
 	return this->node->GetTransform().GlobalTransform();
 }
-Transform::TransformAccess& GameObject::LocalTransform() const {
+SceneTransform::TransformAccess& GameObject::LocalTransform() const {
 	return this->node->GetTransform().LocalTransform();
 }
 
@@ -25,14 +25,14 @@ Scene* GameObject::GetScene() const {
 	return this->node->GetScene();
 }
 
-Transform& GameObject::GetTransform() {
+SceneTransform& GameObject::GetTransform() {
 	return this->node->GetTransform();
 }
 
-Transform::TransformAccess& GameObject::GlobalTransform() {
+SceneTransform::TransformAccess& GameObject::GlobalTransform() {
 	return this->node->GetTransform().GlobalTransform();
 }
-Transform::TransformAccess& GameObject::LocalTransform() {
+SceneTransform::TransformAccess& GameObject::LocalTransform() {
 	return this->node->GetTransform().LocalTransform();
 }
 

@@ -62,7 +62,7 @@ void SceneNode::RecalculateTransform() {
 	this->transform.ClearDirty();
 }
 
-Transform& SceneNode::GetTransform() {
+SceneTransform& SceneNode::GetTransform() {
 	if (this->transform.IsDirty()) {
 		RecalculateTransform();
 	}
@@ -70,11 +70,11 @@ Transform& SceneNode::GetTransform() {
 	return this->transform;
 }
 
-Transform::TransformAccess& SceneNode::LocalTransform() {
+SceneTransform::TransformAccess& SceneNode::LocalTransform() {
 	return this->GetTransform().LocalTransform();
 }
 
-Transform::TransformAccess& SceneNode::GlobalTransform() {
+SceneTransform::TransformAccess& SceneNode::GlobalTransform() {
 	return this->GetTransform().GlobalTransform();
 }
 
