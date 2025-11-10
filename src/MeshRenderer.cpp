@@ -11,7 +11,7 @@ dirty(false) {
 	ResetUniformBuffer();
 }
 
-MeshRenderer::MeshRenderer(Mesh mesh, Material* material):
+MeshRenderer::MeshRenderer(Mesh* mesh, Material* material):
 mesh(mesh),
 material(material),
 uniformBufferHandle(0),
@@ -38,11 +38,11 @@ GLuint MeshRenderer::GetUniformBufferHandle() {
 	return this->uniformBufferHandle;
 }
 
-Mesh MeshRenderer::GetMesh() {
+Mesh* MeshRenderer::GetMesh() {
 	return this->mesh;
 }
 
-void MeshRenderer::SetMesh(Mesh newMesh) {
+void MeshRenderer::SetMesh(Mesh* newMesh) {
 	// if (this->material->GetShader()->GetVertexSpec() != newMesh->GetMeshSpec()) {
 	// 	newMesh = newMesh->GetVariant(this->material->GetShader()->GetVertexSpec());
 	// }

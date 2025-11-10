@@ -78,6 +78,7 @@ protected:
 
 	ShaderBase(fs::path filePath, ShaderVariantInfo variantInfo, GLuint handle);
 public:
+	virtual ~ShaderBase();
 	static ShaderBase* Load(fs::path filePath);
 	static ShaderBase* Load(fs::path filePath, const ShaderVariantInfo& variantInfo);
 	
@@ -92,9 +93,11 @@ class VertexShader : public ShaderBase {
 	friend class ShaderBase;
 private:
 	const VertexSpec vertexSpec;
-
+	
 	VertexShader(fs::path filePath, ShaderVariantInfo variantInfo, GLuint handle, VertexSpec spec);
 public:
+	static VertexShader* Load(fs::path filePath);
+
 	const VertexSpec& GetVertexSpec() const;
 
 	virtual GLenum GetType() const;
@@ -105,6 +108,8 @@ class GeometryShader : public ShaderBase {
 private:
 	GeometryShader(fs::path filePath, ShaderVariantInfo variantInfo, GLuint handle);
 public:
+	static GeometryShader* Load(fs::path filePath);
+
 	virtual GLenum GetType() const;
 };
 
@@ -113,6 +118,8 @@ class PixelShader : public ShaderBase {
 private:
 	PixelShader(fs::path filePath, ShaderVariantInfo variantInfo, GLuint handle);
 public:
+	static PixelShader* Load(fs::path filePath);
+
 	virtual GLenum GetType() const;
 };
 
@@ -121,6 +128,8 @@ class ComputeShader : public ShaderBase {
 private:
 	ComputeShader(fs::path filePath, ShaderVariantInfo variantInfo, GLuint handle);
 public:
+	static ComputeShader* Load(fs::path filePath);
+
 	virtual GLenum GetType() const;
 };
 

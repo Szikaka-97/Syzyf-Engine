@@ -16,6 +16,10 @@ filePath(filePath),
 variantInfo(variantInfo),
 handle(handle) { }
 
+ShaderBase::~ShaderBase() {
+	glDeleteShader(this->handle);
+}
+
 const std::string versionHeader =
 "#version 460\n"
 ;
@@ -277,6 +281,20 @@ VertexShader::VertexShader(fs::path filePath, ShaderVariantInfo variantInfo, GLu
 ShaderBase(filePath, variantInfo, handle),
 vertexSpec(spec) { }
 
+VertexShader* VertexShader::Load(fs::path filePath) {
+	ShaderBase* loaded = ShaderBase::Load(filePath);
+
+	VertexShader* result = dynamic_cast<VertexShader*>(loaded);
+
+	if (!result) {
+		delete loaded;
+
+		return nullptr;
+	}
+	
+	return result;
+}
+
 const VertexSpec& VertexShader::GetVertexSpec() const {
 	return this->vertexSpec;
 }
@@ -288,6 +306,20 @@ GLenum VertexShader::GetType() const {
 GeometryShader::GeometryShader(fs::path filePath, ShaderVariantInfo variantInfo, GLuint handle):
 ShaderBase(filePath, variantInfo, handle) { }
 
+GeometryShader* GeometryShader::Load(fs::path filePath) {
+	ShaderBase* loaded = ShaderBase::Load(filePath);
+
+	GeometryShader* result = dynamic_cast<GeometryShader*>(loaded);
+
+	if (!result) {
+		delete loaded;
+
+		return nullptr;
+	}
+	
+	return result;
+}
+
 GLenum GeometryShader::GetType() const {
 	return GL_GEOMETRY_SHADER;
 }
@@ -295,12 +327,40 @@ GLenum GeometryShader::GetType() const {
 PixelShader::PixelShader(fs::path filePath, ShaderVariantInfo variantInfo, GLuint handle):
 ShaderBase(filePath, variantInfo, handle) { }
 
+PixelShader* PixelShader::Load(fs::path filePath) {
+	ShaderBase* loaded = ShaderBase::Load(filePath);
+
+	PixelShader* result = dynamic_cast<PixelShader*>(loaded);
+
+	if (!result) {
+		delete loaded;
+
+		return nullptr;
+	}
+	
+	return result;
+}
+
 GLenum PixelShader::GetType() const {
 	return GL_FRAGMENT_SHADER;
 }
 
 ComputeShader::ComputeShader(fs::path filePath, ShaderVariantInfo variantInfo, GLuint handle):
 ShaderBase(filePath, variantInfo, handle) { }
+
+ComputeShader* ComputeShader::Load(fs::path filePath) {
+	ShaderBase* loaded = ShaderBase::Load(filePath);
+
+	ComputeShader* result = dynamic_cast<ComputeShader*>(loaded);
+
+	if (!result) {
+		delete loaded;
+
+		return nullptr;
+	}
+	
+	return result;
+}
 
 GLenum ComputeShader::GetType() const {
 	return GL_COMPUTE_SHADER;

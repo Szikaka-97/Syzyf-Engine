@@ -23,6 +23,7 @@
 #include <Scene.h>
 #include <Camera.h>
 #include <Skybox.h>
+#include <Resources.h>
 
 static void GLFWErrorCallback(int error, const char* description) {
 	fprintf(stderr, "Glfw Error %d: %s\n", error, description);
@@ -140,30 +141,30 @@ void InitScene() {
 	// quadObject->AddObject<MeshRenderer>(quadMesh, quadMat);
 	// quadObject->AddObject<Camera>(Camera::Orthographic(glm::vec2(3.0f, 3.0f)));
 
-	VertexShader* meshVert = (VertexShader*) ShaderBase::Load("./res/shaders/basic.vert");
-	PixelShader* meshFrag = (PixelShader*) ShaderBase::Load("./res/shaders/basic.frag");
+	VertexShader* meshVert = Resources::Get<VertexShader>("./res/shaders/basic.vert");
+	PixelShader* meshFrag = Resources::Get<PixelShader>("./res/shaders/basic.frag");
 
 	ShaderProgram* meshProg = ShaderProgram::Build().WithVertexShader(meshVert).WithPixelShader(meshFrag).Link();
 
-	VertexShader* skyVert = (VertexShader*) ShaderBase::Load("./res/shaders/skybox.vert");
-	PixelShader* skyFrag = (PixelShader*) ShaderBase::Load("./res/shaders/skybox.frag");
+	VertexShader* skyVert = Resources::Get<VertexShader>("./res/shaders/skybox.vert");
+	PixelShader* skyFrag = Resources::Get<PixelShader>("./res/shaders/skybox.frag");
 
 	ShaderProgram* skyProg = ShaderProgram::Build().WithVertexShader(skyVert).WithPixelShader(skyFrag).Link();
 
-	Mesh cube = Mesh::Load("./res/models/cube.obj", VertexSpec::Mesh);
-
+	// Mesh* cube = Mesh::Load("./res/models/cube.obj", VertexSpec::Mesh);
+	Mesh* cube = Resources::Get<Mesh>("./res/models/cube.obj", VertexSpec::Mesh);
 	Material* centerMat = new Material(meshProg);
 	Material* orbiterMat = new Material(meshProg);
 
-	Texture2D* stoneTex = Texture::Load<Texture2D>("./res/textures/lufis.jpeg", TextureFormat::RGB);
+	Texture2D* stoneTex = Resources::Get<Texture2D>("./res/textures/lufis.jpeg", TextureFormat::RGB);
 	stoneTex->SetMagFilter(GL_LINEAR);
 	stoneTex->SetMinFilter(GL_LINEAR_MIPMAP_LINEAR);
 
-	Texture2D* invStoneTex = Texture::Load<Texture2D>("./res/textures/stone_inv.jpg", TextureFormat::RGB);
+	Texture2D* invStoneTex = Resources::Get<Texture2D>("./res/textures/stone_inv.jpg", TextureFormat::RGB);
 	invStoneTex->SetMagFilter(GL_LINEAR);
 	invStoneTex->SetMinFilter(GL_LINEAR_MIPMAP_LINEAR);
 
-	Cubemap* skyCubemap = Texture::Load<Cubemap>("./res/textures/skybox.jpg", TextureFormat::RGB);
+	Cubemap* skyCubemap = Resources::Get<Cubemap>("./res/textures/skybox.jpg", TextureFormat::RGB);
 
 	Material* skyMat = new Material(skyProg);
 	skyMat->SetValue("skyboxTexture", skyCubemap);

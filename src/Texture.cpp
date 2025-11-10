@@ -307,6 +307,14 @@ Texture2D::Texture2D(unsigned int width, unsigned int height, TextureFormat form
 	glBindTexture(GL_TEXTURE_2D, 0);
 }
 
+Texture2D* Texture2D::Load(fs::path texturePath, TextureFormat format) {
+	return Texture::Load<Texture2D>(texturePath, format);
+}
+
+Cubemap* Cubemap::Load(fs::path texturePath, TextureFormat format) {
+	return Texture::Load<Cubemap>(texturePath, format);
+}
+
 GLenum Cubemap::GetWrapModeW() const {
 	return this->wrapW.value;
 }

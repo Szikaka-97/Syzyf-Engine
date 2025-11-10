@@ -79,6 +79,8 @@ public:
 	Texture2D() = default;
 	Texture2D(unsigned int width, unsigned int height, TextureFormat format = TextureFormat::RGBA);
 
+	static Texture2D* Load(fs::path texturePath, TextureFormat format);
+
 	virtual constexpr TextureType GetType() const {
 		return TextureType::Texture2D;
 	}
@@ -88,6 +90,8 @@ class Cubemap : public Texture {
 private:
 	TextureInfoBit<GLenum> wrapW;
 public:
+	static Cubemap* Load(fs::path texturePath, TextureFormat format);
+
 	GLenum GetWrapModeW() const;
 	void SetWrapModeW(GLenum wrapMode);
 

@@ -83,9 +83,9 @@ bool Mesh::operator!=(const Mesh& other) {
 	return this->meshID != other.meshID;
 }
 
-Mesh Mesh::Load(fs::path modelPath, const VertexSpec& meshSpec) {
+Mesh* Mesh::Load(fs::path modelPath, const VertexSpec& meshSpec) {
 	if (!fs::exists(modelPath) || !fs::is_regular_file(modelPath)) {
-		return Mesh::Invalid;
+		return new Mesh(UINT_MAX, {});
 	}
 
 	unsigned int meshID = loadedMeshes.size();
@@ -97,7 +97,7 @@ Mesh Mesh::Load(fs::path modelPath, const VertexSpec& meshSpec) {
 	);
 
 	if (!loaded_scene || !loaded_scene->HasMeshes()) {
-		return Mesh::Invalid;
+		return new Mesh(UINT_MAX, {});
 	}
 	
 	const aiMesh* currentMesh = loaded_scene->mMeshes[0];
@@ -204,5 +204,5 @@ Mesh Mesh::Load(fs::path modelPath, const VertexSpec& meshSpec) {
 		}
 	});
 
-	return {meshID, meshSpec};
+	return new Mesh(meshID, meshSpec);
 }

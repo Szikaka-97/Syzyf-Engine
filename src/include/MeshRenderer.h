@@ -6,7 +6,7 @@
 
 class MeshRenderer : public GameObject {
 private:
-	Mesh mesh;
+	Mesh* mesh;
 	Material* material;
 
 	GLuint uniformBufferHandle;
@@ -15,10 +15,10 @@ private:
 	void ResetUniformBuffer();
 public:
 	MeshRenderer();
-	MeshRenderer(Mesh mesh, Material* material);
+	MeshRenderer(Mesh* mesh, Material* material);
 
-	Mesh GetMesh();
-	void SetMesh(Mesh newMesh);
+	Mesh* GetMesh();
+	void SetMesh(Mesh* newMesh);
 
 	GLuint GetUniformBufferHandle();
 

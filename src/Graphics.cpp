@@ -6,6 +6,7 @@
 #include <MeshRenderer.h>
 #include <Camera.h>
 #include <Skybox.h>
+#include <Resources.h>
 
 #include <GLFW/glfw3.h>
 
@@ -75,7 +76,7 @@ void SceneGraphics::UpdateScreenResolution(glm::vec2 newResolution) {
 
 void SceneGraphics::RenderObjects(const ShaderGlobalUniforms& globalUniforms) {
 	Material* currentMat = nullptr;
-	Mesh currentMesh;
+	Mesh* currentMesh;
 
 	int index = 0;
 
@@ -83,7 +84,7 @@ void SceneGraphics::RenderObjects(const ShaderGlobalUniforms& globalUniforms) {
 
 	for (auto node : this->currentRenders) {
 		Material* mat = node.renderer->GetMaterial();
-		Mesh mesh = node.renderer->GetMesh();
+		Mesh* mesh = node.renderer->GetMesh();
 	
 		objectUniforms.Object_ModelMatrix = node.renderer->GlobalTransform();
 		objectUniforms.Object_MVPMatrix = globalUniforms.Global_VPMatrix * objectUniforms.Object_ModelMatrix;
@@ -97,16 +98,16 @@ void SceneGraphics::RenderObjects(const ShaderGlobalUniforms& globalUniforms) {
 		// if (mat != currentMat) {
 			mat->Bind();
 		// }
-			
+		
 		// if (mesh.GetHandle() != currentMesh.GetHandle()) {
-			glBindVertexArray(mesh.GetHandle());
+			glBindVertexArray(mesh->GetHandle());
 		// }
 
 		if (node.instanceCount <= 0) {
-			glDrawElements(node.mode, mesh.GetTriangleCount() * 3, GL_UNSIGNED_INT, nullptr);
+			glDrawElements(node.mode, mesh->GetTriangleCount() * 3, GL_UNSIGNED_INT, nullptr);
 		}
 		else {
-			glDrawElementsInstanced(node.mode, mesh.GetTriangleCount() * 3, GL_UNSIGNED_INT, nullptr, node.instanceCount);
+			glDrawElementsInstanced(node.mode, mesh->GetTriangleCount() * 3, GL_UNSIGNED_INT, nullptr, node.instanceCount);
 		}
 
 		currentMat = mat;
@@ -168,25 +169,25 @@ void SceneGraphics::Render() {
 void SceneGraphics::RenderFullscreenFrameQuad() {
 	static ShaderProgram* quadProg = ShaderProgram::Build()
 	.WithVertexShader(
-		(VertexShader*) ShaderBase::Load("./res/shaders/fullscreen.vert")
+		Resources::Get<VertexShader>("./res/shaders/fullscreen.vert")
 	)
 	.WithPixelShader(
-		(PixelShader*) ShaderBase::Load("./res/shaders/blit.frag")
+		Resources::Get<PixelShader>("./res/shaders/blit.frag")
 	).Link();
 
-	static Mesh quadMesh = Mesh::Load("./res/models/fullscreenquad.obj", VertexSpec::Mesh);
+	static Mesh* quadMesh = Resources::Get<Mesh>("./res/models/fullscreenquad.obj", VertexSpec::Mesh);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	glDisable(GL_DEPTH_TEST);
 
-	glBindVertexArray(quadMesh.GetHandle());
+	glBindVertexArray(quadMesh->GetHandle());
 
 	glUseProgram(quadProg->GetHandle());
 
 	glBindTexture(GL_TEXTURE_2D, this->colorPassOutputTexture);
 	
-	glDrawElements(GL_TRIANGLES, quadMesh.GetTriangleCount() * 3, GL_UNSIGNED_INT, nullptr);
+	glDrawElements(GL_TRIANGLES, quadMesh->GetTriangleCount() * 3, GL_UNSIGNED_INT, nullptr);
 	
 	glBindTexture(GL_TEXTURE_2D, 0);
 
