@@ -9,6 +9,7 @@
 #include <spdlog/spdlog.h>
 
 class GameObject;
+class Light;
 
 typedef void (GameObject::*MessageMethod)();
 
@@ -114,6 +115,7 @@ private:
 
 	std::list<MessageReceiver> updateable;
 	std::list<MessageReceiver> renderable;
+	std::list<const Light*> sceneLights;
 	SceneNode* root;
 
 	SceneGraphics* graphics;
@@ -158,6 +160,9 @@ private:
 		requires std::derived_from<T_GO, GameObject> && Disableable<T_GO>
 	bool TryCreateDisableable(T_GO* object);
 
+	template<class T_GO>
+	bool TryAddLight(T_GO* object);
+
 	void DeleteObjectInternal(GameObject* obj);
 	void DeleteNodeInternal(SceneNode* node);
 public:
@@ -189,6 +194,8 @@ public:
 	template<class T_GO>
 		requires std::derived_from<T_GO, GameObject> && Updateable<T_GO> && Renderable<T_GO>
 	std::vector<T_GO*> FindObjectsOfType();
+
+	const std::list<const Light*> GetSceneLights() const;
 
 	void Update();
 	void Render();
@@ -369,6 +376,14 @@ bool Scene::TryCreateRenderable(T_GO* object) {
 	return true;
 }
 
+template<class T_GO>
+bool Scene::TryAddLight(T_GO* object) {
+	return false;
+}
+
+template<>
+bool Scene::TryAddLight<Light>(Light* object);
+
 template<class T_GO, typename... T_Param>
 	requires std::derived_from<T_GO, GameObject>
 T_GO* Scene::CreateObjectOn(SceneNode* node, T_Param... params) {
@@ -388,6 +403,7 @@ T_GO* Scene::CreateObjectOn(SceneNode* node, T_Param... params) {
 	TryCreateEnableable(created);
 	TryCreateUpdateable(created);
 	TryCreateRenderable(created);
+	TryAddLight(created);
 
 	return created;
 }

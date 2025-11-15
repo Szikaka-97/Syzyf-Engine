@@ -25,12 +25,12 @@ struct Light {
 	float range;
 
 	vec3 color;
-	float strength;
-
 	float spotlightAngle;
+
 	float intensity;
 	float attenuation;
 	uint enabled;
+	uint _padding;
 };
 
 struct Sphere {

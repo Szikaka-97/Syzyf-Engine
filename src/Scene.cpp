@@ -6,6 +6,7 @@
 
 #include <spdlog/spdlog.h>
 #include <GameObject.h>
+#include <Light.h>
 
 SceneNode::SceneNode(Scene* scene) :
 scene(scene),
@@ -144,6 +145,13 @@ void Scene::MessageReceiver::Message() {
 	(*this->objPtr.*this->methodPtr)();
 }
 
+template<>
+bool Scene::TryAddLight<Light>(Light* object) {
+	this->sceneLights.push_back(object);
+
+	return true;
+}
+
 void Scene::DeleteObjectInternal(GameObject* obj) {
 	this->updateable.remove_if( [obj](const MessageReceiver& msgRcvr) {
 		return msgRcvr.objPtr == obj;
@@ -152,12 +160,24 @@ void Scene::DeleteObjectInternal(GameObject* obj) {
 	this->renderable.remove_if( [obj](const MessageReceiver& msgRcvr) {
 		return msgRcvr.objPtr == obj;
 	} );
+
+	Light* objAsLight = dynamic_cast<Light*>(obj);
+
+	if (objAsLight) {
+		this->sceneLights.remove_if( [objAsLight](const Light* light) {
+			return light == objAsLight;
+		} );
+	}
 }
 
 void Scene::DeleteNodeInternal(SceneNode* node) {
 	if (node == this->root) {
 		this->root = new SceneNode(this);
 	}
+}
+
+const std::list<const Light*> Scene::GetSceneLights() const {
+	return this->sceneLights;
 }
 
 SceneNode* Scene::CreateNode() {

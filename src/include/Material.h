@@ -197,7 +197,7 @@ void ShaderVariableStorage<T_ShaderProg>::Bind() {
 		auto uniformBufferData = uniformBuffers[i];
 
 		glBindBuffer(GL_UNIFORM_BUFFER, uniformBufferData.bufferHandle);
-		glBufferSubData(GL_UNIFORM_BUFFER, 0, uniformBufferSpec.size, uniformBufferData.bufferData);
+		glBufferData(GL_UNIFORM_BUFFER, uniformBufferSpec.size, uniformBufferData.bufferData, GL_STREAM_DRAW);
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 		glBindBufferBase(GL_UNIFORM_BUFFER, uniformBufferSpec.binding, uniformBufferData.bufferHandle);
@@ -233,10 +233,6 @@ shader(shader) {
 		memset(this->uniformBuffers[i].bufferData, 0, bufferSize);
 
 		this->uniformBuffers[i].bufferHandle = bufferHandle;
-
-		glBindBuffer(GL_UNIFORM_BUFFER, bufferHandle);
-		glBufferData(GL_UNIFORM_BUFFER, bufferSize, nullptr, GL_STATIC_DRAW);
-		glBindBuffer(GL_UNIFORM_BUFFER, 0);
 	}
 
 	int storageBuffersCount = shader->GetUniforms().StorageBuffersCount();

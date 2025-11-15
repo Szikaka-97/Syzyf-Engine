@@ -25,7 +25,7 @@ shouldRecalculateFrustums(false) {
 
 	glGenBuffers(1, &this->globalUniformsBuffer);
 	glBindBuffer(GL_UNIFORM_BUFFER, this->globalUniformsBuffer);
-	glBufferData(GL_UNIFORM_BUFFER, sizeof(ShaderGlobalUniforms), nullptr, GL_STATIC_DRAW);
+	glBufferData(GL_UNIFORM_BUFFER, sizeof(ShaderGlobalUniforms), nullptr, GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_UNIFORM_BUFFER, 0);
 	
 	glBindBufferBase(GL_UNIFORM_BUFFER, 0, this->globalUniformsBuffer);
@@ -205,10 +205,10 @@ void SceneGraphics::Render() {
 	}
 
 	this->lightCullingShader->GetData()->BindStorageBuffer(0, this->gridFrustumsBuffer);
-	this->lightCullingShader->GetData()->BindStorageBuffer(1, emptyBuffer);
-	this->lightCullingShader->GetData()->BindStorageBuffer(2, emptyBuffer);
-	this->lightCullingShader->GetData()->BindStorageBuffer(3, emptyBuffer);
-	this->lightCullingShader->GetData()->BindStorageBuffer(4, emptyBuffer);
+	this->lightCullingShader->GetData()->BindStorageBuffer(1, 0);
+	this->lightCullingShader->GetData()->BindStorageBuffer(2, 0);
+	this->lightCullingShader->GetData()->BindStorageBuffer(3, 0);
+	this->lightCullingShader->GetData()->BindStorageBuffer(4, 0);
 	
 	this->lightCullingShader->GetData()->SetValue("depthTexture", &depthTexture);
 	this->lightCullingShader->GetData()->SetValue("testTexture", testTexture);
