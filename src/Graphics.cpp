@@ -34,9 +34,6 @@ lightIndexCounter(0),
 opaqueLightsGrid(0),
 transparentLightsGrid(0),
 shouldRecalculateFrustums(false) {
-	// currentRenders.reserve(64);
-	// currentRenders.reserve()
-
 	glGenBuffers(1, &this->globalUniformsBuffer);
 	glBindBuffer(GL_UNIFORM_BUFFER, this->globalUniformsBuffer);
 	glBufferData(GL_UNIFORM_BUFFER, sizeof(ShaderGlobalUniforms), nullptr, GL_DYNAMIC_DRAW);
@@ -45,14 +42,12 @@ shouldRecalculateFrustums(false) {
 	glBindBufferBase(GL_UNIFORM_BUFFER, 0, this->globalUniformsBuffer);
 
 	glGenBuffers(1, &this->lightsBuffer);
-	// glNamedBufferData(this->lightsBuffer, 32 + sizeof(Light::LightRep), nullptr, GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->lightsBuffer);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, 32 + sizeof(Light::LightRep), nullptr, GL_DYNAMIC_DRAW);
 
 	glGenBuffers(1, &this->opaqueLightIndexList);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->opaqueLightIndexList);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, (1920*1080) / (LIGHT_GRID_SIZE*LIGHT_GRID_SIZE) * sizeof(unsigned int), nullptr, GL_STATIC_READ);
-	// glNamedBufferData(this->opaqueLightIndexList, (1920*1080) / (LIGHT_GRID_SIZE*LIGHT_GRID_SIZE) * sizeof(unsigned int), nullptr, GL_STATIC_READ);
 
 	glGenBuffers(1, &this->transparentLightIndexList);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->transparentLightIndexList);
@@ -123,7 +118,6 @@ void SceneGraphics::UpdateScreenResolution(glm::vec2 newResolution) {
 		this->shouldRecalculateFrustums = true;
 
 		if (this->opaqueLightsGrid) {
-			// glGenTextures(1, &this->opaqueLightsGrid);
 			delete this->opaqueLightsGrid;
 		}
 		if (this->transparentLightsGrid) {

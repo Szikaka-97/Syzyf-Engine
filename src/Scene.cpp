@@ -17,8 +17,6 @@ parent(nullptr) {
 }
 
 SceneNode::~SceneNode() {
-	spdlog::info("Deleting node");
-
 	int objectsCount = this->objects.size();
 	GameObject* objectsCopy[objectsCount];
 
