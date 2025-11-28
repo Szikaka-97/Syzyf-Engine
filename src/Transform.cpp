@@ -129,6 +129,10 @@ SceneTransform::PositionAccess::operator glm::vec3() const {
 	return Value();
 }
 
+SceneTransform::PositionAccess::operator glm::vec2() const {
+	return (glm::vec2) Value();
+}
+
 SceneTransform::PositionAccess& SceneTransform::PositionAccess::operator=(const glm::vec3& position) {
 	this->value = position;
 
@@ -145,6 +149,50 @@ SceneTransform::PositionAccess& SceneTransform::PositionAccess::operator-=(const
 	this->value -= position;
 
 	return *this;
+}
+
+SceneTransform::PositionAccess& SceneTransform::PositionAccess::operator=(const glm::vec2& position) {
+	this->value = glm::vec3(position, 0.0);
+
+	return *this;
+}
+
+SceneTransform::PositionAccess& SceneTransform::PositionAccess::operator+=(const glm::vec2& position) {
+	this->value += glm::vec3(position, 0.0);
+
+	return *this;
+}
+
+SceneTransform::PositionAccess& SceneTransform::PositionAccess::operator-=(const glm::vec2& position) {
+	this->value -= glm::vec3(position, 0.0);
+
+	return *this;
+}
+
+SceneTransform::PositionAccess& SceneTransform::PositionAccess::SetX(float x) {
+	this->x = x;
+
+	return *this;
+}
+SceneTransform::PositionAccess& SceneTransform::PositionAccess::SetY(float y) {
+	this->y = y;
+
+	return *this;
+}
+SceneTransform::PositionAccess& SceneTransform::PositionAccess::SetZ(float z) {
+	this->z = z;
+
+	return *this;
+}
+
+glm::vec3 SceneTransform::PositionAccess::WithX(float x) const {
+	return glm::vec3(x, this->y, this->z);
+}
+glm::vec3 SceneTransform::PositionAccess::WithY(float y) const {
+	return glm::vec3(this->x, y, this->z);
+}
+glm::vec3 SceneTransform::PositionAccess::WithZ(float z) const {
+	return glm::vec3(this->x, this->y, z);
 }
 
 SceneTransform::RotationAccess::RotationAccess(TransformAccess& source) :

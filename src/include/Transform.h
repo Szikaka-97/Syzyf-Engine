@@ -67,10 +67,22 @@ public:
 
 		glm::vec3 Value() const;
 		operator glm::vec3() const;
+		operator glm::vec2() const;
 
 		PositionAccess& operator=(const glm::vec3& position);
 		PositionAccess& operator+=(const glm::vec3& position);
 		PositionAccess& operator-=(const glm::vec3& position);
+		PositionAccess& operator=(const glm::vec2& position);
+		PositionAccess& operator+=(const glm::vec2& position);
+		PositionAccess& operator-=(const glm::vec2& position);
+
+		PositionAccess& SetX(float x);
+		PositionAccess& SetY(float y);
+		PositionAccess& SetZ(float z);
+
+		glm::vec3 WithX(float x) const;
+		glm::vec3 WithY(float y) const;
+		glm::vec3 WithZ(float z) const;
 	};
 
 	class RotationAccess {
