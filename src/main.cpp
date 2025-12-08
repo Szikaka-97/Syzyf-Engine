@@ -263,9 +263,9 @@ void InitScene() {
 	camera->LocalTransform().Position() = glm::vec3(0.0f, 0.0f, -10.0f);
 
 	SceneNode* lightObject = mainScene->CreateNode(cameraObject);
-	// Light* light = lightObject->AddObject<Light>(Light::PointLight(glm::vec3(1.0, 1.0, 1.0), 100.0, 2.0));
+	Light* light = lightObject->AddObject<Light>(Light::PointLight(glm::vec3(1.0, 1.0, 1.0), 100.0, 2.0));
 
-	for (int i = 0; i < 1; i++) {
+	for (int i = 0; i < 4; i++) {
 		auto lanternObj = mainScene->CreateNode();
 		Light* lantern = lanternObj->AddObject<Light>(Light::PointLight(glm::vec3(1.0, 1.0, 1.0), 100.0, 2.0));
 

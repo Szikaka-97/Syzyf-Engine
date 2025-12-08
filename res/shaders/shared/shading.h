@@ -3,9 +3,9 @@
 vec3 getLightStrength(in Light light, in vec3 worldPos);
 
 vec3 shadeLambert(in Light light, in Material mat, in vec3 worldPos, in vec3 normal, in vec3 tangent) {
-	vec3 direction = light.type == POINT_LIGHT ? normalize(worldPos - light.position) : light.direction;
+	vec3 lightDirection = light.type == POINT_LIGHT ? normalize(light.position - worldPos) : light.direction;
 
-	return getLightStrength(light, worldPos) * mat.diffuseColor * dot(direction, -normal);
+	return getLightStrength(light, worldPos) * mat.diffuseColor * dot(lightDirection, normal);
 }
 
 vec3 shadePhong(in Light light, in Material mat, in vec3 worldPos, in vec3 normal, in vec3 tangent) {
@@ -24,7 +24,7 @@ vec3 shadePhong(in Light light, in Material mat, in vec3 worldPos, in vec3 norma
 	// 	specularLight = vec3(0, 0, 0);
 	// }
 
-	return diffuseLight + specularLight;
+	return diffuseLight;
 }
 
 #define SHADER_SHADING_H

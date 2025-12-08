@@ -1,17 +1,11 @@
 #version 460
 
 #include "shared/shared.h"
+#include "shared/uniforms.h"
 
-struct Material {
-	vec3 diffuseColor;
-	vec3 specularColor;
-	float diffuseStrength;
-	float specularStrength;
-	float specularHighlight;
-};
+#include "shared/shading.h"
 
 #define SHADING_FUNCTION shadeLambert
-vec3 shadeLambert(in Light light, in Material mat, in vec3 worldPos, in vec3 normal, in vec3 tangent);
 
 #include "shared/light.h"
 
@@ -21,12 +15,6 @@ in VS_OUT {
 	vec3 tangent;
 	vec2 texcoords;
 } ps_in;
-
-vec3 shadeLambert(in Light light, in Material mat, in vec3 worldPos, in vec3 normal, in vec3 tangent) {
-	vec3 direction = light.type == POINT_LIGHT ? normalize(worldPos - light.position) : light.direction;
-
-	return getLightStrength(light, worldPos) * mat.diffuseColor * dot(direction, -normal);
-}
 
 uniform sampler2D colorTex;
 uniform vec3 uColor;

@@ -28,13 +28,7 @@ depthPrepassFramebuffer(0),
 depthPrepassDepthTexture(0),
 colorPassFramebuffer(0),
 colorPassOutputTexture(0),
-lightsBuffer(0),
-opaqueLightIndexList(0),
-transparentLightIndexList(0),
-lightIndexCounter(0),
-opaqueLightsGrid(0),
-transparentLightsGrid(0),
-shouldRecalculateFrustums(false) {
+lightsBuffer(0) {
 	glGenBuffers(1, &this->globalUniformsBuffer);
 	glBindBuffer(GL_UNIFORM_BUFFER, this->globalUniformsBuffer);
 	glBufferData(GL_UNIFORM_BUFFER, sizeof(ShaderGlobalUniforms), nullptr, GL_DYNAMIC_DRAW);
@@ -46,23 +40,7 @@ shouldRecalculateFrustums(false) {
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->lightsBuffer);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, 32 + sizeof(ShaderLightRep) * MAX_NUM_LIGHTS, nullptr, GL_DYNAMIC_DRAW);
 
-	glGenBuffers(1, &this->opaqueLightIndexList);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->opaqueLightIndexList);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, (1920*1080) / (LIGHT_GRID_SIZE*LIGHT_GRID_SIZE) * sizeof(unsigned int), nullptr, GL_STATIC_READ);
-
-	glGenBuffers(1, &this->transparentLightIndexList);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->transparentLightIndexList);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, (1920*1080) / (LIGHT_GRID_SIZE*LIGHT_GRID_SIZE) * sizeof(unsigned int), nullptr, GL_STATIC_READ);
-
-	unsigned int countersData[2] {0, 0};
-	glGenBuffers(1, &this->lightIndexCounter);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->lightIndexCounter);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(countersData), countersData, GL_STATIC_READ);
-	
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-
-	this->gridFrustumComputationShader = new ComputeShaderDispatch(Resources::Get<ComputeShader>("./res/shaders/forwardplus/compute_frustums.comp"));
-	this->lightCullingShader = new ComputeShaderDispatch(Resources::Get<ComputeShader>("./res/shaders/forwardplus/light_culling.comp"));
 }
 
 void SceneGraphics::UpdateScreenResolution(glm::vec2 newResolution) {
@@ -109,24 +87,9 @@ void SceneGraphics::UpdateScreenResolution(glm::vec2 newResolution) {
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, this->depthPrepassDepthTexture, 0);
 		}
 
-		if (!this->gridFrustumsBuffer) {
-			glGenBuffers(1, &this->gridFrustumsBuffer);
-
-			this->gridFrustumComputationShader->GetData()->BindStorageBuffer(0, this->gridFrustumsBuffer);
-			this->lightCullingShader->GetData()->BindStorageBuffer(0, this->gridFrustumsBuffer);
+		if (testTexture) {
+			delete testTexture;
 		}
-
-		this->shouldRecalculateFrustums = true;
-
-		if (this->opaqueLightsGrid) {
-			delete this->opaqueLightsGrid;
-		}
-		if (this->transparentLightsGrid) {
-			delete this->transparentLightsGrid;
-		}
-		
-		this->opaqueLightsGrid = new Texture2D(std::ceil((float) newResolution.x / LIGHT_GRID_SIZE), std::ceil((float) newResolution.y / LIGHT_GRID_SIZE), TextureFormat::RGUInt);
-		this->transparentLightsGrid = new Texture2D(std::ceil((float) newResolution.x / LIGHT_GRID_SIZE), std::ceil((float) newResolution.y / LIGHT_GRID_SIZE), TextureFormat::RGUInt);
 		
 		testTexture = new Texture2D(this->screenResolution.x, this->screenResolution.y, TextureFormat::RGFloat);
 	}
@@ -154,13 +117,9 @@ void SceneGraphics::RenderObjects(const ShaderGlobalUniforms& globalUniforms) {
 		glBufferData(GL_UNIFORM_BUFFER, sizeof(objectUniforms), &objectUniforms, GL_STREAM_DRAW);
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-		// if (mat != currentMat) {
-			mat->Bind();
-		// }
+		mat->Bind();
 		
-		// if (mesh.GetHandle() != currentMesh.GetHandle()) {
-			glBindVertexArray(mesh->GetHandle());
-		// }
+		glBindVertexArray(mesh->GetHandle());
 
 		if (node.instanceCount <= 0) {
 			glDrawElements(node.mode, mesh->GetTriangleCount() * 3, GL_UNSIGNED_INT, nullptr);
@@ -189,35 +148,6 @@ void SceneGraphics::Render() {
 	globalUniforms.Global_VPMatrix = globalUniforms.Global_ProjectionMatrix * globalUniforms.Global_ViewMatrix;
 	globalUniforms.Global_CameraWorldPos = glm::vec4(mainCamera->GlobalTransform().Position().value, 0.0);
 	globalUniforms.Global_Time = (float) glfwGetTime();
-
-	struct {
-		glm::mat4 inverseProjection;
-		glm::vec2 screenSize;
-	} screenToViewParams;
-
-	screenToViewParams.inverseProjection = glm::inverse(globalUniforms.Global_ProjectionMatrix);
-	screenToViewParams.screenSize = this->screenResolution;
-
-	if (shouldRecalculateFrustums) {
-		const int FrustumSize = 64;
-		const int FrustumGridSize = 16;
-
-		shouldRecalculateFrustums = false;
-
-		int gridSizeX = std::ceil(this->screenResolution.x / FrustumGridSize);
-		int gridSizeY = std::ceil(this->screenResolution.y / FrustumGridSize);
-
-		glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->gridFrustumsBuffer);
-		glBufferData(GL_SHADER_STORAGE_BUFFER, FrustumSize * gridSizeX * gridSizeY, nullptr, GL_STATIC_DRAW);
-		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-
-		this->gridFrustumComputationShader->GetData()->SetUniformBuffer(0, &screenToViewParams);
-		this->gridFrustumComputationShader->Dispatch(
-			std::ceil((float) gridSizeX / FrustumGridSize),
-			std::ceil((float) gridSizeY / FrustumGridSize),
-			1
-		);
-	}
 
 	glBindBufferBase(GL_UNIFORM_BUFFER, 0, this->globalUniformsBuffer);
 
@@ -250,6 +180,8 @@ void SceneGraphics::Render() {
 
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, this->lightsBuffer);
+
 	glBindFramebuffer(GL_FRAMEBUFFER, this->depthPrepassFramebuffer);
 
 	glClear(GL_DEPTH_BUFFER_BIT);
@@ -257,28 +189,6 @@ void SceneGraphics::Render() {
 	glDepthFunc(GL_LESS);
 
 	RenderObjects(globalUniforms);
-
-	Texture2D depthTexture = Texture::Wrap<Texture2D>(this->depthPrepassDepthTexture);
-
-	this->lightCullingShader->GetData()->BindStorageBuffer(0, this->gridFrustumsBuffer);
-	this->lightCullingShader->GetData()->BindStorageBuffer(1, this->lightsBuffer);
-	this->lightCullingShader->GetData()->BindStorageBuffer(2, this->opaqueLightIndexList);
-	this->lightCullingShader->GetData()->BindStorageBuffer(3, this->transparentLightIndexList);
-	this->lightCullingShader->GetData()->BindStorageBuffer(4, this->lightIndexCounter);
-	
-	this->lightCullingShader->GetData()->SetValue("depthTexture", &depthTexture);
-	this->lightCullingShader->GetData()->SetValue("Light_OpaqueLightGrid", this->opaqueLightsGrid);
-	this->lightCullingShader->GetData()->SetValue("Light_TransparentLightGrid", this->transparentLightsGrid);
-	this->lightCullingShader->GetData()->SetValue("testTexture", testTexture);
-
-	this->lightCullingShader->GetData()->SetUniformBuffer(0, &globalUniforms);
-	this->lightCullingShader->GetData()->SetUniformBuffer(3, &screenToViewParams);
-
-	this->lightCullingShader->Dispatch(
-		std::ceil(this->screenResolution.x / 16),
-		std::ceil(this->screenResolution.y / 16),
-		1
-	);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, this->colorPassFramebuffer);
 
@@ -336,32 +246,10 @@ void SceneGraphics::DrawMesh(MeshRenderer* renderer) {
 }
 
 void SceneGraphics::DrawMeshInstanced(MeshRenderer* renderer, unsigned int instanceCount) {
-	// if (this->currentRenders.size() > 1) {
-	// 	for (RenderNode& node = this->currentRenders[0]; node.nextIndex >= 0; node = this->currentRenders[node.nextIndex]) {
-	// 		if (node.renderer->GetMaterial() == renderer->GetMaterial()) {
-	// 			int newIndex = this->currentRenders.size();
-
-	// 			this->currentRenders.push_back(RenderNode(
-	// 				renderer,
-	// 				GL_TRIANGLES,
-	// 				node.nextIndex,
-	// 				instanceCount
-	// 			));
-
-	// 			node.nextIndex = newIndex;
-	// 		}
-	// 	}
-	// }
-	// else {
-		this->currentRenders.push_back(RenderNode(
-			renderer,
-			GL_TRIANGLES,
-			-1,
-			instanceCount
-		));
-
-		// if (this->currentRenders.size() == 2) {
-		// 	this->currentRenders[0].nextIndex = 1;
-		// }
-	// }
+	this->currentRenders.push_back(RenderNode(
+		renderer,
+		GL_TRIANGLES,
+		-1,
+		instanceCount
+	));
 }

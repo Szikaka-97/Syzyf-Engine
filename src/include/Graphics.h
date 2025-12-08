@@ -10,11 +10,11 @@ class Scene;
 class ComputeShaderDispatch;
 class Texture2D;
 
-struct RenderBatch {
-	Mesh* mesh;
-	Material* material;
-	int argsSize;
-};
+// struct RenderBatch {
+// 	Mesh* mesh;
+// 	Material* material;
+// 	int argsSize;
+// };
 
 class SceneGraphics {
 	friend class Scene;
@@ -33,16 +33,7 @@ private:
 	
 	glm::vec2 screenResolution;
 	
-	GLuint gridFrustumsBuffer;
 	GLuint lightsBuffer;
-	GLuint opaqueLightIndexList;
-	GLuint transparentLightIndexList;
-	GLuint lightIndexCounter;
-	Texture2D* opaqueLightsGrid;
-	Texture2D* transparentLightsGrid;
-	ComputeShaderDispatch* gridFrustumComputationShader;
-	ComputeShaderDispatch* lightCullingShader;
-	bool shouldRecalculateFrustums;
 
 	GLuint depthPrepassFramebuffer;
 	GLuint depthPrepassDepthTexture;
