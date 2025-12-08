@@ -133,6 +133,8 @@ public:
 		ScaleAccess& operator=(const glm::vec3& scale);
 		ScaleAccess& operator*=(const glm::vec3& scale);
 		ScaleAccess& operator/=(const glm::vec3& scale);
+		ScaleAccess& operator*=(float scale);
+		ScaleAccess& operator/=(float scale);
 	};
 
 	SceneTransform();

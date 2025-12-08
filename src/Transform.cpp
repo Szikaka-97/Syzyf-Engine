@@ -317,6 +317,18 @@ SceneTransform::ScaleAccess& SceneTransform::ScaleAccess::operator/=(const glm::
 	return *this;
 }
 
+SceneTransform::ScaleAccess& SceneTransform::ScaleAccess::operator*=(float scale) {
+	this->value *= scale;
+
+	return *this;
+}
+
+SceneTransform::ScaleAccess& SceneTransform::ScaleAccess::operator/=(float scale) {
+	this->value /= scale;
+
+	return *this;
+}
+
 glm::vec3 operator+(const SceneTransform::PositionAccess& lh, const glm::vec3& rh) {
 	return lh.value + rh;
 }
@@ -347,5 +359,17 @@ glm::vec3 operator/(const SceneTransform::ScaleAccess& lh, const glm::vec3& rh) 
 	return lh.value / rh;
 }
 glm::vec3 operator/(const glm::vec3& lh, const SceneTransform::ScaleAccess& rh) {
+	return lh / rh.value;
+}
+glm::vec3 operator*(const SceneTransform::ScaleAccess& lh, float rh) {
+	return lh.value * rh;
+}
+glm::vec3 operator*(float lh, const SceneTransform::ScaleAccess& rh) {
+	return lh * rh.value;
+}
+glm::vec3 operator/(const SceneTransform::ScaleAccess& lh, float rh) {
+	return lh.value / rh;
+}
+glm::vec3 operator/(float lh, const SceneTransform::ScaleAccess& rh) {
 	return lh / rh.value;
 }
