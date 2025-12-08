@@ -187,8 +187,8 @@ void InitScene() {
 	// quadObject->AddObject<MeshRenderer>(quadMesh, quadMat);
 	// quadObject->AddObject<Camera>(Camera::Orthographic(glm::vec2(3.0f, 3.0f)));
 
-	VertexShader* meshVert = Resources::Get<VertexShader>("./res/shaders/basic.vert");
-	PixelShader* meshFrag = Resources::Get<PixelShader>("./res/shaders/basic.frag");
+	VertexShader* meshVert = Resources::Get<VertexShader>("./res/shaders/lit.vert");
+	PixelShader* meshFrag = Resources::Get<PixelShader>("./res/shaders/lambert.frag");
 
 	ShaderProgram* meshProg = ShaderProgram::Build().WithVertexShader(meshVert).WithPixelShader(meshFrag).Link();
 
@@ -197,7 +197,17 @@ void InitScene() {
 
 	ShaderProgram* skyProg = ShaderProgram::Build().WithVertexShader(skyVert).WithPixelShader(skyFrag).Link();
 
-	// Mesh* cube = Mesh::Load("./res/models/cube.obj", VertexSpec::Mesh);
+	ShaderProgram* floorProg = ShaderProgram::Build().WithVertexShader(
+		Resources::Get<VertexShader>("./res/shaders/lit.vert")
+	).WithPixelShader(
+		Resources::Get<PixelShader>("./res/shaders/lambert color.frag")
+	).Link();
+
+	Mesh* floorMesh = Resources::Get<Mesh>("./res/models/floor.obj", VertexSpec::Mesh);
+
+	Material* floorMat = new Material(floorProg);
+	floorMat->SetValue<glm::vec3>("uColor", {1, 1, 1});
+
 	Mesh* cube = Resources::Get<Mesh>("./res/models/cube.obj", VertexSpec::Mesh);
 	Material* centerMat = new Material(meshProg);
 	Material* orbiterMat = new Material(meshProg);
@@ -222,6 +232,11 @@ void InitScene() {
 
 	mainScene = new Scene();
 	
+	auto floorObject = mainScene->CreateNode();
+	auto floorRenderer = floorObject->AddObject<MeshRenderer>(floorMesh, floorMat);
+	floorObject->LocalTransform().Scale() *= 30;
+	floorObject->LocalTransform().Position() = {0, -1, 0};
+
 	auto rendererObject = mainScene->CreateNode();
 	auto cameraObject = mainScene->CreateNode();
 
@@ -247,8 +262,23 @@ void InitScene() {
 
 	camera->LocalTransform().Position() = glm::vec3(0.0f, 0.0f, -10.0f);
 
-	SceneNode* lightObject = mainScene->CreateNode();
-	Light* light = lightObject->AddObject<Light>(Light::PointLight(glm::vec3(1.0, 1.0, 1.0), 1.0, 1.0));
+	SceneNode* lightObject = mainScene->CreateNode(cameraObject);
+	// Light* light = lightObject->AddObject<Light>(Light::PointLight(glm::vec3(1.0, 1.0, 1.0), 100.0, 2.0));
+
+	for (int i = 0; i < 1; i++) {
+		auto lanternObj = mainScene->CreateNode();
+		Light* lantern = lanternObj->AddObject<Light>(Light::PointLight(glm::vec3(1.0, 1.0, 1.0), 100.0, 2.0));
+
+		lantern->LocalTransform().Position() = glm::vec3{
+			-6 + (i % 2) * 12,
+			0,
+			-6 + (i / 2) * 12
+		};
+
+		auto vis = mainScene->CreateNode(lanternObj);
+		vis->LocalTransform().Scale() *= 0.1;
+		MeshRenderer* visRenderer = vis->AddObject<MeshRenderer>(cube, centerMat);
+	}
 
 	auto skyboxObject = mainScene->CreateNode();
 	skyboxObject->AddObject<Skybox>(skyMat);

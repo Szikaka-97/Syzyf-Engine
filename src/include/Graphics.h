@@ -10,6 +10,12 @@ class Scene;
 class ComputeShaderDispatch;
 class Texture2D;
 
+struct RenderBatch {
+	Mesh* mesh;
+	Material* material;
+	int argsSize;
+};
+
 class SceneGraphics {
 	friend class Scene;
 private:

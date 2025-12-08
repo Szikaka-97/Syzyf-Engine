@@ -39,12 +39,15 @@ public:
 	};
 private:
 	LightType type;
+	mutable bool dirty;
 	glm::vec3 color;
 	
 	float range;
 	float spotlightAngle;
 	float intensity;
 	float attenuation;
+
+	mutable glm::mat4 savedTransform;
 public:
 	Light(PointLight lightInfo);
 	Light(SpotLight lightInfo);
@@ -66,6 +69,8 @@ public:
 	void SetRange(float range);
 	void SetIntensity(float intensity);
 	void SetAttenuation(float attenuation);
+
+	bool IsDirty() const;
 
 	ShaderLightRep GetShaderRepresentation() const;
 };

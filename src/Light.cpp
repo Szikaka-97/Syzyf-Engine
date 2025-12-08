@@ -19,27 +19,33 @@ intensity(intensity) { }
 
 Light::Light(Light::PointLight lightInfo):
 type(Light::LightType::Point),
+dirty(true),
 color(lightInfo.color),
 range(lightInfo.range),
 spotlightAngle(0),
 intensity(lightInfo.intensity),
-attenuation(lightInfo.attenuation) { }
+attenuation(lightInfo.attenuation),
+savedTransform(GlobalTransform()) { }
 
 Light::Light(Light::SpotLight lightInfo):
 type(Light::LightType::Spot),
+dirty(true),
 color(lightInfo.color),
 range(lightInfo.range),
 spotlightAngle(lightInfo.spotlightAngle),
 intensity(lightInfo.intensity),
-attenuation(lightInfo.attenuation) { }
+attenuation(lightInfo.attenuation),
+savedTransform(GlobalTransform()) { }
 
 Light::Light(Light::DirectionalLight lightInfo):
 type(Light::LightType::Directional),
+dirty(true),
 color(lightInfo.color),
 range(0),
 spotlightAngle(0),
 intensity(lightInfo.intensity),
-attenuation(0) { }
+attenuation(0),
+savedTransform(GlobalTransform()) { }
 
 void Light::Set(Light::PointLight lightInfo) {
 	this->type = Light::LightType::Point;
@@ -47,6 +53,8 @@ void Light::Set(Light::PointLight lightInfo) {
 	this->range = lightInfo.range;
 	this->intensity = lightInfo.intensity;
 	this->attenuation = lightInfo.attenuation;
+
+	this->dirty = true;
 }
 void Light::Set(Light::SpotLight lightInfo) {
 	this->type = Light::LightType::Spot;
@@ -55,11 +63,15 @@ void Light::Set(Light::SpotLight lightInfo) {
 	this->spotlightAngle = lightInfo.spotlightAngle;
 	this->intensity = lightInfo.intensity;
 	this->attenuation = lightInfo.attenuation;
+
+	this->dirty = true;
 }
 void Light::Set(Light::DirectionalLight lightInfo) {
 	this->type = Light::LightType::Directional;
 	this->color = lightInfo.color;
 	this->intensity = lightInfo.intensity;
+
+	this->dirty = true;
 }
 
 Light::LightType Light::GetType() const {
@@ -88,27 +100,44 @@ float Light::GetAttenuation() const {
 
 void Light::SetType(Light::LightType type) {
 	this->type = type;
+
+	this->dirty = true;
 }
 
 void Light::SetColor(const glm::vec3& color) {
 	this->color = color;
+
+	this->dirty = true;
 }
 
 void Light::SetRange(float range) {
 	this->range = range;
+
+	this->dirty = true;
 }
 
 void Light::SetIntensity(float intensity) {
 	this->intensity = intensity;
+
+	this->dirty = true;
 }
 
 void Light::SetAttenuation(float attenuation) {
 	this->attenuation = attenuation;
+
+	this->dirty = true;
+}
+
+bool Light::IsDirty() const {
+	return this->dirty || (this->savedTransform != GlobalTransform().Value());
 }
 
 ShaderLightRep Light::GetShaderRepresentation() const {
 	ShaderLightRep result;
 	
+	this->savedTransform = GlobalTransform();
+	this->dirty = false;
+
 	result.position = this->GlobalTransform().Position();
 	result.type = (unsigned int) this->type;
 	result.direction = this->GlobalTransform().Forward();

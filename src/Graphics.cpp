@@ -16,6 +16,7 @@
 #include <GLFW/glfw3.h>
 
 #define LIGHT_GRID_SIZE 16
+#define MAX_NUM_LIGHTS 128
 
 static Texture2D* testTexture;
 
@@ -43,7 +44,7 @@ shouldRecalculateFrustums(false) {
 
 	glGenBuffers(1, &this->lightsBuffer);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->lightsBuffer);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, 32 + sizeof(ShaderLightRep), nullptr, GL_DYNAMIC_DRAW);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, 32 + sizeof(ShaderLightRep) * MAX_NUM_LIGHTS, nullptr, GL_DYNAMIC_DRAW);
 
 	glGenBuffers(1, &this->opaqueLightIndexList);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->opaqueLightIndexList);
@@ -121,7 +122,7 @@ void SceneGraphics::UpdateScreenResolution(glm::vec2 newResolution) {
 			delete this->opaqueLightsGrid;
 		}
 		if (this->transparentLightsGrid) {
-			delete this->opaqueLightsGrid;
+			delete this->transparentLightsGrid;
 		}
 		
 		this->opaqueLightsGrid = new Texture2D(std::ceil((float) newResolution.x / LIGHT_GRID_SIZE), std::ceil((float) newResolution.y / LIGHT_GRID_SIZE), TextureFormat::RGUInt);
@@ -145,11 +146,12 @@ void SceneGraphics::RenderObjects(const ShaderGlobalUniforms& globalUniforms) {
 	
 		objectUniforms.Object_ModelMatrix = node.renderer->GlobalTransform();
 		objectUniforms.Object_MVPMatrix = globalUniforms.Global_VPMatrix * objectUniforms.Object_ModelMatrix;
+		objectUniforms.Object_NormalModelMatrix = glm::transpose(glm::inverse(glm::mat3(objectUniforms.Object_ModelMatrix)));
 
 		glBindBufferBase(GL_UNIFORM_BUFFER, 1, node.renderer->GetUniformBufferHandle());
 
 		glBindBuffer(GL_UNIFORM_BUFFER, node.renderer->GetUniformBufferHandle());
-		glBufferData(GL_UNIFORM_BUFFER, sizeof(objectUniforms), &objectUniforms, GL_STATIC_DRAW);
+		glBufferData(GL_UNIFORM_BUFFER, sizeof(objectUniforms), &objectUniforms, GL_STREAM_DRAW);
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 		// if (mat != currentMat) {
@@ -185,6 +187,7 @@ void SceneGraphics::Render() {
 	globalUniforms.Global_ViewMatrix = mainCamera->ViewMatrix();
 	globalUniforms.Global_ProjectionMatrix = mainCamera->ProjectionMatrix();
 	globalUniforms.Global_VPMatrix = globalUniforms.Global_ProjectionMatrix * globalUniforms.Global_ViewMatrix;
+	globalUniforms.Global_CameraWorldPos = glm::vec4(mainCamera->GlobalTransform().Position().value, 0.0);
 	globalUniforms.Global_Time = (float) glfwGetTime();
 
 	struct {
@@ -224,14 +227,26 @@ void SceneGraphics::Render() {
 
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->lightsBuffer);
 	
-	glm::vec4 ambientLight{1.0, 1.0, 1.0, 1.0};
-	int lightsCount = 1;
+	glm::vec4 ambientLight{1.0, 1.0, 1.0, 0.05};
+	auto lightList = this->scene->GetSceneLights();
 
-	ShaderLightRep l = (*this->scene->GetSceneLights().begin())->GetShaderRepresentation();
+	int lightIndex = 0;
+	for (const auto& l : lightList) {
+		if (lightIndex >= MAX_NUM_LIGHTS) {
+			break;
+		}
+
+		if (l->IsDirty()) {
+			ShaderLightRep rep = l->GetShaderRepresentation();
+	
+			glBufferSubData(GL_SHADER_STORAGE_BUFFER, 32 + sizeof(ShaderLightRep) * lightIndex, sizeof(rep), &rep);
+		}
+
+		lightIndex++;
+	}
 
 	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(ambientLight), &ambientLight);
-	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 16, sizeof(lightsCount), &lightsCount);
-	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 32, sizeof(l), &l);
+	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 16, sizeof(lightIndex), &lightIndex);
 
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 

@@ -19,6 +19,22 @@
 #define IN_UV2 location=5
 #define IN_COLOR location=6
 
+#define POINT_LIGHT 0
+#define SPOT_LIGHT 1
+#define DIRECTIONAL_LIGHT 2
+
+float inverseLerp(in float a, in float b, in float v) {
+	return (v - a) / (b - a);
+}
+
+struct Material {
+	vec3 diffuseColor;
+	vec3 specularColor;
+	float diffuseStrength;
+	float specularStrength;
+	float specularHighlight;
+};
+
 #endif
 
 #ifdef __cplusplus
