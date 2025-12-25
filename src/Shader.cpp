@@ -2,11 +2,27 @@
 
 #include <fstream>
 #include <sstream>
+#include <queue>
 
 #include <PreComp.h>
 #include <Material.h>
 
 #include <spdlog/spdlog.h>
+
+struct ShaderCodeSegment {
+	char* str;
+	size_t length;
+};
+
+struct ShaderFile {
+	fs::path filePath;
+	char* content;
+};
+
+struct ShaderCode {
+	std::vector<ShaderFile> loadedFiles;
+	std::vector<ShaderCodeSegment> segments;
+};
 
 ShaderVariantInfo::ShaderVariantInfo(std::initializer_list<ShaderVariantPoint> variantPoints):
 variantPoints(variantPoints) { }
@@ -20,12 +36,26 @@ ShaderBase::~ShaderBase() {
 	glDeleteShader(this->handle);
 }
 
-char* LoadFile(const fs::path& filePath, GLenum& shaderType) {
+char* LoadFile(const fs::path& filePath) {
 	fs::directory_entry shaderFile(filePath);
 
 	// if (!shaderFile.exists()) {
 	// 	throw shader::shader_missing_file_exception(shaderFile);
 	// }
+
+	char* buf = new char[shaderFile.file_size() + 1];
+	
+	std::ifstream shaderFileStream(filePath);
+	
+	shaderFileStream.read(buf, shaderFile.file_size());
+	
+	buf[shaderFile.file_size()] = '\0';
+	
+	return buf;
+}
+
+char* LoadFile(const fs::path& filePath, GLenum& shaderType) {
+	fs::directory_entry shaderFile(filePath);
 
 	shaderType = GL_INVALID_ENUM;
 	
@@ -45,15 +75,7 @@ char* LoadFile(const fs::path& filePath, GLenum& shaderType) {
 		// throw shader::shader_unknown_type_exception(path_to_file);
 	}
 
-	char* buf = new char[shaderFile.file_size() + 1];
-	
-	std::ifstream shaderFileStream(filePath);
-	
-	shaderFileStream.read(buf, shaderFile.file_size());
-	
-	buf[shaderFile.file_size()] = '\0';
-	
-	return buf;
+	return LoadFile(filePath);
 }
 
 int VersionPresent(const std::string& shaderCode) {
@@ -103,69 +125,109 @@ VertexSpec GetVertexSpec(const std::string_view& shaderCode) {
 
 ShaderBase* ShaderBase::Load(fs::path filePath) {
 	GLenum shaderType;
-	char* buf = LoadFile(filePath, shaderType);
-	std::string shaderCode(buf);
+
+	if (filePath.extension() == ".vert") {
+		shaderType = GL_VERTEX_SHADER;
+	}
+	else if (filePath.extension() == ".frag") {
+		shaderType = GL_FRAGMENT_SHADER;
+	}
+	else if (filePath.extension() == ".geom") {
+		shaderType = GL_GEOMETRY_SHADER;
+	}
+	else if (filePath.extension() == ".comp") {
+		shaderType = GL_COMPUTE_SHADER;
+	}
+	else {
+		// throw shader::shader_unknown_type_exception(path_to_file);
+	}
+
 	GLuint shaderHandle = glCreateShader(shaderType);
+	ShaderCode code;
 
-	int versionOffset = VersionPresent(shaderCode);
+	std::queue<fs::path> filesToLoad;
+	filesToLoad.push(filePath);
 
-	auto codeBegin = std::sregex_iterator(shaderCode.begin(), shaderCode.end(), Regex::shaderIncludeRegex);
-	auto codeEnd = std::sregex_iterator();
+	while (!filesToLoad.empty()) {
+		fs::path loadedFilePath = filesToLoad.front();
+		filesToLoad.pop();
 
-	int includeCount = 0;
+		if (std::any_of(code.loadedFiles.begin(), code.loadedFiles.end(), [loadedFilePath](const ShaderFile& f) -> bool {
+			return f.filePath == loadedFilePath;
+		} )) {
+			spdlog::info("Skipping file: {}", loadedFilePath.string());
 
-	for (auto i = codeBegin; i != codeEnd; ++i) {
-		includeCount++;
-		spdlog::info((*i).position());
-	}
-
-	char* splicesStrings[includeCount * 2 + 1];
-	int splicesLengths[includeCount * 2 + 1];
-
-	int pointer = 0;
-
-	int matchIndex = 0;
-	for (auto match = codeBegin; match != codeEnd; ++match) {
-		splicesStrings[matchIndex] = buf + pointer;
-		splicesLengths[matchIndex] = (*match).position() - pointer;
-
-		GLenum _;
-
-		fs::path includeFilePath = fs::path((*match)[1].str());
-
-		if (includeFilePath.is_relative()) {
-			includeFilePath = filePath.parent_path() / fs::path((*match)[1].str());
-	
-			if (!fs::exists(includeFilePath)) {
-				includeFilePath = BaseShaderPath / fs::path((*match)[1].str());
-			}
-	
-			if (!fs::exists(includeFilePath)) {
-				includeFilePath = BaseShaderPath / fs::path((*match)[1].str());
-			}
+			continue;
 		}
 
-		if (!fs::exists(includeFilePath)) {
-			spdlog::error("File {} included in {} doesn't exist", (*match)[1].str(), filePath.string());
+		spdlog::info("Loading file: {}", loadedFilePath.string());
 
-			*((int *) 0) = 0;
+		ShaderFile loadedFile;
+		loadedFile.filePath = loadedFilePath;
+		loadedFile.content = LoadFile(loadedFilePath);
+
+		code.loadedFiles.push_back(loadedFile);
+
+		std::string_view codeView(loadedFile.content, strlen(loadedFile.content));
+		auto codeIt = std::regex_iterator(codeView.cbegin(), codeView.cend(), Regex::shaderIncludeRegex);
+
+		for (decltype(codeIt) last; codeIt != last; ++codeIt) {
+			fs::path includedFile = BaseShaderPath / (*codeIt)[1].str();
+			filesToLoad.push(includedFile);
 		}
-
-		splicesStrings[matchIndex + 1] = LoadFile(includeFilePath, _);
-		splicesLengths[matchIndex + 1] = -1;
-
-		pointer = (*match).position() + (*match).length();
-		matchIndex += 2;
 	}
 
-	splicesStrings[includeCount * 2] = buf + pointer;
-	splicesLengths[includeCount * 2] = -1;
+	code.segments.push_back({code.loadedFiles[0].content, strlen(code.loadedFiles[0].content)});
+	std::vector<fs::path> expandedFiles;
+	expandedFiles.push_back(filePath);
 
-	glShaderSource(shaderHandle, includeCount * 2 + 1, splicesStrings, splicesLengths);
+	bool trip = false;
+	while (expandedFiles.size() != code.loadedFiles.size()) {
+		std::vector<ShaderCodeSegment> newCodeSegments;
+
+		for (const auto& segment : code.segments) {
+			size_t pointer = 0;
+			std::string_view codeView(segment.str, segment.length);
+			auto codeIt = std::regex_iterator(codeView.cbegin(), codeView.cend(), Regex::shaderIncludeRegex);
+
+			for (decltype(codeIt) last; codeIt != last; ++codeIt) {
+				const auto& match = *codeIt;
+
+				newCodeSegments.push_back({segment.str + pointer, match.position() - pointer});
+				
+				pointer = match.position() + match.length();
+
+				fs::path includedFilePath = BaseShaderPath / match[1].str();
+
+				if (!std::any_of(expandedFiles.begin(), expandedFiles.end(), [includedFilePath](const fs::path& p) -> bool {
+					return p == includedFilePath;
+				} )) {
+					const auto& includedFile = *std::find_if(code.loadedFiles.begin(), code.loadedFiles.end(), [includedFilePath](const ShaderFile& f) -> bool {
+						return f.filePath == includedFilePath;
+					} );
+
+					newCodeSegments.push_back({includedFile.content, strlen(includedFile.content)});
+					expandedFiles.push_back(includedFilePath);
+				}
+			}
+
+			newCodeSegments.push_back({segment.str + pointer, segment.length - pointer});
+		}
+
+		code.segments = newCodeSegments;
+	}
+
+	char* segmentsStrings[code.segments.size()];
+	int segmentsLengths[code.segments.size()];
+
+	for (int i = 0; i < code.segments.size(); i++) {
+		segmentsStrings[i] = code.segments[i].str;
+		segmentsLengths[i] = code.segments[i].length;
+	}
+
+	glShaderSource(shaderHandle, code.segments.size(), segmentsStrings, segmentsLengths);
 
 	glCompileShader(shaderHandle);
-
-	delete[] buf;
 
 	int compileSuccess;
 	
@@ -207,7 +269,7 @@ ShaderBase* ShaderBase::Load(fs::path filePath) {
 	ShaderBase* result;
 
 	if (shaderType == GL_VERTEX_SHADER) {
-		VertexSpec spec = GetVertexSpec(shaderCode);
+		VertexSpec spec = GetVertexSpec(code.loadedFiles[0].content);
 
 		result = new VertexShader(filePath, {}, shaderHandle, spec);
 	}
@@ -222,6 +284,10 @@ ShaderBase* ShaderBase::Load(fs::path filePath) {
 	}
 	else {
 		// throw shader::shader_unknown_type_exception(path_to_file);
+	}
+
+	for (auto& file : code.loadedFiles) {
+		delete[] file.content;
 	}
 
 	return result;
