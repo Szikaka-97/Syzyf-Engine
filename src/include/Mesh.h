@@ -10,28 +10,72 @@
 namespace fs = std::filesystem;
 
 class Mesh {
-private:
-	unsigned int meshID;
-	VertexSpec meshSpec;
-
-	Mesh(const unsigned int meshID, const VertexSpec& meshSpec);
 public:
-	Mesh();
-	static Mesh const& Invalid;
+	enum class MeshType {
+		Points = 1,
+		Lines = 2,
+		Triangles = 3
+	};
 
-	Mesh* GetVariant(const VertexSpec& variantSpec) const;
+	class SubMesh {
+		friend class Mesh;
+	private:
+		unsigned int faceCount;
+		unsigned int* indexData;
+		MeshType type;
+		int materialIndex;
 
-	Mesh* Clone(bool full = false);
+		struct {
+			GLuint vertexArray;
+			GLuint indexBuffer;
+		} handle;
+	public:
+		MeshType GetType() const;
+		unsigned int GetVerticesPerFace() const;
+		GLenum GetDrawMode() const;
 
-	GLuint GetHandle() const;
-	unsigned int GetVertexCount() const;
-	unsigned int GetTriangleCount() const;
+		int GetMaterialIndex() const;
 
-	const VertexSpec& GetMeshSpec() const;
+		GLuint GetVertexArrayHandle() const;
+		GLuint GetIndexBufferHandle() const;
 
-	bool operator==(const Mesh& other);
-	bool operator!=(const Mesh& other);
+		unsigned int GetVertexCount() const;
+		unsigned int GetFaceCount() const;
+	};
 
-	static Mesh* Load(fs::path modelPath, const VertexSpec& meshSpec);
-	static Mesh* Create(unsigned int vertexCount, float* vertexData, unsigned int triangleCount, unsigned int* indexData, const VertexSpec& meshSpec);
+	// class MeshPart {
+	// 	friend class Mesh;
+	// private:
+	// 	std::string name;
+	// 	glm::mat4 transform;
+
+	// 	int vertexCount;
+	// 	int vertexOffset;
+	// 	int faceCount;
+	// 	int faceOffset;
+	// };
+private:
+	std::vector<SubMesh> subMeshes;
+	// std::map<std::string, MeshPart> parts;
+	
+	int materialCount;
+	unsigned int vertexCount;
+	float* vertexData;
+	unsigned int vertexStride;
+	GLuint vertexBuffer;
+public:
+	Mesh() = default;
+
+	int GetMaterialsCount() const;
+
+	int GetSubMeshCount() const;
+	std::vector<SubMesh> GetSubMeshes() const;
+
+	const SubMesh& SubMeshAt(unsigned int index) const;
+	const SubMesh& operator[](unsigned int index) const;
+
+	// Mesh* Separate(std::string partName);
+
+	static Mesh* Load(fs::path modelPath);
+	// static Mesh* Create(unsigned int vertexCount, float* vertexData, unsigned int triangleCount, unsigned int* indexData, const VertexSpec& meshSpec);
 };

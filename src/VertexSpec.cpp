@@ -107,12 +107,26 @@ bool VertexSpec::operator!=(const VertexSpec& other) const {
 
 const VertexSpec VertexSpec::Sprite {
 	{ VertexInputType::Position, 2 },
-	{ VertexInputType::UV1, 2 }
+	{ VertexInputType::UV1, 2 },
+	{ VertexInputType::Color, 4 },
+};
+
+const VertexSpec VertexSpec::Point {
+	{ VertexInputType::Position, 3 },
+	{ VertexInputType::UV1, 2 },
+	{ VertexInputType::Color, 4 },
+};
+
+const VertexSpec VertexSpec::Line {
+	{ VertexInputType::Position, 3 },
+	{ VertexInputType::UV1, 2 },
+	{ VertexInputType::Color, 4 },
 };
 
 const VertexSpec VertexSpec::Mesh {
 	{ VertexInputType::Position, 3 },
 	{ VertexInputType::Normal, 3},
+	{ VertexInputType::Tangent, 3},
 	{ VertexInputType::UV1, 2 },
 };
 

@@ -60,7 +60,7 @@ void UniformSpec::CreateFrom(GLuint programHandle) {
 		freeUniforms[i] = true;
 	}
 
-	spdlog::info("┬┬─Uniform buffers [{}]:", uniformBufferCount);
+//	spdlog::info("┬┬─Uniform buffers [{}]:", uniformBufferCount);
 	for (int uniformBufferIndex = 0; uniformBufferIndex < uniformBufferCount; uniformBufferIndex++) {
 		struct {
 			int nameLength;
@@ -86,11 +86,11 @@ void UniformSpec::CreateFrom(GLuint programHandle) {
 
 		bool isLast = uniformBufferIndex == uniformBufferCount - 1;
 
-		spdlog::info("│{}┬─Buffer no {} : {}", isLast ? "└" : "├", uniformBufferIndex, std::string(nameBuf));
-		spdlog::info("│{}├──Size = {}", isLast ? " " : "│", propValues.bufferSize);
-		spdlog::info("│{}├──In compute shader = {}", isLast ? " " : "│", (bool) propValues.computeBuffer);
-		spdlog::info("│{}├──Binding = {}", isLast ? " " : "│", propValues.binding);
-		spdlog::info("│{}└┬─Variables count = {}", isLast ? " " : "│", propValues.variablesCount);
+//		spdlog::info("│{}┬─Buffer no {} : {}", isLast ? "└" : "├", uniformBufferIndex, std::string(nameBuf));
+//		spdlog::info("│{}├──Size = {}", isLast ? " " : "│", propValues.bufferSize);
+//		spdlog::info("│{}├──In compute shader = {}", isLast ? " " : "│", (bool) propValues.computeBuffer);
+//		spdlog::info("│{}├──Binding = {}", isLast ? " " : "│", propValues.binding);
+//		spdlog::info("│{}└┬─Variables count = {}", isLast ? " " : "│", propValues.variablesCount);
 
 		GLint bufferVariables[propValues.variablesCount];
 		GLenum variableProp = GL_ACTIVE_VARIABLES;
@@ -108,9 +108,9 @@ void UniformSpec::CreateFrom(GLuint programHandle) {
 
 			bool isLastVariable = bufferVariableIndex == propValues.variablesCount - 1;
 
-			spdlog::info("│{} {}┬─Uniform variable no {} : {}", isLast ? " " : "│", isLastVariable ? "└" : "├", bufferVariableIndex, std::string(uniformName));
-			spdlog::info("│{} {}├──Type: {:x}", isLast ? " " : "│", isLastVariable ? " " : "│", uniformType);
-			spdlog::info("│{} {}└──Size: {:x}", isLast ? " " : "│", isLastVariable ? " " : "│", uniformSize);
+//			spdlog::info("│{} {}┬─Uniform variable no {} : {}", isLast ? " " : "│", isLastVariable ? "└" : "├", bufferVariableIndex, std::string(uniformName));
+//			spdlog::info("│{} {}├──Type: {:x}", isLast ? " " : "│", isLastVariable ? " " : "│", uniformType);
+//			spdlog::info("│{} {}└──Size: {:x}", isLast ? " " : "│", isLastVariable ? " " : "│", uniformSize);
 		}
 
 		if (propValues.computeBuffer || uniformBufferIndex >= 2) {
@@ -119,7 +119,7 @@ void UniformSpec::CreateFrom(GLuint programHandle) {
 	}
 
 	this->variablesBufferLength = 0;
-	spdlog::info("├┬─Uniform variables [{}]:", uniformVariablesCount);
+//	spdlog::info("├┬─Uniform variables [{}]:", uniformVariablesCount);
 	for (int uniformVariableIndex = 0; uniformVariableIndex < uniformVariablesCount; uniformVariableIndex++) {
 		if (!freeUniforms[uniformVariableIndex]) {
 			continue;
@@ -131,10 +131,10 @@ void UniformSpec::CreateFrom(GLuint programHandle) {
 
 		bool isLast = uniformVariableIndex == uniformVariablesCount - 1;
 
-		spdlog::info("│{}┬─Uniform variable no {} : {}", isLast ? "└" : "├", uniformVariableIndex, std::string(uniformName));
-		spdlog::info("│{}├──Type: {:x}", isLast ? " " : "│", uniformType);
-		spdlog::info("│{}├──Bind: {}", isLast ? " " : "│", glGetUniformLocation(programHandle, uniformName));
-		spdlog::info("│{}└──Size: {}", isLast ? " " : "│", uniformSize);
+//		spdlog::info("│{}┬─Uniform variable no {} : {}", isLast ? "└" : "├", uniformVariableIndex, std::string(uniformName));
+//		spdlog::info("│{}├──Type: {:x}", isLast ? " " : "│", uniformType);
+//		spdlog::info("│{}├──Bind: {}", isLast ? " " : "│", glGetUniformLocation(programHandle, uniformName));
+//		spdlog::info("│{}└──Size: {}", isLast ? " " : "│", uniformSize);
 
 		UniformTypeInfo info = GetUniformInfo(uniformType);
 
@@ -143,7 +143,7 @@ void UniformSpec::CreateFrom(GLuint programHandle) {
 		this->variablesBufferLength += info.size;
 	}
 
-	spdlog::info("└{}─Storage buffers [{}]:", storageBufferCount ? "┬" : "─", storageBufferCount);
+//	spdlog::info("└{}─Storage buffers [{}]:", storageBufferCount ? "┬" : "─", storageBufferCount);
 	for (int storageBufferIndex = 0; storageBufferIndex < storageBufferCount; storageBufferIndex++) {
 		struct {
 			int nameLength;
@@ -164,7 +164,7 @@ void UniformSpec::CreateFrom(GLuint programHandle) {
 
 		bool isLast = storageBufferIndex == storageBufferCount - 1;
 
-		spdlog::info(" {}┬─Buffer no {} : {}", isLast ? "└" : "├", storageBufferIndex, std::string(nameBuf));
+//		spdlog::info(" {}┬─Buffer no {} : {}", isLast ? "└" : "├", storageBufferIndex, std::string(nameBuf));
 
 		GLint bufferVars[propValues.bufferVariableCount];
 		GLenum variableProp = GL_ACTIVE_VARIABLES;
@@ -195,11 +195,11 @@ void UniformSpec::CreateFrom(GLuint programHandle) {
 
 			bool isLastVariable = bufVarIndex == propValues.bufferVariableCount - 1;
 
-			spdlog::info(" {}{}┬─Variable {} : {}", isLast ? " " : "│", isLastVariable ? "└" : "├", bufVarIndex, std::string(varNameBuf));
-			spdlog::info(" {}{}├──Offset: {}", isLast ? " " : "│", isLastVariable ? " " : "│", varPropValues.offset);
-			spdlog::info(" {}{}├──Array size: {}", isLast ? " " : "│", isLastVariable ? " " : "│", varPropValues.arraySize);
-			spdlog::info(" {}{}├──Array stride: {}", isLast ? " " : "│", isLastVariable ? " " : "│", varPropValues.arrayStride);
-			spdlog::info(" {}{}└──Top level array stride: {}", isLast ? " " : "│", isLastVariable ? " " : "│", varPropValues.topLevelArrayStride);
+//			spdlog::info(" {}{}┬─Variable {} : {}", isLast ? " " : "│", isLastVariable ? "└" : "├", bufVarIndex, std::string(varNameBuf));
+//			spdlog::info(" {}{}├──Offset: {}", isLast ? " " : "│", isLastVariable ? " " : "│", varPropValues.offset);
+//			spdlog::info(" {}{}├──Array size: {}", isLast ? " " : "│", isLastVariable ? " " : "│", varPropValues.arraySize);
+//			spdlog::info(" {}{}├──Array stride: {}", isLast ? " " : "│", isLastVariable ? " " : "│", varPropValues.arrayStride);
+//			spdlog::info(" {}{}└──Top level array stride: {}", isLast ? " " : "│", isLastVariable ? " " : "│", varPropValues.topLevelArrayStride);
 		}
 
 		this->storageBuffers.push_back({ std::string(nameBuf), propValues.binding, 0 });

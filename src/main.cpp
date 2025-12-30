@@ -187,15 +187,23 @@ void InitScene() {
 	// quadObject->AddObject<MeshRenderer>(quadMesh, quadMat);
 	// quadObject->AddObject<Camera>(Camera::Orthographic(glm::vec2(3.0f, 3.0f)));
 
-	VertexShader* meshVert = Resources::Get<VertexShader>("./res/shaders/lit.vert");
-	PixelShader* meshFrag = Resources::Get<PixelShader>("./res/shaders/lambert.frag");
+	ShaderProgram* meshProg = ShaderProgram::Build().WithVertexShader(
+		Resources::Get<VertexShader>("./res/shaders/lit.vert")
+	).WithPixelShader(
+		Resources::Get<PixelShader>("./res/shaders/lambert.frag")
+	).Link();
 
-	ShaderProgram* meshProg = ShaderProgram::Build().WithVertexShader(meshVert).WithPixelShader(meshFrag).Link();
+	ShaderProgram* haloProg = ShaderProgram::Build().WithVertexShader(
+		Resources::Get<VertexShader>("./res/shaders/lit.vert")
+	).WithPixelShader(
+		Resources::Get<PixelShader>("./res/shaders/halo.frag")
+	).Link();
 
-	VertexShader* skyVert = Resources::Get<VertexShader>("./res/shaders/skybox.vert");
-	PixelShader* skyFrag = Resources::Get<PixelShader>("./res/shaders/skybox.frag");
-
-	ShaderProgram* skyProg = ShaderProgram::Build().WithVertexShader(skyVert).WithPixelShader(skyFrag).Link();
+	ShaderProgram* skyProg = ShaderProgram::Build().WithVertexShader(
+		Resources::Get<VertexShader>("./res/shaders/skybox.vert")
+	).WithPixelShader(
+		Resources::Get<PixelShader>("./res/shaders/skybox.frag")
+	).Link();
 
 	ShaderProgram* floorProg = ShaderProgram::Build().WithVertexShader(
 		Resources::Get<VertexShader>("./res/shaders/lit.vert")
@@ -203,13 +211,14 @@ void InitScene() {
 		Resources::Get<PixelShader>("./res/shaders/lambert color.frag")
 	).Link();
 
-	Mesh* floorMesh = Resources::Get<Mesh>("./res/models/floor.obj", VertexSpec::Mesh);
+	Mesh* floorMesh = Resources::Get<Mesh>("./res/models/floor.obj");
 
 	Material* floorMat = new Material(floorProg);
 	floorMat->SetValue<glm::vec3>("uColor", {1, 1, 1});
 
-	Mesh* cube = Resources::Get<Mesh>("./res/models/cube.obj", VertexSpec::Mesh);
+	Mesh* cube = Resources::Get<Mesh>("./res/models/cube.obj");
 	Material* centerMat = new Material(meshProg);
+	Material* haloMat = new Material(haloProg);
 	Material* orbiterMat = new Material(meshProg);
 
 	Texture2D* stoneTex = Resources::Get<Texture2D>("./res/textures/lufis.jpeg", TextureFormat::RGB);
@@ -240,7 +249,8 @@ void InitScene() {
 	auto rendererObject = mainScene->CreateNode();
 	auto cameraObject = mainScene->CreateNode();
 
-	rendererObject->AddObject<MeshRenderer>(cube, centerMat);
+	MeshRenderer* centerRenderer = rendererObject->AddObject<MeshRenderer>(cube, centerMat);
+	centerRenderer->SetMaterial(haloMat, 1);
 	rendererObject->AddObject<AutoRotator>(1.0f);
 
 	auto rendererChildRotator = mainScene->CreateNode(rendererObject);

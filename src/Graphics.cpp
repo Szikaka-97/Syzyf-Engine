@@ -97,40 +97,41 @@ void SceneGraphics::UpdateScreenResolution(glm::vec2 newResolution) {
 }
 
 void SceneGraphics::RenderObjects(const ShaderGlobalUniforms& globalUniforms) {
-	Material* currentMat = nullptr;
-	Mesh* currentMesh;
-
-	int index = 0;
-
 	ShaderObjectUniforms objectUniforms;
 
 	for (auto node : this->currentRenders) {
-		Material* mat = node.renderer->GetMaterial();
-		Mesh* mesh = node.renderer->GetMesh();
-	
 		objectUniforms.Object_ModelMatrix = node.renderer->GlobalTransform();
 		objectUniforms.Object_MVPMatrix = globalUniforms.Global_VPMatrix * objectUniforms.Object_ModelMatrix;
 		objectUniforms.Object_NormalModelMatrix = glm::transpose(glm::inverse(glm::mat3(objectUniforms.Object_ModelMatrix)));
 
 		glBindBufferBase(GL_UNIFORM_BUFFER, 1, node.renderer->GetUniformBufferHandle());
-
+		
 		glBindBuffer(GL_UNIFORM_BUFFER, node.renderer->GetUniformBufferHandle());
 		glBufferData(GL_UNIFORM_BUFFER, sizeof(objectUniforms), &objectUniforms, GL_STREAM_DRAW);
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-		mat->Bind();
+		Mesh* mesh = node.renderer->GetMesh();
 		
-		glBindVertexArray(mesh->GetHandle());
+		for (const Mesh::SubMesh& subMesh : mesh->GetSubMeshes()) {
+			Material* mat = node.renderer->GetMaterial(subMesh.GetMaterialIndex());
 
-		if (node.instanceCount <= 0) {
-			glDrawElements(node.mode, mesh->GetTriangleCount() * 3, GL_UNSIGNED_INT, nullptr);
-		}
-		else {
-			glDrawElementsInstanced(node.mode, mesh->GetTriangleCount() * 3, GL_UNSIGNED_INT, nullptr, node.instanceCount);
-		}
+			if (!mat) {
+				continue;
+			}
 
-		currentMat = mat;
-		currentMesh = mesh;
+			mat->Bind();
+			
+			glBindVertexArray(subMesh.GetVertexArrayHandle());
+
+			if (node.instanceCount <= 0) {
+				glDrawElements(subMesh.GetDrawMode(), subMesh.GetVertexCount(), GL_UNSIGNED_INT, nullptr);
+			}
+			else {
+				glDrawElementsInstanced(subMesh.GetDrawMode(), subMesh.GetVertexCount(), GL_UNSIGNED_INT, nullptr, node.instanceCount);
+			}
+
+			glBindVertexArray(0);
+		}
 	}
 }
 
@@ -201,8 +202,8 @@ void SceneGraphics::Render() {
 
 	if (sky) {
 		sky->GetSKyMaterial()->Bind();
-		glBindVertexArray(sky->GetSkyMesh()->GetHandle());
-		glDrawElements(GL_TRIANGLES, sky->GetSkyMesh()->GetTriangleCount() * 3, GL_UNSIGNED_INT, nullptr);
+		glBindVertexArray(sky->GetSkyMesh()->SubMeshAt(0).GetVertexArrayHandle());
+		glDrawElements(GL_TRIANGLES, sky->GetSkyMesh()->SubMeshAt(0).GetVertexCount(), GL_UNSIGNED_INT, nullptr);
 	}
 
 	RenderFullscreenFrameQuad();
@@ -222,20 +223,20 @@ void SceneGraphics::RenderFullscreenFrameQuad() {
 		Resources::Get<PixelShader>("./res/shaders/blit.frag")
 	).Link();
 
-	static Mesh* quadMesh = Resources::Get<Mesh>("./res/models/fullscreenquad.obj", VertexSpec::Mesh);
+	static Mesh* quadMesh = Resources::Get<Mesh>("./res/models/fullscreenquad.obj");
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	glDisable(GL_DEPTH_TEST);
 
-	glBindVertexArray(quadMesh->GetHandle());
+	glBindVertexArray(quadMesh->SubMeshAt(0).GetVertexArrayHandle());
 
 	glUseProgram(quadProg->GetHandle());
 
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, this->colorPassOutputTexture);
 	
-	glDrawElements(GL_TRIANGLES, quadMesh->GetTriangleCount() * 3, GL_UNSIGNED_INT, nullptr);
+	glDrawElements(GL_TRIANGLES, quadMesh->SubMeshAt(0).GetVertexCount(), GL_UNSIGNED_INT, nullptr);
 	
 	glBindTexture(GL_TEXTURE_2D, 0);
 

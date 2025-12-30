@@ -8,7 +8,7 @@ Skybox* Skybox::currentSkybox = nullptr;
 Skybox::Skybox(Material* skyMaterial):
 skyMaterial(skyMaterial) {
 	if (!skyMesh) {
-		skyMesh = Resources::Get<Mesh>("./res/models/sky.obj", VertexSpec::Mesh);
+		skyMesh = Resources::Get<Mesh>("./res/models/sky.obj");
 	}
 
 	SetAsCurrentSkybox();

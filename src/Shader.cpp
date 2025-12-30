@@ -116,10 +116,6 @@ VertexSpec GetVertexSpec(const std::string_view& shaderCode) {
 		spec.push_back(VertexInput(semantic, length));
 	}
 
-	for (const auto& input : spec) {
-		spdlog::info("Input: {}, {}", VertexSpec::TypeToName(input.type), input.length);
-	}
-
 	return VertexSpec(spec);
 }
 
@@ -155,12 +151,8 @@ ShaderBase* ShaderBase::Load(fs::path filePath) {
 		if (std::any_of(code.loadedFiles.begin(), code.loadedFiles.end(), [loadedFilePath](const ShaderFile& f) -> bool {
 			return f.filePath == loadedFilePath;
 		} )) {
-			spdlog::info("Skipping file: {}", loadedFilePath.string());
-
 			continue;
 		}
-
-		spdlog::info("Loading file: {}", loadedFilePath.string());
 
 		ShaderFile loadedFile;
 		loadedFile.filePath = loadedFilePath;

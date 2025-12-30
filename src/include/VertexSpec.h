@@ -101,6 +101,8 @@ public:
 	bool operator==(const VertexSpec& other) const;
 	bool operator!=(const VertexSpec& other) const;
 
+	const static VertexSpec Point;
+	const static VertexSpec Line;
 	const static VertexSpec Sprite;
 	const static VertexSpec Mesh;
 	const static VertexSpec MeshColor;

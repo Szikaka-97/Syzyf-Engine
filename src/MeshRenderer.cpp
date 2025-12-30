@@ -5,20 +5,18 @@
 
 MeshRenderer::MeshRenderer():
 mesh(),
-material(nullptr),
+materials(0),
 uniformBufferHandle(0),
 dirty(false) {
 	ResetUniformBuffer();
 }
 
 MeshRenderer::MeshRenderer(Mesh* mesh, Material* material):
-mesh(mesh),
-material(material),
+materials(),
 uniformBufferHandle(0),
 dirty(true) {
-	// if (this->material->GetShader()->GetVertexSpec() != this->mesh->GetMeshSpec()) {
-	// 	this->mesh = this->mesh->GetVariant(this->material->GetShader()->GetVertexSpec());
-	// }
+	SetMesh(mesh);
+	SetMaterial(material);
 
 	ResetUniformBuffer();
 }
@@ -43,25 +41,37 @@ Mesh* MeshRenderer::GetMesh() {
 }
 
 void MeshRenderer::SetMesh(Mesh* newMesh) {
-	// if (this->material->GetShader()->GetVertexSpec() != newMesh->GetMeshSpec()) {
-	// 	newMesh = newMesh->GetVariant(this->material->GetShader()->GetVertexSpec());
-	// }
-
 	this->mesh = newMesh;
-
+	
 	this->dirty = true;
+
+	if (this->mesh == nullptr) {
+		return;
+	}
+
+	std::vector<Material*> newMaterials{newMesh->GetMaterialsCount()};
+	int materialsToCopy = std::min(newMesh->GetMaterialsCount(), (int) this->materials.size());
+	for (int i = 0; i < materialsToCopy; i++) {
+		newMaterials[i] = this->materials[i];
+	}
+
+	this->materials = newMaterials;
 }
 
-Material* MeshRenderer::GetMaterial() {
-	return this->material;
+Material* MeshRenderer::GetMaterial(int materialIndex) {
+	if (materialIndex < 0 || this->mesh->GetMaterialsCount() <= materialIndex) {
+		return nullptr;
+	}
+
+	return this->materials[materialIndex];
 }
 
-void MeshRenderer::SetMaterial(Material* newMaterial) {
-	this->material = newMaterial;
+void MeshRenderer::SetMaterial(Material* newMaterial, int materialIndex) {
+	if (materialIndex < 0 || this->mesh->GetMaterialsCount() <= materialIndex) {
+		return;
+	}
 
-	// if (this->material->GetShader()->GetVertexSpec() != this->mesh->GetMeshSpec()) {
-	// 	this->mesh = this->mesh->GetVariant(this->material->GetShader()->GetVertexSpec());
-	// }
+	this->materials[materialIndex] = newMaterial;
 
 	this->dirty = true;
 }
