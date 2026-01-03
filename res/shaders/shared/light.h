@@ -58,7 +58,7 @@ vec3 shade(in Material mat, in vec3 worldPos, in vec3 normal, in vec3 tangent) {
 			uint index = 0;
 
 			if (l.type == DIRECTIONAL_LIGHT) {
-				index = uint(floor(pixelDepth * DIRECTIONAL_LIGHT_CASCADE_COUNT));
+				index = uint(floor(sqrt(pixelDepth) * DIRECTIONAL_LIGHT_CASCADE_COUNT));
 
 				lightDir = -l.direction;
 			}

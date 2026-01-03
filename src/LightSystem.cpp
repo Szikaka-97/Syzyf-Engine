@@ -105,8 +105,8 @@ void LightSystem::DoDirectionalLightShadowmap(Light* light, ShadowMapRegion* sha
 	};
 
 	for (int cascade = 0; cascade < DIRECTIONAL_LIGHT_CASCADE_COUNT; cascade++) {
-		float cascadeFrustumStart = glm::mix(nearPlane, farPlane, (1.0 / (DIRECTIONAL_LIGHT_CASCADE_COUNT)) * cascade);
-		float cascadeFrustumEnd = glm::mix(nearPlane, farPlane, (1.0 / (DIRECTIONAL_LIGHT_CASCADE_COUNT)) * (cascade + 1));
+		float cascadeFrustumStart = farPlane * (float(cascade) / DIRECTIONAL_LIGHT_CASCADE_COUNT) * (float(cascade) / DIRECTIONAL_LIGHT_CASCADE_COUNT);
+		float cascadeFrustumEnd = farPlane * (float(cascade + 1) / DIRECTIONAL_LIGHT_CASCADE_COUNT) * (float(cascade + 1) / DIRECTIONAL_LIGHT_CASCADE_COUNT);
 
 		glm::vec3 frustumCenter = cameraPosition + cameraForward * ((cascadeFrustumStart + cascadeFrustumEnd) * 0.5f);
 
@@ -149,7 +149,7 @@ void LightSystem::DoDirectionalLightShadowmap(Light* light, ShadowMapRegion* sha
 		
 		glm::vec3 lightPos = frustumCenter;
 
-		globalUniforms.Global_ProjectionMatrix = glm::ortho(low.x, high.x, low.y, high.y, low.z, high.z + 1.0f);
+		globalUniforms.Global_ProjectionMatrix = glm::ortho(low.x, high.x, low.y, high.y, low.z, high.z);
 		globalUniforms.Global_CameraWorldPos = lightPos;
 		globalUniforms.Global_VPMatrix = globalUniforms.Global_ProjectionMatrix * globalUniforms.Global_ViewMatrix;
 
