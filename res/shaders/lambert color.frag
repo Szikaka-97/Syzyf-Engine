@@ -11,9 +11,9 @@ in VS_OUT {
 #include "shared/shared.h"
 #include "shared/uniforms.h"
 
-#include "shared/shading.h"
+#define SHADING_LAMBERT
 
-#define SHADING_FUNCTION shadeLambert
+#include "shared/shading.h"
 
 #include "shared/light.h"
 

@@ -34,14 +34,6 @@ float inverseLerp(in float a, in float b, in float v) {
 	return (v - a) / (b - a);
 }
 
-struct Material {
-	vec3 diffuseColor;
-	vec3 specularColor;
-	float diffuseStrength;
-	float specularStrength;
-	float specularHighlight;
-};
-
 #endif
 
 #ifdef __cplusplus
