@@ -173,6 +173,7 @@ void InitScene() {
 	Mesh* floorMesh = Resources::Get<Mesh>("./res/models/floor.obj");
 	Mesh* shadeMesh = Resources::Get<Mesh>("./res/models/shade.obj");
 	Mesh* cube = Resources::Get<Mesh>("./res/models/not_cube.obj");
+	Mesh* roomMesh = Resources::Get<Mesh>("./res/models/room.obj");
 
 	Texture2D* stoneTex = Resources::Get<Texture2D>("./res/textures/lufis.jpeg", TextureFormat::RGB);
 	stoneTex->SetMagFilter(GL_LINEAR);
@@ -201,6 +202,12 @@ void InitScene() {
 	Material* shadeMat = new Material(floorProg);
 	shadeMat->SetValue<glm::vec3>("uColor", {0.0f, 0.8f, 0.0f});
 
+	Material* roomMat = new Material(floorProg);
+	roomMat->SetValue<glm::vec3>("uColor", {0.8f, 0.8f, 0.0f});
+
+	Material* roomClutterMat = new Material(floorProg);
+	roomClutterMat->SetValue<glm::vec3>("uColor", {0.8f, 0.0f, 0.8f});
+
 	Material* centerMat = new Material(meshProg);
 	Material* haloMat = new Material(haloProg);
 	Material* shadedMat = new Material(meshProg);
@@ -223,12 +230,16 @@ void InitScene() {
 
 	auto shadeNode = mainScene->CreateNode();
 	shadeNode->AddObject<MeshRenderer>(shadeMesh, shadeMat);
-	shadeNode->LocalTransform().Position() = {-10, 0, 0};
+	shadeNode->LocalTransform().Position() = {-5, 0, 0};
 	shadeNode->LocalTransform().Rotation() *= glm::angleAxis(glm::radians(90.0f), glm::vec3(0, 1, 0));
 
 	auto hiddenNode = mainScene->CreateNode();
 	hiddenNode->AddObject<MeshRenderer>(cube, shadedMat);
-	hiddenNode->LocalTransform().Position() = {-10, 0, 0};
+	hiddenNode->LocalTransform().Position() = {-5, 0, 0};
+	
+	auto roomNode = mainScene->CreateNode();
+	roomNode->AddObject<MeshRenderer>(roomMesh, roomMat)->SetMaterial(roomClutterMat, 1);
+	roomNode->LocalTransform().Position() = {5, 0, 0};
 
 	auto notCubeNode = mainScene->CreateNode();
 	notCubeNode->GlobalTransform().Position() = glm::zero<glm::vec3>();
@@ -236,21 +247,26 @@ void InitScene() {
 
 	auto cameraObject = mainScene->CreateNode();
 	Camera* camera = cameraObject->AddObject<Camera>(Camera::Perspective(40.0f, 16.0f/9.0f, 1.0f, 100.0f));
-	camera->LocalTransform().Position() = glm::vec3(-10.0f, 0.0f, -10.0f);
+	camera->LocalTransform().Position() = glm::vec3(0.0f, 0.0f, -10.0f);
 	cameraObject->AddObject<Mover>();
 
 	SceneNode* lightObject = mainScene->CreateNode();
-	Light* light = lightObject->AddObject<Light>(Light::DirectionalLight(glm::vec3(1, 1, 1), 1));
+	Light* light = lightObject->AddObject<Light>(Light::DirectionalLight(glm::vec3(1, 1, 1), 0.3));
 	light->GlobalTransform().Position() = glm::zero<glm::vec3>();
-	// light->GlobalTransform().Rotation() *= glm::angleAxis(glm::radians(30.0f), glm::vec3(0, 1, 0));
+	light->GlobalTransform().Rotation() *= glm::angleAxis(glm::radians(30.0f), glm::vec3(0, 1, 0));
 	light->GlobalTransform().Rotation() *= glm::angleAxis(glm::radians(70.0f), glm::vec3(1, 0, 0));
 	light->SetShadowCasting(true);
 
 	SceneNode* spotLightNode = mainScene->CreateNode();
 	Light* spotLight = spotLightNode->AddObject<Light>(Light::SpotLight(glm::vec3(1, 1, 1), glm::radians(45.0f), 10, 1));
-	spotLight->GlobalTransform().Position() = {-10.0f, 0.8f, -3.0f};
-	spotLight->GlobalTransform().Rotation() *= glm::angleAxis(glm::radians(10.0f), glm::vec3(1, 0, 0));
+	spotLight->GlobalTransform().Position() = {-5.0f, 0.8f, -3.0f};
+	spotLight->GlobalTransform().Rotation() *= glm::angleAxis(glm::radians(15.0f), glm::vec3(1, 0, 0));
 	spotLight->SetShadowCasting(true);
+
+	SceneNode* pointLightNode = mainScene->CreateNode();
+	Light* pointLight = pointLightNode->AddObject<Light>(Light::PointLight(glm::vec3(1, 1, 1), 5, 1));
+	pointLight->GlobalTransform().Position() = {5.0f, -0.2f, -1.0f};
+	pointLight->SetShadowCasting(true);
 
 	auto skyboxObject = mainScene->CreateNode();
 	skyboxObject->AddObject<Skybox>(skyMat);

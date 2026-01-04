@@ -169,7 +169,45 @@ void LightSystem::DoDirectionalLightShadowmap(Light* light, ShadowMapRegion* sha
 }
 
 void LightSystem::DoPointLightShadowmap(Light* light, ShadowMapRegion* shadowmapRects) {
+	const glm::vec3 directions[] {
+		{ 1,  0,  0},
+		{-1,  0,  0},
+		{ 0,  1,  0},
+		{ 0, -1,  0},
+		{ 0,  0,  1},
+		{ 0,  0, -1}
+	};
 
+	ShaderGlobalUniforms globalUniforms;
+	
+	globalUniforms.Global_CameraWorldPos = light->GlobalTransform().Position();
+	globalUniforms.Global_Time = (float) glfwGetTime();
+	globalUniforms.Global_CameraFarPlane = 0;
+	globalUniforms.Global_CameraNearPlane = 0;
+	globalUniforms.Global_CameraFov = glm::radians(90.0f);
+
+	for (int face = 0; face < 6; face++) {
+		globalUniforms.Global_ViewMatrix = glm::lookAt(
+			light->GlobalTransform().Position().Value(),
+			light->GlobalTransform().Position() + directions[face],
+			glm::vec3(0, 1, 1)
+		);
+		globalUniforms.Global_ProjectionMatrix = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, light->GetRange());
+		globalUniforms.Global_VPMatrix = globalUniforms.Global_ProjectionMatrix * globalUniforms.Global_ViewMatrix;
+
+		ShadowMapRegion& shadowmapRect = shadowmapRects[face];
+
+		shadowmapRect.viewTransform = globalUniforms.Global_VPMatrix;
+
+		GetScene()->GetGraphics()->BindGlobalUniformBuffer(globalUniforms);
+		
+		glViewport(shadowmapRect.start.x, shadowmapRect.start.y, shadowmapRect.end.x - shadowmapRect.start.x, shadowmapRect.end.y - shadowmapRect.start.y);
+		
+		GetScene()->GetGraphics()->RenderObjects(globalUniforms);
+	
+		shadowmapRect.start /= SHADOW_MAP_ATLAS_SIZE;
+		shadowmapRect.end /= SHADOW_MAP_ATLAS_SIZE;
+	}	
 }
 
 void LightSystem::OnPostRender() {

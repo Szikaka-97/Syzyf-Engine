@@ -22,7 +22,7 @@ uniform sampler2D shadowMask;
 
 vec3 getLightStrength(in Light light, in vec3 worldPos) {
 	if (light.type == DIRECTIONAL_LIGHT) {
-		return light.color;
+		return light.color * light.intensity;
 	}
 
 	return light.color * (light.intensity / distance(light.position, worldPos));
@@ -50,7 +50,6 @@ vec3 shade(in Material mat, in vec3 worldPos, in vec3 normal, in vec3 tangent) {
 		float shadowAmount = 0.0;
 
 		if (l.shadowAtlasIndex >= 0) {
-			ShadowMapRegion mask = Light_ShadowMapRegions[l.shadowAtlasIndex];
 			vec3 lightDir = normalize(l.position - worldPos);
 
 			float pixelDepth = -ps_in.viewPos.z / Global_CameraFarPlane;
@@ -62,8 +61,19 @@ vec3 shade(in Material mat, in vec3 worldPos, in vec3 normal, in vec3 tangent) {
 
 				lightDir = -l.direction;
 			}
+			else if (l.type == POINT_LIGHT) {
+				if (abs(lightDir.x) > abs(lightDir.y) && abs(lightDir.x) > abs(lightDir.z)) {
+					index = lightDir.x > 0 ? 1 : 0;
+				}
+				else if (abs(lightDir.y) > abs(lightDir.z)) {
+					index = lightDir.y > 0 ? 3 : 2;
+				}
+				else {
+					index = lightDir.z > 0 ? 5 : 4;
+				}
+			}
 
-			mask = Light_ShadowMapRegions[l.shadowAtlasIndex + index];
+			ShadowMapRegion mask = Light_ShadowMapRegions[l.shadowAtlasIndex + index];
 
 			vec4 lightViewPos = mask.viewTransform * vec4(worldPos, 1);
 			lightViewPos /= lightViewPos.w;
