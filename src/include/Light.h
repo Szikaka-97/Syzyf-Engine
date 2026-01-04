@@ -1,6 +1,7 @@
 #pragma once
 
 #include <GameObject.h>
+#include <Material.h>
 
 #include "../res/shaders/shared/shared.h"
 
@@ -52,6 +53,10 @@ private:
 	bool shadowCasting;
 
 	mutable glm::mat4 savedTransform;
+
+#if LIGHTS_DRAW_GIZMOS
+	Material* gizmoMat;
+#endif
 public:
 	Light(PointLight lightInfo);
 	Light(SpotLight lightInfo);

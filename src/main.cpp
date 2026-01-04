@@ -258,7 +258,7 @@ void InitScene() {
 	light->SetShadowCasting(true);
 
 	SceneNode* spotLightNode = mainScene->CreateNode();
-	Light* spotLight = spotLightNode->AddObject<Light>(Light::SpotLight(glm::vec3(1, 1, 1), glm::radians(45.0f), 10, 1));
+	Light* spotLight = spotLightNode->AddObject<Light>(Light::SpotLight(glm::vec3(0, 0, 1), glm::radians(45.0f), 10, 1));
 	spotLight->GlobalTransform().Position() = {-5.0f, 0.8f, -3.0f};
 	spotLight->GlobalTransform().Rotation() *= glm::angleAxis(glm::radians(15.0f), glm::vec3(1, 0, 0));
 	spotLight->SetShadowCasting(true);

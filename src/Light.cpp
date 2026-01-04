@@ -1,5 +1,18 @@
 #include <Light.h>
+
 #include <Resources.h>
+#include <Material.h>
+
+#if LIGHTS_DRAW_GIZMOS
+ShaderProgram* GetGizmoShader() {
+	static ShaderProgram* gizmoProg = ShaderProgram::Build()
+		.WithVertexShader(Resources::Get<VertexShader>("./res/shaders/lit.vert"))
+		.WithPixelShader(Resources::Get<PixelShader>("./res/shaders/halo.frag"))
+		.Link();
+	
+	return gizmoProg;
+}
+#endif
 
 Light::PointLight::PointLight(const glm::vec3& color, float range, float intensity, float attenuation):
 color(color),
@@ -27,7 +40,11 @@ spotlightAngle(0),
 intensity(lightInfo.intensity),
 attenuation(lightInfo.attenuation),
 shadowCasting(false),
-savedTransform(GlobalTransform()) { }
+savedTransform(GlobalTransform()) {
+#if LIGHTS_DRAW_GIZMOS
+	this->gizmoMat = new Material(GetGizmoShader());
+#endif
+}
 
 Light::Light(Light::SpotLight lightInfo):
 type(Light::LightType::Spot),
@@ -38,7 +55,11 @@ spotlightAngle(lightInfo.spotlightAngle),
 intensity(lightInfo.intensity),
 attenuation(lightInfo.attenuation),
 shadowCasting(false),
-savedTransform(GlobalTransform()) { }
+savedTransform(GlobalTransform()) {
+#if LIGHTS_DRAW_GIZMOS
+	this->gizmoMat = new Material(GetGizmoShader());
+#endif
+}
 
 Light::Light(Light::DirectionalLight lightInfo):
 type(Light::LightType::Directional),
@@ -49,7 +70,11 @@ spotlightAngle(0),
 intensity(lightInfo.intensity),
 attenuation(0),
 shadowCasting(false),
-savedTransform(GlobalTransform()) { }
+savedTransform(GlobalTransform()) {
+#if LIGHTS_DRAW_GIZMOS
+	this->gizmoMat = new Material(GetGizmoShader());
+#endif
+}
 
 void Light::Set(Light::PointLight lightInfo) {
 	this->type = Light::LightType::Point;
@@ -167,16 +192,20 @@ ShaderLightRep Light::GetShaderRepresentation() const {
 
 #if LIGHTS_DRAW_GIZMOS
 	void Light::Render() {
-		static ShaderProgram* gizmoProg = ShaderProgram::Build()
-		.WithVertexShader(Resources::Get<VertexShader>("./res/shaders/lit.vert"))
-		.WithPixelShader(Resources::Get<PixelShader>("./res/shaders/halo.frag"))
-		.Link();
+		static Mesh* directionalGizmoMesh = Resources::Get<Mesh>("./res/models/directional_gizmo.obj");
+		static Mesh* spotGizmoMesh = Resources::Get<Mesh>("./res/models/spot_gizmo.obj");
+		static Mesh* pointGizmoMesh = Resources::Get<Mesh>("./res/models/point_gizmo.obj");
 
-		static Mesh* gizmoMesh = Resources::Get<Mesh>("./res/models/arrow.obj");
-		static Material* gizmoMaterial = new Material(gizmoProg);
-		gizmoMaterial->SetValue("uColor", glm::vec3(0, 1, 0));
+		this->gizmoMat->SetValue("uColor", this->color);
 
-
-		GetScene()->GetGraphics()->DrawMesh(gizmoMesh, 0, gizmoMaterial, GlobalTransform());
+		if (this->type == LightType::Directional) {
+			GetScene()->GetGraphics()->DrawMesh(directionalGizmoMesh, 0, this->gizmoMat, GlobalTransform());
+		}
+		else if (this->type == LightType::Spot) {
+			GetScene()->GetGraphics()->DrawMesh(spotGizmoMesh, 0, this->gizmoMat, GlobalTransform());
+		}
+		else {
+			GetScene()->GetGraphics()->DrawMesh(pointGizmoMesh, 0, this->gizmoMat, GlobalTransform());
+		}
 	}
 #endif
