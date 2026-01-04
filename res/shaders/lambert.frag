@@ -25,6 +25,7 @@ out vec4 fragColor;
 void main() {
 	Material mat;
 	mat.diffuseColor = texture(colorTex, ps_in.texcoords).xyz * uColor;
+	mat.diffuseStrength = 1.0;
 
 	fragColor = vec4(shade(mat, ps_in.worldPos, normalize(ps_in.normal), vec3(0, 0, 0)), 1.0);
 }

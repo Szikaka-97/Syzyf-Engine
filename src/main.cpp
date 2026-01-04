@@ -221,16 +221,19 @@ void InitScene() {
 
 	Material* floorMat = new Material(coloredProg);
 	floorMat->SetValue<glm::vec3>("uColor", glm::vec3(1.0f, 1.0f, 1.0f));
-	floorMat->SetValue<Texture2D>("colorTex", floorTex);
+	floorMat->SetValue<float>("specularValue", 0.0f);
 
 	Material* shadeMat = new Material(coloredProg);
 	shadeMat->SetValue<glm::vec3>("uColor", {0.0f, 0.8f, 0.0f});
+	shadeMat->SetValue<float>("specularValue", 0.0f);
 
 	Material* roomMat = new Material(coloredProg);
 	roomMat->SetValue<glm::vec3>("uColor", {0.8f, 0.8f, 0.0f});
+	roomMat->SetValue<float>("specularValue", 0.0f);
 
 	Material* roomClutterMat = new Material(coloredProg);
 	roomClutterMat->SetValue<glm::vec3>("uColor", {0.8f, 0.0f, 0.8f});
+	roomClutterMat->SetValue<float>("specularValue", 100.0f);
 
 	Material* centerMat = new Material(meshProg);
 	Material* haloMat = new Material(haloProg);

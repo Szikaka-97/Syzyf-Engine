@@ -11,19 +11,22 @@ in VS_OUT {
 #include "shared/shared.h"
 #include "shared/uniforms.h"
 
-#define SHADING_LAMBERT
+#define SHADING_PHONG
 
 #include "shared/shading.h"
 
 #include "shared/light.h"
 
 uniform vec3 uColor;
+uniform float specularValue;
 
 out vec4 fragColor;
 
 void main() {
-	Material mat;
+	Material mat = defaultMaterial();
 	mat.diffuseColor = uColor;
+	mat.specularColor = vec3(1, 1, 1);
+	mat.specularHighlight = specularValue;
 
 	fragColor = vec4(shade(mat, ps_in.worldPos, normalize(ps_in.normal), vec3(0, 0, 0)), 1.0);
 }
