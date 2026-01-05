@@ -207,7 +207,7 @@ ShaderLightRep Light::GetShaderRepresentation() const {
 	result.spotlightAngle = this->spotlightAngle;
 	result.intensity = this->IsEnabled() ? this->intensity : 0;
 	result.linearAttenuation = this->linearAttenuation;
-	result.quadraticAttenuation = 0;
+	result.quadraticAttenuation = this->quadraticAttenuation;
 
 	return result;
 }
