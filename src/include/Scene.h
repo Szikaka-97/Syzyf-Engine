@@ -423,6 +423,8 @@ T_GO* Scene::CreateObjectOn(SceneNode* node, T_Param... params) {
 		}
 	}
 
+	created->enabled = true;
+
 	return created;
 }
 
