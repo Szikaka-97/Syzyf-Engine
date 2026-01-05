@@ -199,11 +199,16 @@ void SceneGraphics::Render() {
 
 	glBindFramebuffer(GL_FRAMEBUFFER, this->colorPassFramebuffer);
 
+	Skybox* sky = Skybox::GetCurrentSkybox();
+
+	if (!sky) {
+		glClearColor(0, 0, 0, 0);
+		glClear(GL_COLOR_BUFFER_BIT);
+	}
+
 	glDepthFunc(GL_LEQUAL);
 
 	RenderObjects(globalUniforms, PassType::Color);
-
-	Skybox* sky = Skybox::GetCurrentSkybox();
 
 	if (sky) {
 		sky->GetSKyMaterial()->Bind();

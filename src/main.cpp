@@ -300,8 +300,8 @@ void InitScene() {
 	pointLight->GlobalTransform().Position() = {5.0f, -0.2f, -1.0f};
 	pointLight->SetShadowCasting(true);
 
-	auto skyboxObject = mainScene->CreateNode();
-	skyboxObject->AddObject<Skybox>(skyMat);
+	// auto skyboxObject = mainScene->CreateNode();
+	// skyboxObject->AddObject<Skybox>(skyMat);
 }
 
 int main(int, char**) {
