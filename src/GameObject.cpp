@@ -1,6 +1,7 @@
 #include <GameObject.h>
 
 #include <Scene.h>
+#include <Light.h>
 
 GameObject::~GameObject() {
 	this->node->DeleteObject(this);

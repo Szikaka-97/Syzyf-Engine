@@ -8,6 +8,7 @@
 #include <GameObject.h>
 #include <Light.h>
 #include <LightSystem.h>
+#include <PostProcessingSystem.h>
 
 SceneNode::SceneNode(Scene* scene) :
 scene(scene),
@@ -140,6 +141,7 @@ renderable(),
 root(new SceneNode(this)),
 graphics(new SceneGraphics(this)) {
 	this->lightSystem = AddComponent<LightSystem>();
+	this->postProcessing = AddComponent<PostProcessingSystem>();
 }
 
 void Scene::MessageReceiver::Message() {
@@ -155,12 +157,12 @@ void Scene::DeleteObjectInternal(GameObject* obj) {
 		return msgRcvr.objPtr == obj;
 	} );
 
-	Light* objAsLight = dynamic_cast<Light*>(obj);
+	for (auto* component : this->components) {
+		GameObjectSystemBase* componentAsSystem = dynamic_cast<GameObjectSystemBase*>(component);
 
-	if (objAsLight) {
-		std::erase_if(*this->lightSystem->GetAllObjects(), [objAsLight](const Light* light) {
-			return light == objAsLight;
-		} );
+		if (componentAsSystem) {
+			componentAsSystem->UnregisterObjectForced(obj);
+		}
 	}
 }
 

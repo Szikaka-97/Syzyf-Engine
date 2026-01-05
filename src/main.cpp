@@ -125,6 +125,13 @@ public:
 			rotation *= glm::angleAxis(glm::radians(1.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 		}
 
+		if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+			auto lights = GetScene()->FindObjectsOfType<Light>();
+			if (lights.size() > 0) {
+				delete lights[0];
+			}
+		}
+
 		this->GlobalTransform().Position() += movement * 0.04f;
 		this->GlobalTransform().Rotation() *= rotation;
 	}

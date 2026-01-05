@@ -8,20 +8,37 @@
 class GameObject;
 class Scene;
 
+class GameObjectSystemBase : public SceneComponent {
+	friend class Scene;
+protected:
+	GameObjectSystemBase(Scene* scene);
+	
+	virtual bool ValidObject(GameObject* obj) const = 0;
+	virtual void RegisterObject(GameObject* obj) = 0;
+	virtual bool TryRegisterObject(GameObject* obj) = 0;
+	
+	virtual void UnregisterObject(GameObject* obj) = 0;
+	virtual void UnregisterObjectForced(GameObject* obj) = 0;
+public:
+	virtual ~GameObjectSystemBase() = default;
+};
+
 template<class T_GO>
 	requires std::derived_from<T_GO, GameObject>
-class GameObjectSystem : public SceneComponent {
+class GameObjectSystem : public GameObjectSystemBase {
 	friend class Scene;
 private:
 	std::vector<T_GO*> objects;
-protected:
-	GameObjectSystem(Scene* scene);
 
-	bool ValidObject(GameObject* obj) const;
-	void RegisterObject(GameObject* obj);
-	bool TryRegisterObject(GameObject* obj);
+	protected:
+	GameObjectSystem(Scene* scene);
 	
-	void UnregisterObject(GameObject* obj);
+	virtual bool ValidObject(GameObject* obj) const;
+	virtual void RegisterObject(GameObject* obj);
+	virtual bool TryRegisterObject(GameObject* obj);
+	
+	virtual void UnregisterObject(GameObject* obj);
+	virtual void UnregisterObjectForced(GameObject* obj);
 public:
 	virtual ~GameObjectSystem() = default;
 	
@@ -32,6 +49,12 @@ public:
 
 template<class T_GO>
 	requires std::derived_from<T_GO, GameObject>
+void GameObjectSystem<T_GO>::UnregisterObjectForced(GameObject* obj) {
+	std::erase(this->objects, obj);
+}
+
+template<class T_GO>
+	requires std::derived_from<T_GO, GameObject>
 bool GameObjectSystem<T_GO>::ValidObject(GameObject* obj) const {
 	return dynamic_cast<T_GO*>(obj) != nullptr;
 }
@@ -39,7 +62,7 @@ bool GameObjectSystem<T_GO>::ValidObject(GameObject* obj) const {
 template<class T_GO>
 	requires std::derived_from<T_GO, GameObject>
 GameObjectSystem<T_GO>::GameObjectSystem(Scene* scene):
-SceneComponent(scene) {
+GameObjectSystemBase(scene) {
 	this->objects = scene->FindObjectsOfType<T_GO>();
 }
 
@@ -58,7 +81,7 @@ template<class T_GO>
 	requires std::derived_from<T_GO, GameObject>
 bool GameObjectSystem<T_GO>::TryRegisterObject(GameObject* obj) {
 	if (ValidObject(obj)) {
-		if (!std::find(this->objects.begin(), this->objects.end(), obj) != this->objects.end()) {
+		if (std::find(this->objects.begin(), this->objects.end(), obj) == this->objects.end()) {
 			this->objects.push_back((T_GO*) obj);
 		}
 

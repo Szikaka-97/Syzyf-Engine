@@ -34,6 +34,8 @@ Light::DirectionalLight::DirectionalLight(const glm::vec3& color, float intensit
 color(color),
 intensity(intensity) { }
 
+Light::~Light() { }
+
 Light::Light(Light::PointLight lightInfo):
 type(Light::LightType::Point),
 dirty(true),

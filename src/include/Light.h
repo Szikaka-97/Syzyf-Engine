@@ -58,6 +58,8 @@ private:
 	Material* gizmoMat;
 #endif
 public:
+	virtual ~Light();
+
 	Light(PointLight lightInfo);
 	Light(SpotLight lightInfo);
 	Light(DirectionalLight lightInfo);
