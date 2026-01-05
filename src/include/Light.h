@@ -19,9 +19,10 @@ public:
 		glm::vec3 color;
 		float range;
 		float intensity;
-		float attenuation;
+		float linearAttenuation;
+		float quadraticAttenuation;
 
-		PointLight(const glm::vec3& color, float range, float intensity, float attenuation = 1.0f);
+		PointLight(const glm::vec3& color, float range, float intensity, float linearAttenuation = 1.0f, float quadraticAttenuation = 1.0f);
 	};
 
 	struct SpotLight {
@@ -29,9 +30,10 @@ public:
 		float spotlightAngle;
 		float range;
 		float intensity;
-		float attenuation;
+		float linearAttenuation;
+		float quadraticAttenuation;
 
-		SpotLight(const glm::vec3& color, float spotlightAngle, float range, float intensity, float attenuation = 1.0f);
+		SpotLight(const glm::vec3& color, float spotlightAngle, float range, float intensity, float linearAttenuation = 1.0f, float quadraticAttenuation = 1.0f);
 	};
 
 	struct DirectionalLight {
@@ -48,7 +50,8 @@ private:
 	float range;
 	float spotlightAngle;
 	float intensity;
-	float attenuation;
+	float linearAttenuation;
+	float quadraticAttenuation;
 
 	bool shadowCasting;
 
@@ -73,14 +76,16 @@ public:
 	float GetRange() const;
 	float GetSpotlightAngle() const;
 	float GetIntensity() const;
-	float GetAttenuation() const;
+	float GetLinearAttenuation() const;
+	float GetQuadraticAttenuation() const;
 	bool IsShadowCasting() const;
 
 	void SetType(LightType type);
 	void SetColor(const glm::vec3& color);
 	void SetRange(float range);
 	void SetIntensity(float intensity);
-	void SetAttenuation(float attenuation);
+	void SetLinearAttenuation(float attenuation);
+	void SetQuadraticAttenuation(float attenuation);
 	void SetShadowCasting(bool shadowCasting);
 
 	bool IsDirty() const;

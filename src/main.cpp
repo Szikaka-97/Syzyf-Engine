@@ -365,7 +365,7 @@ void InitScene() {
 	spotLight->SetShadowCasting(true);
 
 	SceneNode* pointLightNode = mainScene->CreateNode();
-	Light* pointLight = pointLightNode->AddObject<Light>(Light::PointLight(glm::vec3(1, 1, 1), 5, 1));
+	Light* pointLight = pointLightNode->AddObject<Light>(Light::PointLight(glm::vec3(1, 1, 1), 7, 1, 2.7f, 2.8f));
 	pointLight->GlobalTransform().Position() = {5.0f, -0.2f, -1.0f};
 	pointLight->SetShadowCasting(true);
 

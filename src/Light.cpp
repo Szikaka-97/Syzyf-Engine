@@ -17,18 +17,20 @@ ShaderProgram* GetGizmoShader() {
 }
 #endif
 
-Light::PointLight::PointLight(const glm::vec3& color, float range, float intensity, float attenuation):
+Light::PointLight::PointLight(const glm::vec3& color, float range, float intensity, float linearAttenuation, float quadraticAttenuation):
 color(color),
 range(range),
 intensity(intensity),
-attenuation(attenuation) { }
+linearAttenuation(linearAttenuation),
+quadraticAttenuation(quadraticAttenuation) { }
 
-Light::SpotLight::SpotLight(const glm::vec3& color, float spotlightAngle, float range, float intensity, float attenuation):
+Light::SpotLight::SpotLight(const glm::vec3& color, float spotlightAngle, float range, float intensity, float linearAttenuation, float quadraticAttenuation):
 color(color),
 spotlightAngle(spotlightAngle),
 range(range),
 intensity(intensity),
-attenuation(attenuation) { }
+linearAttenuation(linearAttenuation),
+quadraticAttenuation(quadraticAttenuation) { }
 
 Light::DirectionalLight::DirectionalLight(const glm::vec3& color, float intensity):
 color(color),
@@ -43,7 +45,8 @@ color(lightInfo.color),
 range(lightInfo.range),
 spotlightAngle(0),
 intensity(lightInfo.intensity),
-attenuation(lightInfo.attenuation),
+linearAttenuation(lightInfo.linearAttenuation),
+quadraticAttenuation(lightInfo.quadraticAttenuation),
 shadowCasting(false),
 savedTransform(GlobalTransform()) {
 #if LIGHTS_DRAW_GIZMOS
@@ -58,7 +61,8 @@ color(lightInfo.color),
 range(lightInfo.range),
 spotlightAngle(lightInfo.spotlightAngle),
 intensity(lightInfo.intensity),
-attenuation(lightInfo.attenuation),
+linearAttenuation(lightInfo.linearAttenuation),
+quadraticAttenuation(lightInfo.quadraticAttenuation),
 shadowCasting(false),
 savedTransform(GlobalTransform()) {
 #if LIGHTS_DRAW_GIZMOS
@@ -73,7 +77,8 @@ color(lightInfo.color),
 range(0),
 spotlightAngle(0),
 intensity(lightInfo.intensity),
-attenuation(0),
+linearAttenuation(0),
+quadraticAttenuation(0),
 shadowCasting(false),
 savedTransform(GlobalTransform()) {
 #if LIGHTS_DRAW_GIZMOS
@@ -86,7 +91,8 @@ void Light::Set(Light::PointLight lightInfo) {
 	this->color = lightInfo.color;
 	this->range = lightInfo.range;
 	this->intensity = lightInfo.intensity;
-	this->attenuation = lightInfo.attenuation;
+	this->linearAttenuation = lightInfo.linearAttenuation;
+	this->quadraticAttenuation = lightInfo.quadraticAttenuation;
 
 	this->dirty = true;
 }
@@ -96,7 +102,8 @@ void Light::Set(Light::SpotLight lightInfo) {
 	this->range = lightInfo.range;
 	this->spotlightAngle = lightInfo.spotlightAngle;
 	this->intensity = lightInfo.intensity;
-	this->attenuation = lightInfo.attenuation;
+	this->linearAttenuation = lightInfo.linearAttenuation;
+	this->quadraticAttenuation = lightInfo.quadraticAttenuation;
 
 	this->dirty = true;
 }
@@ -128,8 +135,12 @@ float Light::GetIntensity() const {
 	return this->intensity;
 }
 
-float Light::GetAttenuation() const {
-	return this->attenuation;
+float Light::GetLinearAttenuation() const {
+	return this->linearAttenuation;
+}
+
+float Light::GetQuadraticAttenuation() const {
+	return this->quadraticAttenuation;
 }
 
 bool Light::IsShadowCasting() const {
@@ -160,8 +171,14 @@ void Light::SetIntensity(float intensity) {
 	this->dirty = true;
 }
 
-void Light::SetAttenuation(float attenuation) {
-	this->attenuation = attenuation;
+void Light::SetLinearAttenuation(float attenuation) {
+	this->linearAttenuation = attenuation;
+
+	this->dirty = true;
+}
+
+void Light::SetQuadraticAttenuation(float attenuation) {
+	this->quadraticAttenuation = attenuation;
 
 	this->dirty = true;
 }
@@ -188,9 +205,9 @@ ShaderLightRep Light::GetShaderRepresentation() const {
 	result.range = this->range;
 	result.color = this->color;
 	result.spotlightAngle = this->spotlightAngle;
-	result.intensity = this->intensity;
-	result.attenuation = this->attenuation;
-	result.enabled = this->IsEnabled();
+	result.intensity = this->IsEnabled() ? this->intensity : 0;
+	result.linearAttenuation = this->linearAttenuation;
+	result.quadraticAttenuation = 0;
 
 	return result;
 }

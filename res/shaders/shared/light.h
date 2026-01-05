@@ -25,7 +25,9 @@ vec3 getLightStrength(in Light light, in vec3 worldPos) {
 		return light.color * light.intensity;
 	}
 
-	return light.color * (light.intensity / distance(light.position, worldPos));
+	float dist = distance(light.position, worldPos);
+
+	return light.color * (light.intensity / (1 + light.linearAttenuation * dist + light.quadraticAttenuation * dist * dist));
 }
 
 vec3 shade(in Material mat, in vec3 worldPos, in vec3 normal, in vec3 tangent) {
@@ -34,6 +36,10 @@ vec3 shade(in Material mat, in vec3 worldPos, in vec3 normal, in vec3 tangent) {
 
 	for (int lightIndex = 0; lightIndex < Light_LightCount; lightIndex++) {
 		Light l = Light_LightsList[lightIndex];
+
+		if (l.intensity <= 0) {
+			continue;
+		}
 
 		if (l.type == POINT_LIGHT && distance(worldPos, l.position) > l.range) {
 			continue;

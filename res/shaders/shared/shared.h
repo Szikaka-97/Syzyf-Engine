@@ -48,8 +48,8 @@ struct Light {
 	vec3 color;
 	float spotlightAngle;
 	float intensity;
-	float attenuation;
-	t_bool enabled;
+	float linearAttenuation;
+	float quadraticAttenuation;
 	int shadowAtlasIndex;
 };
 
