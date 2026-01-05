@@ -368,6 +368,11 @@ void InitScene() {
 	Light* pointLight = pointLightNode->AddObject<Light>(Light::PointLight(glm::vec3(1, 1, 1), 5, 1));
 	pointLight->GlobalTransform().Position() = {5.0f, -0.2f, -1.0f};
 	pointLight->SetShadowCasting(true);
+
+	SceneNode* terrainLightNode = mainScene->CreateNode();
+	Light* terrainLight = terrainLightNode->AddObject<Light>(Light::PointLight(glm::vec3(1, 1, 1), 1.2f, 0.2f));
+	terrainLight->GlobalTransform().Position() = {-5.0f, 0.2f, -5.0f};
+	terrainLight->GlobalTransform().Scale() *= 0.3f;
 	
 	auto skyboxObject = mainScene->CreateNode(notCubeNode);
 	skyboxObject->AddObject<Stars>(1000);
