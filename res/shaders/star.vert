@@ -17,6 +17,7 @@ float rand(vec2 co) {
 }
 
 out vec3 pNormal;
+out vec3 pWorldPos;
 
 void main() {
 	vec3 randomDisplacement = (vec3(
@@ -36,6 +37,7 @@ void main() {
 
 	gl_Position = Global_VPMatrix * vec4(rotatedPos + randomDisplacement, 1.0);
 	pNormal = rotatedPos * vNormal;
+	pWorldPos = rotatedPos + randomDisplacement;
 	gl_Position.z = clamp(gl_Position.z, -1.0, 1.0);
 	gl_Position.z *= gl_Position.z;
 }
