@@ -100,30 +100,57 @@ constexpr int32_t GL_VERSION_MINOR = 6;
 Scene* mainScene;
 
 class Mover : public GameObject {
+private:
+	float pitch;
+	float rotation;
 public:
+	Mover() {
+		this->pitch = 0;
+		this->rotation = 0;
+	}
+
 	void Update() {
 		glm::vec3 movement = glm::zero<glm::vec3>();
 		glm::quat rotation = glm::identity<glm::quat>();
 
+		glm::vec3 right = this->GlobalTransform().Right();
+		glm::vec3 up = glm::vec3(0, 1, 0);
+		glm::vec3 forward = glm::cross(right, up);
+
 		if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-			movement += this->GlobalTransform().Right();
+			movement += right;
 		}
 		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-			movement += this->GlobalTransform().Left();
+			movement -= right;
 		}
 		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-			movement += this->GlobalTransform().Forward();
+			movement += forward;
 		}
 		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-			movement += this->GlobalTransform().Backward();
+			movement -= forward;
 		}
 
 		if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) {
-			rotation *= glm::angleAxis(glm::radians(-1.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+			this->rotation -= 1.0f;
 		}
 		if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) {
-			rotation *= glm::angleAxis(glm::radians(1.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+			this->rotation += 1.0f;
 		}
+		if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
+			this->pitch -= 1.0f;
+		}
+		if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
+			this->pitch += 1.0f;
+		}
+
+		if (this->rotation < -180) {
+			this->rotation += 360;
+		}
+		else if (this->rotation > 180) {
+			this->rotation -= 360;
+		}
+
+		this->pitch = glm::clamp(this->pitch, -89.0f, 89.0f);
 
 		if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
 			auto lights = GetScene()->FindObjectsOfType<Light>();
@@ -132,8 +159,12 @@ public:
 			}
 		}
 
+		// spdlog::info(this->pitch);
+
 		this->GlobalTransform().Position() += movement * 0.04f;
-		this->GlobalTransform().Rotation() *= rotation;
+		this->GlobalTransform().Rotation() = glm::angleAxis(
+			glm::radians(this->rotation), glm::vec3(0, 1, 0)
+		) * glm::angleAxis(glm::radians(this->pitch), glm::vec3(1, 0, 0));
 	}
 };
 
@@ -319,7 +350,7 @@ void InitScene() {
 	notCubeNode->AddObject<AutoRotator>(0.1f);
 
 	auto cameraObject = mainScene->CreateNode();
-	Camera* camera = cameraObject->AddObject<Camera>(Camera::Perspective(40.0f, 16.0f/9.0f, 1.0f, 100.0f));
+	Camera* camera = cameraObject->AddObject<Camera>(Camera::Perspective(40.0f, 16.0f/9.0f, 0.5f, 100.0f));
 	camera->LocalTransform().Position() = glm::vec3(0.0f, 0.0f, -10.0f);
 	cameraObject->AddObject<Mover>();
 
