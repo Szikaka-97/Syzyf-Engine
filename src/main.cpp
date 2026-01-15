@@ -160,8 +160,6 @@ public:
 			}
 		}
 
-		// spdlog::info(this->pitch);
-
 		this->GlobalTransform().Position() += movement * 0.04f;
 		this->GlobalTransform().Rotation() = glm::angleAxis(
 			glm::radians(this->rotation), glm::vec3(0, 1, 0)
