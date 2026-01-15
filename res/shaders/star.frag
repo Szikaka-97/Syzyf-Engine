@@ -3,17 +3,19 @@
 #include "shared/shared.h"
 #include "shared/uniforms.h"
 
-in vec3 pNormal;
-in vec3 pWorldPos;
+in VARYINGS {
+	vec3 normal;
+	vec3 worldPos;
+} ps_in;
 
 out vec4 fragColor;
 
 void main() {
 	fragColor = vec4(1.0, 1.0, 1.0, 1.0);
 
-	vec3 cameraDirection = normalize(Global_CameraWorldPos - pWorldPos);
+	vec3 cameraDirection = normalize(Global_CameraWorldPos - ps_in.worldPos);
 
-	float shadow = clamp(0.0, 1.0, dot(normalize(pNormal), cameraDirection) * 3.6);
+	float shadow = clamp(0.0, 1.0, dot(normalize(ps_in.normal), cameraDirection) * 3.6);
 
 	fragColor *= mix(0.15, 10.0, pow(shadow - 1.0, 3.0) + 1.0);
 

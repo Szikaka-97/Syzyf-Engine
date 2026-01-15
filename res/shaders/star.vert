@@ -16,8 +16,10 @@ float rand(vec2 co) {
     return fract(sin(sn) * c);
 }
 
-out vec3 pNormal;
-out vec3 pWorldPos;
+out VARYINGS {
+	vec3 normal;
+	vec3 worldPos;
+} vs_out;
 
 void main() {
 	vec3 randomDisplacement = (vec3(
@@ -36,8 +38,8 @@ void main() {
 	vec3 rotatedPos = (rotation * vPos) + randomDisplacement;
 
 	gl_Position = Object_MVPMatrix * vec4(rotatedPos, 1);
-	pNormal = (Object_ModelMatrix * vec4(rotation * vNormal, 0)).xyz;
-	pWorldPos = (Object_ModelMatrix * vec4(rotatedPos, 1)).xyz;
+	vs_out.normal = (Object_ModelMatrix * vec4(rotation * vNormal, 0)).xyz;
+	vs_out.worldPos = (Object_ModelMatrix * vec4(rotatedPos, 1)).xyz;
 	gl_Position.z = clamp(gl_Position.z, -1.0, 1.0);
 	gl_Position.z *= gl_Position.z;
 }

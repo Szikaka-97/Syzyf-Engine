@@ -196,6 +196,8 @@ public:
 		ShaderProgram* starProgram = ShaderProgram::Build()
 		.WithVertexShader(
 			Resources::Get<VertexShader>("./res/shaders/star.vert")
+		).WithGeometryShader(
+			Resources::Get<GeometryShader>("./res/shaders/star.geom")
 		).WithPixelShader(
 			Resources::Get<PixelShader>("./res/shaders/star.frag")
 		).Link();
