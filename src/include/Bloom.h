@@ -12,6 +12,10 @@ private:
 	ComputeShaderProgram* upsampleShader;
 	ComputeShaderProgram* finalShader;
 
+	float threshold = 1.5f;
+	float knee = 0.1f;
+	float intensity = 1.0f;
+
 	void UpdateTexture();
 public:
 	Bloom();
