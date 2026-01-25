@@ -256,23 +256,27 @@ void SceneGraphics::Render() {
 }
 
 void SceneGraphics::RenderScene(const ShaderGlobalUniforms& uniforms, Framebuffer* framebuffer, const RenderParams& params) {
+	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer->GetHandle());
+
 	glViewport(params.viewport.x, params.viewport.y, params.viewport.z, params.viewport.w);
 
 	BindGlobalUniformBuffer(uniforms);
-
-	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer->GetHandle());
 
 	if (params.clearDepth) {
 		glClear(GL_DEPTH_BUFFER_BIT);
 	}
 
 	if (((int) params.pass & (int) RenderPassType::DepthPrepass) != 0) {
-		glCullFace(GL_BACK);
+		if (((int) params.pass & (int) RenderPassType::Shadows) == (int) RenderPassType::Shadows) {
+			glCullFace(GL_FRONT);
+		}
+		else {
+			glCullFace(GL_BACK);
+		}
 	
 		glDepthFunc(GL_LESS);
 	
 		RenderParams depthPrepassParams = params;
-		depthPrepassParams.pass = RenderPassType::DepthPrepass;
 
 		RenderObjects(uniforms, depthPrepassParams);
 	}
@@ -285,6 +289,7 @@ void SceneGraphics::RenderScene(const ShaderGlobalUniforms& uniforms, Framebuffe
 			glClear(GL_COLOR_BUFFER_BIT);
 		}
 
+		glCullFace(GL_BACK);
 		glDepthFunc(GL_LEQUAL);
 
 		RenderParams colorPassParams = params;
