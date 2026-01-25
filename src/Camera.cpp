@@ -90,21 +90,42 @@ void Camera::SetType(Camera::CameraType type) {
 }
 
 float Camera::GetFov() const {
-	return this->perspectiveData.fovyDegrees;
+	if (this->type == Camera::CameraType::Perspective) {
+		return this->perspectiveData.fovyDegrees;
+	}
+
+	return 0;
 }
 float Camera::GetFovRad() const {
-	return glm::radians(this->perspectiveData.fovyDegrees);
+	if (this->type == Camera::CameraType::Perspective) {
+		return glm::radians(this->perspectiveData.fovyDegrees);
+	}
+
+	return 0;
 }
 float Camera::GetAspectRatio() const {
-	return this->perspectiveData.aspectRatio;
+	if (this->type == Camera::CameraType::Perspective) {
+		return this->perspectiveData.aspectRatio;
+	}
+
+	return std::abs((this->orthoData.right - this->orthoData.left) / (this->orthoData.top - this->orthoData.bottom));
 }
 float Camera::GetNearPlane() const {
-	return this->perspectiveData.nearPlane;
+	if (this->type == Camera::CameraType::Perspective) {
+		return this->perspectiveData.nearPlane;
+	}
+
+	return 0;
 }
 float Camera::GetFarPlane() const {
-	return this->perspectiveData.farPlane;
+	if (this->type == Camera::CameraType::Perspective) {
+		return this->perspectiveData.farPlane;
+	}
+
+	return INFINITY;
 }
 
+#warning TODO: Make setters consistent with getters
 void Camera::SetFov(float newFov) {
 	this->perspectiveData.fovyDegrees = newFov;
 }
@@ -182,4 +203,88 @@ Camera* Camera::GetMainCamera() {
 
 void Camera::SetAsMainCamera() {
 	mainCamera = this;
+}
+
+CameraData Camera::GetCameraData() const {
+	if (this->type == CameraType::Orthographic) {
+		return CameraData(this->orthoData, this->ViewMatrix());
+	}
+	else {
+		return CameraData(this->perspectiveData, this->ViewMatrix());
+	}
+}
+
+CameraData::CameraData(const Camera::Orthographic& orthoParams, const glm::mat4& cameraTransform):
+orthoParams(orthoParams),
+type(Camera::CameraType::Orthographic),
+cameraTransform(cameraTransform) { }
+
+CameraData::CameraData(const Camera::Perspective& perspectiveParams, const glm::mat4& cameraTransform):
+perspectiveParams(perspectiveParams),
+type(Camera::CameraType::Perspective),
+cameraTransform(cameraTransform) { }
+
+glm::mat4 CameraData::ViewMatrix() const {
+	return glm::lookAt(
+		glm::vec3(this->cameraTransform[3]),
+		glm::vec3(this->cameraTransform[3]) + glm::vec3(this->cameraTransform[3]),
+		glm::vec3(0.0f, 1.0f, 0.0f)
+	);
+}
+glm::mat4 CameraData::ProjectionMatrix() const {
+	if (this->type == Camera::CameraType::Perspective) {
+		return glm::perspective(
+			glm::radians(this->perspectiveParams.fovyDegrees),
+			this->perspectiveParams.aspectRatio,
+			this->perspectiveParams.nearPlane,
+			this->perspectiveParams.farPlane
+		);
+	}
+	else {
+		return glm::ortho(
+			this->orthoParams.left,
+			this->orthoParams.right,
+			this->orthoParams.bottom,
+			this->orthoParams.top
+		);
+	}
+}
+glm::mat4 CameraData::ViewProjectionMatrix() const {
+	return ProjectionMatrix() * ViewMatrix();
+}
+
+float CameraData::GetFov() const {
+	if (this->type == Camera::CameraType::Perspective) {
+		return this->perspectiveParams.fovyDegrees;
+	}
+
+	return 0;
+}
+float CameraData::GetFovRad() const {
+	if (this->type == Camera::CameraType::Perspective) {
+		return glm::radians(this->perspectiveParams.fovyDegrees);
+	}
+
+	return 0;
+}
+float CameraData::GetAspectRatio() const {
+	if (this->type == Camera::CameraType::Perspective) {
+		return this->perspectiveParams.aspectRatio;
+	}
+
+	return std::abs((this->orthoParams.right - this->orthoParams.left) / (this->orthoParams.top - this->orthoParams.bottom));
+}
+float CameraData::GetNearPlane() const {
+	if (this->type == Camera::CameraType::Perspective) {
+		return this->perspectiveParams.nearPlane;
+	}
+
+	return 0;
+}
+float CameraData::GetFarPlane() const {
+	if (this->type == Camera::CameraType::Perspective) {
+		return this->perspectiveParams.farPlane;
+	}
+
+	return INFINITY;
 }

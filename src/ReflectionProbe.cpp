@@ -4,6 +4,7 @@
 #include <Resources.h>
 #include <Mesh.h>
 #include <Material.h>
+#include <Graphics.h>
 
 ReflectionProbe::ReflectionProbe():
 dirty(true) {

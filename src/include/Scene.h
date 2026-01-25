@@ -6,10 +6,10 @@
 #include <typeinfo>
 
 #include <Transform.h>
-#include <Graphics.h>
 #include <spdlog/spdlog.h>
 
 class GameObject;
+class SceneGraphics;
 class SceneComponent;
 class Light;
 

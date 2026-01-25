@@ -6,6 +6,8 @@
 
 #include <Mesh.h>
 #include <Material.h>
+#include <Camera.h>
+#include <Framebuffer.h>
 
 struct ShaderGlobalUniforms;
 class MeshRenderer;
@@ -20,22 +22,30 @@ class Light;
 // 	int argsSize;
 // };
 
+enum class RenderPassType {
+	Color = 1,
+	DepthPrepass = 2,
+	Shadows = 6,
+	Gizmos = 8,
+	PostProcessing = 16
+};
+
+struct RenderParams {
+	RenderPassType pass;
+	glm::vec4 viewport;
+	bool clearDepth;
+
+	RenderParams(RenderPassType pass, glm::vec4 viewport, bool clearDepth = false);
+};
+
 class SceneGraphics {
 	friend class Scene;
-	friend class LightSystem;
-	friend class ReflectionProbeSystem;
 private:
 	struct RenderNode {
 		const Mesh::SubMesh* mesh;
 		const Material* material;
 		const unsigned int instanceCount;
 		const glm::mat4 transformation;
-	};
-
-	enum class PassType {
-		DepthPrepass,
-		Shadows,
-		Color
 	};
 	
 	Scene* scene;
@@ -46,17 +56,16 @@ private:
 	
 	glm::vec2 screenResolution;
 	
-	GLuint depthPrepassFramebuffer;
-	GLuint depthPrepassDepthTexture;
+	Framebuffer* depthPrepassFramebuffer;
+	Texture2D* depthPrepassDepthTexture;
 
-	GLuint colorPassFramebuffer;
-	GLuint colorPassOutputTexture;
+	Framebuffer* colorPassFramebuffer;
+	Texture2D* colorPassOutputTexture;
 
 	SceneGraphics(Scene* scene);
 
-	void RenderObjects(const ShaderGlobalUniforms& globalUniforms, PassType pass);
+	void RenderObjects(const ShaderGlobalUniforms& globalUniforms, RenderParams params);
 	void RenderFullscreenFrameQuad();
-	void RenderReflectionProbe();
 
 	void BindGlobalUniformBuffer(const ShaderGlobalUniforms& globalUniforms);
 
@@ -70,5 +79,8 @@ public:
 	
 	void DrawMeshInstanced(MeshRenderer* renderer, unsigned int instanceCount);
 	void DrawMeshInstanced(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, unsigned int instanceCount);
-};
 
+	void RenderScene(const ShaderGlobalUniforms& uniforms, Framebuffer* framebuffer, const RenderParams& params);
+	void RenderScene(const CameraData& camera, Framebuffer* framebuffer, const RenderParams& params);
+	void RenderScene(Camera* camera, Framebuffer* framebuffer, const RenderParams& params);
+};

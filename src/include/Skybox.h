@@ -15,7 +15,7 @@ private:
 public:
 	Skybox(Material* skyMaterial);
 
-	Material* GetSKyMaterial();
+	Material* GetSkyMaterial();
 	Mesh* GetSkyMesh();
 
 	static Skybox* GetCurrentSkybox();

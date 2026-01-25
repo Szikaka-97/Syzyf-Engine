@@ -4,25 +4,20 @@
 #include <glm/glm.hpp>
 
 #include <ReflectionProbe.h>
+#include <Graphics.h>
 
 #include "../res/shaders/shared/shared.h"
 #include "../res/shaders/shared/uniforms.h"
 
 ReflectionProbeSystem::ReflectionProbeSystem(Scene* scene):
 GameObjectSystem<ReflectionProbe>(scene) {
-	glCreateFramebuffers(1, &this->reflectionProbeFramebuffer);
-	glGenTextures(1, &this->reflectionProbeDepthTexture);
-	glTextureParameteri(this->reflectionProbeDepthTexture, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTextureParameteri(this->reflectionProbeDepthTexture, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTextureParameteri(this->reflectionProbeDepthTexture, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTextureParameteri(this->reflectionProbeDepthTexture, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	
-	glBindTexture(GL_TEXTURE_2D, this->reflectionProbeDepthTexture);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, 512, 512, 0,  GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
-	glBindTexture(GL_TEXTURE_2D, 0);
+	this->reflectionProbeDepthTexture = new Texture2D(512, 512, TextureFormat::Depth);
+	this->reflectionProbeDepthTexture->SetMinFilter(GL_LINEAR);
+	this->reflectionProbeDepthTexture->SetMagFilter(GL_LINEAR);
+	this->reflectionProbeDepthTexture->SetWrapModeU(GL_CLAMP_TO_EDGE);
+	this->reflectionProbeDepthTexture->SetWrapModeV(GL_CLAMP_TO_EDGE);
 
-	glBindFramebuffer(GL_FRAMEBUFFER, this->reflectionProbeFramebuffer);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, this->reflectionProbeDepthTexture, 0);
+	this->reflectionProbeFramebuffer = new Framebuffer((Texture2D*) nullptr, 0, this->reflectionProbeDepthTexture, 0);
 }
 
 void ReflectionProbeSystem::OnPostRender() {
@@ -41,10 +36,6 @@ void ReflectionProbeSystem::OnPostRender() {
 		}
 
 		probe->dirty = false;
-
-		// return;
-
-		glBindFramebuffer(GL_FRAMEBUFFER, this->reflectionProbeFramebuffer);
 		
 		ShaderGlobalUniforms globalUniforms;
 		
@@ -55,25 +46,38 @@ void ReflectionProbeSystem::OnPostRender() {
 		globalUniforms.Global_CameraFov = glm::radians(90.0f);
 
 		for (int face = 0; face < 6; face++) {
-			globalUniforms.Global_ViewMatrix = glm::lookAt(
-				probe->GlobalTransform().Position().Value(),
-				probe->GlobalTransform().Position() + directions[face],
-				glm::vec3(0, 1, 0)
-			);
+			if (face == 2) {
+				globalUniforms.Global_ViewMatrix = glm::lookAt(
+					probe->GlobalTransform().Position().Value(),
+					probe->GlobalTransform().Position() + directions[face],
+					glm::vec3(0, 0, 1)
+				);
+			}
+			else if (face == 3) {
+				globalUniforms.Global_ViewMatrix = glm::lookAt(
+					probe->GlobalTransform().Position().Value(),
+					probe->GlobalTransform().Position() + directions[face],
+					glm::vec3(0, 0, -1)
+				);	
+			}
+			else {
+				globalUniforms.Global_ViewMatrix = glm::lookAt(
+					probe->GlobalTransform().Position().Value(),
+					probe->GlobalTransform().Position() + directions[face],
+					glm::vec3(0, -1, 0)
+				);
+			}
 			globalUniforms.Global_ProjectionMatrix = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 100.0f);
 			globalUniforms.Global_VPMatrix = globalUniforms.Global_ProjectionMatrix * globalUniforms.Global_ViewMatrix;
 
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, probe->cubemap->GetHandle(), 0);
-			glClear(GL_DEPTH_BUFFER_BIT);
+			this->reflectionProbeFramebuffer->SetColorTexture(probe->cubemap, face);
 
-			GetScene()->GetGraphics()->BindGlobalUniformBuffer(globalUniforms);
+			RenderParams params(RenderPassType::Color, glm::vec4(0, 0, 512, 512), true);
 			
-			glViewport(0, 0, 512, 512);
-			
-			GetScene()->GetGraphics()->RenderObjects(globalUniforms, SceneGraphics::PassType::Color);
+			GetScene()->GetGraphics()->RenderScene(globalUniforms, this->reflectionProbeFramebuffer, params);
 		}
 		
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, 0, 0);
+		this->reflectionProbeFramebuffer->SetColorTexture((Texture2D*) nullptr, 0);
 	}
 }
 

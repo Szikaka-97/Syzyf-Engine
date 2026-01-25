@@ -21,6 +21,7 @@
 #include <Material.h>
 #include <MeshRenderer.h>
 #include <Scene.h>
+#include <Graphics.h>
 #include <Camera.h>
 #include <Skybox.h>
 #include <Resources.h>
@@ -357,11 +358,11 @@ void InitScene() {
 	cameraObject->AddObject<Mover>();
 
 	SceneNode* lightObject = mainScene->CreateNode();
-	Light* light = lightObject->AddObject<Light>(Light::PointLight(glm::vec3(1, 1, 1), 10, 0.5));
-	light->GlobalTransform().Position() = glm::vec3(0, 0, -2);
+	// Light* light = lightObject->AddObject<Light>(Light::PointLight(glm::vec3(1, 1, 1), 10, 0.5));
+	// light->GlobalTransform().Position() = glm::vec3(0, 0, -2);
 
 	SceneNode* spotLightNode = mainScene->CreateNode();
-	Light* spotLight = spotLightNode->AddObject<Light>(Light::SpotLight(glm::vec3(0, 0, 1), glm::radians(45.0f), 10, 1));
+	Light* spotLight = spotLightNode->AddObject<Light>(Light::SpotLight(glm::vec3(0, 0, 1), glm::radians(45.0f), 10, 5));
 	spotLight->GlobalTransform().Position() = {-5.0f, 0.8f, -3.0f};
 	spotLight->GlobalTransform().Rotation() *= glm::angleAxis(glm::radians(15.0f), glm::vec3(1, 0, 0));
 	spotLight->SetShadowCasting(true);
@@ -372,9 +373,9 @@ void InitScene() {
 	pointLight->SetShadowCasting(true);
 
 	SceneNode* terrainLightNode = mainScene->CreateNode();
-	Light* terrainLight = terrainLightNode->AddObject<Light>(Light::PointLight(glm::vec3(1, 1, 1), 1.2f, 0.2f));
-	terrainLight->GlobalTransform().Position() = {-5.0f, 0.2f, -5.0f};
-	terrainLight->GlobalTransform().Scale() *= 0.3f;
+	// Light* terrainLight = terrainLightNode->AddObject<Light>(Light::PointLight(glm::vec3(1, 1, 1), 1.2f, 0.2f));
+	// terrainLight->GlobalTransform().Position() = {-5.0f, 0.2f, -5.0f};
+	// terrainLight->GlobalTransform().Scale() *= 0.3f;
 	
 	auto skyboxObject = mainScene->CreateNode(notCubeNode);
 	// skyboxObject->AddObject<Stars>(5000);

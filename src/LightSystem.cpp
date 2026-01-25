@@ -5,6 +5,7 @@
 
 #include <Light.h>
 #include <Camera.h>
+#include <Graphics.h>
 
 #include "../res/shaders/shared/shared.h"
 #include "../res/shaders/shared/uniforms.h"
@@ -16,23 +17,15 @@ constexpr int DIRECTIONAL_LIGHT_CASCADE_COUNT = 6;
 
 LightSystem::LightSystem(Scene* scene):
 GameObjectSystem<Light>(scene),
-lightsBuffer(0)  {
-	glGenFramebuffers(1, &this->shadowAtlasFramebuffer);
+lightsBuffer(0) {
+	this->shadowAtlasDepthTexture = new Texture2D(SHADOW_MAP_ATLAS_SIZE, SHADOW_MAP_ATLAS_SIZE, TextureFormat::Depth);
 
-	glGenTextures(1, &this->shadowAtlasDepthTexture);
+	this->shadowAtlasDepthTexture->SetMinFilter(GL_NEAREST);
+	this->shadowAtlasDepthTexture->SetMagFilter(GL_NEAREST);
+	this->shadowAtlasDepthTexture->SetWrapModeU(GL_CLAMP_TO_EDGE);
+	this->shadowAtlasDepthTexture->SetWrapModeV(GL_CLAMP_TO_EDGE);
 
-	glBindTexture(GL_TEXTURE_2D, this->shadowAtlasDepthTexture);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_MAP_ATLAS_SIZE, SHADOW_MAP_ATLAS_SIZE, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
-
-	glBindTexture(GL_TEXTURE_2D, 0);
-
-	glBindFramebuffer(GL_FRAMEBUFFER, this->shadowAtlasFramebuffer);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, this->shadowAtlasDepthTexture, 0);
+	this->shadowAtlasFramebuffer = new Framebuffer((Texture2D*) nullptr, 0, this->shadowAtlasDepthTexture);
 
 	glGenBuffers(1, &this->lightsBuffer);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->lightsBuffer);
@@ -68,11 +61,12 @@ void LightSystem::DoSpotLightShadowmap(Light* light, ShadowMapRegion& shadowmapR
 
 	shadowmapRect.viewTransform = globalUniforms.Global_VPMatrix;
 	
-	GetScene()->GetGraphics()->BindGlobalUniformBuffer(globalUniforms);
-	
-	glViewport(shadowmapRect.start.x, shadowmapRect.start.y, shadowmapRect.end.x - shadowmapRect.start.x, shadowmapRect.end.y - shadowmapRect.start.y);
-	
-	GetScene()->GetGraphics()->RenderObjects(globalUniforms, SceneGraphics::PassType::Shadows);
+	RenderParams renderParams(RenderPassType::Shadows, glm::vec4(
+		shadowmapRect.start.x, shadowmapRect.start.y,
+		shadowmapRect.end.x - shadowmapRect.start.x, shadowmapRect.end.y - shadowmapRect.start.y
+	));
+
+	GetScene()->GetGraphics()->RenderScene(globalUniforms, this->shadowAtlasFramebuffer, renderParams);
 
 	shadowmapRect.start /= SHADOW_MAP_ATLAS_SIZE;
 	shadowmapRect.end /= SHADOW_MAP_ATLAS_SIZE;
@@ -157,11 +151,12 @@ void LightSystem::DoDirectionalLightShadowmap(Light* light, ShadowMapRegion* sha
 		
 		shadowmapRect.viewTransform = globalUniforms.Global_VPMatrix;
 		
-		GetScene()->GetGraphics()->BindGlobalUniformBuffer(globalUniforms);
+		RenderParams renderParams(RenderPassType::Shadows, glm::vec4(
+			shadowmapRect.start.x, shadowmapRect.start.y,
+			shadowmapRect.end.x - shadowmapRect.start.x, shadowmapRect.end.y - shadowmapRect.start.y
+		));
 		
-		glViewport(shadowmapRect.start.x, shadowmapRect.start.y, shadowmapRect.end.x - shadowmapRect.start.x, shadowmapRect.end.y - shadowmapRect.start.y);
-		
-		GetScene()->GetGraphics()->RenderObjects(globalUniforms, SceneGraphics::PassType::Shadows);
+		GetScene()->GetGraphics()->RenderScene(globalUniforms, this->shadowAtlasFramebuffer, renderParams);
 
 		shadowmapRect.start /= SHADOW_MAP_ATLAS_SIZE;
 		shadowmapRect.end /= SHADOW_MAP_ATLAS_SIZE;
@@ -190,7 +185,7 @@ void LightSystem::DoPointLightShadowmap(Light* light, ShadowMapRegion* shadowmap
 		globalUniforms.Global_ViewMatrix = glm::lookAt(
 			light->GlobalTransform().Position().Value(),
 			light->GlobalTransform().Position() + directions[face],
-			glm::vec3(0, 1, 0)
+			glm::vec3(0, 1, 1)
 		);
 		globalUniforms.Global_ProjectionMatrix = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, light->GetRange());
 		globalUniforms.Global_VPMatrix = globalUniforms.Global_ProjectionMatrix * globalUniforms.Global_ViewMatrix;
@@ -199,19 +194,20 @@ void LightSystem::DoPointLightShadowmap(Light* light, ShadowMapRegion* shadowmap
 
 		shadowmapRect.viewTransform = globalUniforms.Global_VPMatrix;
 
-		GetScene()->GetGraphics()->BindGlobalUniformBuffer(globalUniforms);
+		RenderParams renderParams(RenderPassType::Shadows, glm::vec4(
+			shadowmapRect.start.x, shadowmapRect.start.y,
+			shadowmapRect.end.x - shadowmapRect.start.x, shadowmapRect.end.y - shadowmapRect.start.y
+		));
 		
-		glViewport(shadowmapRect.start.x, shadowmapRect.start.y, shadowmapRect.end.x - shadowmapRect.start.x, shadowmapRect.end.y - shadowmapRect.start.y);
-		
-		GetScene()->GetGraphics()->RenderObjects(globalUniforms, SceneGraphics::PassType::Shadows);
-	
+		GetScene()->GetGraphics()->RenderScene(globalUniforms, this->shadowAtlasFramebuffer, renderParams);
+
 		shadowmapRect.start /= SHADOW_MAP_ATLAS_SIZE;
 		shadowmapRect.end /= SHADOW_MAP_ATLAS_SIZE;
 	}	
 }
 
 void LightSystem::OnPostRender() {
-	glBindFramebuffer(GL_FRAMEBUFFER, this->shadowAtlasFramebuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, this->shadowAtlasFramebuffer->GetHandle());
 	glClear(GL_DEPTH_BUFFER_BIT);
 
 	glCullFace(GL_FRONT);
@@ -240,8 +236,6 @@ void LightSystem::OnPostRender() {
 	}
 
 	ShadowMapRegion rects[shadowmapTexturesCount];
-
-	
 
 	int shadowMapIndex = 0;
 	int sizeDivisor = 1 << (int) (

@@ -2,6 +2,8 @@
 
 #include <Resources.h>
 #include <Material.h>
+#include <Mesh.h>
+#include <Graphics.h>
 
 #if LIGHTS_DRAW_GIZMOS
 ShaderProgram* GetGizmoShader() {

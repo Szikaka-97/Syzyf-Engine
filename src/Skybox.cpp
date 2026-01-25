@@ -14,7 +14,7 @@ skyMaterial(skyMaterial) {
 	SetAsCurrentSkybox();
 }
 
-Material* Skybox::GetSKyMaterial() {
+Material* Skybox::GetSkyMaterial() {
 	return this->skyMaterial;
 }
 Mesh* Skybox::GetSkyMesh() {

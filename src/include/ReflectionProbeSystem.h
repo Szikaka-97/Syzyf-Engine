@@ -2,11 +2,13 @@
 
 #include <GameObjectSystem.h>
 #include <ReflectionProbe.h>
+#include <Framebuffer.h>
+#include <Texture.h>
 
 class ReflectionProbeSystem : public GameObjectSystem<ReflectionProbe> {
 private:
-	GLuint reflectionProbeFramebuffer;
-	GLuint reflectionProbeDepthTexture;
+	Framebuffer* reflectionProbeFramebuffer;
+	Texture2D* reflectionProbeDepthTexture;
 public:
 	ReflectionProbeSystem(Scene* scene);
 

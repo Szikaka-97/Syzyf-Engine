@@ -1,6 +1,7 @@
 #include <Bloom.h>
 
 #include <Resources.h>
+#include <Graphics.h>
 
 constexpr int BLOOM_LEVEL = 6;
 

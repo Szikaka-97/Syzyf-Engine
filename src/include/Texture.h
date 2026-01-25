@@ -27,7 +27,8 @@ enum class TextureFormat {
 	RUInt,
 	RGUInt,
 	RGBUInt,
-	RGBAUInt
+	RGBAUInt,
+	Depth
 };
 
 class Texture {

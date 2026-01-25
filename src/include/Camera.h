@@ -3,6 +3,8 @@
 #include <GameObject.h>
 #include <glm/glm.hpp>
 
+struct CameraData;
+
 class Camera : public GameObject {
 public:
 	struct Perspective {
@@ -78,4 +80,28 @@ public:
 
 	static Camera* GetMainCamera();
 	void SetAsMainCamera();
+
+	CameraData GetCameraData() const;
+};
+
+struct CameraData {
+	union {
+		const Camera::Orthographic orthoParams;
+		const Camera::Perspective perspectiveParams;
+	};
+	const Camera::CameraType type;
+	const glm::mat4 cameraTransform;
+
+	CameraData(const Camera::Orthographic& orthoParams, const glm::mat4& cameraTransform);
+	CameraData(const Camera::Perspective& perspectiveParams, const glm::mat4& cameraTransform);
+
+	glm::mat4 ViewMatrix() const;
+	glm::mat4 ProjectionMatrix() const;
+	glm::mat4 ViewProjectionMatrix() const;
+
+	float GetFov() const;
+	float GetFovRad() const;
+	float GetAspectRatio() const;
+	float GetNearPlane() const;
+	float GetFarPlane() const;
 };

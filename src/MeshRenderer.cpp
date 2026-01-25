@@ -2,6 +2,7 @@
 
 #include <glad/glad.h>
 #include <Scene.h>
+#include <Graphics.h>
 
 MeshRenderer::MeshRenderer():
 mesh(),

@@ -6,6 +6,7 @@
 
 #include <spdlog/spdlog.h>
 #include <GameObject.h>
+#include <Graphics.h>
 #include <Light.h>
 #include <LightSystem.h>
 #include <PostProcessingSystem.h>

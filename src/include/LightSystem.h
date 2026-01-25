@@ -4,12 +4,13 @@
 
 #include <GameObjectSystem.h>
 #include <Light.h>
+#include <Framebuffer.h>
 
 class LightSystem : public GameObjectSystem<Light> {
 	friend class SceneGraphics;
 private:
-	GLuint shadowAtlasFramebuffer;
-	GLuint shadowAtlasDepthTexture;
+	Framebuffer* shadowAtlasFramebuffer;
+	Texture2D* shadowAtlasDepthTexture;
 
 	GLuint lightsBuffer;
 	GLuint shadowmapsBuffer;

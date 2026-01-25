@@ -58,6 +58,10 @@ GLenum Texture::TextureFormatToGL(TextureFormat format) {
 		GL_RGBA32UI
 	};
 
+	if (format == TextureFormat::Depth) {
+		return GL_DEPTH_COMPONENT;
+	}
+
 	if ((int) format > 0 && (int) format < sizeof(glFormats) / sizeof(GLenum)) {
 		return glFormats[(int) format];
 	}
@@ -325,7 +329,14 @@ Texture2D::Texture2D(unsigned int width, unsigned int height, TextureFormat form
 
 	int textureType = pixelTypes[((int) format) / 4];
 
-	glTexImage2D(GL_TEXTURE_2D, 0, TextureFormatToGL(format), width, height, 0, textureType == GL_UNSIGNED_INT ? formatsInt[(int) format % 4] : formats[(int) format % 4], pixelTypes[(int) format / 4], nullptr);
+	GLuint glFormat = TextureFormatToGL(format);
+
+	if (format == TextureFormat::Depth) {
+		glTexImage2D(GL_TEXTURE_2D, 0, glFormat, width, height, 0, glFormat, GL_FLOAT, nullptr);
+	}
+	else {
+		glTexImage2D(GL_TEXTURE_2D, 0, glFormat, width, height, 0, textureType == GL_UNSIGNED_INT ? formatsInt[(int) format % 4] : formats[(int) format % 4], pixelTypes[(int) format / 4], nullptr);
+	}
 
 	this->SetWrapModeU(GL_CLAMP_TO_EDGE);
 	this->SetWrapModeV(GL_CLAMP_TO_EDGE);
