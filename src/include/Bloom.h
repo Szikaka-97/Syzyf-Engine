@@ -14,7 +14,7 @@ private:
 
 	float threshold = 1.5f;
 	float knee = 0.1f;
-	float intensity = 1.0f;
+	float intensity = 0.6f;
 
 	void UpdateTexture();
 public:
