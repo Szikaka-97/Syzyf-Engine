@@ -138,7 +138,7 @@ void UniformSpec::CreateFrom(GLuint programHandle) {
 
 		UniformTypeInfo info = GetUniformInfo(uniformType);
 
-		this->variables.push_back({ info.type, this->variablesBufferLength, uniformVariableIndex, uniformName });
+		this->variables.push_back({ info.type, this->variablesBufferLength, glGetUniformLocation(programHandle, uniformName), uniformName });
 	
 		this->variablesBufferLength += info.size;
 	}
