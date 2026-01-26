@@ -33,7 +33,8 @@ objectUniformsBuffer(0),
 depthPrepassFramebuffer(nullptr),
 depthPrepassDepthTexture(nullptr),
 colorPassFramebuffer(nullptr),
-colorPassOutputTexture(nullptr) {
+colorPassOutputTexture(nullptr),
+screenResolution(0) {
 	glGenBuffers(1, &this->globalUniformsBuffer);
 	glBindBuffer(GL_UNIFORM_BUFFER, this->globalUniformsBuffer);
 	glBufferData(GL_UNIFORM_BUFFER, sizeof(ShaderGlobalUniforms), nullptr, GL_DYNAMIC_DRAW);
