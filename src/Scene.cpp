@@ -141,8 +141,8 @@ void SceneNode::DeleteObject(GameObject* obj) {
 Scene::Scene() :
 updateable(),
 renderable(),
-root(new SceneNode(this)),
-graphics(new SceneGraphics(this)) {
+root(new SceneNode(this)) {
+	this->graphics = AddComponent<SceneGraphics>();
 	this->lightSystem = AddComponent<LightSystem>();
 	this->postProcessing = AddComponent<PostProcessingSystem>();
 	this->envMapping = AddComponent<ReflectionProbeSystem>();
@@ -238,6 +238,4 @@ void Scene::Render() {
 	for (auto& component: this->components) {
 		component->OnPostRender();
 	}
-
-	this->graphics->Render();
 }

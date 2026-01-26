@@ -25,7 +25,7 @@ viewport(viewport),
 clearDepth(clearDepth) { }
 
 SceneGraphics::SceneGraphics(Scene* scene):
-scene(scene),
+SceneComponent(scene),
 currentRenders(),
 globalUniformsBuffer(0),
 objectUniformsBuffer(0),
@@ -91,8 +91,8 @@ void SceneGraphics::UpdateScreenResolution(glm::vec2 newResolution) {
 			this->colorPassFramebuffer->SetDepthTexture(this->depthPrepassDepthTexture, 0);
 		}
 
-		if (this->scene->GetPostProcessing()) {
-			this->scene->GetPostProcessing()->UpdateBufferResolution(newResolution);
+		if (GetScene()->GetPostProcessing()) {
+			GetScene()->GetPostProcessing()->UpdateBufferResolution(newResolution);
 		}
 	}
 }
@@ -127,7 +127,7 @@ void SceneGraphics::RenderObjects(const ShaderGlobalUniforms& globalUniforms, Re
 		mat->Bind();
 
 		glActiveTexture(GL_TEXTURE31);
-		glBindTexture(GL_TEXTURE_2D, this->scene->GetLightSystem()->shadowAtlasDepthTexture->GetHandle());
+		glBindTexture(GL_TEXTURE_2D, GetScene()->GetLightSystem()->shadowAtlasDepthTexture->GetHandle());
 		glUniform1i(glGetUniformLocation(mat->GetShader()->handle, "shadowMask"), 31);
 		
 		glBindVertexArray(mesh->GetVertexArrayHandle());
@@ -305,7 +305,7 @@ void SceneGraphics::RenderScene(const ShaderGlobalUniforms& uniforms, Framebuffe
 	}
 
 	if (((int) params.pass & (int) RenderPassType::PostProcessing) != 0) {
-		PostProcessingSystem* postProcess = this->scene->GetPostProcessing();
+		PostProcessingSystem* postProcess = GetScene()->GetPostProcessing();
 
 		Texture2D* frameTex = dynamic_cast<Texture2D*>(framebuffer->GetColorTexture());
 		Texture2D* frameDepth = dynamic_cast<Texture2D*>(framebuffer->GetDepthTexture());
@@ -358,4 +358,12 @@ void SceneGraphics::RenderScene(const CameraData& camera, Framebuffer* framebuff
 
 void SceneGraphics::RenderScene(Camera* camera, Framebuffer* framebuffer, const RenderParams& params) {
 	RenderScene(camera->GetCameraData(), framebuffer, params);
+}
+
+void SceneGraphics::OnPostRender() {
+	Render();
+}
+
+int SceneGraphics::Order() {
+	return INT_MAX;
 }

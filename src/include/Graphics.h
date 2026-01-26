@@ -8,6 +8,7 @@
 #include <Material.h>
 #include <Camera.h>
 #include <Framebuffer.h>
+#include <SceneComponent.h>
 
 struct ShaderGlobalUniforms;
 class MeshRenderer;
@@ -38,17 +39,13 @@ struct RenderParams {
 	RenderParams(RenderPassType pass, glm::vec4 viewport, bool clearDepth = false);
 };
 
-class SceneGraphics {
-	friend class Scene;
-private:
+class SceneGraphics : public SceneComponent {
 	struct RenderNode {
 		const Mesh::SubMesh* mesh;
 		const Material* material;
 		const unsigned int instanceCount;
 		const glm::mat4 transformation;
 	};
-	
-	Scene* scene;
 
 	std::vector<RenderNode> currentRenders;
 	GLuint globalUniformsBuffer;
@@ -61,16 +58,16 @@ private:
 
 	Framebuffer* colorPassFramebuffer;
 	Texture2D* colorPassOutputTexture;
-
-	SceneGraphics(Scene* scene);
-
+	
 	void RenderObjects(const ShaderGlobalUniforms& globalUniforms, RenderParams params);
 	void RenderFullscreenFrameQuad();
-
+	
 	void BindGlobalUniformBuffer(const ShaderGlobalUniforms& globalUniforms);
-
+	
 	void Render();
 public:
+	SceneGraphics(Scene* scene);
+
 	glm::vec2 GetScreenResolution() const;
 	void UpdateScreenResolution(glm::vec2 newResolution);
 	
@@ -83,4 +80,8 @@ public:
 	void RenderScene(const ShaderGlobalUniforms& uniforms, Framebuffer* framebuffer, const RenderParams& params);
 	void RenderScene(const CameraData& camera, Framebuffer* framebuffer, const RenderParams& params);
 	void RenderScene(Camera* camera, Framebuffer* framebuffer, const RenderParams& params);
+
+	virtual void OnPostRender();
+
+	virtual int Order();
 };
