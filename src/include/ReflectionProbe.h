@@ -9,7 +9,7 @@ class ReflectionProbeSystem;
 class ReflectionProbe : public GameObject {
 	friend class ReflectionProbeSystem;
 private:
-	unsigned int resolution = 512;
+	static constexpr unsigned int resolution = 128;
 
 	bool dirty;
 	Cubemap* cubemap;
