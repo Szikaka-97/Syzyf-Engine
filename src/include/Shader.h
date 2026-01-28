@@ -41,9 +41,7 @@ public:
 	const UniformSpec& GetUniforms() const;
 };
 
-template <ShaderLike T_ShaderProg>
-class ShaderVariableStorage;
-typedef ShaderVariableStorage<ComputeShaderProgram> ComputeDispatchData;
+class ComputeDispatchData;
 
 class ShaderProgram;
 
