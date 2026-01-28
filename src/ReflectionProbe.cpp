@@ -18,7 +18,7 @@ void ReflectionProbe::Regenerate() {
 Mesh* cubemapGizmoMesh = nullptr;
 Material* cubemapGizmoMaterial = nullptr;
 
-void ReflectionProbe::Render() {
+void ReflectionProbe::DrawGizmos() {
 	if (cubemapGizmoMesh == nullptr) {
 		cubemapGizmoMesh = Resources::Get<Mesh>("./res/models/sphere.obj");
 	}
@@ -37,5 +37,5 @@ void ReflectionProbe::Render() {
 
 	cubemapGizmoMaterial->SetValue("cubemap", this->cubemap);
 
-	GetScene()->GetGraphics()->DrawMesh(cubemapGizmoMesh, 0, cubemapGizmoMaterial, GlobalTransform().Value());
+	GetScene()->GetGraphics()->DrawGizmoMesh(cubemapGizmoMesh, 0, cubemapGizmoMaterial, GlobalTransform().Value());
 }

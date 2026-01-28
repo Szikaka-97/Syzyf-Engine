@@ -40,6 +40,11 @@ concept Disableable = requires (T a) {
 	{ a.Disable() } -> std::same_as<void>;
 };
 
+template<class T>
+concept DrawsGizmos = requires (T a) {
+	{ a.DrawGizmos() } -> std::same_as<void>;
+};
+
 class Scene;
 
 class SceneNode {
@@ -117,6 +122,7 @@ private:
 
 	std::list<MessageReceiver> updateable;
 	std::list<MessageReceiver> renderable;
+	std::list<MessageReceiver> drawGizmos;
 	std::vector<SceneComponent*> components;
 	SceneNode* root;
 
@@ -161,6 +167,14 @@ private:
 	template<class T_GO>
 		requires std::derived_from<T_GO, GameObject> && Disableable<T_GO>
 	bool TryCreateDisableable(T_GO* object);
+
+	template<class T_GO>
+		requires std::derived_from<T_GO, GameObject>
+	bool TryCreateDrawingGizmos(T_GO* object);
+
+	template<class T_GO>
+		requires std::derived_from<T_GO, GameObject> && DrawsGizmos<T_GO>
+	bool TryCreateDrawingGizmos(T_GO* object);
 
 	void DeleteObjectInternal(GameObject* obj);
 	void DeleteNodeInternal(SceneNode* node);
@@ -390,6 +404,20 @@ bool Scene::TryCreateRenderable(T_GO* object) {
 	return true;
 }
 
+template<class T_GO>
+	requires std::derived_from<T_GO, GameObject>
+bool Scene::TryCreateDrawingGizmos(T_GO* object) {
+	return false;
+}
+
+template<class T_GO>
+	requires std::derived_from<T_GO, GameObject> && DrawsGizmos<T_GO>
+bool Scene::TryCreateDrawingGizmos(T_GO* object) {
+	this->drawGizmos.push_back({ object, reinterpret_cast<MessageMethod>(&T_GO::DrawGizmos) });
+
+	return true;
+}
+
 template<class T_GO, typename... T_Param>
 	requires std::derived_from<T_GO, GameObject>
 T_GO* Scene::CreateObjectOn(SceneNode* node, T_Param... params) {
@@ -409,6 +437,7 @@ T_GO* Scene::CreateObjectOn(SceneNode* node, T_Param... params) {
 	TryCreateEnableable(created);
 	TryCreateUpdateable(created);
 	TryCreateRenderable(created);
+	TryCreateDrawingGizmos(created);
 
 	for (SceneComponent* component : this->components) {
 

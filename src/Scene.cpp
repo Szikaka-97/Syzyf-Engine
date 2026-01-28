@@ -224,6 +224,10 @@ void Scene::Render() {
 		msgObject.Message();
 	}
 
+	for (auto& msgObject : this->drawGizmos) {
+		msgObject.Message();
+	}
+
 	for (auto& component: this->components) {
 		component->OnPostRender();
 	}

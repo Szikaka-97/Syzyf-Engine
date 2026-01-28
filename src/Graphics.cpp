@@ -81,9 +81,22 @@ pass(pass),
 viewport(viewport),
 clearDepth(clearDepth) { }
 
+SceneGraphics::RenderNode::RenderNode(const Mesh::SubMesh* mesh, const Material* material, unsigned int instanceCount, const glm::mat4& transformation):
+mesh(mesh),
+material(material),
+instanceCount(instanceCount),
+transformation(transformation) { }
+
+SceneGraphics::RenderNode::RenderNode(const Mesh::SubMesh* mesh, const Material* material, bool ignoreDepth, const glm::mat4& transformation):
+mesh(mesh),
+material(material),
+ignoreDepth(ignoreDepth),
+transformation(transformation) { }
+
 SceneGraphics::SceneGraphics(Scene* scene):
 SceneComponent(scene),
 currentRenders(),
+gizmoRenders(),
 globalUniformsBuffer(0),
 objectUniformsBuffer(0),
 depthPrepassFramebuffer(nullptr),
@@ -176,7 +189,11 @@ void SceneGraphics::RenderObjects(const ShaderGlobalUniforms& globalUniforms, Re
 
 	Frustum viewFrustum = ComputeFrustum(globalUniforms.Global_VPMatrix);
 
-	for (auto node : this->currentRenders) {
+	bool drawsGizmos = ((int) params.pass & (int) RenderPassType::Gizmos) != 0;
+
+	std::vector<RenderNode>& renders = drawsGizmos ? this->gizmoRenders : this->currentRenders;
+
+	for (const RenderNode& node : renders) {
 		const Mesh::SubMesh* mesh = node.mesh;
 		const Material* mat = node.material;
 
@@ -212,10 +229,14 @@ void SceneGraphics::RenderObjects(const ShaderGlobalUniforms& globalUniforms, Re
 		
 		glBindVertexArray(mesh->GetVertexArrayHandle());
 
+		if (drawsGizmos && node.ignoreDepth) {
+			glDisable(GL_DEPTH);
+		}
+
 		if (mat->GetShader()->UsesPatches()) {
 			glPatchParameteri(GL_PATCH_VERTICES, (int) mesh->GetType());
 
-			if (node.instanceCount <= 0) {
+			if (drawsGizmos || node.instanceCount <= 0) {
 				glDrawElements(GL_PATCHES, mesh->GetVertexCount(), GL_UNSIGNED_INT, nullptr);
 			}
 			else {
@@ -223,12 +244,16 @@ void SceneGraphics::RenderObjects(const ShaderGlobalUniforms& globalUniforms, Re
 			}
 		}
 		else {
-			if (node.instanceCount <= 0) {
+			if (drawsGizmos || node.instanceCount <= 0) {
 				glDrawElements(mesh->GetDrawMode(), mesh->GetVertexCount(), GL_UNSIGNED_INT, nullptr);
 			}
 			else {
 				glDrawElementsInstanced(mesh->GetDrawMode(), mesh->GetVertexCount(), GL_UNSIGNED_INT, nullptr, node.instanceCount);
 			}
+		}
+
+		if (drawsGizmos && node.ignoreDepth) {
+			glEnable(GL_DEPTH);
 		}
 
 		glBindVertexArray(0);
@@ -280,8 +305,16 @@ void SceneGraphics::DrawMesh(const Mesh* mesh, int subMeshIndex, const Material*
 	DrawMeshInstanced(mesh, subMeshIndex, material, transformation, 0);
 }
 
+void SceneGraphics::DrawGizmoMesh(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, bool ignoresDepth) {
+	this->gizmoRenders.push_back(RenderNode(
+		&mesh->SubMeshAt(subMeshIndex),
+		material,
+		ignoresDepth,
+		transformation
+	));
+}
+
 void SceneGraphics::DrawMeshInstanced(MeshRenderer* renderer, unsigned int instanceCount) {
-	// for (const Mesh::SubMesh& mesh : renderer->GetMesh()->GetSubMeshes()) {
 	for (int i = 0; i < renderer->GetMesh()->GetSubMeshCount(); i++) {
 		const Mesh::SubMesh* mesh = &renderer->GetMesh()->SubMeshAt(i);
 
@@ -323,7 +356,15 @@ void SceneGraphics::Render() {
 	RenderScene(globalUniforms, this->depthPrepassFramebuffer, params);
 
 	params.clearDepth = false;
-	params.pass = RenderPassType((int) RenderPassType::Color | (int) RenderPassType::PostProcessing);
+	params.pass = RenderPassType(RenderPassType::Color);
+
+	RenderScene(globalUniforms, this->colorPassFramebuffer, params);
+
+	params.pass = RenderPassType(RenderPassType::Gizmos);
+
+	RenderScene(globalUniforms, this->colorPassFramebuffer, params);
+
+	params.pass = RenderPassType(RenderPassType::PostProcessing);
 
 	RenderScene(globalUniforms, this->colorPassFramebuffer, params);
 
@@ -333,6 +374,8 @@ void SceneGraphics::Render() {
 	glUseProgram(0);
 
 	this->currentRenders.clear();
+
+	this->gizmoRenders.clear();
 }
 
 void SceneGraphics::RenderScene(const ShaderGlobalUniforms& uniforms, Framebuffer* framebuffer, const RenderParams& params) {
@@ -382,6 +425,13 @@ void SceneGraphics::RenderScene(const ShaderGlobalUniforms& uniforms, Framebuffe
 			glBindVertexArray(sky->GetSkyMesh()->SubMeshAt(0).GetVertexArrayHandle());
 			glDrawElements(GL_TRIANGLES, sky->GetSkyMesh()->SubMeshAt(0).GetVertexCount(), GL_UNSIGNED_INT, nullptr);
 		}
+	}
+
+	if (((int) params.pass & (int) RenderPassType::Gizmos) != 0) {
+		RenderParams gizmoPassParams = params;
+		gizmoPassParams.pass = RenderPassType::Gizmos;
+
+		RenderObjects(uniforms, gizmoPassParams);
 	}
 
 	if (((int) params.pass & (int) RenderPassType::PostProcessing) != 0) {

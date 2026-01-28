@@ -5,8 +5,6 @@
 
 #include "../res/shaders/shared/shared.h"
 
-#define LIGHTS_DRAW_GIZMOS true
-
 class Light : public GameObject {
 public:
 	enum class LightType {
@@ -57,9 +55,7 @@ private:
 
 	mutable glm::mat4 savedTransform;
 
-#if LIGHTS_DRAW_GIZMOS
 	Material* gizmoMat;
-#endif
 public:
 	virtual ~Light();
 
@@ -90,9 +86,7 @@ public:
 
 	bool IsDirty() const;
 
-#if LIGHTS_DRAW_GIZMOS
-	void Render();
-#endif
+	void DrawGizmos();
 
 	ShaderLightRep GetShaderRepresentation() const;
 };

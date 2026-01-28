@@ -20,5 +20,5 @@ public:
 
 	Cubemap* GetCubemapTexture();
 
-	void Render();
+	void DrawGizmos();
 };

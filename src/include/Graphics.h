@@ -43,14 +43,22 @@ struct RenderParams {
 };
 
 class SceneGraphics : public SceneComponent {
+private:
 	struct RenderNode {
 		const Mesh::SubMesh* mesh;
 		const Material* material;
-		const unsigned int instanceCount;
+		union {
+			const unsigned int instanceCount;
+			const bool ignoreDepth;
+		};
 		const glm::mat4 transformation;
+
+		RenderNode(const Mesh::SubMesh* mesh, const Material* material, unsigned int instanceCount, const glm::mat4& transformation);
+		RenderNode(const Mesh::SubMesh* mesh, const Material* material, bool ignoreDepth, const glm::mat4& transformation);
 	};
 
 	std::vector<RenderNode> currentRenders;
+	std::vector<RenderNode> gizmoRenders;
 	GLuint globalUniformsBuffer;
 	GLuint objectUniformsBuffer;
 	
@@ -87,6 +95,8 @@ public:
 	
 	void DrawMeshInstanced(MeshRenderer* renderer, unsigned int instanceCount);
 	void DrawMeshInstanced(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, unsigned int instanceCount);
+
+	void DrawGizmoMesh(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, bool ignoresDepth = false);
 
 	void RenderScene(const ShaderGlobalUniforms& uniforms, Framebuffer* framebuffer, const RenderParams& params);
 	void RenderScene(const CameraData& camera, Framebuffer* framebuffer, const RenderParams& params);
