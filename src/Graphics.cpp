@@ -115,7 +115,6 @@ glm::vec2 SceneGraphics::GetScreenResolution() const {
 }
 
 void SceneGraphics::UpdateScreenResolution(glm::vec2 newResolution) {
-	spdlog::info("Resolution change");
 	if (this->screenResolution != newResolution) {
 		this->screenResolution = newResolution;
 
@@ -135,14 +134,7 @@ void SceneGraphics::UpdateScreenResolution(glm::vec2 newResolution) {
 			this->depthPrepassFramebuffer = new Framebuffer((Texture2D*) nullptr, 0, this->depthPrepassDepthTexture, 0);
 
 			glBindFramebuffer(GL_FRAMEBUFFER, this->depthPrepassFramebuffer->GetHandle());
-			if(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE) {
-				spdlog::info("Depth prepass framebuffer complete");
-			}
-			else {
-				spdlog::info("Depth prepass framebuffer failed: {:x}", glCheckFramebufferStatus(GL_FRAMEBUFFER));
 
-				exit(1);
-			}
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		}
 		else {
@@ -153,14 +145,7 @@ void SceneGraphics::UpdateScreenResolution(glm::vec2 newResolution) {
 			this->colorPassFramebuffer = new Framebuffer(this->colorPassOutputTexture, 0, this->depthPrepassDepthTexture, 0);
 
 			glBindFramebuffer(GL_FRAMEBUFFER, this->colorPassFramebuffer->GetHandle());
-			if(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE) {
-				spdlog::info("Color pass framebuffer complete");
-			}
-			else {
-				spdlog::info("Color pass framebuffer failed: {:x}", glCheckFramebufferStatus(GL_FRAMEBUFFER));
 
-				exit(1);
-			}
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		}
 		else {

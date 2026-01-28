@@ -392,8 +392,6 @@ Texture2D::Texture2D(unsigned int width, unsigned int height, const TextureParam
 		GLenum format = ToGL(creationParams.channels);
 		GLenum textureType = ToGL(creationParams.format);
 		
-		spdlog::info("Internal format: {:x}, Format: {:x}, Type: {:x}", internalFormat, format, textureType);
-
 		glCreateTextures(GL_TEXTURE_2D, 1, &this->handle);
 		
 		glBindTexture(GL_TEXTURE_2D, this->handle);
