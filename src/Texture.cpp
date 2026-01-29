@@ -347,8 +347,6 @@ Texture2D* Texture2D::Load(const fs::path& texturePath, const TextureParams& loa
 		return nullptr;
 	}
 
-	spdlog::info("Width: {}, Height: {}", width, height);
-
 	GLuint textureHandle;
 	glGenTextures(1, &textureHandle);
 
@@ -519,8 +517,6 @@ Cubemap* Cubemap::LoadEquirectangular(const fs::path& texturePath, const Texture
 
 	glCullFace(GL_BACK);
 
-	spdlog::info("After render");
-
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	
 	Cubemap* result = new Cubemap(texSize, texSize, loadParams, handle);
@@ -630,8 +626,6 @@ Cubemap* Cubemap::GenerateIrradianceMap() {
 
 	int texSize = 32;
 
-	spdlog::info((int) creationParams.channels);
-
 	GLenum internalFormat = CalcInternalFormat(creationParams);
 	GLenum format = ToGL(creationParams.channels);
 	GLenum textureType = ToGL(creationParams.format);
@@ -687,8 +681,6 @@ Cubemap* Cubemap::GenerateIrradianceMap() {
 
 	glCullFace(GL_BACK);
 
-	spdlog::info("After render");
-
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	Cubemap* result = new Cubemap(width, height, creationParams, handle);
@@ -727,8 +719,6 @@ Cubemap* Cubemap::GeneratePrefilterIBLMap() {
 	creationParams.colorSpace = this->colorSpace;
 
 	int texSize = 128;
-
-	spdlog::info((int) creationParams.channels);
 
 	GLenum internalFormat = CalcInternalFormat(creationParams);
 	GLenum format = ToGL(creationParams.channels);

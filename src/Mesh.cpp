@@ -181,8 +181,6 @@ Mesh* Mesh::Load(fs::path modelPath) {
 	for (unsigned int meshIndex = 0; meshIndex < loaded_scene->mNumMeshes; meshIndex++) {
 		const aiMesh* currentMesh = loaded_scene->mMeshes[meshIndex];
 		
-		spdlog::info("Tangents: {}", currentMesh->HasTangentsAndBitangents());
-
 		bool hasPoints = (currentMesh->mPrimitiveTypes & aiPrimitiveType_POINT) != 0;
 		bool hasLines = (currentMesh->mPrimitiveTypes & aiPrimitiveType_LINE) != 0;
 		bool hasTriangles = (currentMesh->mPrimitiveTypes & aiPrimitiveType_TRIANGLE) != 0;

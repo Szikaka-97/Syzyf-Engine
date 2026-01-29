@@ -263,8 +263,6 @@ void InitScene() {
 	floorMat->SetValue<glm::vec3>("uColor", glm::vec3(1.0f, 1.0f, 1.0f));
 	floorMat->SetValue<float>("specularValue", 0.0f);
 
-	float loadTime = glfwGetTime();
-
 	Material* cannonMat = new Material(pbrProg);
 	cannonMat->SetValue("albedoMap", cannonDiffuse);
 	cannonMat->SetValue("normalMap", cannonNormal);
@@ -280,8 +278,6 @@ void InitScene() {
 	reflectiveMat->SetValue("irradianceMap", skyRadianceMap);
 	reflectiveMat->SetValue("prefilterMap", skyPrefilterMap);
 	reflectiveMat->SetValue("brdfLUT", skyBRDFMap);
-
-	spdlog::info("Loading the cannon took {} seconds", glfwGetTime() - loadTime);
 
 	Material* skyMat = new Material(skyProg);
 	skyMat->SetValue("skyboxTexture", skyCubemap);
