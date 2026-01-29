@@ -230,7 +230,7 @@ void SceneGraphics::RenderObjects(const ShaderGlobalUniforms& globalUniforms, Re
 		glBindVertexArray(mesh->GetVertexArrayHandle());
 
 		if (drawsGizmos && node.ignoreDepth) {
-			glDisable(GL_DEPTH);
+			glDisable(GL_DEPTH_TEST);
 		}
 
 		if (mat->GetShader()->UsesPatches()) {
@@ -253,7 +253,7 @@ void SceneGraphics::RenderObjects(const ShaderGlobalUniforms& globalUniforms, Re
 		}
 
 		if (drawsGizmos && node.ignoreDepth) {
-			glEnable(GL_DEPTH);
+			glEnable(GL_DEPTH_TEST);
 		}
 
 		glBindVertexArray(0);

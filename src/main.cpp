@@ -221,36 +221,11 @@ public:
 };
 
 void InitScene() {
-	ShaderProgram* meshProg = ShaderProgram::Build().WithVertexShader(
-		Resources::Get<VertexShader>("./res/shaders/lit.vert")
-	).WithPixelShader(
-		Resources::Get<PixelShader>("./res/shaders/lambert.frag")
-	).Link();
-
-	ShaderProgram* haloProg = ShaderProgram::Build().WithVertexShader(
-		Resources::Get<VertexShader>("./res/shaders/lit.vert")
-	).WithPixelShader(
-		Resources::Get<PixelShader>("./res/shaders/halo.frag")
-	).Link();
-	haloProg->SetCastsShadows(false);
-
 	ShaderProgram* skyProg = ShaderProgram::Build().WithVertexShader(
 		Resources::Get<VertexShader>("./res/shaders/skybox.vert")
 	).WithPixelShader(
 		Resources::Get<PixelShader>("./res/shaders/skybox.frag")
 	).Link();
-
-	ShaderProgram* floorProg = ShaderProgram::Build().WithVertexShader(
-		Resources::Get<VertexShader>("./res/shaders/terrain/terrain_lit.vert")
-	).WithTessControlShader(
-		Resources::Get<TesselationControlShader>("./res/shaders/terrain/terrain_lit.tess_ctrl")
-	).WithTessEvaluationShader(
-		Resources::Get<TesselationEvaluationShader>("./res/shaders/terrain/terrain_lit.tess_eval")
-	).WithPixelShader(
-		Resources::Get<PixelShader>("./res/shaders/terrain/terrain_lit.frag")
-	).Link();
-	floorProg->SetCastsShadows(false);
-	floorProg->SetIgnoresDepthPrepass(true);
 
 	ShaderProgram* coloredProg = ShaderProgram::Build().WithVertexShader(
 		Resources::Get<VertexShader>("./res/shaders/lit.vert")
@@ -258,128 +233,87 @@ void InitScene() {
 		Resources::Get<PixelShader>("./res/shaders/lambert color.frag")
 	).Link();
 
+	ShaderProgram* pbrProg = ShaderProgram::Build().WithVertexShader(
+		Resources::Get<VertexShader>("./res/shaders/lit.vert")
+	).WithPixelShader(
+		Resources::Get<PixelShader>("./res/shaders/pbr.frag")
+	).Link();
+
 	Mesh* floorMesh = Resources::Get<Mesh>("./res/models/floor.obj");
-	Mesh* shadeMesh = Resources::Get<Mesh>("./res/models/shade.obj");
-	Mesh* cube = Resources::Get<Mesh>("./res/models/not_cube.obj");
-	Mesh* roomMesh = Resources::Get<Mesh>("./res/models/room.obj");
+	Mesh* cannonMesh = Resources::Get<Mesh>("./res/models/cannon/cannon.obj");
+	Mesh* cubeMesh = Resources::Get<Mesh>("./res/models/not_cube.obj");
 
-	Texture2D* stoneTex = Resources::Get<Texture2D>("./res/textures/lufis.jpeg", Texture::ColorTextureRGB);
+	Cubemap* skyCubemap = Resources::Get<Cubemap>("./res/textures/warm_bar_4k.hdr", Texture::HDRColorBuffer);
+	Cubemap* skyRadianceMap = skyCubemap->GenerateIrradianceMap();
+	Cubemap* skyPrefilterMap = skyCubemap->GeneratePrefilterIBLMap();
+	Texture2D* skyBRDFMap = skyCubemap->GenerateBRDFConvolution();
+	skyCubemap->SetWrapModeU(TextureWrap::Clamp);
+	skyCubemap->SetWrapModeV(TextureWrap::Clamp);
+	skyCubemap->SetWrapModeW(TextureWrap::Clamp);
 
-	Texture2D* floorTex = Resources::Get<Texture2D>("./res/textures/stone.jpg", Texture::ColorTextureRGB);
-	floorTex->SetWrapModeU(TextureWrap::Repeat);
-	floorTex->SetWrapModeV(TextureWrap::Repeat);
-
-	Texture2D* terrainDisplacementTex = Resources::Get<Texture2D>("./res/textures/terrain/Rugged Terrain Height Map PNG.png", TextureParams(TextureChannels::Grayscale, TextureColor::Linear, TextureFormat::Ubyte));
-	terrainDisplacementTex->SetWrapModeU(TextureWrap::Repeat);
-	terrainDisplacementTex->SetWrapModeV(TextureWrap::Repeat);
-
-	Texture2D* shadedTex = Resources::Get<Texture2D>("./res/testing/uwu.jpg", Texture::ColorTextureRGB);
-
-	if (!shadedTex) {
-		shadedTex = Resources::Get<Texture2D>("./res/textures/lufis.jpeg", Texture::ColorTextureRGB);
-	}
-
-	Cubemap* skyCubemap = Resources::Get<Cubemap>("./res/textures/skybox.jpg", Texture::ColorTextureRGB);
-
-	Material* terrainMat = new Material(floorProg);
-	terrainMat->SetValue<glm::vec3>("uColor", glm::vec3(1.0f, 1.0f, 1.0f));
-	terrainMat->SetValue<Texture2D>("heightMap", terrainDisplacementTex);
-	terrainMat->SetValue<float>("heightMapScale", 0.4f);
+	Texture2D* cannonDiffuse = Resources::Get<Texture2D>("./res/models/cannon/textures/cannon_01_diff_1k.png", Texture::ColorTextureRGB);
+	Texture2D* cannonNormal = Resources::Get<Texture2D>("./res/models/cannon/textures/cannon_01_nor_gl_1k.png", Texture::TechnicalMapXYZ);
+	Texture2D* cannonARM = Resources::Get<Texture2D>("./res/models/cannon/textures/cannon_01_arm_1k.png", Texture::TechnicalMapXYZ);
+	
+	Texture2D* reflectiveDiffuse = Resources::Get<Texture2D>("./res/textures/material_preview/worn-shiny-metal-albedo.png", Texture::ColorTextureRGB);
+	Texture2D* reflectiveNormal = Resources::Get<Texture2D>("./res/textures/material_preview/worn-shiny-metal-Normal-ogl.png", Texture::TechnicalMapXYZ);
+	Texture2D* reflectiveARM = Resources::Get<Texture2D>("./res/textures/material_preview/worn-shiny-metal-arm.png", Texture::TechnicalMapXYZ);
 
 	Material* floorMat = new Material(coloredProg);
 	floorMat->SetValue<glm::vec3>("uColor", glm::vec3(1.0f, 1.0f, 1.0f));
 	floorMat->SetValue<float>("specularValue", 0.0f);
 
-	Material* shadeMat = new Material(coloredProg);
-	shadeMat->SetValue<glm::vec3>("uColor", {0.0f, 0.8f, 0.0f});
-	shadeMat->SetValue<float>("specularValue", 0.0f);
+	float loadTime = glfwGetTime();
 
-	Material* roomMat = new Material(coloredProg);
-	roomMat->SetValue<glm::vec3>("uColor", {0.8f, 0.8f, 0.0f});
-	roomMat->SetValue<float>("specularValue", 0.0f);
+	Material* cannonMat = new Material(pbrProg);
+	cannonMat->SetValue("albedoMap", cannonDiffuse);
+	cannonMat->SetValue("normalMap", cannonNormal);
+	cannonMat->SetValue("armMap", cannonARM);
+	cannonMat->SetValue("irradianceMap", skyRadianceMap);
+	cannonMat->SetValue("prefilterMap", skyPrefilterMap);
+	cannonMat->SetValue("brdfLUT", skyBRDFMap);
 
-	Material* roomClutterMat = new Material(coloredProg);
-	roomClutterMat->SetValue<glm::vec3>("uColor", {0.8f, 0.0f, 0.8f});
-	roomClutterMat->SetValue<float>("specularValue", 100.0f);
+	Material* reflectiveMat = new Material(pbrProg);
+	reflectiveMat->SetValue("albedoMap", reflectiveDiffuse);
+	reflectiveMat->SetValue("normalMap", reflectiveNormal);
+	reflectiveMat->SetValue("armMap", reflectiveARM);
+	reflectiveMat->SetValue("irradianceMap", skyRadianceMap);
+	reflectiveMat->SetValue("prefilterMap", skyPrefilterMap);
+	reflectiveMat->SetValue("brdfLUT", skyBRDFMap);
 
-	Material* centerMat = new Material(meshProg);
-	Material* haloMat = new Material(haloProg);
-	Material* shadedMat = new Material(meshProg);
+	spdlog::info("Loading the cannon took {} seconds", glfwGetTime() - loadTime);
 
 	Material* skyMat = new Material(skyProg);
 	skyMat->SetValue("skyboxTexture", skyCubemap);
 
-	centerMat->SetValue<glm::vec3>("uColor", glm::vec3(1.0f, 1.0f, 1.0f));
-	centerMat->SetValue<Texture2D>("colorTex", stoneTex);
-
-	shadedMat->SetValue<glm::vec3>("uColor", glm::vec3(1.0f, 1.0f, 1.0f));
-	shadedMat->SetValue<Texture2D>("colorTex", shadedTex);
-
 	mainScene = new Scene();
 	
-	auto floorObject = mainScene->CreateNode();
-	auto floorRenderer = floorObject->AddObject<MeshRenderer>(floorMesh, floorMat);
-	floorObject->LocalTransform().Scale() = glm::vec3(100, 1, 100);
-	floorObject->LocalTransform().Position() = {0, -1, 0};
+	auto floorNode = mainScene->CreateNode();
+	auto floorRenderer = floorNode->AddObject<MeshRenderer>(floorMesh, floorMat);
+	floorNode->LocalTransform().Scale() = glm::vec3(100, 1, 100);
 
-	auto terrainNode = mainScene->CreateNode();
-	auto terrainRenderer = terrainNode->AddObject<MeshRenderer>(floorMesh, terrainMat);
-	// terrainNode->LocalTransform().Scale() *= 0.5f;
-	terrainNode->LocalTransform().Position() = {-5.0f, -0.5f, -5.0f};
+	auto cannonNode = mainScene->CreateNode();
+	cannonNode->AddObject<MeshRenderer>(cannonMesh, cannonMat);
 
-	auto shadeNode = mainScene->CreateNode();
-	shadeNode->AddObject<MeshRenderer>(shadeMesh, shadeMat);
-	shadeNode->LocalTransform().Position() = {-5, 0, 0};
-	shadeNode->LocalTransform().Rotation() *= glm::angleAxis(glm::radians(90.0f), glm::vec3(0, 1, 0));
+	auto cubeNode = mainScene->CreateNode();
+	cubeNode->AddObject<MeshRenderer>(cubeMesh, reflectiveMat);
 
-	auto hiddenNode = mainScene->CreateNode();
-	hiddenNode->AddObject<MeshRenderer>(cube, shadedMat);
-	hiddenNode->LocalTransform().Position() = {-5, 0, 0};
-	
-	auto roomNode = mainScene->CreateNode();
-	roomNode->AddObject<MeshRenderer>(roomMesh, roomMat)->SetMaterial(roomClutterMat, 1);
-	roomNode->LocalTransform().Position() = {5, 0, 0};
+	cubeNode->GlobalTransform().Position() = {-2, 1, 0};
 
-	auto notCubeNode = mainScene->CreateNode();
-	notCubeNode->GlobalTransform().Position() = glm::zero<glm::vec3>();
-	MeshRenderer* centerRenderer = notCubeNode->AddObject<MeshRenderer>(cube, centerMat);
-	notCubeNode->AddObject<AutoRotator>(0.1f);
+	auto cameraNode = mainScene->CreateNode();
+	Camera* camera = cameraNode->AddObject<Camera>(Camera::Perspective(40.0f, 16.0f/9.0f, 0.5f, 100.0f));
+	camera->LocalTransform().Position() = glm::vec3(0.0f, 1.0f, -10.0f);
+	cameraNode->AddObject<Mover>();
 
-	auto cameraObject = mainScene->CreateNode();
-	Camera* camera = cameraObject->AddObject<Camera>(Camera::Perspective(40.0f, 16.0f/9.0f, 0.5f, 100.0f));
-	camera->LocalTransform().Position() = glm::vec3(0.0f, 0.0f, -10.0f);
-	cameraObject->AddObject<Mover>();
+	auto skyboxNode = mainScene->CreateNode(floorNode);
+	skyboxNode->AddObject<Skybox>(skyMat);
 
-	SceneNode* lightObject = mainScene->CreateNode();
-	// Light* light = lightObject->AddObject<Light>(Light::PointLight(glm::vec3(1, 1, 1), 10, 0.5));
-	// light->GlobalTransform().Position() = glm::vec3(0, 0, -2);
+	auto lightNode = mainScene->CreateNode();
+	lightNode->AddObject<Light>(Light::PointLight({1, 1, 1}, 10, 2))->SetShadowCasting(true);
+	lightNode->GlobalTransform().Position() = {-1, 1.2f, 0};
 
-	SceneNode* spotLightNode = mainScene->CreateNode();
-	Light* spotLight = spotLightNode->AddObject<Light>(Light::SpotLight(glm::vec3(0, 0, 1), glm::radians(45.0f), 10, 5));
-	spotLight->GlobalTransform().Position() = {-5.0f, 0.8f, -3.0f};
-	spotLight->GlobalTransform().Rotation() *= glm::angleAxis(glm::radians(15.0f), glm::vec3(1, 0, 0));
-	spotLight->SetShadowCasting(true);
-
-	SceneNode* pointLightNode = mainScene->CreateNode();
-	Light* pointLight = pointLightNode->AddObject<Light>(Light::PointLight(glm::vec3(1, 1, 1), 7, 1, 0.7f, 1.8f));
-	pointLight->GlobalTransform().Position() = {5.0f, -0.2f, -1.0f};
-	pointLight->SetShadowCasting(true);
-
-	SceneNode* terrainLightNode = mainScene->CreateNode();
-	// Light* terrainLight = terrainLightNode->AddObject<Light>(Light::PointLight(glm::vec3(1, 1, 1), 1.2f, 0.2f));
-	// terrainLight->GlobalTransform().Position() = {-5.0f, 0.2f, -5.0f};
-	// terrainLight->GlobalTransform().Scale() *= 0.3f;
-	
-	auto skyboxObject = mainScene->CreateNode(notCubeNode);
-	// skyboxObject->AddObject<Stars>(5000);
-	skyboxObject->AddObject<Skybox>(skyMat);
-
-	SceneNode* cubemapNode = mainScene->CreateNode();
-	cubemapNode->GlobalTransform().Position() = {5.0f, -0.2f, -2.0f};
-	cubemapNode->AddObject<ReflectionProbe>();
-
-	cameraObject->AddObject<Bloom>();
-	cameraObject->AddObject<Tonemapper>();
+	cameraNode->AddObject<Bloom>();
+	cameraNode->AddObject<Tonemapper>();
 }
 
 int main(int, char**) {
@@ -455,7 +389,8 @@ bool InitProgram() {
 
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
-	
+	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+
 	if (err) {
 		spdlog::error("Failed to initialize OpenGL loader!");
 		return false;

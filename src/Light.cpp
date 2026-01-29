@@ -211,7 +211,7 @@ void Light::DrawGizmos() {
 	static Mesh* spotGizmoMesh = Resources::Get<Mesh>("./res/models/spot_gizmo.obj");
 	static Mesh* pointGizmoMesh = Resources::Get<Mesh>("./res/models/point_gizmo.obj");
 
-	this->gizmoMat->SetValue("uColor", this->color * (this->intensity * 2 + 2));
+	this->gizmoMat->SetValue("uColor", this->color * (this->intensity * 5));
 
 	if (this->type == LightType::Directional) {
 		GetScene()->GetGraphics()->DrawGizmoMesh(directionalGizmoMesh, 0, this->gizmoMat, GlobalTransform());

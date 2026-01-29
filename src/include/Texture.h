@@ -96,6 +96,8 @@ protected:
 public:
 	static constexpr TextureParams ColorTextureRGB {.channels = TextureChannels::RGB, .colorSpace = TextureColor::SRGB, .format = TextureFormat::Ubyte, .magFilter = TextureFilter::LinearMipmapLinear};
 	static constexpr TextureParams ColorTextureRGBA {TextureChannels::RGBA, TextureColor::SRGB, TextureFormat::Ubyte};
+	static constexpr TextureParams TechnicalMapXYZ {TextureChannels::RGB, TextureColor::Linear, TextureFormat::Ubyte};
+	static constexpr TextureParams TechnicalMapXYZW {TextureChannels::RGBA, TextureColor::Linear, TextureFormat::Ubyte};
 	static constexpr TextureParams DepthBuffer {TextureChannels::Depth, TextureColor::Linear, TextureFormat::Float};
 	static constexpr TextureParams HDRColorBuffer {TextureChannels::RGBA, TextureColor::Linear, TextureFormat::Float};
 	static constexpr TextureParams LDRColorBuffer {TextureChannels::RGBA, TextureColor::Linear, TextureFormat::Ubyte};
@@ -162,7 +164,13 @@ public:
 	Cubemap(unsigned int width, unsigned int height, const TextureParams& creationParams, GLuint handle);
 
 	static Cubemap* Load(const fs::path& texturePath, const TextureParams& loadParams);
+	static Cubemap* LoadParts(const fs::path& texturePath, const TextureParams& loadParams);
+	static Cubemap* LoadEquirectangular(const fs::path& texturePath, const TextureParams& loadParams);
 
+	Cubemap* GenerateIrradianceMap();
+	Cubemap* GeneratePrefilterIBLMap();
+	Texture2D* GenerateBRDFConvolution();
+	
 	TextureWrap GetWrapModeW() const;
 	void SetWrapModeW(TextureWrap wrapMode);
 

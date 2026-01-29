@@ -32,8 +32,11 @@ vec3 getLightStrength(in Light light, in vec3 worldPos) {
 
 vec3 shade(in Material mat, in vec3 worldPos, in vec3 normal, in vec3 tangent) {
 #ifdef SHADING_FUNCTION
+#ifndef IGNORE_AMBIENT
 	vec3 result = mat.diffuseColor * (Light_AmbientLight.rgb * Light_AmbientLight.a);
-
+#else
+	vec3 result = vec3(0, 0, 0);
+#endif
 	for (int lightIndex = 0; lightIndex < Light_LightCount; lightIndex++) {
 		Light l = Light_LightsList[lightIndex];
 

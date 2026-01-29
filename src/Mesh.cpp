@@ -152,7 +152,7 @@ Mesh* Mesh::Load(fs::path modelPath) {
 	Assimp::Importer importer{};
 
 	const aiScene* loaded_scene = importer.ReadFile(modelPath.string(), 
-		aiProcess_Triangulate
+		aiProcess_Triangulate | aiProcess_CalcTangentSpace
 	);
 
 	if (!loaded_scene || !loaded_scene->HasMeshes()) {
@@ -177,9 +177,12 @@ Mesh* Mesh::Load(fs::path modelPath) {
 
 	VertexSpec meshSpec = VertexSpec::Mesh;
 
+	
 	for (unsigned int meshIndex = 0; meshIndex < loaded_scene->mNumMeshes; meshIndex++) {
 		const aiMesh* currentMesh = loaded_scene->mMeshes[meshIndex];
 		
+		spdlog::info("Tangents: {}", currentMesh->HasTangentsAndBitangents());
+
 		bool hasPoints = (currentMesh->mPrimitiveTypes & aiPrimitiveType_POINT) != 0;
 		bool hasLines = (currentMesh->mPrimitiveTypes & aiPrimitiveType_LINE) != 0;
 		bool hasTriangles = (currentMesh->mPrimitiveTypes & aiPrimitiveType_TRIANGLE) != 0;
