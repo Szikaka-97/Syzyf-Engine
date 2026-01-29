@@ -3,6 +3,7 @@
 #include <glad/glad.h>
 #include <spdlog/spdlog.h>
 #include <glm/gtc/matrix_access.hpp>
+#include <imgui.h>
 
 #include <MeshRenderer.h>
 #include <Camera.h>
@@ -448,6 +449,10 @@ void SceneGraphics::RenderScene(const ShaderGlobalUniforms& uniforms, Framebuffe
 			postProcessParams.depthTexture = frameDepth;
 			
 			for (auto* effect : *postProcess->GetAllObjects()) {
+				if (!effect->IsEnabled()) {
+					continue;
+				}
+				
 				glCopyImageSubData(
 					this->colorPassOutputTexture->GetHandle(),
 					GL_TEXTURE_2D,
@@ -494,6 +499,13 @@ void SceneGraphics::RenderScene(Camera* camera, Framebuffer* framebuffer, const 
 
 void SceneGraphics::OnPostRender() {
 	Render();
+}
+
+void SceneGraphics::DrawImGui() {
+	ImGui::SeparatorText("Graphics debug");
+
+	ImGui::Text("Resolution: %i:%i", (int) this->screenResolution.x, (int) this->screenResolution.y);
+	ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 }
 
 int SceneGraphics::Order() {

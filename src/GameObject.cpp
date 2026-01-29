@@ -7,6 +7,25 @@ GameObject::~GameObject() {
 	this->node->DeleteObject(this);
 }
 
+int GameObject::GetID() const {
+	return this->id;
+}
+
+std::string GameObject::GetName() const {
+	std::string objectName = this->runtimeTypeInfo->name();
+	int firstLetter = 0;
+	for (int i = 0; i < objectName.length(); i++) {
+		if (objectName[i] >= '0' && objectName[i] <= '9') {
+			firstLetter++;
+		}
+		else {
+			break;
+		}
+	}
+
+	return objectName.substr(firstLetter);
+}
+
 SceneTransform& GameObject::GetTransform() const {
 	return this->node->GetTransform();
 }
@@ -59,4 +78,6 @@ void GameObject::SetEnabled(bool enabled) {
 	else if (!enabled && this->onDisable) {
 		(*this.*this->onDisable)();
 	}
+
+	this->enabled = enabled;
 }

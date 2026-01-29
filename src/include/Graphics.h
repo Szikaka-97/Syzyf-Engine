@@ -104,5 +104,7 @@ public:
 
 	virtual void OnPostRender();
 
+	virtual void DrawImGui();
+
 	virtual int Order();
 };

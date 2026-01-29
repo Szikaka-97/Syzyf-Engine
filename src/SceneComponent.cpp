@@ -17,6 +17,8 @@ void SceneComponent::OnPostUpdate() {}
 void SceneComponent::OnPreRender() {}
 void SceneComponent::OnPostRender() {}
 
+void SceneComponent::DrawImGui() {}
+
 int SceneComponent::Order() {
 	return 0;
 }

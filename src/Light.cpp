@@ -4,6 +4,7 @@
 #include <Material.h>
 #include <Mesh.h>
 #include <Graphics.h>
+#include <imgui.h>
 
 ShaderProgram* GetGizmoShader() {
 	static ShaderProgram* gizmoProg = ShaderProgram::Build()
@@ -159,6 +160,12 @@ void Light::SetRange(float range) {
 	this->dirty = true;
 }
 
+void Light::SetSpotlightAngle(float angle) {
+	this->spotlightAngle = angle;
+
+	this->dirty = true;
+}
+
 void Light::SetIntensity(float intensity) {
 	this->intensity = intensity;
 
@@ -221,5 +228,82 @@ void Light::DrawGizmos() {
 	}
 	else {
 		GetScene()->GetGraphics()->DrawGizmoMesh(pointGizmoMesh, 0, this->gizmoMat, GlobalTransform());
+	}
+}
+
+void Light::DrawImGui() {
+	{
+		const char* types[] { "Point Light", "Spot Light", "Directional Light" };
+
+		int currentType = (int) this->type;
+
+		ImGui::Combo("Light Type", &currentType, types, 3);
+
+		if (currentType != (int) this->type) {
+			SetType((LightType) currentType);
+		}
+	}
+	{
+		glm::vec3 newColor = this->color;
+	
+		ImGui::ColorEdit3("Color", &newColor[0]);
+	
+		if (newColor != this->color) {
+			SetColor(newColor);
+		}
+	}
+	if (this->type != LightType::Directional) {
+		float newRange = this->range;
+	
+		ImGui::InputFloat("Range", &newRange);
+	
+		if (newRange != this->range) {
+			SetRange(newRange);
+		}
+	}
+	if (this->type == LightType::Spot) {
+		float newAngle = glm::degrees(this->spotlightAngle);
+	
+		ImGui::InputFloat("Spotlight Angle", &newAngle);
+	
+		if (newAngle != glm::degrees(this->spotlightAngle)) {
+			SetSpotlightAngle(glm::radians(newAngle));
+		}
+	}
+	{
+		float newIntensity = this->intensity;
+	
+		ImGui::InputFloat("Intensity", &newIntensity);
+	
+		if (newIntensity != this->intensity) {
+			SetIntensity(newIntensity);
+		}
+	}
+	if (this->type != LightType::Directional) {
+		float newLinearAttenuation = this->linearAttenuation;
+	
+		ImGui::InputFloat("Linear Attenuation", &newLinearAttenuation);
+	
+		if (newLinearAttenuation != this->linearAttenuation) {
+			SetLinearAttenuation(newLinearAttenuation);
+		}
+	}
+	if (this->type != LightType::Directional) {
+		float newQuadraticAttenuation = this->quadraticAttenuation;
+	
+		ImGui::InputFloat("Quadratic Attenuation", &newQuadraticAttenuation);
+	
+		if (newQuadraticAttenuation != this->quadraticAttenuation) {
+			SetQuadraticAttenuation(newQuadraticAttenuation);
+		}
+	}
+	{
+		bool newShadowCasting = this->shadowCasting;
+	
+		ImGui::Checkbox("Casts Shadows", &newShadowCasting);
+	
+		if (newShadowCasting != this->shadowCasting) {
+			SetShadowCasting(newShadowCasting);
+		}
 	}
 }

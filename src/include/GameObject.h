@@ -1,12 +1,15 @@
 #pragma once
 
 #include <concepts>
+#include <typeinfo>
 
 #include <Scene.h>
 
 class GameObject {
 	friend class Scene;
 private:
+	int id;
+	const std::type_info* runtimeTypeInfo;
 	bool enabled;
 	MessageMethod onEnable;
 	MessageMethod onDisable;
@@ -20,6 +23,9 @@ protected:
 	Scene* GetScene() const;
 public:
 	virtual ~GameObject();
+
+	int GetID() const;
+	std::string GetName() const;
 
 	SceneTransform& GetTransform();
 	SceneTransform::TransformAccess& GlobalTransform();

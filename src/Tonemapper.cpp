@@ -1,6 +1,7 @@
 #include <Tonemapper.h>
 
 #include <GLFW/glfw3.h>
+#include <imgui.h>
 
 #include <Resources.h>
 #include <Shader.h>
@@ -12,31 +13,31 @@ Tonemapper::Tonemapper() {
 	this->acesTonemapperShader = new ComputeShaderDispatch(Resources::Get<ComputeShader>("./res/shaders/tonemapping/aces_tonemapper.comp"));
 	this->gtTonemapperShader = new ComputeShaderDispatch(Resources::Get<ComputeShader>("./res/shaders/tonemapping/gt_tonemapper.comp"));
 
-	this->function = TonemapperFunction::None;
+	this->toneOperator = TonemapperOperator::None;
 }
 
-Tonemapper::TonemapperFunction Tonemapper::GetCurrentFunction() const {
-	return this->function;
+Tonemapper::TonemapperOperator Tonemapper::GetCurrentOperator() const {
+	return this->toneOperator;
 }
 
-void Tonemapper::SetFunction(Tonemapper::TonemapperFunction func) {
-	this->function = func;
+void Tonemapper::SetOperator(Tonemapper::TonemapperOperator opr) {
+	this->toneOperator = opr;
 }
 
 void Tonemapper::OnPostProcess(const PostProcessParams* params) {
 	ComputeShaderDispatch* shader = nullptr;
 
-	switch (this->function) {
-		case TonemapperFunction::Reinhard:
+	switch (this->toneOperator) {
+		case TonemapperOperator::Reinhard:
 			shader = this->reinhardTonemapperShader;
 			break;
-		case TonemapperFunction::Aces:
+		case TonemapperOperator::Aces:
 			shader = this->acesTonemapperShader;
 			break;
-		case TonemapperFunction::GranTurismo:
+		case TonemapperOperator::GranTurismo:
 			shader = this->gtTonemapperShader;
 			break;
-		case TonemapperFunction::None:
+		case TonemapperOperator::None:
 		default:
 			break;
 	}
@@ -49,4 +50,14 @@ void Tonemapper::OnPostProcess(const PostProcessParams* params) {
 	
 		shader->Dispatch(std::ceil(res.x / 8), std::ceil(res.y / 8), 1);
 	}
+}
+
+void Tonemapper::DrawImGui() {
+	const char* operators[] { "None", "Reinhard", "Aces", "Gran Turismo" };
+
+	int currentOperator = (int) this->toneOperator;
+
+	ImGui::Combo("Operator", &currentOperator, operators, 4);
+
+	SetOperator((TonemapperOperator) currentOperator);
 }

@@ -29,6 +29,7 @@
 #include <Bloom.h>
 #include <ReflectionProbe.h>
 #include <Tonemapper.h>
+#include <Debug.h>
 
 static void GLFWErrorCallback(int error, const char* description) {
 	fprintf(stderr, "Glfw Error %d: %s\n", error, description);
@@ -288,28 +289,30 @@ void InitScene() {
 	auto floorRenderer = floorNode->AddObject<MeshRenderer>(floorMesh, floorMat);
 	floorNode->LocalTransform().Scale() = glm::vec3(100, 1, 100);
 
-	auto cannonNode = mainScene->CreateNode();
+	auto cannonNode = mainScene->CreateNode("Cannon");
 	cannonNode->AddObject<MeshRenderer>(cannonMesh, cannonMat);
 
-	auto cubeNode = mainScene->CreateNode();
+	auto cubeNode = mainScene->CreateNode("Reflective Cube");
 	cubeNode->AddObject<MeshRenderer>(cubeMesh, reflectiveMat);
 
 	cubeNode->GlobalTransform().Position() = {-2, 1, 0};
 
-	auto cameraNode = mainScene->CreateNode();
+	auto cameraNode = mainScene->CreateNode("Camera");
 	Camera* camera = cameraNode->AddObject<Camera>(Camera::Perspective(40.0f, 16.0f/9.0f, 0.5f, 100.0f));
 	camera->LocalTransform().Position() = glm::vec3(0.0f, 1.0f, -10.0f);
 	cameraNode->AddObject<Mover>();
 
-	auto skyboxNode = mainScene->CreateNode(floorNode);
+	auto skyboxNode = mainScene->CreateNode(floorNode, "Floor");
 	skyboxNode->AddObject<Skybox>(skyMat);
 
-	auto lightNode = mainScene->CreateNode();
+	auto lightNode = mainScene->CreateNode("Point Light");
 	lightNode->AddObject<Light>(Light::PointLight({1, 1, 1}, 10, 2))->SetShadowCasting(true);
 	lightNode->GlobalTransform().Position() = {-1, 1.2f, 0};
 
 	cameraNode->AddObject<Bloom>();
 	cameraNode->AddObject<Tonemapper>();
+
+	mainScene->AddComponent<DebugInspector>();
 }
 
 int main(int, char**) {
@@ -433,7 +436,15 @@ void ImGuiBegin() {
 }
 
 void ImGuiUpdate() {
+	static ImVec2 window_pos(0, 0);
+	static float item_width = 230;
 
+	ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always);
+	ImGui::Begin("Debug", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove);
+
+	mainScene->DrawImGui();
+
+	ImGui::End();
 }
 
 void ImGuiRender() {

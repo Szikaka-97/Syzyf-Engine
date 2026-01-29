@@ -1,20 +1,20 @@
 #pragma once
 
 #include <PostProcessEffect.h>
-#include <glad/glad.h>
+#include <Debug.h>
 
 class ComputeShaderDispatch;
 
-class Tonemapper : public PostProcessEffect {
+class Tonemapper : public PostProcessEffect, public ImGuiDrawable {
 public:
-	enum class TonemapperFunction {
+	enum class TonemapperOperator {
 		None,
 		Reinhard,
 		Aces,
 		GranTurismo,
 	};
 private:
-	TonemapperFunction function;
+	TonemapperOperator toneOperator;
 
 	ComputeShaderDispatch* reinhardTonemapperShader;
 	ComputeShaderDispatch* acesTonemapperShader;
@@ -22,9 +22,11 @@ private:
 public:
 	Tonemapper();
 
-	TonemapperFunction GetCurrentFunction() const;
+	TonemapperOperator GetCurrentOperator() const;
 
-	void SetFunction(TonemapperFunction func);
+	void SetOperator(TonemapperOperator opr);
 
 	virtual void OnPostProcess(const PostProcessParams* params);
+
+	virtual void DrawImGui();
 };

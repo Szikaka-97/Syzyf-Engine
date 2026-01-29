@@ -18,5 +18,7 @@ public:
 	virtual void OnPreRender();
 	virtual void OnPostRender();
 
+	virtual void DrawImGui();
+
 	virtual int Order();
 };

@@ -7,17 +7,13 @@
 #include <spdlog/spdlog.h>
 #include <GameObject.h>
 #include <Graphics.h>
-#include <Light.h>
-#include <LightSystem.h>
-#include <PostProcessingSystem.h>
-#include <ReflectionProbe.h>
-#include <ReflectionProbeSystem.h>
 
 SceneNode::SceneNode(Scene* scene) :
 scene(scene),
 transform(),
 children(),
-parent(nullptr) {
+parent(nullptr),
+name("") {
 	this->transform.parent = this;
 }
 
@@ -82,6 +78,17 @@ SceneTransform::TransformAccess& SceneNode::GlobalTransform() {
 	return this->GetTransform().GlobalTransform();
 }
 
+int SceneNode::GetID() const {
+	return this->id;
+}
+
+std::string SceneNode::GetName() const {
+	return this->name;
+}
+void SceneNode::SetName(const std::string& name) { 
+	this->name = name;
+}
+
 Scene* SceneNode::GetScene() {
 	return this->scene;
 }
@@ -141,7 +148,9 @@ void SceneNode::DeleteObject(GameObject* obj) {
 Scene::Scene() :
 updateable(),
 renderable(),
-root(new SceneNode(this)) {
+root(new SceneNode(this)),
+nextSceneNodeID(0),
+nextGameObjectID(0) {
 	this->graphics = AddComponent<SceneGraphics>();
 }
 
@@ -174,9 +183,16 @@ void Scene::DeleteNodeInternal(SceneNode* node) {
 }
 
 SceneNode* Scene::CreateNode() {
-	return CreateNode(this->root);
+	return CreateNode(this->root, "");
 }
 SceneNode* Scene::CreateNode(SceneNode* parent) {
+	return CreateNode(parent, "");
+}
+
+SceneNode* Scene::CreateNode(const std::string& name) {
+	return CreateNode(this->root, name);
+}
+SceneNode* Scene::CreateNode(SceneNode* parent, const std::string& name) {
 	SceneNode* result = new SceneNode(this);
 
 	if (parent) {
@@ -186,11 +202,18 @@ SceneNode* Scene::CreateNode(SceneNode* parent) {
 		result->SetParent(this->root);
 	}
 
+	result->id = this->nextSceneNodeID++;
+	result->name = name;
+
 	return result;
 }
 
 SceneGraphics* Scene::GetGraphics() {
 	return this->graphics;
+}
+
+SceneNode* Scene::GetRootNode() {
+	return this->root;
 }
 
 void Scene::DeleteObject(GameObject* obj) {
@@ -207,7 +230,9 @@ void Scene::Update() {
 	}
 
 	for (auto& msgObject : this->updateable) {
-		msgObject.Message();
+		if (msgObject.objPtr->IsEnabled()) {
+			msgObject.Message();
+		}
 	}
 
 	for (auto& component: this->components) {
@@ -221,14 +246,25 @@ void Scene::Render() {
 	}
 
 	for (auto& msgObject : this->renderable) {
-		msgObject.Message();
+		if (msgObject.objPtr->IsEnabled()) {
+			msgObject.Message();
+		}
 	}
 
 	for (auto& msgObject : this->drawGizmos) {
-		msgObject.Message();
+		if (msgObject.objPtr->IsEnabled()) {
+			msgObject.Message();
+		}
 	}
 
 	for (auto& component: this->components) {
 		component->OnPostRender();
+	}
+}
+
+
+void Scene::DrawImGui() {
+	for (auto& component: this->components) {
+		component->DrawImGui();
 	}
 }

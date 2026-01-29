@@ -1,5 +1,7 @@
 #include <Bloom.h>
 
+#include <imgui.h>
+
 #include <Resources.h>
 #include <Graphics.h>
 
@@ -95,4 +97,10 @@ void Bloom::OnPostProcess(const PostProcessParams* params) {
 
 		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT);
 	}
+}
+
+void Bloom::DrawImGui() {
+	ImGui::InputFloat("Threshold", &this->threshold);
+	ImGui::InputFloat("Knee", &this->knee);
+	ImGui::InputFloat("Intensity", &this->intensity);
 }

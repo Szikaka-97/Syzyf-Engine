@@ -2,10 +2,11 @@
 
 #include <GameObject.h>
 #include <Material.h>
+#include <Debug.h>
 
 #include "../res/shaders/shared/shared.h"
 
-class Light : public GameObject {
+class Light : public GameObject, public ImGuiDrawable {
 public:
 	enum class LightType {
 		Point = 0,
@@ -79,6 +80,7 @@ public:
 	void SetType(LightType type);
 	void SetColor(const glm::vec3& color);
 	void SetRange(float range);
+	void SetSpotlightAngle(float angle);
 	void SetIntensity(float intensity);
 	void SetLinearAttenuation(float attenuation);
 	void SetQuadraticAttenuation(float attenuation);
@@ -88,5 +90,7 @@ public:
 
 	void DrawGizmos();
 
+	virtual void DrawImGui();
+	
 	ShaderLightRep GetShaderRepresentation() const;
 };

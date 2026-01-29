@@ -45,12 +45,21 @@ concept DrawsGizmos = requires (T a) {
 	{ a.DrawGizmos() } -> std::same_as<void>;
 };
 
+template<class T>
+concept DrawsImGui = requires (T a) {
+	{ a.OnImGui() } -> std::same_as<void>;
+};
+
 class Scene;
 
 class SceneNode {
 	friend class Scene;
 private:
 	SceneNode* parent;
+
+	int id;
+	std::string name;
+
 	Scene* const scene;
 	std::vector<GameObject*> objects;
 	std::vector<SceneNode*> children;
@@ -66,6 +75,11 @@ public:
 	SceneTransform& GetTransform();
 	SceneTransform::TransformAccess& LocalTransform();
 	SceneTransform::TransformAccess& GlobalTransform();
+
+	int GetID() const;
+
+	std::string GetName() const;
+	void SetName(const std::string& name);
 
 	Scene* GetScene();
 
@@ -119,6 +133,9 @@ private:
 
 		void Message();
 	};
+
+	int nextSceneNodeID;
+	int nextGameObjectID;
 
 	std::list<MessageReceiver> updateable;
 	std::list<MessageReceiver> renderable;
@@ -182,8 +199,12 @@ public:
 	Scene();
 	SceneNode* CreateNode();
 	SceneNode* CreateNode(SceneNode* parent);
+	SceneNode* CreateNode(const std::string& name);
+	SceneNode* CreateNode(SceneNode* parent, const std::string& name);
 
 	SceneGraphics* GetGraphics();
+
+	SceneNode* GetRootNode();
 
 	template<class T_GO, typename... T_Param>
 		requires std::derived_from<T_GO, GameObject>
@@ -226,6 +247,7 @@ public:
 
 	void Update();
 	void Render();
+	void DrawImGui();
 };
 
 #include <GameObject.h>
@@ -428,25 +450,28 @@ T_GO* Scene::CreateObjectOn(SceneNode* node, T_Param... params) {
 	bufAsObjPtr->node = node;
 
 	T_GO* created = new(const_cast<T_GO*>(bufAsObjPtr)) T_GO(params...);
-
+	
 	created->node = node;
+	created->runtimeTypeInfo = &typeid(T_GO);
 	
 	node->objects.push_back(created);
 
 	TryCreateAwakeable(created);
 	TryCreateEnableable(created);
+	TryCreateDisableable(created);
 	TryCreateUpdateable(created);
 	TryCreateRenderable(created);
 	TryCreateDrawingGizmos(created);
 
 	for (SceneComponent* component : this->components) {
-
 		GameObjectSystemBase* sys = dynamic_cast<GameObjectSystemBase*>(component);
 
 		if (sys && sys->ValidObject(created)) {
 			sys->RegisterObject(created);
 		}
 	}
+
+	created->id = this->nextSceneNodeID++;
 
 	created->enabled = true;
 

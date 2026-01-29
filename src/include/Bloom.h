@@ -1,10 +1,12 @@
 #pragma once
 
-#include <PostProcessEffect.h>
-#include <Material.h>
 #include <glad/glad.h>
 
-class Bloom : public PostProcessEffect {
+#include <PostProcessEffect.h>
+#include <Material.h>
+#include <Debug.h>
+
+class Bloom : public PostProcessEffect, public ImGuiDrawable {
 private:
 	glm::vec2 savedResolution;
 	GLuint bloomTexture;
@@ -21,4 +23,6 @@ public:
 	Bloom();
 
 	virtual void OnPostProcess(const PostProcessParams* params);
+
+	virtual void DrawImGui();
 };
