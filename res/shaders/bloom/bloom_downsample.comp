@@ -116,5 +116,7 @@ void main() {
 		c = quadraticTreshold(c, treshold.x, treshold.yzw);
 	}
 
+	c = max(c, 0.0001);
+
 	imageStore(outputImg, pixelCoord, c);
 }
