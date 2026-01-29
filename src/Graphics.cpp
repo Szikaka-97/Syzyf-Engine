@@ -392,11 +392,11 @@ void SceneGraphics::RenderScene(const ShaderGlobalUniforms& uniforms, Framebuffe
 
 	if (((int) params.pass & (int) RenderPassType::DepthPrepass) != 0) {
 		if (((int) params.pass & (int) RenderPassType::Shadows) == (int) RenderPassType::Shadows) {
-			glCullFace(GL_FRONT);
+			// glCullFace(GL_FRONT);
 		}
 		else {
-			glCullFace(GL_BACK);
 		}
+		glCullFace(GL_BACK);
 	
 		glDepthFunc(GL_LESS);
 	

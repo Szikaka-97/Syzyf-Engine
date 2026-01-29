@@ -244,7 +244,7 @@ void InitScene() {
 	Mesh* cannonMesh = Resources::Get<Mesh>("./res/models/cannon/cannon.obj");
 	Mesh* cubeMesh = Resources::Get<Mesh>("./res/models/not_cube.obj");
 
-	Cubemap* skyCubemap = Resources::Get<Cubemap>("./res/textures/warm_bar_4k.hdr", Texture::HDRColorBuffer);
+	Cubemap* skyCubemap = Resources::Get<Cubemap>("./res/textures/citrus_orchard_road_puresky.hdr", Texture::HDRColorBuffer);
 	Cubemap* skyRadianceMap = skyCubemap->GenerateIrradianceMap();
 	Cubemap* skyPrefilterMap = skyCubemap->GeneratePrefilterIBLMap();
 	Texture2D* skyBRDFMap = skyCubemap->GenerateBRDFConvolution();
@@ -259,6 +259,8 @@ void InitScene() {
 	Texture2D* reflectiveDiffuse = Resources::Get<Texture2D>("./res/textures/material_preview/worn-shiny-metal-albedo.png", Texture::ColorTextureRGB);
 	Texture2D* reflectiveNormal = Resources::Get<Texture2D>("./res/textures/material_preview/worn-shiny-metal-Normal-ogl.png", Texture::TechnicalMapXYZ);
 	Texture2D* reflectiveARM = Resources::Get<Texture2D>("./res/textures/material_preview/worn-shiny-metal-arm.png", Texture::TechnicalMapXYZ);
+	Texture2D* roughARM = Resources::Get<Texture2D>("./res/textures/material_preview/worn-rough-metal-arm.png", Texture::TechnicalMapXYZ);
+	Texture2D* shinyNonMetalARM = Resources::Get<Texture2D>("./res/textures/material_preview/worn-shiny-nonmetal-arm.png", Texture::TechnicalMapXYZ);
 
 	Material* floorMat = new Material(coloredProg);
 	floorMat->SetValue<glm::vec3>("uColor", glm::vec3(1.0f, 1.0f, 1.0f));
@@ -280,6 +282,22 @@ void InitScene() {
 	reflectiveMat->SetValue("prefilterMap", skyPrefilterMap);
 	reflectiveMat->SetValue("brdfLUT", skyBRDFMap);
 
+	Material* roughMat = new Material(pbrProg);
+	roughMat->SetValue("albedoMap", reflectiveDiffuse);
+	roughMat->SetValue("normalMap", reflectiveNormal);
+	roughMat->SetValue("armMap", roughARM);
+	roughMat->SetValue("irradianceMap", skyRadianceMap);
+	roughMat->SetValue("prefilterMap", skyPrefilterMap);
+	roughMat->SetValue("brdfLUT", skyBRDFMap);
+
+	Material* shinyMat = new Material(pbrProg);
+	shinyMat->SetValue("albedoMap", reflectiveDiffuse);
+	shinyMat->SetValue("normalMap", reflectiveNormal);
+	shinyMat->SetValue("armMap", shinyNonMetalARM);
+	shinyMat->SetValue("irradianceMap", skyRadianceMap);
+	shinyMat->SetValue("prefilterMap", skyPrefilterMap);
+	shinyMat->SetValue("brdfLUT", skyBRDFMap);
+
 	Material* skyMat = new Material(skyProg);
 	skyMat->SetValue("skyboxTexture", skyCubemap);
 
@@ -294,8 +312,15 @@ void InitScene() {
 
 	auto cubeNode = mainScene->CreateNode("Reflective Cube");
 	cubeNode->AddObject<MeshRenderer>(cubeMesh, reflectiveMat);
-
 	cubeNode->GlobalTransform().Position() = {-2, 1, 0};
+
+	auto roughCubeNode = mainScene->CreateNode(cubeNode, "Rough Cube");
+	roughCubeNode->AddObject<MeshRenderer>(cubeMesh, roughMat);
+	roughCubeNode->LocalTransform().Position() = {0, 0, 3};
+
+	auto shinyCubeNode = mainScene->CreateNode(cubeNode, "Shiny Cube");
+	shinyCubeNode->AddObject<MeshRenderer>(cubeMesh, shinyMat);
+	shinyCubeNode->LocalTransform().Position() = {0, 0, -3};
 
 	auto cameraNode = mainScene->CreateNode("Camera");
 	Camera* camera = cameraNode->AddObject<Camera>(Camera::Perspective(40.0f, 16.0f/9.0f, 0.5f, 100.0f));
@@ -310,7 +335,7 @@ void InitScene() {
 	lightNode->GlobalTransform().Position() = {-1, 1.2f, 0};
 
 	cameraNode->AddObject<Bloom>();
-	cameraNode->AddObject<Tonemapper>();
+	cameraNode->AddObject<Tonemapper>()->SetOperator(Tonemapper::TonemapperOperator::GranTurismo);
 
 	mainScene->AddComponent<DebugInspector>();
 }

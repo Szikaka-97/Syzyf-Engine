@@ -46,7 +46,7 @@ void main() {
 	mat.albedo = texture(albedoMap, ps_in.texcoords).xyz;
 	
 	mat.metallic = arm.z;
-	mat.roughness = arm.y;
+	mat.roughness = max(arm.y, 0.05);
 	float ao = arm.x;
 
 	vec3 N = getNormalFromMap();
@@ -75,8 +75,8 @@ void main() {
 	vec3 irradiance = texture(irradianceMap, N).rgb;
     vec3 diffuse = irradiance * mat.albedo;
 
-	const float MAX_REFLECTION_LOD = 4.0;
-    vec3 prefilteredColor = textureLod(prefilterMap, R,  mat.roughness * MAX_REFLECTION_LOD).rgb;    
+	const float MAX_REFLECTION_LOD = 7.0;
+    vec3 prefilteredColor = textureLod(prefilterMap, R, mat.roughness * MAX_REFLECTION_LOD).rgb;    
     vec2 brdf = texture(brdfLUT, vec2(max(dot(N, V), 0.0), mat.roughness)).rg;
     vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);
 
