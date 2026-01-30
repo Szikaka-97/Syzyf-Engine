@@ -86,13 +86,29 @@ SceneGraphics::RenderNode::RenderNode(const Mesh::SubMesh* mesh, const Material*
 mesh(mesh),
 material(material),
 instanceCount(instanceCount),
-transformation(transformation) { }
+transformation(transformation),
+bounds(mesh->GetBounds()) { }
+
+SceneGraphics::RenderNode::RenderNode(const Mesh::SubMesh* mesh, const Material* material, unsigned int instanceCount, const glm::mat4& transformation, const BoundingBox& bounds):
+mesh(mesh),
+material(material),
+instanceCount(instanceCount),
+transformation(transformation),
+bounds(bounds) { }
 
 SceneGraphics::RenderNode::RenderNode(const Mesh::SubMesh* mesh, const Material* material, bool ignoreDepth, const glm::mat4& transformation):
 mesh(mesh),
 material(material),
 ignoreDepth(ignoreDepth),
-transformation(transformation) { }
+transformation(transformation),
+bounds(mesh->GetBounds()) { }
+
+SceneGraphics::RenderNode::RenderNode(const Mesh::SubMesh* mesh, const Material* material, bool ignoreDepth, const glm::mat4& transformation, const BoundingBox& bounds):
+mesh(mesh),
+material(material),
+ignoreDepth(ignoreDepth),
+transformation(transformation),
+bounds(bounds) { }
 
 SceneGraphics::SceneGraphics(Scene* scene):
 SceneComponent(scene),
@@ -198,7 +214,7 @@ void SceneGraphics::RenderObjects(const ShaderGlobalUniforms& globalUniforms, Re
 		const Mesh::SubMesh* mesh = node.mesh;
 		const Material* mat = node.material;
 
-		if (!TestFrustum(viewFrustum, mesh->GetBounds().Transform(node.transformation))) {
+		if (!TestFrustum(viewFrustum, node.bounds.Transform(node.transformation))) {
 			continue;
 		}
 
@@ -341,6 +357,10 @@ void SceneGraphics::DrawMesh(const Mesh* mesh, int subMeshIndex, const Material*
 	DrawMeshInstanced(mesh, subMeshIndex, material, transformation, 0);
 }
 
+void SceneGraphics::DrawMesh(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, const BoundingBox& bounds) {
+	DrawMeshInstanced(mesh, subMeshIndex, material, transformation, 0, bounds);
+}
+
 void SceneGraphics::DrawGizmoMesh(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, bool ignoresDepth) {
 	this->gizmoRenders.push_back(RenderNode(
 		&mesh->SubMeshAt(subMeshIndex),
@@ -369,6 +389,16 @@ void SceneGraphics::DrawMeshInstanced(const Mesh* mesh, int subMeshIndex, const 
 		material,
 		instanceCount,
 		transformation
+	));
+}
+
+void SceneGraphics::DrawMeshInstanced(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, unsigned int instanceCount, const BoundingBox& bounds) {
+	this->currentRenders.push_back(RenderNode(
+		&mesh->SubMeshAt(subMeshIndex),
+		material,
+		instanceCount,
+		transformation,
+		bounds
 	));
 }
 

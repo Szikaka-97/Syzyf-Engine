@@ -230,7 +230,7 @@ public:
 	}
 };
 
-class Stars : public GameObject {
+class Stars : public GameObject, public ImGuiDrawable {
 private:
 	Mesh* starMesh;
 	Material* starMaterial;
@@ -260,8 +260,13 @@ public:
 			0,
 			this->starMaterial,
 			this->GlobalTransform(),
-			this->starCount
+			this->starCount,
+			BoundingBox::CenterAndExtents(glm::vec3(0, 0, 0), glm::vec3(15, 15, 15))
 		);
+	}
+
+	void DrawImGui() {
+		ImGui::InputInt("Star count", &this->starCount);
 	}
 };
 
@@ -387,6 +392,10 @@ void InitScene() {
 	auto envProbe3 = mainScene->CreateNode("Reflection Probe");
 	envProbe3->AddObject<ReflectionProbe>();
 	envProbe3->GlobalTransform().Position() = {-29.0f, 1.5f, 0.6f};
+
+	auto starsNode = mainScene->CreateNode("Stars");
+	starsNode->AddObject<Stars>(1000);
+	starsNode->GlobalTransform().Position() = {-15.0f, 5.5f, -105.0f};
 
 	cameraNode->AddObject<Bloom>();
 	cameraNode->AddObject<Tonemapper>()->SetOperator(Tonemapper::TonemapperOperator::GranTurismo);

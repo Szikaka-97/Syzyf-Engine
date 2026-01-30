@@ -19,27 +19,32 @@ float rand(vec2 co) {
 out VARYINGS {
 	vec3 normal;
 	vec3 worldPos;
+	flat uint instanceID;
 } vs_out;
 
 void main() {
-	vec3 randomDisplacement = (vec3(
-		rand(vec2(gl_InstanceID, 0)) - 0.5,
-		rand(vec2(0, gl_InstanceID)),
-		rand(vec2(gl_InstanceID, gl_InstanceID)) - 0.5
-	)) * 3000;
+	float displacementAngleY = rand(vec2(gl_InstanceID, 0)) * 6.283 + Global_Time * 0.2;
+	float displacementAngleX = rand(vec2(0, gl_InstanceID)) * 6.283;
 
-	float rotationAngle = rand(vec2(gl_InstanceID, 0)) * 6.283;
+	float displacementAmount = 8 + rand(vec2(gl_InstanceID, gl_InstanceID)) * 5;
+
+	vec3 randomDisplacement = vec3(
+		cos(displacementAngleY) * cos(displacementAngleX),
+		sin(displacementAngleX),
+		sin(displacementAngleY) * cos(displacementAngleX)
+	) * displacementAmount;
+
+	float rotationAngle = rand(vec2(gl_InstanceID, 0)) * 6.283 + (rand(vec2(0, vec2(gl_InstanceID, 0))) - 0.5) * Global_Time;
 
 	mat3 rotation;
 	rotation[0] = vec3(cos(rotationAngle), 0, -sin(rotationAngle));
 	rotation[1] = vec3(0, 1, 0);
 	rotation[2] = vec3(sin(rotationAngle), 0, cos(rotationAngle));
 
-	vec3 rotatedPos = (rotation * vPos) + randomDisplacement;
+	vec3 rotatedPos = (rotation * (vPos * 0.1)) + randomDisplacement;
 
 	gl_Position = Object_MVPMatrix * vec4(rotatedPos, 1);
 	vs_out.normal = (Object_ModelMatrix * vec4(rotation * vNormal, 0)).xyz;
 	vs_out.worldPos = (Object_ModelMatrix * vec4(rotatedPos, 1)).xyz;
-	gl_Position.z = clamp(gl_Position.z, -1.0, 1.0);
-	gl_Position.z *= gl_Position.z;
+	vs_out.instanceID = gl_InstanceID;
 }
