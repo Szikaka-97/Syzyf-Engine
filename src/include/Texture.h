@@ -96,7 +96,7 @@ protected:
 	TextureInfoBit<TextureFilter> magFilter;
 	TextureInfoBit<bool> mipmapped;
 public:
-	static constexpr TextureParams ColorTextureRGB {.channels = TextureChannels::RGB, .colorSpace = TextureColor::SRGB, .format = TextureFormat::Ubyte, .magFilter = TextureFilter::LinearMipmapLinear};
+	static constexpr TextureParams ColorTextureRGB {.channels = TextureChannels::RGB, .colorSpace = TextureColor::SRGB, .format = TextureFormat::Ubyte, .minFilter = TextureFilter::LinearMipmapLinear};
 	static constexpr TextureParams ColorTextureRGBA {TextureChannels::RGBA, TextureColor::SRGB, TextureFormat::Ubyte};
 	static constexpr TextureParams TechnicalMapXYZ {TextureChannels::RGB, TextureColor::Linear, TextureFormat::Ubyte};
 	static constexpr TextureParams TechnicalMapXYZW {TextureChannels::RGBA, TextureColor::Linear, TextureFormat::Ubyte};

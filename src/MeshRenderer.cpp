@@ -14,6 +14,13 @@ materials() {
 	SetMaterial(material);
 }
 
+MeshRenderer::MeshRenderer(Mesh* mesh, const std::vector<Material*>& materials):
+materials(materials) {
+	SetMesh(mesh);
+
+	spdlog::info(materials.size());
+}
+
 Mesh* MeshRenderer::GetMesh() {
 	return this->mesh;
 }

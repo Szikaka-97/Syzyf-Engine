@@ -67,6 +67,10 @@ void main() {
 				addColor = vec3(0, 0, 0);
 			}
 
+			if (isinf(addColor.x) || isinf(addColor.y) || isinf(addColor.z)) { // Programming OpenGL almost makes you wish we never invented GPUs
+				addColor = vec3(999, 999, 999);
+			}
+
 			prefilteredColor += addColor * NdotL;
 			totalWeight      += NdotL;
 		}

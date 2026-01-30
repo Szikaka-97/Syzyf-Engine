@@ -9,6 +9,8 @@
 
 namespace fs = std::filesystem;
 
+class Material;
+
 class Mesh {
 public:
 	enum class MeshType {
@@ -59,6 +61,7 @@ public:
 	// };
 private:
 	std::vector<SubMesh> subMeshes;
+	std::vector<Material*> materials;
 	// std::map<std::string, MeshPart> parts;
 	
 	unsigned int materialCount;
@@ -70,6 +73,7 @@ public:
 	Mesh() = default;
 
 	unsigned int GetMaterialsCount() const;
+	std::vector<Material*> GetDefaultMaterials() const;
 
 	unsigned int GetSubMeshCount() const;
 	std::vector<SubMesh> GetSubMeshes() const;
@@ -79,6 +83,6 @@ public:
 
 	// Mesh* Separate(std::string partName);
 
-	static Mesh* Load(fs::path modelPath);
+	static Mesh* Load(fs::path modelPath, bool loadMaterials = false);
 	// static Mesh* Create(unsigned int vertexCount, float* vertexData, unsigned int triangleCount, unsigned int* indexData, const VertexSpec& meshSpec);
 };

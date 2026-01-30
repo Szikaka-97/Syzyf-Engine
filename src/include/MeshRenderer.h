@@ -15,6 +15,7 @@ private:
 public:
 	MeshRenderer();
 	MeshRenderer(Mesh* mesh, Material* material);
+	MeshRenderer(Mesh* mesh, const std::vector<Material*>& materials);
 
 	Mesh* GetMesh();
 	void SetMesh(Mesh* newMesh);

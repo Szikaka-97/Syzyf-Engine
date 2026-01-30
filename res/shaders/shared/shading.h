@@ -127,9 +127,9 @@ vec3 shadePBR(in Light light, in Material mat, in vec3 worldPos, in vec3 normal,
 	vec3 F0 = vec3(0.04); 
     F0 = mix(F0, mat.albedo, mat.metallic);
 
-	vec3 L = normalize(light.position - worldPos);
+	vec3 L = light.type != DIRECTIONAL_LIGHT ? normalize(light.position - worldPos) : -light.direction;
 	vec3 H = normalize(V + L);
-	float distance = length(light.position - worldPos);
+	float distance = light.type != DIRECTIONAL_LIGHT ? length(light.position - worldPos): 9999999;
 	vec3 radiance = getLightStrength(light, worldPos);
 
 	float NDF = DistributionGGX(N, H, mat.roughness);

@@ -1,0 +1,11 @@
+Model Information:
+* title:	Gm_construct
+* source:	https://sketchfab.com/3d-models/gm-construct-77574d33f8c4448f98a09b138fa1a70f
+* author:	CHANO (https://sketchfab.com/Chanino)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Gm_construct" (https://sketchfab.com/3d-models/gm-construct-77574d33f8c4448f98a09b138fa1a70f) by CHANO (https://sketchfab.com/Chanino) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

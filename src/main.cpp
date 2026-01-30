@@ -243,11 +243,11 @@ void InitScene() {
 		Resources::Get<PixelShader>("./res/shaders/pbr.frag")
 	).Link();
 
-	Mesh* floorMesh = Resources::Get<Mesh>("./res/models/floor.obj");
+	Mesh* gmConstructMesh = Resources::Get<Mesh>("./res/models/construct/construct.obj", true);
 	Mesh* cannonMesh = Resources::Get<Mesh>("./res/models/cannon/cannon.obj");
 	Mesh* cubeMesh = Resources::Get<Mesh>("./res/models/not_cube.obj");
 
-	Cubemap* skyCubemap = Resources::Get<Cubemap>("./res/textures/citrus_orchard_road_puresky.hdr", Texture::HDRColorBuffer);
+	Cubemap* skyCubemap = Resources::Get<Cubemap>("./res/textures/moonless_golf_4k.hdr", Texture::HDRColorBuffer);
 	skyCubemap->SetWrapModeU(TextureWrap::Clamp);
 	skyCubemap->SetWrapModeV(TextureWrap::Clamp);
 	skyCubemap->SetWrapModeW(TextureWrap::Clamp);
@@ -261,10 +261,6 @@ void InitScene() {
 	Texture2D* reflectiveARM = Resources::Get<Texture2D>("./res/textures/material_preview/worn-shiny-metal-arm.png", Texture::TechnicalMapXYZ);
 	Texture2D* roughARM = Resources::Get<Texture2D>("./res/textures/material_preview/worn-rough-metal-arm.png", Texture::TechnicalMapXYZ);
 	Texture2D* shinyNonMetalARM = Resources::Get<Texture2D>("./res/textures/material_preview/worn-shiny-nonmetal-arm.png", Texture::TechnicalMapXYZ);
-
-	Material* floorMat = new Material(coloredProg);
-	floorMat->SetValue<glm::vec3>("uColor", glm::vec3(1.0f, 1.0f, 1.0f));
-	floorMat->SetValue<float>("specularValue", 0.0f);
 
 	Material* cannonMat = new Material(pbrProg);
 	cannonMat->SetValue("albedoMap", cannonDiffuse);
@@ -289,16 +285,16 @@ void InitScene() {
 	Material* skyMat = new Material(skyProg);
 	skyMat->SetValue("skyboxTexture", skyCubemap);
 
-	auto floorNode = mainScene->CreateNode();
-	auto floorRenderer = floorNode->AddObject<MeshRenderer>(floorMesh, floorMat);
-	floorNode->LocalTransform().Scale() = glm::vec3(100, 1, 100);
+	auto constructNode = mainScene->CreateNode("gm_construct");
+	constructNode->AddObject<MeshRenderer>(gmConstructMesh, gmConstructMesh->GetDefaultMaterials());
 
 	auto cannonNode = mainScene->CreateNode("Cannon");
 	cannonNode->AddObject<MeshRenderer>(cannonMesh, cannonMat);
 
 	auto cubeNode = mainScene->CreateNode("Reflective Cube");
 	cubeNode->AddObject<MeshRenderer>(cubeMesh, reflectiveMat);
-	cubeNode->GlobalTransform().Position() = {-2, 1, 0};
+	cubeNode->GlobalTransform().Position() = {-2.0f, 1.0f, 0.0f};
+	cubeNode->GlobalTransform().Scale() = glm::vec3(0.6f);
 
 	auto roughCubeNode = mainScene->CreateNode(cubeNode, "Rough Cube");
 	roughCubeNode->AddObject<MeshRenderer>(cubeMesh, roughMat);
@@ -308,21 +304,46 @@ void InitScene() {
 	shinyCubeNode->AddObject<MeshRenderer>(cubeMesh, shinyMat);
 	shinyCubeNode->LocalTransform().Position() = {0, 0, -3};
 
+	auto cubeNode2 = mainScene->CreateNode("Reflective Cube");
+	cubeNode2->AddObject<MeshRenderer>(cubeMesh, reflectiveMat);
+	cubeNode2->GlobalTransform().Position() = {-25.0f, 1.0f, 0.0f};
+	cubeNode2->GlobalTransform().Scale() = glm::vec3(0.6f);
+
+	auto roughCubeNode2 = mainScene->CreateNode(cubeNode2, "Rough Cube");
+	roughCubeNode2->AddObject<MeshRenderer>(cubeMesh, roughMat);
+	roughCubeNode2->LocalTransform().Position() = {0, 0, 3};
+
+	auto shinyCubeNode2 = mainScene->CreateNode(cubeNode2, "Shiny Cube");
+	shinyCubeNode2->AddObject<MeshRenderer>(cubeMesh, shinyMat);
+	shinyCubeNode2->LocalTransform().Position() = {0, 0, -3};
+
 	auto cameraNode = mainScene->CreateNode("Camera");
 	Camera* camera = cameraNode->AddObject<Camera>(Camera::Perspective(40.0f, 16.0f/9.0f, 0.5f, 100.0f));
-	camera->LocalTransform().Position() = glm::vec3(0.0f, 1.0f, -10.0f);
+	camera->LocalTransform().Position() = glm::vec3(0.0f, 1.5f, -10.0f);
 	cameraNode->AddObject<Mover>();
 
-	auto skyboxNode = mainScene->CreateNode(floorNode, "Floor");
+	auto skyboxNode = mainScene->CreateNode(constructNode, "Floor");
 	skyboxNode->AddObject<Skybox>(skyMat);
 
 	auto lightNode = mainScene->CreateNode("Point Light");
 	lightNode->AddObject<Light>(Light::PointLight({1, 1, 1}, 10, 2))->SetShadowCasting(true);
-	lightNode->GlobalTransform().Position() = {-1, 1.2f, 0};
+	lightNode->GlobalTransform().Position() = {-1, 2.2f, 0};
 
-	auto envProbe = mainScene->CreateNode("Reflection Probe");
-	auto probeObj = envProbe->AddObject<ReflectionProbe>();
-	envProbe->GlobalTransform().Position() = {-2, 1, 0};
+	auto lightNode2 = mainScene->CreateNode("Directional Light");
+	lightNode2->AddObject<Light>(Light::DirectionalLight({1, 1, 1}, 2))->SetShadowCasting(true);
+	lightNode2->GlobalTransform().Position() = {1, 2.2f, 0};
+	lightNode2->GlobalTransform().Rotation() = glm::quat(glm::radians(glm::vec3(50.0f, -20.0f, 0.0f)));
+
+	auto envProbe = mainScene->CreateNode(cubeNode, "Reflection Probe");
+	envProbe->AddObject<ReflectionProbe>();
+
+	auto envProbe2 = mainScene->CreateNode("Reflection Probe");
+	envProbe2->AddObject<ReflectionProbe>();
+	envProbe2->GlobalTransform().Position() = {-10.0f, 1.5f, 0.6f};
+
+	auto envProbe3 = mainScene->CreateNode("Reflection Probe");
+	envProbe3->AddObject<ReflectionProbe>();
+	envProbe3->GlobalTransform().Position() = {-29.0f, 1.5f, 0.6f};
 
 	cameraNode->AddObject<Bloom>();
 	cameraNode->AddObject<Tonemapper>()->SetOperator(Tonemapper::TonemapperOperator::GranTurismo);

@@ -198,11 +198,12 @@ void SceneGraphics::RenderObjects(const ShaderGlobalUniforms& globalUniforms, Re
 		const Mesh::SubMesh* mesh = node.mesh;
 		const Material* mat = node.material;
 
-		if (!TestFrustum(viewFrustum, mesh->GetBounds().Transform(node.transformation))) {
-			continue;
-		}
+		// if (!TestFrustum(viewFrustum, mesh->GetBounds().Transform(node.transformation))) {
+		// 	continue;
+		// }
 
 		if (!mat) {
+			// spdlog::warn("Tried to render a mesh with no material!");
 			continue;
 		}
 

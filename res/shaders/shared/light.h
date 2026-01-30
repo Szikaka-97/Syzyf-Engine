@@ -88,7 +88,7 @@ vec3 shade(in Material mat, in vec3 worldPos, in vec3 normal, in vec3 tangent) {
 			lightViewPos.z = (lightViewPos.z + 1) * 0.5;
 
 			vec2 texelSize = 1.0 / (textureSize(Builtin_ShadowMask, 0) * (mask.end.x - mask.start.x));
-			float bias = max(0.005 * (1.0 - dot(normal, lightDir)), 0.001);
+			float bias = max(0.002 * (1.0 - dot(normal, lightDir)), 0.001);
 			// float bias = 0;
 
 			vec2 uvLocal = clamp(vec2(

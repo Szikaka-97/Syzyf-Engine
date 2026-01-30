@@ -12,6 +12,8 @@
 
 #include <Formatters.h>
 #include <spdlog/spdlog.h>
+#include <Material.h>
+#include <Resources.h>
 
 inline glm::vec4 GetVec(aiVector3f source) {
 	return glm::vec4(
@@ -128,6 +130,10 @@ unsigned int Mesh::GetMaterialsCount() const {
 	return this->materialCount;
 }
 
+std::vector<Material*> Mesh::GetDefaultMaterials() const {
+	return this->materials;
+}
+
 unsigned int Mesh::GetSubMeshCount() const {
 	return this->subMeshes.size();
 }
@@ -144,7 +150,7 @@ const Mesh::SubMesh& Mesh::operator[](unsigned int index) const {
 	return SubMeshAt(index);
 }
 
-Mesh* Mesh::Load(fs::path modelPath) {
+Mesh* Mesh::Load(fs::path modelPath, bool loadMaterials) {
 	if (!fs::exists(modelPath) || !fs::is_regular_file(modelPath)) {
 		return nullptr;
 	}
@@ -177,10 +183,9 @@ Mesh* Mesh::Load(fs::path modelPath) {
 
 	VertexSpec meshSpec = VertexSpec::Mesh;
 
-	
 	for (unsigned int meshIndex = 0; meshIndex < loaded_scene->mNumMeshes; meshIndex++) {
 		const aiMesh* currentMesh = loaded_scene->mMeshes[meshIndex];
-		
+
 		bool hasPoints = (currentMesh->mPrimitiveTypes & aiPrimitiveType_POINT) != 0;
 		bool hasLines = (currentMesh->mPrimitiveTypes & aiPrimitiveType_LINE) != 0;
 		bool hasTriangles = (currentMesh->mPrimitiveTypes & aiPrimitiveType_TRIANGLE) != 0;
@@ -233,10 +238,12 @@ Mesh* Mesh::Load(fs::path modelPath) {
 					materialRemap[materialIndex] = subMeshes[i].materialIndex;
 				}
 
-				if (materialRemap[materialIndex] == subMeshes[i].materialIndex) {
-					subMeshes[i].materialIndex = materialIndex;
-
-					break;
+				if (!loadMaterials) {
+					if (materialRemap[materialIndex] == subMeshes[i].materialIndex) {
+						subMeshes[i].materialIndex = materialIndex;
+	
+						break;
+					}
 				}
 			}
 		}
@@ -372,9 +379,56 @@ Mesh* Mesh::Load(fs::path modelPath) {
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 	}
 
+	std::vector<Material*> materials;
+
+	if (loadMaterials && loaded_scene->HasMaterials()) {
+		ShaderProgram* pbrProg = ShaderProgram::Build().WithVertexShader(
+			Resources::Get<VertexShader>("./res/shaders/lit.vert")
+		).WithPixelShader(
+			Resources::Get<PixelShader>("./res/shaders/pbr.frag")
+		).Link();
+
+		for (int matIndex = 0; matIndex < loaded_scene->mNumMaterials; matIndex++) {
+			auto meshMaterial = loaded_scene->mMaterials[matIndex];
+
+			aiString colorTexturePath;
+			aiString normalTexturePath;
+			aiString armTexturePath;
+
+			meshMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &colorTexturePath);
+			meshMaterial->GetTexture(aiTextureType_NORMALS, 0, &normalTexturePath);
+			meshMaterial->GetTexture(aiTextureType_METALNESS, 0, &armTexturePath);
+
+			Texture2D* albedoTex =
+				fs::is_regular_file(modelPath.parent_path() / colorTexturePath.C_Str())
+				? Resources::Get<Texture2D>((modelPath.parent_path() / colorTexturePath.C_Str()), Texture::ColorTextureRGB)
+				: Resources::Get<Texture2D>("./res/textures/default_color.png", Texture::ColorTextureRGB);
+
+			Texture2D* normalTex =
+				fs::is_regular_file(modelPath.parent_path() / normalTexturePath.C_Str())
+				? Resources::Get<Texture2D>((modelPath.parent_path() / normalTexturePath.C_Str()), Texture::TechnicalMapXYZ)
+				: Resources::Get<Texture2D>("./res/textures/default_norm.png", Texture::TechnicalMapXYZ);
+			
+			Texture2D* armTex =
+				fs::is_regular_file(modelPath.parent_path() / armTexturePath.C_Str())
+				? Resources::Get<Texture2D>((modelPath.parent_path() / armTexturePath.C_Str()), Texture::TechnicalMapXYZ)
+				: Resources::Get<Texture2D>("./res/textures/default_arm.png", Texture::TechnicalMapXYZ);
+			
+			Material* materialResult = new Material(pbrProg);
+			materialResult->SetValue("albedoMap", albedoTex);
+			materialResult->SetValue("normalMap", normalTex);
+			materialResult->SetValue("armMap", armTex);
+
+			materials.push_back(materialResult);
+		}
+
+		spdlog::info("Prepared materials");
+	}
+
 	Mesh* loadedMesh = new Mesh();
 	loadedMesh->subMeshes = subMeshes;
 	loadedMesh->materialCount = materialsCount;
+	loadedMesh->materials = materials;
 	loadedMesh->vertexCount = vertexCount;
 	loadedMesh->vertexStride = VertexSpec::Mesh.VertexSize();
 	loadedMesh->vertexBuffer = vertexBuffer;
