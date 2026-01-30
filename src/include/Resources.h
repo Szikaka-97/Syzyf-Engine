@@ -79,9 +79,9 @@ namespace Resources {
 	template<class T_Resource, typename... T_Params>
 		requires(Loadable<T_Resource, T_Params...>)
 	T_Resource* Get(fs::path resourcePath, T_Params... loadParams) {
-		if (IsLoaded<T_Resource>(resourcePath, loadParams...)) {
-			return ResourceData<T_Resource, T_Params...>::loadedResources[ResourceIdentifier<T_Params...>(resourcePath, loadParams...)];
-		}
+		// if (IsLoaded<T_Resource>(resourcePath, loadParams...)) {
+		// 	return ResourceData<T_Resource, T_Params...>::loadedResources[ResourceIdentifier<T_Params...>(resourcePath, loadParams...)];
+		// }
 		
 		return Register<T_Resource>(T_Resource::Load(resourcePath, loadParams...), resourcePath, loadParams...);
 	}

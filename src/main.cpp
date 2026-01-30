@@ -377,7 +377,7 @@ void InitScene() {
 	cameraNode->AddObject<Mover>();
 
 	auto skyboxNode = mainScene->CreateNode(constructNode, "Floor");
-	// skyboxNode->AddObject<Skybox>(skyMat);
+	skyboxNode->AddObject<Skybox>(skyMat);
 
 	auto lightNode = mainScene->CreateNode("Point Light");
 	lightNode->AddObject<Light>(Light::PointLight({1, 1, 1}, 10, 2))->SetShadowCasting(true);

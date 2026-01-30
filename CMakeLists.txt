@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21 FATAL_ERROR)
-project(GL_Project VERSION 2.0)
+project(Syzyf VERSION 1.0)
 
 IF (WIN32)
   message(NOTICE "\n")
@@ -23,4 +23,4 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --concepts-diagnostics-depth=2")
 
 # ---- Main project's files ----
 add_subdirectory(src)
-target_include_directories(GL_Project PRIVATE src/include)
+target_include_directories(${PROJECT_NAME} PRIVATE src/include)

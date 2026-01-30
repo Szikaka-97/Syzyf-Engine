@@ -1,47 +1,62 @@
-[![Review Assignment Due Date](https://classroom.github.com/assets/deadline-readme-button-22041afd0340ce965d47ae6ef1cefeee28c7c493a6346c4f15d667ab976d596c.svg)](https://classroom.github.com/a/PtmjLNt1)
-[![](../../actions/workflows/cpp_cmake.yml/badge.svg)](../../actions)
+# Syzyf
 
-# OpenGLGP
+(Hopefully) A very simple game engine, coming to you straight from Boat City!
 
-Najszybszym sposobem na zaczęcie przygody z OpenGL jest pobranie projektu opartego na CMake, który sam ściągnie odpowiednie biblioteki, dołączy je do projektu i odpowiednio skonfiguruje środowisko programistyczne. 
+## Prerequisites
+The Syzyf project requires the following *stuff* in order to build
 
-## Wymagania wstępne
-Zanim zaczniemy będą nam potrzebne takie rzeczy jak:
+* A G++ compatible compiler installed and configured (MSVC doesn't work as of 9ff4904)
+* CMAKE installed and working
+* Git
+* A build tool of your choice (make, ninja, etc)
 
-* Zainstalowane IDE (środowisko programistyczne) Visual Studio 2019, CLion lub inne.
-* Zainstalowany program [CMake](https://cmake.org/download/) (należy pamiętać, aby podczas instalacji, dodać CMake do zmiennej PATH).
-* Zainstalowany program [Git](https://git-scm.com/downloads).
+### Windows
 
-Kiedy jesteśmy już zaopatrzeni w ww. narzędzia, możemy ściągnąć lub sklonować repozytorium OpenGLGP.
+To build the application on Windows, you will need to enable developer mode in your system's settings
 
-## Budowanie projektu
-**UWAGA**: Użytkownicy systemu **Windows 10/11** powinni upewnić się, czy mają włączony **Tryb programisty (Developer Mode)**.
+> Settings -> Update & Security -> For developers -> Developer Mode ON
 
-Aby zbudować projekt, wchodzimy do folderu _OpenGLGP_ i wywołujemy następujące polecenie:
+## Building
+
+To build a project, you must first generate the required make files
+
 ```
 cmake -B build
 ```
 
-To samo można osiągnąć poprzez uruchomienie skryptu `setup_project.bat`.
+If you're developing on Windows, you will need to explicitly specify the generator, otherwise the command will generate an MSVC solution
 
-Spoowoduje to utworzenie w folderze `build` solucji Visual Studio 2019 (zakładając, że działamy na komputerze wyposażonym w system Windows i IDE Visual Studio 2019).
+```
+cmake -B build MinGW Makefiles
+```
+or
+```
+cmake -B build Ninja
+```
 
-By uruchomić projekt za pomocą VS 2019, wchodzimy do folderu _Build_, otwieramy solucję _OpenGLGP.sln_. Następnie, klikamy prawym przyciskiem myszy na projekcie _OpenGLGP_ i wybieramy opcję _Ustaw jako projekt domyślny / Set as a startup project_. Następnie budujemy i uruchamiamy aplikację.
+The result should be a `build` directory created in the root directory of the project
 
-Jeżeli korzystamy z IDE Clion (jest darmowa licencja dla studentów) lub Visual Studio 2019 Community, wystarczy wybrać w nim opcję otwarcia projektu, i z folderu OpenGLGP wybrać plik _CMakeLists.txt_. Następnie Clion / Visual Studio 2019 sam uruchomi skrypt CMake i pobierze odpowiednie biblioteki. Możemy teraz zbudować i uruchomić projekt.
+After navigating into it, you can run your preferred build tool to compile the project
 
-W obu przypadkach powinno pojawić się okienko, w którym renderowane jest przykładowe GUI za pomocą biblioteki ImGUI. 
+The actual built application will reside in `build/src` directory, along with the symlink to the development `res` folder, containing all the runtime resources needed to run the application
 
-__Dokumentacja__ ImGUI znajduje się w pliku _thirdparty/imgui/imgui.cpp_.
+**NOTE** If you're on Windows and your build fails because of a failure to create a symlink to `res`, refer to `Prerequisites/Windows` for instructions on how to enable developer mode and allow for users to create symbolic links
 
-Widok poprawnie zbudowanej i uruchomionej przykładowej aplikacji:
-![Przykładowe okienko po poprawnym zbudowaniu projektu i uruchomieniu aplikacji](example.png)
+To run the project, navigate to the `build/src` directory (the app will fail if started from any other) and launch the application
 
-## Jak korzystać z projektu
-Po zbudowaniu projektu za pomocą CMake wg. powyższego opisu, w folderze głównym projektu (root) będzie znajdował się folder `build`. Jest to folder tymczasowy, służący jedynie przechowywaniu plików danego IDE (w tym wypadku Visual Studio).
+### Windows
 
-Aby dodać nowe pliki `.cpp/.h` należy je dodać do folderu `src`, a następnie ponownie uruchomić komendę CMake do zbudowania projektu. Dzięki temu IDE będzie w stanie zarejestrować nowe pliki.
+One of the dependencies of the assimp library automatically assumes that every compiler running on Windows is MSVC. This will lead to errors when it'll try to use the macros and intrinsic functions usually defined by MSVC. To remedy this problem you will have to navigate to `build/_deps/assimp-src/contrib/poly2tri/poly2tri/common` and change all mentions of `_WIN32` symbol in the `dll_symbols.h` and `shapes.h` to `_MSC_VER`, as well as in `DefaultIOSteram.cpp` in `build/_deps/assimp-src/code/Common`
 
-Podobna rzecz dotyczy również różnych assetów, które powinny być przechowywane w folderze `res`. W tym wypadku **nie** jest wymagane ponowne uruchomienie komendy CMake do zbudowania projektu. Pliki są od razu widoczne dla IDE za sprawą wcześniej stworzonego symlinka w folderze `build`, który bezpośrednio wskazuje na folder `res` w folderze głównym projektu (root).
+## Development
 
-W celu odwołania się do danego assetu w kodzie (np. do tekstury `stone.jpg`, która znajduje się w folderze `res/textures/`) wystarczy napisać: `"res/textures/stone.jpg"`.
+CMake will glob all source files from the `src` directory. All files contained there will be compiled
+
+The project has the `src/include` folder configured as a include directory, so all files contained there can be included by using angle brackets
+
+To add new libraries, or change the version of an existing one, edit the CMakeLists.txt file in `thirdparty` folder. <br>
+Note that to link any new library into the project, you will need to add an appropriate entry in `src/CMakeLists.txt` as well
+
+The default target uses the -g gcc flag, so it will compile with debug symbols for use in an external debugger like GDB. Unfortunately, even with -O0 the compiler tends to heavily optimize out the local variables, so be wary.
+
+There is currently no option provided for generating .pdb files, so no RenderDoc debugging
