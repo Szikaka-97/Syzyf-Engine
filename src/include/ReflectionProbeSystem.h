@@ -4,8 +4,9 @@
 #include <ReflectionProbe.h>
 #include <Framebuffer.h>
 #include <Texture.h>
+#include <Debug.h>
 
-class ReflectionProbeSystem : public GameObjectSystem<ReflectionProbe> {
+class ReflectionProbeSystem : public GameObjectSystem<ReflectionProbe>, public ImGuiDrawable {
 private:
 	ReflectionProbe* skyboxProbe;
 
@@ -28,4 +29,6 @@ public:
 	virtual void OnPostRender();
 
 	virtual int Order();
+
+	virtual void DrawImGui();
 };

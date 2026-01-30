@@ -2,6 +2,7 @@
 
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
+#include <imgui.h>
 
 #include <ReflectionProbe.h>
 #include <Graphics.h>
@@ -184,4 +185,20 @@ void ReflectionProbeSystem::OnPostRender() {
 
 int ReflectionProbeSystem::Order() {
 	return 50;
+}
+
+void ReflectionProbeSystem::DrawImGui() {
+	if (ImGui::TreeNode("Reflection Probes Debug")) {
+		ImGui::Text("Active reflection probes: %i", (int) this->GetAllObjects()->size());
+
+		ReflectionProbe* closest = GetClosestProbe(Camera::GetMainCamera()->GlobalTransform().Position());
+
+		ImGui::Text("Closest probe: %s", closest != nullptr ? closest->GetNode()->GetName().c_str() : "N/A");
+
+		if (ImGui::Button("Invalidate all probes")) {
+			InvalidateAll();
+		}
+
+		ImGui::TreePop();
+	}
 }
