@@ -27,11 +27,11 @@ cmake -B build
 If you're developing on Windows, you will need to explicitly specify the generator, otherwise the command will generate an MSVC solution
 
 ```
-cmake -B build MinGW Makefiles
+cmake -B build -G MinGW Makefiles
 ```
 or
 ```
-cmake -B build Ninja
+cmake -B build -G Ninja
 ```
 
 The result should be a `build` directory created in the root directory of the project
