@@ -25,7 +25,7 @@ constexpr int32_t GL_VERSION_MINOR = 6;
 
 GLFWwindow* Engine::window = nullptr;
 Scene* Engine::rootScene = nullptr;
-
+World Engine::world;
 
 static void GLFWErrorCallback(int error, const char* description) {
 	fprintf(stderr, "Glfw Error %d: %s\n", error, description);
@@ -176,6 +176,12 @@ void Engine::Render() {
 	rootScene->Render();
 }
 
+class EntityTag {
+public:
+  std::string name;
+  EntityTag(std::string name): name(name) {};
+};
+
 void Engine::DrawImGui() {
 	ImGui_ImplOpenGL3_NewFrame();
 	ImGui_ImplGlfw_NewFrame();
@@ -186,8 +192,14 @@ void Engine::DrawImGui() {
 
 	ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always);
 	ImGui::Begin("Debug", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove);
-
+ 
 	rootScene->DrawImGui();
+
+  ImGui::Text("ECS Debug");
+  SparseSet<EntityTag>* set = Engine::world.GetComponentVector<EntityTag>();
+  for (EntityTag& tag : set->dense) {
+    ImGui::TextUnformatted(tag.name.c_str());
+  }
 
 	ImGui::End();
 
@@ -199,8 +211,16 @@ void Engine::DrawImGui() {
 	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
+void Engine::SetupWorld() {
+  Engine::world = World();
+  Engine::world.RegisterComponent<EntityTag>();
+  Entity entity = world.BuildEntity().With<EntityTag>(EntityTag("Pooga")).Build();
+}
+
 bool Engine::Setup() {
 	bool result = InitProgram() && InitImGui();
+
+  Engine::SetupWorld();
 
 	if (result == false) {
 		return false;

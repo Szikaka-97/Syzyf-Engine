@@ -30,6 +30,7 @@
         nativeBuildInputs = with pkgs; [
           cmake
           ninja
+          ccache
           pkg-config
           gdb
           wayland-scanner

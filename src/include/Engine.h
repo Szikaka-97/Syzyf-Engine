@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ecs.h"
 #include <concepts>
 
 class GLFWwindow;
@@ -16,6 +17,9 @@ private:
 
 	static GLFWwindow* window;
 	static Scene* rootScene;
+
+  static World world;
+  static void SetupWorld();
 
 	static bool InitProgram();
 	static bool InitImGui();
