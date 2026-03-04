@@ -423,6 +423,36 @@ bool InputSystem::KeyUp(char key) const {
 	return keyMask != this->keys.end() && keyMask->second.GetKeyUpBit();
 }
 
+float InputSystem::KeyPressTime(Key key) const {
+	auto keyMask = this->keys.find((int) key);
+
+	return keyMask != this->keys.end() && keyMask->second.GetPressTime();
+}
+
+float InputSystem::KeyPressTime(const std::string& key) const {
+	auto keyCode = charToKey.find(toupper(key.front()));
+
+	if (keyCode == charToKey.end()) {
+		return false;
+	}
+
+	auto keyMask = this->keys.find((int) keyCode->second);
+
+	return keyMask != this->keys.end() && keyMask->second.GetPressTime();
+}
+
+float InputSystem::KeyPressTime(char key) const {
+	auto keyCode = charToKey.find(toupper(key));
+
+	if (keyCode == charToKey.end()) {
+		return false;
+	}
+
+	auto keyMask = this->keys.find((int) keyCode->second);
+
+	return keyMask != this->keys.end() && keyMask->second.GetPressTime();
+}
+
 bool InputSystem::ButtonDown(MouseButton button) const {
 	auto keyMask = this->keys.find((int) button + MouseButtonOffset);
 
@@ -457,6 +487,19 @@ bool InputSystem::ButtonUp(int button) const {
 	auto keyMask = this->keys.find(button + MouseButtonOffset);
 
 	return keyMask != this->keys.end() && keyMask->second.GetKeyUpBit();
+}
+
+float InputSystem::ButtonPressTime(MouseButton button) const {
+	auto keyMask = this->keys.find((int) button + MouseButtonOffset);
+
+	return keyMask != this->keys.end() && keyMask->second.GetPressTime();
+}
+
+float InputSystem::ButtonPressTime(int button) const {
+	auto keyMask = this->keys.find(button + MouseButtonOffset);
+
+	return keyMask != this->keys.end() && keyMask->second.GetPressTime();
+
 }
 
 bool InputSystem::MouseLocked() {
