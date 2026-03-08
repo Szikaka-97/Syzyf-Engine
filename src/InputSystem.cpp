@@ -507,6 +507,48 @@ float InputSystem::KeyReleasedTime(char key) const {
 	return !keyMask->second.GetKeyPressedBit() * (Time::Current() - keyMask->second.GetPressTime());
 }
 
+float InputSystem::KeyChangedState(Key key) const {
+	auto keyMask = this->keys.find((int) key);
+
+	if (keyMask == this->keys.end()) {
+		return 0;
+	}
+
+	return keyMask->second.GetPressTime();
+}
+
+float InputSystem::KeyChangedState(const std::string& key) const {
+	auto keyCode = charToKey.find(toupper(key.front()));
+
+	if (keyCode == charToKey.end()) {
+		return false;
+	}
+
+	auto keyMask = this->keys.find((int) keyCode->second);
+
+	if (keyMask == this->keys.end()) {
+		return 0;
+	}
+
+	return keyMask->second.GetPressTime();
+}
+
+float InputSystem::KeyChangedState(char key) const {
+	auto keyCode = charToKey.find(toupper(key));
+
+	if (keyCode == charToKey.end()) {
+		return false;
+	}
+
+	auto keyMask = this->keys.find((int) keyCode->second);
+
+	if (keyMask == this->keys.end()) {
+		return 0;
+	}
+
+	return keyMask->second.GetPressTime();
+}
+
 bool InputSystem::ButtonDown(MouseButton button) const {
 	auto keyMask = this->keys.find((int) button + MouseButtonOffset);
 
@@ -581,6 +623,26 @@ float InputSystem::ButtonReleasedTime(int button) const {
 	}
 
 	return !keyMask->second.GetKeyPressedBit() * (Time::Current() - keyMask->second.GetPressTime());
+}
+
+float InputSystem::ButtonChangedState(MouseButton button) const {
+	auto keyMask = this->keys.find((int) button + MouseButtonOffset);
+
+	if (keyMask == this->keys.end()) {
+		return 0;
+	}
+
+	return keyMask->second.GetPressTime();
+}
+
+float InputSystem::ButtonChangedState(int button) const {
+	auto keyMask = this->keys.find(button + MouseButtonOffset);
+
+	if (keyMask == this->keys.end()) {
+		return 0;
+	}
+
+	return keyMask->second.GetPressTime();
 }
 
 bool InputSystem::MouseLocked() {
@@ -678,11 +740,12 @@ void InputSystem::DrawImGui() {
 
 				if (strlen(searchString) == 0 || keyName.contains(searchString)) {
 					if (ImGui::TreeNode(keyName.c_str())) {
-						ImGui::Text("%s", std::format("Key Down:         {}", pair.second.GetKeyDownBit()).c_str());
-						ImGui::Text("%s", std::format("Key Pressed:      {}", pair.second.GetKeyPressedBit()).c_str());
-						ImGui::Text("%s", std::format("Key Up:           {}", pair.second.GetKeyUpBit()).c_str());
-						ImGui::Text("%s", std::format("Key Pressed  Time:{}", KeyPressedTime(pair.first)).c_str());
-						ImGui::Text("%s", std::format("Key Released Time:{}", KeyReleasedTime(pair.first)).c_str());
+						ImGui::Text("%s", std::format("Key Down:          {}", pair.second.GetKeyDownBit()).c_str());
+						ImGui::Text("%s", std::format("Key Pressed:       {}", pair.second.GetKeyPressedBit()).c_str());
+						ImGui::Text("%s", std::format("Key Up:            {}", pair.second.GetKeyUpBit()).c_str());
+						ImGui::Text("%s", std::format("Key Pressed  Time: {}", KeyPressedTime(pair.first)).c_str());
+						ImGui::Text("%s", std::format("Key Released Time: {}", KeyReleasedTime(pair.first)).c_str());
+						ImGui::Text("%s", std::format("Key Changed State: {}", KeyChangedState(pair.first)).c_str());
 
 						ImGui::TreePop();
 					}
@@ -703,6 +766,7 @@ void InputSystem::DrawImGui() {
 					ImGui::Text("%s", std::format("Button Up:            {}", keyValue.GetKeyUpBit()).c_str());
 					ImGui::Text("%s", std::format("Button Pressed  Time: {}", KeyPressedTime(mouseButton)).c_str());
 					ImGui::Text("%s", std::format("Button Released Time: {}", KeyReleasedTime(mouseButton)).c_str());
+					ImGui::Text("%s", std::format("Button Changed State: {}", KeyChangedState(mouseButton)).c_str());
 	
 					ImGui::TreePop();
 				}

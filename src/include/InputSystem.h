@@ -219,6 +219,10 @@ public:
 	float KeyReleasedTime(const std::string& key) const;
 	float KeyReleasedTime(char key) const;
 
+	float KeyChangedState(Key key) const;
+	float KeyChangedState(const std::string& key) const;
+	float KeyChangedState(char key) const;
+
 	bool ButtonDown(MouseButton button) const;
 	bool ButtonDown(int button) const;
 
@@ -233,6 +237,9 @@ public:
 
 	float ButtonReleasedTime(MouseButton button) const;
 	float ButtonReleasedTime(int button) const;
+
+	float ButtonChangedState(MouseButton button) const;
+	float ButtonChangedState(int button) const;
 
 	bool MouseLocked();
 
