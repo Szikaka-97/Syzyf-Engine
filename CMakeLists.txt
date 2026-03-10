@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.21 FATAL_ERROR)
 project(Syzyf VERSION 1.0)
 
+cmake_policy(SET CMP0171 NEW)
+
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 IF (WIN32)
@@ -35,4 +37,3 @@ ENDIF ()
 
 # ---- Main project's files ----
 add_subdirectory(src)
-target_include_directories(${PROJECT_NAME} PRIVATE src/include)
