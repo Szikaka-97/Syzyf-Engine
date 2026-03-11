@@ -17,6 +17,12 @@ extern "C" {
 
 #include <Engine.h>
 
+#include "physics/PhysicsJolt.h"
+
+#include <Jolt/Jolt.h>
+#include <Jolt/RegisterTypes.h>
+#include <Jolt/Core/Factory.h>
+
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
@@ -116,6 +122,16 @@ bool Engine::InitProgram() {
 		
 		return false;
 	}
+
+  // Jolt
+  JPH::RegisterDefaultAllocator();
+  JPH::Factory::sInstance = new JPH::Factory();
+  JPH::RegisterTypes();
+
+  JPH::Trace = TraceImpl;
+#ifdef JPH_ENABLE_ASSERTS
+  JPH::AssertFailed = AssertFailedImpl;
+#endif
 
 	int contextFlags = 0;
 	glGetIntegerv(GL_CONTEXT_FLAGS, &contextFlags);

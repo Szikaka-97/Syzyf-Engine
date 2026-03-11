@@ -22,20 +22,37 @@ CPMAddPackage("gh:glfw/glfw#3.4")
 CPMAddPackage("gh:g-truc/glm#1.0.3")
 CPMAddPackage("gh:ocornut/imgui@1.92.5")
 CPMAddPackage("gh:gabime/spdlog@1.17.0")
+CPMAddPackage(
+    NAME JoltPhysics
+    GITHUB_REPOSITORY jrouwe/JoltPhysics
+    GIT_TAG v5.5.0
+    SOURCE_SUBDIR "Build"
+    OPTIONS
+        "TARGET_UNIT_TESTS OFF"
+        "TARGET_SAMPLES OFF"
+        "TARGET_PERFORMANCE_TEST" OFF
+        "TARGET_VIEWER" OFF
+        "TARGET_HELLO_WORLD OFF"
+        "DEBUG_RENDERER ON"
+        "CPP_RTTI_ENABLED ON"
+        "DEBUG_RENDERER_IN_DISTRIBUTION ON"
+)
+target_compile_options(Jolt PRIVATE -Wno-array-bounds)
 
 set(imgui_SOURCE_DIR ${imgui_SOURCE_DIR} CACHE INTERNAL "")
 add_library(imgui STATIC ${imgui_SOURCE_DIR}/imgui.cpp
-					     ${imgui_SOURCE_DIR}/imgui_demo.cpp
-					     ${imgui_SOURCE_DIR}/imgui_draw.cpp
-						 ${imgui_SOURCE_DIR}/imgui_tables.cpp
-					     ${imgui_SOURCE_DIR}/imgui_widgets.cpp)
+					    ${imgui_SOURCE_DIR}/imgui_demo.cpp
+					    ${imgui_SOURCE_DIR}/imgui_draw.cpp
+					    ${imgui_SOURCE_DIR}/imgui_tables.cpp
+					    ${imgui_SOURCE_DIR}/imgui_widgets.cpp)
 						 
 set_target_properties(glad
                       stb_image 
                       assimp 
                       glfw 
                       glm 
-                      imgui 
+                      imgui
+                      Jolt
                       spdlog PROPERTIES FOLDER "thirdparty")
 
 if (TARGET zlibstatic)

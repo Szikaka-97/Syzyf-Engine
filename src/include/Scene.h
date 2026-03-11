@@ -337,6 +337,9 @@ T_GO* Scene::CreateObjectOn(SceneNode* node, T_Param... params) {
 
 	created->enabled = true;
 
+  this->messageTree.MessageObject<Message::Awake>(created, node);
+  this->messageTree.MessageObject<Message::OnEnable>(created, node);
+
 	return created;
 }
 

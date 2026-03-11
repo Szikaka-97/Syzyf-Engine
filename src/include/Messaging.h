@@ -44,6 +44,7 @@ DEFINE_MESSAGE(Render);
 DEFINE_MESSAGE(DrawGizmos);
 DEFINE_MESSAGE(OnEnable);
 DEFINE_MESSAGE(OnDisable);
+DEFINE_MESSAGE(Awake);
 
 struct Messenger {
 	MessageReceiver* receiver;
@@ -87,6 +88,7 @@ private:
 	DEFINE_MESSAGE_CREATOR(DrawGizmos);
 	DEFINE_MESSAGE_CREATOR(OnEnable);
 	DEFINE_MESSAGE_CREATOR(OnDisable);
+  DEFINE_MESSAGE_CREATOR(Awake);
 public:
 	MessageTree();
 	~MessageTree();
@@ -143,4 +145,5 @@ void MessageTree::AddMessageReceiver(T* obj, SceneNode* owner) {
 	AddDrawGizmos(ownerNode, obj);
 	AddOnEnable(ownerNode, obj);
 	AddOnDisable(ownerNode, obj);
+  AddAwake(ownerNode, obj);
 }
