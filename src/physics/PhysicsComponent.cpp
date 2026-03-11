@@ -200,7 +200,6 @@ PhysicsComponent::PhysicsComponent(Scene* scene): SceneComponent(scene) {
   }
 
   void PhysicsComponent::OnPostUpdate() {
-    spdlog::info("Post update");
     // TMEPRORARY
     this->accumulator += Time::Delta();
     while (this->accumulator > this->cDeltaTime) { 
@@ -231,7 +230,6 @@ PhysicsComponent::PhysicsComponent(Scene* scene): SceneComponent(scene) {
   }
 
   for (auto& characterObject : this->GetScene()->FindObjectsOfType<PhysicsCharacter>()) {
-    spdlog::info("Post simulation on a character object: {}", characterObject->GetName());
     characterObject->character->PostSimulation(characterObject->maxSeparationDistance);
   }
 }

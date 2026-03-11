@@ -132,7 +132,6 @@ public:
       bool jump = false;
 
 			if (GetScene()->Input()->KeyPressed(Key::A)) {
-        spdlog::warn("A Pressed");
 				movement += right;
 			}
 			if (GetScene()->Input()->KeyPressed(Key::D)) {
