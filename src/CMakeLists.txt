@@ -40,10 +40,31 @@ target_link_libraries(${PROJECT_NAME} spdlog)
 target_link_libraries(${PROJECT_NAME} glm::glm)
 
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD 
-				   COMMAND ${CMAKE_COMMAND} -E create_symlink 
-				   ${CMAKE_SOURCE_DIR}/res 
-				   ${CMAKE_CURRENT_BINARY_DIR}/res)
+                   COMMAND ${CMAKE_COMMAND} -E create_symlink 
+                   ${CMAKE_SOURCE_DIR}/res 
+                   ${CMAKE_CURRENT_BINARY_DIR}/res)
 
-if(MSVC)
+if (MSVC)
     target_compile_definitions(${PROJECT_NAME} PUBLIC NOMINMAX)
-endif()
+endif ()
+
+target_include_directories(${PROJECT_NAME} PRIVATE src/include)
+
+get_target_property(SYZYF_INCLUDES ${PROJECT_NAME} INCLUDE_DIRECTORIES)
+
+if (WIN32)
+	set(RUN_SCRIPTS_CMD RunScripts.bat)
+else ()
+	set(RUN_SCRIPTS_CMD RunScripts.sh)
+endif ()
+
+add_custom_command(OUTPUT SerializationDecls.h Serialization.cpp
+                   COMMAND "${CMAKE_SOURCE_DIR}/src/scripts/${RUN_SCRIPTS_CMD}"
+                   DEPENDS ${SOURCE_FILES}
+                   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/src/scripts
+                   CODEGEN
+)
+
+message(NOTICE ${INCLUDE_DIRECTORIES})
+
+target_sources(${PROJECT_NAME} PRIVATE SerializationDecls.h PRIVATE Serialization.cpp)
