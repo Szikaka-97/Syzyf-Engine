@@ -37,6 +37,7 @@ set_target_properties(glad
                       glfw 
                       glm 
                       imgui 
+                      nlohmann_json
                       spdlog PROPERTIES FOLDER "thirdparty")
 
 if (TARGET zlibstatic)

@@ -38,6 +38,7 @@ target_link_libraries(${PROJECT_NAME} glfw)
 target_link_libraries(${PROJECT_NAME} imgui)
 target_link_libraries(${PROJECT_NAME} spdlog)
 target_link_libraries(${PROJECT_NAME} glm::glm)
+target_link_libraries(${PROJECT_NAME} nlohmann_json::nlohmann_json)
 
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD 
                    COMMAND ${CMAKE_COMMAND} -E create_symlink 
@@ -47,8 +48,6 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
 if (MSVC)
     target_compile_definitions(${PROJECT_NAME} PUBLIC NOMINMAX)
 endif ()
-
-target_include_directories(${PROJECT_NAME} PRIVATE src/include)
 
 get_target_property(SYZYF_INCLUDES ${PROJECT_NAME} INCLUDE_DIRECTORIES)
 
@@ -65,6 +64,4 @@ add_custom_command(OUTPUT SerializationDecls.h Serialization.cpp
                    CODEGEN
 )
 
-message(NOTICE ${INCLUDE_DIRECTORIES})
-
-target_sources(${PROJECT_NAME} PRIVATE SerializationDecls.h PRIVATE Serialization.cpp)
+target_sources(${PROJECT_NAME} PRIVATE SerializationDecls.h PRIVATE SerializationDecls.cpp)
