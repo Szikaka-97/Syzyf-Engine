@@ -14,4 +14,4 @@ if ERRORLEVEL 1 (
 	python -m pip install libclang
 )
 
-python SerializationDatabase.py
+python SerializationDatabase.py %*

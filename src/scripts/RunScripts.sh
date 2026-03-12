@@ -14,4 +14,4 @@ if [ $? == 1 ]; then
 	python -m pip install libclang
 fi
 
-python SerializationDatabase.py
+python SerializationDatabase.py $@

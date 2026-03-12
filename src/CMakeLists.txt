@@ -57,9 +57,9 @@ else ()
 	set(RUN_SCRIPTS_CMD RunScripts.sh)
 endif ()
 
-add_custom_command(OUTPUT SerializationDecls.h Serialization.cpp
-                   COMMAND "${CMAKE_SOURCE_DIR}/src/scripts/${RUN_SCRIPTS_CMD}"
-                   DEPENDS ${SOURCE_FILES}
+add_custom_command(OUTPUT SerializationDecls.h SerializationDecls.cpp
+                   COMMAND "${CMAKE_SOURCE_DIR}/src/scripts/${RUN_SCRIPTS_CMD}" "${CMAKE_SOURCE_DIR}/src" "${CMAKE_SOURCE_DIR}/src/include" SerializationDecls ${CMAKE_CURRENT_BINARY_DIR}/../compile_commands.json
+                   DEPENDS ${HEADER_FILES}
                    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/src/scripts
                    CODEGEN
 )
