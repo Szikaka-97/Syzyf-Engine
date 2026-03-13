@@ -18,10 +18,14 @@ target_include_directories(stb_image PRIVATE ${STB_IMAGE_DIR})
 
 # other
 CPMAddPackage("gh:assimp/assimp@6.0.4")
-CPMAddPackage("gh:glfw/glfw#3.4")
 CPMAddPackage("gh:g-truc/glm#1.0.3")
 CPMAddPackage("gh:ocornut/imgui@1.92.5")
 CPMAddPackage("gh:gabime/spdlog@1.17.0")
+CPMAddPackage(
+    NAME SDL3
+    GITHUB_REPOSITORY libsdl-org/SDL
+    GIT_TAG release-3.4.2
+    OPTIONS "SDL_X11_XSCRNSAVER OFF")
 
 set(imgui_SOURCE_DIR ${imgui_SOURCE_DIR} CACHE INTERNAL "")
 add_library(imgui STATIC ${imgui_SOURCE_DIR}/imgui.cpp
@@ -29,11 +33,11 @@ add_library(imgui STATIC ${imgui_SOURCE_DIR}/imgui.cpp
 					     ${imgui_SOURCE_DIR}/imgui_draw.cpp
 						 ${imgui_SOURCE_DIR}/imgui_tables.cpp
 					     ${imgui_SOURCE_DIR}/imgui_widgets.cpp)
-						 
+
 set_target_properties(glad
                       stb_image 
                       assimp 
-                      glfw 
+                      SDL3-static
                       glm 
                       imgui 
                       spdlog PROPERTIES FOLDER "thirdparty")

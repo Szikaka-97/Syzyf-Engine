@@ -2,7 +2,8 @@
 
 #include <concepts>
 
-class GLFWwindow;
+class SDL_Window;
+class SDL_GLContextState;
 class Scene;
 
 template <typename T>
@@ -14,7 +15,8 @@ class Engine {
 private:
 	Engine() = delete;
 
-	static GLFWwindow* window;
+	static SDL_Window* window;
+	static SDL_GLContextState* glContext;
 	static Scene* rootScene;
 
 	static bool InitProgram();
@@ -32,7 +34,7 @@ public:
 	static void Exit(int code = 0);
 
 	static Scene* GetRoot();
-	static GLFWwindow* GetWindow();
+	static SDL_Window* GetWindow();
 };
 
 template <SceneCreationCallback T>

@@ -16,11 +16,10 @@
 #include <ReflectionProbeSystem.h>
 #include <Frustum.h>
 #include <Viewport.h>
+#include <TimeSystem.h>
 
 #include "../res/shaders/shared/shared.h"
 #include "../res/shaders/shared/uniforms.h"
-
-#include <GLFW/glfw3.h>
 
 #define LIGHT_GRID_SIZE 16
 
@@ -464,7 +463,7 @@ void SceneGraphics::RenderCamera(Camera* camera, Viewport* renderTarget, const R
 	globalUniforms.Global_ProjectionMatrix = camera->ProjectionMatrix();
 	globalUniforms.Global_VPMatrix = globalUniforms.Global_ProjectionMatrix * globalUniforms.Global_ViewMatrix;
 	globalUniforms.Global_CameraWorldPos = glm::vec4(camera->GlobalTransform().Position().Value(), 0.0);
-	globalUniforms.Global_Time = (float) glfwGetTime();
+	globalUniforms.Global_Time = Time::Current();
 	globalUniforms.Global_CameraFarPlane = camera->GetFarPlane();
 	globalUniforms.Global_CameraNearPlane = camera->GetNearPlane();
 	globalUniforms.Global_CameraFov = camera->GetFovRad();
@@ -609,7 +608,7 @@ void SceneGraphics::RenderScene(const CameraData& camera, Framebuffer* framebuff
 	globalUniforms.Global_ProjectionMatrix = camera.ProjectionMatrix();
 	globalUniforms.Global_VPMatrix = globalUniforms.Global_ProjectionMatrix * globalUniforms.Global_ViewMatrix;
 	globalUniforms.Global_CameraWorldPos = glm::vec4((glm::vec3) camera.cameraTransform[3], 0.0);
-	globalUniforms.Global_Time = (float) glfwGetTime();
+	globalUniforms.Global_Time = Time::Current();
 	globalUniforms.Global_CameraFarPlane = camera.GetFarPlane();
 	globalUniforms.Global_CameraNearPlane = camera.GetNearPlane();
 	globalUniforms.Global_CameraFov = camera.GetFovRad();
