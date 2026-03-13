@@ -8,6 +8,9 @@ in VS_OUT {
 	vec2 texcoords;
 } ps_in;
 
+#include "shared/shared.h"
+#include "shared/uniforms.h"
+
 uniform vec4 uColor;
 
 layout (location = 0) out vec4 accumValue;
@@ -22,9 +25,11 @@ float calcWeight(float alpha) {
 }
 
 void main() {
-	float weight = calcWeight(uColor.a);
+	const float weight = calcWeight(uColor.a);
 
-	accumValue = vec4(uColor.rgb * uColor.a, uColor.a) * weight;
+	const vec3 viewDir = normalize(Global_CameraWorldPos - ps_in.worldPos);
+
+	accumValue = vec4(uColor.rgb * dot(viewDir, normalize(ps_in.normal)) * uColor.a, uColor.a) * weight;
 
 	revealValue = uColor.a;
 }
