@@ -19,6 +19,8 @@
 
 #include "../res/shaders/shared/shared.h"
 #include "../res/shaders/shared/uniforms.h"
+#include "include/Framebuffer.h"
+#include "include/Shader.h"
 
 #include <GLFW/glfw3.h>
 
@@ -138,8 +140,19 @@ mainViewport(new Viewport()) {
 	this->postProcessing = GetScene()->AddComponent<PostProcessingSystem>();
 	this->envMapping = GetScene()->AddComponent<ReflectionProbeSystem>();
 
-	this->mainViewport->GetFramebuffer()->CreateColorAttachment(true, false);
-	this->mainViewport->GetFramebuffer()->CreateDepthAttachment(false, false);
+	this->opaquePassFramebuffer = this->mainViewport->GetFramebuffer();
+	this->transparentPassFramebuffer = new Framebuffer(Framebuffer::Attachment::None, 0, 0);
+	
+	this->opaquePassFramebuffer->CreateColorAttachment(true, false);
+	this->opaquePassFramebuffer->CreateDepthAttachment(false, false);
+
+	this->transparentPassFramebuffer->CreateColorAttachment(true, false),
+	this->transparentPassFramebuffer->CreateCustomAttachment(0, TextureParams{
+		.channels = TextureChannels::Grayscale,
+		.colorSpace = TextureColor::Linear,
+		.format = TextureFormat::Float8
+	});
+	this->transparentPassFramebuffer->SetDepthTexture(this->opaquePassFramebuffer->GetDepthTexture());
 }
 
 glm::vec2 SceneGraphics::GetScreenResolution() const {
@@ -148,8 +161,8 @@ glm::vec2 SceneGraphics::GetScreenResolution() const {
 
 void SceneGraphics::UpdateScreenResolution(glm::vec2 newResolution) {
 	if (this->mainViewport->GetSize() != glm::uvec2(newResolution)) {
-
 		this->mainViewport->SetSize(newResolution);
+		this->transparentPassFramebuffer->SetSize(newResolution);
 
 		if (GetPostProcessing()) {
 			GetPostProcessing()->UpdateBufferResolution(newResolution);
@@ -191,8 +204,9 @@ void SceneGraphics::RenderObjects(const ShaderGlobalUniforms& globalUniforms, Re
 	Frustum viewFrustum = ComputeFrustum(globalUniforms.Global_VPMatrix);
 
 	bool drawsGizmos = ((int) params.pass & (int) RenderPassType::Gizmos) != 0;
+	bool drawTransparent = ((int) params.pass & (int) RenderPassType::Transparent) != 0;
 
-	std::vector<RenderNode>& renders = drawsGizmos ? this->gizmoRenders : this->currentRenders;
+	std::vector<RenderNode>& renders = drawsGizmos ? this->gizmoRenders : (drawTransparent ? this->transparentRenders : this->currentRenders);
 
 	for (const RenderNode& node : renders) {
 		if (!params.layers.Test(node.layer)) {
@@ -342,6 +356,43 @@ void SceneGraphics::RenderFullscreenFrameQuad() {
 	glUseProgram(0);
 }
 
+void SceneGraphics::CompositeTransparentPass() {
+	static ShaderProgram* quadProg = ShaderProgram::Build()
+	.WithVertexShader(
+		GetScene()->Resources()->Get<VertexShader>("./res/shaders/fullscreen.vert")
+	)
+	.WithPixelShader(
+		GetScene()->Resources()->Get<PixelShader>("./res/shaders/transparency_composite.frag")
+	).Link();
+
+	static Mesh* quadMesh = GetScene()->Resources()->Get<Mesh>("./res/models/fullscreenquad.obj");
+
+	glBindFramebuffer(GL_FRAMEBUFFER, this->opaquePassFramebuffer->GetHandle());
+
+	glDepthFunc(GL_ALWAYS);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	glBindVertexArray(quadMesh->SubMeshAt(0).GetVertexArrayHandle());
+
+	glUseProgram(quadProg->GetHandle());
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, transparentPassFramebuffer->GetColorTexture()->GetHandle());
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, transparentPassFramebuffer->GetCustomAttachmentTexture(0)->GetHandle());
+	
+	glDrawElements(GL_TRIANGLES, quadMesh->SubMeshAt(0).GetVertexCount(), GL_UNSIGNED_INT, nullptr);
+	
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	glEnable(GL_DEPTH_TEST);
+	glDisable(GL_BLEND);
+
+	glBindVertexArray(0);
+	glUseProgram(0);
+}
+
 void SceneGraphics::DrawMesh(MeshRenderer* renderer) {
 	DrawMeshInstanced(renderer, 0);
 }
@@ -368,7 +419,11 @@ void SceneGraphics::DrawMeshInstanced(MeshRenderer* renderer, unsigned int insta
 	for (int i = 0; i < renderer->GetMesh()->GetSubMeshCount(); i++) {
 		const Mesh::SubMesh* mesh = &renderer->GetMesh()->SubMeshAt(i);
 
-		this->currentRenders.push_back(RenderNode(
+		const Material* material = renderer->GetMaterial(mesh->GetMaterialIndex()); 
+
+		auto& targetRenderQueue = material->GetShader()->IsTransparent() ? this->transparentRenders : this->currentRenders;
+
+		targetRenderQueue.push_back(RenderNode(
 			mesh,
 			renderer->GetMaterial(mesh->GetMaterialIndex()),
 			instanceCount,
@@ -379,7 +434,9 @@ void SceneGraphics::DrawMeshInstanced(MeshRenderer* renderer, unsigned int insta
 }
 
 void SceneGraphics::DrawMeshInstanced(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, unsigned int instanceCount, uint8_t layer) {
-	this->currentRenders.push_back(RenderNode(
+	auto& targetRenderQueue = material->GetShader()->IsTransparent() ? this->transparentRenders : this->currentRenders;
+
+	targetRenderQueue.push_back(RenderNode(
 		&mesh->SubMeshAt(subMeshIndex),
 		material,
 		instanceCount,
@@ -389,7 +446,9 @@ void SceneGraphics::DrawMeshInstanced(const Mesh* mesh, int subMeshIndex, const 
 }
 
 void SceneGraphics::DrawMeshInstanced(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, unsigned int instanceCount, const BoundingBox& bounds, uint8_t layer) {
-	this->currentRenders.push_back(RenderNode(
+	auto& targetRenderQueue = material->GetShader()->IsTransparent() ? this->transparentRenders : this->currentRenders;
+
+	targetRenderQueue.push_back(RenderNode(
 		&mesh->SubMeshAt(subMeshIndex),
 		material,
 		instanceCount,
@@ -403,7 +462,15 @@ void SceneGraphics::Render() {
 	for (Camera* camera : *this->GetAllObjects()) {
 		if (camera == this->mainCamera) {
 			camera->SetAspectRatio((float) this->mainViewport->GetSize().x / this->mainViewport->GetSize().y);
-			RenderCamera(camera, this->mainViewport);
+			RenderCamera(camera, this->mainViewport, RenderParams {
+				RenderPassType::Color | RenderPassType::DepthPrepass | RenderPassType::Gizmos | RenderPassType::Transparent | RenderPassType::PostProcessing,
+				glm::vec4(
+					0,
+					0,
+					this->mainViewport->GetSize()
+				),
+				false
+			});
 		}
 
 		RenderCamera(camera);
@@ -413,10 +480,12 @@ void SceneGraphics::Render() {
 
 	glViewport(0, 0, this->mainViewport->GetSize().x, this->mainViewport->GetSize().y);
 
+	CompositeTransparentPass();
+
 	RenderFullscreenFrameQuad();
 
 	this->currentRenders.clear();
-
+	this->transparentRenders.clear();
 	this->gizmoRenders.clear();
 }
 
@@ -499,6 +568,12 @@ void SceneGraphics::RenderCamera(Camera* camera, Viewport* renderTarget, const R
 	
 		RenderScene(globalUniforms, renderTarget, activeParams);
 	}
+
+	if (camera == this->mainCamera && (params.pass & RenderPassType::Transparent) == RenderPassType::Transparent) {
+		activeParams.pass = RenderPassType(RenderPassType::Transparent);
+	
+		RenderScene(globalUniforms, this->transparentPassFramebuffer, activeParams);
+	}
 }
 
 void SceneGraphics::RenderScene(const ShaderGlobalUniforms& uniforms, Framebuffer* framebuffer, const RenderParams& params) {
@@ -557,6 +632,28 @@ void SceneGraphics::RenderScene(const ShaderGlobalUniforms& uniforms, Framebuffe
 		gizmoPassParams.pass = RenderPassType::Gizmos;
 
 		RenderObjects(uniforms, gizmoPassParams);
+	}
+
+	if (((int) params.pass & (int) RenderPassType::Transparent) != 0) {
+		glDepthMask(GL_FALSE);
+		glEnable(GL_BLEND);
+		glBlendFunci(0, GL_ONE, GL_ONE);
+		glBlendFunci(1, GL_ZERO, GL_ONE_MINUS_SRC_COLOR);
+		glBlendEquation(GL_FUNC_ADD);
+
+		glClearBufferfv(GL_COLOR, 0, &glm::zero<glm::vec4>()[0]); 
+		glClearBufferfv(GL_COLOR, 1, &glm::one<glm::vec4>()[0]);
+
+		RenderParams transparentPassParams = params;
+		transparentPassParams.pass = RenderPassType::Transparent;
+
+		RenderObjects(uniforms, transparentPassParams);
+		
+		glEnable(GL_DEPTH_TEST);
+		glDepthFunc(GL_LESS);
+		glDepthMask(GL_TRUE);
+		glDisable(GL_BLEND);
+		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 	}
 
 	if (((int) params.pass & (int) RenderPassType::PostProcessing) != 0) {

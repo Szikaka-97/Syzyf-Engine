@@ -560,15 +560,19 @@ const VertexSpec& ShaderProgram::GetVertexSpec() const {
 }
 
 bool ShaderProgram::IgnoresDepthPrepass() const {
-	return ((unsigned int) this->flags & (unsigned int) ShaderProgramFlags::IgnoreDepthPrepass) != 0;
+	return int(this->flags & ShaderProgramFlags::IgnoreDepthPrepass) != 0;
 }
 
 bool ShaderProgram::CastsShadows() const {
-	return ((unsigned int) this->flags & (unsigned int) ShaderProgramFlags::DontCastShadows) == 0;
+	return int(this->flags & ShaderProgramFlags::DontCastShadows) == 0;
 }
 
 bool ShaderProgram::UsesPatches() const {
-	return ((unsigned int) this->flags & (unsigned int) ShaderProgramFlags::UsePatches) != 0;
+	return int(this->flags & ShaderProgramFlags::UsePatches) != 0;
+}
+
+bool ShaderProgram::IsTransparent() const {
+	return int(this->flags & ShaderProgramFlags::Transparent) != 0;
 }
 
 void ShaderProgram::SetIgnoresDepthPrepass(bool ignores) {
@@ -589,6 +593,17 @@ void ShaderProgram::SetCastsShadows(bool casts) {
 	temp = (unsigned int) this->flags & temp;
 
 	temp |= (unsigned int) ShaderProgramFlags::DontCastShadows * !casts;
+
+	this->flags = (ShaderProgramFlags) temp;
+}
+
+void ShaderProgram::SetTransparent(bool transparent) {
+	unsigned int temp = (unsigned int) ShaderProgramFlags::Transparent;
+	temp = ~temp;
+
+	temp = (unsigned int) this->flags & temp;
+
+	temp |= (unsigned int) ShaderProgramFlags::Transparent * transparent;
 
 	this->flags = (ShaderProgramFlags) temp;
 }

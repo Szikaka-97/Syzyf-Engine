@@ -33,7 +33,8 @@ enum class RenderPassType {
 	DepthPrepass = 2,
 	Shadows = 6,
 	Gizmos = 8,
-	PostProcessing = 16
+	PostProcessing = 16,
+	Transparent = 32,
 };
 
 struct RenderParams {
@@ -66,10 +67,13 @@ private:
 
 	std::vector<RenderNode> currentRenders;
 	std::vector<RenderNode> gizmoRenders;
+	std::vector<RenderNode> transparentRenders;
 	GLuint globalUniformsBuffer;
 	GLuint objectUniformsBuffer;
 	
 	Viewport* mainViewport;
+	Framebuffer* opaquePassFramebuffer;
+	Framebuffer* transparentPassFramebuffer;
 
 	LightSystem* lightSystem;
 	PostProcessingSystem* postProcessing;
@@ -79,6 +83,7 @@ private:
 
 	void RenderObjects(const ShaderGlobalUniforms& globalUniforms, RenderParams params);
 	void RenderFullscreenFrameQuad();
+	void CompositeTransparentPass();
 	
 	void BindGlobalUniformBuffer(const ShaderGlobalUniforms& globalUniforms);
 	
