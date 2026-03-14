@@ -98,6 +98,7 @@ public:
 	}
 };
 
+// temporary, remove later
 class PhysicsMover : public GameObject, public ImGuiDrawable {
 private:
 	float pitch;
@@ -115,7 +116,7 @@ public:
 		this->mode = 0;
 
     // will crash if added before character remove tis
-    this->character = this->GetObject<PhysicsCharacter>()->character;
+    this->character = this->GetObject<PhysicsCharacter>()->GetCharacter();
 	}
 
 	void Update() { 

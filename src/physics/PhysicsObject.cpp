@@ -32,7 +32,7 @@ JPH::BodyCreationSettings PhysicsObject::Sphere(float radius, const JPH::EMotion
   }
 
   return JPH::BodyCreationSettings(
-    new JPH::SphereShape(radius),
+  new JPH::SphereShape(radius),
     JPH::RVec3::sZero(),
     JPH::QuatArg::sIdentity(),
     type,
@@ -41,7 +41,13 @@ JPH::BodyCreationSettings PhysicsObject::Sphere(float radius, const JPH::EMotion
 }
 
 JPH::BodyCreationSettings PhysicsObject::Box(glm::vec3 halfExtent, const JPH::EMotionType type, const JPH::ObjectLayer layer) {
-  // Should perhaps check here for if the extents are too small
+  if (halfExtent.x < defaultConvexRadius || halfExtent.y < defaultConvexRadius || halfExtent.z < defaultConvexRadius) {
+    spdlog::warn("Trying to create a `PhysicsObject::Box` with extents smaller than Jolt's default convex radius. Clamping to 0.05f");
+    halfExtent.x = std::max(halfExtent.x, defaultConvexRadius);
+    halfExtent.y = std::max(halfExtent.y, defaultConvexRadius);
+    halfExtent.z = std::max(halfExtent.z, defaultConvexRadius);
+  }
+  
   return JPH::BodyCreationSettings(
       new JPH::BoxShape(JPH::Vec3Arg(halfExtent.x, halfExtent.y, halfExtent.z)),
       JPH::RVec3Arg::sZero(),
@@ -52,7 +58,12 @@ JPH::BodyCreationSettings PhysicsObject::Box(glm::vec3 halfExtent, const JPH::EM
 }
 
 JPH::BodyCreationSettings PhysicsObject::Capsule(float halfHeight, float radius, const JPH::EMotionType type, const JPH::ObjectLayer layer) {
-  // !! check whether small size makes this crash here too!
+  if (halfHeight < defaultConvexRadius || radius < defaultConvexRadius) {
+    spdlog::warn("Trying to create a `PhysicsObject::Capsule` with dimensions smaller than Jolt's convex radius. Clamping to 0.05f");
+    halfHeight = std::max(halfHeight, defaultConvexRadius);
+    radius = std::max(halfHeight, defaultConvexRadius);
+  }
+
   return JPH::BodyCreationSettings(
       new JPH::CapsuleShape(halfHeight, radius),
       JPH::RVec3Arg::sZero(),
@@ -206,7 +217,7 @@ glm::vec3 PhysicsObject::GetLinearVelocity() const {
 glm::vec3 PhysicsObject::GetAngularVelocity() const {
   if (bodyCreated) {
     if (PhysicsComponent* physics = GetScene()->GetComponent<PhysicsComponent>()) {
-      JPH::Vec3 velocity = physics->GetBodyInterface().GetLinearVelocity(bodyID);
+      JPH::Vec3 velocity = physics->GetBodyInterface().GetAngularVelocity(bodyID);
       return glm::vec3(velocity.GetX(), velocity.GetY(), velocity.GetZ());
     }
   }
@@ -477,7 +488,7 @@ void PhysicsObject::ApplyAngularImpulse(const glm::vec3& impulse) {
     return;
   }
   if (PhysicsComponent* physics = GetScene()->GetComponent<PhysicsComponent>()) {
-    physics->GetBodyInterface().AddImpulse(bodyID, JPH::Vec3(impulse.x, impulse.y, impulse.z));
+    physics->GetBodyInterface().AddAngularImpulse(bodyID, JPH::Vec3(impulse.x, impulse.y, impulse.z));
   }
 }
 
@@ -506,6 +517,10 @@ void PhysicsObject::Awake() {
     glm::abs(nodeScale.z - 1.0f) > epsilon;
 
   if (nodeScale.value != glm::vec3(1.0f)) {
+    if (glm::abs(nodeScale.x = nodeScale.y) > epsilon || glm::abs(nodeScale.y - nodeScale.z) > epsilon) {
+      spdlog::warn("PhysicsObject: Non-uniform scaling, will fail if applied to a Capsule/Sphere shapes");
+    }
+
     const JPH::ShapeSettings* baseSettings = bodyCreationSettings.GetShapeSettings();
 
     if (baseSettings != nullptr) {

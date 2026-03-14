@@ -9,7 +9,6 @@
 #include <Jolt/Physics/PhysicsSystem.h>
 #include <glm/fwd.hpp>
 
-#include "Jolt/Math/Vec3.h"
 #include "SceneComponent.h"
 
 namespace JPH {
@@ -21,37 +20,50 @@ namespace JPH {
     class BodyActivationListener;
 }
 
+  struct PhysicsSystemSettings {
+    JPH::uint maxBodies = 1024;
+    JPH::uint numBodyMutexes = 0;
+    JPH::uint maxBodyPairs = 1024;
+    JPH::uint maxContactConstraints = 1024;
+    JPH::uint tempAllocatorSize = 10 * 1024 * 1024;
+  };
+
 class PhysicsComponent : public SceneComponent {
 public:
-  PhysicsComponent(Scene* scene);
-  virtual ~PhysicsComponent();
-
   struct Layers {
-      static constexpr JPH::ObjectLayer NON_MOVING = 0;
-      static constexpr JPH::ObjectLayer MOVING = 1;
-      static constexpr JPH::ObjectLayer NUM_LAYERS = 2;
+    static constexpr JPH::ObjectLayer NON_MOVING = 0;
+    static constexpr JPH::ObjectLayer MOVING = 1;
+    static constexpr JPH::ObjectLayer NUM_LAYERS = 2;
   };
 
   struct BroadPhaseLayers {
-      static constexpr JPH::BroadPhaseLayer NON_MOVING{0};
-      static constexpr JPH::BroadPhaseLayer MOVING{1};
-      static constexpr JPH::uint NUM_LAYERS{2};
+    static constexpr JPH::BroadPhaseLayer NON_MOVING{0};
+    static constexpr JPH::BroadPhaseLayer MOVING{1};
+    static constexpr JPH::uint NUM_LAYERS{2};
   };
 private:
-    bool drawDebug = false;
+  bool drawDebug = false;
 
-    float accumulator = 0.0f;
-    const float cDeltaTime = 1.0f / 60.0f;
+  float accumulator = 0.0f;
+  const float cDeltaTime = 1.0f / 60.0f;
 
-    JPH::PhysicsSystem* physicsSystem = nullptr;
-    JPH::TempAllocatorImpl* tempAllocator = nullptr;
-    JPH::JobSystemThreadPool* jobSystem = nullptr;
+  JPH::PhysicsSystem* physicsSystem = nullptr;
+  JPH::TempAllocatorImpl* tempAllocator = nullptr;
+  JPH::JobSystemThreadPool* jobSystem = nullptr;
 
-    JPH::BroadPhaseLayerInterface* bpLayerInterface = nullptr;
-    JPH::ObjectVsBroadPhaseLayerFilter* objVsBPFilter = nullptr;
-    JPH::ObjectLayerPairFilter* objVsObjFilter = nullptr;
-    JPH::BodyInterface* bodyInterface = nullptr;
+  JPH::BroadPhaseLayerInterface* bpLayerInterface = nullptr;
+  JPH::ObjectVsBroadPhaseLayerFilter* objVsBPFilter = nullptr;
+  JPH::ObjectLayerPairFilter* objVsObjFilter = nullptr;
+  JPH::BodyInterface* bodyInterface = nullptr;
+
+  JPH::ContactListener* contactListener = nullptr;
+  JPH::BodyActivationListener* bodyActivationListener = nullptr;
 public:
+  PhysicsComponent(Scene* scene, const PhysicsSystemSettings& settings = PhysicsSystemSettings());
+  virtual ~PhysicsComponent();
+
+  void OptimizeBroadPhase();
+
   void OnPostUpdate();
   void OnPostRender();
 
@@ -62,5 +74,4 @@ public:
 
   JPH::BodyInterface& GetBodyInterface();
   JPH::PhysicsSystem& GetSystem();
-private:
 };

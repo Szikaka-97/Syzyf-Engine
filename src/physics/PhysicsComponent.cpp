@@ -1,8 +1,5 @@
 #include "physics/PhysicsComponent.h"
 
-#include <iostream>
-#include <cstdarg>
-
 #include <Jolt/Core/Core.h>
 #include <Jolt/Physics/Body/BodyID.h>
 #include <Jolt/Physics/Body/BodyManager.h>
@@ -129,32 +126,39 @@ namespace {
   };
 };
 
-PhysicsComponent::PhysicsComponent(Scene* scene): SceneComponent(scene) {
-  tempAllocator = new TempAllocatorImpl(10 * 1024 * 1024);
-  jobSystem = new JobSystemThreadPool(cMaxPhysicsJobs, cMaxPhysicsBarriers, thread::hardware_concurrency() - 1);
+  PhysicsComponent::PhysicsComponent(Scene* scene, const PhysicsSystemSettings& settings): SceneComponent(scene) {
+    tempAllocator = new TempAllocatorImpl(settings.tempAllocatorSize);
+    jobSystem = new JobSystemThreadPool(cMaxPhysicsJobs, cMaxPhysicsBarriers, thread::hardware_concurrency() - 1);
 
-  bpLayerInterface = new BPLayerInterfaceImpl();
-  objVsBPFilter = new ObjectVsBroadPhaseLayerFilterImpl();
-  objVsObjFilter = new ObjectLayerPairFilterImpl();
+    bpLayerInterface = new BPLayerInterfaceImpl();
+    objVsBPFilter = new ObjectVsBroadPhaseLayerFilterImpl();
+    objVsObjFilter = new ObjectLayerPairFilterImpl();
 
-  // Add a settings struct?
-  const uint cMaxBodies = 1024;
-  const uint cNumBodyMutexes = 0;
-  const uint cMaxBodyPairs = 1024;
-  const uint cMaxContactConstraints = 1024;
+    physicsSystem = new PhysicsSystem();
+    physicsSystem->Init(settings.maxBodies, settings.numBodyMutexes, settings.maxBodyPairs, settings.maxContactConstraints, *bpLayerInterface, *objVsBPFilter, *objVsObjFilter);
+    bodyInterface = &physicsSystem->GetBodyInterface();
 
-  physicsSystem = new PhysicsSystem();
-  physicsSystem->Init(cMaxBodies, cNumBodyMutexes, cMaxBodyPairs, cMaxContactConstraints, *bpLayerInterface, *objVsBPFilter, *objVsObjFilter);
-  bodyInterface = &physicsSystem->GetBodyInterface();
+    contactListener = new MyContactListener();
+    bodyActivationListener = new MyBodyActivationListener();
+    physicsSystem->SetContactListener(contactListener);
+    physicsSystem->SetBodyActivationListener(bodyActivationListener);
   }
 
   PhysicsComponent::~PhysicsComponent() {
+    delete contactListener;
+    delete bodyActivationListener;
     delete physicsSystem;
     delete objVsObjFilter;
     delete objVsBPFilter;
     delete bpLayerInterface;
     delete jobSystem;
     delete tempAllocator;
+  }
+
+  void PhysicsComponent::OptimizeBroadPhase() {
+    if (physicsSystem) {
+      physicsSystem->OptimizeBroadPhase();
+    }
   }
 
   JPH::BodyInterface& PhysicsComponent::GetBodyInterface() {
@@ -230,7 +234,15 @@ PhysicsComponent::PhysicsComponent(Scene* scene): SceneComponent(scene) {
   }
 
   for (auto& characterObject : this->GetScene()->FindObjectsOfType<PhysicsCharacter>()) {
-    characterObject->character->PostSimulation(characterObject->maxSeparationDistance);
+    characterObject->GetCharacter()->PostSimulation(characterObject->maxSeparationDistance);
+
+    JPH::RVec3 position = characterObject->GetCharacter()->GetPosition();
+    JPH::Quat rotation = characterObject->GetCharacter()->GetRotation();
+
+    characterObject->GlobalTransform().Position() =
+      glm::vec3(position.GetX(), position.GetY(), position.GetZ());
+    characterObject->GlobalTransform().Rotation() =
+      glm::quat(rotation.GetW(), rotation.GetX(), rotation.GetY(), rotation.GetZ());
   }
 }
 
