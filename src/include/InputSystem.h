@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <string>
 #include <map>
 #include <glm/glm.hpp>
@@ -194,7 +195,7 @@ private:
 	};
 
 	std::map<int, KeyBitMask> keys;
-	glm::vec2 prevMouseMovement;
+	std::atomic<glm::vec2> prevMouseMovement;
 	bool mouseLocked;
 public:
 	InputSystem(Scene* scene);
@@ -228,6 +229,7 @@ public:
 	glm::vec2 GetMousePosition();
 
 	virtual void OnPreUpdate();
+	virtual void OnPostUpdate();
 
 	virtual int Order();
 

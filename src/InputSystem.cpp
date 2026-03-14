@@ -1,6 +1,5 @@
 #include <InputSystem.h>
 
-#include <cstddef>
 #include <cstring>
 #include <map>
 #include <format>
@@ -329,7 +328,7 @@ value(value) { }
 
 InputSystem::InputSystem(Scene* scene):
 SceneComponent(scene),
-prevMouseMovement(0),
+prevMouseMovement(glm::zero<glm::vec2>()),
 mouseLocked(false) {
 	keys = {
 		{ (int) Key::Space, 0 },
@@ -592,23 +591,25 @@ bool InputSystem::MouseLocked() {
 }
 
 void InputSystem::SetMouseLocked(bool locked) {
-	static glm::vec2 prevMousePos;
+	static glm::vec2 mouseMovement;
+
+	static auto mouseTransform = [](void *userdata, Uint64 timestamp, SDL_Window *window, SDL_MouseID mouseID, float *x, float *y) -> void {
+		InputSystem* input = (InputSystem*) userdata;
+
+		input->prevMouseMovement = input->prevMouseMovement.load() + glm::vec2(*x, -*y);
+
+		*x = 0;
+		*y = 0;
+	};
 
 	if (locked) {		
-		float xpos, ypos;
-		SDL_GetMouseState(&xpos, &ypos);
-		
-		prevMousePos = glm::vec2(xpos, ypos);
-		
 		this->prevMouseMovement = glm::vec2(0, 0);
 
+		SDL_SetRelativeMouseTransform(mouseTransform, this);
 		SDL_SetWindowRelativeMouseMode(Engine::GetWindow(), true);
-		SDL_GetRelativeMouseState(nullptr, nullptr);
 	}
 	else {
 		SDL_SetWindowRelativeMouseMode(Engine::GetWindow(), false);
-
-		SDL_WarpMouseInWindow(Engine::GetWindow(), prevMousePos.x, prevMousePos.y);
 	}
 
 	this->mouseLocked = locked;
@@ -655,10 +656,15 @@ void InputSystem::OnPreUpdate() {
 		key.second = mask;
 	}
 
-	this->prevMouseMovement = glm::vec2(xpos, ypos);
 	
+	if (!this->mouseLocked) {
+		this->prevMouseMovement = glm::vec2(xpos, ypos);
+	}
+}
+
+void InputSystem::OnPostUpdate() {
 	if (this->mouseLocked) {
-		this->prevMouseMovement.y = -this->prevMouseMovement.y;
+		this->prevMouseMovement = glm::vec2(0);
 	}
 }
 
@@ -710,15 +716,16 @@ void InputSystem::DrawImGui() {
 				}
 			}
 			
+			glm::vec2 mouseMovement = this->prevMouseMovement;
 			ImGui::Text("%s", std::format("Mouse Locked: {}", this->mouseLocked).c_str());
 			ImGui::Text("%s", std::format("Mouse Movement: ({:.3f}, {:.3f})",
-				this->mouseLocked ? this->prevMouseMovement.x : 0,
-				this->mouseLocked ? this->prevMouseMovement.y : 0
+				this->mouseLocked ? mouseMovement.x : 0,
+				this->mouseLocked ? mouseMovement.y : 0
 			).c_str());
 	
 			ImGui::Text("%s", std::format("Mouse Position: ({:.3f}, {:.3f})",
-				this->mouseLocked ? 0 : this->prevMouseMovement.x,
-				this->mouseLocked ? 0 : this->prevMouseMovement.y
+				this->mouseLocked ? 0 : mouseMovement.x,
+				this->mouseLocked ? 0 : mouseMovement.y
 			).c_str());
 			
 			ImGui::TreePop();
