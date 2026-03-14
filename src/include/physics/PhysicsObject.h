@@ -1,24 +1,29 @@
 #pragma once
 
-#include "Jolt/Jolt.h"
-#include "Jolt/Physics/Body/BodyCreationSettings.h"
-#include "Jolt/Physics/Body/MotionType.h"
+#include "Debug.h"
 #include "Mesh.h"
+#include "GameObject.h"
+
+#include <Jolt/Jolt.h>
+#include <Jolt/Physics/Body/BodyCreationSettings.h>
+#include <Jolt/Physics/Body/MotionType.h>
 #include <Jolt/Physics/Body/BodyID.h>
 
-#include <GameObject.h>
 #include <glm/fwd.hpp>
 #include <spdlog/spdlog.h>
 
 using namespace JPH::literals;
 
 
-class PhysicsObject : public GameObject {
+class PhysicsObject : public GameObject, public ImGuiDrawable {
 private:
   static constexpr float defaultConvexRadius = 0.05f;
 
   JPH::BodyID bodyID;
   JPH::BodyCreationSettings bodyCreationSettings;
+
+  uint32_t collisionLayer = 1;
+  uint32_t collisionMask = 1;
 
   bool bodyCreated = false;
   bool addedToWorld = false;
@@ -53,6 +58,8 @@ public:
   bool IsSensor() const;
 
   // Setters
+  void SetCollisionLayerAndMask(uint32_t layer, uint32_t mask);
+  
   void SetShape(const JPH::ShapeRefC shape); 
 
   void SetPosition(const glm::vec3& position);
@@ -79,6 +86,8 @@ public:
   void Awake();
   void OnEnable();
   void OnDisable();
+
+  void DrawImGui();
 
   private:
   PhysicsObject();

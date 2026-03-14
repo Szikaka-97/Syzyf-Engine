@@ -24,6 +24,14 @@ using namespace JPH;
 using namespace JPH::literals;
 
 namespace {
+  class GroupFilterLayerMask : public JPH::GroupFilter {
+  public:
+    virtual bool CanCollide(const JPH::CollisionGroup& inGroup1, const JPH::CollisionGroup& inGroup2) const override {
+      return ((inGroup1.GetGroupID() & inGroup2.GetSubGroupID()) != 0) ||
+             ((inGroup2.GetGroupID() & inGroup1.GetSubGroupID()) != 0);
+    }
+  };
+  
   // Class that determines if two object layers can collide
   class ObjectLayerPairFilterImpl : public ObjectLayerPairFilter {
   public:
@@ -32,7 +40,7 @@ namespace {
       case PhysicsComponent::Layers::NON_MOVING:
         return inObject2 == PhysicsComponent::Layers::MOVING; // Non moving only collides with moving
       case PhysicsComponent::Layers::MOVING:
-        return true; // Moving collides with everything
+  return true; // Moving collides with everything
       default:
         JPH_ASSERT(false);
         return false;
@@ -127,6 +135,8 @@ namespace {
 };
 
   PhysicsComponent::PhysicsComponent(Scene* scene, const PhysicsSystemSettings& settings): SceneComponent(scene) {
+    layerGroupFilter = new GroupFilterLayerMask();
+    
     tempAllocator = new TempAllocatorImpl(settings.tempAllocatorSize);
     jobSystem = new JobSystemThreadPool(cMaxPhysicsJobs, cMaxPhysicsBarriers, thread::hardware_concurrency() - 1);
 
@@ -145,6 +155,7 @@ namespace {
   }
 
   PhysicsComponent::~PhysicsComponent() {
+    delete layerGroupFilter;
     delete contactListener;
     delete bodyActivationListener;
     delete physicsSystem;
@@ -164,6 +175,7 @@ namespace {
   JPH::BodyInterface& PhysicsComponent::GetBodyInterface() {
     return *bodyInterface;
   }
+
   JPH::PhysicsSystem& PhysicsComponent::GetSystem() {
     return *physicsSystem;
   }
@@ -175,6 +187,10 @@ namespace {
       gravity.GetY(),
       gravity.GetZ()
     );
+  }
+
+  JPH::GroupFilter* PhysicsComponent::GetLayerGroupFilter() const {
+    return this->layerGroupFilter;
   }
 
   void PhysicsComponent::SetGravity(const glm::vec3 gravity) {

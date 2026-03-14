@@ -13,6 +13,7 @@
 #include "Jolt/Physics/EActivation.h"
 #include "physics/PhysicsComponent.h"
 #include <spdlog/spdlog.h>
+#include <imgui.h>
 
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
@@ -278,7 +279,7 @@ float PhysicsObject::GetAngularDamping() const {
           return motionProperties->GetAngularDamping();
         }
       }
-    }
+}
   }
   return bodyCreationSettings.mAngularDamping;
 }
@@ -325,6 +326,22 @@ void PhysicsObject::SetShape(JPH::ShapeRefC shape) {
       }
 
       physics->GetBodyInterface().SetShape(bodyID, shape, true, JPH::EActivation::Activate);
+}
+
+void PhysicsObject::SetCollisionLayerAndMask(uint32_t layer, uint32_t mask) {
+  collisionLayer = layer;
+  collisionMask = mask;
+  if (bodyCreated) {
+    if (PhysicsComponent* physics = GetScene()->GetComponent<PhysicsComponent>()) {
+      JPH::CollisionGroup group(physics->GetLayerGroupFilter(), layer, mask);
+
+      if (addedToWorld) physics->GetBodyInterface().RemoveBody(bodyID);
+
+      physics->GetBodyInterface().SetCollisionGroup(bodyID, group);
+
+      if (addedToWorld) physics->GetBodyInterface().AddBody(bodyID, JPH::EActivation::Activate);
+    }
+  }
 }
 
 void PhysicsObject::SetPosition(const glm::vec3& position) {
@@ -517,7 +534,7 @@ void PhysicsObject::Awake() {
     glm::abs(nodeScale.z - 1.0f) > epsilon;
 
   if (nodeScale.value != glm::vec3(1.0f)) {
-    if (glm::abs(nodeScale.x = nodeScale.y) > epsilon || glm::abs(nodeScale.y - nodeScale.z) > epsilon) {
+    if (glm::abs(nodeScale.x - nodeScale.y) > epsilon || glm::abs(nodeScale.y - nodeScale.z) > epsilon) {
       spdlog::warn("PhysicsObject: Non-uniform scaling, will fail if applied to a Capsule/Sphere shapes");
     }
 
@@ -536,6 +553,8 @@ void PhysicsObject::Awake() {
   bodyCreationSettings.mRotation = rotation;
 
   bodyCreationSettings.mUserData = reinterpret_cast<JPH::uint64>(this);
+
+  bodyCreationSettings.mCollisionGroup = JPH::CollisionGroup(physics->GetLayerGroupFilter(), collisionLayer, collisionMask);
 
   JPH::Body* body = physics->GetBodyInterface().CreateBody(bodyCreationSettings);
   if (!body) {
@@ -569,5 +588,42 @@ void PhysicsObject::OnDisable() {
   if (physics) {
     physics->GetBodyInterface().RemoveBody(bodyID);
     addedToWorld = false;
+  }
+}
+
+void PhysicsObject::DrawImGui() {
+  if (ImGui::TreeNode("Physics Collision")) {
+    const float size = ImGui::CalcTextSize("00").x;
+
+    ImGui::Text("Collision Layer");
+    for (int y = 0; y < 4; y++) {
+      for (int x = 0; x < 8; x++) {
+        if (x > 0) ImGui::SameLine();
+        uint32_t bit = y * 8 + x;
+        ImGui::PushID(bit + 100);
+
+        bool isSet = (collisionLayer & (1u << bit)) != 0;
+        if (ImGui::Selectable(std::to_string(bit).c_str(), isSet, 0, ImVec2(size, size))) {
+          SetCollisionLayerAndMask(collisionLayer ^ (1u << bit), collisionMask);
+        }
+        ImGui::PopID();
+      }
+    }
+
+    ImGui::Text("Collision Mask");
+    for (int y = 0; y < 4; y++) {
+      for (int x = 0; x < 8; x++) {
+        if (x > 0) ImGui::SameLine();
+        uint32_t bit = y * 8 + x;
+        ImGui::PushID(bit + 200);
+
+        bool isSet = (collisionMask & (1 << bit)) != 0;
+        if (ImGui::Selectable(std::to_string(bit).c_str(), isSet, 0, ImVec2(size, size))) {
+          SetCollisionLayerAndMask(collisionLayer, collisionMask ^ (1 << bit));
+        }
+        ImGui::PopID();
+      }
+    }
+    ImGui::TreePop();
   }
 }

@@ -5,6 +5,7 @@
 #include "Jolt/Physics/EActivation.h"
 #include "physics/PhysicsComponent.h"
 #include <spdlog/spdlog.h>
+#include <imgui.h>
 
 PhysicsCharacter::PhysicsCharacter() {
   JPH::Ref<JPH::CharacterSettings> settings = new JPH::CharacterSettings();
@@ -21,6 +22,14 @@ PhysicsCharacter::PhysicsCharacter() {
 
 PhysicsCharacter::~PhysicsCharacter() {
   delete this->character;
+}
+
+uint32_t PhysicsCharacter::GetCollisionLayer() const {
+  return this->collisionLayer;
+}
+
+uint32_t PhysicsCharacter::GetCollisionMask() const {
+  return this->collisionMask;
 }
 
 JPH::Character* PhysicsCharacter::GetCharacter() const {
@@ -51,6 +60,13 @@ glm::quat PhysicsCharacter::GetRotation() const {
   return glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
 }
 
+bool PhysicsCharacter::IsSupported() const {
+  if (this->character) {
+    return this->character->IsSupported();
+  }
+  return false;
+}
+
 glm::vec3 PhysicsCharacter::GetGroundNormal() const {
   if (this->character) {
     JPH::Vec3 normal = this->character->GetGroundNormal();
@@ -64,6 +80,41 @@ JPH::CharacterBase::EGroundState PhysicsCharacter::GetGroundState() const {
     return this->character->GetGroundState();
   }
   return JPH::CharacterBase::EGroundState::InAir;
+}
+
+void PhysicsCharacter::SetCollisionLayerAndMask(uint32_t layer, uint32_t mask) {
+  collisionLayer = layer;
+  collisionMask = mask;
+  
+  if (this->character) {
+    if (PhysicsComponent* physics = GetScene()->GetComponent<PhysicsComponent>()) {
+      JPH::CollisionGroup group(physics->GetLayerGroupFilter(), layer, mask);
+
+      if (this->IsEnabled()) this->character->RemoveFromPhysicsSystem();
+
+      physics->GetBodyInterface().SetCollisionGroup(this->character->GetBodyID(), group);
+
+      if (this->IsEnabled()) this->character->AddToPhysicsSystem(JPH::EActivation::Activate);
+    }
+  }
+}
+
+void PhysicsCharacter::SetLinearVelocity(const glm::vec3& velocity) {
+  if (this->character) {
+    this->character->SetLinearVelocity(JPH::Vec3(velocity.x, velocity.y, velocity.z));
+  }
+}
+
+void PhysicsCharacter::SetPosition(const glm::vec3& position) {
+  if (this->character) {
+    this->character->SetPosition(JPH::RVec3(position.x, position.y, position.z));
+  }
+}
+
+void PhysicsCharacter::SetRotation(const glm::quat& rotation) {
+  if (this->character) {
+    this->character->SetRotation(JPH::Quat(rotation.x, rotation.y, rotation.z, rotation.w));
+  }
 }
 
 void PhysicsCharacter::Awake() {
@@ -80,6 +131,9 @@ void PhysicsCharacter::Awake() {
   JPH::Quat rotation = JPH::Quat(nodeRotation.x, nodeRotation.y, nodeRotation.z, nodeRotation.w);
 
   this->character = new JPH::Character(this->characterSettings, position, rotation, 0, &physics->GetSystem());
+
+  JPH::CollisionGroup group(physics->GetLayerGroupFilter(), collisionLayer, collisionMask);
+  physics->GetBodyInterface().SetCollisionGroup(this->character->GetBodyID(), group);
 
   spdlog::info("PhysicsCharacter: A character controller called Awake()");
 }
@@ -100,5 +154,42 @@ void PhysicsCharacter::OnEnable() {
 void PhysicsCharacter::OnDisable() {
   if (this->character != nullptr) {
     this->character->RemoveFromPhysicsSystem();
+  }
+}
+
+void PhysicsCharacter::DrawImGui() {
+  if (ImGui::TreeNode("Physics Collision")) {
+    const float size = ImGui::CalcTextSize("00").x;
+
+    ImGui::Text("Collision Layer");
+    for (int y = 0; y < 4; y++) {
+      for (int x = 0; x < 8; x++) {
+        if (x > 0) ImGui::SameLine();
+        uint32_t bit = y * 8 + x;
+        ImGui::PushID(bit + 100);
+
+        bool isSet = (collisionLayer & (1u << bit)) != 0;
+        if (ImGui::Selectable(std::to_string(bit).c_str(), isSet, 0, ImVec2(size, size))) {
+          SetCollisionLayerAndMask(collisionLayer ^ (1 << bit), collisionMask);
+        }
+        ImGui::PopID();
+      }
+    }
+
+    ImGui::Text("Collision Mask");
+    for (int y = 0; y < 4; y++) {
+      for (int x = 0; x < 8; x++) {
+        if (x > 0) ImGui::SameLine();
+        uint32_t bit = y * 8 + x;
+        ImGui::PushID(bit + 200);
+
+        bool isSet = (collisionMask & (1u << bit)) != 0;
+        if (ImGui::Selectable(std::to_string(bit).c_str(), isSet, 0, ImVec2(size, size))) {
+          SetCollisionLayerAndMask(collisionLayer, collisionMask ^ (1u << bit));
+        }
+        ImGui::PopID();
+      }
+    }
+    ImGui::TreePop();
   }
 }

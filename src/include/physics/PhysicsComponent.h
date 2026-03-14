@@ -58,6 +58,8 @@ private:
 
   JPH::ContactListener* contactListener = nullptr;
   JPH::BodyActivationListener* bodyActivationListener = nullptr;
+
+  JPH::GroupFilter* layerGroupFilter = nullptr;
 public:
   PhysicsComponent(Scene* scene, const PhysicsSystemSettings& settings = PhysicsSystemSettings());
   virtual ~PhysicsComponent();
@@ -74,4 +76,6 @@ public:
 
   JPH::BodyInterface& GetBodyInterface();
   JPH::PhysicsSystem& GetSystem();
+
+  JPH::GroupFilter* GetLayerGroupFilter() const;
 };
