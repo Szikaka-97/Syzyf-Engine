@@ -1,5 +1,6 @@
 #include <InputSystem.h>
 
+#include <cstddef>
 #include <cstring>
 #include <map>
 #include <format>
@@ -14,6 +15,7 @@
 
 #include <Engine.h>
 #include <TimeSystem.h>
+#include <Graphics.h>
 
 constexpr int MouseButtonOffset = 512;
 
@@ -598,13 +600,13 @@ void InputSystem::SetMouseLocked(bool locked) {
 		
 		prevMousePos = glm::vec2(xpos, ypos);
 		
-		// SDL_WarpMouseInWindow(Engine::GetWindow(), 0, 0);
-		
-		// this->prevMouseMovement = glm::vec2(0, 0);
-		// spdlog::warn(SDL_HideCursor());
+		this->prevMouseMovement = glm::vec2(0, 0);
+
+		SDL_SetWindowRelativeMouseMode(Engine::GetWindow(), true);
+		SDL_GetRelativeMouseState(nullptr, nullptr);
 	}
 	else {
-		SDL_ShowCursor();
+		SDL_SetWindowRelativeMouseMode(Engine::GetWindow(), false);
 
 		SDL_WarpMouseInWindow(Engine::GetWindow(), prevMousePos.x, prevMousePos.y);
 	}
@@ -633,8 +635,7 @@ void InputSystem::OnPreUpdate() {
 	
 	const bool* keyArray = SDL_GetKeyboardState(&numKeys);
 	float xpos, ypos;
-	// SDL_MouseButtonFlags mouseState = SDL_GetMouseState(&xpos, &ypos);
-	SDL_MouseButtonFlags mouseState = 0;
+	SDL_MouseButtonFlags mouseState = this->mouseLocked ? SDL_GetRelativeMouseState(&xpos, &ypos) : SDL_GetMouseState(&xpos, &ypos);
 
 	for (auto& key : this->keys) {
 		int keyCode = key.first % MouseButtonOffset;
@@ -657,9 +658,7 @@ void InputSystem::OnPreUpdate() {
 	this->prevMouseMovement = glm::vec2(xpos, ypos);
 	
 	if (this->mouseLocked) {
-		// SDL_WarpMouseInWindow(Engine::GetWindow(), 0, 0);
-
-		// this->prevMouseMovement.y = -this->prevMouseMovement.y;
+		this->prevMouseMovement.y = -this->prevMouseMovement.y;
 	}
 }
 
