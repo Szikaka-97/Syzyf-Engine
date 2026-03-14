@@ -17,6 +17,7 @@ add_library(stb_image STATIC ${STB_IMAGE_DIR}/stb_image.cpp)
 target_include_directories(stb_image PRIVATE ${STB_IMAGE_DIR})
 
 # other
+CPMAddPackage("gh:kcat/openal-soft#1.24.3")
 CPMAddPackage("gh:assimp/assimp@6.0.4")
 CPMAddPackage("gh:glfw/glfw#3.4")
 CPMAddPackage("gh:g-truc/glm#1.0.3")
@@ -37,6 +38,10 @@ set_target_properties(glad
                       glm 
                       imgui 
                       spdlog PROPERTIES FOLDER "thirdparty")
+
+if (TARGET OpenAL)
+	set_target_properties(OpenAL PROPERTIES FOLDER "thirdparty")
+endif()
 
 if (TARGET zlibstatic)
     set_target_properties(zlibstatic PROPERTIES FOLDER "thirdparty")

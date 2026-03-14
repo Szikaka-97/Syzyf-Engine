@@ -19,6 +19,11 @@
 #include <InputSystem.h>
 #include <Engine.h>
 #include <Viewport.h>
+#include <AudioDevice.h>
+#include <AudioBuffer.h>
+#include <AudioSourceComponent.h>
+#include <AudioListener.h>
+#include <WavLoader.h>
 
 class Mover : public GameObject, public ImGuiDrawable {
 private:
@@ -81,6 +86,11 @@ public:
 
 			GetScene()->Input()->SetMouseLocked(this->movementEnabled);
 		}
+		AudioListener::SetPosition(this->GlobalTransform().Position());
+		AudioListener::SetOrientation(
+			this->GlobalTransform().Forward(),
+			this->GlobalTransform().Up()
+		);
 	}
 
 	virtual void DrawImGui() {
@@ -147,7 +157,7 @@ public:
 		ImGui::InputInt("Star count", &this->starCount);
 	}
 };
-
+AudioBuffer* g_testAudioBuffer = nullptr;
 void InitScene(Scene* mainScene) {
 	ShaderProgram* skyProg = ShaderProgram::Build().WithVertexShader(
 		mainScene->Resources()->Get<VertexShader>("./res/shaders/skybox.vert")
@@ -305,7 +315,7 @@ void InitScene(Scene* mainScene) {
 	envProbe4->AddObject<ReflectionProbe>();
 	
 	auto starsAttachmentNode = mainScene->CreateNode("Stars Scene Attachment");
-	
+
 	auto starsScene = new Scene();
 
 	auto starsNode = starsScene->CreateNode("Stars");
@@ -349,9 +359,29 @@ void InitScene(Scene* mainScene) {
 	cameraNode->AddObject<Tonemapper>()->SetOperator(Tonemapper::TonemapperOperator::GranTurismo);
 
 	mainScene->AddComponent<DebugInspector>();
+
+	auto audioSource = tvNode->AddObject<AudioSourceComponent>();
+	audioSource->SetBuffer(g_testAudioBuffer);
+	audioSource->SetLooping(true);
+	audioSource->SetGain(1.0f);
+	audioSource->SetReferenceDistance(2.0f);
+	audioSource->SetMaxDistance(10.0f);
+	audioSource->SetRolloffFactor(1.0f);
+	audioSource->Play();
 }
 
 int main(int, char**) {
+	AudioDevice audio;
+	alDistanceModel(AL_INVERSE_DISTANCE_CLAMPED);
+
+	WavData wav = WavLoader::Load("./res/audio/test_mono_2.wav");
+
+	AudioBuffer buffer;
+	buffer.SetData(wav.format, wav.data, wav.sampleRate);
+	g_testAudioBuffer = &buffer;
+
+	AudioListener::SetGain(1.0f);
+
 	if (!Engine::Setup(InitScene)) {
 		spdlog::error("Failed to initialize project!");
 		return EXIT_FAILURE;
