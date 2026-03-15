@@ -1,3 +1,4 @@
+#include "Fog.h"
 #include "imgui.h"
 
 #include <Formatters.h>
@@ -345,6 +346,8 @@ void InitScene(Scene* mainScene) {
 	schnozLightNode->LocalTransform().Position() = glm::vec3(-55.5, 3.0, -2.0);
 	schnozLightNode->AddObject<Light>(Light::PointLight(glm::vec3(1, 1, 1), 5, 5));
 
+
+  cameraNode->AddObject<Fog>();
 	cameraNode->AddObject<Bloom>();
 	cameraNode->AddObject<Tonemapper>()->SetOperator(Tonemapper::TonemapperOperator::GranTurismo);
 

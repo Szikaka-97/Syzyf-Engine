@@ -430,7 +430,7 @@ void SceneGraphics::RenderCamera(Camera* camera, Viewport* renderTarget) {
 	}
 
 	auto defaultParams = RenderParams(
-		RenderPassType::Color | RenderPassType::DepthPrepass,
+		RenderPassType::Color | RenderPassType::DepthPrepass | RenderPassType::PostProcessing,
 		glm::vec4(
 			0,
 			0,
@@ -578,7 +578,7 @@ void SceneGraphics::RenderScene(const ShaderGlobalUniforms& uniforms, Framebuffe
 				}
 				
 				glCopyImageSubData(
-					this->GetMainFramebuffer()->GetColorTexture()->GetHandle(),
+          framebuffer->GetColorTexture()->GetHandle(),
 					GL_TEXTURE_2D,
 					0,
 					0,
@@ -590,8 +590,8 @@ void SceneGraphics::RenderScene(const ShaderGlobalUniforms& uniforms, Framebuffe
 					0,
 					0,
 					0,
-					this->mainViewport->GetSize().x,
-					this->mainViewport->GetSize().y,
+					framebuffer->GetSize().x,
+					framebuffer->GetSize().y,
 					1
 				);
 	
