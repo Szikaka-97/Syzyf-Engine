@@ -400,14 +400,21 @@ void SceneGraphics::DrawMeshInstanced(const Mesh* mesh, int subMeshIndex, const 
 }
 
 void SceneGraphics::Render() {
+	std::sort(GetAllObjects()->begin(), GetAllObjects()->end(), [](auto a, auto b) -> bool {
+		return a->GetPriority() > b->GetPriority();
+	});
+
 	for (Camera* camera : *this->GetAllObjects()) {
 		if (camera == this->mainCamera) {
 			camera->SetAspectRatio((float) this->mainViewport->GetSize().x / this->mainViewport->GetSize().y);
-			RenderCamera(camera, this->mainViewport);
+
+			continue;
 		}
 
 		RenderCamera(camera);
 	}
+
+	RenderCamera(this->mainCamera, this->mainViewport);
 
 	this->mainViewport->GetFramebuffer()->Apply();
 
@@ -632,7 +639,6 @@ void SceneGraphics::RenderScene(const CameraData& camera, Viewport* viewport, co
 void SceneGraphics::RenderScene(Camera* camera, Viewport* viewport, const RenderParams& params) {
 	RenderScene(camera, viewport->GetFramebuffer(), params);
 }
-
 
 void SceneGraphics::OnPostRender() {
 	Render();
