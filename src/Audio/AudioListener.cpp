@@ -1,8 +1,11 @@
-#include <AudioListener.h>
+#include <Audio/AudioListener.h>
 #include <AL/al.h>
+
+glm::vec3 AudioListener::s_position = glm::vec3(0.0f);
 
 void AudioListener::SetPosition(float x, float y, float z)
 {
+    s_position = glm::vec3(x, y, z);
     alListener3f(AL_POSITION, x, y, z);
 }
 
@@ -35,4 +38,9 @@ void AudioListener::SetOrientation(const glm::vec3& forward, const glm::vec3& up
 void AudioListener::SetGain(float gain)
 {
     alListenerf(AL_GAIN, gain);
+}
+
+glm::vec3 AudioListener::GetPosition()
+{
+    return s_position;
 }

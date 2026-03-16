@@ -2,7 +2,6 @@
 
 #include <AL/al.h>
 #include <vector>
-#include <cstdint>
 
 class AudioBuffer
 {

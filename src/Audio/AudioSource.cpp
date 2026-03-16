@@ -1,5 +1,6 @@
-#include <AudioSource.h>
-#include <AudioBuffer.h>
+#include <Audio/AudioSource.h>
+#include <Audio/AudioBuffer.h>
+
 #include <stdexcept>
 
 AudioSource::AudioSource()

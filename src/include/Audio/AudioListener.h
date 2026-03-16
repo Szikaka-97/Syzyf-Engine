@@ -14,4 +14,9 @@ public:
     static void SetOrientation(const glm::vec3& forward, const glm::vec3& up);
 
     static void SetGain(float gain);
+
+    static glm::vec3 GetPosition();
+
+private:
+    static glm::vec3 s_position;
 };

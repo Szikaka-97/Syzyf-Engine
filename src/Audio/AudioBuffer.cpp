@@ -1,4 +1,4 @@
-#include <include/AudioBuffer.h>
+#include <Audio/AudioBuffer.h>
 #include <stdexcept>
 
 AudioBuffer::AudioBuffer()

@@ -1,4 +1,5 @@
-#include <WavLoader.h>
+#include <Audio/WavLoader.h>
+
 #include <fstream>
 #include <stdexcept>
 #include <cstdint>

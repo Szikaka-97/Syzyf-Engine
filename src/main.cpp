@@ -19,11 +19,14 @@
 #include <InputSystem.h>
 #include <Engine.h>
 #include <Viewport.h>
-#include <AudioDevice.h>
-#include <AudioBuffer.h>
-#include <AudioSourceComponent.h>
-#include <AudioListener.h>
-#include <WavLoader.h>
+#include <Audio/AudioDevice.h>
+#include <Audio/AudioBuffer.h>
+#include <Audio/AudioListener.h>
+#include <Audio/WavLoader.h>
+#include <Audio/AudioSystem.h>
+
+AudioBuffer* audioBuffer = nullptr;
+AudioSystem g_audioSystem;
 
 class Mover : public GameObject, public ImGuiDrawable {
 private:
@@ -91,6 +94,7 @@ public:
 			this->GlobalTransform().Forward(),
 			this->GlobalTransform().Up()
 		);
+		g_audioSystem.Update();
 	}
 
 	virtual void DrawImGui() {
@@ -157,7 +161,7 @@ public:
 		ImGui::InputInt("Star count", &this->starCount);
 	}
 };
-AudioBuffer* g_testAudioBuffer = nullptr;
+
 void InitScene(Scene* mainScene) {
 	ShaderProgram* skyProg = ShaderProgram::Build().WithVertexShader(
 		mainScene->Resources()->Get<VertexShader>("./res/shaders/skybox.vert")
@@ -360,14 +364,13 @@ void InitScene(Scene* mainScene) {
 
 	mainScene->AddComponent<DebugInspector>();
 
-	auto audioSource = tvNode->AddObject<AudioSourceComponent>();
-	audioSource->SetBuffer(g_testAudioBuffer);
-	audioSource->SetLooping(true);
-	audioSource->SetGain(1.0f);
-	audioSource->SetReferenceDistance(2.0f);
-	audioSource->SetMaxDistance(10.0f);
-	audioSource->SetRolloffFactor(1.0f);
-	audioSource->Play();
+	AudioPlaybackSettings settings;
+	settings.looping = true;
+	settings.gain = 1.0f;
+	settings.pitch = 1.0f;
+	settings.audibleDistance = 18.0f;
+
+	g_audioSystem.PlayAttached("tv", tvNode, settings);
 }
 
 int main(int, char**) {
@@ -378,7 +381,9 @@ int main(int, char**) {
 
 	AudioBuffer buffer;
 	buffer.SetData(wav.format, wav.data, wav.sampleRate);
-	g_testAudioBuffer = &buffer;
+	audioBuffer = &buffer;
+
+	g_audioSystem.RegisterSound("tv", audioBuffer);
 
 	AudioListener::SetGain(1.0f);
 
