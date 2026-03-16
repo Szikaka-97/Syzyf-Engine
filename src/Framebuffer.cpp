@@ -1,3 +1,4 @@
+#include "Texture.h"
 #include <Framebuffer.h>
 
 void Framebuffer::SetTextureInternal(Framebuffer::FramebufferBinding& binding, Texture* texture, int level) {
@@ -258,6 +259,8 @@ void Framebuffer::Apply() {
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, 0, 0);
 	}
 
+	std::vector<GLenum> drawBuffers = {GL_COLOR_ATTACHMENT0};
+
 	for (int i = 0; i < MAX_CUSTOM_ATTACHMENTS; i++) {
 		if (this->customAttachments[i].texture && this->customAttachments[i].enabled) {
 			if (this->customAttachments[i].texture->GetType() == TextureType::Texture2D) {
@@ -266,11 +269,15 @@ void Framebuffer::Apply() {
 			else if (this->customAttachments[i].texture->GetType() == TextureType::Cubemap) {
 				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1 + i, GL_TEXTURE_CUBE_MAP_POSITIVE_X + this->customAttachments[i].level, this->customAttachments[i].texture->GetHandle(), 0);
 			}
+
+			drawBuffers.push_back(GL_COLOR_ATTACHMENT1 + i);
 		}
 		else {
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1 + i, GL_TEXTURE_2D, 0, 0);
 		}
 	}
+
+	glNamedFramebufferDrawBuffers(this->handle, drawBuffers.size(), drawBuffers.data());
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
