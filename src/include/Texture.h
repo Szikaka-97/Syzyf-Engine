@@ -34,7 +34,9 @@ enum class TextureFormat {
 	Ubyte = 0,
 	Uint,
 	Float,
-	PackedDepthStencil
+	Float8,
+	Float32,
+	PackedDepthStencil,
 };
 
 enum class TextureWrap {
