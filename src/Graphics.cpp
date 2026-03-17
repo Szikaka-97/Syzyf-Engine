@@ -668,6 +668,9 @@ void SceneGraphics::RenderScene(const ShaderGlobalUniforms& uniforms, Framebuffe
 		PostProcessingSystem* postProcess = GetPostProcessing();
 
 		if (postProcess) {
+      glm::uvec2 framebufferSize = framebuffer->GetSize();
+      postProcess->UpdateBufferResolution(framebufferSize);
+
 			Texture2D* frameTex = dynamic_cast<Texture2D*>(framebuffer->GetColorTexture());
 			Texture2D* frameDepth = dynamic_cast<Texture2D*>(framebuffer->GetDepthTexture());
 			Texture2D postProcessBuffer = Texture::Wrap<Texture2D>(postProcess->GetPostProcessBuffer());
