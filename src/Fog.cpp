@@ -1,18 +1,31 @@
 #include "Fog.h"
 #include "Mesh.h"
 #include "Shader.h"
+#include "Material.h"
+#include "imgui.h"
 
-Fog::Fog() {
-  this->shader = ShaderProgram::Build()
+Fog::Fog(float near, float far, float minDistance, float maxDistance, glm::vec4 fogColor) : near(near), far(far), minDistance(minDistance), maxDistance(maxDistance), fogColor(fogColor) {
+  this->shader = std::unique_ptr<ShaderProgram>(ShaderProgram::Build()
     .WithVertexShader(
       GetScene()->Resources()->Get<VertexShader>("./res/shaders/fullscreen.vert")
     ).WithPixelShader(
       GetScene()->Resources()->Get<PixelShader>("./res/shaders/fog.frag")
-    ).Link();
+    ).Link());
+
+  this->material = std::unique_ptr<Material>(new Material(this->shader.get()));
+
+  this->material->SetValue("fogColor", this->fogColor);
 }
 
 void Fog::OnPostProcess(const PostProcessParams* params) {
-  glUseProgram(this->shader->GetHandle());
+  this->material->SetValue("fogColor", this->fogColor);
+  this->material->SetValue("near", this->near);
+  this->material->SetValue("far", this->far);
+  this->material->SetValue("minDistance", this->minDistance);
+  this->material->SetValue("maxDistance", this->maxDistance);
+  this->material->SetValue("fogColor", this->fogColor);
+
+  this->material->Bind();
 
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, params->inputTexture->GetHandle());
@@ -38,5 +51,9 @@ void Fog::OnPostProcess(const PostProcessParams* params) {
 }
 
 void Fog::DrawImGui() {
-
+  ImGui::InputFloat("Near", &this->near);
+  ImGui::InputFloat("Far", &this->far);
+  ImGui::InputFloat("Min Distance", &this->maxDistance);
+  ImGui::InputFloat("Max Distance", &this->minDistance);
+  ImGui::ColorPicker4("Fog Color", &this->fogColor.x);
 }
