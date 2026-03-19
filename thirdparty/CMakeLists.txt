@@ -22,6 +22,7 @@ CPMAddPackage("gh:glfw/glfw#3.4")
 CPMAddPackage("gh:g-truc/glm#1.0.3")
 CPMAddPackage("gh:ocornut/imgui@1.92.5")
 CPMAddPackage("gh:gabime/spdlog@1.17.0")
+CPMAddPackage("gh:freetype/freetype#VER-2-14-2")
 
 set(imgui_SOURCE_DIR ${imgui_SOURCE_DIR} CACHE INTERNAL "")
 add_library(imgui STATIC ${imgui_SOURCE_DIR}/imgui.cpp
@@ -36,7 +37,8 @@ set_target_properties(glad
                       glfw 
                       glm 
                       imgui 
-                      spdlog PROPERTIES FOLDER "thirdparty")
+                      spdlog 
+                      freetype PROPERTIES FOLDER "thirdparty")
 
 if (TARGET zlibstatic)
     set_target_properties(zlibstatic PROPERTIES FOLDER "thirdparty")
