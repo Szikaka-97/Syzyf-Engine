@@ -18,6 +18,7 @@ extern "C" {
 #include <Engine.h>
 
 #include "physics/PhysicsJolt.h"
+#include "physics/PhysicsDebugRenderer.h"
 
 #include <Jolt/Jolt.h>
 #include <Jolt/RegisterTypes.h>
@@ -195,6 +196,7 @@ void Engine::Render() {
 	rootScene->GetGraphics()->UpdateScreenResolution(glm::vec2(display_w, display_h));
 
 	rootScene->Render();
+  rootScene->GetComponent<PhysicsDebugRenderer>()->Render();
 }
 
 void Engine::DrawImGui() {

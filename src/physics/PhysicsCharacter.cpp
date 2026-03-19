@@ -135,6 +135,11 @@ void PhysicsCharacter::Awake() {
   JPH::CollisionGroup group(physics->GetLayerGroupFilter(), collisionLayer, collisionMask);
   physics->GetBodyInterface().SetCollisionGroup(this->character->GetBodyID(), group);
 
+  physics->GetBodyInterface().SetUserData(
+    this->character->GetBodyID(),
+    reinterpret_cast<JPH::uint64>(dynamic_cast<GameObject*>(this))
+  );
+
   spdlog::info("PhysicsCharacter: A character controller called Awake()");
 }
 

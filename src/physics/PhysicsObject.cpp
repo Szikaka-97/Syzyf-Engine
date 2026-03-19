@@ -1,5 +1,6 @@
 #include "physics/PhysicsObject.h"
 
+#include "GameObject.h"
 #include "Jolt/Core/Core.h"
 #include "Jolt/Geometry/Triangle.h"
 #include "Jolt/Math/Real.h"
@@ -552,7 +553,7 @@ void PhysicsObject::Awake() {
   bodyCreationSettings.mPosition = position;
   bodyCreationSettings.mRotation = rotation;
 
-  bodyCreationSettings.mUserData = reinterpret_cast<JPH::uint64>(this);
+  bodyCreationSettings.mUserData = reinterpret_cast<JPH::uint64>(dynamic_cast<GameObject*>(this));
 
   bodyCreationSettings.mCollisionGroup = JPH::CollisionGroup(physics->GetLayerGroupFilter(), collisionLayer, collisionMask);
 

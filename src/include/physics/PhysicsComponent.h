@@ -9,7 +9,10 @@
 #include <Jolt/Physics/PhysicsSystem.h>
 #include <glm/fwd.hpp>
 
+#include "Jolt/Physics/Body/BodyFilter.h"
 #include "SceneComponent.h"
+
+class SceneNode;
 
 namespace JPH {
     class BroadPhaseLayerInterface;
@@ -64,12 +67,22 @@ public:
   PhysicsComponent(Scene* scene, const PhysicsSystemSettings& settings = PhysicsSystemSettings());
   virtual ~PhysicsComponent();
 
-  void OptimizeBroadPhase();
 
   void OnPostUpdate();
   void OnPostRender();
 
   void DrawImGui();
+
+public:
+  void OptimizeBroadPhase();
+
+  SceneNode* CastRay(
+    glm::vec3 origin,
+    glm::vec3 direction,
+    const JPH::BroadPhaseLayerFilter& broadPhaseLayerFilter = {},
+    const JPH::ObjectLayerFilter& objectLayerFilter = {},
+    const JPH::BodyFilter& bodyFilter = {}
+  );
 
   glm::vec3 GetGravity() const;
   void SetGravity(const glm::vec3 gravity);

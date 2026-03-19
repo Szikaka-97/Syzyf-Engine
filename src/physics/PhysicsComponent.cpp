@@ -11,9 +11,12 @@
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
 #include <Jolt/Physics/Collision/ContactListener.h>
 #include <Jolt/Physics/Body/BodyActivationListener.h>
+#include <Jolt/Physics/Collision/RayCast.h>
 #include <imgui.h>
 
 #include "Jolt/Math/MathTypes.h"
+#include "Jolt/Math/Real.h"
+#include "Jolt/Physics/Collision/CastResult.h"
 #include "TimeSystem.h"
 #include "physics/PhysicsCharacter.h"
 #include "physics/PhysicsDebugRenderer.h"
@@ -102,22 +105,22 @@ namespace {
   public:
     // See: ContactListener
     virtual ValidateResult OnContactValidate(const Body &inBody1, const Body &inBody2, RVec3Arg inBaseOffset, const CollideShapeResult &inCollisionResult) override {
-      spdlog::info("Contact validate callback");
+      // spdlog::info("Contact validate callback");
 
       // Allows you to ignore a contact before it is created (using layers to not make objects collide is cheaper!)
       return ValidateResult::AcceptAllContactsForThisBodyPair;
     }
 
     virtual void OnContactAdded(const Body &inBody1, const Body &inBody2, const ContactManifold &inManifold, ContactSettings &ioSettings) override {
-      spdlog::info("A contact was added");
+      // spdlog::info("A contact was added");
     }
 
     virtual void OnContactPersisted(const Body &inBody1, const Body &inBody2, const ContactManifold &inManifold, ContactSettings &ioSettings) override {
-      spdlog::info("A contact was persisted");
+      // spdlog::info("A contact was persisted");
     }
 
     virtual void OnContactRemoved(const SubShapeIDPair &inSubShapePair) override {
-      spdlog::info("A contact was removed");
+      // spdlog::info("A contact was removed");
     }
   };
 
@@ -125,11 +128,11 @@ namespace {
   class MyBodyActivationListener : public BodyActivationListener {
   public:
 	  virtual void OnBodyActivated(const BodyID &inBodyID, uint64 inBodyUserData) override {
-		  spdlog::info("A body got activated");
+		  // spdlog::info("A body got activated");
 	  }
 
 	  virtual void OnBodyDeactivated(const BodyID &inBodyID, uint64 inBodyUserData) override {
-    spdlog::info("A body went to sleep");
+    // spdlog::info("A body went to sleep");
 	  }
   };
 };
@@ -170,6 +173,37 @@ namespace {
     if (physicsSystem) {
       physicsSystem->OptimizeBroadPhase();
     }
+  }
+
+  SceneNode* PhysicsComponent::CastRay(
+    glm::vec3 origin,
+    glm::vec3 direction,
+    const JPH::BroadPhaseLayerFilter& broadPhaseLayerFilter,
+    const JPH::ObjectLayerFilter& objectLayerFilter,
+    const JPH::BodyFilter& bodyFilter
+  ) {
+    JPH::RRayCast ray(
+      JPH::RVec3(origin.x, origin.y, origin.z),
+      JPH::Vec3(direction.x, direction.y, direction.z)
+    );
+
+    JPH::RayCastResult result;
+    if (this->physicsSystem->GetNarrowPhaseQuery().CastRay(
+      ray,
+      result,
+      broadPhaseLayerFilter,
+      objectLayerFilter,
+      bodyFilter
+    )) {
+      JPH::BodyID id = result.mBodyID;
+      uint64_t userData = physicsSystem->GetBodyInterface().GetUserData(id);
+      // maybe it would be better to use id as userData if it gets added
+      GameObject* object = reinterpret_cast<GameObject*>(userData);
+      if (object) {
+        return object->GetNode();
+      }
+    } 
+    return nullptr;
   }
 
   JPH::BodyInterface& PhysicsComponent::GetBodyInterface() {

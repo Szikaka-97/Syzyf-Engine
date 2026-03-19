@@ -1,10 +1,15 @@
+
 #include "imgui.h"
 #include "physics/PhysicsCharacter.h"
 #include "physics/PhysicsComponent.h"
+#include "physics/PhysicsDebugRenderer.h"
 #include "physics/PhysicsObject.h"
 
 #include <Jolt/Jolt.h>
 #include <Jolt/Physics/Character/Character.h>
+#include <Jolt/Physics/Collision/CastResult.h>
+#include <Jolt/Physics/Collision/RayCast.h>
+#include <Jolt/Physics/Body/BodyFilter.h>
 
 #include <Formatters.h>
 #include <Shader.h>
@@ -76,6 +81,7 @@ public:
 			}
 
 			this->pitch = glm::clamp(this->pitch, -89.0f, 89.0f);
+
 			this->GlobalTransform().Rotation() = glm::angleAxis(
 				glm::radians(this->rotation), glm::vec3(0, 1, 0)
 			) * glm::angleAxis(glm::radians(this->pitch), glm::vec3(1, 0, 0));
@@ -98,7 +104,6 @@ public:
 	}
 };
 
-// temporary, remove later
 class PhysicsMover : public GameObject, public ImGuiDrawable {
 private:
 	float pitch;
@@ -109,6 +114,7 @@ private:
 	float mouseSensitivity = 1.0f;
 
   JPH::Character* character = nullptr;
+  SceneNode* cameraNode = nullptr;
 public:
 	PhysicsMover() {
 		this->pitch = 0;
@@ -117,9 +123,15 @@ public:
 
     // will crash if added before character remove tis
     this->character = this->GetObject<PhysicsCharacter>()->GetCharacter();
+    // this->cameraNode = this->GetNode()->GetObjectInChildren<Camera>()->GetNode();
 	}
 
-	void Update() { 
+	void Update() {
+    if (cameraNode == nullptr) {
+      this->cameraNode = this->GetNode()->GetObjectInChildren<Camera>()->GetNode();
+      if (cameraNode == nullptr) return;
+    }
+
     JPH::Vec3 position = this->character->GetPosition();
     this->GlobalTransform().Position() = {position.GetX(), position.GetY(), position.GetZ()};
 
@@ -127,9 +139,9 @@ public:
 			glm::vec3 movement = glm::zero<glm::vec3>();
 			glm::quat rotation = glm::identity<glm::quat>();
 
-			glm::vec3 right = this->GlobalTransform().Right();
+			glm::vec3 right = this->cameraNode->GlobalTransform().Right();
 			glm::vec3 up = glm::vec3(0, 1, 0);
-			glm::vec3 forward = mode == 0 ? glm::cross(right, up) : this->GlobalTransform().Forward();
+			glm::vec3 forward = mode == 0 ? glm::cross(right, up) : this->cameraNode->GlobalTransform().Forward();
       bool jump = false;
 
 			if (GetScene()->Input()->KeyPressed(Key::A)) {
@@ -161,7 +173,7 @@ public:
 			}
 
 			this->pitch = glm::clamp(this->pitch, -89.0f, 89.0f);
-			this->GlobalTransform().Rotation() = glm::angleAxis(
+			this->cameraNode->LocalTransform().Rotation() = glm::angleAxis(
 				glm::radians(this->rotation), glm::vec3(0, 1, 0)
 			) * glm::angleAxis(glm::radians(this->pitch), glm::vec3(1, 0, 0));
 
@@ -179,22 +191,59 @@ public:
         }
       }
 
-        if (this->character->IsSupported()) {
-          JPH::Vec3 currentVelocity = this->character->GetLinearVelocity();
-          JPH::Vec3 desiredVelocity = this->movementSpeed * jphMovement;
+      if (this->character->IsSupported()) {
+        JPH::Vec3 currentVelocity = this->character->GetLinearVelocity();
+        JPH::Vec3 desiredVelocity = this->movementSpeed * jphMovement;
 
-          if (!desiredVelocity.IsNearZero() || currentVelocity.GetY() < 0.0f || !this->character->IsSupported()) {
-            desiredVelocity.SetY(currentVelocity.GetY());
-          } 
-          JPH::Vec3 newVelocity = 0.75f * currentVelocity + 0.25f * desiredVelocity;
+        if (!desiredVelocity.IsNearZero() || currentVelocity.GetY() < 0.0f || !this->character->IsSupported()) {
+          desiredVelocity.SetY(currentVelocity.GetY());
+        } 
+        JPH::Vec3 newVelocity = 0.75f * currentVelocity + 0.25f * desiredVelocity;
 
-          if (jump && groundState == JPH::Character::EGroundState::OnGround) {
-            newVelocity += JPH::Vec3(0, this->movementSpeed * 0.25, 0);
-          }
+        if (jump && groundState == JPH::Character::EGroundState::OnGround) {
+          newVelocity += JPH::Vec3(0, this->movementSpeed * 0.25, 0);
+        }
 
-          this->character->SetLinearVelocity(newVelocity);
+        this->character->SetLinearVelocity(newVelocity);
+      }
+    }
+
+    if (GetScene()->Input()->ButtonPressed(MouseButton::Left)) {
+      spdlog::info("Left mouse button pressed");
+      auto* physics = this->GetScene()->GetComponent<PhysicsComponent>();
+     
+      JPH::RVec3 origin = {
+        this->cameraNode->GlobalTransform().Position().x,
+        this->cameraNode->GlobalTransform().Position().y,
+        this->cameraNode->GlobalTransform().Position().z
+      };
+
+      JPH::Vec3 direction = JPH::Vec3(
+        this->cameraNode->GlobalTransform().Forward().x,
+        this->cameraNode->GlobalTransform().Forward().y,
+        this->cameraNode->GlobalTransform().Forward().z
+      ) * 100.0f;
+
+      SceneNode* result = physics->CastRay(
+        this->cameraNode->GlobalTransform().Position(),
+        this->cameraNode->GlobalTransform().Forward() * 100.0f,
+        {},
+        {},
+        JPH::IgnoreSingleBodyFilter(this->character->GetBodyID())
+      );
+
+      if (result) {
+        spdlog::info("Raycast hit");
+
+        spdlog::info("Hit node: {}", result->GetName());
+        if (auto* object = result->GetObject<PhysicsObject>()) {
+          object->ApplyImpulse(this->cameraNode->GlobalTransform().Forward() * 100.0f);
+          spdlog::info("Applied impulse");
+        } else {
+          spdlog::info("Not a physics object");
         }
       }
+    }
 
 		if (GetScene()->Input()->KeyDown(Key::Escape)) {
 			this->movementEnabled = !this->movementEnabled;
@@ -270,6 +319,7 @@ public:
 
 void InitScene(Scene* mainScene) {
   mainScene->AddComponent<PhysicsComponent>();
+  mainScene->AddComponent<PhysicsDebugRenderer>();
 
 	ShaderProgram* skyProg = ShaderProgram::Build().WithVertexShader(
 		mainScene->Resources()->Get<VertexShader>("./res/shaders/skybox.vert")
@@ -295,12 +345,11 @@ void InitScene(Scene* mainScene) {
 		mainScene->Resources()->Get<PixelShader>("./res/shaders/pbr.frag")
 	).Link();
 
-	ShaderProgram* transparentProg = ShaderProgram::Build().WithVertexShader(
+	ShaderProgram* pbrRefractProg = ShaderProgram::Build().WithVertexShader(
 		mainScene->Resources()->Get<VertexShader>("./res/shaders/lit.vert")
 	).WithPixelShader(
-		mainScene->Resources()->Get<PixelShader>("./res/shaders/transparent.frag")
+		mainScene->Resources()->Get<PixelShader>("./res/shaders/pbr refract.frag")
 	).Link();
-	transparentProg->SetTransparent(true);
 
 	Mesh* gmConstructMesh = mainScene->Resources()->Get<Mesh>("./res/models/construct/construct.obj", true);
 	Mesh* cannonMesh = mainScene->Resources()->Get<Mesh>("./res/models/cannon/cannon.obj");
@@ -345,11 +394,10 @@ void InitScene(Scene* mainScene) {
 	roughMat->SetValue("normalMap", reflectiveNormal);
 	roughMat->SetValue("armMap", roughARM);
 
-	Material* pinkTransparentMat = new Material(transparentProg);
-	pinkTransparentMat->SetValue("uColor", glm::vec4(1.0, 0.5, 0.5, 0.6));
-
-	Material* blueTransparentMat = new Material(transparentProg);
-	blueTransparentMat->SetValue("uColor", glm::vec4(0.5, 0.5, 1.0, 0.6));
+	Material* shinyMat = new Material(pbrRefractProg);
+	shinyMat->SetValue("albedoMap", reflectiveDiffuse);
+	shinyMat->SetValue("normalMap", reflectiveNormal);
+	shinyMat->SetValue("armMap", reflectiveARM);
 
 	Material* skyMat = new Material(skyProg);
 	skyMat->SetValue("skyboxTexture", skyCubemap);
@@ -381,13 +429,22 @@ void InitScene(Scene* mainScene) {
 	roughCubeNode->AddObject<MeshRenderer>(cubeMesh, roughMat);
 	roughCubeNode->LocalTransform().Position() = {0, 0, 3};
 
-	auto pinkTransparentCubeNode = mainScene->CreateNode(cubeNode, "Pink Cube");
-	pinkTransparentCubeNode->AddObject<MeshRenderer>(cubeMesh, pinkTransparentMat);
-	pinkTransparentCubeNode->LocalTransform().Position() = {-3, 0, -3};
+	auto shinyCubeNode = mainScene->CreateNode(cubeNode, "Shiny Cube");
+	shinyCubeNode->AddObject<MeshRenderer>(cubeMesh, shinyMat);
+	shinyCubeNode->LocalTransform().Position() = {0, 0, -3};
 
-	auto blueTransparentCubeNode = mainScene->CreateNode(cubeNode, "Blue Cube");
-	blueTransparentCubeNode->AddObject<MeshRenderer>(cubeMesh, blueTransparentMat);
-	blueTransparentCubeNode->LocalTransform().Position() = {-3, 0, -5};
+	auto cubeNode2 = mainScene->CreateNode("Reflective Cube");
+	cubeNode2->AddObject<MeshRenderer>(cubeMesh, reflectiveMat);
+	cubeNode2->GlobalTransform().Position() = {-25.0f, 1.0f, 0.0f};
+	cubeNode2->GlobalTransform().Scale() = glm::vec3(0.6f);
+
+	auto roughCubeNode2 = mainScene->CreateNode(cubeNode2, "Rough Cube");
+	roughCubeNode2->AddObject<MeshRenderer>(cubeMesh, roughMat);
+	roughCubeNode2->LocalTransform().Position() = {0, 0, 3};
+
+	auto shinyCubeNode2 = mainScene->CreateNode(cubeNode2, "Shiny Cube");
+	shinyCubeNode2->AddObject<MeshRenderer>(cubeMesh, shinyMat);
+	shinyCubeNode2->LocalTransform().Position() = {0, 0, -3};
 
   SceneNode* playerNode = mainScene->CreateNode("Player");
   playerNode->GlobalTransform().Position() = glm::vec3(2.0f, 1.5f, -10.0f);
@@ -397,7 +454,6 @@ void InitScene(Scene* mainScene) {
 	auto cameraNode = mainScene->CreateNode(playerNode, "Camera");
 	Camera* camera = cameraNode->AddObject<Camera>(Camera::Perspective(40.0f, 16.0f/9.0f, 0.5f, 200.0f));
 	camera->GlobalTransform().Position() = glm::vec3(2.0f, 1.5f, -10.0f);
-	// cameraNode->AddObject<Mover>();
 
 	auto skyboxNode = mainScene->CreateNode(constructNode, "Floor");
 	skyboxNode->AddObject<Skybox>(skyMat);
@@ -422,6 +478,9 @@ void InitScene(Scene* mainScene) {
 	envProbe3->AddObject<ReflectionProbe>();
 	envProbe3->GlobalTransform().Position() = {-29.0f, 1.5f, 0.6f};
 
+	auto envProbe4 = mainScene->CreateNode(shinyCubeNode, "Reflection Probe");
+	envProbe4->AddObject<ReflectionProbe>();
+	
 	auto starsAttachmentNode = mainScene->CreateNode("Stars Scene Attachment");
 	
 	auto starsScene = new Scene();
@@ -488,3 +547,4 @@ int main(int, char**) {
 
 	return 0;
 }
+
