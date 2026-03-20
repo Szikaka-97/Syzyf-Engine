@@ -1,5 +1,17 @@
 #include "physics/PhysicsComponent.h"
 
+#include "GameObject.h"
+#include "physics/PhysicsCharacter.h"
+#include "physics/PhysicsCollisionReceiver.h"
+#include "physics/PhysicsDebugRenderer.h"
+#include "physics/PhysicsObject.h"
+#include "physics/PhysicsContactListener.h"
+
+#include "TimeSystem.h"
+#include "Scene.h"
+
+
+
 #include <Jolt/Core/Core.h>
 #include <Jolt/Physics/Body/BodyID.h>
 #include <Jolt/Physics/Body/BodyManager.h>
@@ -12,16 +24,10 @@
 #include <Jolt/Physics/Collision/ContactListener.h>
 #include <Jolt/Physics/Body/BodyActivationListener.h>
 #include <Jolt/Physics/Collision/RayCast.h>
+#include <Jolt/Math/MathTypes.h>
+#include <Jolt/Math/Real.h>
+#include <Jolt/Physics/Collision/CastResult.h>
 #include <imgui.h>
-
-#include "Jolt/Math/MathTypes.h"
-#include "Jolt/Math/Real.h"
-#include "Jolt/Physics/Collision/CastResult.h"
-#include "TimeSystem.h"
-#include "physics/PhysicsCharacter.h"
-#include "physics/PhysicsDebugRenderer.h"
-#include "physics/PhysicsObject.h"
-#include "Scene.h"
 
 using namespace JPH;
 using namespace JPH::literals;
@@ -99,42 +105,6 @@ namespace {
       }
     }
   };
-
-  // An example contact listener
-  class MyContactListener : public ContactListener {
-  public:
-    // See: ContactListener
-    virtual ValidateResult OnContactValidate(const Body &inBody1, const Body &inBody2, RVec3Arg inBaseOffset, const CollideShapeResult &inCollisionResult) override {
-      // spdlog::info("Contact validate callback");
-
-      // Allows you to ignore a contact before it is created (using layers to not make objects collide is cheaper!)
-      return ValidateResult::AcceptAllContactsForThisBodyPair;
-    }
-
-    virtual void OnContactAdded(const Body &inBody1, const Body &inBody2, const ContactManifold &inManifold, ContactSettings &ioSettings) override {
-      // spdlog::info("A contact was added");
-    }
-
-    virtual void OnContactPersisted(const Body &inBody1, const Body &inBody2, const ContactManifold &inManifold, ContactSettings &ioSettings) override {
-      // spdlog::info("A contact was persisted");
-    }
-
-    virtual void OnContactRemoved(const SubShapeIDPair &inSubShapePair) override {
-      // spdlog::info("A contact was removed");
-    }
-  };
-
-  // An example activation listener
-  class MyBodyActivationListener : public BodyActivationListener {
-  public:
-	  virtual void OnBodyActivated(const BodyID &inBodyID, uint64 inBodyUserData) override {
-		  // spdlog::info("A body got activated");
-	  }
-
-	  virtual void OnBodyDeactivated(const BodyID &inBodyID, uint64 inBodyUserData) override {
-    // spdlog::info("A body went to sleep");
-	  }
-  };
 };
 
   PhysicsComponent::PhysicsComponent(Scene* scene, const PhysicsSystemSettings& settings): SceneComponent(scene) {
@@ -151,8 +121,7 @@ namespace {
     physicsSystem->Init(settings.maxBodies, settings.numBodyMutexes, settings.maxBodyPairs, settings.maxContactConstraints, *bpLayerInterface, *objVsBPFilter, *objVsObjFilter);
     bodyInterface = &physicsSystem->GetBodyInterface();
 
-    contactListener = new MyContactListener();
-    bodyActivationListener = new MyBodyActivationListener();
+    contactListener = new PhysicsContactListener(this);
     physicsSystem->SetContactListener(contactListener);
     physicsSystem->SetBodyActivationListener(bodyActivationListener);
   }
@@ -253,12 +222,55 @@ namespace {
     }
   }
 
-  void PhysicsComponent::OnPostUpdate() {
+  void PhysicsComponent::OnPreUpdate() {
     // TMEPRORARY
     this->accumulator += Time::Delta();
     while (this->accumulator > this->cDeltaTime) { 
       physicsSystem->Update(cDeltaTime, 1, tempAllocator, jobSystem);
       this->accumulator -= this->cDeltaTime;
+    }
+
+    // Processing the callback queue 
+    std::vector<CollisionData> currentCollisions;
+    {
+      std::lock_guard<std::mutex> lock(this->collisionMutex);
+      currentCollisions = this->collisionQueue;
+      this->collisionQueue.clear();
+    }
+    for (const auto& collision : currentCollisions) {
+      GameObject* object1;
+      GameObject* object2;
+      
+      {
+        JPH::BodyLockRead lock1(physicsSystem->GetBodyLockInterface(), collision.body1);
+        if (lock1.Succeeded()) {
+          object1 = reinterpret_cast<GameObject*>(lock1.GetBody().GetUserData());
+        }
+      }
+
+      {
+        JPH::BodyLockRead lock2(physicsSystem->GetBodyLockInterface(), collision.body2);
+        if (lock2.Succeeded()) {
+          object2 = reinterpret_cast<GameObject*>(lock2.GetBody().GetUserData());
+        }
+      }
+
+      if (object1 && object2) {
+        SceneNode* node1 = object1->GetNode();
+        SceneNode* node2 = object2->GetNode();
+
+        for (GameObject* obj : node1->AttachedObjects()) {
+          if (auto* receiver = dynamic_cast<IPhysicsCollisionReceiver*>(obj)) {
+            receiver->OnCollisionEnter(node2);
+          }
+        }
+
+        for (GameObject* obj : node2->AttachedObjects()) {
+          if (auto* receiver = dynamic_cast<IPhysicsCollisionReceiver*>(obj)) {
+            receiver->OnCollisionEnter(node1);
+          }
+        }
+      }
     }
 
     JPH::BodyIDVector activeBodies;
@@ -294,6 +306,8 @@ namespace {
     characterObject->GlobalTransform().Rotation() =
       glm::quat(rotation.GetW(), rotation.GetX(), rotation.GetY(), rotation.GetZ());
   }
+
+  // Queue stuff
 }
 
 void PhysicsComponent::DrawImGui() {

@@ -23,13 +23,18 @@ namespace JPH {
     class BodyActivationListener;
 }
 
-  struct PhysicsSystemSettings {
-    JPH::uint maxBodies = 1024;
-    JPH::uint numBodyMutexes = 0;
-    JPH::uint maxBodyPairs = 1024;
-    JPH::uint maxContactConstraints = 1024;
-    JPH::uint tempAllocatorSize = 10 * 1024 * 1024;
-  };
+struct PhysicsSystemSettings {
+  JPH::uint maxBodies = 1024;
+  JPH::uint numBodyMutexes = 0;
+  JPH::uint maxBodyPairs = 1024;
+  JPH::uint maxContactConstraints = 1024;
+  JPH::uint tempAllocatorSize = 10 * 1024 * 1024;
+};
+
+struct CollisionData {
+  JPH::BodyID body1;
+  JPH::BodyID body2;
+};
 
 class PhysicsComponent : public SceneComponent {
 public:
@@ -44,6 +49,10 @@ public:
     static constexpr JPH::BroadPhaseLayer MOVING{1};
     static constexpr JPH::uint NUM_LAYERS{2};
   };
+
+  // move to private perhaps
+  std::mutex collisionMutex;
+  std::vector<CollisionData> collisionQueue;
 private:
   bool drawDebug = false;
 
@@ -68,7 +77,7 @@ public:
   virtual ~PhysicsComponent();
 
 
-  void OnPostUpdate();
+  void OnPreUpdate();
   void OnPostRender();
 
   void DrawImGui();

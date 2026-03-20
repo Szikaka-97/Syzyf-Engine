@@ -1,6 +1,7 @@
 
 #include "imgui.h"
 #include "physics/PhysicsCharacter.h"
+#include "physics/PhysicsCollisionReceiver.h"
 #include "physics/PhysicsComponent.h"
 #include "physics/PhysicsDebugRenderer.h"
 #include "physics/PhysicsObject.h"
@@ -104,7 +105,7 @@ public:
 	}
 };
 
-class PhysicsMover : public GameObject, public ImGuiDrawable {
+class PhysicsMover : public GameObject, public IPhysicsCollisionReceiver, public ImGuiDrawable {
 private:
 	float pitch;
 	float rotation;
@@ -251,6 +252,10 @@ public:
 			GetScene()->Input()->SetMouseLocked(this->movementEnabled);
 		}
 	}
+
+  virtual void OnCollisionEnter(SceneNode* node) {
+    spdlog::info("PhysicsMover collided with: {}", node->GetName());
+  }
 
 	virtual void DrawImGui() {
 		const char* modes[] { "Walking", "Freecam", };
