@@ -475,7 +475,7 @@ void SceneGraphics::Render() {
 	}
 
 	RenderCamera(this->mainCamera, this->mainViewport, RenderParams {
-		RenderPassType::Color | RenderPassType::DepthPrepass | RenderPassType::Gizmos | RenderPassType::Transparent | RenderPassType::PostProcessing,
+		RenderPassType::Color | RenderPassType::DepthPrepass | RenderPassType::Gizmos | RenderPassType::Transparent,
 		glm::vec4(
 			0,
 			0,
@@ -489,6 +489,16 @@ void SceneGraphics::Render() {
 	glViewport(0, 0, this->mainViewport->GetSize().x, this->mainViewport->GetSize().y);
 
 	CompositeTransparentPass();
+
+	RenderCamera(this->mainCamera, this->mainViewport, RenderParams {
+		RenderPassType::PostProcessing,
+		glm::vec4(
+			0,
+			0,
+			this->mainViewport->GetSize()
+		),
+		false
+	});
 
 	RenderFullscreenFrameQuad();
 
