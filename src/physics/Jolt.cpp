@@ -1,8 +1,9 @@
-#include "physics/PhysicsJolt.h"
+#include "physics/Jolt.h"
 
 #include <cstdarg>
 #include <spdlog/spdlog.h>
 
+namespace Physics {
 // Callback for traces, connect this to your own trace function if you have one
 void TraceImpl(const char *inFMT, ...) {
     // Format the message
@@ -27,3 +28,4 @@ bool AssertFailedImpl(const char *inExpression, const char *inMessage, const cha
 };
 
 #endif // JPH_ENABLE_ASSERTS
+}

@@ -1,17 +1,20 @@
 #include <Jolt/Jolt.h>
 #include <Jolt/Physics/Collision/ContactListener.h>
 
-class PhysicsComponent;
+namespace Physics {
 
-class PhysicsContactListener : public JPH::ContactListener {
+class System;
+
+class ContactListener : public JPH::ContactListener {
   private:
     // not sure about this
-    PhysicsComponent* physicsComponent;
+    System* physicsSystem;
   public:
-    PhysicsContactListener(PhysicsComponent* physicsComponent);
+    ContactListener(System* physicsSystem);
 
     virtual void OnContactAdded(const JPH::Body &inBody1, const JPH::Body &inBody2, const JPH::ContactManifold &inManifold, JPH::ContactSettings &ioSettings);
 
     // virtual void OnContactPersisted
     // virtual void OnContactRemoved
 };
+}

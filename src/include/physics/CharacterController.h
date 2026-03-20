@@ -7,7 +7,8 @@
 #include <Jolt/Physics/Body/BodyID.h>
 #include <Jolt/Physics/Character/Character.h>
 
-class PhysicsCharacter : public GameObject, public ImGuiDrawable {
+namespace Physics {
+class CharacterController : public GameObject, public ImGuiDrawable {
 public:
   float maxSeparationDistance = 0.1f;
 
@@ -18,8 +19,8 @@ private:
   JPH::Character* character = nullptr;
   JPH::Ref<JPH::CharacterSettings> characterSettings;
 public:
-  PhysicsCharacter();
-  virtual ~PhysicsCharacter();
+  CharacterController();
+  virtual ~CharacterController();
 
   // Getters
   uint32_t GetCollisionLayer() const;
@@ -48,4 +49,4 @@ public:
 
   void DrawImGui();
 };
-
+}

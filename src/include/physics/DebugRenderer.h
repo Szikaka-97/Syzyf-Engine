@@ -9,13 +9,15 @@
 #include <glm/vec3.hpp>
 #include <glad/glad.h> 
 
+
 class ShaderProgram;
 
-class PhysicsDebugRenderer : public JPH::DebugRendererSimple, public SceneComponent
+namespace Physics {
+class DebugRenderer : public JPH::DebugRendererSimple, public SceneComponent
 {
 public:
-  PhysicsDebugRenderer(Scene *scene);
-  virtual ~PhysicsDebugRenderer() = default;
+  DebugRenderer(Scene *scene);
+  virtual ~DebugRenderer() = default;
 
   virtual void DrawLine(JPH::RVec3Arg inFrom, JPH::RVec3Arg inTo, JPH::ColorArg inColor) override;
   virtual void DrawTriangle(JPH::RVec3Arg inV1, JPH::RVec3Arg inV2, JPH::RVec3Arg inV3, JPH::ColorArg inColor, ECastShadow inCastShadow) override;
@@ -37,3 +39,4 @@ private:
   GLuint vbo = 0;
   std::vector<DebugVertex> lines;
 };
+}

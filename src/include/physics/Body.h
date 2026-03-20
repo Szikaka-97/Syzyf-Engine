@@ -12,10 +12,8 @@
 #include <glm/fwd.hpp>
 #include <spdlog/spdlog.h>
 
-using namespace JPH::literals;
-
-
-class PhysicsObject : public GameObject, public ImGuiDrawable {
+namespace Physics {
+class Body : public GameObject, public ImGuiDrawable {
 private:
   static constexpr float defaultConvexRadius = 0.05f;
 
@@ -28,7 +26,7 @@ private:
   bool bodyCreated = false;
   bool addedToWorld = false;
 public:
-  PhysicsObject(const JPH::BodyCreationSettings& settings);
+  Body(const JPH::BodyCreationSettings& settings);
 
   static JPH::BodyCreationSettings Sphere(float radius, const JPH::EMotionType type, const JPH::ObjectLayer layer);
   static JPH::BodyCreationSettings Box(glm::vec3 halfExtent, const JPH::EMotionType type, const JPH::ObjectLayer layer);
@@ -37,7 +35,7 @@ public:
   static JPH::BodyCreationSettings ConvexHullMesh(const Mesh* mesh, const JPH::EMotionType type, const JPH::ObjectLayer layer);
   static JPH::BodyCreationSettings Mesh(const Mesh* mesh, const JPH::EMotionType type, const JPH::ObjectLayer layer);
 
-  virtual ~PhysicsObject();
+  virtual ~Body();
 
   // Getters
   JPH::BodyID GetBodyID() const;
@@ -90,5 +88,6 @@ public:
   void DrawImGui();
 
   private:
-  PhysicsObject();
-}; 
+  Body();
+};
+}

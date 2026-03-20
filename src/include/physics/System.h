@@ -15,15 +15,17 @@
 class SceneNode;
 
 namespace JPH {
-    class BroadPhaseLayerInterface;
-    class ObjectVsBroadPhaseLayerFilter;
-    class ObjectLayerPairFilter;
-    class BodyInterface;
-    class ContactListener;
-    class BodyActivationListener;
+  class BroadPhaseLayerInterface;
+  class ObjectVsBroadPhaseLayerFilter;
+  class ObjectLayerPairFilter;
+  class BodyInterface;
+  class ContactListener;
+  class BodyActivationListener;
 }
 
-struct PhysicsSystemSettings {
+namespace Physics {
+
+struct SystemSettings {
   JPH::uint maxBodies = 1024;
   JPH::uint numBodyMutexes = 0;
   JPH::uint maxBodyPairs = 1024;
@@ -36,7 +38,7 @@ struct CollisionData {
   JPH::BodyID body2;
 };
 
-class PhysicsComponent : public SceneComponent {
+class System : public SceneComponent {
 public:
   struct Layers {
     static constexpr JPH::ObjectLayer NON_MOVING = 0;
@@ -73,8 +75,8 @@ private:
 
   JPH::GroupFilter* layerGroupFilter = nullptr;
 public:
-  PhysicsComponent(Scene* scene, const PhysicsSystemSettings& settings = PhysicsSystemSettings());
-  virtual ~PhysicsComponent();
+  System(Scene* scene, const SystemSettings& settings = SystemSettings());
+  virtual ~System();
 
 
   void OnPreUpdate();
@@ -101,3 +103,4 @@ public:
 
   JPH::GroupFilter* GetLayerGroupFilter() const;
 };
+}

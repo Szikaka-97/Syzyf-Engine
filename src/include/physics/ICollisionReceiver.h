@@ -1,8 +1,10 @@
 #pragma once
 class SceneNode;
 
-class IPhysicsCollisionReceiver {
+namespace Physics {
+class ICollisionReceiver {
 public:
-  virtual ~IPhysicsCollisionReceiver() = default;
+  virtual ~ICollisionReceiver() = default;
   virtual void OnCollisionEnter(SceneNode* otherNode) = 0;
 };
+}

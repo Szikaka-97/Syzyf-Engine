@@ -1,17 +1,18 @@
-#include "physics/PhysicsCharacter.h"
+#include "physics/CharacterController.h"
 #include "Jolt/Math/Math.h"
 #include "Jolt/Physics/Character/Character.h"
 #include "Jolt/Physics/Collision/Shape/SphereShape.h"
 #include "Jolt/Physics/EActivation.h"
-#include "physics/PhysicsComponent.h"
+#include "physics/System.h"
 #include <spdlog/spdlog.h>
 #include <imgui.h>
 
-PhysicsCharacter::PhysicsCharacter() {
+namespace Physics {
+CharacterController::CharacterController() {
   JPH::Ref<JPH::CharacterSettings> settings = new JPH::CharacterSettings();
 
   settings->mMaxSlopeAngle = JPH::DegreesToRadians(45.0f);
-  settings->mLayer = PhysicsComponent::Layers::MOVING;
+  settings->mLayer = System::Layers::MOVING;
   settings->mShape = new JPH::SphereShape(0.75f);
   settings->mFriction = 5.0f;
 
@@ -20,23 +21,23 @@ PhysicsCharacter::PhysicsCharacter() {
   spdlog::info("PhysicsCharacter: Added a character controller");
 }
 
-PhysicsCharacter::~PhysicsCharacter() {
+CharacterController::~CharacterController() {
   delete this->character;
 }
 
-uint32_t PhysicsCharacter::GetCollisionLayer() const {
+uint32_t CharacterController::GetCollisionLayer() const {
   return this->collisionLayer;
 }
 
-uint32_t PhysicsCharacter::GetCollisionMask() const {
+uint32_t CharacterController::GetCollisionMask() const {
   return this->collisionMask;
 }
 
-JPH::Character* PhysicsCharacter::GetCharacter() const {
+JPH::Character* CharacterController::GetCharacter() const {
   return this->character;
 }
 
-glm::vec3 PhysicsCharacter::GetLinearVelocity() const {
+glm::vec3 CharacterController::GetLinearVelocity() const {
   if (this->character) {
     JPH::Vec3 velocity = this->character->GetLinearVelocity();
     return glm::vec3(velocity.GetX(), velocity.GetY(), velocity.GetZ());
@@ -44,7 +45,7 @@ glm::vec3 PhysicsCharacter::GetLinearVelocity() const {
   return glm::vec3(0.0f);
 }
 
-glm::vec3 PhysicsCharacter::GetPosition() const {
+glm::vec3 CharacterController::GetPosition() const {
   if (this->character) {
     JPH::RVec3 position = this->character->GetPosition();
     return glm::vec3(position.GetX(), position.GetY(), position.GetZ());
@@ -52,7 +53,7 @@ glm::vec3 PhysicsCharacter::GetPosition() const {
   return glm::vec3(0.0f);
 }
 
-glm::quat PhysicsCharacter::GetRotation() const {
+glm::quat CharacterController::GetRotation() const {
   if (this->character) {
     JPH::Quat rotation = this->character->GetRotation();
     return glm::quat(rotation.GetW(), rotation.GetX(), rotation.GetY(), rotation.GetZ());
@@ -60,14 +61,14 @@ glm::quat PhysicsCharacter::GetRotation() const {
   return glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
 }
 
-bool PhysicsCharacter::IsSupported() const {
+bool CharacterController::IsSupported() const {
   if (this->character) {
     return this->character->IsSupported();
   }
   return false;
 }
 
-glm::vec3 PhysicsCharacter::GetGroundNormal() const {
+glm::vec3 CharacterController::GetGroundNormal() const {
   if (this->character) {
     JPH::Vec3 normal = this->character->GetGroundNormal();
     return glm::vec3(normal.GetX(), normal.GetY(), normal.GetZ());
@@ -75,19 +76,19 @@ glm::vec3 PhysicsCharacter::GetGroundNormal() const {
   return glm::vec3(0.0f, 1.0f, 0.0f);
 }
 
-JPH::CharacterBase::EGroundState PhysicsCharacter::GetGroundState() const {
+JPH::CharacterBase::EGroundState CharacterController::GetGroundState() const {
   if (this->character) {
     return this->character->GetGroundState();
   }
   return JPH::CharacterBase::EGroundState::InAir;
 }
 
-void PhysicsCharacter::SetCollisionLayerAndMask(uint32_t layer, uint32_t mask) {
+void CharacterController::SetCollisionLayerAndMask(uint32_t layer, uint32_t mask) {
   collisionLayer = layer;
   collisionMask = mask;
   
   if (this->character) {
-    if (PhysicsComponent* physics = GetScene()->GetComponent<PhysicsComponent>()) {
+    if (System* physics = GetScene()->GetComponent<System>()) {
       JPH::CollisionGroup group(physics->GetLayerGroupFilter(), layer, mask);
 
       if (this->IsEnabled()) this->character->RemoveFromPhysicsSystem();
@@ -99,26 +100,26 @@ void PhysicsCharacter::SetCollisionLayerAndMask(uint32_t layer, uint32_t mask) {
   }
 }
 
-void PhysicsCharacter::SetLinearVelocity(const glm::vec3& velocity) {
+void CharacterController::SetLinearVelocity(const glm::vec3& velocity) {
   if (this->character) {
     this->character->SetLinearVelocity(JPH::Vec3(velocity.x, velocity.y, velocity.z));
   }
 }
 
-void PhysicsCharacter::SetPosition(const glm::vec3& position) {
+void CharacterController::SetPosition(const glm::vec3& position) {
   if (this->character) {
     this->character->SetPosition(JPH::RVec3(position.x, position.y, position.z));
   }
 }
 
-void PhysicsCharacter::SetRotation(const glm::quat& rotation) {
+void CharacterController::SetRotation(const glm::quat& rotation) {
   if (this->character) {
     this->character->SetRotation(JPH::Quat(rotation.x, rotation.y, rotation.z, rotation.w));
   }
 }
 
-void PhysicsCharacter::Awake() {
-  PhysicsComponent* physics = this->GetScene()->GetComponent<PhysicsComponent>();
+void CharacterController::Awake() {
+  System* physics = this->GetScene()->GetComponent<System>();
   if (physics == nullptr) {
     spdlog::warn("Tried waking up a physics character without a PhysicsComponent");
     return;
@@ -143,8 +144,8 @@ void PhysicsCharacter::Awake() {
   spdlog::info("PhysicsCharacter: A character controller called Awake()");
 }
 
-void PhysicsCharacter::OnEnable() {
-  PhysicsComponent* physics = this->GetScene()->GetComponent<PhysicsComponent>();
+void CharacterController::OnEnable() {
+  System* physics = this->GetScene()->GetComponent<System>();
   if (physics == nullptr) {
     spdlog::warn("Tried waking up a physics character without a PhysicsComponent");
     return;
@@ -156,13 +157,13 @@ void PhysicsCharacter::OnEnable() {
   }
 }
 
-void PhysicsCharacter::OnDisable() {
+void CharacterController::OnDisable() {
   if (this->character != nullptr) {
     this->character->RemoveFromPhysicsSystem();
   }
 }
 
-void PhysicsCharacter::DrawImGui() {
+void CharacterController::DrawImGui() {
   if (ImGui::TreeNode("Physics Collision")) {
     const float size = ImGui::CalcTextSize("00").x;
 
@@ -197,4 +198,5 @@ void PhysicsCharacter::DrawImGui() {
     }
     ImGui::TreePop();
   }
+}
 }

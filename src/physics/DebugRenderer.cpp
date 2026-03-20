@@ -1,4 +1,4 @@
-#include "physics/PhysicsDebugRenderer.h"
+#include "physics/DebugRenderer.h"
 #include "Camera.h"
 #include "Frustum.h"
 #include "Resources.h"
@@ -6,7 +6,8 @@
 #include "Scene.h"
 #include <glm/gtc/type_ptr.hpp>
 
-PhysicsDebugRenderer::PhysicsDebugRenderer(Scene *scene) : SceneComponent(scene) {
+namespace Physics {
+DebugRenderer::DebugRenderer(Scene *scene) : SceneComponent(scene) {
     shader = ShaderProgram::Build()
         .WithVertexShader(GetScene()->Resources()->Get<VertexShader>("./res/shaders/physics_debug/physics_debug.vert"))
         .WithPixelShader(GetScene()->Resources()->Get<PixelShader>("./res/shaders/physics_debug/physics_debug.frag"))
@@ -32,7 +33,7 @@ PhysicsDebugRenderer::PhysicsDebugRenderer(Scene *scene) : SceneComponent(scene)
     glBindVertexArray(0);
 }
 
-void PhysicsDebugRenderer::DrawLine(JPH::RVec3Arg inFrom, JPH::RVec3Arg inTo, JPH::ColorArg inColor)
+void DebugRenderer::DrawLine(JPH::RVec3Arg inFrom, JPH::RVec3Arg inTo, JPH::ColorArg inColor)
 {
     JPH::Vec4 color = inColor.ToVec4();
 
@@ -47,11 +48,11 @@ void PhysicsDebugRenderer::DrawLine(JPH::RVec3Arg inFrom, JPH::RVec3Arg inTo, JP
     });
 }
 
-void PhysicsDebugRenderer::DrawTriangle(JPH::RVec3Arg inV1, JPH::RVec3Arg inV2, JPH::RVec3Arg inV3, JPH::ColorArg inColor, ECastShadow inCastShadow) {}
+void DebugRenderer::DrawTriangle(JPH::RVec3Arg inV1, JPH::RVec3Arg inV2, JPH::RVec3Arg inV3, JPH::ColorArg inColor, ECastShadow inCastShadow) {}
 
-void PhysicsDebugRenderer::DrawText3D(JPH::RVec3Arg inPosition, const std::string_view &inString, JPH::ColorArg inColor, float inHeight) {}
+void DebugRenderer::DrawText3D(JPH::RVec3Arg inPosition, const std::string_view &inString, JPH::ColorArg inColor, float inHeight) {}
 
-void PhysicsDebugRenderer::DrawBoundingBox(const BoundingBox& box, JPH::ColorArg color) {
+void DebugRenderer::DrawBoundingBox(const BoundingBox& box, JPH::ColorArg color) {
   JPH::Vec3 halfExtents(box.axisU.w, box.axisV.w, box.axisW.w);
   JPH::AABox boxLocal(-halfExtents, halfExtents);
 
@@ -70,7 +71,7 @@ void PhysicsDebugRenderer::DrawBoundingBox(const BoundingBox& box, JPH::ColorArg
   DrawWireBox(transform, boxLocal, color);
 }
 
-void PhysicsDebugRenderer::DrawFrustum(glm::mat4 viewProjection, JPH::ColorArg color) {
+void DebugRenderer::DrawFrustum(glm::mat4 viewProjection, JPH::ColorArg color) {
   glm::mat4 inverseViewProjection = glm::inverse(viewProjection);
 
   glm::vec4 ndcCube[8] = {
@@ -153,7 +154,7 @@ void PhysicsDebugRenderer::DrawFrustum(glm::mat4 viewProjection, JPH::ColorArg c
   );
 }
 
-void PhysicsDebugRenderer::Render() {
+void DebugRenderer::Render() {
     if (lines.empty() || !shader) return;
 
     GLuint shaderHandle = shader->GetHandle();
@@ -182,4 +183,5 @@ void PhysicsDebugRenderer::Render() {
     glEnable(GL_DEPTH_TEST);
 
     lines.clear();
+}
 }

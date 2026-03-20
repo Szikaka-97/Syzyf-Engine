@@ -1,16 +1,14 @@
-#include "physics/PhysicsComponent.h"
+#include "physics/System.h"
+#include "physics/CharacterController.h"
+#include "physics/ICollisionReceiver.h"
+#include "physics/DebugRenderer.h"
+#include "physics/Body.h"
+#include "physics/ContactListener.h"
 
 #include "GameObject.h"
-#include "physics/PhysicsCharacter.h"
-#include "physics/PhysicsCollisionReceiver.h"
-#include "physics/PhysicsDebugRenderer.h"
-#include "physics/PhysicsObject.h"
-#include "physics/PhysicsContactListener.h"
-
 #include "TimeSystem.h"
 #include "Scene.h"
-
-
+#include "physics/ICollisionReceiver.h"
 
 #include <Jolt/Core/Core.h>
 #include <Jolt/Physics/Body/BodyID.h>
@@ -29,10 +27,9 @@
 #include <Jolt/Physics/Collision/CastResult.h>
 #include <imgui.h>
 
-using namespace JPH;
 using namespace JPH::literals;
 
-namespace {
+namespace Physics {
   class GroupFilterLayerMask : public JPH::GroupFilter {
   public:
     virtual bool CanCollide(const JPH::CollisionGroup& inGroup1, const JPH::CollisionGroup& inGroup2) const override {
@@ -42,13 +39,13 @@ namespace {
   };
   
   // Class that determines if two object layers can collide
-  class ObjectLayerPairFilterImpl : public ObjectLayerPairFilter {
+  class ObjectLayerPairFilterImpl : public JPH::ObjectLayerPairFilter {
   public:
-    virtual bool ShouldCollide(ObjectLayer inObject1, ObjectLayer inObject2) const override {
+    virtual bool ShouldCollide(JPH::ObjectLayer inObject1, JPH::ObjectLayer inObject2) const override {
       switch (inObject1) {
-      case PhysicsComponent::Layers::NON_MOVING:
-        return inObject2 == PhysicsComponent::Layers::MOVING; // Non moving only collides with moving
-      case PhysicsComponent::Layers::MOVING:
+      case System::Layers::NON_MOVING:
+        return inObject2 == System::Layers::MOVING; // Non moving only collides with moving
+      case System::Layers::MOVING:
   return true; // Moving collides with everything
       default:
         JPH_ASSERT(false);
@@ -59,20 +56,20 @@ namespace {
 
   // BroadPhaseLayerInterface implementation
   // This defines a mapping between object and broadphase layers.
-  class BPLayerInterfaceImpl final : public BroadPhaseLayerInterface {
+  class BPLayerInterfaceImpl final : public JPH::BroadPhaseLayerInterface {
   public:
     BPLayerInterfaceImpl() {
       // Create a mapping table from object to broad phase layer
-      mObjectToBroadPhase[PhysicsComponent::Layers::NON_MOVING] = PhysicsComponent::BroadPhaseLayers::NON_MOVING;
-      mObjectToBroadPhase[PhysicsComponent::Layers::MOVING] = PhysicsComponent::BroadPhaseLayers::MOVING;
+      mObjectToBroadPhase[System::Layers::NON_MOVING] = System::BroadPhaseLayers::NON_MOVING;
+      mObjectToBroadPhase[System::Layers::MOVING] = System::BroadPhaseLayers::MOVING;
     }
 
     virtual uint GetNumBroadPhaseLayers() const override {
-      return PhysicsComponent::BroadPhaseLayers::NUM_LAYERS;
+      return System::BroadPhaseLayers::NUM_LAYERS;
     }
 
-    virtual BroadPhaseLayer GetBroadPhaseLayer(ObjectLayer inLayer) const override{
-      JPH_ASSERT(inLayer < PhysicsComponent::Layers::NUM_LAYERS);
+    virtual JPH::BroadPhaseLayer GetBroadPhaseLayer(JPH::ObjectLayer inLayer) const override{
+      JPH_ASSERT(inLayer < System::Layers::NUM_LAYERS);
       return mObjectToBroadPhase[inLayer];
     }
 
@@ -87,17 +84,17 @@ namespace {
 #endif // JPH_EXTERNAL_PROFILE || JPH_PROFILE_ENABLED
 
   private:
-    BroadPhaseLayer	mObjectToBroadPhase[PhysicsComponent::Layers::NUM_LAYERS];
+    JPH::BroadPhaseLayer	mObjectToBroadPhase[System::Layers::NUM_LAYERS];
   };
 
   // Class that determines if an object layer can collide with a broadphase layer
-  class ObjectVsBroadPhaseLayerFilterImpl : public ObjectVsBroadPhaseLayerFilter {
+  class ObjectVsBroadPhaseLayerFilterImpl : public JPH::ObjectVsBroadPhaseLayerFilter {
   public:
-    virtual bool ShouldCollide(ObjectLayer inLayer1, BroadPhaseLayer inLayer2) const override {
+    virtual bool ShouldCollide(JPH::ObjectLayer inLayer1, JPH::BroadPhaseLayer inLayer2) const override {
       switch (inLayer1) {
-      case PhysicsComponent::Layers::NON_MOVING:
-        return inLayer2 == PhysicsComponent::BroadPhaseLayers::MOVING;
-      case PhysicsComponent::Layers::MOVING:
+      case System::Layers::NON_MOVING:
+        return inLayer2 == System::BroadPhaseLayers::MOVING;
+      case System::Layers::MOVING:
         return true;
       default:
         JPH_ASSERT(false);
@@ -105,28 +102,26 @@ namespace {
       }
     }
   };
-};
 
-  PhysicsComponent::PhysicsComponent(Scene* scene, const PhysicsSystemSettings& settings): SceneComponent(scene) {
+  System::System(Scene* scene, const SystemSettings& settings): SceneComponent(scene) {
     layerGroupFilter = new GroupFilterLayerMask();
     
-    tempAllocator = new TempAllocatorImpl(settings.tempAllocatorSize);
-    jobSystem = new JobSystemThreadPool(cMaxPhysicsJobs, cMaxPhysicsBarriers, thread::hardware_concurrency() - 1);
-
+    tempAllocator = new JPH::TempAllocatorImpl(settings.tempAllocatorSize);
+    jobSystem = new JPH::JobSystemThreadPool(JPH::cMaxPhysicsJobs, JPH::cMaxPhysicsBarriers, JPH::thread::hardware_concurrency() - 1);
     bpLayerInterface = new BPLayerInterfaceImpl();
     objVsBPFilter = new ObjectVsBroadPhaseLayerFilterImpl();
     objVsObjFilter = new ObjectLayerPairFilterImpl();
 
-    physicsSystem = new PhysicsSystem();
+    physicsSystem = new JPH::PhysicsSystem();
     physicsSystem->Init(settings.maxBodies, settings.numBodyMutexes, settings.maxBodyPairs, settings.maxContactConstraints, *bpLayerInterface, *objVsBPFilter, *objVsObjFilter);
     bodyInterface = &physicsSystem->GetBodyInterface();
 
-    contactListener = new PhysicsContactListener(this);
+    contactListener = new ContactListener(this);
     physicsSystem->SetContactListener(contactListener);
     physicsSystem->SetBodyActivationListener(bodyActivationListener);
   }
 
-  PhysicsComponent::~PhysicsComponent() {
+  System::~System() {
     delete layerGroupFilter;
     delete contactListener;
     delete bodyActivationListener;
@@ -138,13 +133,13 @@ namespace {
     delete tempAllocator;
   }
 
-  void PhysicsComponent::OptimizeBroadPhase() {
+  void System::OptimizeBroadPhase() {
     if (physicsSystem) {
       physicsSystem->OptimizeBroadPhase();
     }
   }
 
-  SceneNode* PhysicsComponent::CastRay(
+  SceneNode* System::CastRay(
     glm::vec3 origin,
     glm::vec3 direction,
     const JPH::BroadPhaseLayerFilter& broadPhaseLayerFilter,
@@ -175,15 +170,15 @@ namespace {
     return nullptr;
   }
 
-  JPH::BodyInterface& PhysicsComponent::GetBodyInterface() {
+  JPH::BodyInterface& System::GetBodyInterface() {
     return *bodyInterface;
   }
 
-  JPH::PhysicsSystem& PhysicsComponent::GetSystem() {
+  JPH::PhysicsSystem& System::GetSystem() {
     return *physicsSystem;
   }
   
-  glm::vec3 PhysicsComponent::GetGravity() const {
+  glm::vec3 System::GetGravity() const {
     const JPH::Vec3 gravity = physicsSystem->GetGravity(); 
     return glm::vec3(
       gravity.GetX(),
@@ -192,12 +187,12 @@ namespace {
     );
   }
 
-  JPH::GroupFilter* PhysicsComponent::GetLayerGroupFilter() const {
+  JPH::GroupFilter* System::GetLayerGroupFilter() const {
     return this->layerGroupFilter;
   }
 
-  void PhysicsComponent::SetGravity(const glm::vec3 gravity) {
-    physicsSystem->SetGravity(Vec3Arg(
+  void System::SetGravity(const glm::vec3 gravity) {
+    physicsSystem->SetGravity(JPH::Vec3Arg(
       gravity.x,
       gravity.y,
       gravity.z
@@ -205,9 +200,9 @@ namespace {
   }
 
   // Sends shapes to the debug rendere
-  void PhysicsComponent::OnPostRender() {
+  void System::OnPostRender() {
     if (drawDebug) {
-      auto* debugRenderer = GetScene()->GetComponent<PhysicsDebugRenderer>();
+      auto* debugRenderer = GetScene()->GetComponent<DebugRenderer>();
       
       if (debugRenderer) {
         JPH::BodyManager::DrawSettings settings;
@@ -222,7 +217,7 @@ namespace {
     }
   }
 
-  void PhysicsComponent::OnPreUpdate() {
+  void System::OnPreUpdate() {
     // TMEPRORARY
     this->accumulator += Time::Delta();
     while (this->accumulator > this->cDeltaTime) { 
@@ -238,6 +233,7 @@ namespace {
       this->collisionQueue.clear();
     }
     for (const auto& collision : currentCollisions) {
+
       GameObject* object1;
       GameObject* object2;
       
@@ -260,13 +256,13 @@ namespace {
         SceneNode* node2 = object2->GetNode();
 
         for (GameObject* obj : node1->AttachedObjects()) {
-          if (auto* receiver = dynamic_cast<IPhysicsCollisionReceiver*>(obj)) {
+          if (auto* receiver = dynamic_cast<ICollisionReceiver*>(obj)) {
             receiver->OnCollisionEnter(node2);
           }
         }
 
         for (GameObject* obj : node2->AttachedObjects()) {
-          if (auto* receiver = dynamic_cast<IPhysicsCollisionReceiver*>(obj)) {
+          if (auto* receiver = dynamic_cast<ICollisionReceiver*>(obj)) {
             receiver->OnCollisionEnter(node1);
           }
         }
@@ -279,13 +275,13 @@ namespace {
     for (auto const& bodyId : activeBodies) {
       JPH::BodyLockRead lock(physicsSystem->GetBodyLockInterface(), bodyId);
       if (lock.Succeeded()) {
-        const Body& body = lock.GetBody();
+        const JPH::Body& body = lock.GetBody();
 
-        PhysicsObject* object = reinterpret_cast<PhysicsObject*>(body.GetUserData());
+        Body* object = reinterpret_cast<Body*>(body.GetUserData());
         
       if (object) {
-        const RVec3& position = body.GetPosition();
-        const Quat& rotation = body.GetRotation();
+        const JPH::RVec3& position = body.GetPosition();
+        const JPH::Quat& rotation = body.GetRotation();
 
         object->GetTransform().GlobalTransform().Position() = 
           glm::vec3(position.GetX(), position.GetY(), position.GetZ());
@@ -295,7 +291,7 @@ namespace {
     }
   }
 
-  for (auto& characterObject : this->GetScene()->FindObjectsOfType<PhysicsCharacter>()) {
+  for (auto& characterObject : this->GetScene()->FindObjectsOfType<CharacterController>()) {
     characterObject->GetCharacter()->PostSimulation(characterObject->maxSeparationDistance);
 
     JPH::RVec3 position = characterObject->GetCharacter()->GetPosition();
@@ -310,9 +306,10 @@ namespace {
   // Queue stuff
 }
 
-void PhysicsComponent::DrawImGui() {
+void System::DrawImGui() {
 	if (ImGui::TreeNode("Physics Debug")) {
     ImGui::Checkbox("Draw collision meshes", &drawDebug);   
 	  ImGui::TreePop();
   }
 }
+};

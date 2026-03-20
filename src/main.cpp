@@ -1,10 +1,9 @@
-
 #include "imgui.h"
-#include "physics/PhysicsCharacter.h"
-#include "physics/PhysicsCollisionReceiver.h"
-#include "physics/PhysicsComponent.h"
-#include "physics/PhysicsDebugRenderer.h"
-#include "physics/PhysicsObject.h"
+#include "physics/CharacterController.h"
+#include "physics/ICollisionReceiver.h"
+#include "physics/System.h"
+#include "physics/DebugRenderer.h"
+#include "physics/Body.h"
 
 #include <Jolt/Jolt.h>
 #include <Jolt/Physics/Character/Character.h>
@@ -105,7 +104,7 @@ public:
 	}
 };
 
-class PhysicsMover : public GameObject, public IPhysicsCollisionReceiver, public ImGuiDrawable {
+class PhysicsMover : public GameObject, public Physics::ICollisionReceiver, public ImGuiDrawable {
 private:
 	float pitch;
 	float rotation;
@@ -123,7 +122,7 @@ public:
 		this->mode = 0;
 
     // will crash if added before character remove tis
-    this->character = this->GetObject<PhysicsCharacter>()->GetCharacter();
+    this->character = this->GetObject<Physics::CharacterController>()->GetCharacter();
     // this->cameraNode = this->GetNode()->GetObjectInChildren<Camera>()->GetNode();
 	}
 
@@ -211,7 +210,7 @@ public:
 
     if (GetScene()->Input()->ButtonPressed(MouseButton::Left)) {
       spdlog::info("Left mouse button pressed");
-      auto* physics = this->GetScene()->GetComponent<PhysicsComponent>();
+      auto* physics = this->GetScene()->GetComponent<Physics::System>();
      
       JPH::RVec3 origin = {
         this->cameraNode->GlobalTransform().Position().x,
@@ -237,7 +236,7 @@ public:
         spdlog::info("Raycast hit");
 
         spdlog::info("Hit node: {}", result->GetName());
-        if (auto* object = result->GetObject<PhysicsObject>()) {
+        if (auto* object = result->GetObject<Physics::Body>()) {
           object->ApplyImpulse(this->cameraNode->GlobalTransform().Forward() * 100.0f);
           spdlog::info("Applied impulse");
         } else {
@@ -323,8 +322,8 @@ public:
 };
 
 void InitScene(Scene* mainScene) {
-  mainScene->AddComponent<PhysicsComponent>();
-  mainScene->AddComponent<PhysicsDebugRenderer>();
+  mainScene->AddComponent<Physics::System>();
+  mainScene->AddComponent<Physics::DebugRenderer>();
 
 	ShaderProgram* skyProg = ShaderProgram::Build().WithVertexShader(
 		mainScene->Resources()->Get<VertexShader>("./res/shaders/skybox.vert")
@@ -420,7 +419,7 @@ void InitScene(Scene* mainScene) {
 
 	auto constructNode = mainScene->CreateNode("gm_construct");
 	constructNode->AddObject<MeshRenderer>(gmConstructMesh, gmConstructMesh->GetDefaultMaterials());
-  constructNode->AddObject<PhysicsObject>(PhysicsObject::Mesh(gmConstructMesh, JPH::EMotionType::Static, PhysicsComponent::Layers::NON_MOVING));
+  constructNode->AddObject<Physics::Body>(Physics::Body::Mesh(gmConstructMesh, JPH::EMotionType::Static, Physics::System::Layers::NON_MOVING));
 
 	auto cannonNode = mainScene->CreateNode("Cannon");
 	cannonNode->AddObject<MeshRenderer>(cannonMesh, cannonMat);
@@ -453,7 +452,7 @@ void InitScene(Scene* mainScene) {
 
   SceneNode* playerNode = mainScene->CreateNode("Player");
   playerNode->GlobalTransform().Position() = glm::vec3(2.0f, 1.5f, -10.0f);
-  playerNode->AddObject<PhysicsCharacter>();
+  playerNode->AddObject<Physics::CharacterController>();
   playerNode->AddObject<PhysicsMover>();
 
 	auto cameraNode = mainScene->CreateNode(playerNode, "Camera");
@@ -531,8 +530,8 @@ void InitScene(Scene* mainScene) {
   physicsSchnozNode->AddObject<MeshRenderer>(schnozMesh, schnozMat);
   physicsSchnozNode->GlobalTransform().Position() = { 2.0f, 10.0f, 0.0f };
   physicsSchnozNode->GlobalTransform().Scale() = glm::vec3(0.25f);
-  JPH::BodyCreationSettings schnozShapeSettings = PhysicsObject::ConvexHullMesh(schnozMesh, JPH::EMotionType::Dynamic, PhysicsComponent::Layers::MOVING);
-  physicsSchnozNode->AddObject<PhysicsObject>(schnozShapeSettings);
+  JPH::BodyCreationSettings schnozShapeSettings = Physics::Body::ConvexHullMesh(schnozMesh, JPH::EMotionType::Dynamic, Physics::System::Layers::MOVING);
+  physicsSchnozNode->AddObject<Physics::Body>(schnozShapeSettings);
 
 	cameraNode->AddObject<Bloom>();
 	cameraNode->AddObject<Tonemapper>()->SetOperator(Tonemapper::TonemapperOperator::GranTurismo);
