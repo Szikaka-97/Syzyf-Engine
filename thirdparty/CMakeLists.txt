@@ -16,6 +16,12 @@ set(stb_image_SOURCE_DIR ${STB_IMAGE_DIR} CACHE INTERNAL "")
 add_library(stb_image STATIC ${STB_IMAGE_DIR}/stb_image.cpp)
 target_include_directories(stb_image PRIVATE ${STB_IMAGE_DIR})
 
+# stb_include
+set(STB_INCLUDE_DIR ${CMAKE_CURRENT_LIST_DIR}/stb_include)
+set(stb_include_SOURCE_DIR ${STB_INCLUDE_DIR} CACHE INTERNAL "")
+add_library(stb_include STATIC ${STB_INCLUDE_DIR}/stb_include.cpp)
+target_include_directories(stb_include PRIVATE ${STB_INCLUDE_DIR})
+
 # other
 CPMAddPackage("gh:assimp/assimp@6.0.4")
 CPMAddPackage("gh:glfw/glfw#3.4")
@@ -32,6 +38,7 @@ add_library(imgui STATIC ${imgui_SOURCE_DIR}/imgui.cpp
 						 
 set_target_properties(glad
                       stb_image 
+                      stb_include
                       assimp 
                       glfw 
                       glm 
