@@ -4,12 +4,14 @@
 #include "physics/System.h"
 #include "physics/DebugRenderer.h"
 #include "physics/Body.h"
+#include "physics/Water.h"
 
 #include <Jolt/Jolt.h>
 #include <Jolt/Physics/Character/Character.h>
 #include <Jolt/Physics/Collision/CastResult.h>
 #include <Jolt/Physics/Collision/RayCast.h>
 #include <Jolt/Physics/Body/BodyFilter.h>
+#include <Jolt/Physics/Collision/Shape/SphereShape.h>
 
 #include <Formatters.h>
 #include <Shader.h>
@@ -209,7 +211,6 @@ public:
     }
 
     if (GetScene()->Input()->ButtonPressed(MouseButton::Left)) {
-      spdlog::info("Left mouse button pressed");
       auto* physics = this->GetScene()->GetComponent<Physics::System>();
      
       JPH::RVec3 origin = {
@@ -245,6 +246,39 @@ public:
       }
     }
 
+    if (GetScene()->Input()->ButtonDown(MouseButton::Right)) {
+      auto* physics = this->GetScene()->GetComponent<Physics::System>();
+
+      JPH::Vec3 direction = JPH::Vec3(
+        this->cameraNode->GlobalTransform().Forward().x,
+        this->cameraNode->GlobalTransform().Forward().y,
+        this->cameraNode->GlobalTransform().Forward().z
+      ) * 100.0f;
+
+      JPH::ShapeRefC shape = new JPH::SphereShape(0.5f);
+
+      std::vector<SceneNode*> results = physics->CastShape(
+        this->cameraNode->GlobalTransform().Position(),
+        this->cameraNode->GlobalTransform().Forward() * 100.0f,
+        shape,
+        {},
+        {},
+        JPH::IgnoreSingleBodyFilter(this->character->GetBodyID())
+      );
+
+      if (!results.empty()) {
+        spdlog::info("Shape cast hit {} objects", results.size());
+
+        for (SceneNode* result : results) {
+          if (result) {
+            spdlog::info("Hit: {}", result->GetName());
+          }
+        }
+      } else {
+        spdlog::info("ShapeCast hit nothing");
+      }
+    }
+
 		if (GetScene()->Input()->KeyDown(Key::Escape)) {
 			this->movementEnabled = !this->movementEnabled;
 
@@ -264,6 +298,8 @@ public:
 		ImGui::InputFloat("Movement speed", &this->movementSpeed);
 		ImGui::InputFloat("Mouse sensitivity", &this->mouseSensitivity);
 	}
+
+  virtual void OnCollisionExit(SceneNode* node) {}
 };
 
 class AutoRotator : public GameObject {
@@ -419,7 +455,7 @@ void InitScene(Scene* mainScene) {
 
 	auto constructNode = mainScene->CreateNode("gm_construct");
 	constructNode->AddObject<MeshRenderer>(gmConstructMesh, gmConstructMesh->GetDefaultMaterials());
-  constructNode->AddObject<Physics::Body>(Physics::Body::Mesh(gmConstructMesh, JPH::EMotionType::Static, Physics::System::Layers::NON_MOVING));
+  constructNode->AddObject<Physics::Body>(Physics::Body::Mesh(gmConstructMesh, JPH::EMotionType::Static, Physics::Layers::NON_MOVING));
 
 	auto cannonNode = mainScene->CreateNode("Cannon");
 	cannonNode->AddObject<MeshRenderer>(cannonMesh, cannonMat);
@@ -530,11 +566,25 @@ void InitScene(Scene* mainScene) {
   physicsSchnozNode->AddObject<MeshRenderer>(schnozMesh, schnozMat);
   physicsSchnozNode->GlobalTransform().Position() = { 2.0f, 10.0f, 0.0f };
   physicsSchnozNode->GlobalTransform().Scale() = glm::vec3(0.25f);
-  JPH::BodyCreationSettings schnozShapeSettings = Physics::Body::ConvexHullMesh(schnozMesh, JPH::EMotionType::Dynamic, Physics::System::Layers::MOVING);
+  JPH::BodyCreationSettings schnozShapeSettings = Physics::Body::ConvexHullMesh(schnozMesh, JPH::EMotionType::Dynamic, Physics::Layers::MOVING);
   physicsSchnozNode->AddObject<Physics::Body>(schnozShapeSettings);
 
 	cameraNode->AddObject<Bloom>();
 	cameraNode->AddObject<Tonemapper>()->SetOperator(Tonemapper::TonemapperOperator::GranTurismo);
+
+  Mesh* waterMesh = mainScene->Resources()->Get<Mesh>("./res/models/water.obj");
+  SceneNode* water = mainScene->CreateNode("Water");
+  water->AddObject<MeshRenderer>(waterMesh, reflectiveMat);
+  water->AddObject<Water>();
+  water->AddObject<Physics::Body>(Physics::Body::ConvexHullMesh(
+    cubeMesh,
+    JPH::EMotionType::Static,
+    Physics::Layers::NON_MOVING
+  ));
+  water->GetObject<Physics::Body>()->SetIsSensor(true);
+  water->GlobalTransform().Position() = {
+    2.0f, 0.0f, -68.0f
+  };
 
 	mainScene->AddComponent<DebugInspector>();
 }

@@ -36,22 +36,23 @@ struct SystemSettings {
 struct CollisionData {
   JPH::BodyID body1;
   JPH::BodyID body2;
+  enum class State { Enter, Exit } state;
+};
+
+struct Layers {
+  static constexpr JPH::ObjectLayer NON_MOVING = 0;
+  static constexpr JPH::ObjectLayer MOVING = 1;
+  static constexpr JPH::ObjectLayer NUM_LAYERS = 2;
+};
+
+struct BroadPhaseLayers {
+  static constexpr JPH::BroadPhaseLayer NON_MOVING{0};
+  static constexpr JPH::BroadPhaseLayer MOVING{1};
+  static constexpr JPH::uint NUM_LAYERS{2};
 };
 
 class System : public SceneComponent {
 public:
-  struct Layers {
-    static constexpr JPH::ObjectLayer NON_MOVING = 0;
-    static constexpr JPH::ObjectLayer MOVING = 1;
-    static constexpr JPH::ObjectLayer NUM_LAYERS = 2;
-  };
-
-  struct BroadPhaseLayers {
-    static constexpr JPH::BroadPhaseLayer NON_MOVING{0};
-    static constexpr JPH::BroadPhaseLayer MOVING{1};
-    static constexpr JPH::uint NUM_LAYERS{2};
-  };
-
   // move to private perhaps
   std::mutex collisionMutex;
   std::vector<CollisionData> collisionQueue;
@@ -90,6 +91,15 @@ public:
   SceneNode* CastRay(
     glm::vec3 origin,
     glm::vec3 direction,
+    const JPH::BroadPhaseLayerFilter& broadPhaseLayerFilter = {},
+    const JPH::ObjectLayerFilter& objectLayerFilter = {},
+    const JPH::BodyFilter& bodyFilter = {}
+  );
+
+  std::vector<SceneNode*> CastShape(
+    glm::vec3 origin,
+    glm::vec3 direction,
+    const JPH::ShapeRefC& shape,
     const JPH::BroadPhaseLayerFilter& broadPhaseLayerFilter = {},
     const JPH::ObjectLayerFilter& objectLayerFilter = {},
     const JPH::BodyFilter& bodyFilter = {}

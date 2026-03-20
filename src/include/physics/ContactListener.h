@@ -13,8 +13,7 @@ class ContactListener : public JPH::ContactListener {
     ContactListener(System* physicsSystem);
 
     virtual void OnContactAdded(const JPH::Body &inBody1, const JPH::Body &inBody2, const JPH::ContactManifold &inManifold, JPH::ContactSettings &ioSettings);
-
+    virtual void OnContactRemoved(const JPH::SubShapeIDPair &inSubShapePair);
     // virtual void OnContactPersisted
-    // virtual void OnContactRemoved
 };
 }

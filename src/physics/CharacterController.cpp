@@ -12,7 +12,7 @@ CharacterController::CharacterController() {
   JPH::Ref<JPH::CharacterSettings> settings = new JPH::CharacterSettings();
 
   settings->mMaxSlopeAngle = JPH::DegreesToRadians(45.0f);
-  settings->mLayer = System::Layers::MOVING;
+  settings->mLayer = Layers::MOVING;
   settings->mShape = new JPH::SphereShape(0.75f);
   settings->mFriction = 5.0f;
 

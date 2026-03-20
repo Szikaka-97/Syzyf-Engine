@@ -1,4 +1,5 @@
 #include "physics/System.h"
+#include "Jolt/Physics/Collision/TransformedShape.h"
 #include "physics/CharacterController.h"
 #include "physics/ICollisionReceiver.h"
 #include "physics/DebugRenderer.h"
@@ -25,6 +26,9 @@
 #include <Jolt/Math/MathTypes.h>
 #include <Jolt/Math/Real.h>
 #include <Jolt/Physics/Collision/CastResult.h>
+#include <Jolt/Physics/Collision/ShapeCast.h>
+#include <Jolt/Physics/Collision/CastResult.h>
+#include <Jolt/Physics/Collision/CollisionCollectorImpl.h>
 #include <imgui.h>
 
 using namespace JPH::literals;
@@ -43,9 +47,9 @@ namespace Physics {
   public:
     virtual bool ShouldCollide(JPH::ObjectLayer inObject1, JPH::ObjectLayer inObject2) const override {
       switch (inObject1) {
-      case System::Layers::NON_MOVING:
-        return inObject2 == System::Layers::MOVING; // Non moving only collides with moving
-      case System::Layers::MOVING:
+      case Layers::NON_MOVING:
+        return inObject2 == Layers::MOVING; // Non moving only collides with moving
+      case Layers::MOVING:
   return true; // Moving collides with everything
       default:
         JPH_ASSERT(false);
@@ -60,16 +64,16 @@ namespace Physics {
   public:
     BPLayerInterfaceImpl() {
       // Create a mapping table from object to broad phase layer
-      mObjectToBroadPhase[System::Layers::NON_MOVING] = System::BroadPhaseLayers::NON_MOVING;
-      mObjectToBroadPhase[System::Layers::MOVING] = System::BroadPhaseLayers::MOVING;
+      mObjectToBroadPhase[Layers::NON_MOVING] = BroadPhaseLayers::NON_MOVING;
+      mObjectToBroadPhase[Layers::MOVING] = BroadPhaseLayers::MOVING;
     }
 
     virtual uint GetNumBroadPhaseLayers() const override {
-      return System::BroadPhaseLayers::NUM_LAYERS;
+      return BroadPhaseLayers::NUM_LAYERS;
     }
 
     virtual JPH::BroadPhaseLayer GetBroadPhaseLayer(JPH::ObjectLayer inLayer) const override{
-      JPH_ASSERT(inLayer < System::Layers::NUM_LAYERS);
+      JPH_ASSERT(inLayer < Layers::NUM_LAYERS);
       return mObjectToBroadPhase[inLayer];
     }
 
@@ -84,7 +88,7 @@ namespace Physics {
 #endif // JPH_EXTERNAL_PROFILE || JPH_PROFILE_ENABLED
 
   private:
-    JPH::BroadPhaseLayer	mObjectToBroadPhase[System::Layers::NUM_LAYERS];
+    JPH::BroadPhaseLayer	mObjectToBroadPhase[Layers::NUM_LAYERS];
   };
 
   // Class that determines if an object layer can collide with a broadphase layer
@@ -92,9 +96,9 @@ namespace Physics {
   public:
     virtual bool ShouldCollide(JPH::ObjectLayer inLayer1, JPH::BroadPhaseLayer inLayer2) const override {
       switch (inLayer1) {
-      case System::Layers::NON_MOVING:
-        return inLayer2 == System::BroadPhaseLayers::MOVING;
-      case System::Layers::MOVING:
+      case Layers::NON_MOVING:
+        return inLayer2 == BroadPhaseLayers::MOVING;
+      case Layers::MOVING:
         return true;
       default:
         JPH_ASSERT(false);
@@ -168,6 +172,48 @@ namespace Physics {
       }
     } 
     return nullptr;
+  }
+
+  std::vector<SceneNode*> System::CastShape(
+    glm::vec3 origin,
+    glm::vec3 direction,
+    const JPH::ShapeRefC& shape,
+    const JPH::BroadPhaseLayerFilter& broadPhaseLayerFilter,
+    const JPH::ObjectLayerFilter& objectLayerFilter,
+    const JPH::BodyFilter& bodyFilter
+  ) {
+    JPH::RShapeCast shapeCast = JPH::RShapeCast::sFromWorldTransform(
+      shape,
+      JPH::Vec3::sReplicate(1.0f),
+      JPH::RMat44::sTranslation(JPH::RVec3(origin.x, origin.y, origin.z)),
+      JPH::Vec3(direction.x, direction.y, direction.z)
+    );
+
+    JPH::ShapeCastSettings settings;
+
+    JPH::AllHitCollisionCollector<JPH::CastShapeCollector> collector;
+
+    this->physicsSystem->GetNarrowPhaseQuery().CastShape(
+      shapeCast,
+      settings,
+      shapeCast.mCenterOfMassStart.GetTranslation(),
+      collector,
+      broadPhaseLayerFilter,
+      objectLayerFilter,
+      bodyFilter
+    );
+
+    std::vector<SceneNode*> result;
+    result.reserve(collector.mHits.size());
+
+    for (auto body : collector.mHits) {
+      result.push_back(
+        reinterpret_cast<GameObject*>(this->physicsSystem->GetBodyInterface().GetUserData(body.mBodyID2))->GetNode()
+      );
+    }
+
+    // Could add an option to sort the vector
+    return result;
   }
 
   JPH::BodyInterface& System::GetBodyInterface() {
@@ -257,13 +303,19 @@ namespace Physics {
 
         for (GameObject* obj : node1->AttachedObjects()) {
           if (auto* receiver = dynamic_cast<ICollisionReceiver*>(obj)) {
-            receiver->OnCollisionEnter(node2);
+            if (collision.state == CollisionData::State::Enter)
+              receiver->OnCollisionEnter(node2);
+            else
+              receiver->OnCollisionExit(node2);
           }
         }
 
         for (GameObject* obj : node2->AttachedObjects()) {
           if (auto* receiver = dynamic_cast<ICollisionReceiver*>(obj)) {
-            receiver->OnCollisionEnter(node1);
+            if (collision.state == CollisionData::State::Enter)
+              receiver->OnCollisionEnter(node1);
+            else
+              receiver->OnCollisionExit(node1);
           }
         }
       }
