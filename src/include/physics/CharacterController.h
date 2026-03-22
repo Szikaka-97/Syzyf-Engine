@@ -32,6 +32,7 @@ public:
   glm::vec3 GetLinearVelocity() const;
   glm::vec3 GetPosition() const;
   glm::quat GetRotation() const;
+  float GetGravityFactor() const;
 
   bool IsSupported() const;
 
@@ -51,6 +52,7 @@ public:
   void AddLinearVelocity(const glm::vec3& velocity);
   void SetPosition(const glm::vec3& position);
   void SetRotation(const glm::quat& rotation);
+  void SetGravityFactor(float factor);
 
   void SetUp(const glm::vec3& up);
   bool SetShape(const JPH::RefConst<JPH::Shape>& shape, float maxPenetrationDepth = 1.0e-4f);

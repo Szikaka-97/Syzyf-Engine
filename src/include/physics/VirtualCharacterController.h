@@ -11,6 +11,7 @@ namespace Physics {
 class VirtualCharacterController : public GameObject, public ImGuiDrawable {
 private:
   uint32_t collisionLayer = 1;
+  float gravityFactor = 1.0f;
 
   JPH::Ref<JPH::CharacterVirtual> character;
   JPH::Ref<JPH::CharacterVirtualSettings> characterSettings;
@@ -23,6 +24,7 @@ public:
 
   glm::vec3 GetPosition() const;
   glm::quat GetRotation() const;
+  float GetGravityFactor() const;
   glm::vec3 GetLinearVelocity() const;
 
   JPH::BodyID GetGroundBodyID() const;
@@ -36,6 +38,7 @@ public:
   void SetCollisionLayer(uint32_t layer);
   void SetPosition(const glm::vec3& position);
   void SetRotation(const glm::quat& rotation);
+  void SetGravityFactor(float factor);
 
   void Awake();
 

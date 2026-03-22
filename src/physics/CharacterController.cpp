@@ -61,6 +61,15 @@ glm::quat CharacterController::GetRotation() const {
   return glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
 }
 
+float CharacterController::GetGravityFactor() const {
+  if (this->character) {
+    if (System* physics = GetScene()->GetComponent<System>()) {
+      return physics->GetBodyInterface().GetGravityFactor(this->character->GetBodyID());
+    }
+  }
+  return 1.0f;
+}
+
 bool CharacterController::IsSupported() const {
   if (this->character) {
     return this->character->IsSupported();
@@ -161,6 +170,14 @@ void CharacterController::SetPosition(const glm::vec3& position) {
 void CharacterController::SetRotation(const glm::quat& rotation) {
   if (this->character) {
     this->character->SetRotation(JPH::Quat(rotation.x, rotation.y, rotation.z, rotation.w));
+  }
+}
+
+void CharacterController::SetGravityFactor(float factor) {
+  if (this->character) {
+    if (System* physics = GetScene()->GetComponent<System>()) {
+      physics->GetBodyInterface().SetGravityFactor(this->character->GetBodyID(), factor);
+    }
   }
 }
 

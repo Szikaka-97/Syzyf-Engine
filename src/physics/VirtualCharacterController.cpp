@@ -19,7 +19,7 @@ void VirtualCharacterController::Move(const glm::vec3& velocity, float deltaTime
 
   this->character->Update(
     deltaTime,
-    physics->GetSystem().GetGravity(),
+    physics->GetSystem().GetGravity() * this->gravityFactor,
     physics->GetSystem().GetDefaultBroadPhaseLayerFilter(collisionLayer),
     physics->GetSystem().GetDefaultLayerFilter(collisionLayer),
     { },
@@ -45,6 +45,10 @@ glm::quat VirtualCharacterController::GetRotation() const {
     return glm::quat(rotation.GetW(), rotation.GetX(), rotation.GetY(), rotation.GetZ());
   }
   return glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
+}
+
+float VirtualCharacterController::GetGravityFactor() const {
+  return this->gravityFactor;
 }
 
 glm::vec3 VirtualCharacterController::GetLinearVelocity() const {
@@ -119,6 +123,10 @@ void VirtualCharacterController::SetRotation(const glm::quat& rotation) {
     this->character->SetRotation(JPH::Quat(rotation.x, rotation.y, rotation.z, rotation.w));
     this->GetTransform().GlobalTransform().Rotation() = rotation;
   }
+}
+
+void VirtualCharacterController::SetGravityFactor(float factor) {
+  this->gravityFactor = factor;
 }
 
 void VirtualCharacterController::Awake() {
