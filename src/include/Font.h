@@ -6,6 +6,7 @@
 #include FT_FREETYPE_H
 
 #include <Shader.h>
+#include <Resources.h>
 #include <map>
 #include <glm/ext/matrix_clip_space.hpp>
 
@@ -18,7 +19,7 @@ struct Character {
     unsigned int Advance;   // Horizontal offset to advance to next glyph
 };
 
-class Font {
+class Font : public Resource {
 public:
     std::map<GLchar, Character> Characters;
     Font(std::string fontPath);

@@ -14,9 +14,9 @@ class Text {
 
 public:
 
-    Text(std::string text, float x, float y, float scale, glm::vec3 color, Font* font);
+    Text(std::string& text, float x, float y, float scale, glm::vec3 color, Font* fontPtr);
 
-    void Draw(Shader& shader, glm::mat4 projection);
+    void Draw(ShaderProgram& shader, glm::mat4 projection);
 
 private:
     std::string text;
@@ -30,7 +30,7 @@ private:
 
     void setupBuffers();
 
-    void RenderText(Shader& shader, std::string text, float x, float y, float scale, glm::vec3 color, glm::mat4 projection);
+    void RenderText(ShaderProgram& shader, std::string text, float x, float y, float scale, glm::vec3 color, glm::mat4 projection);
 
 
 };

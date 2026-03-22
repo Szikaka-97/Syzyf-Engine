@@ -1,12 +1,13 @@
 #include <Text.h>
 #include <Font.h>
+#include <Shader.h>
 
 Text::Text(std::string& text, float x, float y, float scale, glm::vec3 color, Font* fontPtr)
     : text(std::move(text)), x(x), y(y), scale(scale), color(color), font(fontPtr) {
     setupBuffers();
 }
 
-void Text::Draw(Shader& shader, glm::mat4 projection) {
+void Text::Draw(ShaderProgram& shader, glm::mat4 projection) {
     RenderText(shader, text, x, y, scale, color, projection);
 }
 
@@ -22,11 +23,13 @@ void Text::setupBuffers() {
     glBindVertexArray(0);
 }
 
-void Text::RenderText(Shader& shader, std::string text, float x, float y, float scale, glm::vec3 color, glm::mat4 projection) {
+void Text::RenderText(ShaderProgram& shader, std::string text, float x, float y, float scale, glm::vec3 color, glm::mat4 projection) {
     // activate corresponding render state	
 
-    shader.use();
-    shader.setMat4("projection", projection);
+    //shader.Build();
+    //shader.setMat4("projection", projection);
+	//shader.setValue("projection", projection);
+	shader.GetUniforms().SetMat4("projection", projection);
     glUniform3f(glGetUniformLocation(shader.ID, "textColor"), color.x, color.y, color.z);
     glActiveTexture(GL_TEXTURE0);
     glBindVertexArray(VAO);
