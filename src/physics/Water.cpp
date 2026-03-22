@@ -24,9 +24,15 @@ void Water::Update() {
   JPH::RVec3 surfacePosition(this->GlobalTransform().Position().x, this->GlobalTransform().Position().y + 1.0f, this->GlobalTransform().Position().z);
   JPH::Vec3 surfaceNormal(0, 1, 0);
 
-  for (auto* node : submergedNodes) {
+  for (auto it = submergedNodes.begin(); it != submergedNodes.end(); ) {
+    SceneNode* node = *it;
     Physics::Body* body = node->GetObject<Physics::Body>();
-    if (!body) continue;
+
+    if (!body || !body->IsActive() || !body->IsEnabled()) {
+      it = submergedNodes.erase(it);
+      continue;
+    }
+
     float buoyancyMultiplier = 1.2f; // move to material
 
     bodyInterface.ApplyBuoyancyImpulse(
@@ -44,5 +50,7 @@ void Water::Update() {
       ),
       Time::Delta()
     );
+
+    ++it;
   }
 }

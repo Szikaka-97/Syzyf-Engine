@@ -1,5 +1,7 @@
 #include "physics/CharacterController.h"
 #include "Jolt/Math/Math.h"
+#include "Jolt/Physics/Body/Body.h"
+#include "Jolt/Physics/Body/BodyID.h"
 #include "Jolt/Physics/Character/Character.h"
 #include "Jolt/Physics/Collision/Shape/SphereShape.h"
 #include "Jolt/Physics/EActivation.h"
@@ -8,21 +10,19 @@
 #include <imgui.h>
 
 namespace Physics {
-CharacterController::CharacterController() {
-  JPH::Ref<JPH::CharacterSettings> settings = new JPH::CharacterSettings();
-
-  settings->mMaxSlopeAngle = JPH::DegreesToRadians(45.0f);
-  settings->mLayer = Layers::MOVING;
-  settings->mShape = new JPH::SphereShape(0.75f);
-  settings->mFriction = 5.0f;
-
-  this->characterSettings = settings;
-  
+CharacterController::CharacterController(const JPH::Ref<JPH::CharacterSettings>& settings): characterSettings(settings) {
   spdlog::info("PhysicsCharacter: Added a character controller");
 }
 
 CharacterController::~CharacterController() {
   delete this->character;
+}
+
+JPH::BodyID CharacterController::GetBodyID() const {
+  if (this->character) {
+    return this->character->GetBodyID();
+  }
+  return JPH::BodyID();
 }
 
 uint32_t CharacterController::GetCollisionLayer() const {
@@ -68,12 +68,46 @@ bool CharacterController::IsSupported() const {
   return false;
 }
 
+JPH::BodyID CharacterController::GetGroundBodyID() const {
+  if (this->character) {
+    return this->character->GetBodyID();
+  }
+  return JPH::BodyID();
+}
+
+SceneNode* CharacterController::GetGroundObject() const {
+  if (this->character) {
+    uint64_t userData = this->character->GetGroundUserData();
+    GameObject* object = reinterpret_cast<GameObject*>(userData);
+    if (object) {
+      return object->GetNode();
+    }
+  }
+  return nullptr;
+}
+
+glm::vec3 CharacterController::GetGroundPosition() const {
+  if (this->character) {
+    JPH::Vec3 position = this->character->GetGroundPosition();
+    return glm::vec3(position.GetX(), position.GetY(), position.GetZ());
+  }
+  return glm::vec3(0.0f, 0.0f, 0.0f);
+}
+
 glm::vec3 CharacterController::GetGroundNormal() const {
   if (this->character) {
     JPH::Vec3 normal = this->character->GetGroundNormal();
     return glm::vec3(normal.GetX(), normal.GetY(), normal.GetZ());
   }
   return glm::vec3(0.0f, 1.0f, 0.0f);
+}
+
+glm::vec3 CharacterController::GetGroundVelocity() const {
+  if (this->character) {
+    JPH::Vec3 velocity = this->character->GetGroundVelocity();
+    return glm::vec3(velocity.GetX(), velocity.GetY(), velocity.GetZ());
+  }
+  return glm::vec3(0.0f);
 }
 
 JPH::CharacterBase::EGroundState CharacterController::GetGroundState() const {
@@ -100,9 +134,21 @@ void CharacterController::SetCollisionLayerAndMask(uint32_t layer, uint32_t mask
   }
 }
 
+void CharacterController::AddImpulse(const glm::vec3& impulse) {
+  if (this->character) {
+    this->character->AddImpulse(JPH::Vec3(impulse.x, impulse.y, impulse.z));
+  }
+}
+
 void CharacterController::SetLinearVelocity(const glm::vec3& velocity) {
   if (this->character) {
     this->character->SetLinearVelocity(JPH::Vec3(velocity.x, velocity.y, velocity.z));
+  }
+}
+
+void CharacterController::AddLinearVelocity(const glm::vec3& velocity) {
+  if (this->character) {
+    this->character->AddLinearVelocity(JPH::Vec3(velocity.x, velocity.y, velocity.z));
   }
 }
 
@@ -116,6 +162,22 @@ void CharacterController::SetRotation(const glm::quat& rotation) {
   if (this->character) {
     this->character->SetRotation(JPH::Quat(rotation.x, rotation.y, rotation.z, rotation.w));
   }
+}
+
+void CharacterController::SetUp(const glm::vec3& up) {
+  if (this->character) {
+    this->character->SetUp(JPH::Vec3(up.x, up.y, up.z));
+  }
+}
+
+bool CharacterController::SetShape(const JPH::RefConst<JPH::Shape>& shape, float maxPenetrationDepth) {
+  if (this->character) {
+    System* physics = GetScene()->GetComponent<System>();
+    if (physics != nullptr) {
+      return this->character->SetShape(shape, maxPenetrationDepth);
+    }
+  }
+  return false;
 }
 
 void CharacterController::Awake() {

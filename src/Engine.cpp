@@ -106,7 +106,8 @@ bool Engine::InitProgram() {
 	auto monitor = glfwGetPrimaryMonitor();
 	auto vidMode = glfwGetVideoMode(monitor);
 
-	window = glfwCreateWindow(vidMode->width, vidMode->height, "Syzyf Engine", nullptr, nullptr);
+	window = glfwCreateWindow(1280, 720, "Syzyf Engine", nullptr, nullptr);
+	// window = glfwCreateWindow(vidMode->width, vidMode->height, "Syzyf Engine", nullptr, nullptr);
 	if (window == NULL) {
 		spdlog::error("Failed to create GLFW Window!");
 

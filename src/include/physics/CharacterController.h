@@ -10,8 +10,7 @@
 namespace Physics {
 class CharacterController : public GameObject, public ImGuiDrawable {
 public:
-  float maxSeparationDistance = 0.1f;
-
+  float maxSeparationDistance = 1.0e-4f;
 private:
   uint32_t collisionLayer = 1;
   uint32_t collisionMask = 1;
@@ -19,12 +18,15 @@ private:
   JPH::Character* character = nullptr;
   JPH::Ref<JPH::CharacterSettings> characterSettings;
 public:
-  CharacterController();
+  CharacterController(const JPH::Ref<JPH::CharacterSettings>& settings);
   virtual ~CharacterController();
 
   // Getters
+  JPH::BodyID GetBodyID() const;
+
   uint32_t GetCollisionLayer() const;
   uint32_t GetCollisionMask() const;
+
   JPH::Character* GetCharacter() const;
 
   glm::vec3 GetLinearVelocity() const;
@@ -32,16 +34,26 @@ public:
   glm::quat GetRotation() const;
 
   bool IsSupported() const;
+
+  JPH::BodyID GetGroundBodyID() const;
+  SceneNode* GetGroundObject() const;
+  glm::vec3 GetGroundPosition() const;
   glm::vec3 GetGroundNormal() const;
+  glm::vec3 GetGroundVelocity() const;
   JPH::CharacterBase::EGroundState GetGroundState() const;
 
   // Setters
   void SetCollisionLayerAndMask(uint32_t layer, uint32_t mask);
-  
+
+  void AddImpulse(const glm::vec3& impulse);
+
   void SetLinearVelocity(const glm::vec3& velocity);
   void AddLinearVelocity(const glm::vec3& velocity);
   void SetPosition(const glm::vec3& position);
   void SetRotation(const glm::quat& rotation);
+
+  void SetUp(const glm::vec3& up);
+  bool SetShape(const JPH::RefConst<JPH::Shape>& shape, float maxPenetrationDepth = 1.0e-4f);
 
   void Awake();
   void OnEnable();
