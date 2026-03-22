@@ -19,6 +19,8 @@
 #include <InputSystem.h>
 #include <Engine.h>
 #include <Viewport.h>
+#include <Text.h>
+#include <Font.h>
 
 class Mover : public GameObject, public ImGuiDrawable {
 private:
@@ -180,6 +182,12 @@ void InitScene(Scene* mainScene) {
 	).Link();
 	transparentProg->SetTransparent(true);
 
+	ShaderProgram* textProg = ShaderProgram::Build()
+		.WithVertexShader(mainScene->Resources()->Get<VertexShader>("./res/shaders/text.vert"))
+		.WithPixelShader(mainScene->Resources()->Get<PixelShader>("./res/shaders/text.frag"))
+		.Link();
+
+
 	Mesh* gmConstructMesh = mainScene->Resources()->Get<Mesh>("./res/models/construct/construct.obj", true);
 	Mesh* cannonMesh = mainScene->Resources()->Get<Mesh>("./res/models/cannon/cannon.obj");
 	Mesh* cubeMesh = mainScene->Resources()->Get<Mesh>("./res/models/not_cube.obj");
@@ -242,6 +250,9 @@ void InitScene(Scene* mainScene) {
 	Material* schnozMat = new Material(diffuseTexProg);
 	schnozMat->SetValue("uColor", glm::vec3(1, 1, 1));
 	schnozMat->SetValue("colorTex", schnozTexture);
+	schnozMat->SetValue("uColor", glm::vec3(1, 1, 1));
+
+	Material* textMaterial = new Material(textProg);
 
 	auto constructNode = mainScene->CreateNode("gm_construct");
 	constructNode->AddObject<MeshRenderer>(gmConstructMesh, gmConstructMesh->GetDefaultMaterials());
@@ -330,6 +341,12 @@ void InitScene(Scene* mainScene) {
 	schnozNode->AddObject<MeshRenderer>(schnozMesh, schnozMat);
 	schnozNode->AddObject<AutoRotator>(1);
 	schnozNode->SetLayer(5);
+
+	Font* font = mainScene->Resources()->Get<Font>("./res/fonts/comic.ttf");
+	std::string str = "I'm stupid";
+
+	SceneNode* uiNode = mainScene->CreateNode("text");
+	Text* textObj = uiNode->AddObject<Text>(str, 0, 0, 1,glm::vec3(1.0f), font, textMaterial);
 
 	SceneNode* schnozLightNode = mainScene->CreateNode("Schnoz Light");
 	schnozLightNode->LocalTransform().Position() = glm::vec3(-55.5, 3.0, -2.0);
