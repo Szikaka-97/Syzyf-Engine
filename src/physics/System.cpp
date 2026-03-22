@@ -223,6 +223,10 @@ namespace Physics {
   JPH::PhysicsSystem& System::GetSystem() {
     return *physicsSystem;
   }
+
+  JPH::TempAllocatorImpl& System::GetTempAllocator() {
+    return *this->tempAllocator;
+  }
   
   glm::vec3 System::GetGravity() const {
     const JPH::Vec3 gravity = physicsSystem->GetGravity(); 

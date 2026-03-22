@@ -110,6 +110,7 @@ public:
 
   JPH::BodyInterface& GetBodyInterface();
   JPH::PhysicsSystem& GetSystem();
+  JPH::TempAllocatorImpl& GetTempAllocator();
 
   JPH::GroupFilter* GetLayerGroupFilter() const;
 };
