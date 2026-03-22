@@ -19,6 +19,7 @@
 #include <InputSystem.h>
 #include <Engine.h>
 #include <Viewport.h>
+#include <AiNode.h>
 
 class Mover : public GameObject, public ImGuiDrawable {
 private:
@@ -330,6 +331,16 @@ void InitScene(Scene* mainScene) {
 	schnozNode->AddObject<MeshRenderer>(schnozMesh, schnozMat);
 	schnozNode->AddObject<AutoRotator>(1);
 	schnozNode->SetLayer(5);
+
+	SceneNode* w_schnozNode = mainScene->CreateNode("w_schnozNode");
+	w_schnozNode->LocalTransform().Position() = glm::vec3(0,0,0);
+	schnozNode->LocalTransform().Scale() = glm::vec3(1,1,1);
+	w_schnozNode->AddObject<MeshRenderer>(schnozMesh, schnozMat);
+
+	auto enemyAI = w_schnozNode->AddObject<AiNode>();
+	if (enemyAI) {
+		enemyAI->SetTarget(cameraNode);
+	}
 
 	SceneNode* schnozLightNode = mainScene->CreateNode("Schnoz Light");
 	schnozLightNode->LocalTransform().Position() = glm::vec3(-55.5, 3.0, -2.0);
