@@ -3,7 +3,7 @@
 #include <GameObject.h>
 #include <Debug.h>
 
-class AiNode : public GameObject, public ImGuiDrawable {
+class AiNode : public GameObject {
 private:
     float m_Speed;               
     float m_RotationSpeed;      
