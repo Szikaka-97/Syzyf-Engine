@@ -17,6 +17,10 @@ class SceneGraphics;
 class SceneComponent;
 class Light;
 
+#ifdef _WIN32
+#include <Windows.h>
+#endif
+
 class Scene;
 
 class SceneNode {

@@ -20,7 +20,7 @@ void TraceImpl(const char *inFMT, ...) {
 #ifdef JPH_ENABLE_ASSERTS
 
 // Callback for asserts, connect this to your own assert handler if you have one
-bool AssertFailedImpl(const char *inExpression, const char *inMessage, const char *inFile, uint inLine) {
+bool AssertFailedImpl(const char *inExpression, const char *inMessage, const char *inFile, unsigned int inLine) {
   // Print to the TTY
   spdlog::info("{}: {}: ({}) {}", inFile, inLine, inExpression, (inMessage != nullptr ? inMessage : ""));
   // Breakpoint

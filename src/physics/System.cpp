@@ -68,7 +68,7 @@ namespace Physics {
       mObjectToBroadPhase[Layers::MOVING] = BroadPhaseLayers::MOVING;
     }
 
-    virtual uint GetNumBroadPhaseLayers() const override {
+    virtual unsigned int GetNumBroadPhaseLayers() const override {
       return BroadPhaseLayers::NUM_LAYERS;
     }
 
@@ -78,10 +78,10 @@ namespace Physics {
     }
 
 #if defined(JPH_EXTERNAL_PROFILE) || defined(JPH_PROFILE_ENABLED)
-    virtual const char* GetBroadPhaseLayerName(BroadPhaseLayer inLayer) const override{
-      switch ((BroadPhaseLayer::Type)inLayer) {
-      case (BroadPhaseLayer::Type)PhysicsComponent::BroadPhaseLayers::NON_MOVING:	return "NON_MOVING";
-      case (BroadPhaseLayer::Type)PhysicsComponent::BroadPhaseLayers::MOVING: return "MOVING";
+    virtual const char* GetBroadPhaseLayerName(JPH::BroadPhaseLayer inLayer) const override{
+      switch ((JPH::BroadPhaseLayer::Type)inLayer) {
+      case (JPH::BroadPhaseLayer::Type)BroadPhaseLayers::NON_MOVING:	return "NON_MOVING";
+      case (JPH::BroadPhaseLayer::Type)BroadPhaseLayers::MOVING: return "MOVING";
       default: JPH_ASSERT(false); return "INVALID";
       }
     }

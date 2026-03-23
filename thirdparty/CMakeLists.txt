@@ -37,7 +37,9 @@ CPMAddPackage(
         "CPP_RTTI_ENABLED ON"
         "DEBUG_RENDERER_IN_DISTRIBUTION ON"
 )
+if (NOT MSVC)
 target_compile_options(Jolt PRIVATE -Wno-array-bounds)
+endif ()
 
 set(imgui_SOURCE_DIR ${imgui_SOURCE_DIR} CACHE INTERNAL "")
 add_library(imgui STATIC ${imgui_SOURCE_DIR}/imgui.cpp
