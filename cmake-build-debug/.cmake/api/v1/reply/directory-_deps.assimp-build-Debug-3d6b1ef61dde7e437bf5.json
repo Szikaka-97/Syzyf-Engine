@@ -1,0 +1,88 @@
+{
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"INSTALL"
+		],
+		"files" : 
+		[
+			"cmake-build-debug/_deps/assimp-src/CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 528,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 534,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 832,
+				"parent" : 0
+			}
+		]
+	},
+	"installers" : 
+	[
+		{
+			"backtrace" : 1,
+			"component" : "libassimp6.0.4-dev",
+			"destination" : "lib/cmake/assimp-6.0",
+			"paths" : 
+			[
+				"cmake-build-debug/_deps/assimp-build/generated/assimpConfig.cmake",
+				"cmake-build-debug/_deps/assimp-build/generated/assimpConfigVersion.cmake"
+			],
+			"type" : "file"
+		},
+		{
+			"backtrace" : 2,
+			"component" : "libassimp6.0.4-dev",
+			"destination" : "lib/cmake/assimp-6.0",
+			"exportName" : "assimpTargets",
+			"exportTargets" : 
+			[
+				{
+					"id" : "zlibstatic::@7fd99959cf8fe87d223a",
+					"index" : 11
+				},
+				{
+					"id" : "assimp::@b1ea6f5c2178ebc90389",
+					"index" : 2
+				}
+			],
+			"paths" : 
+			[
+				"_deps/assimp-build/CMakeFiles/Export/1e829e3d292b021f8d48f0e209725d79/assimpTargets.cmake"
+			],
+			"type" : "export"
+		},
+		{
+			"backtrace" : 3,
+			"component" : "libassimp6.0.4-dev",
+			"destination" : "lib/pkgconfig",
+			"paths" : 
+			[
+				"cmake-build-debug/_deps/assimp-build/assimp.pc"
+			],
+			"type" : "file"
+		}
+	],
+	"paths" : 
+	{
+		"build" : "_deps/assimp-build",
+		"source" : "cmake-build-debug/_deps/assimp-src"
+	}
+}

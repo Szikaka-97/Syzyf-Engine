@@ -1,0 +1,2426 @@
+{
+	"artifacts" : 
+	[
+		{
+			"path" : "src/Syzyf.exe"
+		},
+		{
+			"path" : "src/Syzyf.pdb"
+		}
+	],
+	"backtrace" : 1,
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"add_executable",
+			"target_link_libraries",
+			"TARGET_LINK_LIBRARIES",
+			"target_compile_definitions",
+			"target_include_directories"
+		],
+		"files" : 
+		[
+			"src/CMakeLists.txt",
+			"cmake-build-debug/_deps/assimp-src/code/CMakeLists.txt",
+			"CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 22,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 33,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 34,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 35,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 36,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 37,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 38,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 39,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 40,
+				"parent" : 0
+			},
+			{
+				"file" : 1
+			},
+			{
+				"command" : 2,
+				"file" : 1,
+				"line" : 1500,
+				"parent" : 10
+			},
+			{
+				"command" : 2,
+				"file" : 1,
+				"line" : 1559,
+				"parent" : 10
+			},
+			{
+				"command" : 3,
+				"file" : 0,
+				"line" : 24,
+				"parent" : 0
+			},
+			{
+				"command" : 3,
+				"file" : 0,
+				"line" : 25,
+				"parent" : 0
+			},
+			{
+				"command" : 4,
+				"file" : 0,
+				"line" : 27,
+				"parent" : 0
+			},
+			{
+				"file" : 2
+			},
+			{
+				"command" : 4,
+				"file" : 2,
+				"line" : 42,
+				"parent" : 16
+			}
+		]
+	},
+	"compileGroups" : 
+	[
+		{
+			"compileCommandFragments" : 
+			[
+				{
+					"fragment" : " -g -g -std=gnu++23 -fdiagnostics-color=always"
+				},
+				{
+					"backtrace" : 9,
+					"fragment" : "-mavx2"
+				},
+				{
+					"backtrace" : 9,
+					"fragment" : "-mbmi"
+				},
+				{
+					"backtrace" : 9,
+					"fragment" : "-mpopcnt"
+				},
+				{
+					"backtrace" : 9,
+					"fragment" : "-mlzcnt"
+				},
+				{
+					"backtrace" : 9,
+					"fragment" : "-mf16c"
+				},
+				{
+					"backtrace" : 9,
+					"fragment" : "-mfma"
+				},
+				{
+					"backtrace" : 9,
+					"fragment" : "-mfpmath=sse"
+				}
+			],
+			"defines" : 
+			[
+				{
+					"backtrace" : 13,
+					"define" : "GLFW_INCLUDE_NONE"
+				},
+				{
+					"backtrace" : 9,
+					"define" : "JPH_DEBUG_RENDERER"
+				},
+				{
+					"backtrace" : 9,
+					"define" : "JPH_OBJECT_STREAM"
+				},
+				{
+					"backtrace" : 9,
+					"define" : "JPH_PROFILE_ENABLED"
+				},
+				{
+					"backtrace" : 9,
+					"define" : "JPH_USE_AVX"
+				},
+				{
+					"backtrace" : 9,
+					"define" : "JPH_USE_AVX2"
+				},
+				{
+					"backtrace" : 9,
+					"define" : "JPH_USE_F16C"
+				},
+				{
+					"backtrace" : 9,
+					"define" : "JPH_USE_FMADD"
+				},
+				{
+					"backtrace" : 9,
+					"define" : "JPH_USE_LZCNT"
+				},
+				{
+					"backtrace" : 9,
+					"define" : "JPH_USE_SSE4_1"
+				},
+				{
+					"backtrace" : 9,
+					"define" : "JPH_USE_SSE4_2"
+				},
+				{
+					"backtrace" : 9,
+					"define" : "JPH_USE_TZCNT"
+				},
+				{
+					"backtrace" : 14,
+					"define" : "LIBRARY_SUFFIX=\"\""
+				},
+				{
+					"backtrace" : 7,
+					"define" : "SPDLOG_COMPILED_LIB"
+				}
+			],
+			"includes" : 
+			[
+				{
+					"backtrace" : 15,
+					"path" : "C:/Users/wkow1/Documents/6sem/engine/src"
+				},
+				{
+					"backtrace" : 15,
+					"path" : "C:/Users/wkow1/Documents/6sem/engine/thirdparty/glad/include"
+				},
+				{
+					"backtrace" : 15,
+					"path" : "C:/Users/wkow1/Documents/6sem/engine/thirdparty/stb_image"
+				},
+				{
+					"backtrace" : 15,
+					"path" : "C:/Users/wkow1/Documents/6sem/engine/cmake-build-debug/_deps/imgui-src"
+				},
+				{
+					"backtrace" : 17,
+					"path" : "C:/Users/wkow1/Documents/6sem/engine/src/include"
+				},
+				{
+					"backtrace" : 9,
+					"path" : "C:/Users/wkow1/Documents/6sem/engine/cmake-build-debug/_deps/joltphysics-src/Build/.."
+				},
+				{
+					"backtrace" : 4,
+					"isSystem" : true,
+					"path" : "C:/Users/wkow1/Documents/6sem/engine/cmake-build-debug/_deps/assimp-src/code/../include"
+				},
+				{
+					"backtrace" : 4,
+					"isSystem" : true,
+					"path" : "C:/Users/wkow1/Documents/6sem/engine/cmake-build-debug/_deps/assimp-build/code/../include"
+				},
+				{
+					"backtrace" : 5,
+					"isSystem" : true,
+					"path" : "C:/Users/wkow1/Documents/6sem/engine/cmake-build-debug/_deps/glfw-src/include"
+				},
+				{
+					"backtrace" : 7,
+					"isSystem" : true,
+					"path" : "C:/Users/wkow1/Documents/6sem/engine/cmake-build-debug/_deps/spdlog-src/include"
+				},
+				{
+					"backtrace" : 8,
+					"isSystem" : true,
+					"path" : "C:/Users/wkow1/Documents/6sem/engine/cmake-build-debug/_deps/glm-src"
+				}
+			],
+			"language" : "CXX",
+			"languageStandard" : 
+			{
+				"backtraces" : 
+				[
+					1
+				],
+				"standard" : "23"
+			},
+			"sourceIndexes" : 
+			[
+				50,
+				51,
+				52,
+				53,
+				54,
+				55,
+				56,
+				57,
+				58,
+				59,
+				60,
+				61,
+				62,
+				63,
+				64,
+				65,
+				66,
+				67,
+				68,
+				69,
+				70,
+				71,
+				72,
+				73,
+				74,
+				75,
+				76,
+				77,
+				78,
+				79,
+				80,
+				81,
+				82,
+				83,
+				84,
+				85,
+				86,
+				87,
+				88,
+				89,
+				90,
+				91,
+				92,
+				93
+			]
+		}
+	],
+	"dependencies" : 
+	[
+		{
+			"backtrace" : 3,
+			"id" : "stb_image::@90d16ed2915c72dcc9c2"
+		},
+		{
+			"backtrace" : 6,
+			"id" : "imgui::@90d16ed2915c72dcc9c2"
+		},
+		{
+			"backtrace" : 2,
+			"id" : "glad::@90d16ed2915c72dcc9c2"
+		},
+		{
+			"backtrace" : 4,
+			"id" : "zlibstatic::@7fd99959cf8fe87d223a"
+		},
+		{
+			"backtrace" : 4,
+			"id" : "assimp::@b1ea6f5c2178ebc90389"
+		},
+		{
+			"backtrace" : 5,
+			"id" : "glfw::@fa9f4482d3a2b070f206"
+		},
+		{
+			"backtrace" : 8,
+			"id" : "glm::@ce54d98d7b326a3e12a8"
+		},
+		{
+			"backtrace" : 7,
+			"id" : "spdlog::@eb35cfce7893ccfeff1e"
+		},
+		{
+			"backtrace" : 9,
+			"id" : "Jolt::@964e89b4b52406ed572e"
+		}
+	],
+	"id" : "Syzyf::@145eef247bfb46b6828c",
+	"link" : 
+	{
+		"commandFragments" : 
+		[
+			{
+				"fragment" : "-g -g",
+				"role" : "flags"
+			},
+			{
+				"fragment" : "",
+				"role" : "flags"
+			},
+			{
+				"backtrace" : 2,
+				"fragment" : "thirdparty\\libglad_d.a",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 3,
+				"fragment" : "thirdparty\\libstb_image_d.a",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 4,
+				"fragment" : "_deps\\assimp-build\\lib\\libassimp_d.a",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 5,
+				"fragment" : "_deps\\glfw-build\\src\\libglfw3_d.a",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 6,
+				"fragment" : "thirdparty\\libimgui_d.a",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 7,
+				"fragment" : "_deps\\spdlog-build\\libspdlogd.a",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 8,
+				"fragment" : "_deps\\glm-build\\glm\\libglm_d.a",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 9,
+				"fragment" : "_deps\\joltphysics-build\\libJolt_d.a",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 11,
+				"fragment" : "_deps\\assimp-build\\contrib\\zlib\\libzlibstatic_d.a",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 12,
+				"fragment" : "-static-libgcc",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 12,
+				"fragment" : "-static-libstdc++",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 12,
+				"fragment" : "-Wl,-Bstatic",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 12,
+				"fragment" : "-lstdc++",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 12,
+				"fragment" : "-lwinpthread",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "-lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32",
+				"role" : "libraries"
+			}
+		],
+		"language" : "CXX"
+	},
+	"name" : "Syzyf",
+	"nameOnDisk" : "Syzyf.exe",
+	"paths" : 
+	{
+		"build" : "src",
+		"source" : "src"
+	},
+	"sourceGroups" : 
+	[
+		{
+			"name" : "imgui_impl",
+			"sourceIndexes" : 
+			[
+				0,
+				1,
+				2,
+				83,
+				84
+			]
+		},
+		{
+			"name" : "include\\Audio",
+			"sourceIndexes" : 
+			[
+				3,
+				4
+			]
+		},
+		{
+			"name" : "include",
+			"sourceIndexes" : 
+			[
+				5,
+				6,
+				7,
+				8,
+				9,
+				10,
+				11,
+				12,
+				13,
+				14,
+				15,
+				16,
+				17,
+				18,
+				19,
+				20,
+				21,
+				22,
+				23,
+				24,
+				25,
+				26,
+				27,
+				28,
+				29,
+				30,
+				31,
+				32,
+				33,
+				34,
+				35,
+				36,
+				37,
+				38,
+				39,
+				40
+			]
+		},
+		{
+			"name" : "include\\physics",
+			"sourceIndexes" : 
+			[
+				41,
+				42,
+				43,
+				44,
+				45,
+				46,
+				47,
+				48,
+				49
+			]
+		},
+		{
+			"name" : "",
+			"sourceIndexes" : 
+			[
+				50,
+				51,
+				52,
+				53,
+				54,
+				55,
+				56,
+				57,
+				58,
+				59,
+				60,
+				61,
+				62,
+				63,
+				64,
+				65,
+				66,
+				67,
+				68,
+				69,
+				70,
+				71,
+				72,
+				73,
+				74,
+				75,
+				76,
+				77,
+				78,
+				79,
+				80,
+				81,
+				82,
+				85
+			]
+		},
+		{
+			"name" : "physics",
+			"sourceIndexes" : 
+			[
+				86,
+				87,
+				88,
+				89,
+				90,
+				91,
+				92,
+				93
+			]
+		},
+		{
+			"name" : "res\\audio",
+			"sourceIndexes" : 
+			[
+				94
+			]
+		},
+		{
+			"name" : "res\\models",
+			"sourceIndexes" : 
+			[
+				95,
+				188,
+				189,
+				190,
+				194,
+				216,
+				217,
+				218,
+				222,
+				223,
+				224,
+				225,
+				226,
+				227,
+				228,
+				229
+			]
+		},
+		{
+			"name" : "res\\models\\cannon",
+			"sourceIndexes" : 
+			[
+				96,
+				97
+			]
+		},
+		{
+			"name" : "res\\models\\cannon\\textures",
+			"sourceIndexes" : 
+			[
+				98,
+				99,
+				100,
+				101
+			]
+		},
+		{
+			"name" : "res\\models\\construct",
+			"sourceIndexes" : 
+			[
+				102,
+				103,
+				104
+			]
+		},
+		{
+			"name" : "res\\models\\construct\\textures",
+			"sourceIndexes" : 
+			[
+				105,
+				106,
+				107,
+				108,
+				109,
+				110,
+				111,
+				112,
+				113,
+				114,
+				115,
+				116,
+				117,
+				118,
+				119,
+				120,
+				121,
+				122,
+				123,
+				124,
+				125,
+				126,
+				127,
+				128,
+				129,
+				130,
+				131,
+				132,
+				133,
+				134,
+				135,
+				136,
+				137,
+				138,
+				139,
+				140,
+				141,
+				142,
+				143,
+				144,
+				145,
+				146,
+				147,
+				148,
+				149,
+				150,
+				151,
+				152,
+				153,
+				154,
+				155,
+				156,
+				157,
+				158,
+				159,
+				160,
+				161,
+				162,
+				163,
+				164,
+				165,
+				166,
+				167,
+				168,
+				169,
+				170,
+				171,
+				172,
+				173,
+				174,
+				175,
+				176,
+				177,
+				178,
+				179,
+				180,
+				181,
+				182,
+				183,
+				184,
+				185,
+				186,
+				187
+			]
+		},
+		{
+			"name" : "res\\models\\floor",
+			"sourceIndexes" : 
+			[
+				191,
+				192,
+				193
+			]
+		},
+		{
+			"name" : "res\\models\\nanosuit",
+			"sourceIndexes" : 
+			[
+				195,
+				196,
+				197,
+				198,
+				199,
+				200,
+				201,
+				202,
+				203,
+				204,
+				205,
+				206,
+				207,
+				208,
+				209,
+				210,
+				211,
+				212,
+				213,
+				214,
+				215
+			]
+		},
+		{
+			"name" : "res\\models\\schnoz",
+			"sourceIndexes" : 
+			[
+				219,
+				220,
+				221
+			]
+		},
+		{
+			"name" : "res\\shaders",
+			"sourceIndexes" : 
+			[
+				230,
+				231,
+				232,
+				236,
+				242,
+				243,
+				244,
+				245,
+				246,
+				247,
+				248,
+				255,
+				256,
+				257,
+				258,
+				259,
+				267,
+				268
+			]
+		},
+		{
+			"name" : "res\\shaders\\bloom",
+			"sourceIndexes" : 
+			[
+				233,
+				234,
+				235
+			]
+		},
+		{
+			"name" : "res\\shaders\\cubemapBlit",
+			"sourceIndexes" : 
+			[
+				237,
+				238,
+				239,
+				240
+			]
+		},
+		{
+			"name" : "res\\shaders\\forwardplus",
+			"sourceIndexes" : 
+			[
+				241
+			]
+		},
+		{
+			"name" : "res\\shaders\\physics_debug",
+			"sourceIndexes" : 
+			[
+				249,
+				250
+			]
+		},
+		{
+			"name" : "res\\shaders\\shared",
+			"sourceIndexes" : 
+			[
+				251,
+				252,
+				253,
+				254
+			]
+		},
+		{
+			"name" : "res\\shaders\\terrain",
+			"sourceIndexes" : 
+			[
+				260,
+				261,
+				262,
+				263
+			]
+		},
+		{
+			"name" : "res\\shaders\\tonemapping",
+			"sourceIndexes" : 
+			[
+				264,
+				265,
+				266
+			]
+		},
+		{
+			"name" : "res\\textures",
+			"sourceIndexes" : 
+			[
+				269,
+				270,
+				271,
+				272,
+				273,
+				274,
+				280,
+				281,
+				282,
+				283,
+				284,
+				285,
+				286,
+				287,
+				288
+			]
+		},
+		{
+			"name" : "res\\textures\\material_preview",
+			"sourceIndexes" : 
+			[
+				275,
+				276,
+				277,
+				278,
+				279
+			]
+		},
+		{
+			"name" : "res\\textures\\terrain",
+			"sourceIndexes" : 
+			[
+				289,
+				290
+			]
+		}
+	],
+	"sources" : 
+	[
+		{
+			"backtrace" : 1,
+			"path" : "src/imgui_impl/imgui_impl_glfw.h",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"path" : "src/imgui_impl/imgui_impl_opengl3.h",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"path" : "src/imgui_impl/imgui_impl_opengl3_loader.h",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"path" : "src/include/Audio/AudioEvent.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "src/include/Audio/AudioPlaybackSettings.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "src/include/Bloom.h",
+			"sourceGroupIndex" : 2
+		},
+		{
+			"backtrace" : 1,
+			"path" : "src/include/BoundingBox.h",
+			"sourceGroupIndex" : 2
+		},
+		{
+			"backtrace" : 1,
+			"path" : "src/include/Camera.h",
+			"sourceGroupIndex" : 2
+		},
+		{
+			"backtrace" : 1,
+			"path" : "src/include/Debug.h",
+			"sourceGroupIndex" : 2
+		},
+		{
+			"backtrace" : 1,
+			"path" : "src/include/Engine.h",
+			"sourceGroupIndex" : 2
+		},
+		{
+			"backtrace" : 1,
+			"path" : "src/include/Formatters.h",
+			"sourceGroupIndex" : 2
+		},
+		{
+			"backtrace" : 1,
+			"path" : "src/include/Framebuffer.h",
+			"sourceGroupIndex" : 2
+		},
+		{
+			"backtrace" : 1,
+			"path" : "src/include/Frustum.h",
+			"sourceGroupIndex" : 2
+		},
+		{
+			"backtrace" : 1,
+			"path" : "src/include/GameObject.h",
+			"sourceGroupIndex" : 2
+		},
+		{
+			"backtrace" : 1,
+			"path" : "src/include/GameObjectSystem.h",
+			"sourceGroupIndex" : 2
+		},
+		{
+			"backtrace" : 1,
+			"path" : "src/include/Graphics.h",
+			"sourceGroupIndex" : 2
+		},
+		{
+			"backtrace" : 1,
+			"path" : "src/include/InputSystem.h",
+			"sourceGroupIndex" : 2
+		},
+		{
+			"backtrace" : 1,
+			"path" : "src/include/Layer.h",
+			"sourceGroupIndex" : 2
+		},
+		{
+			"backtrace" : 1,
+			"path" : "src/include/Light.h",
+			"sourceGroupIndex" : 2
+		},
+		{
+			"backtrace" : 1,
+			"path" : "src/include/LightSystem.h",
+			"sourceGroupIndex" : 2
+		},
+		{
+			"backtrace" : 1,
+			"path" : "src/include/Material.h",
+			"sourceGroupIndex" : 2
+		},
+		{
+			"backtrace" : 1,
+			"path" : "src/include/Mesh.h",
+			"sourceGroupIndex" : 2
+		},
+		{
+			"backtrace" : 1,
+			"path" : "src/include/MeshRenderer.h",
+			"sourceGroupIndex" : 2
+		},
+		{
+			"backtrace" : 1,
+			"path" : "src/include/Messaging.h",
+			"sourceGroupIndex" : 2
+		},
+		{
+			"backtrace" : 1,
+			"path" : "src/include/PostProcessEffect.h",
+			"sourceGroupIndex" : 2
+		},
+		{
+			"backtrace" : 1,
+			"path" : "src/include/PostProcessingSystem.h",
+			"sourceGroupIndex" : 2
+		},
+		{
+			"backtrace" : 1,
+			"path" : "src/include/PreComp.h",
+			"sourceGroupIndex" : 2
+		},
+		{
+			"backtrace" : 1,
+			"path" : "src/include/ReflectionProbe.h",
+			"sourceGroupIndex" : 2
+		},
+		{
+			"backtrace" : 1,
+			"path" : "src/include/ReflectionProbeSystem.h",
+			"sourceGroupIndex" : 2
+		},
+		{
+			"backtrace" : 1,
+			"path" : "src/include/Resources.h",
+			"sourceGroupIndex" : 2
+		},
+		{
+			"backtrace" : 1,
+			"path" : "src/include/Scene.h",
+			"sourceGroupIndex" : 2
+		},
+		{
+			"backtrace" : 1,
+			"path" : "src/include/SceneComponent.h",
+			"sourceGroupIndex" : 2
+		},
+		{
+			"backtrace" : 1,
+			"path" : "src/include/Shader.h",
+			"sourceGroupIndex" : 2
+		},
+		{
+			"backtrace" : 1,
+			"path" : "src/include/Skybox.h",
+			"sourceGroupIndex" : 2
+		},
+		{
+			"backtrace" : 1,
+			"path" : "src/include/Texture.h",
+			"sourceGroupIndex" : 2
+		},
+		{
+			"backtrace" : 1,
+			"path" : "src/include/TimeSystem.h",
+			"sourceGroupIndex" : 2
+		},
+		{
+			"backtrace" : 1,
+			"path" : "src/include/Tonemapper.h",
+			"sourceGroupIndex" : 2
+		},
+		{
+			"backtrace" : 1,
+			"path" : "src/include/Transform.h",
+			"sourceGroupIndex" : 2
+		},
+		{
+			"backtrace" : 1,
+			"path" : "src/include/UniformSpec.h",
+			"sourceGroupIndex" : 2
+		},
+		{
+			"backtrace" : 1,
+			"path" : "src/include/VertexSpec.h",
+			"sourceGroupIndex" : 2
+		},
+		{
+			"backtrace" : 1,
+			"path" : "src/include/Viewport.h",
+			"sourceGroupIndex" : 2
+		},
+		{
+			"backtrace" : 1,
+			"path" : "src/include/physics/Body.h",
+			"sourceGroupIndex" : 3
+		},
+		{
+			"backtrace" : 1,
+			"path" : "src/include/physics/CharacterController.h",
+			"sourceGroupIndex" : 3
+		},
+		{
+			"backtrace" : 1,
+			"path" : "src/include/physics/ContactListener.h",
+			"sourceGroupIndex" : 3
+		},
+		{
+			"backtrace" : 1,
+			"path" : "src/include/physics/DebugRenderer.h",
+			"sourceGroupIndex" : 3
+		},
+		{
+			"backtrace" : 1,
+			"path" : "src/include/physics/ICollisionReceiver.h",
+			"sourceGroupIndex" : 3
+		},
+		{
+			"backtrace" : 1,
+			"path" : "src/include/physics/Jolt.h",
+			"sourceGroupIndex" : 3
+		},
+		{
+			"backtrace" : 1,
+			"path" : "src/include/physics/System.h",
+			"sourceGroupIndex" : 3
+		},
+		{
+			"backtrace" : 1,
+			"path" : "src/include/physics/VirtualCharacterController.h",
+			"sourceGroupIndex" : 3
+		},
+		{
+			"backtrace" : 1,
+			"path" : "src/include/physics/Water.h",
+			"sourceGroupIndex" : 3
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/Bloom.cpp",
+			"sourceGroupIndex" : 4
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/BoundingBox.cpp",
+			"sourceGroupIndex" : 4
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/Camera.cpp",
+			"sourceGroupIndex" : 4
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/Debug.cpp",
+			"sourceGroupIndex" : 4
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/Engine.cpp",
+			"sourceGroupIndex" : 4
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/Framebuffer.cpp",
+			"sourceGroupIndex" : 4
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/Frustum.cpp",
+			"sourceGroupIndex" : 4
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/GameObject.cpp",
+			"sourceGroupIndex" : 4
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/GameObjectSystem.cpp",
+			"sourceGroupIndex" : 4
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/Graphics.cpp",
+			"sourceGroupIndex" : 4
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/InputSystem.cpp",
+			"sourceGroupIndex" : 4
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/Light.cpp",
+			"sourceGroupIndex" : 4
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/LightSystem.cpp",
+			"sourceGroupIndex" : 4
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/Material.cpp",
+			"sourceGroupIndex" : 4
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/Mesh.cpp",
+			"sourceGroupIndex" : 4
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/MeshRenderer.cpp",
+			"sourceGroupIndex" : 4
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/Messaging.cpp",
+			"sourceGroupIndex" : 4
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/PostProcessingSystem.cpp",
+			"sourceGroupIndex" : 4
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/PreComp.cpp",
+			"sourceGroupIndex" : 4
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/ReflectionProbe.cpp",
+			"sourceGroupIndex" : 4
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/ReflectionProbeSystem.cpp",
+			"sourceGroupIndex" : 4
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/Resources.cpp",
+			"sourceGroupIndex" : 4
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/Scene.cpp",
+			"sourceGroupIndex" : 4
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/SceneComponent.cpp",
+			"sourceGroupIndex" : 4
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/Shader.cpp",
+			"sourceGroupIndex" : 4
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/Skybox.cpp",
+			"sourceGroupIndex" : 4
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/Texture.cpp",
+			"sourceGroupIndex" : 4
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/TimeSystem.cpp",
+			"sourceGroupIndex" : 4
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/Tonemapper.cpp",
+			"sourceGroupIndex" : 4
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/Transform.cpp",
+			"sourceGroupIndex" : 4
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/UniformSpec.cpp",
+			"sourceGroupIndex" : 4
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/VertexSpec.cpp",
+			"sourceGroupIndex" : 4
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/Viewport.cpp",
+			"sourceGroupIndex" : 4
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/imgui_impl/imgui_impl_glfw.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/imgui_impl/imgui_impl_opengl3.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/main.cpp",
+			"sourceGroupIndex" : 4
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/physics/Body.cpp",
+			"sourceGroupIndex" : 5
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/physics/CharacterController.cpp",
+			"sourceGroupIndex" : 5
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/physics/ContactListener.cpp",
+			"sourceGroupIndex" : 5
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/physics/DebugRenderer.cpp",
+			"sourceGroupIndex" : 5
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/physics/Jolt.cpp",
+			"sourceGroupIndex" : 5
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/physics/System.cpp",
+			"sourceGroupIndex" : 5
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/physics/VirtualCharacterController.cpp",
+			"sourceGroupIndex" : 5
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/physics/Water.cpp",
+			"sourceGroupIndex" : 5
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/audio/Click.wav",
+			"sourceGroupIndex" : 6
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/arrow.obj",
+			"sourceGroupIndex" : 7
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/cannon/cannon.obj",
+			"sourceGroupIndex" : 8
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/cannon/cannon_01_1k.fbx",
+			"sourceGroupIndex" : 8
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/cannon/textures/cannon_01_arm_1k.png",
+			"sourceGroupIndex" : 9
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/cannon/textures/cannon_01_arm_rough_1k.png",
+			"sourceGroupIndex" : 9
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/cannon/textures/cannon_01_diff_1k.png",
+			"sourceGroupIndex" : 9
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/cannon/textures/cannon_01_nor_gl_1k.png",
+			"sourceGroupIndex" : 9
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/construct.mtl",
+			"sourceGroupIndex" : 10
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/construct.obj",
+			"sourceGroupIndex" : 10
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/license.txt",
+			"sourceGroupIndex" : 10
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/brickbrickwall003a_construct_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/brickbrickwall053e_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/building_templatebuilding_template003a_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/building_templatebuilding_template006b_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/building_templatebuilding_template007a_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/building_templatebuilding_template007b_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/building_templatebuilding_template007c_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/building_templatebuilding_template007d_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/building_templatebuilding_template007h_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/building_templatebuilding_template007i_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/building_templatebuilding_template007j_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/building_templatebuilding_template007l_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/building_templatebuilding_template007m_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/building_templatebuilding_template010a_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/building_templatebuilding_template010b_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/building_templatebuilding_template010c_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/building_templatebuilding_template010g_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/building_templatebuilding_template013h_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/building_templatebuilding_template013j_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/building_templatebuilding_template013m_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/building_templatebuilding_template013o_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/building_templatebuilding_template029a_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/building_templateroof_template001a_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/concreteconcreteceiling001a_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/concreteconcreteceiling003a_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/concreteconcretefloor008a_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/concreteconcretefloor026a_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/concreteconcretefloor028a_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/concreteconcretestair005a_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/decalsdecal_posters001a_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/decalsdecal_posters002a_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/decalslambdaspray_2a_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/devdev_measuregeneric01b_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/gm_constructcolor_room_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/gm_constructconstruct_concrete_floor_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/gm_constructconstruct_concrete_ground_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/gm_constructconstruct_credits_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/gm_constructflatgrass_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/gm_constructgrass_13_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/gm_constructgrass_13_clearcoat_normal.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/gm_constructgrass_13_clearcoat_roughness.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/gm_constructgrass_13_metallicRoughness.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/gm_constructoverlay_1_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/gm_constructoverlay_2_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/gm_constructoverlay_3_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/gm_constructoverlay_4_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/gm_constructoverlay_5_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/gm_constructwall_bottom_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/gm_constructwall_top_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/materialsmaxofs2dmodelscompanion_doll_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/materialsmodelsdav0rswitch_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/materialsmodelsprops_buildingsantenna_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/materialsmodelsprops_buildingsbuildingsheet_03a_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/materialsmodelsprops_buildingschurch_corner_txt3_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/materialsmodelsprops_buildingsgov_upscale_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/materialsmodelsprops_buildingshill_cluster_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/materialsmodelsprops_buildingsindustrial_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/materialsmodelsprops_buildingslong_building001a_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/materialsmodelsprops_buildingsproject_building01_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/materialsmodelsprops_buildingsproject_building03_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/materialsmodelsprops_buildingsresidential_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/materialsmodelsprops_buildingsshort_building001a_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/materialsmodelsprops_c17furniturecouch001a_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/materialsmodelsprops_c17furniturecouch002a_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/materialsmodelsprops_c17furnituretable003a_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/materialsmodelsprops_c17industrialbell01_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/materialsmodelsprops_c17industrialbellbottomon01_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/materialsmodelsprops_canalrefinery_skybox_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/materialsmodelsprops_foliagetree_springers_cards_01_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/materialsmodelsprops_interiorsflorescentlight01a_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/materialsmodelsprops_interiorssinkkitchen01a_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/materialsmodelsprops_rooftoprooftop01a_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/metalcitadel_metalwall076a_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/metalmetalladder001a_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/metalmetalpipe001a_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/metalmetaltruss010b_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/metalmetalwall020a_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/plasterplasterceiling003a_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/plasterplasterceiling005a_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/plasterplasterwall016a_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/plasterplasterwall022c_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/propsmetalduct001a_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/construct/textures/propsplasticceiling002a_baseColor.png",
+			"sourceGroupIndex" : 11
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/cube.obj",
+			"sourceGroupIndex" : 7
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/directional_gizmo.obj",
+			"sourceGroupIndex" : 7
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/floor.obj",
+			"sourceGroupIndex" : 7
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/floor/floor.mtl",
+			"sourceGroupIndex" : 12
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/floor/floor.obj",
+			"sourceGroupIndex" : 12
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/floor/templategrid_albedo.png",
+			"sourceGroupIndex" : 12
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/fullscreenquad.obj",
+			"sourceGroupIndex" : 7
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/nanosuit/LICENSE.txt",
+			"sourceGroupIndex" : 13
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/nanosuit/arm_dif.png",
+			"sourceGroupIndex" : 13
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/nanosuit/arm_showroom_ddn.png",
+			"sourceGroupIndex" : 13
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/nanosuit/arm_showroom_spec.png",
+			"sourceGroupIndex" : 13
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/nanosuit/body_dif.png",
+			"sourceGroupIndex" : 13
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/nanosuit/body_showroom_ddn.png",
+			"sourceGroupIndex" : 13
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/nanosuit/body_showroom_spec.png",
+			"sourceGroupIndex" : 13
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/nanosuit/glass_ddn.png",
+			"sourceGroupIndex" : 13
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/nanosuit/glass_dif.png",
+			"sourceGroupIndex" : 13
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/nanosuit/hand_dif.png",
+			"sourceGroupIndex" : 13
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/nanosuit/hand_showroom_ddn.png",
+			"sourceGroupIndex" : 13
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/nanosuit/hand_showroom_spec.png",
+			"sourceGroupIndex" : 13
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/nanosuit/helmet_diff.png",
+			"sourceGroupIndex" : 13
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/nanosuit/helmet_showroom_ddn.png",
+			"sourceGroupIndex" : 13
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/nanosuit/helmet_showroom_spec.png",
+			"sourceGroupIndex" : 13
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/nanosuit/leg_dif.png",
+			"sourceGroupIndex" : 13
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/nanosuit/leg_showroom_ddn.png",
+			"sourceGroupIndex" : 13
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/nanosuit/leg_showroom_spec.png",
+			"sourceGroupIndex" : 13
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/nanosuit/nanosuit.blend",
+			"sourceGroupIndex" : 13
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/nanosuit/nanosuit.mtl",
+			"sourceGroupIndex" : 13
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/nanosuit/nanosuit.obj",
+			"sourceGroupIndex" : 13
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/not_cube.obj",
+			"sourceGroupIndex" : 7
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/point_gizmo.obj",
+			"sourceGroupIndex" : 7
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/room.obj",
+			"sourceGroupIndex" : 7
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/schnoz/Diffuse.png",
+			"sourceGroupIndex" : 14
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/schnoz/schnoz.mtl",
+			"sourceGroupIndex" : 14
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/schnoz/schnoz.obj",
+			"sourceGroupIndex" : 14
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/shade.obj",
+			"sourceGroupIndex" : 7
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/sky.obj",
+			"sourceGroupIndex" : 7
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/sphere.obj",
+			"sourceGroupIndex" : 7
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/spot_gizmo.obj",
+			"sourceGroupIndex" : 7
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/star.obj",
+			"sourceGroupIndex" : 7
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/tv_stand.fbx",
+			"sourceGroupIndex" : 7
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/water.mtl",
+			"sourceGroupIndex" : 7
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/models/water.obj",
+			"sourceGroupIndex" : 7
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/shaders/basic.frag",
+			"sourceGroupIndex" : 15
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/shaders/basic.vert",
+			"sourceGroupIndex" : 15
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/shaders/blit.frag",
+			"sourceGroupIndex" : 15
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/shaders/bloom/bloom_downsample.comp",
+			"sourceGroupIndex" : 16
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/shaders/bloom/bloom_final.comp",
+			"sourceGroupIndex" : 16
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/shaders/bloom/bloom_upsample.comp",
+			"sourceGroupIndex" : 16
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/shaders/cubemap.frag",
+			"sourceGroupIndex" : 15
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/shaders/cubemapBlit/brdf_convolution.comp",
+			"sourceGroupIndex" : 17
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/shaders/cubemapBlit/cubemapFromEqu.comp",
+			"sourceGroupIndex" : 17
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/shaders/cubemapBlit/cubemapIrradiance.comp",
+			"sourceGroupIndex" : 17
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/shaders/cubemapBlit/cubemapPrefilter.comp",
+			"sourceGroupIndex" : 17
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/shaders/forwardplus/fullscreenquad.comp",
+			"sourceGroupIndex" : 18
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/shaders/fullscreen.vert",
+			"sourceGroupIndex" : 15
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/shaders/halo.frag",
+			"sourceGroupIndex" : 15
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/shaders/lambert color.frag",
+			"sourceGroupIndex" : 15
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/shaders/lambert.frag",
+			"sourceGroupIndex" : 15
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/shaders/lit.vert",
+			"sourceGroupIndex" : 15
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/shaders/pbr refract.frag",
+			"sourceGroupIndex" : 15
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/shaders/pbr.frag",
+			"sourceGroupIndex" : 15
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/shaders/physics_debug/physics_debug.frag",
+			"sourceGroupIndex" : 19
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/shaders/physics_debug/physics_debug.vert",
+			"sourceGroupIndex" : 19
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/shaders/shared/light.h",
+			"sourceGroupIndex" : 20
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/shaders/shared/shading.h",
+			"sourceGroupIndex" : 20
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/shaders/shared/shared.h",
+			"sourceGroupIndex" : 20
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/shaders/shared/uniforms.h",
+			"sourceGroupIndex" : 20
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/shaders/skybox.frag",
+			"sourceGroupIndex" : 15
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/shaders/skybox.vert",
+			"sourceGroupIndex" : 15
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/shaders/star.frag",
+			"sourceGroupIndex" : 15
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/shaders/star.geom",
+			"sourceGroupIndex" : 15
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/shaders/star.vert",
+			"sourceGroupIndex" : 15
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/shaders/terrain/terrain_lit.frag",
+			"sourceGroupIndex" : 21
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/shaders/terrain/terrain_lit.tess_ctrl",
+			"sourceGroupIndex" : 21
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/shaders/terrain/terrain_lit.tess_eval",
+			"sourceGroupIndex" : 21
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/shaders/terrain/terrain_lit.vert",
+			"sourceGroupIndex" : 21
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/shaders/tonemapping/aces_tonemapper.comp",
+			"sourceGroupIndex" : 22
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/shaders/tonemapping/gt_tonemapper.comp",
+			"sourceGroupIndex" : 22
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/shaders/tonemapping/reinhard_tonemapper.comp",
+			"sourceGroupIndex" : 22
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/shaders/transparency_composite.frag",
+			"sourceGroupIndex" : 15
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/shaders/transparent.frag",
+			"sourceGroupIndex" : 15
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/textures/NightSkyHDRI003_4K_HDR.exr",
+			"sourceGroupIndex" : 23
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/textures/citrus_orchard_road_puresky.hdr",
+			"sourceGroupIndex" : 23
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/textures/default_arm.png",
+			"sourceGroupIndex" : 23
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/textures/default_color.png",
+			"sourceGroupIndex" : 23
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/textures/default_norm.png",
+			"sourceGroupIndex" : 23
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/textures/lufis.jpeg",
+			"sourceGroupIndex" : 23
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/textures/material_preview/worn-rough-metal-arm.png",
+			"sourceGroupIndex" : 24
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/textures/material_preview/worn-shiny-metal-Normal-ogl.png",
+			"sourceGroupIndex" : 24
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/textures/material_preview/worn-shiny-metal-albedo.png",
+			"sourceGroupIndex" : 24
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/textures/material_preview/worn-shiny-metal-arm.png",
+			"sourceGroupIndex" : 24
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/textures/material_preview/worn-shiny-nonmetal-arm.png",
+			"sourceGroupIndex" : 24
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/textures/moonless_golf_4k.hdr",
+			"sourceGroupIndex" : 23
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/textures/skybox_back.jpg",
+			"sourceGroupIndex" : 23
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/textures/skybox_bottom.jpg",
+			"sourceGroupIndex" : 23
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/textures/skybox_front.jpg",
+			"sourceGroupIndex" : 23
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/textures/skybox_left.jpg",
+			"sourceGroupIndex" : 23
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/textures/skybox_right.jpg",
+			"sourceGroupIndex" : 23
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/textures/skybox_top.jpg",
+			"sourceGroupIndex" : 23
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/textures/stone.jpg",
+			"sourceGroupIndex" : 23
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/textures/stone_inv.jpg",
+			"sourceGroupIndex" : 23
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/textures/terrain/Rugged Terrain Height Map PNG.png",
+			"sourceGroupIndex" : 25
+		},
+		{
+			"backtrace" : 1,
+			"path" : "res/textures/terrain/source.txt",
+			"sourceGroupIndex" : 25
+		}
+	],
+	"type" : "EXECUTABLE"
+}

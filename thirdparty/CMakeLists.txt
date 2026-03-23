@@ -36,6 +36,7 @@ CPMAddPackage(
         "DEBUG_RENDERER ON"
         "CPP_RTTI_ENABLED ON"
         "DEBUG_RENDERER_IN_DISTRIBUTION ON"
+	"BUILD_SHARED_LIBS"
 )
 if (NOT MSVC)
 target_compile_options(Jolt PRIVATE -Wno-array-bounds)

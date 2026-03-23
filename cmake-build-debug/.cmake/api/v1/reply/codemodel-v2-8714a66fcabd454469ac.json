@@ -1,0 +1,419 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"childIndexes" : 
+					[
+						1,
+						11
+					],
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-.-Debug-d0094a50bb2071803777.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.21"
+					},
+					"projectIndex" : 0,
+					"source" : "."
+				},
+				{
+					"build" : "thirdparty",
+					"childIndexes" : 
+					[
+						2,
+						5,
+						7,
+						9,
+						10
+					],
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-thirdparty-Debug-0f2e859fab11afaedcba.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.14"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 0,
+					"source" : "thirdparty",
+					"targetIndexes" : 
+					[
+						3,
+						6,
+						8
+					]
+				},
+				{
+					"build" : "_deps/assimp-build",
+					"childIndexes" : 
+					[
+						3,
+						4
+					],
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-_deps.assimp-build-Debug-3d6b1ef61dde7e437bf5.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.22"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 1,
+					"source" : "cmake-build-debug/_deps/assimp-src",
+					"targetIndexes" : 
+					[
+						9
+					]
+				},
+				{
+					"build" : "_deps/assimp-build/contrib/zlib",
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-_deps.assimp-build.contrib.zlib-Debug-207f4b59510c473ec1b8.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10.0"
+					},
+					"parentIndex" : 2,
+					"projectIndex" : 2,
+					"source" : "cmake-build-debug/_deps/assimp-src/contrib/zlib",
+					"targetIndexes" : 
+					[
+						11
+					]
+				},
+				{
+					"build" : "_deps/assimp-build/code",
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-_deps.assimp-build.code-Debug-364c555f03ce68c2559b.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.22"
+					},
+					"parentIndex" : 2,
+					"projectIndex" : 1,
+					"source" : "cmake-build-debug/_deps/assimp-src/code",
+					"targetIndexes" : 
+					[
+						2
+					]
+				},
+				{
+					"build" : "_deps/glfw-build",
+					"childIndexes" : 
+					[
+						6
+					],
+					"jsonFile" : "directory-_deps.glfw-build-Debug-dc7c47e8df23f5b8eedd.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.4"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 3,
+					"source" : "cmake-build-debug/_deps/glfw-src"
+				},
+				{
+					"build" : "_deps/glfw-build/src",
+					"jsonFile" : "directory-_deps.glfw-build.src-Debug-5252f9f4f61f0e6b3c00.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.4"
+					},
+					"parentIndex" : 5,
+					"projectIndex" : 3,
+					"source" : "cmake-build-debug/_deps/glfw-src/src",
+					"targetIndexes" : 
+					[
+						4,
+						10
+					]
+				},
+				{
+					"build" : "_deps/glm-build",
+					"childIndexes" : 
+					[
+						8
+					],
+					"jsonFile" : "directory-_deps.glm-build-Debug-f102e2b64d561f2d5d99.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.6"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 4,
+					"source" : "cmake-build-debug/_deps/glm-src"
+				},
+				{
+					"build" : "_deps/glm-build/glm",
+					"jsonFile" : "directory-_deps.glm-build.glm-Debug-aca91daba61ef8a137d4.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.6"
+					},
+					"parentIndex" : 7,
+					"projectIndex" : 4,
+					"source" : "cmake-build-debug/_deps/glm-src/glm",
+					"targetIndexes" : 
+					[
+						5
+					]
+				},
+				{
+					"build" : "_deps/spdlog-build",
+					"jsonFile" : "directory-_deps.spdlog-build-Debug-be4b110b72e553a649bb.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 5,
+					"source" : "cmake-build-debug/_deps/spdlog-src",
+					"targetIndexes" : 
+					[
+						7
+					]
+				},
+				{
+					"build" : "_deps/joltphysics-build",
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-_deps.joltphysics-build-Debug-79b7cd7ae6f9d2244170.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.20"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 6,
+					"source" : "cmake-build-debug/_deps/joltphysics-src/Build",
+					"targetIndexes" : 
+					[
+						0
+					]
+				},
+				{
+					"build" : "src",
+					"jsonFile" : "directory-src-Debug-c94b7c2814d5a21df52c.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.21"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 0,
+					"source" : "src",
+					"targetIndexes" : 
+					[
+						1
+					]
+				}
+			],
+			"name" : "Debug",
+			"projects" : 
+			[
+				{
+					"childIndexes" : 
+					[
+						1,
+						3,
+						4,
+						5,
+						6
+					],
+					"directoryIndexes" : 
+					[
+						0,
+						1,
+						11
+					],
+					"name" : "Syzyf",
+					"targetIndexes" : 
+					[
+						1,
+						3,
+						6,
+						8
+					]
+				},
+				{
+					"childIndexes" : 
+					[
+						2
+					],
+					"directoryIndexes" : 
+					[
+						2,
+						4
+					],
+					"name" : "Assimp",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						2,
+						9
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						3
+					],
+					"name" : "zlib",
+					"parentIndex" : 1,
+					"targetIndexes" : 
+					[
+						11
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						5,
+						6
+					],
+					"name" : "GLFW",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						4,
+						10
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						7,
+						8
+					],
+					"name" : "glm",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						5
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						9
+					],
+					"name" : "spdlog",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						7
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						10
+					],
+					"name" : "JoltPhysics",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						0
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 10,
+					"id" : "Jolt::@964e89b4b52406ed572e",
+					"jsonFile" : "target-Jolt-Debug-e0c32f4b006457cd9eb3.json",
+					"name" : "Jolt",
+					"projectIndex" : 6
+				},
+				{
+					"directoryIndex" : 11,
+					"id" : "Syzyf::@145eef247bfb46b6828c",
+					"jsonFile" : "target-Syzyf-Debug-8267e5123d910d48c8c0.json",
+					"name" : "Syzyf",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 4,
+					"id" : "assimp::@b1ea6f5c2178ebc90389",
+					"jsonFile" : "target-assimp-Debug-7f33e58480dd9d69b489.json",
+					"name" : "assimp",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 1,
+					"id" : "glad::@90d16ed2915c72dcc9c2",
+					"jsonFile" : "target-glad-Debug-31e52cdb04dfa12c48bb.json",
+					"name" : "glad",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 6,
+					"id" : "glfw::@fa9f4482d3a2b070f206",
+					"jsonFile" : "target-glfw-Debug-26ad4ca64ea1e1dd4fc3.json",
+					"name" : "glfw",
+					"projectIndex" : 3
+				},
+				{
+					"directoryIndex" : 8,
+					"id" : "glm::@ce54d98d7b326a3e12a8",
+					"jsonFile" : "target-glm-Debug-d57717e73ed6933c955e.json",
+					"name" : "glm",
+					"projectIndex" : 4
+				},
+				{
+					"directoryIndex" : 1,
+					"id" : "imgui::@90d16ed2915c72dcc9c2",
+					"jsonFile" : "target-imgui-Debug-e3c5486f59fd9783cd1e.json",
+					"name" : "imgui",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 9,
+					"id" : "spdlog::@eb35cfce7893ccfeff1e",
+					"jsonFile" : "target-spdlog-Debug-5a983deb17cc201e0a74.json",
+					"name" : "spdlog",
+					"projectIndex" : 5
+				},
+				{
+					"directoryIndex" : 1,
+					"id" : "stb_image::@90d16ed2915c72dcc9c2",
+					"jsonFile" : "target-stb_image-Debug-30e16d65aac94c2eb9c7.json",
+					"name" : "stb_image",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 2,
+					"id" : "uninstall::@ca610b3f87d797c23346",
+					"jsonFile" : "target-uninstall-Debug-dadc19eed399939aba16.json",
+					"name" : "uninstall",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 6,
+					"id" : "update_mappings::@fa9f4482d3a2b070f206",
+					"jsonFile" : "target-update_mappings-Debug-a2c0f319197950417f26.json",
+					"name" : "update_mappings",
+					"projectIndex" : 3
+				},
+				{
+					"directoryIndex" : 3,
+					"id" : "zlibstatic::@7fd99959cf8fe87d223a",
+					"jsonFile" : "target-zlibstatic-Debug-ffc521db9c89368b67d5.json",
+					"name" : "zlibstatic",
+					"projectIndex" : 2
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "C:/Users/wkow1/Documents/6sem/engine/cmake-build-debug",
+		"source" : "C:/Users/wkow1/Documents/6sem/engine"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 7
+	}
+}
