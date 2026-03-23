@@ -63,7 +63,7 @@ void main() {
 	const vec3 right = normalize(cross(up, normal));
 	up = normalize(cross(normal, right));
 
-	const float sampleDelta = 0.01;
+	const float sampleDelta = 0.02;
 	float nrSamples = 0.0; 
 
 	for (float phi = 0.0; phi < 2.0 * PI; phi += sampleDelta) {

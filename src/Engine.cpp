@@ -17,6 +17,13 @@ extern "C" {
 
 #include <Engine.h>
 
+#include "physics/Jolt.h"
+#include "physics/DebugRenderer.h"
+
+#include <Jolt/Jolt.h>
+#include <Jolt/RegisterTypes.h>
+#include <Jolt/Core/Factory.h>
+
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
@@ -99,7 +106,8 @@ bool Engine::InitProgram() {
 	auto monitor = glfwGetPrimaryMonitor();
 	auto vidMode = glfwGetVideoMode(monitor);
 
-	window = glfwCreateWindow(vidMode->width, vidMode->height, "Syzyf Engine", nullptr, nullptr);
+	window = glfwCreateWindow(1280, 720, "Syzyf Engine", nullptr, nullptr);
+	// window = glfwCreateWindow(vidMode->width, vidMode->height, "Syzyf Engine", nullptr, nullptr);
 	if (window == NULL) {
 		spdlog::error("Failed to create GLFW Window!");
 
@@ -116,6 +124,16 @@ bool Engine::InitProgram() {
 		
 		return false;
 	}
+
+  // Jolt
+  JPH::RegisterDefaultAllocator();
+  JPH::Factory::sInstance = new JPH::Factory();
+  JPH::RegisterTypes();
+
+  JPH::Trace = Physics::TraceImpl;
+#ifdef JPH_ENABLE_ASSERTS
+  JPH::AssertFailed = Physics::AssertFailedImpl;
+#endif
 
 	int contextFlags = 0;
 	glGetIntegerv(GL_CONTEXT_FLAGS, &contextFlags);
@@ -179,6 +197,8 @@ void Engine::Render() {
 	rootScene->GetGraphics()->UpdateScreenResolution(glm::vec2(display_w, display_h));
 
 	rootScene->Render();
+  // remove later or not
+  rootScene->GetComponent<Physics::DebugRenderer>()->Render();
 }
 
 void Engine::DrawImGui() {
