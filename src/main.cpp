@@ -430,7 +430,7 @@ void InitScene(Scene* mainScene) {
 	).Link();
 	transparentProg->SetTransparent(true);
 
-	// Mesh* gmConstructMesh = mainScene->Resources()->Get<Mesh>("./res/models/construct/construct.obj", true);
+	 Mesh* gmConstructMesh = mainScene->Resources()->Get<Mesh>("./res/models/construct/construct.obj", true);
 	Mesh* cannonMesh = mainScene->Resources()->Get<Mesh>("./res/models/cannon/cannon.obj");
 	Mesh* cubeMesh = mainScene->Resources()->Get<Mesh>("./res/models/not_cube.obj");
 	Mesh* tvMesh = mainScene->Resources()->Get<Mesh>("./res/models/tv_stand.fbx");
@@ -495,9 +495,9 @@ void InitScene(Scene* mainScene) {
 	Material* blueTransparentMat = new Material(transparentProg);
 	blueTransparentMat->SetValue("uColor", glm::vec4(0.5, 0.5, 1.0, 0.6));
 
-	// auto constructNode = mainScene->CreateNode("gm_construct");
-	// constructNode->AddObject<MeshRenderer>(gmConstructMesh, gmConstructMesh->GetDefaultMaterials());
-	//  constructNode->AddObject<Physics::Body>(Physics::Body::Mesh(gmConstructMesh, JPH::EMotionType::Static, Physics::Layers::NON_MOVING));
+	 //auto constructNode = mainScene->CreateNode("gm_construct");
+	 //constructNode->AddObject<MeshRenderer>(gmConstructMesh, gmConstructMesh->GetDefaultMaterials());
+	 // constructNode->AddObject<Physics::Body>(Physics::Body::Mesh(gmConstructMesh, JPH::EMotionType::Static, Physics::Layers::NON_MOVING));
 
 	auto cannonNode = mainScene->CreateNode("Cannon");
 	cannonNode->AddObject<MeshRenderer>(cannonMesh, cannonMat);
@@ -542,12 +542,12 @@ void InitScene(Scene* mainScene) {
 	Camera* camera = cameraNode->AddObject<Camera>(Camera::Perspective(40.0f, 16.0f/9.0f, 0.5f, 200.0f));
 	camera->GlobalTransform().Position() = glm::vec3(2.0f, 30.0f, -10.0f);
 
-  auto* floorMesh = mainScene->Resources()->Get<Mesh>("./res/models/floor/floor.obj", true);
+  //auto* floorMesh = mainScene->Resources()->Get<Mesh>("./res/models/floor/floor.obj", true);
 	auto floorNode = mainScene->CreateNode("Floor");
-  floorNode->GlobalTransform().Position() = { 0.0f, -8.5f, 0.0f };
-  floorNode->AddObject<MeshRenderer>(floorMesh, floorMesh->GetDefaultMaterials());
-	floorNode->AddObject<Skybox>(skyMat);
-  floorNode->AddObject<Physics::Body>(Physics::Body::Box({100.0f, 8.5f, 100.0f}, JPH::EMotionType::Static, Physics::Layers::NON_MOVING));
+    floorNode->GlobalTransform().Position() = { 0.0f, -8.5f, 0.0f };
+    floorNode->AddObject<MeshRenderer>(gmConstructMesh, gmConstructMesh->GetDefaultMaterials());
+	floorNode->AddObject<Skybox>(skyMat); 
+	floorNode->AddObject<Physics::Body>(Physics::Body::Mesh(gmConstructMesh, JPH::EMotionType::Static, Physics::Layers::NON_MOVING));
 
 	auto lightNode = mainScene->CreateNode("Point Light");
 	lightNode->AddObject<Light>(Light::PointLight({1, 1, 1}, 10, 2))->SetShadowCasting(true);
