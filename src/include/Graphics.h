@@ -8,17 +8,19 @@
 #include <Material.h>
 #include <Camera.h>
 #include <Framebuffer.h>
-#include <SceneComponent.h>
+#include <GameObjectSystem.h>
+#include <Layer.h>
 
 struct ShaderGlobalUniforms;
 class MeshRenderer;
 class Scene;
 class ComputeShaderDispatch;
 class Texture2D;
-class Light;
 class LightSystem;
 class PostProcessingSystem;
 class ReflectionProbeSystem;
+class Camera;
+class Viewport;
 
 // struct RenderBatch {
 // 	Mesh* mesh;
@@ -31,18 +33,20 @@ enum class RenderPassType {
 	DepthPrepass = 2,
 	Shadows = 6,
 	Gizmos = 8,
-	PostProcessing = 16
+	PostProcessing = 16,
+	Transparent = 32,
 };
 
 struct RenderParams {
 	RenderPassType pass;
 	glm::vec4 viewport;
 	bool clearDepth;
+	LayerMask layers;
 
-	RenderParams(RenderPassType pass, glm::vec4 viewport, bool clearDepth = false);
+	RenderParams(RenderPassType pass, glm::vec4 viewport, bool clearDepth = false, LayerMask layers = LayerMask::All);
 };
 
-class SceneGraphics : public SceneComponent {
+class SceneGraphics : public GameObjectSystem<Camera> {
 private:
 	struct RenderNode {
 		const Mesh::SubMesh* mesh;
@@ -53,6 +57,7 @@ private:
 		};
 		const glm::mat4 transformation;
 		const BoundingBox bounds;
+		uint8_t layer;
 
     const std::vector<glm::mat4>* jointMatrices = nullptr;
 
@@ -64,23 +69,23 @@ private:
 
 	std::vector<RenderNode> currentRenders;
 	std::vector<RenderNode> gizmoRenders;
+	std::vector<RenderNode> transparentRenders;
 	GLuint globalUniformsBuffer;
 	GLuint objectUniformsBuffer;
 	
-	glm::vec2 screenResolution;
-	
-	Framebuffer* depthPrepassFramebuffer;
-	Texture2D* depthPrepassDepthTexture;
+	Viewport* mainViewport;
+	Framebuffer* opaquePassFramebuffer;
+	Framebuffer* transparentPassFramebuffer;
 
-	Framebuffer* colorPassFramebuffer;
-	Texture2D* colorPassOutputTexture;
-	
 	LightSystem* lightSystem;
 	PostProcessingSystem* postProcessing;
 	ReflectionProbeSystem* envMapping;
 
+	Camera* mainCamera;
+
 	void RenderObjects(const ShaderGlobalUniforms& globalUniforms, RenderParams params);
 	void RenderFullscreenFrameQuad();
+	void CompositeTransparentPass();
 	
 	void BindGlobalUniformBuffer(const ShaderGlobalUniforms& globalUniforms);
 	
@@ -95,19 +100,33 @@ public:
 	PostProcessingSystem* GetPostProcessing();
 	ReflectionProbeSystem* GetEnvMapping();
 
+	Viewport* GetMainViewport() const;
+	Framebuffer* GetMainFramebuffer() const;
+
+	Camera* GetMainCamera() const;
+	void SetMainCamera(Camera* camera);
+
 	void DrawMesh(MeshRenderer* renderer);
-	void DrawMesh(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation);
-	void DrawMesh(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, const BoundingBox& bounds);
+	void DrawMesh(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, uint8_t layer = Layer::Default);
+	void DrawMesh(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, const BoundingBox& bounds, uint8_t layer = Layer::Default);
 	
 	void DrawMeshInstanced(MeshRenderer* renderer, unsigned int instanceCount);
-	void DrawMeshInstanced(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, unsigned int instanceCount);
-	void DrawMeshInstanced(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, unsigned int instanceCount, const BoundingBox& bounds);
+	void DrawMeshInstanced(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, unsigned int instanceCount, uint8_t layer = Layer::Default);
+	void DrawMeshInstanced(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, unsigned int instanceCount, const BoundingBox& bounds, uint8_t layer = Layer::Default);
 
 	void DrawGizmoMesh(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, bool ignoresDepth = false);
+
+	void RenderCamera(Camera* camera, Viewport* renderTarget = nullptr);
+	void RenderCamera(Camera* camera, const RenderParams& params);
+	void RenderCamera(Camera* camera, Viewport* renderTarget, const RenderParams& params);
 
 	void RenderScene(const ShaderGlobalUniforms& uniforms, Framebuffer* framebuffer, const RenderParams& params);
 	void RenderScene(const CameraData& camera, Framebuffer* framebuffer, const RenderParams& params);
 	void RenderScene(Camera* camera, Framebuffer* framebuffer, const RenderParams& params);
+
+	void RenderScene(const ShaderGlobalUniforms& uniforms, Viewport* viewport, const RenderParams& params);
+	void RenderScene(const CameraData& camera, Viewport* viewport, const RenderParams& params);
+	void RenderScene(Camera* camera, Viewport* viewport, const RenderParams& params);
 
 	virtual void OnPostRender();
 
@@ -115,3 +134,11 @@ public:
 
 	virtual int Order();
 };
+
+inline constexpr RenderPassType operator&(RenderPassType a, RenderPassType b) {
+	return static_cast<RenderPassType>(static_cast<int>(a) & static_cast<int>(b));
+}
+
+inline constexpr RenderPassType operator|(RenderPassType a, RenderPassType b) {
+	return static_cast<RenderPassType>(static_cast<int>(a) | static_cast<int>(b));
+}

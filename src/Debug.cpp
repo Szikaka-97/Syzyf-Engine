@@ -28,6 +28,35 @@ void DrawNodeImGui(SceneNode* node) {
 
 		node->SetEnabled(nodeEnabled);
 
+		if (ImGui::TreeNode("Layer")) {
+			const float size = ImGui::CalcTextSize("00").x;
+
+			for (int y = 0; y < 4; y++) {
+				for (int x = 0; x < 8; x++) {
+					if (x > 0) {
+						ImGui::SameLine();
+					}
+
+					uint8_t layer = y * 8 + x;
+
+					ImGui::PushID(layer);
+
+					if (ImGui::Selectable(
+						std::to_string(layer).c_str(),
+						node->GetLayer() == layer,
+						0,
+						ImVec2(size, size)
+					)) {
+						node->SetLayer(layer);
+					}
+
+					ImGui::PopID();
+				}
+			}
+
+			ImGui::TreePop();
+		}
+
 		if (ImGui::TreeNode("Transform")) {
 			ImGui::Text("Position");
 

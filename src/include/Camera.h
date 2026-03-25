@@ -1,11 +1,16 @@
 #pragma once
 
-#include <GameObject.h>
 #include <glm/glm.hpp>
+
+#include <GameObject.h>
+#include <Layer.h>
+#include <Debug.h>
 
 struct CameraData;
 
-class Camera : public GameObject {
+class Viewport;
+
+class Camera : public GameObject, public ImGuiDrawable {
 public:
 	struct Perspective {
 		Perspective() = default;
@@ -38,8 +43,9 @@ private:
 
 	Perspective perspectiveData;
 	Orthographic orthoData;
-
-	static Camera* mainCamera;
+	Viewport* renderTarget;
+	LayerMask layerMask;
+	int priority;
 public:
 	Camera(Perspective perspectiveData);
 	Camera(Orthographic orthoData);
@@ -80,10 +86,24 @@ public:
 	glm::mat4 ProjectionMatrix() const;
 	glm::mat4 ViewProjectionMatrix() const;
 
-	static Camera* GetMainCamera();
+	Viewport* GetRenderTarget() const;
+	void SetRenderTarget(Viewport* viewport);
+
+	uint32_t GetLayerMask() const;
+	bool TestLayer(uint8_t layer);
+
+	int GetPriority() const;
+	void SetPriority(int priority);
+
+	void SetLayerMask(LayerMask newMask);
+	void AddLayerToMask(uint8_t layer);
+	void RemoveLayerFromMask(uint8_t layer);
+
 	void SetAsMainCamera();
 
 	CameraData GetCameraData() const;
+
+	virtual void DrawImGui();
 };
 
 struct CameraData {

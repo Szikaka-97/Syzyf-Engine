@@ -3,6 +3,18 @@
 #include "imgui_impl/imgui_impl_opengl3.h"
 #define IMGUI_IMPL_OPENGL_LOADER_GLAD
 
+#ifdef _WIN32
+extern "C" {
+#ifdef __GNUC__
+    __attribute__ ((dllexport)) unsigned long NvOptimusEnablement = 1;
+    __attribute__ ((dllexport)) int AmdPowerXpressRequestHighPerformance = 1;
+#else
+	_declspec(dllexport) DWORD NvOptimusEnablement = 1;
+	_declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
+#endif
+}
+#endif
+
 #include <Engine.h>
 
 #include <glad/glad.h>
@@ -62,7 +74,7 @@ static void APIENTRY glDebugOutput(
 	}
 
 	switch (severity) {
-		case GL_DEBUG_SEVERITY_HIGH:         spdlog::error("GL {} {}: {} ({})", sourceString, typeString, message, id); exit(1); break;
+		case GL_DEBUG_SEVERITY_HIGH:         spdlog::error("GL {} {}: {} ({})", sourceString, typeString, message, id); throw 1; break;
 		case GL_DEBUG_SEVERITY_MEDIUM:
 		case GL_DEBUG_SEVERITY_LOW:          spdlog::warn("GL {} {}: {} ({})", sourceString, typeString, message, id); break;
 		case GL_DEBUG_SEVERITY_NOTIFICATION: spdlog::info("GL {} {}: {} ({})", sourceString, typeString, message, id); break;
@@ -200,7 +212,7 @@ bool Engine::Setup() {
 		return false;
 	}
 
-	rootScene = new Scene();
+	rootScene = Scene::CreateStandaloneScene();
 
 	return true;
 }

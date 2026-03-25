@@ -26,7 +26,8 @@ enum class ShaderProgramFlags {
 	None = 0,
 	IgnoreDepthPrepass = 1,
 	DontCastShadows = 2,
-	UsePatches = 4
+	UsePatches = 4,
+	Transparent = 8
 };
 
 class ComputeShaderProgram {
@@ -182,9 +183,11 @@ public:
 	bool IgnoresDepthPrepass() const;
 	bool CastsShadows() const;
 	bool UsesPatches() const;
+	bool IsTransparent() const;
 
 	void SetIgnoresDepthPrepass(bool ignores);
 	void SetCastsShadows(bool casts);
+	void SetTransparent(bool transparent);
 };
 
 class ComputeShaderDispatch {
@@ -200,3 +203,11 @@ public:
 	ComputeDispatchData* GetData();
 	ComputeShaderProgram* GetProgram();
 };
+
+inline constexpr ShaderProgramFlags operator&(ShaderProgramFlags a, ShaderProgramFlags b) {
+	return static_cast<ShaderProgramFlags>(static_cast<int>(a) & static_cast<int>(b));
+}
+
+inline constexpr ShaderProgramFlags operator|(ShaderProgramFlags a, ShaderProgramFlags b) {
+	return static_cast<ShaderProgramFlags>(static_cast<int>(a) | static_cast<int>(b));
+}

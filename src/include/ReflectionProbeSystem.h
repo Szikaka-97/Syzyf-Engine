@@ -11,8 +11,6 @@ private:
 	ReflectionProbe* skyboxProbe;
 
 	Framebuffer* reflectionProbeFramebuffer;
-	Cubemap* reflectionProbeColorTexture;
-	Texture2D* reflectionProbeDepthTexture;
 
 	Texture2D* brdfConvolutionMap;
 public:

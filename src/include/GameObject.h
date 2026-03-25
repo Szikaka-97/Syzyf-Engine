@@ -4,15 +4,14 @@
 #include <typeinfo>
 
 #include <Scene.h>
+#include <Messaging.h>
 
-class GameObject {
+class GameObject : public MessageReceiver {
 	friend class Scene;
 private:
 	int id;
 	const std::type_info* runtimeTypeInfo;
 	bool enabled;
-	MessageMethod onEnable;
-	MessageMethod onDisable;
 	SceneNode* node;
 protected:
 	SceneTransform& GetTransform() const;
@@ -50,6 +49,8 @@ public:
 	template<class T_GO, typename... T_Param>
 		requires std::derived_from<T_GO, GameObject>
 	bool TryGetObject(T_GO*& target) const;
+
+	static void operator delete(GameObject* ptr, std::destroying_delete_t);
 };
 
 template<class T_GO>

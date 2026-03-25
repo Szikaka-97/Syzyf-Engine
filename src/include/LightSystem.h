@@ -11,7 +11,6 @@ class LightSystem : public GameObjectSystem<Light>, public ImGuiDrawable {
 	friend class SceneGraphics;
 private:
 	Framebuffer* shadowAtlasFramebuffer;
-	Texture2D* shadowAtlasDepthTexture;
 
 	GLuint lightsBuffer;
 	GLuint shadowmapsBuffer;

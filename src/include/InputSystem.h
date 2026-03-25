@@ -143,7 +143,55 @@ enum class MouseButton {
 
 class InputSystem : public SceneComponent, public ImGuiDrawable {
 private:
-	struct KeyBitMask;
+	struct KeyBitMask {
+		constexpr static int TimeBits = 29;
+		constexpr static int FractionalTimeBits = 10;
+
+		uint32_t value;
+
+		KeyBitMask();
+
+		KeyBitMask(uint32_t value);
+
+		inline bool GetKeyDownBit() const {
+			return value & 1;
+		}
+
+		inline bool GetKeyPressedBit() const {
+			return value & 2;
+		}
+
+		inline bool GetKeyUpBit() const {
+			return value & 4;
+		}
+
+		inline float GetPressTime() const {
+			int pressTime = this->value >> (32 - TimeBits);
+			return ((float) pressTime) / (1 << FractionalTimeBits);
+		}
+
+		inline void SetKeyDownBit(bool set) {
+			value &= ~1;
+			value |= set;
+		}
+
+		inline void SetKeyPressedBit(bool set) {
+			value &= ~2;
+			value |= ((uint8_t) set) << 1;
+		}
+
+		inline void SetKeyUpBit(bool set) {
+			value &= ~4;
+			value |= ((uint8_t) set) << 2;
+		}
+
+		inline void SetPressTime(float pressTime) {
+			int timeRep = (int) (pressTime * (1 << FractionalTimeBits)) << (32 - TimeBits);
+			
+			this->value &= (1 << (32 - TimeBits)) - 1;
+			this->value |= timeRep;
+		}
+	};
 
 	std::map<int, KeyBitMask> keys;
 	glm::vec2 prevMouseMovement;

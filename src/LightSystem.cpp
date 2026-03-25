@@ -19,11 +19,8 @@ LightSystem::LightSystem(Scene* scene):
 GameObjectSystem<Light>(scene),
 lightsBuffer(0),
 shadowmapAtlasSize(4096),
-directionalLightCascadeCount(6),
-shadowAtlasDepthTexture(nullptr) {
-	this->shadowAtlasFramebuffer = new Framebuffer((Texture2D*) nullptr, 0, nullptr);
-
-	ChangeShadowAtlasResolution(this->shadowmapAtlasSize);
+directionalLightCascadeCount(6) {
+	this->shadowAtlasFramebuffer = new Framebuffer(Framebuffer::Attachment::Depth, shadowmapAtlasSize, shadowmapAtlasSize);
 
 	glGenBuffers(1, &this->lightsBuffer);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->lightsBuffer);
@@ -35,18 +32,7 @@ shadowAtlasDepthTexture(nullptr) {
 }
 
 void LightSystem::ChangeShadowAtlasResolution(int newResolution) {
-	if (this->shadowAtlasDepthTexture) {
-		delete this->shadowAtlasDepthTexture;
-	}
-
-	this->shadowmapAtlasSize = newResolution;
-
-	this->shadowAtlasDepthTexture = new Texture2D(this->shadowmapAtlasSize, this->shadowmapAtlasSize, Texture::DepthBuffer);
-
-	this->shadowAtlasDepthTexture->SetMinFilter(TextureFilter::LinearMipmapNearest);
-	this->shadowAtlasDepthTexture->SetMagFilter(TextureFilter::LinearMipmapNearest);
-
-	this->shadowAtlasFramebuffer->SetDepthTexture(this->shadowAtlasDepthTexture, 0);
+	this->shadowAtlasFramebuffer->SetSize(glm::ivec2(newResolution, newResolution));
 }
 
 GLuint LightSystem::GetLightsBufferHandle() {
@@ -93,7 +79,7 @@ void LightSystem::DoDirectionalLightShadowmap(Light* light, ShadowMapRegion* sha
 	globalUniforms.Global_CameraNearPlane = 0;
 	globalUniforms.Global_CameraFov = 0;
 	
-	Camera* mainCamera = Camera::GetMainCamera();
+	Camera* mainCamera = GetScene()->GetGraphics()->GetMainCamera();
 	
 	float nearPlane = mainCamera->GetNearPlane();
 	float farPlane = mainCamera->GetFarPlane();

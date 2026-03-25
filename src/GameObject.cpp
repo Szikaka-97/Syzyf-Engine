@@ -72,12 +72,11 @@ void GameObject::SetEnabled(bool enabled) {
 		return;
 	}
 
-	if (enabled && this->onEnable) {
-		(*this.*this->onEnable)();
-	}
-	else if (!enabled && this->onDisable) {
-		(*this.*this->onDisable)();
-	}
+	GetScene()->SetGameObjectEnabledInternal(this, enabled);
 
 	this->enabled = enabled;
+}
+
+void GameObject::operator delete(GameObject* ptr, std::destroying_delete_t) {
+	ptr->GetScene()->QueueDelete(ptr);
 }

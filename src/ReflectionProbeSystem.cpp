@@ -51,10 +51,7 @@ Texture2D* GenerateBRDFConvolution() {
 ReflectionProbeSystem::ReflectionProbeSystem(Scene* scene):
 GameObjectSystem<ReflectionProbe>(scene),
 skyboxProbe(nullptr) {
-	this->reflectionProbeDepthTexture = new Texture2D(ReflectionProbe::resolution, ReflectionProbe::resolution, Texture::DepthBuffer);
-	this->reflectionProbeColorTexture = new Cubemap(ReflectionProbe::resolution, ReflectionProbe::resolution, Texture::HDRColorBuffer);
-
-	this->reflectionProbeFramebuffer = new Framebuffer(reflectionProbeColorTexture, 0, this->reflectionProbeDepthTexture, 0);
+	this->reflectionProbeFramebuffer = new Framebuffer(Framebuffer::Attachment::HDRColor | Framebuffer::Attachment::CubemappedColor | Framebuffer::Attachment::Depth, ReflectionProbe::resolution, ReflectionProbe::resolution);
 
 	this->brdfConvolutionMap = GenerateBRDFConvolution();
 }
@@ -176,18 +173,16 @@ void ReflectionProbeSystem::OnPostRender() {
 			globalUniforms.Global_ProjectionMatrix = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 100.0f);
 			globalUniforms.Global_VPMatrix = globalUniforms.Global_ProjectionMatrix * globalUniforms.Global_ViewMatrix;
 
-			this->reflectionProbeFramebuffer->SetColorTexture(this->reflectionProbeColorTexture, face);
+			this->reflectionProbeFramebuffer->SetColorTexture(this->reflectionProbeFramebuffer->GetColorTexture(), face);
 
 			RenderParams params(RenderPassType::Color, glm::vec4(0, 0, ReflectionProbe::resolution, ReflectionProbe::resolution), true);
 			
 			GetScene()->GetGraphics()->RenderScene(globalUniforms, this->reflectionProbeFramebuffer, params);
 		}
 		
-		this->reflectionProbeFramebuffer->SetColorTexture((Texture2D*) nullptr, 0);
-
 		probe->dirty = false;
-		probe->irradianceMap = this->reflectionProbeColorTexture->GenerateIrradianceMap();
-		probe->prefilterMap = this->reflectionProbeColorTexture->GeneratePrefilterIBLMap();
+		probe->irradianceMap = static_cast<Cubemap*>(this->reflectionProbeFramebuffer->GetColorTexture())->GenerateIrradianceMap();
+		probe->prefilterMap = static_cast<Cubemap*>(this->reflectionProbeFramebuffer->GetColorTexture())->GeneratePrefilterIBLMap();
 
 		break; // Only recompute 1 probe at a time
 	}
@@ -201,7 +196,11 @@ void ReflectionProbeSystem::DrawImGui() {
 	if (ImGui::TreeNode("Reflection Probes Debug")) {
 		ImGui::Text("Active reflection probes: %i", (int) this->GetAllObjects()->size());
 
-		ReflectionProbe* closest = GetClosestProbe(Camera::GetMainCamera()->GlobalTransform().Position());
+		ReflectionProbe* closest = nullptr;
+
+		if (GetScene()->GetGraphics()->GetMainCamera()) {
+			ReflectionProbe* closest = GetClosestProbe(GetScene()->GetGraphics()->GetMainCamera()->GlobalTransform().Position());
+		}
 
 		ImGui::Text("Closest probe: %s", closest != nullptr ? closest->GetNode()->GetName().c_str() : "N/A");
 

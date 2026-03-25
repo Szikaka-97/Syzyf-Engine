@@ -29,8 +29,7 @@ class GameObjectSystem : public GameObjectSystemBase {
 	friend class Scene;
 private:
 	std::vector<T_GO*> objects;
-
-	protected:
+protected:
 	GameObjectSystem(Scene* scene);
 	
 	virtual bool ValidObject(GameObject* obj) const;

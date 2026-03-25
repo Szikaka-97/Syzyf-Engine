@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.21 FATAL_ERROR)
 project(Syzyf VERSION 1.0)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 IF (WIN32)
   message(NOTICE "\n")
   message(NOTICE "********************** IMPORTANT NOTICE ****************************\n")
@@ -26,11 +28,10 @@ add_subdirectory(thirdparty)
 
 set(CMAKE_CXX_STANDARD 23)
 
-IF (GNU)
+IF (MSVC)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /vmg /vmv")
+ELSEIF (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --concepts-diagnostics-depth=2")
-ELSEIF (MSVC)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /vmg")
 ENDIF ()
 
 # ---- Main project's files ----
