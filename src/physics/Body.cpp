@@ -348,6 +348,23 @@ void Body::SetCollisionLayerAndMask(uint32_t layer, uint32_t mask) {
   }
 }
 
+void Body::SetCollisionLayerAndMask(std::initializer_list<uint32_t> layers, uint32_t mask) {
+  uint32_t combinedLayer = 0;
+  for (uint32_t l : layers) combinedLayer |= (1 << l);
+
+  SetCollisionLayerAndMask(combinedLayer, mask);
+}
+
+void Body::SetCollisionLayerAndMask(std::initializer_list<uint32_t> layers, std::initializer_list<uint32_t> collideWithLayers) {
+  uint32_t combinedLayer = 0;
+  for (uint32_t l : layers) combinedLayer |= (1 << l);
+
+  uint32_t combinedMask = 0;
+  for (uint32_t l : collideWithLayers) combinedMask |= (1 << l);
+
+  SetCollisionLayerAndMask(combinedLayer, combinedMask);
+}
+
 void Body::SetPosition(const glm::vec3& position) {
   if (!bodyCreated) {
     spdlog::warn("Tried setting position on a body that hasn't been created yet");
@@ -571,7 +588,6 @@ void Body::Awake() {
 }
 
 void Body::OnEnable() {
-  spdlog::info("Enable called");
   if (!bodyCreated) {
     spdlog::warn("Tried enabling a body that hasn't been created yet");
     return;
