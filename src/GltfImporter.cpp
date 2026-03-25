@@ -54,7 +54,8 @@ SceneNode* GltfImporter::LoadScene(Scene* scene, const fs::path path, std::strin
     return nullptr;
   }
 
-  std::vector<Material*> materials = LoadMaterials(scene, asset.get());
+  bool isSkinned = !asset->skins.empty() || !asset->animations.empty();
+  std::vector<Material*> materials = LoadMaterials(scene, asset.get(), isSkinned);
   
   SceneNode* root = scene->CreateNode(name);
   auto& nodeIndices = asset->scenes[asset->defaultScene.value()].nodeIndices;
@@ -307,7 +308,12 @@ Mesh* GltfImporter::LoadMesh(fastgltf::Mesh& gltfMesh, fastgltf::Asset& asset, s
     primitive.faceCount = indicesAccessor.count / (unsigned int)primitive.type;
   }
 
-	VertexSpec meshSpec = VertexSpec::MeshSkinned;
+  bool isSkinned = false;
+  if (!gltfMesh.primitives.empty()) {
+    isSkinned = gltfMesh.primitives[0].findAttribute("JOINTS_0") != gltfMesh.primitives[0].attributes.end();
+  }
+
+	VertexSpec meshSpec = isSkinned ? VertexSpec::MeshSkinned : VertexSpec::Mesh;
   mesh->vertexData = new float[vertexCount * meshSpec.VertexSize() + 3];
   memset(mesh->vertexData, 0, vertexCount * meshSpec.VertexSize() * sizeof(float));
   mesh->vertexCount = vertexCount;
@@ -543,15 +549,15 @@ void GltfImporter::GltfSamplerToTextureParams(TextureParams& params, fastgltf::S
   params.wrapV = GltfWrapToTextureWrap(sampler.wrapT);
 }
 
-std::vector<Material*> GltfImporter::LoadMaterials(Scene* scene, fastgltf::Asset& asset) {
+std::vector<Material*> GltfImporter::LoadMaterials(Scene* scene, fastgltf::Asset& asset, bool isSkinned) {
   std::vector<Material*> materials;
   materials.reserve(asset.materials.size());
   ResourceDatabase* resources = scene->Resources();
 
+  const char* vertexShaderPath = isSkinned ? "./res/shaders/lit_gltf_animation.vert" : "./res/shaders/lit_gltf.vert";
 
-#warning GltfImporter: Add a separate shader for skinned meshes, vary the vertexspec as well
 	auto* opaqueProg = ShaderProgram::Build().WithVertexShader(
-		resources->Get<VertexShader>("./res/shaders/lit_gltf_animation.vert")
+		resources->Get<VertexShader>(vertexShaderPath)
 	).WithPixelShader(
 		resources->Get<PixelShader>("./res/shaders/pbr_gltf.frag")
 	).Link();

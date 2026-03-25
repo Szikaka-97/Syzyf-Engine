@@ -19,7 +19,7 @@ public:
 private:
   static SceneNode* CreateNode(fastgltf::Node& gltfNode, std::vector<Material*>& materials, fastgltf::Asset& asset, Scene* scene, std::vector<SceneNode*>& sceneNodes, SceneNode* parent = nullptr);
 
-  static std::vector<Material*> LoadMaterials(Scene* scene, fastgltf::Asset& asset);
+  static std::vector<Material*> LoadMaterials(Scene* scene, fastgltf::Asset& asset, bool isSkinned);
   static std::optional<AnimationComponent::Animation> LoadAnimation(std::vector<SceneNode*>& sceneNodes, fastgltf::Animation& gltfAnimation, fastgltf::Asset& asset);
   static Mesh* LoadMesh(fastgltf::Mesh& mesh, fastgltf::Asset& asset, std::vector<Material*>& materials);
   static Texture2D* LoadImage(Scene* scene, fastgltf::Asset& asset, fastgltf::Image& image, const TextureParams loadParams);
