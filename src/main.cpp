@@ -118,15 +118,11 @@ public:
 		this->starMesh = GetScene()->Resources()->Get<Mesh>("./res/models/star.obj");
 		
 		ShaderProgram* starProgram = ShaderProgram::Build()
-		.WithVertexShader(
-			GetScene()->Resources()->Get<VertexShader>("./res/shaders/star.vert")
-		).WithGeometryShader(
-			GetScene()->Resources()->Get<GeometryShader>("./res/shaders/star.geom")
-		).WithPixelShader(
-			GetScene()->Resources()->Get<PixelShader>("./res/shaders/star.frag")
-		).Link();
-		starProgram->SetIgnoresDepthPrepass(true);
-		starProgram->SetCastsShadows(false);
+		.WithVertexShader("./res/shaders/star.vert")
+		.WithGeometryShader("./res/shaders/star.geom")
+		.WithPixelShader("./res/shaders/star.frag").Link();
+		// starProgram->SetIgnoresDepthPrepass(true);
+		// starProgram->SetCastsShadows(false);
 
 		this->starMaterial = new Material(starProgram);
 		this->starCount = starCount;
@@ -149,36 +145,31 @@ public:
 };
 
 void InitScene(Scene* mainScene) {
-	ShaderProgram* skyProg = ShaderProgram::Build().WithVertexShader(
-		mainScene->Resources()->Get<VertexShader>("./res/shaders/skybox.vert")
-	).WithPixelShader(
-		mainScene->Resources()->Get<PixelShader>("./res/shaders/skybox.frag")
-	).Link();
+	ShaderProgram* skyProg = ShaderProgram::Build()
+	.WithVertexShader("./res/shaders/skybox.vert")
+	.WithPixelShader("./res/shaders/skybox.frag")
+	.Link();
 
-	ShaderProgram* coloredProg = ShaderProgram::Build().WithVertexShader(
-		mainScene->Resources()->Get<VertexShader>("./res/shaders/lit.vert")
-	).WithPixelShader(
-		mainScene->Resources()->Get<PixelShader>("./res/shaders/lambert color.frag")
-	).Link();
+	ShaderProgram* coloredProg = ShaderProgram::Build()
+	.WithVertexShader("./res/shaders/lit.vert")
+	.WithPixelShader("./res/shaders/lambert color.frag")
+	.Link();
 
-	ShaderProgram* diffuseTexProg = ShaderProgram::Build().WithVertexShader(
-		mainScene->Resources()->Get<VertexShader>("./res/shaders/lit.vert")
-	).WithPixelShader(
-		mainScene->Resources()->Get<PixelShader>("./res/shaders/lambert.frag")
-	).Link();
+	ShaderProgram* diffuseTexProg = ShaderProgram::Build()
+	.WithVertexShader("./res/shaders/lit.vert")
+	.WithPixelShader("./res/shaders/lambert.frag")
+	.Link();
 
-	ShaderProgram* pbrProg = ShaderProgram::Build().WithVertexShader(
-		mainScene->Resources()->Get<VertexShader>("./res/shaders/lit.vert")
-	).WithPixelShader(
-		mainScene->Resources()->Get<PixelShader>("./res/shaders/pbr.frag")
-	).Link();
+	ShaderProgram* pbrProg = ShaderProgram::Build()
+	.WithVertexShader("./res/shaders/lit.vert")
+	.WithPixelShader("./res/shaders/pbr.frag")
+	.Link();
 
-	ShaderProgram* transparentProg = ShaderProgram::Build().WithVertexShader(
-		mainScene->Resources()->Get<VertexShader>("./res/shaders/lit.vert")
-	).WithPixelShader(
-		mainScene->Resources()->Get<PixelShader>("./res/shaders/transparent.frag")
-	).Link();
-	transparentProg->SetTransparent(true);
+	ShaderProgram* transparentProg = ShaderProgram::Build()
+	.WithVertexShader("./res/shaders/lit.vert")
+	.WithPixelShader("./res/shaders/transparent.frag")
+	.Link();
+	// transparentProg->SetTransparent(true);
 
 	Mesh* gmConstructMesh = mainScene->Resources()->Get<Mesh>("./res/models/construct/construct.obj", true);
 	Mesh* cannonMesh = mainScene->Resources()->Get<Mesh>("./res/models/cannon/cannon.obj");
@@ -342,11 +333,42 @@ void InitScene(Scene* mainScene) {
 }
 
 int main(int, char**) {
-	if (!Engine::Setup(InitScene)) {
+	if (!Engine::Setup()) {
 		spdlog::error("Failed to initialize project!");
 		return EXIT_FAILURE;
 	}
+	
+	auto shader = ShaderProgram::Build()
+	.WithVertexShader("./res/shaders/lit.vert")
+	.WithPixelShader("./res/shaders/lambert.frag")
+	.WithKeyword("KEY", 0)
+	.Link();
 
+	GLint pixelShaderName;
+
+	glGetProgramPipelineiv(shader->GetHandle(), GL_FRAGMENT_SHADER, &pixelShaderName);
+
+	spdlog::warn(pixelShaderName);
+
+	int uniformCount = 0;
+
+	glGetProgramiv(pixelShaderName, GL_ACTIVE_UNIFORMS, &uniformCount);
+
+	spdlog::warn(uniformCount);
+
+	for (int i = 0; i < uniformCount; i++) {
+		char buf[512];
+		int len;
+
+		glGetActiveUniformName(pixelShaderName, i, 511, &len, buf);
+
+		spdlog::warn("{} - {}", i, std::string(buf));
+	}
+
+
+	spdlog::info(shader->HasPragma("poop"));
+	
+	return 0;
 	spdlog::info("Initialized project.");
 
 	Engine::MainLoop();

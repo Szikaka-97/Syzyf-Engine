@@ -16,7 +16,7 @@ Texture2D* GenerateBRDFConvolution() {
 	static ComputeShaderDispatch* BrdfConvolutionDispatch;
 
 	if (BrdfConvolutionDispatch == nullptr) {
-		BrdfConvolutionDispatch = new ComputeShaderDispatch(ResourceDatabase::Global->Get<ComputeShader>("./res/shaders/cubemapBlit/brdf_convolution.comp"));
+		// BrdfConvolutionDispatch = new ComputeShaderDispatch(ResourceDatabase::Global->Get<ComputeShader>("./res/shaders/cubemapBlit/brdf_convolution.comp"));
 	}
 
 	TextureParams creationParams;

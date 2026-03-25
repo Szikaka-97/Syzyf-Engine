@@ -502,7 +502,7 @@ Cubemap* Cubemap::Load(const fs::path& texturePath, const TextureParams& loadPar
 }
 
 Cubemap* Cubemap::LoadEquirectangular(const fs::path& texturePath, const TextureParams& loadParams) {
-	static ComputeShaderDispatch* cubemapBlitProg = new ComputeShaderDispatch(ResourceDatabase::Global->Get<ComputeShader>("./res/shaders/cubemapBlit/cubemapFromEqu.comp"));
+	// static ComputeShaderDispatch* cubemapBlitProg = new ComputeShaderDispatch(ResourceDatabase::Global->Get<ComputeShader>("./res/shaders/cubemapBlit/cubemapFromEqu.comp"));
 
 	Texture2D* equTex = Texture2D::Load(texturePath, loadParams);
 	
@@ -543,10 +543,10 @@ Cubemap* Cubemap::LoadEquirectangular(const fs::path& texturePath, const Texture
 
 	Cubemap* result = new Cubemap(texSize, texSize, loadParams, handle);
 	
-	cubemapBlitProg->GetData()->SetValue("equirectangularMap", equTex);
-	cubemapBlitProg->GetData()->SetValue("outputImg", result);
+	// cubemapBlitProg->GetData()->SetValue("equirectangularMap", equTex);
+	// cubemapBlitProg->GetData()->SetValue("outputImg", result);
 
-	cubemapBlitProg->Dispatch(std::ceil(texSize / 8.0f), std::ceil(texSize / 8.0f), 1);
+	// cubemapBlitProg->Dispatch(std::ceil(texSize / 8.0f), std::ceil(texSize / 8.0f), 1);
 
 	delete equTex;
 
@@ -630,7 +630,7 @@ Cubemap* Cubemap::LoadParts(const fs::path& texturePath, const TextureParams& lo
 }
 
 Cubemap* Cubemap::GenerateIrradianceMap() {
-	static ComputeShaderDispatch* irradianceProg = new ComputeShaderDispatch(ResourceDatabase::Global->Get<ComputeShader>("./res/shaders/cubemapBlit/cubemapIrradiance.comp"));
+	// static ComputeShaderDispatch* irradianceProg = new ComputeShaderDispatch(ResourceDatabase::Global->Get<ComputeShader>("./res/shaders/cubemapBlit/cubemapIrradiance.comp"));
 
 	TextureParams creationParams {
 		.channels = TextureChannels::RGBA,
@@ -664,10 +664,10 @@ Cubemap* Cubemap::GenerateIrradianceMap() {
 
 	Cubemap* result = new Cubemap(width, height, creationParams, handle);
 	
-	irradianceProg->GetData()->SetValue("environmentMap", this);
-	irradianceProg->GetData()->SetValue("outputImg", result);
+	// irradianceProg->GetData()->SetValue("environmentMap", this);
+	// irradianceProg->GetData()->SetValue("outputImg", result);
 
-	irradianceProg->Dispatch(std::ceil(texSize / 8.0f), std::ceil(texSize / 8.0f), 1);
+	// irradianceProg->Dispatch(std::ceil(texSize / 8.0f), std::ceil(texSize / 8.0f), 1);
 
 	result->SetMinFilter(TextureFilter::LinearMipmapLinear);
 	result->Update();
@@ -676,7 +676,7 @@ Cubemap* Cubemap::GenerateIrradianceMap() {
 }
 
 Cubemap* Cubemap::GeneratePrefilterIBLMap() {
-	static ComputeShaderDispatch* cubemapPrefilterProg = new ComputeShaderDispatch(ResourceDatabase::Global->Get<ComputeShader>("./res/shaders/cubemapBlit/cubemapPrefilter.comp"));
+	// static ComputeShaderDispatch* cubemapPrefilterProg = new ComputeShaderDispatch(ResourceDatabase::Global->Get<ComputeShader>("./res/shaders/cubemapBlit/cubemapPrefilter.comp"));
 
 	TextureParams creationParams {
 		.channels = TextureChannels::RGBA,
@@ -716,17 +716,17 @@ Cubemap* Cubemap::GeneratePrefilterIBLMap() {
 	
 	Cubemap* result = new Cubemap(width, height, creationParams, handle);
 	
-	cubemapPrefilterProg->GetData()->SetValue("environmentMap", this);
+	// cubemapPrefilterProg->GetData()->SetValue("environmentMap", this);
 	
 	for (unsigned int mip = 0; mip < maxMipLevels; ++mip) {
 		unsigned int mipSize  = 128 * std::pow(0.5, mip);
 		
 		float roughness = (float) mip / (float) (maxMipLevels - 1);
 
-		cubemapPrefilterProg->GetData()->SetValue("outputImg", result, mip);
-		cubemapPrefilterProg->GetData()->SetValue("roughness", roughness);
+		// cubemapPrefilterProg->GetData()->SetValue("outputImg", result, mip);
+		// cubemapPrefilterProg->GetData()->SetValue("roughness", roughness);
 
-		cubemapPrefilterProg->Dispatch(std::ceil(mipSize / 8.0f), std::ceil(mipSize / 8.0f), 1);
+		// cubemapPrefilterProg->Dispatch(std::ceil(mipSize / 8.0f), std::ceil(mipSize / 8.0f), 1);
 	}
 
 	return result;

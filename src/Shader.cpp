@@ -1,9 +1,13 @@
+#include "UniformSpec.h"
 #include <Shader.h>
 
+#include <algorithm>
 #include <cstddef>
 #include <cstring>
 #include <fstream>
 #include <ranges>
+#include <iostream>
+#include <regex>
 #include <sstream>
 #include <ranges>
 #include <malloc.h>
@@ -15,6 +19,13 @@
 #include <spdlog/spdlog.h>
 #include <string_view>
 
+constexpr std::string VertexShaderExtension = ".vert";
+constexpr std::string GeometryShaderExtension = ".geom";
+constexpr std::string TesselationControlShaderExtension = ".tess_eval";
+constexpr std::string TesselationEvaluationShaderExtension = ".tess_ctrl";
+constexpr std::string PixelShaderExtension = ".frag";
+constexpr std::string ComputeShaderExtension = ".comp";
+
 struct ShaderCodeSegment {
 	char* str;
 	size_t length;
@@ -25,29 +36,16 @@ struct ShaderFile {
 	char* content;
 };
 
-struct ShaderCode {
-	std::vector<ShaderFile> loadedFiles;
-	std::vector<ShaderCodeSegment> segments;
-};
+Shader::Shader():
+valid(false) { }
 
-ShaderVariantInfo::ShaderVariantInfo(std::initializer_list<ShaderVariantPoint> variantPoints):
-variantPoints(variantPoints) { }
-
-ShaderBase::ShaderBase(fs::path filePath, ShaderVariantInfo variantInfo, GLuint handle):
+Shader::Shader(const fs::path& filePath, ShaderCode code):
 filePath(filePath),
-variantInfo(variantInfo),
-handle(handle) { }
-
-ShaderBase::~ShaderBase() {
-	glDeleteShader(this->handle);
-}
+code(code),
+valid(true) { }
 
 char* LoadFile(const fs::path& filePath) {
 	fs::directory_entry shaderFile(filePath);
-
-	// if (!shaderFile.exists()) {
-	// 	throw shader::shader_missing_file_exception(shaderFile);
-	// }
 
 	char* buf = new char[shaderFile.file_size() + 1];
 	
@@ -58,46 +56,6 @@ char* LoadFile(const fs::path& filePath) {
 	buf[shaderFile.file_size()] = '\0';
 	
 	return buf;
-}
-
-char* LoadFile(const fs::path& filePath, GLenum& shaderType) {
-	fs::directory_entry shaderFile(filePath);
-
-	shaderType = GL_INVALID_ENUM;
-	
-	if (filePath.extension() == ".vert") {
-		shaderType = GL_VERTEX_SHADER;
-	}
-	else if (filePath.extension() == ".frag") {
-		shaderType = GL_FRAGMENT_SHADER;
-	}
-	else if (filePath.extension() == ".geom") {
-		shaderType = GL_GEOMETRY_SHADER;
-	}
-	else if (filePath.extension() == ".tess_eval") {
-		shaderType = GL_TESS_EVALUATION_SHADER;
-	}
-	else if (filePath.extension() == ".tess_ctrl") {
-		shaderType = GL_TESS_CONTROL_SHADER;
-	}
-	else if (filePath.extension() == ".comp") {
-		shaderType = GL_COMPUTE_SHADER;
-	}
-	else {
-		// throw shader::shader_unknown_type_exception(path_to_file);
-	}
-
-	return LoadFile(filePath);
-}
-
-int VersionPresent(const std::string& shaderCode) {
-	std::smatch versionMatch;
-
-	if (std::regex_search(shaderCode.begin(), shaderCode.end(), versionMatch, Regex::shaderHeaderRegex)) {
-		return versionMatch.position() + versionMatch.length();
-	}
-
-	return 0;
 }
 
 VertexSpec GetVertexSpec(const std::string_view& shaderCode) {
@@ -131,33 +89,7 @@ VertexSpec GetVertexSpec(const std::string_view& shaderCode) {
 	return VertexSpec(spec);
 }
 
-ShaderBase* ShaderBase::Load(fs::path filePath) {
-	GLenum shaderType;
-
-	if (filePath.extension() == ".vert") {
-		shaderType = GL_VERTEX_SHADER;
-	}
-	else if (filePath.extension() == ".frag") {
-		shaderType = GL_FRAGMENT_SHADER;
-	}
-	else if (filePath.extension() == ".geom") {
-		shaderType = GL_GEOMETRY_SHADER;
-	}
-	else if (filePath.extension() == ".tess_eval") {
-		shaderType = GL_TESS_EVALUATION_SHADER;
-	}
-	else if (filePath.extension() == ".tess_ctrl") {
-		shaderType = GL_TESS_CONTROL_SHADER;
-	}
-	else if (filePath.extension() == ".comp") {
-		shaderType = GL_COMPUTE_SHADER;
-	}
-	else {
-		throw "unknown extention";
-	}
-
-	GLuint shaderHandle = glCreateShader(shaderType);
-
+Shader Shader::LoadFromFile(const fs::path& filePath) {
 	char preprocessorErrorMsg[256];
 
 	char* shaderSource = LoadFile(filePath);
@@ -167,14 +99,88 @@ ShaderBase* ShaderBase::Load(fs::path filePath) {
 	if (preprocessedSource == nullptr) {
 		spdlog::error("Error preprocessing shader {}:\n{}", filePath.string(), std::string(preprocessorErrorMsg));
 
-		return nullptr;
+		throw "Preprocessor exception";
 	}
 
-	glShaderSource(shaderHandle, 1, &preprocessedSource, nullptr);
+	ShaderCode code;
+	code.codeParts.push_back(preprocessedSource);
+	int partLength = 0;
+	int partNum = 0;
 
+	std::stringstream shaderLines(preprocessedSource);
+
+	for (std::string line; std::getline(shaderLines, line); ) {
+		auto partStr = code.codeParts.back();
+
+		std::smatch variantMatch{};
+		if (std::regex_match(line, variantMatch, Regex::shaderPragmaRegex)) {
+			*const_cast<char*>(partStr + partLength) = '\0';
+
+			code.pragmas.push_back(variantMatch[1].str());
+
+			code.codeParts.push_back(partStr + partLength + line.length() + 1);
+
+			partLength = 0;
+
+			partNum++;
+		}
+		else if (std::regex_match(line, variantMatch, Regex::shaderVariantRegex)) {
+			int keywordNameStartOffset = variantMatch[1].first - variantMatch[0].first;
+			int keywordNameEndOffset = variantMatch[1].second - variantMatch[0].first;
+
+			int keywordValueStartOffset = variantMatch[3].first - variantMatch[0].first;
+			int keywordValueEndOffset = variantMatch[3].second - variantMatch[0].first;
+
+			*const_cast<char*>(partStr + partLength) = '\0';
+			*const_cast<char*>(partStr + partLength + keywordNameEndOffset) = '\0';
+			*const_cast<char*>(partStr + partLength + keywordValueEndOffset) = '\0';
+
+			spdlog::warn(variantMatch[3].str());
+			spdlog::warn(keywordValueStartOffset);
+			spdlog::warn(keywordValueEndOffset);
+
+			code.codeParts.push_back("\n#define ");
+			code.codeParts.push_back(partStr + partLength + keywordNameStartOffset);
+			code.codeParts.push_back(" ");
+			code.codeParts.push_back(partStr + partLength + keywordValueStartOffset);
+			code.codeParts.push_back(partStr + partLength + line.length() + 1);
+			partLength = 0;
+
+			std::string keywordName = variantMatch[1].str();
+			std::string keywordValue = variantMatch[3].str();
+
+			if (code.keywords.contains(keywordName)) {
+				throw "A keyword definition can only appear once in a shader file";
+			}
+
+			code.keywords[keywordName] = {
+				partNum + 4,
+				keywordName,
+				keywordValue
+			};
+
+			partNum += 5;
+		}
+		else {
+			partLength += line.length() + 1;
+		}
+	}
+
+	int i = 0;
+
+	spdlog::info("Shader code:");
+	for (auto part : code.codeParts) {
+		std::cout << i++ << '^' << part << '^' << '\n';
+	}
+	for (auto index : code.keywords) {
+		spdlog::info("{}: {} = {}", index.second.name, index.second.location, index.second.defaultValue);
+	}
+	for (auto pragma : code.pragmas) {
+		spdlog::info("pragma: |{}|", pragma);
+	}
+
+	/*
 	spdlog::info("Compiling shader {}", filePath.filename().string());
-
-	glCompileShader(shaderHandle);
 
 	int compileSuccess;
 	
@@ -202,273 +208,236 @@ ShaderBase* ShaderBase::Load(fs::path filePath) {
 
 		// throw shader::shader_compilation_exception(path_to_file, compile_msg);
 	}
+	*/
 
-	ShaderBase* result;
-
-	if (shaderType == GL_VERTEX_SHADER) {
-		VertexSpec spec = GetVertexSpec(preprocessedSource);
-
-		result = new VertexShader(filePath, {}, shaderHandle, spec);
-	}
-	else if (shaderType == GL_FRAGMENT_SHADER) {
-		result = new PixelShader(filePath, {}, shaderHandle);
-	}
-	else if (shaderType == GL_GEOMETRY_SHADER) {
-		result = new GeometryShader(filePath, {}, shaderHandle);
-	}
-	else if (filePath.extension() == ".tess_eval") {
-		result = new TesselationEvaluationShader(filePath, {}, shaderHandle);
-	}
-	else if (filePath.extension() == ".tess_ctrl") {
-		result = new TesselationControlShader(filePath, {}, shaderHandle);
-	}
-	else if (shaderType == GL_COMPUTE_SHADER) {
-		result = new ComputeShader(filePath, {}, shaderHandle);
-	}
-	else {
-		// throw shader::shader_unknown_type_exception(path_to_file);
-	}
-
-	free(preprocessedSource);
+	Shader result(filePath, code);
 
 	return result;
 }
 
-ShaderBase* ShaderBase::Load(fs::path filePath, const ShaderVariantInfo& variantInfo) {
-#ifndef _MSC_VER
-#warning TODO
-#endif
-	return nullptr;
-}
-
-const fs::path& ShaderBase::GetFilePath() const {
+const fs::path& Shader::GetFilePath() const {
 	return this->filePath;
 }
 
-std::string ShaderBase::GetName() const {
+std::string Shader::GetName() const {
 	return this->filePath.stem().string();
 }
-const ShaderVariantInfo& ShaderBase::GetVariantInfo() const {
-	return this->variantInfo;
-}
-GLuint ShaderBase::GetHandle() const {
-	return this->handle;
+
+const ShaderCode& Shader::GetCode() const {
+	return this->code;
 }
 
-VertexShader::VertexShader(fs::path filePath, ShaderVariantInfo variantInfo, GLuint handle, VertexSpec spec):
-ShaderBase(filePath, variantInfo, handle),
-vertexSpec(spec) { }
+ShaderBuilder& ShaderBuilder::WithVertexShader(const fs::path& vertexShaderPath) {
+	this->vertexShaderPath = vertexShaderPath;
 
-VertexShader* VertexShader::Load(fs::path filePath) {
-	ShaderBase* loaded = ShaderBase::Load(filePath);
-
-	VertexShader* result = dynamic_cast<VertexShader*>(loaded);
-
-	if (!result) {
-		delete loaded;
-
-		return nullptr;
-	}
-	
-	return result;
+	return *this;
 }
+ShaderBuilder& ShaderBuilder::WithGeometryShader(const fs::path& geometryShaderPath) {
+	this->geometryShaderPath = geometryShaderPath;
 
-const VertexSpec& VertexShader::GetVertexSpec() const {
-	return this->vertexSpec;
+	return *this;
 }
+ShaderBuilder& ShaderBuilder::WithTessEvaluationShader(const fs::path& tessEvalShaderPath) {
+	this->tessEvalShaderPath = tessEvalShaderPath;
 
-GLenum VertexShader::GetType() const {
-	return GL_VERTEX_SHADER;
+	return *this;
 }
+ShaderBuilder& ShaderBuilder::WithTessControlShader(const fs::path& tessCtrlShaderPath) {
+	this->tessCtrlShaderPath = tessCtrlShaderPath;
 
-GeometryShader::GeometryShader(fs::path filePath, ShaderVariantInfo variantInfo, GLuint handle):
-ShaderBase(filePath, variantInfo, handle) { }
-
-GeometryShader* GeometryShader::Load(fs::path filePath) {
-	ShaderBase* loaded = ShaderBase::Load(filePath);
-
-	GeometryShader* result = dynamic_cast<GeometryShader*>(loaded);
-
-	if (!result) {
-		delete loaded;
-
-		return nullptr;
-	}
-	
-	return result;
+	return *this;
 }
-
-GLenum GeometryShader::GetType() const {
-	return GL_GEOMETRY_SHADER;
-}
-
-TesselationEvaluationShader::TesselationEvaluationShader(fs::path filePath, ShaderVariantInfo variantInfo, GLuint handle):
-ShaderBase(filePath, variantInfo, handle) { }
-
-TesselationEvaluationShader* TesselationEvaluationShader::Load(fs::path filePath) {
-	ShaderBase* loaded = ShaderBase::Load(filePath);
-
-	TesselationEvaluationShader* result = dynamic_cast<TesselationEvaluationShader*>(loaded);
-
-	if (!result) {
-		delete loaded;
-
-		return nullptr;
-	}
-	
-	return result;
-}
-
-GLenum TesselationEvaluationShader::GetType() const {
-	return GL_TESS_EVALUATION_SHADER;
-}
-
-TesselationControlShader::TesselationControlShader(fs::path filePath, ShaderVariantInfo variantInfo, GLuint handle):
-ShaderBase(filePath, variantInfo, handle) { }
-
-TesselationControlShader* TesselationControlShader::Load(fs::path filePath) {
-	ShaderBase* loaded = ShaderBase::Load(filePath);
-
-	TesselationControlShader* result = dynamic_cast<TesselationControlShader*>(loaded);
-
-	if (!result) {
-		delete loaded;
-
-		return nullptr;
-	}
-	
-	return result;
-}
-
-GLenum TesselationControlShader::GetType() const {
-	return GL_TESS_CONTROL_SHADER;
-}
-
-PixelShader::PixelShader(fs::path filePath, ShaderVariantInfo variantInfo, GLuint handle):
-ShaderBase(filePath, variantInfo, handle) { }
-
-PixelShader* PixelShader::Load(fs::path filePath) {
-	ShaderBase* loaded = ShaderBase::Load(filePath);
-
-	PixelShader* result = dynamic_cast<PixelShader*>(loaded);
-
-	if (!result) {
-		delete loaded;
-
-		return nullptr;
-	}
-	
-	return result;
-}
-
-GLenum PixelShader::GetType() const {
-	return GL_FRAGMENT_SHADER;
-}
-
-ComputeShader::ComputeShader(fs::path filePath, ShaderVariantInfo variantInfo, GLuint handle):
-ShaderBase(filePath, variantInfo, handle) { }
-
-ComputeShader* ComputeShader::Load(fs::path filePath) {
-	ShaderBase* loaded = ShaderBase::Load(filePath);
-
-	ComputeShader* result = dynamic_cast<ComputeShader*>(loaded);
-
-	if (!result) {
-		delete loaded;
-
-		return nullptr;
-	}
-	
-	return result;
-}
-
-GLenum ComputeShader::GetType() const {
-	return GL_COMPUTE_SHADER;
-}
-
-ShaderBuilder& ShaderBuilder::WithVertexShader(VertexShader* vertexShader) {
-	this->vertexShader = vertexShader;
+ShaderBuilder& ShaderBuilder::WithPixelShader(const fs::path& pixelShaderPath) {
+	this->pixelShaderPath = pixelShaderPath;
 
 	return *this;
 }
 
-ShaderBuilder& ShaderBuilder::WithGeometryShader(GeometryShader* geometryShader) {
-	this->geometryShader = geometryShader;
+ShaderBuilder& ShaderBuilder::WithKeyword(const std::string& keyword, const std::string& keywordValue) {
+	this->keywordOverrides.push_back({keyword, keywordValue});
+
+	return *this;
+}
+ShaderBuilder& ShaderBuilder::WithKeyword(const std::string& keyword, int keywordValue) {
+	this->keywordOverrides.push_back({keyword, std::to_string(keywordValue)});
+
+	return *this;
+}
+ShaderBuilder& ShaderBuilder::WithKeyword(const std::string& keyword, float keywordValue) {
+	this->keywordOverrides.push_back({keyword, std::to_string(keywordValue)});
 
 	return *this;
 }
 
-ShaderBuilder& ShaderBuilder::WithTessEvaluationShader(TesselationEvaluationShader* tessEvalShader) {
-	this->tessEvalShader = tessEvalShader;
+GLuint ShaderBuilder::CompileShader(const ShaderCode& code, std::unordered_set<std::string>& pragmas, GLenum shaderType) {
+	std::vector<const char*> finalParts(code.codeParts.size());
+	std::stringstream ss;
 
-	return *this;
-}
-ShaderBuilder& ShaderBuilder::WithTessControlShader(TesselationControlShader* tessCtrlShader) {
-	this->tessCtrlShader = tessCtrlShader;
+	
+	for (int i = 0; i < code.codeParts.size(); i++) {
+		finalParts[i] = code.codeParts[i];
+	}
 
-	return *this;
-}
+	for (const auto& keyword : this->keywordOverrides) {
+		auto keywordIt = code.keywords.find(keyword.name);
 
-ShaderBuilder& ShaderBuilder::WithPixelShader(PixelShader* pixelShader) {
-	this->pixelShader = pixelShader;
+		if (keywordIt != code.keywords.end()) {
+			finalParts[keywordIt->second.location] = keyword.value.c_str();
+		}
+	}
 
-	return *this;
+	for (const std::string& pragma : code.pragmas) {
+		pragmas.insert(pragma);
+	}
+
+	for (const char* part : finalParts) {
+		ss << part;
+	}
+
+	std::string s = ss.str();
+	const char* finalCode = s.c_str();
+
+	return glCreateShaderProgramv(shaderType, 1, &finalCode);
 }
 
 ShaderProgram* ShaderBuilder::Link() {
-	GLuint programHandle = glCreateProgram();
+	Shader vertexShader,
+	       geometryShader,
+	       tessEvalShader,
+	       tessCtrlShader,
+	       pixelShader;
 
-	assert(this->vertexShader);
-	assert(this->pixelShader);
-
-	glAttachShader(programHandle, this->vertexShader->GetHandle());
-	glAttachShader(programHandle, this->pixelShader->GetHandle());
+	GLuint vertexShaderHandle = 0,
+	       geometryShaderHandle = 0,
+	       tessEvalShaderHandle = 0,
+	       tessCtrlShaderHandle = 0,
+	       pixelShaderHandle = 0;
 	
-	if (this->geometryShader) {
-		glAttachShader(programHandle, this->geometryShader->GetHandle());
+	std::unordered_set<std::string> pragmas;
+
+	if (!this->vertexShaderPath.empty()) {
+		vertexShader = Shader::LoadFromFile(this->vertexShaderPath);
+
+		vertexShaderHandle = CompileShader(vertexShader.GetCode(), pragmas, GL_VERTEX_SHADER);
 	}
+	if (!this->geometryShaderPath.empty()) {
+		geometryShader = Shader::LoadFromFile(this->geometryShaderPath);
+
+		geometryShaderHandle = CompileShader(geometryShader.GetCode(), pragmas, GL_GEOMETRY_SHADER);
+	}
+	if (!this->tessEvalShaderPath.empty()) {
+		tessEvalShader = Shader::LoadFromFile(this->tessEvalShaderPath);
+
+		tessEvalShaderHandle = CompileShader(tessEvalShader.GetCode(), pragmas, GL_TESS_EVALUATION_SHADER);
+	}
+	if (!this->tessCtrlShaderPath.empty()) {
+		tessCtrlShader = Shader::LoadFromFile(this->tessCtrlShaderPath);
+
+		tessCtrlShaderHandle = CompileShader(tessCtrlShader.GetCode(), pragmas, GL_TESS_CONTROL_SHADER);
+	}
+	if (!this->pixelShaderPath.empty()) {
+		pixelShader = Shader::LoadFromFile(this->pixelShaderPath);
+
+		pixelShaderHandle = CompileShader(pixelShader.GetCode(), pragmas, GL_FRAGMENT_SHADER);
+	}
+
+	GLuint pipelineHandle;
+	glGenProgramPipelines(1, &pipelineHandle);
+
+	auto result = new ShaderProgram(pipelineHandle);
 	
-	if (this->tessCtrlShader && this->tessEvalShader) {
-		glAttachShader(programHandle, this->tessEvalShader->GetHandle());
-		glAttachShader(programHandle, this->tessCtrlShader->GetHandle());
+	result->keywords.variants.push_back({});
+
+	auto& keywordMap = result->keywords.keywordMap;
+	auto& defaultVariant = result->keywords.variants.back();
+
+	if (vertexShaderHandle) {
+		glUseProgramStages(pipelineHandle, GL_VERTEX_SHADER_BIT, vertexShaderHandle);
+
+		result->pragmas.insert(vertexShader.GetCode().pragmas.begin(), vertexShader.GetCode().pragmas.end());
+
+		for (const auto& keyword : vertexShader.GetCode().keywords) {
+			if (!keywordMap.contains(keyword.first)) {
+				keywordMap[keyword.first] = defaultVariant.keywords.size();
+				defaultVariant.keywords.push_back(keyword.second.defaultValue);
+			}
+		}
+
+		defaultVariant.shaders.vertexShaderHandle = vertexShaderHandle;
+	}
+	if (geometryShaderHandle) {
+		glUseProgramStages(pipelineHandle, GL_GEOMETRY_SHADER_BIT, geometryShaderHandle);
+
+		result->pragmas.insert(geometryShader.GetCode().pragmas.begin(), geometryShader.GetCode().pragmas.end());
+
+		for (const auto& keyword : geometryShader.GetCode().keywords) {
+			if (!keywordMap.contains(keyword.first)) {
+				keywordMap[keyword.first] = defaultVariant.keywords.size();
+				defaultVariant.keywords.push_back(keyword.second.defaultValue);
+			}
+		}
+
+		defaultVariant.shaders.geometryShaderHandle = geometryShaderHandle;
+	}
+	if (tessEvalShaderHandle) {
+		glUseProgramStages(pipelineHandle, GL_TESS_EVALUATION_SHADER_BIT, tessEvalShaderHandle);
+
+		result->pragmas.insert(tessEvalShader.GetCode().pragmas.begin(), tessEvalShader.GetCode().pragmas.end());
+
+		for (const auto& keyword : tessEvalShader.GetCode().keywords) {
+			if (!keywordMap.contains(keyword.first)) {
+				keywordMap[keyword.first] = defaultVariant.keywords.size();
+				defaultVariant.keywords.push_back(keyword.second.defaultValue);
+			}
+		}
+
+		defaultVariant.shaders.tessEvalShaderHandle = tessEvalShaderHandle;
+	}
+	if (tessCtrlShaderHandle) {
+		glUseProgramStages(pipelineHandle, GL_TESS_CONTROL_SHADER_BIT, tessCtrlShaderHandle);
+
+		result->pragmas.insert(tessCtrlShader.GetCode().pragmas.begin(), tessCtrlShader.GetCode().pragmas.end());
+
+		for (const auto& keyword : tessCtrlShader.GetCode().keywords) {
+			if (!keywordMap.contains(keyword.first)) {
+				keywordMap[keyword.first] = defaultVariant.keywords.size();
+				defaultVariant.keywords.push_back(keyword.second.defaultValue);
+			}
+		}
+
+		defaultVariant.shaders.tessCtrlShaderHandle = tessCtrlShaderHandle;
+	}
+	if (pixelShaderHandle) {
+		glUseProgramStages(pipelineHandle, GL_FRAGMENT_SHADER_BIT, pixelShaderHandle);
+
+		result->pragmas.insert(pixelShader.GetCode().pragmas.begin(), pixelShader.GetCode().pragmas.end());
+
+		for (const auto& keyword : pixelShader.GetCode().keywords) {
+			if (!keywordMap.contains(keyword.first)) {
+				keywordMap[keyword.first] = defaultVariant.keywords.size();
+				defaultVariant.keywords.push_back(keyword.second.defaultValue);
+			}
+		}
+
+		defaultVariant.shaders.pixelShaderHandle = pixelShaderHandle;
 	}
 
-	glLinkProgram(programHandle);
+	// spdlog::info(result->handle)
 
-	int compileSuccess;
-	char compileMsg[512];
-
-	glGetProgramiv(programHandle, GL_LINK_STATUS, &compileSuccess);
-	if (!compileSuccess) {
-		glGetProgramInfoLog(programHandle, 512, NULL, compileMsg);
-
-		spdlog::error("Error linking shader:\n{}", compileMsg);
-	}
-
-	ShaderProgram* prog = new ShaderProgram(
-		this->vertexShader,
-		this->geometryShader,
-		this->pixelShader,
-		programHandle
-	);
-
-	if (this->tessCtrlShader && this->tessEvalShader) {
-		prog->flags = ShaderProgramFlags::UsePatches;
-	}
-	else {
-		prog->flags = ShaderProgramFlags::None;
-	}
-
-	return prog;
+	return result;
 }
 
-ShaderProgram::ShaderProgram(VertexShader* vertexShader, GeometryShader* geometryShader, PixelShader* pixelShader, GLuint handle):
-vertexShader(vertexShader),
-geometryShader(geometryShader),
-pixelShader(pixelShader),
-handle(handle) {
-	this->uniforms = UniformSpec(this);
-}
+ShaderProgram::ShaderProgram(GLuint handle):
+keywords(),
+currentVariant(nullptr),
+vertexShader(),
+geometryShader(),
+tessEvalShader(),
+tessCtrlShader(),
+pixelShader(),
+uniforms(this),
+pragmas(),
+handle(0) { }
 
 ShaderProgram::~ShaderProgram() {
 	glDeleteProgram(this->handle);
@@ -485,78 +454,47 @@ GLuint ShaderProgram::GetHandle() const {
 const UniformSpec& ShaderProgram::GetUniforms() const {
 	return this->uniforms;
 }
-const VertexSpec& ShaderProgram::GetVertexSpec() const {
-	return this->vertexShader->GetVertexSpec();
-}
 
 bool ShaderProgram::IgnoresDepthPrepass() const {
-	return int(this->flags & ShaderProgramFlags::IgnoreDepthPrepass) != 0;
+	return HasPragma("no_depth_prepass");
 }
 
 bool ShaderProgram::CastsShadows() const {
-	return int(this->flags & ShaderProgramFlags::DontCastShadows) == 0;
+	return !HasPragma("no_shadows");
 }
 
 bool ShaderProgram::UsesPatches() const {
-	return int(this->flags & ShaderProgramFlags::UsePatches) != 0;
+#warning TODO
+	return false;
 }
 
 bool ShaderProgram::IsTransparent() const {
-	return int(this->flags & ShaderProgramFlags::Transparent) != 0;
+	return HasPragma("transparent");
 }
 
-void ShaderProgram::SetIgnoresDepthPrepass(bool ignores) {
-	unsigned int temp = (unsigned int) ShaderProgramFlags::IgnoreDepthPrepass;
-	temp = ~temp;
-
-	temp = (unsigned int) this->flags & temp;
-
-	temp |= (unsigned int) ShaderProgramFlags::IgnoreDepthPrepass * ignores;
-
-	this->flags = (ShaderProgramFlags) temp;
-}
-
-void ShaderProgram::SetCastsShadows(bool casts) {
-	unsigned int temp = (unsigned int) ShaderProgramFlags::DontCastShadows;
-	temp = ~temp;
-
-	temp = (unsigned int) this->flags & temp;
-
-	temp |= (unsigned int) ShaderProgramFlags::DontCastShadows * !casts;
-
-	this->flags = (ShaderProgramFlags) temp;
-}
-
-void ShaderProgram::SetTransparent(bool transparent) {
-	unsigned int temp = (unsigned int) ShaderProgramFlags::Transparent;
-	temp = ~temp;
-
-	temp = (unsigned int) this->flags & temp;
-
-	temp |= (unsigned int) ShaderProgramFlags::Transparent * transparent;
-
-	this->flags = (ShaderProgramFlags) temp;
+bool ShaderProgram::HasPragma(const std::string& pragma) const {
+	return this->pragmas.contains(pragma);
 }
 
 ComputeShaderProgram::ComputeShaderProgram(ComputeShader* computeShader) {
 	assert(computeShader);
 
-	this->handle = glCreateProgram();
-	glAttachShader(this->handle, computeShader->GetHandle());
+	// this->handle = glCreateProgram();
+	// glAttachShader(this->handle, computeShader->GetHandle());
 
-	glLinkProgram(this->handle);
+	// glLinkProgram(this->handle);
 
-	int compileSuccess;
-	char compileMsg[512];
+	// int compileSuccess;
+	// char compileMsg[512];
 
-	glGetProgramiv(this->handle, GL_LINK_STATUS, &compileSuccess);
-	if (!compileSuccess) {
-		glGetProgramInfoLog(this->handle, 512, NULL, compileMsg);
+	// glGetProgramiv(this->handle, GL_LINK_STATUS, &compileSuccess);
+	// if (!compileSuccess) {
+	// 	glGetProgramInfoLog(this->handle, 512, NULL, compileMsg);
 
-		spdlog::error("Error linking compute shader program:\n{}", compileMsg);
-	}
+	// 	spdlog::error("Error linking compute shader program:\n{}", compileMsg);
+	// }
 
-	this->uniforms = UniformSpec(this);	
+	// this->uniforms = UniformSpec(this);	
 }
 
 ComputeShaderProgram::~ComputeShaderProgram() {

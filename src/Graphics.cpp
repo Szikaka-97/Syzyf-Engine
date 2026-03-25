@@ -245,7 +245,7 @@ void SceneGraphics::RenderObjects(const ShaderGlobalUniforms& globalUniforms, Re
 		mat->Bind();
 
 		if (params.pass == RenderPassType::Color) {
-			int shadowmaskUniformLocation = glGetUniformLocation(mat->GetShader()->handle, "Builtin_ShadowMask");
+			int shadowmaskUniformLocation = glGetUniformLocation(mat->GetShader()->GetHandle(), "Builtin_ShadowMask");
 
 			if (shadowmaskUniformLocation >= 0) {
 				glActiveTexture(GL_TEXTURE31);
@@ -253,9 +253,9 @@ void SceneGraphics::RenderObjects(const ShaderGlobalUniforms& globalUniforms, Re
 				glUniform1i(shadowmaskUniformLocation, 31);
 			}
 
-			int irradianceMapUniformLocation = glGetUniformLocation(mat->GetShader()->handle, "Builtin_EnvIrradianceMap");
-			int prefilterMapUniformLocation = glGetUniformLocation(mat->GetShader()->handle, "Builtin_EnvPrefilterMap");
-			int brdfConvolutionMapUniformLocation = glGetUniformLocation(mat->GetShader()->handle, "Builtin_BRDFConvolutionMap");
+			int irradianceMapUniformLocation = glGetUniformLocation(mat->GetShader()->GetHandle(), "Builtin_EnvIrradianceMap");
+			int prefilterMapUniformLocation = glGetUniformLocation(mat->GetShader()->GetHandle(), "Builtin_EnvPrefilterMap");
+			int brdfConvolutionMapUniformLocation = glGetUniformLocation(mat->GetShader()->GetHandle(), "Builtin_BRDFConvolutionMap");
 
 			ReflectionProbe* closestProbe = nullptr;
 
@@ -327,12 +327,8 @@ void SceneGraphics::BindGlobalUniformBuffer(const ShaderGlobalUniforms& globalUn
 
 void SceneGraphics::RenderFullscreenFrameQuad() {
 	static ShaderProgram* quadProg = ShaderProgram::Build()
-	.WithVertexShader(
-		GetScene()->Resources()->Get<VertexShader>("./res/shaders/fullscreen.vert")
-	)
-	.WithPixelShader(
-		GetScene()->Resources()->Get<PixelShader>("./res/shaders/blit.frag")
-	).Link();
+	.WithVertexShader("./res/shaders/fullscreen.vert")
+	.WithPixelShader("./res/shaders/blit.frag").Link();
 
 	static Mesh* quadMesh = GetScene()->Resources()->Get<Mesh>("./res/models/fullscreenquad.obj");
 
@@ -359,12 +355,8 @@ void SceneGraphics::RenderFullscreenFrameQuad() {
 
 void SceneGraphics::CompositeTransparentPass() {
 	static ShaderProgram* quadProg = ShaderProgram::Build()
-	.WithVertexShader(
-		GetScene()->Resources()->Get<VertexShader>("./res/shaders/fullscreen.vert")
-	)
-	.WithPixelShader(
-		GetScene()->Resources()->Get<PixelShader>("./res/shaders/transparency_composite.frag")
-	).Link();
+	.WithVertexShader("./res/shaders/fullscreen.vert")
+	.WithPixelShader("./res/shaders/transparency_composite.frag").Link();
 
 	static Mesh* quadMesh = GetScene()->Resources()->Get<Mesh>("./res/models/fullscreenquad.obj");
 

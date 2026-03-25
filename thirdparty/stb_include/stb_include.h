@@ -49,6 +49,9 @@ char *stb_include_file(char *filename, char *inject, char *path_to_includes, cha
 
 #endif
 
+#define STB_INCLUDE_IMPLEMENTATION
+#define STB_INCLUDE_LINE_GLSL
+
 #ifdef STB_INCLUDE_IMPLEMENTATION
 
 #include <stdio.h>
