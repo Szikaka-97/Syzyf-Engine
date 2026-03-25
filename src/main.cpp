@@ -309,8 +309,8 @@ void InitScene(Scene* mainScene) {
 	).WithPixelShader(
 		mainScene->Resources()->Get<PixelShader>("./res/shaders/pbr_gltf.frag")
 	).Link();
-  // auto tvsGltfImporterNode = GltfImporter::LoadScene(mainScene, "./res/models/animated_cube.glb", "Animated Thing");
-  // tvsGltfImporterNode->AddObject<AnimatedThingTag>();
+  auto tvsGltfImporterNode = GltfImporter::LoadScene(mainScene, "./res/models/animated_cube.glb", "Animated Thing");
+  tvsGltfImporterNode->AddObject<AnimatedThingTag>();
 
   auto* jake = GltfImporter::LoadScene(mainScene, "./res/models/jake_tangents.glb", "jake");
 

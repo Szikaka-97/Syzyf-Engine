@@ -18,6 +18,7 @@
 
 #include "../res/shaders/shared/shared.h"
 #include "../res/shaders/shared/uniforms.h"
+#include "animation/SkeletonComponent.h"
 
 #include <GLFW/glfw3.h>
 
@@ -87,28 +88,32 @@ mesh(mesh),
 material(material),
 instanceCount(instanceCount),
 transformation(transformation),
-bounds(mesh->GetBounds()) { }
+bounds(mesh->GetBounds()),
+jointMatrices(nullptr) { }
 
 SceneGraphics::RenderNode::RenderNode(const Mesh::SubMesh* mesh, const Material* material, unsigned int instanceCount, const glm::mat4& transformation, const BoundingBox& bounds):
 mesh(mesh),
 material(material),
 instanceCount(instanceCount),
 transformation(transformation),
-bounds(bounds) { }
+bounds(bounds),
+jointMatrices(nullptr) { }
 
 SceneGraphics::RenderNode::RenderNode(const Mesh::SubMesh* mesh, const Material* material, bool ignoreDepth, const glm::mat4& transformation):
 mesh(mesh),
 material(material),
 ignoreDepth(ignoreDepth),
 transformation(transformation),
-bounds(mesh->GetBounds()) { }
+bounds(mesh->GetBounds()),
+jointMatrices(nullptr) { }
 
 SceneGraphics::RenderNode::RenderNode(const Mesh::SubMesh* mesh, const Material* material, bool ignoreDepth, const glm::mat4& transformation, const BoundingBox& bounds):
 mesh(mesh),
 material(material),
 ignoreDepth(ignoreDepth),
 transformation(transformation),
-bounds(bounds) { }
+bounds(bounds),
+jointMatrices(nullptr) { }
 
 SceneGraphics::SceneGraphics(Scene* scene):
 SceneComponent(scene),
@@ -241,6 +246,16 @@ void SceneGraphics::RenderObjects(const ShaderGlobalUniforms& globalUniforms, Re
 
 		mat->Bind();
 
+    if (node.jointMatrices && !node.jointMatrices->empty()) {
+      int jointUniformLocation = glGetUniformLocation(mat->GetShader()->handle, "inverseBindMatrices");
+      if (jointUniformLocation >= 0) {
+        // Set the limit somewhere else
+        int count = std::min((int)node.jointMatrices->size(), 256);
+
+        glUniformMatrix4fv(jointUniformLocation, count, GL_FALSE, (const GLfloat*)node.jointMatrices->data());
+      }
+    }
+
 		if (params.pass == RenderPassType::Color) {
 			int shadowmaskUniformLocation = glGetUniformLocation(mat->GetShader()->handle, "Builtin_ShadowMask");
 
@@ -371,15 +386,24 @@ void SceneGraphics::DrawGizmoMesh(const Mesh* mesh, int subMeshIndex, const Mate
 }
 
 void SceneGraphics::DrawMeshInstanced(MeshRenderer* renderer, unsigned int instanceCount) {
+  const std::vector<glm::mat4>* skinningData = nullptr;
+  SkeletonComponent* skeleton = renderer->GetNode()->GetObject<SkeletonComponent>();
+  if (skeleton) {
+    skinningData = &skeleton->jointMatrices;
+  }
+
 	for (int i = 0; i < renderer->GetMesh()->GetSubMeshCount(); i++) {
 		const Mesh::SubMesh* mesh = &renderer->GetMesh()->SubMeshAt(i);
 
-		this->currentRenders.push_back(RenderNode(
+		RenderNode node(
 			mesh,
 			renderer->GetMaterial(mesh->GetMaterialIndex()),
 			instanceCount,
 			renderer->GlobalTransform()
-		));
+		);
+    node.jointMatrices = skinningData;
+
+    this->currentRenders.push_back(node);
 	}
 }
 

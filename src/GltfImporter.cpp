@@ -8,6 +8,7 @@
 #include "Texture.h"
 #include "VertexSpec.h"
 #include "animation/AnimationComponent.h"
+#include "animation/SkeletonComponent.h"
 
 #include <fastgltf/math.hpp>
 #include <fastgltf/types.hpp>
@@ -66,6 +67,34 @@ SceneNode* GltfImporter::LoadScene(Scene* scene, const fs::path path, std::strin
     auto& node = asset->nodes[index];
     SceneNode* sceneNode = CreateNode(node, materials, asset.get(), scene, sceneNodes, root);
     sceneNodes[index] = sceneNode;
+  }
+
+  for (std::size_t i = 0; i < asset->nodes.size(); ++i) {
+    auto& gltfNode = asset->nodes[i];
+
+    if (gltfNode.skinIndex.has_value() && sceneNodes[i] != nullptr) {
+      auto& gltfSkin = asset->skins[gltfNode.skinIndex.value()];
+
+      auto* skeleton = sceneNodes[i]->AddObject<SkeletonComponent>();
+
+      skeleton->joints.reserve(gltfSkin.joints.size());
+      for (std::size_t jointIndex : gltfSkin.joints) {
+        skeleton->joints.push_back(sceneNodes[jointIndex]);
+      }
+
+      skeleton->inverseBindMatrices.resize(gltfSkin.joints.size(), glm::mat4(1.0f));
+      if (gltfSkin.inverseBindMatrices.has_value()) {
+        auto& ibmAccessor = asset->accessors[gltfSkin.inverseBindMatrices.value()];
+
+        fastgltf::iterateAccessorWithIndex<fastgltf::math::fmat4x4>(asset.get(), ibmAccessor, [&](fastgltf::math::fmat4x4 matrix, std::size_t idx) {
+            skeleton->inverseBindMatrices[idx] = glm::make_mat4(matrix.data());
+        });
+      }
+
+      if (gltfSkin.skeleton.has_value()) {
+        skeleton->skeletonRoot = sceneNodes[gltfSkin.skeleton.value()];
+      }
+    }
   }
 
   // Animation

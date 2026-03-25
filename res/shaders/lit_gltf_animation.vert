@@ -21,35 +21,50 @@ out VS_OUT {
 } vs_out;
 
 //from learnopengl
-const int MAX_BONES = 100;
-const int MAX_BONE_INFLUENCE = 4;
+const int MAX_BONES = 256;
+const int MAX_BONE_INFLUENCE = 8;
 uniform mat4 inverseBindMatrices[MAX_BONES];
 
 void main() {
-
   vec4 totalPosition = vec4(0.0f);
+  vec3 totalNormal = vec3(0.0f);
+  vec3 totalTangent = vec3(0.0f);
+
   for (int i = 0; i < MAX_BONE_INFLUENCE; i++) {
     int joint = int(vJoints[i]);
+    float weight = vWeights[i];
 
-    if (joint == -1) {
+    if (weight <= 0.0f || joint >= MAX_BONES || joint < 0) {
       continue;
     }
-    if (joint >= MAX_BONES) {
-      totalPosition = vec4(vPos, 1.0f);
-      break;
-    }
-    vec4 localPosition = inverseBindMatrices[joint] * vec4(vPos, 1.0f);
-    totalPosition += localPosition * vWeights[i];
-    vec3 localNormal = mat3(inverseBindMatrices[joint]) * vNormal;
+
+    mat4 jointMat = inverseBindMatrices[joint];
+        
+    vec4 localPosition = jointMat * vec4(vPos, 1.0f);
+    totalPosition += localPosition * weight;
+
+    vec3 localNormal = mat3(jointMat) * vNormal;
+    totalNormal += localNormal * weight;
+        
+    vec3 localTangent = mat3(jointMat) * vTangent.xyz;
+    totalTangent += localTangent * weight;
   }
 
-	gl_Position = Object_MVPMatrix * totalPosition;
+  if (totalPosition == vec4(0.0f)) {
+    totalPosition = vec4(vPos, 1.0f);
+    totalNormal = vNormal;
+    totalTangent = vTangent.xyz;
+  }
 
-	vs_out.worldPos = (Object_ModelMatrix * vec4(vPos, 1.0)).xyz;
-	vs_out.viewPos = (Global_ViewMatrix * (Object_ModelMatrix * vec4(vPos, 1.0))).xyz;
-	vs_out.normal = Object_NormalModelMatrix * vNormal;
-	vs_out.tangent.xyz = Object_NormalModelMatrix * vTangent.xyz;
+  gl_Position = Object_MVPMatrix * totalPosition;
+
+  vs_out.worldPos = (Object_ModelMatrix * totalPosition).xyz;
+  vs_out.viewPos = (Global_ViewMatrix * vec4(vs_out.worldPos, 1.0)).xyz;
+    
+  vs_out.normal = normalize(Object_NormalModelMatrix * totalNormal);
+  vs_out.tangent.xyz = normalize(Object_NormalModelMatrix * totalTangent);
   vs_out.tangent.w = vTangent.w;
-	vs_out.texcoords = vUVCoords;
+    
+  vs_out.texcoords = vUVCoords;
   vs_out.texcoords2 = vUVCoords2;
 }

@@ -1,5 +1,6 @@
 #include "animation/AnimationSystem.h"
 #include "animation/AnimationComponent.h"
+#include "animation/SkeletonSystem.h"
 
 #include "TimeSystem.h"
 #include "Scene.h"
@@ -28,14 +29,15 @@ glm::vec3 cubicSpline(const glm::vec3 previousPoint, const glm::vec3 previousTan
     * nextPoint + (t3 - t2) * nextTangent;
 }
 
-AnimationSystem::AnimationSystem(Scene* scene) : SceneComponent(scene) {
+AnimationSystem::AnimationSystem(Scene* scene): GameObjectSystem<AnimationComponent>(scene) {
+  scene->AddComponent<SkeletonSystem>();
   spdlog::info("Animation system added");
 }
 
 void AnimationSystem::OnPreUpdate() {
   const float deltaTime = Time::Delta(); 
 
-  auto objects = GetScene()->FindObjectsOfType<AnimationComponent>();
+  auto objects = *GetAllObjects();
   for (auto* object : objects) {
     for (auto& animation : object->animations) {
       if (!animation.playing)
@@ -43,7 +45,7 @@ void AnimationSystem::OnPreUpdate() {
 
       animation.timeActive += deltaTime * animation.speed;
 
-      spdlog::info("Animation: {}, duration: {}, timeactive: {}", animation.data.name, animation.data.duration, animation.timeActive);
+      spdlog::debug("Animation: {}, duration: {}, timeactive: {}", animation.data.name, animation.data.duration, animation.timeActive);
       if (animation.timeActive >= animation.data.duration) {
         for (std::size_t& i : animation.currentKeyframes) {
           i = 0;
