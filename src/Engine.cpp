@@ -211,7 +211,7 @@ bool Engine::Setup() {
 		return false;
 	}
 
-	// rootScene = Scene::CreateStandaloneScene();
+	rootScene = Scene::CreateStandaloneScene();
 
 	return true;
 }

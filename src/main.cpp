@@ -333,42 +333,35 @@ void InitScene(Scene* mainScene) {
 }
 
 int main(int, char**) {
-	if (!Engine::Setup()) {
+	if (!Engine::Setup(InitScene)) {
 		spdlog::error("Failed to initialize project!");
 		return EXIT_FAILURE;
 	}
 	
-	auto shader = ShaderProgram::Build()
-	.WithVertexShader("./res/shaders/lit.vert")
-	.WithPixelShader("./res/shaders/lambert.frag")
-	.WithKeyword("KEY", 0)
-	.Link();
+	// auto shader = ShaderProgram::Build()
+	// .WithVertexShader("./res/shaders/lit.vert")
+	// .WithPixelShader("./res/shaders/lambert.frag")
+	// .WithKeyword("KEY", 0)
+	// .Link();
 
-	GLint pixelShaderName;
+	// int uniformCount = 0;
 
-	glGetProgramPipelineiv(shader->GetHandle(), GL_FRAGMENT_SHADER, &pixelShaderName);
+	// glGetProgramiv(shader->GetHandle(), GL_ACTIVE_UNIFORMS, &uniformCount);
 
-	spdlog::warn(pixelShaderName);
+	// spdlog::warn(uniformCount);
 
-	int uniformCount = 0;
+	// for (int i = 0; i < uniformCount; i++) {
+	// 	char buf[512];
+	// 	int len;
 
-	glGetProgramiv(pixelShaderName, GL_ACTIVE_UNIFORMS, &uniformCount);
+	// 	glGetActiveUniformName(shader->GetHandle(), i, 511, &len, buf);
 
-	spdlog::warn(uniformCount);
+	// 	spdlog::warn("{} - {}", i, std::string(buf));
+	// }
 
-	for (int i = 0; i < uniformCount; i++) {
-		char buf[512];
-		int len;
-
-		glGetActiveUniformName(pixelShaderName, i, 511, &len, buf);
-
-		spdlog::warn("{} - {}", i, std::string(buf));
-	}
-
-
-	spdlog::info(shader->HasPragma("poop"));
+	// spdlog::info(shader->HasPragma("poop"));
 	
-	return 0;
+	// return 0;
 	spdlog::info("Initialized project.");
 
 	Engine::MainLoop();

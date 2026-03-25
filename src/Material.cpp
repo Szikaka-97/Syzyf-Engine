@@ -6,8 +6,6 @@ void ShaderVariableStorage::Bind() const {
 	int samplerIndex = 0;
 
 	for (unsigned int i = 0; i < this->uniformSpec->VariableCount(); i++) {
-		int offset = this->uniformSpec->VariableAt(i).offset;
-
 		switch (this->uniformSpec->VariableAt(i).type) {
 		case UniformSpec::UniformType::Float1:
 			glUniform1f(this->uniformSpec->VariableAt(i).binding, GetValue<float>(i));

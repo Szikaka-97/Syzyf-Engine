@@ -166,18 +166,18 @@ Shader Shader::LoadFromFile(const fs::path& filePath) {
 		}
 	}
 
-	int i = 0;
+	// int i = 0;
 
-	spdlog::info("Shader code:");
-	for (auto part : code.codeParts) {
-		std::cout << i++ << '^' << part << '^' << '\n';
-	}
-	for (auto index : code.keywords) {
-		spdlog::info("{}: {} = {}", index.second.name, index.second.location, index.second.defaultValue);
-	}
-	for (auto pragma : code.pragmas) {
-		spdlog::info("pragma: |{}|", pragma);
-	}
+	// spdlog::info("Shader code:");
+	// for (auto part : code.codeParts) {
+	// 	std::cout << i++ << '^' << part << '^' << '\n';
+	// }
+	// for (auto index : code.keywords) {
+	// 	spdlog::info("{}: {} = {}", index.second.name, index.second.location, index.second.defaultValue);
+	// }
+	// for (auto pragma : code.pragmas) {
+	// 	spdlog::info("pragma: |{}|", pragma);
+	// }
 
 	/*
 	spdlog::info("Compiling shader {}", filePath.filename().string());
@@ -297,7 +297,30 @@ GLuint ShaderBuilder::CompileShader(const ShaderCode& code, std::unordered_set<s
 	std::string s = ss.str();
 	const char* finalCode = s.c_str();
 
-	return glCreateShaderProgramv(shaderType, 1, &finalCode);
+	// return glCreateShaderProgramv(shaderType, 1, &finalCode);
+	GLuint handle = glCreateShader(shaderType);
+
+	glShaderSource(handle, 1, &finalCode, nullptr);
+
+	glCompileShader(handle);
+
+	GLint compileSuccess;
+
+	glGetShaderiv(handle, GL_COMPILE_STATUS, &compileSuccess);
+
+	if (!compileSuccess) {
+		GLint messageLength;
+
+		glGetShaderiv(handle, GL_INFO_LOG_LENGTH, &messageLength);
+
+		char* infoLog = new char[messageLength];
+
+		glGetShaderInfoLog(handle, messageLength, &messageLength, infoLog);
+
+		spdlog::error(std::string(infoLog));
+	}
+
+	return handle;
 }
 
 ShaderProgram* ShaderBuilder::Link() {
@@ -341,10 +364,9 @@ ShaderProgram* ShaderBuilder::Link() {
 		pixelShaderHandle = CompileShader(pixelShader.GetCode(), pragmas, GL_FRAGMENT_SHADER);
 	}
 
-	GLuint pipelineHandle;
-	glGenProgramPipelines(1, &pipelineHandle);
+	GLuint programHandle = glCreateProgram();
 
-	auto result = new ShaderProgram(pipelineHandle);
+	auto result = new ShaderProgram(programHandle);
 	
 	result->keywords.variants.push_back({});
 
@@ -352,7 +374,7 @@ ShaderProgram* ShaderBuilder::Link() {
 	auto& defaultVariant = result->keywords.variants.back();
 
 	if (vertexShaderHandle) {
-		glUseProgramStages(pipelineHandle, GL_VERTEX_SHADER_BIT, vertexShaderHandle);
+		glAttachShader(programHandle, vertexShaderHandle);
 
 		result->pragmas.insert(vertexShader.GetCode().pragmas.begin(), vertexShader.GetCode().pragmas.end());
 
@@ -366,7 +388,7 @@ ShaderProgram* ShaderBuilder::Link() {
 		defaultVariant.shaders.vertexShaderHandle = vertexShaderHandle;
 	}
 	if (geometryShaderHandle) {
-		glUseProgramStages(pipelineHandle, GL_GEOMETRY_SHADER_BIT, geometryShaderHandle);
+		glAttachShader(programHandle, geometryShaderHandle);
 
 		result->pragmas.insert(geometryShader.GetCode().pragmas.begin(), geometryShader.GetCode().pragmas.end());
 
@@ -380,7 +402,7 @@ ShaderProgram* ShaderBuilder::Link() {
 		defaultVariant.shaders.geometryShaderHandle = geometryShaderHandle;
 	}
 	if (tessEvalShaderHandle) {
-		glUseProgramStages(pipelineHandle, GL_TESS_EVALUATION_SHADER_BIT, tessEvalShaderHandle);
+		glAttachShader(programHandle, tessEvalShaderHandle);
 
 		result->pragmas.insert(tessEvalShader.GetCode().pragmas.begin(), tessEvalShader.GetCode().pragmas.end());
 
@@ -392,9 +414,13 @@ ShaderProgram* ShaderBuilder::Link() {
 		}
 
 		defaultVariant.shaders.tessEvalShaderHandle = tessEvalShaderHandle;
+
+		if (tessCtrlShaderHandle) {
+			result->pragmas.insert("tesselation");
+		}
 	}
 	if (tessCtrlShaderHandle) {
-		glUseProgramStages(pipelineHandle, GL_TESS_CONTROL_SHADER_BIT, tessCtrlShaderHandle);
+		glAttachShader(programHandle, tessCtrlShaderHandle);
 
 		result->pragmas.insert(tessCtrlShader.GetCode().pragmas.begin(), tessCtrlShader.GetCode().pragmas.end());
 
@@ -408,7 +434,7 @@ ShaderProgram* ShaderBuilder::Link() {
 		defaultVariant.shaders.tessCtrlShaderHandle = tessCtrlShaderHandle;
 	}
 	if (pixelShaderHandle) {
-		glUseProgramStages(pipelineHandle, GL_FRAGMENT_SHADER_BIT, pixelShaderHandle);
+		glAttachShader(programHandle, pixelShaderHandle);
 
 		result->pragmas.insert(pixelShader.GetCode().pragmas.begin(), pixelShader.GetCode().pragmas.end());
 
@@ -422,7 +448,9 @@ ShaderProgram* ShaderBuilder::Link() {
 		defaultVariant.shaders.pixelShaderHandle = pixelShaderHandle;
 	}
 
-	// spdlog::info(result->handle)
+	glLinkProgram(programHandle);
+	
+	result->uniforms = UniformSpec(result);
 
 	return result;
 }
@@ -435,9 +463,9 @@ geometryShader(),
 tessEvalShader(),
 tessCtrlShader(),
 pixelShader(),
-uniforms(this),
+uniforms(),
 pragmas(),
-handle(0) { }
+handle(handle) { }
 
 ShaderProgram::~ShaderProgram() {
 	glDeleteProgram(this->handle);
@@ -464,8 +492,7 @@ bool ShaderProgram::CastsShadows() const {
 }
 
 bool ShaderProgram::UsesPatches() const {
-#warning TODO
-	return false;
+	return this->HasPragma("tesselation");
 }
 
 bool ShaderProgram::IsTransparent() const {
@@ -476,25 +503,52 @@ bool ShaderProgram::HasPragma(const std::string& pragma) const {
 	return this->pragmas.contains(pragma);
 }
 
-ComputeShaderProgram::ComputeShaderProgram(ComputeShader* computeShader) {
-	assert(computeShader);
+ComputeShaderProgram::ComputeShaderProgram(const fs::path& shaderPath) {
+	this->handle = glCreateProgram();
 
-	// this->handle = glCreateProgram();
-	// glAttachShader(this->handle, computeShader->GetHandle());
+	this->computeShader = Shader::LoadFromFile(shaderPath);
 
-	// glLinkProgram(this->handle);
+	GLuint shaderHandle = glCreateShader(GL_COMPUTE_SHADER);
 
-	// int compileSuccess;
-	// char compileMsg[512];
+	glShaderSource(shaderHandle, this->computeShader.GetCode().codeParts.size(), this->computeShader.GetCode().codeParts.data(), nullptr);
 
-	// glGetProgramiv(this->handle, GL_LINK_STATUS, &compileSuccess);
-	// if (!compileSuccess) {
-	// 	glGetProgramInfoLog(this->handle, 512, NULL, compileMsg);
+	glCompileShader(shaderHandle);
 
-	// 	spdlog::error("Error linking compute shader program:\n{}", compileMsg);
-	// }
+	GLint compileSuccess;
 
-	// this->uniforms = UniformSpec(this);	
+	glGetShaderiv(shaderHandle, GL_COMPILE_STATUS, &compileSuccess);
+
+	if (!compileSuccess) {
+		GLint messageLength;
+
+		glGetShaderiv(shaderHandle, GL_INFO_LOG_LENGTH, &messageLength);
+
+		char* infoLog = new char[messageLength];
+
+		glGetShaderInfoLog(shaderHandle, messageLength, &messageLength, infoLog);
+
+		spdlog::error(std::string(infoLog));
+	}
+
+	glAttachShader(this->handle, shaderHandle);
+
+	glLinkProgram(this->handle);
+
+	glGetProgramiv(this->handle, GL_LINK_STATUS, &compileSuccess);
+
+	if (!compileSuccess) {
+		GLint messageLength;
+		
+		glGetProgramiv(this->handle, GL_INFO_LOG_LENGTH, &messageLength);
+
+		char* infoLog = new char[messageLength];
+
+		glGetProgramInfoLog(shaderHandle, messageLength, &messageLength, infoLog);
+
+		spdlog::error(std::string(infoLog));
+	}
+
+	this->uniforms = UniformSpec(this);	
 }
 
 ComputeShaderProgram::~ComputeShaderProgram() {
@@ -509,8 +563,8 @@ const UniformSpec& ComputeShaderProgram::GetUniforms() const {
 	return this->uniforms;
 }
 
-ComputeShaderDispatch::ComputeShaderDispatch(ComputeShader* compShader):
-ComputeShaderDispatch(new ComputeShaderProgram(compShader)) { }
+ComputeShaderDispatch::ComputeShaderDispatch(const fs::path& shaderPath):
+ComputeShaderDispatch(new ComputeShaderProgram(shaderPath)) { }
 
 ComputeShaderDispatch::ComputeShaderDispatch(ComputeShaderProgram* program) {
 	this->program = program;

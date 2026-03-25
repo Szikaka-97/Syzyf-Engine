@@ -11,6 +11,8 @@ in VS_OUT {
 #include "shared/shared.h"
 #include "shared/uniforms.h"
 
+#pragma transparent
+
 uniform vec4 uColor;
 
 layout (location = 0) out vec4 accumValue;

@@ -12,8 +12,6 @@
 
 namespace fs = std::filesystem;
 
-class ComputeShader;
-
 template<class T>
 concept ShaderLike = requires(T a) {
 	{ a.GetHandle() } -> std::same_as<GLuint>;
@@ -147,12 +145,12 @@ public:
 
 class ComputeShaderProgram {
 private:
-	ComputeShader* computeShader;
+	Shader computeShader;
 	UniformSpec uniforms;
 
 	GLuint handle;
 public:	
-	ComputeShaderProgram(ComputeShader* computeShader);
+	ComputeShaderProgram(const fs::path& shaderPath);
 	~ComputeShaderProgram();
 
 	GLuint GetHandle() const;
@@ -164,7 +162,7 @@ private:
 	ComputeDispatchData* dispatchData;
 	ComputeShaderProgram* program;
 public:
-	ComputeShaderDispatch(ComputeShader* compShader);
+	ComputeShaderDispatch(const fs::path& shaderPath);
 	ComputeShaderDispatch(ComputeShaderProgram* program);
 
 	void Dispatch(int groupsX, int groupsY, int groupsZ) const;

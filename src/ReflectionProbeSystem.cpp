@@ -13,11 +13,7 @@
 #include "../res/shaders/shared/uniforms.h"
 
 Texture2D* GenerateBRDFConvolution() {
-	static ComputeShaderDispatch* BrdfConvolutionDispatch;
-
-	if (BrdfConvolutionDispatch == nullptr) {
-		// BrdfConvolutionDispatch = new ComputeShaderDispatch(ResourceDatabase::Global->Get<ComputeShader>("./res/shaders/cubemapBlit/brdf_convolution.comp"));
-	}
+	static ComputeShaderDispatch* BrdfConvolutionDispatch = new ComputeShaderDispatch("./res/shaders/cubemapBlit/brdf_convolution.comp");
 
 	TextureParams creationParams;
 	creationParams.channels = TextureChannels::RG;

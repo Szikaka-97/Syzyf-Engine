@@ -5,6 +5,7 @@
 #include <malloc.h>
 
 #include <Shader.h>
+#include <ranges>
 
 struct UniformTypeInfo {
 	UniformSpec::UniformType type;
@@ -37,19 +38,66 @@ UniformTypeInfo GetUniformInfo(GLenum type) {
 	return { UniformSpec::UniformType::Unsupported, 0 };
 }
 
-void UniformSpec::CreateFrom(GLuint programHandle) {
-	
+void UniformSpec::CreateFrom(GLuint programHandle) {	
+	int uniformCount = 0;
+
+	glGetProgramiv(programHandle, GL_ACTIVE_UNIFORMS, &uniformCount);
+
+	GLuint uniforms[uniformCount];
+	GLint params[uniformCount];
+
+	std::vector<GLuint> shaderUniforms;
+
+	for (int i = 0; i < uniformCount; i++) {
+		uniforms[i] = i;
+	}
+
+	glGetActiveUniformsiv(programHandle, uniformCount, uniforms, GL_UNIFORM_BLOCK_INDEX, params);
+
+	for (int i = 0; i < uniformCount; i++) {
+		if (params[i] < 0) {
+			shaderUniforms.push_back(i);
+		}
+	}
+
+	uniformCount = shaderUniforms.size();
+
+	this->variables.resize(uniformCount);
+
+	glGetActiveUniformsiv(programHandle, uniformCount, shaderUniforms.data(), GL_UNIFORM_TYPE, params);
+
+	int currentOffset = 0;
+
+	for (int i = 0; i < uniformCount; i++) {
+		this->variables[i].binding = shaderUniforms[i];
+		
+		auto typeInfo = GetUniformInfo(params[i]);
+
+		this->variables[i].offset = currentOffset;
+		this->variables[i].type = typeInfo.type;
+		
+		currentOffset += typeInfo.size;
+	}
+
+	glGetActiveUniformsiv(programHandle, uniformCount, shaderUniforms.data(), GL_UNIFORM_NAME_LENGTH, params);
+
+	for (int i = 0; i < uniformCount; i++) {
+		this->variables[i].name.resize(params[i] - 1);
+		glGetActiveUniformName(programHandle, this->variables[i].binding, params[i], &params[i], this->variables[i].name.data());
+	}
+
+	this->variablesBufferLength = currentOffset;
 }
 
-UniformSpec::UniformSpec() { }
-
-UniformSpec::UniformSpec(const ShaderProgram* program) {
+UniformSpec::UniformSpec(const ShaderProgram* program):
+UniformSpec() {
 	GLuint handle = program->GetHandle();
 
 	CreateFrom(handle);
 }
 
-UniformSpec::UniformSpec(const ComputeShaderProgram* program) {
+UniformSpec::UniformSpec(const ComputeShaderProgram* program):
+UniformSpec() {
 	GLuint handle = program->GetHandle();
 
 	CreateFrom(handle);
