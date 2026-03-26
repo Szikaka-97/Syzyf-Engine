@@ -70,9 +70,10 @@ private:
 		bool operator<(const RenderNode& other) const;
 	};
 
-	std::vector<RenderNode> currentRenders;
+	std::vector<RenderNode> opaqueRenders;
 	std::vector<RenderNode> gizmoRenders;
 	std::vector<RenderNode> transparentRenders;
+	std::vector<RenderNode> oitTransparentRenders;
 	GLuint globalUniformsBuffer;
 	GLuint objectUniformsBuffer;
 	
@@ -96,6 +97,11 @@ private:
 	void RenderPostprocess();
 
 	void Render();
+
+	void EnqueueOpaque(const RenderNode& node);
+	void EnqueueGizmo(const RenderNode& node);
+	void EnqueueOrderedTransparent(const RenderNode& node);
+	void EnqueueOITransparent(const RenderNode& node);
 public:
 	SceneGraphics(Scene* scene);
 	
@@ -133,6 +139,9 @@ public:
 
 	void RenderOpaque(const RenderParams& params, Framebuffer* target);
 	void RenderOpaque(const ShaderGlobalUniforms& uniforms, const RenderParams& params, Framebuffer* target);
+
+	void RenderOrderedTransparent(const RenderParams& params, Framebuffer* target);
+	void RenderOrderedTransparent(const ShaderGlobalUniforms& uniforms, const RenderParams& params, Framebuffer* target);
 
 	void RenderOITransparent(const RenderParams& params, Framebuffer* target);
 	void RenderOITransparent(const ShaderGlobalUniforms& uniforms, const RenderParams& params, Framebuffer* target);
