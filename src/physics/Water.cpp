@@ -3,6 +3,8 @@
 #include "physics/Body.h"
 #include "physics/System.h"
 
+namespace Physics {
+
 void Water::OnCollisionEnter(SceneNode* otherNode) {
   submergedNodes.insert(otherNode);
 }
@@ -53,4 +55,6 @@ void Water::Update() {
 
     ++it;
   }
+}
+
 }

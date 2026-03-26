@@ -3,7 +3,7 @@
 
 #include <unordered_set>
 
-// remove or move into the physics namespace
+namespace Physics {
 class Water : public GameObject, public Physics::ICollisionReceiver {
 private:
   std::unordered_set<SceneNode*> submergedNodes;
@@ -13,3 +13,4 @@ public:
   void OnCollisionExit(SceneNode* otherNode) override;
   void Update();
 };
+}

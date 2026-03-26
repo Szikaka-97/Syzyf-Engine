@@ -111,6 +111,12 @@ void VirtualCharacterController::SetCollisionLayer(uint32_t layer) {
   this->collisionLayer = layer;
 }
 
+void VirtualCharacterController::SetCollisionLayer(std::initializer_list<uint32_t> layers) {
+  uint32_t combinedLayer = 0;
+  for (uint32_t l : layers) combinedLayer |= (1 << l);
+  SetCollisionLayer(combinedLayer);
+}
+
 void VirtualCharacterController::SetPosition(const glm::vec3& position) {
   if (this->character) {
     this->character->SetPosition(JPH::RVec3(position.x, position.y, position.z));

@@ -10,6 +10,7 @@
 #include <Jolt/Physics/Body/BodyID.h>
 
 #include <glm/fwd.hpp>
+#include <initializer_list>
 #include <spdlog/spdlog.h>
 
 namespace Physics {
@@ -57,6 +58,8 @@ public:
 
   // Setters
   void SetCollisionLayerAndMask(uint32_t layer, uint32_t mask);
+  void SetCollisionLayerAndMask(std::initializer_list<uint32_t> layers, uint32_t mask = 0xFFFFFFFF);
+  void SetCollisionLayerAndMask(std::initializer_list<uint32_t> layers, std::initializer_list<uint32_t> collideWithLayers);
   
   void SetShape(const JPH::ShapeRefC shape); 
 

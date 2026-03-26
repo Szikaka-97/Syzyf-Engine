@@ -36,6 +36,8 @@ public:
   bool IsSupported() const;
 
   void SetCollisionLayer(uint32_t layer);
+  void SetCollisionLayer(std::initializer_list<uint32_t> layers);
+
   void SetPosition(const glm::vec3& position);
   void SetRotation(const glm::quat& rotation);
   void SetGravityFactor(float factor);

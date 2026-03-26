@@ -1,10 +1,12 @@
 #include "imgui.h"
+
 #include "physics/CharacterController.h"
 #include "physics/ICollisionReceiver.h"
 #include "physics/System.h"
 #include "physics/DebugRenderer.h"
 #include "physics/Body.h"
 #include "physics/Water.h"
+#include "physics/LayerMaskFilter.h"
 
 #include <Jolt/Jolt.h>
 #include <Jolt/Physics/Character/Character.h>
@@ -245,9 +247,11 @@ public:
         this->cameraNode->GlobalTransform().Forward().z
       ) * 100.0f;
 
-      auto bodyFilter = JPH::IgnoreMultipleBodiesFilter();
+      Physics::LayerMaskFilter bodyFilter({1}, false);
+
       bodyFilter.IgnoreBody(this->character->GetBodyID());
       bodyFilter.IgnoreBody(this->floorId);
+
 
       SceneNode* result = physics->CastRay(
         this->cameraNode->GlobalTransform().Position(),
@@ -274,7 +278,6 @@ public:
       }
     }
       if (heldItem) {
-        spdlog::info("Holding: {}", heldItem->GetName());
         heldItem->GlobalTransform().Position() = this->cameraNode->GlobalTransform().Position() + this->cameraNode->GlobalTransform().Forward() * 2.0f;
       }
 
@@ -631,7 +634,9 @@ void InitScene(Scene* mainScene) {
     physicsSchnozNode->GlobalTransform().Position() = { 2.0f + i, 10.0f + i * 2.0f, 0.0f - i};
     physicsSchnozNode->GlobalTransform().Scale() = glm::vec3(0.25f);
     JPH::BodyCreationSettings schnozShapeSettings = Physics::Body::ConvexHullMesh(schnozMesh, JPH::EMotionType::Dynamic, Physics::Layers::MOVING);
-    physicsSchnozNode->AddObject<Physics::Body>(schnozShapeSettings);
+    auto* schnozBody = physicsSchnozNode->AddObject<Physics::Body>(schnozShapeSettings);
+    
+    schnozBody->SetCollisionLayerAndMask({0});
   }
 
 	cameraNode->AddObject<Bloom>();
@@ -640,16 +645,17 @@ void InitScene(Scene* mainScene) {
   Mesh* waterMesh = mainScene->Resources()->Get<Mesh>("./res/models/water.obj");
   SceneNode* water = mainScene->CreateNode("Water");
   water->AddObject<MeshRenderer>(waterMesh, blueTransparentMat);
-  water->AddObject<Water>();
+  water->AddObject<Physics::Water>();
   water->GlobalTransform().Position() = {
     4.0f, 0.0f, -8.0f
   };
-  water->AddObject<Physics::Body>(Physics::Body::ConvexHullMesh(
+  auto* waterBody = water->AddObject<Physics::Body>(Physics::Body::ConvexHullMesh(
     waterMesh,
     JPH::EMotionType::Static,
     Physics::Layers::NON_MOVING
   ));
-  water->GetObject<Physics::Body>()->SetIsSensor(true);
+  waterBody->SetIsSensor(true);
+  waterBody->SetCollisionLayerAndMask({1});
 
 	mainScene->AddComponent<DebugInspector>();
 }

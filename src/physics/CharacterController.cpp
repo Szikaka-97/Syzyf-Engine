@@ -143,6 +143,22 @@ void CharacterController::SetCollisionLayerAndMask(uint32_t layer, uint32_t mask
   }
 }
 
+void CharacterController::SetCollisionLayerAndMask(std::initializer_list<uint32_t> layers, uint32_t mask) {
+  uint32_t combinedLayer = 0;
+  for (uint32_t l : layers) combinedLayer |= (1 << l);
+  SetCollisionLayerAndMask(combinedLayer, mask);
+}
+
+void CharacterController::SetCollisionLayerAndMask(std::initializer_list<uint32_t> layers, std::initializer_list<uint32_t> collideWithLayers) {
+  uint32_t combinedLayer = 0;
+  for (uint32_t l : layers) combinedLayer |= (1 << l);
+  
+  uint32_t combinedMask = 0;
+  for (uint32_t l : collideWithLayers) combinedMask |= (1 << l);
+  
+  SetCollisionLayerAndMask(combinedLayer, combinedMask);
+}
+
 void CharacterController::AddImpulse(const glm::vec3& impulse) {
   if (this->character) {
     this->character->AddImpulse(JPH::Vec3(impulse.x, impulse.y, impulse.z));
