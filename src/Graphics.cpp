@@ -93,7 +93,7 @@ material(material),
 instanceCount(instanceCount),
 transformation(transformation),
 bounds(mesh->GetBounds()),
-jointMatrices(nullptr) { }
+jointMatrices(nullptr),
 layer(layer) { }
 
 SceneGraphics::RenderNode::RenderNode(const Mesh::SubMesh* mesh, const Material* material, unsigned int instanceCount, const glm::mat4& transformation, const BoundingBox& bounds, uint8_t layer):
@@ -102,7 +102,7 @@ material(material),
 instanceCount(instanceCount),
 transformation(transformation),
 bounds(bounds),
-jointMatrices(nullptr) { }
+jointMatrices(nullptr),
 layer(layer) { }
 
 SceneGraphics::RenderNode::RenderNode(const Mesh::SubMesh* mesh, const Material* material, bool ignoreDepth, const glm::mat4& transformation, uint8_t layer):
@@ -111,7 +111,7 @@ material(material),
 ignoreDepth(ignoreDepth),
 transformation(transformation),
 bounds(mesh->GetBounds()),
-jointMatrices(nullptr) { }
+jointMatrices(nullptr),
 layer(layer) { }
 
 SceneGraphics::RenderNode::RenderNode(const Mesh::SubMesh* mesh, const Material* material, bool ignoreDepth, const glm::mat4& transformation, const BoundingBox& bounds, uint8_t layer):
@@ -120,7 +120,7 @@ material(material),
 ignoreDepth(ignoreDepth),
 transformation(transformation),
 bounds(bounds),
-jointMatrices(nullptr) { }
+jointMatrices(nullptr),
 layer(layer) { }
 
 SceneGraphics::SceneGraphics(Scene* scene):
@@ -453,7 +453,7 @@ void SceneGraphics::DrawMeshInstanced(MeshRenderer* renderer, unsigned int insta
 		);
     node.jointMatrices = skinningData;
 
-    targetRendererQueue.push_back(node);
+    targetRenderQueue.push_back(node);
 	}
 }
 
