@@ -613,11 +613,12 @@ void InitScene(Scene* mainScene) {
 	schnozNode->SetLayer(5);
 
 	SceneNode* w_schnozNode = mainScene->CreateNode("w_schnozNode");
-	w_schnozNode->LocalTransform().Position() = glm::vec3(0,0,0);
+	w_schnozNode->LocalTransform().Position() = glm::vec3(-20,0,0);
 	schnozNode->LocalTransform().Scale() = glm::vec3(1,1,1);
 	w_schnozNode->AddObject<MeshRenderer>(schnozMesh, schnozMat);
 	JPH::BodyCreationSettings w_schnozShapeSettings = Physics::Body::ConvexHullMesh(schnozMesh, JPH::EMotionType::Dynamic, Physics::Layers::MOVING);
-	w_schnozNode->AddObject<Physics::Body>(w_schnozShapeSettings);
+	auto* w_schnozBody = w_schnozNode-> AddObject<Physics::Body>(w_schnozShapeSettings);
+	w_schnozBody->SetCollisionLayerAndMask({ 0 });
 
 	auto enemyAI = w_schnozNode->AddObject<AiNode>();
 	if (enemyAI) {
