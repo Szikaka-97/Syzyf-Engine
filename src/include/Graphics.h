@@ -1,5 +1,6 @@
 #pragma once
 
+#include <queue>
 #include <vector>
 #include <glad/glad.h>
 #include <glm/glm.hpp>
@@ -10,6 +11,8 @@
 #include <Framebuffer.h>
 #include <GameObjectSystem.h>
 #include <Layer.h>
+
+#include "../res/shaders/shared/uniforms.h"
 
 struct ShaderGlobalUniforms;
 class MeshRenderer;
@@ -52,17 +55,19 @@ private:
 		const Mesh::SubMesh* mesh;
 		const Material* material;
 		union {
-			const unsigned int instanceCount;
-			const bool ignoreDepth;
+			unsigned int instanceCount;
+			bool ignoreDepth;
 		};
-		const glm::mat4 transformation;
-		const BoundingBox bounds;
+		glm::mat4 transformation;
+		BoundingBox bounds;
 		uint8_t layer;
 
 		RenderNode(const Mesh::SubMesh* mesh, const Material* material, unsigned int instanceCount, const glm::mat4& transformation, uint8_t layer);
 		RenderNode(const Mesh::SubMesh* mesh, const Material* material, unsigned int instanceCount, const glm::mat4& transformation, const BoundingBox& bounds, uint8_t layer);
 		RenderNode(const Mesh::SubMesh* mesh, const Material* material, bool ignoreDepth, const glm::mat4& transformation, uint8_t layer);
 		RenderNode(const Mesh::SubMesh* mesh, const Material* material, bool ignoreDepth, const glm::mat4& transformation, const BoundingBox& bounds, uint8_t layer);
+
+		bool operator<(const RenderNode& other) const;
 	};
 
 	std::vector<RenderNode> currentRenders;
@@ -81,29 +86,34 @@ private:
 
 	Camera* mainCamera;
 
+	ShaderGlobalUniforms currentUniforms;
+	ShaderProgram* depthOnlyShader;
+
 	void RenderObjects(const ShaderGlobalUniforms& globalUniforms, RenderParams params);
 	void RenderFullscreenFrameQuad();
 	void CompositeTransparentPass();
 	
-	void BindGlobalUniformBuffer(const ShaderGlobalUniforms& globalUniforms);
-	
+	void RenderPostprocess();
+
 	void Render();
 public:
 	SceneGraphics(Scene* scene);
-
+	
 	glm::vec2 GetScreenResolution() const;
 	void UpdateScreenResolution(glm::vec2 newResolution);
 	
 	LightSystem* GetLightSystem();
 	PostProcessingSystem* GetPostProcessing();
 	ReflectionProbeSystem* GetEnvMapping();
-
+	
 	Viewport* GetMainViewport() const;
 	Framebuffer* GetMainFramebuffer() const;
-
+	
 	Camera* GetMainCamera() const;
 	void SetMainCamera(Camera* camera);
 
+	void BindUniformBuffers();
+	
 	void DrawMesh(MeshRenderer* renderer);
 	void DrawMesh(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, uint8_t layer = Layer::Default);
 	void DrawMesh(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, const BoundingBox& bounds, uint8_t layer = Layer::Default);
@@ -111,21 +121,28 @@ public:
 	void DrawMeshInstanced(MeshRenderer* renderer, unsigned int instanceCount);
 	void DrawMeshInstanced(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, unsigned int instanceCount, uint8_t layer = Layer::Default);
 	void DrawMeshInstanced(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, unsigned int instanceCount, const BoundingBox& bounds, uint8_t layer = Layer::Default);
-
+	
 	void DrawGizmoMesh(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, bool ignoresDepth = false);
-
+	
 	void RenderCamera(Camera* camera, Viewport* renderTarget = nullptr);
 	void RenderCamera(Camera* camera, const RenderParams& params);
 	void RenderCamera(Camera* camera, Viewport* renderTarget, const RenderParams& params);
+	
+	void RenderPrepass(const RenderParams& params, Framebuffer* target);
+	void RenderPrepass(const ShaderGlobalUniforms& uniforms, const RenderParams& params, Framebuffer* target);
 
-	void RenderScene(const ShaderGlobalUniforms& uniforms, Framebuffer* framebuffer, const RenderParams& params);
-	void RenderScene(const CameraData& camera, Framebuffer* framebuffer, const RenderParams& params);
-	void RenderScene(Camera* camera, Framebuffer* framebuffer, const RenderParams& params);
+	void RenderOpaque(const RenderParams& params, Framebuffer* target);
+	void RenderOpaque(const ShaderGlobalUniforms& uniforms, const RenderParams& params, Framebuffer* target);
 
-	void RenderScene(const ShaderGlobalUniforms& uniforms, Viewport* viewport, const RenderParams& params);
-	void RenderScene(const CameraData& camera, Viewport* viewport, const RenderParams& params);
-	void RenderScene(Camera* camera, Viewport* viewport, const RenderParams& params);
+	void RenderOITransparent(const RenderParams& params, Framebuffer* target);
+	void RenderOITransparent(const ShaderGlobalUniforms& uniforms, const RenderParams& params, Framebuffer* target);
 
+	void RenderGizmos(const RenderParams& params, Framebuffer* target);
+	void RenderGizmos(const ShaderGlobalUniforms& uniforms, const RenderParams& params, Framebuffer* target);
+
+	void RenderShadows(const RenderParams& params, Framebuffer* target);
+	void RenderShadows(const ShaderGlobalUniforms& uniforms, const RenderParams& params, Framebuffer* target);
+	
 	virtual void OnPostRender();
 
 	virtual void DrawImGui();
