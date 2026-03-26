@@ -90,7 +90,6 @@ private:
 	ShaderGlobalUniforms currentUniforms;
 	ShaderProgram* depthOnlyShader;
 
-	void RenderObjects(const ShaderGlobalUniforms& globalUniforms, RenderParams params);
 	void RenderFullscreenFrameQuad();
 	void CompositeTransparentPass();
 	
