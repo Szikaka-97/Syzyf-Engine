@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstring>
+#include <filesystem>
 #include <fstream>
 #include <ranges>
 #include <iostream>
@@ -106,7 +107,7 @@ Shader Shader::LoadFromFile(const fs::path& filePath) {
 	code.codeParts.push_back("#version 460\n");
 
 #ifdef __linux__
-	code.codeParts.push_back("#define __linux__\n");
+	code.codeParts.push_back("#define _LINUX\n");
 #elif _WIN32
 	code.codeParts.push_back("#define _WIN32\n");
 #else
@@ -185,50 +186,6 @@ Shader Shader::LoadFromFile(const fs::path& filePath) {
 		}
 	}
 
-	// int i = 0;
-
-	// spdlog::info("Shader code:");
-	// for (auto part : code.codeParts) {
-	// 	std::cout << i++ << '^' << part << '^' << '\n';
-	// }
-	// for (auto index : code.keywords) {
-	// 	spdlog::info("{}: {} = {}", index.second.name, index.second.location, index.second.defaultValue);
-	// }
-	// for (auto pragma : code.pragmas) {
-	// 	spdlog::info("pragma: |{}|", pragma);
-	// }
-
-	/*
-	spdlog::info("Compiling shader {}", filePath.filename().string());
-
-	int compileSuccess;
-	
-	glGetShaderiv(shaderHandle, GL_COMPILE_STATUS, &compileSuccess);
-
-	if (!compileSuccess) {
-		int logLength = 0;
-		glGetShaderiv(shaderHandle, GL_INFO_LOG_LENGTH, &logLength);
-		char* compileMsg = (char*) alloca(sizeof(char) * logLength);
-		glGetShaderInfoLog(shaderHandle, logLength, nullptr, compileMsg);
-
-		spdlog::error("Error compiling shader {}:\n{}", filePath.string(), std::string(compileMsg));
-
-		std::istringstream inss(shaderSource);
-		std::stringstream outss;
-
-		int lineNum = 1;
-		for (std::string line; std::getline(inss, line); ) {
-			outss << std::setw(3) << lineNum++ << "| " << line << "\n";
-		}
-
-		spdlog::error("Shader source: \n{}", outss.str());
-
-		throw "Nuh uh";
-
-		// throw shader::shader_compilation_exception(path_to_file, compile_msg);
-	}
-	*/
-
 	Shader result(filePath, code);
 
 	return result;
@@ -288,11 +245,11 @@ ShaderBuilder& ShaderBuilder::WithKeyword(const std::string& keyword, float keyw
 	return *this;
 }
 
-GLuint ShaderBuilder::CompileShader(const ShaderCode& code, std::unordered_set<std::string>& pragmas, GLenum shaderType) {
-	std::vector<const char*> finalParts(code.codeParts.size());
-	std::stringstream ss;
+GLuint ShaderBuilder::CompileShader(const Shader& shader, std::unordered_set<std::string>& pragmas, GLenum shaderType) {
+	const ShaderCode& code = shader.code;
 
-	
+	std::vector<const char*> finalParts(code.codeParts.size());
+
 	for (int i = 0; i < code.codeParts.size(); i++) {
 		finalParts[i] = code.codeParts[i];
 	}
@@ -309,17 +266,9 @@ GLuint ShaderBuilder::CompileShader(const ShaderCode& code, std::unordered_set<s
 		pragmas.insert(pragma);
 	}
 
-	for (const char* part : finalParts) {
-		ss << part;
-	}
-
-	std::string s = ss.str();
-	const char* finalCode = s.c_str();
-
-	// return glCreateShaderProgramv(shaderType, 1, &finalCode);
 	GLuint handle = glCreateShader(shaderType);
 
-	glShaderSource(handle, 1, &finalCode, nullptr);
+	glShaderSource(handle, finalParts.size(), finalParts.data(), nullptr);
 
 	glCompileShader(handle);
 
@@ -336,7 +285,15 @@ GLuint ShaderBuilder::CompileShader(const ShaderCode& code, std::unordered_set<s
 
 		glGetShaderInfoLog(handle, messageLength, &messageLength, infoLog);
 
-		spdlog::error(std::string(infoLog));
+		spdlog::error("Error compiling shader {}", fs::canonical(shader.filePath).string().c_str());
+
+		std::istringstream shaderLines(infoLog);
+
+		for (std::string line; std::getline(shaderLines, line); ) {
+			spdlog::error(std::string(line));
+		}
+
+		throw 1;
 	}
 
 	return handle;
@@ -360,27 +317,27 @@ ShaderProgram* ShaderBuilder::Link() {
 	if (!this->vertexShaderPath.empty()) {
 		vertexShader = Shader::LoadFromFile(this->vertexShaderPath);
 
-		vertexShaderHandle = CompileShader(vertexShader.GetCode(), pragmas, GL_VERTEX_SHADER);
+		vertexShaderHandle = CompileShader(vertexShader, pragmas, GL_VERTEX_SHADER);
 	}
 	if (!this->geometryShaderPath.empty()) {
 		geometryShader = Shader::LoadFromFile(this->geometryShaderPath);
 
-		geometryShaderHandle = CompileShader(geometryShader.GetCode(), pragmas, GL_GEOMETRY_SHADER);
+		geometryShaderHandle = CompileShader(geometryShader, pragmas, GL_GEOMETRY_SHADER);
 	}
 	if (!this->tessEvalShaderPath.empty()) {
 		tessEvalShader = Shader::LoadFromFile(this->tessEvalShaderPath);
 
-		tessEvalShaderHandle = CompileShader(tessEvalShader.GetCode(), pragmas, GL_TESS_EVALUATION_SHADER);
+		tessEvalShaderHandle = CompileShader(tessEvalShader, pragmas, GL_TESS_EVALUATION_SHADER);
 	}
 	if (!this->tessCtrlShaderPath.empty()) {
 		tessCtrlShader = Shader::LoadFromFile(this->tessCtrlShaderPath);
 
-		tessCtrlShaderHandle = CompileShader(tessCtrlShader.GetCode(), pragmas, GL_TESS_CONTROL_SHADER);
+		tessCtrlShaderHandle = CompileShader(tessCtrlShader, pragmas, GL_TESS_CONTROL_SHADER);
 	}
 	if (!this->pixelShaderPath.empty()) {
 		pixelShader = Shader::LoadFromFile(this->pixelShaderPath);
 
-		pixelShaderHandle = CompileShader(pixelShader.GetCode(), pragmas, GL_FRAGMENT_SHADER);
+		pixelShaderHandle = CompileShader(pixelShader, pragmas, GL_FRAGMENT_SHADER);
 	}
 
 	GLuint programHandle = glCreateProgram();
@@ -546,7 +503,13 @@ ComputeShaderProgram::ComputeShaderProgram(const fs::path& shaderPath) {
 
 		glGetShaderInfoLog(shaderHandle, messageLength, &messageLength, infoLog);
 
-		spdlog::error(std::string(infoLog));
+		spdlog::error("Error compiling shader {}", fs::canonical(shaderPath).string().c_str());
+
+		std::istringstream shaderLines(infoLog);
+
+		for (std::string line; std::getline(shaderLines, line); ) {
+			spdlog::error(std::string(line));
+		}
 
 		exit(1);
 	}
@@ -566,7 +529,10 @@ ComputeShaderProgram::ComputeShaderProgram(const fs::path& shaderPath) {
 
 		glGetProgramInfoLog(shaderHandle, messageLength, &messageLength, infoLog);
 
+		spdlog::error("Error compiling shader {}", shaderPath.string().c_str());
 		spdlog::error(std::string(infoLog));
+
+		throw 1;
 	}
 
 	this->uniforms = UniformSpec(this);	

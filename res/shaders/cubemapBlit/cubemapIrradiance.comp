@@ -63,7 +63,7 @@ void main() {
 	const vec3 right = normalize(cross(up, normal));
 	up = normalize(cross(normal, right));
 
-#ifdef __linux__
+#ifdef _LINUX
 	const float sampleDelta = 0.1;
 #else
 	const float sampleDelta = 0.01;

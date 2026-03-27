@@ -74,7 +74,14 @@ static void APIENTRY glDebugOutput(
 	}
 
 	switch (severity) {
-		case GL_DEBUG_SEVERITY_HIGH:         spdlog::error("GL {} {}: {} ({})", sourceString, typeString, message, id); throw 1; break;
+		case GL_DEBUG_SEVERITY_HIGH:
+			if (source != GL_DEBUG_SOURCE_SHADER_COMPILER) { // Shader errors handled separately
+				spdlog::error("GL {} {}: {} ({})", sourceString, typeString, message, id);
+			
+				throw 1;
+			}
+
+			break;
 		case GL_DEBUG_SEVERITY_MEDIUM:
 		case GL_DEBUG_SEVERITY_LOW:          spdlog::warn("GL {} {}: {} ({})", sourceString, typeString, message, id); break;
 		case GL_DEBUG_SEVERITY_NOTIFICATION: spdlog::info("GL {} {}: {} ({})", sourceString, typeString, message, id); break;

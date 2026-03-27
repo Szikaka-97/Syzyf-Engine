@@ -83,7 +83,7 @@ private:
 	fs::path tessCtrlShaderPath;
 	fs::path pixelShaderPath;
 
-	GLuint CompileShader(const ShaderCode& code, std::unordered_set<std::string>& pragmas, GLenum shaderType);
+	GLuint CompileShader(const Shader& shader, std::unordered_set<std::string>& pragmas, GLenum shaderType);
 	
 	std::vector<KeywordOverride> keywordOverrides;
 public:
