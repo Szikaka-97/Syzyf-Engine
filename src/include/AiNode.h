@@ -2,6 +2,8 @@
 
 #include <GameObject.h>
 #include <Debug.h>
+#include "physics/Body.h"
+
 
 class AiNode : public GameObject {
 private:
@@ -10,11 +12,13 @@ private:
     SceneNode* m_TargetNode;    
     SceneNode* myNode;
 	glm::vec3 transform;
+    Physics::Body* m_Body;
 
     void Patrol();
     void Chase();
     //void Attack();
 	void SearchWalkPoint();
+    void SynchronizePhysics();
 
      glm::vec3 walkPoint;
     bool walkPointSet;

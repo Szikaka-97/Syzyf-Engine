@@ -34,10 +34,14 @@ AiNode::AiNode()
     , sightRange(15.0f)          
     , attackRange(5.0f)          
     , walkPointRange(10.0f)      
-    , walkPointSet(false)       
+    , walkPointSet(false)    
+    , m_Body(nullptr)
 {
-    myNode = GetNode();
-    transform = myNode->GlobalTransform().Position();
+    myNode = GetNode(); 
+    if (myNode) {
+        m_Body = myNode->GetObject<Physics::Body>();
+        transform = myNode->GlobalTransform().Position();
+    }
 	walkPoint = glm::vec3(0.0f);
 }
 
@@ -86,6 +90,7 @@ void AiNode::Patrol() {
         if (glm::length(direction) > 0.001f) {
             direction = glm::normalize(direction);
             myNode->GlobalTransform().Position() += direction * m_Speed * Time::Delta();
+            SynchronizePhysics();
         }
 
 		if (glm::distance(myPos, walkPoint) < 1.0f) {
@@ -101,6 +106,7 @@ void AiNode::Chase() {
 
     float deltaTime = Time::Delta();
     myNode->GlobalTransform().Position() += direction * m_Speed * deltaTime;
+    SynchronizePhysics();
 
     glm::quat targetRotation = glm::quatLookAt(direction, glm::vec3(0, 1, 0));
 
@@ -145,4 +151,13 @@ void AiNode::SearchWalkPoint() {
     //    // Jeœli nie ma fizyki, zak³adamy, ¿e punkt jest wa¿ny (dla testów)
         walkPointSet = true;
     //}
+}
+
+void AiNode::SynchronizePhysics() {
+    if (m_Body && myNode) {
+        glm::vec3 pos = myNode->GlobalTransform().Position();
+        glm::quat rot = myNode->GlobalTransform().Rotation();
+        m_Body->SetPosition(pos);
+        m_Body->SetRotation(rot);
+    }
 }

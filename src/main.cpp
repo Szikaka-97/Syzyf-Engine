@@ -618,6 +618,7 @@ void InitScene(Scene* mainScene) {
 	w_schnozNode->AddObject<MeshRenderer>(schnozMesh, schnozMat);
 	JPH::BodyCreationSettings w_schnozShapeSettings = Physics::Body::ConvexHullMesh(schnozMesh, JPH::EMotionType::Dynamic, Physics::Layers::MOVING);
 	auto* w_schnozBody = w_schnozNode-> AddObject<Physics::Body>(w_schnozShapeSettings);
+	w_schnozBody->Awake();
 	w_schnozBody->SetCollisionLayerAndMask({ 0 });
 
 	auto enemyAI = w_schnozNode->AddObject<AiNode>();
