@@ -21,6 +21,7 @@ concept ShaderLike = requires(T a) {
 const fs::path BaseShaderPath{"./res/shaders"};
 
 class ComputeDispatchData;
+class Shader;
 
 struct ShaderBundle {
 	GLuint vertexShaderHandle;
@@ -54,23 +55,6 @@ struct ShaderCode {
 	std::vector<std::string> pragmas;
 };
 
-class Shader {
-	friend class ShaderBuilder;
-protected:
-	ShaderCode code;
-	fs::path filePath;
-	bool valid;
-
-	Shader(const fs::path& filePath, ShaderCode code);
-public:
-	Shader();
-	static Shader LoadFromFile(const fs::path& filePath);
-	
-	const fs::path& GetFilePath() const;
-	std::string GetName() const;
-	const ShaderCode& GetCode() const;
-};
-
 class ShaderBuilder {
 private:
 	struct KeywordOverride {
@@ -98,6 +82,47 @@ public:
 	ShaderBuilder& WithKeyword(const std::string& keyword, float keywordValue);
 
 	ShaderProgram* Link();
+};
+
+class ComputeShaderBuilder {
+private:
+	struct KeywordOverride {
+		std::string name;
+		std::string value;
+	};
+
+	fs::path shaderPath;
+
+	std::vector<KeywordOverride> keywordOverrides;
+public:
+	ComputeShaderBuilder& WithComputeShader(const fs::path& shaderPath);
+
+	ComputeShaderBuilder& WithKeyword(const std::string& keyword, const std::string& keywordValue);
+	ComputeShaderBuilder& WithKeyword(const std::string& keyword, int keywordValue);
+	ComputeShaderBuilder& WithKeyword(const std::string& keyword, float keywordValue);
+
+	ComputeShaderProgram* Link();
+};
+
+class Shader {
+	friend class ShaderBuilder;
+protected:
+	ShaderCode code;
+	fs::path filePath;
+	bool valid;
+
+	Shader(const fs::path& filePath, ShaderCode code);
+public:
+	Shader();
+	static Shader LoadFromFile(const fs::path& filePath);
+	
+	static ShaderBuilder Build();
+	static ComputeShaderBuilder BuildCompute();
+	static ComputeShaderBuilder BuildCompute(const fs::path& shaderPath);
+
+	const fs::path& GetFilePath() const;
+	std::string GetName() const;
+	const ShaderCode& GetCode() const;
 };
 
 class ShaderProgram {
@@ -144,14 +169,19 @@ public:
 };
 
 class ComputeShaderProgram {
+	friend class ComputeShaderBuilder;
 private:
 	Shader computeShader;
 	UniformSpec uniforms;
 
 	GLuint handle;
+	ComputeShaderProgram(GLuint handle);
 public:	
 	ComputeShaderProgram(const fs::path& shaderPath);
 	~ComputeShaderProgram();
+
+	static ComputeShaderBuilder Build();
+	static ComputeShaderBuilder Build(const fs::path& shaderPath);
 
 	GLuint GetHandle() const;
 	const UniformSpec& GetUniforms() const;

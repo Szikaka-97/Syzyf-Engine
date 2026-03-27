@@ -191,6 +191,20 @@ Shader Shader::LoadFromFile(const fs::path& filePath) {
 	return result;
 }
 
+ShaderBuilder Shader::Build() {
+	return ShaderBuilder();
+}
+ComputeShaderBuilder Shader::BuildCompute() {
+	return ComputeShaderBuilder();
+}
+ComputeShaderBuilder Shader::BuildCompute(const fs::path& shaderPath) {
+	auto result = ComputeShaderBuilder();
+
+	result.WithComputeShader(shaderPath);
+
+	return result;
+}
+
 const fs::path& Shader::GetFilePath() const {
 	return this->filePath;
 }
@@ -431,6 +445,103 @@ ShaderProgram* ShaderBuilder::Link() {
 	return result;
 }
 
+ComputeShaderBuilder& ComputeShaderBuilder::WithComputeShader(const fs::path& shaderPath) {
+	this->shaderPath = shaderPath;
+
+	return *this;
+}
+
+ComputeShaderBuilder& ComputeShaderBuilder::WithKeyword(const std::string& keyword, const std::string& keywordValue) {
+	this->keywordOverrides.push_back({keyword, keywordValue});
+
+	return *this;
+}
+ComputeShaderBuilder& ComputeShaderBuilder::WithKeyword(const std::string& keyword, int keywordValue) {
+	this->keywordOverrides.push_back({keyword, std::to_string(keywordValue)});
+
+	return *this;
+}
+ComputeShaderBuilder& ComputeShaderBuilder::WithKeyword(const std::string& keyword, float keywordValue) {
+	this->keywordOverrides.push_back({keyword, std::to_string(keywordValue)});
+
+	return *this;
+}
+
+ComputeShaderProgram* ComputeShaderBuilder::Link() {
+	GLuint programHandle = glCreateProgram();
+
+	Shader computeShader = Shader::LoadFromFile(this->shaderPath);
+
+	const ShaderCode& code = computeShader.GetCode();
+
+	std::vector<const char*> finalParts(code.codeParts.size());
+
+	for (int i = 0; i < code.codeParts.size(); i++) {
+		finalParts[i] = code.codeParts[i];
+	}
+
+	for (const auto& keyword : this->keywordOverrides) {
+		auto keywordIt = code.keywords.find(keyword.name);
+
+		if (keywordIt != code.keywords.end()) {
+			finalParts[keywordIt->second.location] = keyword.value.c_str();
+		}
+	}
+
+	GLuint shaderHandle = glCreateShader(GL_COMPUTE_SHADER);
+
+	glShaderSource(shaderHandle, finalParts.size(), finalParts.data(), nullptr);
+
+	glCompileShader(shaderHandle);
+
+	GLint compileSuccess;
+
+	glGetShaderiv(shaderHandle, GL_COMPILE_STATUS, &compileSuccess);
+
+	if (!compileSuccess) {
+		GLint messageLength;
+
+		glGetShaderiv(shaderHandle, GL_INFO_LOG_LENGTH, &messageLength);
+
+		char* infoLog = new char[messageLength];
+
+		glGetShaderInfoLog(shaderHandle, messageLength, &messageLength, infoLog);
+
+		spdlog::error("Error compiling shader {}", fs::canonical(shaderPath).string().c_str());
+
+		std::istringstream shaderLines(infoLog);
+
+		for (std::string line; std::getline(shaderLines, line); ) {
+			spdlog::error(std::string(line));
+		}
+
+		exit(1);
+	}
+
+	glAttachShader(programHandle, shaderHandle);
+
+	glLinkProgram(programHandle);
+
+	glGetProgramiv(programHandle, GL_LINK_STATUS, &compileSuccess);
+
+	if (!compileSuccess) {
+		GLint messageLength;
+		
+		glGetProgramiv(programHandle, GL_INFO_LOG_LENGTH, &messageLength);
+
+		char* infoLog = new char[messageLength];
+
+		glGetProgramInfoLog(shaderHandle, messageLength, &messageLength, infoLog);
+
+		spdlog::error("Error compiling shader {}", shaderPath.string().c_str());
+		spdlog::error(std::string(infoLog));
+
+		throw 1;
+	}
+
+	return new ComputeShaderProgram(programHandle);
+}
+
 ShaderProgram::ShaderProgram(GLuint handle):
 keywords(),
 currentVariant(nullptr),
@@ -477,6 +588,12 @@ bool ShaderProgram::IsTransparent() const {
 
 bool ShaderProgram::HasPragma(const std::string& pragma) const {
 	return this->pragmas.contains(pragma);
+}
+
+ComputeShaderProgram::ComputeShaderProgram(GLuint handle) {
+	this->handle = handle;
+
+	this->uniforms = UniformSpec(this);
 }
 
 ComputeShaderProgram::ComputeShaderProgram(const fs::path& shaderPath) {
@@ -535,11 +652,22 @@ ComputeShaderProgram::ComputeShaderProgram(const fs::path& shaderPath) {
 		throw 1;
 	}
 
-	this->uniforms = UniformSpec(this);	
+	this->uniforms = UniformSpec(this);
 }
 
 ComputeShaderProgram::~ComputeShaderProgram() {
 	glDeleteProgram(this->handle);
+}
+
+ComputeShaderBuilder ComputeShaderProgram::Build() {
+	return ComputeShaderBuilder();
+}
+ComputeShaderBuilder ComputeShaderProgram::Build(const fs::path& shaderPath) {
+	auto result = ComputeShaderBuilder();
+
+	result.WithComputeShader(shaderPath);
+
+	return result;
 }
 
 GLuint ComputeShaderProgram::GetHandle() const {
