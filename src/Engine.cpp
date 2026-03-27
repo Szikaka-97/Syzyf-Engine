@@ -64,7 +64,7 @@ static void APIENTRY glDebugOutput(
 	switch (type) {
 		case GL_DEBUG_TYPE_ERROR:               typeString = "Error"; break;
 		case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR: typeString = "Deprecated Behaviour"; break;
-		case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:  typeString = "Undefined Behaviour"; break; 
+		case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:  typeString = "Undefined Behaviour"; break;
 		case GL_DEBUG_TYPE_PORTABILITY:         typeString = "Portability"; break;
 		case GL_DEBUG_TYPE_PERFORMANCE:         typeString = "Performance"; break;
 		case GL_DEBUG_TYPE_MARKER:              typeString = "Marker"; break;
@@ -110,10 +110,10 @@ bool Engine::InitProgram() {
 	glfwSwapInterval(1);
 
 	bool err = !gladLoadGLLoader((GLADloadproc) glfwGetProcAddress);
-	
+
 	if (err) {
 		spdlog::error("Failed to initialize OpenGL loader!");
-		
+
 		return false;
 	}
 
@@ -141,7 +141,7 @@ bool Engine::InitImGui() {
 	if (!IMGUI_CHECKVERSION()) {
 		return false;
 	}
-	
+
 	ImGui::CreateContext();
 
 	ImGui_ImplGlfw_InitForOpenGL(window, true);

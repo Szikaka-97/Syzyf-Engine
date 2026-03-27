@@ -58,7 +58,7 @@ public:
 			if (GetScene()->Input()->KeyPressed(Key::S)) {
 				movement -= forward;
 			}
-	
+
 			glm::vec2 deltaMovement = GetScene()->Input()->GetMouseMovement();
 
 			this->rotation -= (deltaMovement.x / 20) * this->mouseSensitivity;
@@ -118,7 +118,7 @@ private:
 public:
 	Stars(int starCount = 1000) {
 		this->starMesh = GetScene()->Resources()->Get<Mesh>("./res/models/star.obj");
-		
+
 		ShaderProgram* starProgram = ShaderProgram::Build()
 		.WithVertexShader(
 			GetScene()->Resources()->Get<VertexShader>("./res/shaders/star.vert")
@@ -196,7 +196,7 @@ void InitScene(Scene* mainScene) {
 	Texture2D* cannonDiffuse = mainScene->Resources()->Get<Texture2D>("./res/models/cannon/textures/cannon_01_diff_1k.png", Texture::ColorTextureRGB);
 	Texture2D* cannonNormal = mainScene->Resources()->Get<Texture2D>("./res/models/cannon/textures/cannon_01_nor_gl_1k.png", Texture::TechnicalMapXYZ);
 	Texture2D* cannonARM = mainScene->Resources()->Get<Texture2D>("./res/models/cannon/textures/cannon_01_arm_1k.png", Texture::TechnicalMapXYZ);
-	
+
 	Texture2D* reflectiveDiffuse = mainScene->Resources()->Get<Texture2D>("./res/textures/material_preview/worn-shiny-metal-albedo.png", Texture::ColorTextureRGB);
 	Texture2D* reflectiveNormal = mainScene->Resources()->Get<Texture2D>("./res/textures/material_preview/worn-shiny-metal-Normal-ogl.png", Texture::TechnicalMapXYZ);
 	Texture2D* reflectiveARM = mainScene->Resources()->Get<Texture2D>("./res/textures/material_preview/worn-shiny-metal-arm.png", Texture::TechnicalMapXYZ);
@@ -297,7 +297,7 @@ void InitScene(Scene* mainScene) {
 	envProbe3->GlobalTransform().Position() = {-29.0f, 1.5f, 0.6f};
 
 	auto starsAttachmentNode = mainScene->CreateNode("Stars Scene Attachment");
-	
+
 	auto starsScene = new Scene();
 
 	auto starsNode = starsScene->CreateNode("Stars");
@@ -320,7 +320,7 @@ void InitScene(Scene* mainScene) {
 	SceneNode* schnozCameraNode = mainScene->CreateNode("Schnoz Camera");
 	schnozCameraNode->LocalTransform().Position() = glm::vec3(-56.5, 2.0, -2.0);
 	schnozCameraNode->LocalTransform().Rotation() = glm::quat(glm::radians(glm::vec3(5.0f, 85.0f, 0.0f)));
-	
+
 	auto schnozCamera = schnozCameraNode->AddObject<Camera>(Camera::Perspective(40.0f, 16.0f/9.0f, 0.5f, 200.0f));
 	schnozCamera->SetAspectRatio(2);
 	schnozCamera->SetRenderTarget(schnozPreview);
@@ -338,7 +338,7 @@ void InitScene(Scene* mainScene) {
 	schnozLightNode->AddObject<Light>(Light::PointLight(glm::vec3(1, 1, 1), 5, 5));
 
 
-  cameraNode->AddObject<VolumetricFog>(0.5f, 200.0f);
+  cameraNode->AddObject<VolumetricFog>();
 	cameraNode->AddObject<Bloom>();
 	cameraNode->AddObject<Tonemapper>()->SetOperator(Tonemapper::TonemapperOperator::GranTurismo);
 

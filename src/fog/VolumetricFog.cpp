@@ -1,37 +1,36 @@
 #include "fog/VolumetricFog.h"
+
+#include "Graphics.h"
+#include "LightSystem.h"
 #include "Mesh.h"
 #include "Shader.h"
 #include "Material.h"
 #include "imgui.h"
 
-VolumetricFog::VolumetricFog(float near, float far, float stepSize, float rayZFar, float scatteringDensity, float absorptionDensity, glm::vec3 scatteringColor, float k) {
-  this->shader = std::unique_ptr<ShaderProgram>(ShaderProgram::Build()
+VolumetricFog::VolumetricFog(float stepSize, float rayZFar, float scatteringDensity, float absorptionDensity, glm::vec3 scatteringColor, float k) {
+  this->shader = ShaderProgram::Build()
     .WithVertexShader(
       GetScene()->Resources()->Get<VertexShader>("./res/shaders/fullscreen.vert")
     ).WithPixelShader(
       GetScene()->Resources()->Get<PixelShader>("./res/shaders/fog/volumetric_fog.frag")
-    ).Link());
+    ).Link();
 
-  this->material = std::unique_ptr<Material>(new Material(this->shader.get()));
+  this->material = new Material(this->shader);
 
-  this->material->SetValue("near", this->near);
-  this->material->SetValue("far", this->far);
   this->material->SetValue("stepSize", this->stepSize);
   this->material->SetValue("rayZFar", this->rayZFar);
   this->material->SetValue("scatteringDensity", this->scatteringDensity);
   this->material->SetValue("absorptionDensity", this->absorptionDensity);
-  this->material->SetValue("scatteringColor", this->scatteringDensity);
+  this->material->SetValue("scatteringColor", this->scatteringColor);
   this->material->SetValue("k", this->k);
 }
 
 void VolumetricFog::OnPostProcess(const PostProcessParams* params) {
-  this->material->SetValue("near", this->near);
-  this->material->SetValue("far", this->far);
   this->material->SetValue("stepSize", this->stepSize);
   this->material->SetValue("rayZFar", this->rayZFar);
   this->material->SetValue("scatteringDensity", this->scatteringDensity);
   this->material->SetValue("absorptionDensity", this->absorptionDensity);
-  this->material->SetValue("scatteringColor", this->scatteringDensity);
+  this->material->SetValue("scatteringColor", this->scatteringColor);
   this->material->SetValue("k", this->k);
 
   this->material->Bind();
@@ -45,6 +44,12 @@ void VolumetricFog::OnPostProcess(const PostProcessParams* params) {
   glBindTexture(GL_TEXTURE_2D, params->depthTexture->GetHandle());
   location = glGetUniformLocation(this->shader->GetHandle(), "depthTex");
   glUniform1i(location, 1);
+
+  glActiveTexture(GL_TEXTURE2);
+  GLuint shadowMapHandle = GetScene()->GetGraphics()->GetLightSystem()->GetShadowAtlasFramebuffer()->GetDepthTexture()->GetHandle();
+  glBindTexture(GL_TEXTURE_2D, shadowMapHandle);
+  location = glGetUniformLocation(this->shader->GetHandle(), "Builtin_ShadowMask");
+  glUniform1i(location, 2);
 
   static Mesh* quadMesh = GetScene()->Resources()->Get<Mesh>("./res/models/fullscreenquad.obj");
 
@@ -60,12 +65,11 @@ void VolumetricFog::OnPostProcess(const PostProcessParams* params) {
 }
 
 void VolumetricFog::DrawImGui() {
-  ImGui::InputFloat("Near", &this->near);
-  ImGui::InputFloat("Far", &this->far);
   ImGui::InputFloat("Step Size", &this->stepSize);
   ImGui::InputFloat("Ray Z Far", &this->rayZFar);
   ImGui::InputFloat("Scattering Density", &this->scatteringDensity);
   ImGui::InputFloat("Absorption Density", &this->absorptionDensity);
   ImGui::ColorPicker3("Scattering Color", &this->scatteringColor.x);
-  ImGui::InputFloat("k", &this->k);
+  // k = 0 isotropic, k > 0 forward scattering (like fog or dust), k < 0 backward scattering
+  ImGui::InputFloat("Scattering direction", &this->k);
 }
