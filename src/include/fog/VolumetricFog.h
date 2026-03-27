@@ -16,7 +16,9 @@ private:
   float scatteringDensity = 0.01f;
   float absorptionDensity = 0.03f;
   glm::vec3 scatteringColor = glm::vec3(1.0f);
-  Variable k to adjust scattering direction for the Phasing function, where:
+  // https://lonvanettinger.com/portfolio-pages/fog-ray-march-article-1
+  // Variable k to adjust scattering direction for the Phasing function
+  //  k = 0 isotropic, k > 0 forward scattering (like fog or dust), k < 0 backward scattering
   float k = 0.5f;
 
 public:
