@@ -1,4 +1,5 @@
-#include "Fog.h"
+#include "fog/Fog.h"
+#include "fog/VolumetricFog.h"
 #include "imgui.h"
 
 #include <Formatters.h>
@@ -337,7 +338,7 @@ void InitScene(Scene* mainScene) {
 	schnozLightNode->AddObject<Light>(Light::PointLight(glm::vec3(1, 1, 1), 5, 5));
 
 
-  cameraNode->AddObject<Fog>();
+  cameraNode->AddObject<VolumetricFog>(0.5f, 200.0f);
 	cameraNode->AddObject<Bloom>();
 	cameraNode->AddObject<Tonemapper>()->SetOperator(Tonemapper::TonemapperOperator::GranTurismo);
 

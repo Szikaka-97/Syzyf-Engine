@@ -1,4 +1,4 @@
-#include "Fog.h"
+#include "fog/Fog.h"
 #include "Mesh.h"
 #include "Shader.h"
 #include "Material.h"
@@ -9,7 +9,7 @@ Fog::Fog(float near, float far, float minDistance, float maxDistance, glm::vec4 
     .WithVertexShader(
       GetScene()->Resources()->Get<VertexShader>("./res/shaders/fullscreen.vert")
     ).WithPixelShader(
-      GetScene()->Resources()->Get<PixelShader>("./res/shaders/fog.frag")
+      GetScene()->Resources()->Get<PixelShader>("./res/shaders/fog/fog.frag")
     ).Link());
 
   this->material = std::unique_ptr<Material>(new Material(this->shader.get()));
