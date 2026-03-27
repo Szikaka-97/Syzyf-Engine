@@ -8,4 +8,5 @@ namespace Regex {
 	extern const std::regex shaderIncludeRegex;
 	extern const std::regex shaderVariantRegex;
 	extern const std::regex shaderPragmaRegex;
+	extern const std::regex shaderVersionRegex;
 }

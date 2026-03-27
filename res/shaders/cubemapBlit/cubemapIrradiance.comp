@@ -63,7 +63,11 @@ void main() {
 	const vec3 right = normalize(cross(up, normal));
 	up = normalize(cross(normal, right));
 
+#ifdef __linux__
 	const float sampleDelta = 0.1;
+#else
+	const float sampleDelta = 0.01;
+#endif
 	float nrSamples = 0.0; 
 
 	for (float phi = 0.0; phi < 2.0 * PI; phi += sampleDelta) {
@@ -73,7 +77,7 @@ void main() {
 			// tangent space to world
 			const vec3 sampleVec = tangentSample.x * right + tangentSample.y * up + tangentSample.z * normal; 
 			
-			vec3 addColor = texture(environmentMap, sampleVec).rgb; // The environment map sometimes samples to NaN, we need to guard against it
+			vec3 addColor = texture(environmentMap, sampleVec).rgb;
 			
 			irradiance += addColor * cos(theta) * sin(theta);
 			nrSamples++;

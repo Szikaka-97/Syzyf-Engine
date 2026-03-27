@@ -9,3 +9,4 @@ const std::regex Regex::shaderInputRegex("layout\\s*\\((IN_(POSITION|NORMAL|BINO
 const std::regex Regex::shaderIncludeRegex("#include\\s+\"([a-zA-Z0-9.\\/\\_]+)\"");
 const std::regex Regex::shaderVariantRegex("^#variant\\s+(\\S+)(\\s+(\\S*))?\\s*$");
 const std::regex Regex::shaderPragmaRegex("^#pragma\\s+(\\S+)\\s*$");
+const std::regex Regex::shaderVersionRegex("^#version.*");

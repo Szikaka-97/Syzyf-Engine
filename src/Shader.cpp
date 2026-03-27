@@ -103,17 +103,36 @@ Shader Shader::LoadFromFile(const fs::path& filePath) {
 	}
 
 	ShaderCode code;
+	code.codeParts.push_back("#version 460\n");
+
+#ifdef __linux__
+	code.codeParts.push_back("#define __linux__\n");
+#elif _WIN32
+	code.codeParts.push_back("#define _WIN32\n");
+#else
+	code.codeParts.push_back("#define OS_OTHER\n");
+#endif
+
 	code.codeParts.push_back(preprocessedSource);
 	int partLength = 0;
-	int partNum = 0;
+	int partNum = 2;
 
 	std::stringstream shaderLines(preprocessedSource);
 
 	for (std::string line; std::getline(shaderLines, line); ) {
 		auto partStr = code.codeParts.back();
-
+		
 		std::smatch variantMatch{};
-		if (std::regex_match(line, variantMatch, Regex::shaderPragmaRegex)) {
+		if (std::regex_match(line, variantMatch, Regex::shaderVersionRegex)) {
+			*const_cast<char*>(partStr + partLength) = '\0';
+
+			code.codeParts.push_back(partStr + partLength + line.length() + 1);
+
+			partLength = 0;
+
+			partNum++;
+		}
+		else if (std::regex_match(line, variantMatch, Regex::shaderPragmaRegex)) {
 			*const_cast<char*>(partStr + partLength) = '\0';
 
 			code.pragmas.push_back(variantMatch[1].str());
@@ -528,6 +547,8 @@ ComputeShaderProgram::ComputeShaderProgram(const fs::path& shaderPath) {
 		glGetShaderInfoLog(shaderHandle, messageLength, &messageLength, infoLog);
 
 		spdlog::error(std::string(infoLog));
+
+		exit(1);
 	}
 
 	glAttachShader(this->handle, shaderHandle);
