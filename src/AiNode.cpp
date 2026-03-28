@@ -45,6 +45,7 @@ AiNode::AiNode()
         transform = m_Body ? m_Body->GetPosition() : myNode->GlobalTransform().Position();
     }
 	walkPoint = glm::vec3(0.0f);
+	SetSurface(nullptr);
 }
 
 AiNode::~AiNode() {
@@ -75,10 +76,6 @@ void AiNode::Update() {
     bool playerInSightRange = dist < sightRange;
     bool playerInAttackRange = dist < attackRange;
 
-    if (!m_Surface){
-        SetSurface(m_Surface);
-     }
-
     if (!playerInSightRange && !playerInAttackRange) Patrol();
     if (playerInSightRange && !playerInAttackRange) Chase();
 }
@@ -92,11 +89,27 @@ void AiNode::SetSurface(Surface* surface) {
         m_Surface = surface;
     }
     else {
-        //look for floor if null
-		auto* floorNode = GetScene()->FindNode("/Floor"); 
-		if (floorNode) {
-			m_Surface = floorNode->GetObject<Surface>();
-		}
+        /*auto* floorNode = GetScene()->FindNode("/Floor");
+        if (floorNode) {
+            m_Surface = floorNode->GetObject<Surface>();
+            if (m_Surface) {
+                spdlog::info("AiNode: Found Surface on Floor node");
+            }
+            else {
+                spdlog::error("AiNode: Floor node has no Surface component");
+            }
+        }
+        else {
+            spdlog::error("AiNode: Floor node not found");
+        }*/
+        auto surfaces = GetScene()->FindObjectsOfType<Surface>();
+        if (!surfaces.empty()) {
+            m_Surface = surfaces[0];
+            spdlog::info("AiNode: Found Surface component in scene");
+        }
+        else {
+            spdlog::error("AiNode: No Surface component found in scene");
+        }
     }
 	
 }
@@ -189,11 +202,11 @@ void AiNode::SearchWalkPoint() {
                 JPH::RVec3 hit = ray.GetPointOnRay(result.mFraction);
                 walkPoint = glm::vec3(hit.GetX(), hit.GetY(), hit.GetZ());
                 walkPointSet = true;
-                //spdlog::error("Generated walk point: ({}, {}, {})", walkPoint.x, walkPoint.y, walkPoint.z);
+                spdlog::error("XXXXGenerated walk point: ({}, {}, {})", walkPoint.x, walkPoint.y, walkPoint.z);
             }
             else {
                 walkPointSet = false; 
-                //spdlog::error("failed");
+                spdlog::error("XXXXfailed");
             }
             
         }

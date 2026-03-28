@@ -11,11 +11,23 @@
 Surface::Surface(Mesh* floorMesh, float cellSize)
     : floorMesh(floorMesh), cellSize(cellSize) {
     if (floorMesh && floorMesh->GetSubMeshCount() > 0) {
-        BoundingBox localBounds = floorMesh->SubMeshAt(0).GetBounds();
-        glm::vec3 localCenter = localBounds.GetCenter();
-        glm::vec3 localExtents = localBounds.GetExtents();
-        glm::vec3 localMin = localCenter - localExtents;
-        glm::vec3 localMax = localCenter + localExtents;
+        BoundingBox totalLocalBounds = floorMesh->SubMeshAt(0).GetBounds();
+        for (unsigned int i = 1; i < floorMesh->GetSubMeshCount(); ++i) {
+            BoundingBox b = floorMesh->SubMeshAt(i).GetBounds();
+            glm::vec3 min1 = totalLocalBounds.GetCenter() - totalLocalBounds.GetExtents();
+            glm::vec3 max1 = totalLocalBounds.GetCenter() + totalLocalBounds.GetExtents();
+            glm::vec3 min2 = b.GetCenter() - b.GetExtents();
+            glm::vec3 max2 = b.GetCenter() + b.GetExtents();
+            glm::vec3 newMin = glm::min(min1, min2);
+            glm::vec3 newMax = glm::max(max1, max2);
+            totalLocalBounds = BoundingBox::CenterAndExtents(
+                (newMin + newMax) * 0.5f,
+                (newMax - newMin) * 0.5f
+            );
+        }
+
+        glm::vec3 localMin = totalLocalBounds.GetCenter() - totalLocalBounds.GetExtents();
+        glm::vec3 localMax = totalLocalBounds.GetCenter() + totalLocalBounds.GetExtents();
 
         glm::mat4 world = this->GlobalTransform();
         glm::vec3 worldMin = world * glm::vec4(localMin, 1.0f);
@@ -49,10 +61,11 @@ glm::vec3 Surface::GetRandomWalkPoint(const glm::vec3& center, float radius) con
     for (int attempts = 0; attempts < 10; ++attempts) {
         const auto& candidate = walkablePoints[dist(gen)];
         if (glm::distance(candidate, center) <= radius) {
+			spdlog::error("Found random walk point: ({}, {}, {})", candidate.x, candidate.y, candidate.z);
             return candidate;
         }
     }
-
+	spdlog::error("Failed ");
     // if failed return the closest walkable point within radius
     size_t closestIdx = 0;
     float minDist = std::numeric_limits<float>::max();
