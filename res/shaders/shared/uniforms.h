@@ -33,6 +33,7 @@ UNIFORM_DECL(0) ShaderGlobalUniforms
 UNIFORM_DECL(1) ShaderObjectUniforms
 {
 	mat4 Object_ModelMatrix;
+	mat4 Object_InverseModelMatrix;
 	mat4 Object_MVPMatrix;
 	mat3 Object_NormalModelMatrix;
 };

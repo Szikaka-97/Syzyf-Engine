@@ -1,4 +1,5 @@
 #include "fog/Fog.h"
+#include "fog/FogVolume.h"
 #include "fog/VolumetricFog.h"
 #include "imgui.h"
 
@@ -317,6 +318,11 @@ void InitScene(Scene* mainScene) {
 	tvRenderer->SetMaterial(tvMatStand, 2);
 	tvRenderer->SetMaterial(tvMatStand, 3);
 
+	SceneNode* fogVolume = mainScene->CreateNode("Fog Volume");
+	fogVolume->AddObject<FogVolume>();
+	fogVolume->GlobalTransform().Position() = { 0.0f, -0.1f, 0.0f };
+	fogVolume->GlobalTransform().Scale() = { 20.0f, 1.0f, 20.0f };
+
 	SceneNode* schnozCameraNode = mainScene->CreateNode("Schnoz Camera");
 	schnozCameraNode->LocalTransform().Position() = glm::vec3(-56.5, 2.0, -2.0);
 	schnozCameraNode->LocalTransform().Rotation() = glm::quat(glm::radians(glm::vec3(5.0f, 85.0f, 0.0f)));
@@ -338,7 +344,7 @@ void InitScene(Scene* mainScene) {
 	schnozLightNode->AddObject<Light>(Light::PointLight(glm::vec3(1, 1, 1), 5, 5));
 
 
-  cameraNode->AddObject<VolumetricFog>();
+  // cameraNode->AddObject<VolumetricFog>();
 	cameraNode->AddObject<Bloom>();
 	cameraNode->AddObject<Tonemapper>()->SetOperator(Tonemapper::TonemapperOperator::GranTurismo);
 

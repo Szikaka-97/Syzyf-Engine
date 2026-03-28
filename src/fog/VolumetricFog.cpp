@@ -67,11 +67,13 @@ void VolumetricFog::OnPostProcess(const PostProcessParams* params) {
 }
 
 void VolumetricFog::DrawImGui() {
-  ImGui::InputFloat("Step Size", &this->stepSize);
+  ImGui::SliderFloat("Step Size", &this->stepSize, 0.001f, 0.5f);
   ImGui::InputFloat("Ray Z Far", &this->rayZFar);
-  ImGui::InputFloat("Scattering Density", &this->scatteringDensity);
-  ImGui::InputFloat("Absorption Density", &this->absorptionDensity);
+  ImGui::SliderFloat("Scattering Density", &this->scatteringDensity, 0.0f,
+                     2.0f);
+  ImGui::SliderFloat("Absorption Density", &this->absorptionDensity, 0.0f,
+                     2.0f);
   ImGui::ColorPicker3("Scattering Color", &this->scatteringColor.x);
   // k = 0 isotropic, k > 0 forward scattering (like fog or dust), k < 0 backward scattering
-  ImGui::InputFloat("Scattering direction", &this->k);
+  ImGui::SliderFloat("Anisotropy", &this->k, -0.99f, 0.99f);
 }
