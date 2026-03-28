@@ -165,19 +165,9 @@ void main() {
                             (lightViewPos.y + 1) * 0.5
                         ), 0, 1);
 
-                for (int x = -1; x <= 1; x++) {
-                    for (int y = -1; y <= 1; y++) {
-                        vec2 uvOffset = clamp(uvLocal + vec2(x, y) * texelSize, 0, 1);
-
-                        vec2 uv = mix(mask.start, mask.end, uvOffset);
-
-                        float shadowZ = texture(Builtin_ShadowMask, uv).x;
-
-                        shadowAmount += lightViewPos.z - bias > shadowZ ? 1.0 : 0.0;
-                    }
-                }
-
-                shadowAmount /= 9.0;
+                vec2 uv = mix(mask.start, mask.end, uvLocal);
+                float shadowZ = texture(Builtin_ShadowMask, uv).x;
+                shadowAmount = (lightViewPos.z - bias > shadowZ) ? 1.0 : 0.0;
 
                 visibility = 1.0 - shadowAmount;
             }
