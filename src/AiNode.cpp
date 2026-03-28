@@ -36,11 +36,13 @@ AiNode::AiNode()
     , walkPointRange(10.0f)      
     , walkPointSet(false)    
     , m_Body(nullptr)
+    
 {
+    m_Surface = nullptr;
     myNode = GetNode(); 
     if (myNode) {
         m_Body = myNode->GetObject<Physics::Body>();
-        transform = myNode->GlobalTransform().Position();
+        transform = m_Body ? m_Body->GetPosition() : myNode->GlobalTransform().Position();
     }
 	walkPoint = glm::vec3(0.0f);
 }
@@ -65,11 +67,18 @@ void AiNode::Update() {
 
     if (!myNode) return;
 
-    transform = myNode->GlobalTransform().Position();
+    transform = m_Body->GetPosition();
+    myNode->GlobalTransform().Position() = transform;
+    myNode->GlobalTransform().Rotation() = m_Body->GetRotation();
 
-    bool playerInSightRange = glm::distance(glm::vec3(transform), glm::vec3(m_TargetNode->GlobalTransform().Position())) < sightRange;
+    float dist = glm::distance(transform, glm::vec3(m_TargetNode->GlobalTransform().Position()));
+    bool playerInSightRange = dist < sightRange;
+    bool playerInAttackRange = dist < attackRange;
 
-    bool playerInAttackRange = glm::distance(glm::vec3(transform), glm::vec3(m_TargetNode->GlobalTransform().Position())) < attackRange;
+    if (!m_Surface){
+        SetSurface(m_Surface);
+     }
+
     if (!playerInSightRange && !playerInAttackRange) Patrol();
     if (playerInSightRange && !playerInAttackRange) Chase();
 }
@@ -78,86 +87,120 @@ void AiNode::SetTarget(SceneNode* target) {
     m_TargetNode = target;
 }
 
+void AiNode::SetSurface(Surface* surface) {
+    if (surface) {
+        m_Surface = surface;
+    }
+    else {
+        //look for floor if null
+		auto* floorNode = GetScene()->FindNode("/Floor"); 
+		if (floorNode) {
+			m_Surface = floorNode->GetObject<Surface>();
+		}
+    }
+	
+}
+
 void AiNode::Patrol() {
     if (!walkPointSet)
     {
         SearchWalkPoint();
     }
     else {
-        glm::vec3 myPos = myNode->GlobalTransform().Position();
+        glm::vec3 myPos = transform;
 
-        glm::vec3 direction = walkPoint - myPos;
-        if (glm::length(direction) > 0.001f) {
-            direction = glm::normalize(direction);
-            myNode->GlobalTransform().Position() += direction * m_Speed * Time::Delta();
-            SynchronizePhysics();
+        glm::vec3 dir = walkPoint - myPos;
+        float distance = glm::length(dir);
+        if (distance > 0.1f) {
+            dir /= distance;
+
+            //gravity
+            glm::vec3 currentVel = m_Body->GetLinearVelocity();
+            glm::vec3 newVel = dir * m_Speed;
+            newVel.y = currentVel.y; 
+            m_Body->SetLinearVelocity(newVel);
+
+			// only yaw rotation
+            RotateNode(dir);
         }
-
-		if (glm::distance(myPos, walkPoint) < 1.0f) {
-			walkPointSet = false;
-		}
+        else {
+            glm::vec3 currentVel = m_Body->GetLinearVelocity();
+            m_Body->SetLinearVelocity(glm::vec3(0, currentVel.y, 0));
+            walkPointSet = false;
+        }
     }
 }
 
 void AiNode::Chase() {
     glm::vec3 targetPos = m_TargetNode->GlobalTransform().Position();
-    glm::vec3 myPos = myNode->GlobalTransform().Position();
-    glm::vec3 direction = glm::normalize(targetPos - myPos);
+    glm::vec3 dir = targetPos - transform;
+    float distance = glm::length(dir);
+    if (distance > 0.1f) {
+        dir /= distance;
+        glm::vec3 currentVel = m_Body->GetLinearVelocity();
+        glm::vec3 newVel = dir * m_Speed;
+        newVel.y = currentVel.y;
+        m_Body->SetLinearVelocity(newVel);
 
-    float deltaTime = Time::Delta();
-    myNode->GlobalTransform().Position() += direction * m_Speed * deltaTime;
-    SynchronizePhysics();
+		// only yaw rotation
+		RotateNode(dir);
+    }
+    else {
+        glm::vec3 currentVel = m_Body->GetLinearVelocity();
+        m_Body->SetLinearVelocity(glm::vec3(0, currentVel.y, 0));
+    }
+}
 
-    glm::quat targetRotation = glm::quatLookAt(direction, glm::vec3(0, 1, 0));
-
-    glm::quat currentRotation = myNode->GlobalTransform().Rotation();
-    glm::quat newRotation = glm::slerp(currentRotation, targetRotation, m_RotationSpeed * deltaTime);
-    myNode->GlobalTransform().Rotation() = newRotation;
+void AiNode::RotateNode(glm::vec3 dir) {
+	if (glm::length(dir) > 0.01f) {
+		dir = glm::normalize(dir);
+		float targetYaw = atan2(dir.x, dir.z);
+		glm::quat targetRot = glm::angleAxis(targetYaw, glm::vec3(0, 1, 0));
+		glm::quat currentRot = myNode->GlobalTransform().Rotation();
+		glm::quat newRot = glm::slerp(currentRot, targetRot, m_RotationSpeed * Time::Delta());
+		m_Body->SetRotation(newRot);
+		myNode->GlobalTransform().Rotation() = newRot;
+	}
 }
 
 void AiNode::SearchWalkPoint() {
-    SceneNode* myNode = GetNode();
-
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_real_distribution<float> dist(-walkPointRange, walkPointRange);
-
-    float randomZ = dist(gen);
-    float randomX = dist(gen);
-    
-	walkPoint = glm::vec3(myNode->GlobalTransform().Position().x + randomX, myNode->GlobalTransform().Position().y, myNode->GlobalTransform().Position().z + randomZ);
-
-	//spdlog::error("Generated walk point: ({}, {}, {})", walkPoint.x, walkPoint.y, walkPoint.z);
-
-	//sprawdŸ czy punkt jest na ziemi
-    //auto* physics = GetScene()->GetComponent<Physics::System>();
-    //if (physics) {
-    //    JPH::RayCastResult result;
-    //    JPH::RRayCast ray(
-    //        JPH::RVec3(walkPoint.x, walkPoint.y + 10.0f, walkPoint.z),
-    //        JPH::Vec3(0, -1, 0)
-    //    );
-    //    if (physics->GetSystem().GetNarrowPhaseQuery().CastRay(ray, result)) {
-    //        JPH::RVec3 hitPoint = ray.GetPointOnRay(result.mFraction);
-    //        walkPoint = glm::vec3(hitPoint.GetX(), hitPoint.GetY(), hitPoint.GetZ());
-    //        walkPointSet = true;
-    //    }
-    //    else {
-    //        // Jeœli nie trafiliœmy w pod³o¿e, próbujemy ponownie w nastêpnej klatce
-    //        walkPointSet = false;
-    //    }
-    //}
-    //else {
-    //    // Jeœli nie ma fizyki, zak³adamy, ¿e punkt jest wa¿ny (dla testów)
+    if (m_Surface) {
+        walkPoint = m_Surface->GetRandomWalkPoint(transform, walkPointRange);
         walkPointSet = true;
-    //}
-}
+    }
+    else {
 
-void AiNode::SynchronizePhysics() {
-    if (m_Body && myNode) {
-        glm::vec3 pos = myNode->GlobalTransform().Position();
-        glm::quat rot = myNode->GlobalTransform().Rotation();
-        m_Body->SetPosition(pos);
-        m_Body->SetRotation(rot);
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::uniform_real_distribution<float> dist(-walkPointRange, walkPointRange);
+
+        float randomZ = dist(gen);
+        float randomX = dist(gen);
+
+        glm::vec3 candidate(transform.x + randomX, transform.y + 10.0f, transform.z + randomZ);
+       
+        //ground check
+        auto* physics = GetScene()->GetComponent<Physics::System>();
+        if (physics) {
+            JPH::RRayCast ray(JPH::RVec3(candidate.x, candidate.y, candidate.z), JPH::Vec3(0, -1, 0));
+            JPH::RayCastResult result;
+            if (physics->GetSystem().GetNarrowPhaseQuery().CastRay(ray, result)) {
+                JPH::RVec3 hit = ray.GetPointOnRay(result.mFraction);
+                walkPoint = glm::vec3(hit.GetX(), hit.GetY(), hit.GetZ());
+                walkPointSet = true;
+                //spdlog::error("Generated walk point: ({}, {}, {})", walkPoint.x, walkPoint.y, walkPoint.z);
+            }
+            else {
+                walkPointSet = false; 
+                //spdlog::error("failed");
+            }
+            
+        }
+        else {
+            // fallback – no physics
+            walkPoint = candidate;
+            walkPoint.y = transform.y;
+            walkPointSet = true;
+        }
     }
 }

@@ -551,6 +551,7 @@ void InitScene(Scene* mainScene) {
     floorNode->AddObject<MeshRenderer>(gmConstructMesh, gmConstructMesh->GetDefaultMaterials());
 	floorNode->AddObject<Skybox>(skyMat); 
 	floorNode->AddObject<Physics::Body>(Physics::Body::Mesh(gmConstructMesh, JPH::EMotionType::Static, Physics::Layers::NON_MOVING));
+	floorNode->AddObject<Surface>(gmConstructMesh, 1.0f);
 
 	auto lightNode = mainScene->CreateNode("Point Light");
 	lightNode->AddObject<Light>(Light::PointLight({1, 1, 1}, 10, 2))->SetShadowCasting(true);
@@ -618,6 +619,9 @@ void InitScene(Scene* mainScene) {
 	w_schnozNode->AddObject<MeshRenderer>(schnozMesh, schnozMat);
 	JPH::BodyCreationSettings w_schnozShapeSettings = Physics::Body::ConvexHullMesh(schnozMesh, JPH::EMotionType::Dynamic, Physics::Layers::MOVING);
 	auto* w_schnozBody = w_schnozNode-> AddObject<Physics::Body>(w_schnozShapeSettings);
+	w_schnozBody->SetRestitution(0.0f);
+	w_schnozBody->SetFriction(0.5f);
+	w_schnozBody->SetLinearDamping(0.1f);
 	w_schnozBody->Awake();
 	w_schnozBody->SetCollisionLayerAndMask({ 0 });
 

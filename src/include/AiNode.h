@@ -3,6 +3,7 @@
 #include <GameObject.h>
 #include <Debug.h>
 #include "physics/Body.h"
+#include <Surface.h>
 
 
 class AiNode : public GameObject {
@@ -13,12 +14,14 @@ private:
     SceneNode* myNode;
 	glm::vec3 transform;
     Physics::Body* m_Body;
+    Surface* m_Surface;
 
     void Patrol();
     void Chase();
     //void Attack();
 	void SearchWalkPoint();
-    void SynchronizePhysics();
+    void RotateNode(glm::vec3 dir);
+    
 
      glm::vec3 walkPoint;
     bool walkPointSet;
@@ -36,4 +39,5 @@ public:
     void Update(); 
 
     void SetTarget(SceneNode* target);
+    void SetSurface(Surface* surface);
 };
