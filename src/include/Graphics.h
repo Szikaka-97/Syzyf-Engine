@@ -85,6 +85,7 @@ private:
   Viewport *mainViewport;
   Framebuffer *opaquePassFramebuffer;
   Framebuffer *transparentPassFramebuffer;
+  Framebuffer *volumetricFramebuffer;
 
   LightSystem *lightSystem;
   PostProcessingSystem *postProcessing;

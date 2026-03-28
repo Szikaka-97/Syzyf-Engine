@@ -144,6 +144,10 @@ SceneGraphics::SceneGraphics(Scene *scene)
                            .format = TextureFormat::Float8});
   this->transparentPassFramebuffer->SetDepthTexture(
       this->opaquePassFramebuffer->GetDepthTexture());
+
+  this->volumetricFramebuffer =
+      new Framebuffer(Framebuffer::Attachment::None, 0, 0);
+  this->volumetricFramebuffer->CreateColorAttachment(true, false);
 }
 
 glm::vec2 SceneGraphics::GetScreenResolution() const {
@@ -155,6 +159,8 @@ void SceneGraphics::UpdateScreenResolution(glm::vec2 newResolution) {
 
     this->mainViewport->SetSize(newResolution);
     this->transparentPassFramebuffer->SetSize(newResolution);
+
+    this->volumetricFramebuffer->SetSize(newResolution * 0.25f);
 
     if (GetPostProcessing()) {
       GetPostProcessing()->UpdateBufferResolution(newResolution);
@@ -231,7 +237,8 @@ void SceneGraphics::RenderObjects(const ShaderGlobalUniforms &globalUniforms,
     }
 
     objectUniforms.Object_ModelMatrix = node.transformation;
-    objectUniforms.Object_InverseModelMatrix = glm::inverse(node.transformation);
+    objectUniforms.Object_InverseModelMatrix =
+        glm::inverse(node.transformation);
     objectUniforms.Object_MVPMatrix =
         globalUniforms.Global_VPMatrix * objectUniforms.Object_ModelMatrix;
     objectUniforms.Object_NormalModelMatrix = glm::transpose(
@@ -294,21 +301,27 @@ void SceneGraphics::RenderObjects(const ShaderGlobalUniforms &globalUniforms,
         }
       }
     } else if (params.pass == RenderPassType::Volumetric) {
-        int depthTexLocation = glGetUniformLocation(mat->GetShader()->handle, "depthTex");
-        if (depthTexLocation >= 0) {
-            glActiveTexture(GL_TEXTURE30);
-            glBindTexture(GL_TEXTURE_2D, GetMainFramebuffer()->GetDepthTexture()->GetHandle());
-            glUniform1i(depthTexLocation, 30);
-        }
+      int depthTexLocation =
+          glGetUniformLocation(mat->GetShader()->handle, "depthTex");
+      if (depthTexLocation >= 0) {
+        glActiveTexture(GL_TEXTURE30);
+        glBindTexture(GL_TEXTURE_2D,
+                      GetMainFramebuffer()->GetDepthTexture()->GetHandle());
+        glUniform1i(depthTexLocation, 30);
+      }
 
-        int shadowmaskUniformLocation = glGetUniformLocation(mat->GetShader()->handle, "Builtin_ShadowMask");
-        if (shadowmaskUniformLocation >= 0) {
-            glActiveTexture(GL_TEXTURE31);
-            glBindTexture(GL_TEXTURE_2D, GetLightSystem()->GetShadowAtlasFramebuffer()->GetDepthTexture()->GetHandle());
-            glUniform1i(shadowmaskUniformLocation, 31);
-        }
+      int shadowmaskUniformLocation =
+          glGetUniformLocation(mat->GetShader()->handle, "Builtin_ShadowMask");
+      if (shadowmaskUniformLocation >= 0) {
+        glActiveTexture(GL_TEXTURE31);
+        glBindTexture(GL_TEXTURE_2D, GetLightSystem()
+                                         ->GetShadowAtlasFramebuffer()
+                                         ->GetDepthTexture()
+                                         ->GetHandle());
+        glUniform1i(shadowmaskUniformLocation, 31);
+      }
 
-        glActiveTexture(GL_TEXTURE0);
+      glActiveTexture(GL_TEXTURE0);
     }
 
     glBindVertexArray(mesh->GetVertexArrayHandle());
@@ -468,17 +481,16 @@ void SceneGraphics::DrawMeshInstanced(MeshRenderer *renderer,
 
     const Material *material = renderer->GetMaterial(mesh->GetMaterialIndex());
 
-    auto* targetRenderQueue = &this->currentRenders;
+    auto *targetRenderQueue = &this->currentRenders;
     if (material->GetShader()->IsTransparent()) {
       targetRenderQueue = &this->transparentRenders;
     } else if (material->GetShader()->IsVolumetric()) {
       targetRenderQueue = &this->volumetricRenders;
     }
 
-    targetRenderQueue->push_back(RenderNode(
-      mesh, material, instanceCount,
-      renderer->GlobalTransform(), renderer->GetNode()->GetLayer()
-    ));
+    targetRenderQueue->push_back(RenderNode(mesh, material, instanceCount,
+                                            renderer->GlobalTransform(),
+                                            renderer->GetNode()->GetLayer()));
   }
 }
 
@@ -488,7 +500,7 @@ void SceneGraphics::DrawMeshInstanced(const Mesh *mesh, int subMeshIndex,
                                       unsigned int instanceCount,
                                       uint8_t layer) {
 
-  auto* targetRenderQueue = &this->currentRenders;
+  auto *targetRenderQueue = &this->currentRenders;
   if (material->GetShader()->IsTransparent()) {
     targetRenderQueue = &this->transparentRenders;
   } else if (material->GetShader()->IsVolumetric()) {
@@ -496,8 +508,8 @@ void SceneGraphics::DrawMeshInstanced(const Mesh *mesh, int subMeshIndex,
   }
 
   targetRenderQueue->push_back(RenderNode(&mesh->SubMeshAt(subMeshIndex),
-                                         material, instanceCount,
-                                         transformation, layer));
+                                          material, instanceCount,
+                                          transformation, layer));
 }
 
 void SceneGraphics::DrawMeshInstanced(const Mesh *mesh, int subMeshIndex,
@@ -507,7 +519,7 @@ void SceneGraphics::DrawMeshInstanced(const Mesh *mesh, int subMeshIndex,
                                       const BoundingBox &bounds,
                                       uint8_t layer) {
 
-  auto* targetRenderQueue = &this->currentRenders;
+  auto *targetRenderQueue = &this->currentRenders;
   if (material->GetShader()->IsTransparent()) {
     targetRenderQueue = &this->transparentRenders;
   } else if (material->GetShader()->IsVolumetric()) {
@@ -515,8 +527,8 @@ void SceneGraphics::DrawMeshInstanced(const Mesh *mesh, int subMeshIndex,
   }
 
   targetRenderQueue->push_back(RenderNode(&mesh->SubMeshAt(subMeshIndex),
-                                         material, instanceCount,
-                                         transformation, bounds, layer));
+                                          material, instanceCount,
+                                          transformation, bounds, layer));
 }
 
 void SceneGraphics::Render() {
@@ -719,24 +731,62 @@ void SceneGraphics::RenderScene(const ShaderGlobalUniforms &uniforms,
   }
 
   if (((int)params.pass & (int)RenderPassType::Volumetric) != 0) {
+    glBindFramebuffer(GL_FRAMEBUFFER, this->volumetricFramebuffer->GetHandle());
+    glm::uvec2 size = this->volumetricFramebuffer->GetSize();
+    glViewport(0, 0, size.x, size.y);
+
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
     glDepthMask(GL_FALSE);
     glEnable(GL_BLEND);
     glBlendEquation(GL_FUNC_ADD);
     // GL_ONE to use as lighting, i think
     glBlendFunc(GL_ONE, GL_SRC_ALPHA);
+
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_ALWAYS);
     glCullFace(GL_FRONT);
 
     RenderParams volumetricPassParams = params;
     volumetricPassParams.pass = RenderPassType::Volumetric;
-
     RenderObjects(uniforms, volumetricPassParams);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer->GetHandle());
+    glViewport(params.viewport.x, params.viewport.y, params.viewport.z,
+               params.viewport.w);
+
+    static ShaderProgram *quadProgVolumetric =
+        ShaderProgram::Build()
+            .WithVertexShader(GetScene()->Resources()->Get<VertexShader>(
+                "./res/shaders/fullscreen.vert"))
+            .WithPixelShader(GetScene()->Resources()->Get<PixelShader>(
+                "./res/shaders/fog/fog_volume_blit.frag"))
+            .Link();
+
+    static Mesh *quadMesh = GetScene()->Resources()->Get<Mesh>("./res/models/fullscreenquad.obj");
+
+    glDepthFunc(GL_ALWAYS);
+    glEnable(GL_BLEND);
+    glCullFace(GL_BACK);
+
+    glBlendFunc(GL_ONE, GL_SRC_ALPHA);
+
+    glBindVertexArray(quadMesh->SubMeshAt(0).GetVertexArrayHandle());
+    glUseProgram(quadProgVolumetric->GetHandle());
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, this->volumetricFramebuffer->GetColorTexture()->GetHandle());
+
+    glDrawElements(GL_TRIANGLES, quadMesh->SubMeshAt(0).GetVertexCount(), GL_UNSIGNED_INT, nullptr);
+
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glBindVertexArray(0);
+    glUseProgram(0);
 
     glDepthFunc(GL_LESS);
     glDepthMask(GL_TRUE);
     glDisable(GL_BLEND);
-    glCullFace(GL_BACK);
   }
 
   if (((int)params.pass & (int)RenderPassType::Gizmos) != 0) {
