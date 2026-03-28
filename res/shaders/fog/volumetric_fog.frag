@@ -15,6 +15,7 @@ uniform float scatteringDensity;
 uniform float absorptionDensity;
 uniform vec3 scatteringColor;
 uniform float k;
+uniform float transmittanceThreshold;
 
 const float PI = 3.14159265359;
 
