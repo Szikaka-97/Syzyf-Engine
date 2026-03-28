@@ -11,13 +11,17 @@
 Surface::Surface(Mesh* floorMesh, float cellSize)
     : floorMesh(floorMesh), cellSize(cellSize) {
     if (floorMesh && floorMesh->GetSubMeshCount() > 0) {
-        BoundingBox bounds = floorMesh->SubMeshAt(0).GetBounds();
-        glm::vec3 center = bounds.GetCenter();
-        glm::vec3 extents = bounds.GetExtents();
-        glm::vec3 min = center - extents;
-        glm::vec3 max = center + extents;
+        BoundingBox localBounds = floorMesh->SubMeshAt(0).GetBounds();
+        glm::vec3 localCenter = localBounds.GetCenter();
+        glm::vec3 localExtents = localBounds.GetExtents();
+        glm::vec3 localMin = localCenter - localExtents;
+        glm::vec3 localMax = localCenter + localExtents;
 
-        GenerateGrid(min.x, max.x, min.z, max.z);
+        glm::mat4 world = this->GlobalTransform();
+        glm::vec3 worldMin = world * glm::vec4(localMin, 1.0f);
+        glm::vec3 worldMax = world * glm::vec4(localMax, 1.0f);
+
+        GenerateGrid(worldMin.x, worldMax.x, worldMin.z, worldMax.z);
     }
 }
 

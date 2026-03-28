@@ -160,6 +160,7 @@ void AiNode::RotateNode(glm::vec3 dir) {
 		glm::quat newRot = glm::slerp(currentRot, targetRot, m_RotationSpeed * Time::Delta());
 		m_Body->SetRotation(newRot);
 		myNode->GlobalTransform().Rotation() = newRot;
+        m_Body->SetAngularVelocity(glm::vec3(0, 0, 0));
 	}
 }
 
