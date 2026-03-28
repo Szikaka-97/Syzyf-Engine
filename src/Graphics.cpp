@@ -160,7 +160,7 @@ void SceneGraphics::UpdateScreenResolution(glm::vec2 newResolution) {
     this->mainViewport->SetSize(newResolution);
     this->transparentPassFramebuffer->SetSize(newResolution);
 
-    this->volumetricFramebuffer->SetSize(newResolution * 0.25f);
+    this->volumetricFramebuffer->SetSize(newResolution * 0.5f);
 
     if (GetPostProcessing()) {
       GetPostProcessing()->UpdateBufferResolution(newResolution);
@@ -742,7 +742,8 @@ void SceneGraphics::RenderScene(const ShaderGlobalUniforms &uniforms,
     glEnable(GL_BLEND);
     glBlendEquation(GL_FUNC_ADD);
     // GL_ONE to use as lighting, i think
-    glBlendFunc(GL_ONE, GL_SRC_ALPHA);
+    // glBlendFunc(GL_ONE, GL_SRC_ALPHA);
+    glBlendFuncSeparate(GL_ONE, GL_SRC_ALPHA, GL_ZERO, GL_SRC_ALPHA);
 
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_ALWAYS);

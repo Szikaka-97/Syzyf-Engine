@@ -63,7 +63,7 @@ vec2 IntersectAABB(vec3 rayOrigin, vec3 rayDir, vec3 boxMin, vec3 boxMax) {
 
 void main() {
     // pass the texture size as uniform instead
-    vec2 texSize = vec2(textureSize(depthTex, 0)) * 0.25;
+    vec2 texSize = vec2(textureSize(depthTex, 0)) * 0.5;
     vec2 screenUV = gl_FragCoord.xy / texSize;
 
     float z = texture(depthTex, screenUV).x;
