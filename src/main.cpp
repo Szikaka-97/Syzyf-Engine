@@ -19,6 +19,8 @@
 #include <InputSystem.h>
 #include <Engine.h>
 #include <Viewport.h>
+#include <Game_Scripts/CameraSettings.h>
+#include <Game_Scripts/PlayerController.h>
 
 class Mover : public GameObject, public ImGuiDrawable {
 private:
@@ -266,10 +268,17 @@ void InitScene(Scene* mainScene) {
 	blueTransparentCubeNode->AddObject<MeshRenderer>(cubeMesh, blueTransparentMat);
 	blueTransparentCubeNode->LocalTransform().Position() = {-3, 0, -5};
 
+	auto playerNode = mainScene->CreateNode("Player");
+	playerNode->AddObject<MeshRenderer>(schnozMesh, reflectiveMat);
+
+	playerNode->AddObject<PlayerController>();
+	playerNode->GlobalTransform().Position() = glm::vec3(0.0f, 1.0f, 0.0f);
+	playerNode->GlobalTransform().Scale() = glm::vec3(0.5f, 0.5f, 0.5f);
+
 	auto cameraNode = mainScene->CreateNode("Camera");
-	Camera* camera = cameraNode->AddObject<Camera>(Camera::Perspective(40.0f, 16.0f/9.0f, 0.5f, 200.0f));
-	camera->LocalTransform().Position() = glm::vec3(0.0f, 1.5f, -10.0f);
-	cameraNode->AddObject<Mover>();
+	Camera* camera = cameraNode->AddObject<Camera>(
+		Camera::Perspective(25.0f, 16.0f / 9.0f, 0.1f, 200.0f));
+	cameraNode->AddObject<CameraSettings>(playerNode);
 
 	auto skyboxNode = mainScene->CreateNode(constructNode, "Floor");
 	skyboxNode->AddObject<Skybox>(skyMat);

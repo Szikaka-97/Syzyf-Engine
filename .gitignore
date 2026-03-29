@@ -20,3 +20,6 @@ res/testing/
 
 # Nix
 .direnv/
+
+#Clion
+.idea
