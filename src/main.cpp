@@ -268,10 +268,13 @@ void InitScene(Scene* mainScene) {
 	blueTransparentCubeNode->AddObject<MeshRenderer>(cubeMesh, blueTransparentMat);
 	blueTransparentCubeNode->LocalTransform().Position() = {-3, 0, -5};
 
+	auto mouseMarkerNode = mainScene->CreateNode("Mouse Marker");
+	mouseMarkerNode->AddObject<MeshRenderer>(cubeMesh, pinkTransparentMat);
+	mouseMarkerNode->GlobalTransform().Scale() = glm::vec3(0.15f, 0.02f, 0.15f);
+
 	auto playerNode = mainScene->CreateNode("Player");
 	playerNode->AddObject<MeshRenderer>(schnozMesh, reflectiveMat);
-
-	playerNode->AddObject<PlayerController>();
+	playerNode->AddObject<PlayerController>(mouseMarkerNode);
 	playerNode->GlobalTransform().Position() = glm::vec3(0.0f, 1.0f, 0.0f);
 	playerNode->GlobalTransform().Scale() = glm::vec3(0.5f, 0.5f, 0.5f);
 

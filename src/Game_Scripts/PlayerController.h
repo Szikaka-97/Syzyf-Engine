@@ -14,6 +14,7 @@
 class PlayerController : public GameObject, public ImGuiDrawable {
 private:
     float moveSpeed = 0.08f;
+    SceneNode* markerNode;
 
     glm::vec3 GetMousePointOnGround(Camera* camera) {
         glm::vec2 mousePos = GetScene()->Input()->GetMousePosition();
@@ -45,7 +46,9 @@ private:
     }
 
 public:
-    void Update(){
+    PlayerController(SceneNode* markerNode = nullptr) : markerNode(markerNode) {}
+
+    void Update() {
         glm::vec3 movement = glm::vec3(0.0f);
 
         Camera* camera = GetScene()->GetGraphics()->GetMainCamera();
@@ -83,6 +86,13 @@ public:
         }
 
         glm::vec3 mouseWorld = GetMousePointOnGround(camera);
+
+        if (markerNode) {
+            glm::vec3 markerPos = mouseWorld;
+            markerPos.y += 0.02f;
+            markerNode->GlobalTransform().Position() = markerPos;
+        }
+
         glm::vec3 toMouse = mouseWorld - GlobalTransform().Position().Value();
         toMouse.y = 0.0f;
 
