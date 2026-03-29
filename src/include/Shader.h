@@ -57,19 +57,13 @@ struct ShaderCode {
 
 class ShaderBuilder {
 private:
-	struct KeywordOverride {
-		std::string name;
-		std::string value;
-	};
 	fs::path vertexShaderPath;
 	fs::path geometryShaderPath;
 	fs::path tessEvalShaderPath;
 	fs::path tessCtrlShaderPath;
 	fs::path pixelShaderPath;
 
-	GLuint CompileShader(const Shader& shader, std::unordered_set<std::string>& pragmas, GLenum shaderType);
-	
-	std::vector<KeywordOverride> keywordOverrides;
+	std::map<std::string, std::string> keywordOverrides;
 public:
 	ShaderBuilder& WithVertexShader(const fs::path& vertexShaderPath);
 	ShaderBuilder& WithGeometryShader(const fs::path& geometryShaderPath);
@@ -128,14 +122,22 @@ public:
 class ShaderProgram {
 	friend class ShaderBuilder;
 private:
-	ShaderKeywords keywords;
-	ShaderKeywords::Variant* currentVariant;
+	struct ShaderAttachment {
+		Shader shader;
+		GLuint handle = 0;
 
-	Shader vertexShader;
-	Shader geometryShader;
-	Shader tessEvalShader;
-	Shader tessCtrlShader;
-	Shader pixelShader;
+		inline bool Attached() const {
+			return handle != 0;
+		}
+	};
+
+	std::map<std::string, std::string> keywords;
+
+	ShaderAttachment vertexShader;
+	ShaderAttachment geometryShader;
+	ShaderAttachment tessEvalShader;
+	ShaderAttachment tessCtrlShader;
+	ShaderAttachment pixelShader;
 
 	UniformSpec uniforms;
 	std::unordered_set<std::string> pragmas;
@@ -163,9 +165,17 @@ public:
 	bool UsesPatches() const;
 	bool IsTransparent() const;
 
+	const Shader GetVertexShader() const;
+	const Shader GetGeometryShader() const;
+	const Shader GetTessCtrlShader() const;
+	const Shader GetTessEvalShader() const;
+	const Shader GetPixelShader() const;
+
 	bool HasPragma(const std::string& pragma) const;
 
 	void Reload();
+
+	static void ReloadAllShaders();
 };
 
 class ComputeShaderProgram {

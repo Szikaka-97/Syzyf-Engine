@@ -101,6 +101,8 @@ private:
 	void EnqueueGizmo(const RenderNode& node);
 	void EnqueueOrderedTransparent(const RenderNode& node);
 	void EnqueueOITransparent(const RenderNode& node);
+
+	void BindMaterialProperties(Material* mat);
 public:
 	SceneGraphics(Scene* scene);
 	
