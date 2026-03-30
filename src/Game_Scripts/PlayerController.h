@@ -5,6 +5,10 @@
 #include <InputSystem.h>
 #include <Graphics.h>
 #include <Camera.h>
+#include <Mesh.h>
+#include <Material.h>
+#include <MeshRenderer.h>
+#include <Game_Scripts/ThrowBottle.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/matrix_inverse.hpp>
@@ -15,6 +19,9 @@ class PlayerController : public GameObject, public ImGuiDrawable {
 private:
     float moveSpeed = 0.08f;
     SceneNode* markerNode;
+    Mesh* bottleMesh = nullptr;
+    Material* bottleMaterial = nullptr;
+    bool throwButtonHeld = false;
 
     glm::vec3 GetMousePointOnGround(Camera* camera) {
         glm::vec2 mousePos = GetScene()->Input()->GetMousePosition();
@@ -45,8 +52,28 @@ private:
         return rayOrigin + rayDir * t;
     }
 
+    void SpawnBottle(const glm::vec3& targetPoint)
+    {
+        if (!bottleMesh || !bottleMaterial)
+            return;
+
+        glm::vec3 startPos = GlobalTransform().Position().Value() + glm::vec3(0.0f, 1.2f, 0.0f);
+
+        SceneNode* bottleNode = GetScene()->CreateNode("Thrown Bottle");
+        bottleNode->AddObject<MeshRenderer>(bottleMesh, bottleMaterial);
+        bottleNode->AddObject<ThrowBottle>(startPos, targetPoint, 0.8f, 3.0f);
+        bottleNode->GlobalTransform().Position() = startPos;
+        bottleNode->GlobalTransform().Scale() = glm::vec3(0.3f);
+    }
+
 public:
     PlayerController(SceneNode* markerNode = nullptr) : markerNode(markerNode) {}
+
+    void SetBottleResources(Mesh* mesh, Material* material)
+    {
+        bottleMesh = mesh;
+        bottleMaterial = material;
+    }
 
     void Update() {
         glm::vec3 movement = glm::vec3(0.0f);
@@ -101,6 +128,14 @@ public:
             float angle = std::atan2(toMouse.x, toMouse.z);
             GlobalTransform().Rotation() = glm::angleAxis(angle, glm::vec3(0, 1, 0));
         }
+
+        bool leftPressed = GetScene()->Input()->ButtonPressed(MouseButton::Left);
+
+        if (leftPressed && !throwButtonHeld) {
+            SpawnBottle(mouseWorld);
+        }
+
+        throwButtonHeld = leftPressed;
     }
 
     void DrawImGui() override {

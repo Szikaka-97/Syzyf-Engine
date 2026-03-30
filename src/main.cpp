@@ -275,6 +275,8 @@ void InitScene(Scene* mainScene) {
 	auto playerNode = mainScene->CreateNode("Player");
 	playerNode->AddObject<MeshRenderer>(schnozMesh, reflectiveMat);
 	playerNode->AddObject<PlayerController>(mouseMarkerNode);
+	auto* controller = playerNode->AddObject<PlayerController>(mouseMarkerNode);
+	controller->SetBottleResources(cubeMesh, reflectiveMat);
 	playerNode->GlobalTransform().Position() = glm::vec3(0.0f, 1.0f, 0.0f);
 	playerNode->GlobalTransform().Scale() = glm::vec3(0.5f, 0.5f, 0.5f);
 
