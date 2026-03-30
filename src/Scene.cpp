@@ -25,26 +25,6 @@ name("") {
 }
 
 SceneNode::~SceneNode() {
-	int objectsCount = this->objects.size();
-	GameObject** objectsCopy = (GameObject**) alloca(sizeof(GameObject*) * objectsCount);
-
-	std::copy(this->objects.begin(), this->objects.end(), objectsCopy);
-
-	for (int i = 0; i < objectsCount; i++) {
-		delete objectsCopy[i];
-	}
-
-	this->SetParent(nullptr);
-
-	int childrenCount = this->children.size();
-	SceneNode** childrenCopy = (SceneNode**) alloca(sizeof(SceneNode*) * childrenCount);
-
-	std::copy(this->children.begin(), this->children.end(), childrenCopy);
-
-	for (int i = 0; i < childrenCount; i++) {
-		delete childrenCopy[i];
-	}
-
 	this->scene->DeleteNodeInternal(this);
 }
 
@@ -222,6 +202,26 @@ std::vector<Scene*> SceneNode::GetAttachedScenes() const {
 }
 
 void SceneNode::operator delete(SceneNode* ptr, std::destroying_delete_t) {
+	int objectsCount = ptr->objects.size();
+	GameObject** objectsCopy = (GameObject**) alloca(sizeof(GameObject*) * objectsCount);
+
+	std::copy(ptr->objects.begin(), ptr->objects.end(), objectsCopy);
+
+	for (int i = 0; i < objectsCount; i++) {
+		delete objectsCopy[i];
+	}
+
+	ptr->SetParent(nullptr);
+
+	int childrenCount = ptr->children.size();
+	SceneNode** childrenCopy = (SceneNode**) alloca(sizeof(SceneNode*) * childrenCount);
+
+	std::copy(ptr->children.begin(), ptr->children.end(), childrenCopy);
+
+	for (int i = 0; i < childrenCount; i++) {
+		delete childrenCopy[i];
+	}
+
 	ptr->GetScene()->QueueDelete(ptr);
 }
 

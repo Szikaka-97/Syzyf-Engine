@@ -44,9 +44,7 @@ public:
 
         if (t >= 1.0f || pos.y <= 0.0f)
         {
-            //I'm scaling the node to 0 not deleting it, for now cuz it crashes the engin
-            //IDK how to do it properly for now
-            GlobalTransform().Scale() = glm::vec3(0.0f);
+            delete GetNode();
         }
     }
 };

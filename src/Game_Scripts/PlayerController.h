@@ -131,7 +131,7 @@ public:
 
         bool leftPressed = GetScene()->Input()->ButtonPressed(MouseButton::Left);
 
-        if (leftPressed && !throwButtonHeld) {
+        if (GetScene()->Input()->ButtonPressed(MouseButton::Left)) {
             SpawnBottle(mouseWorld);
         }
 
