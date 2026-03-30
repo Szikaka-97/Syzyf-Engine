@@ -38,6 +38,7 @@ enum class RenderPassType {
 	Gizmos = 8,
 	PostProcessing = 16,
 	Transparent = 32,
+	Additive = 64,
 };
 
 struct RenderParams {
@@ -74,6 +75,7 @@ private:
 	std::vector<RenderNode> gizmoRenders;
 	std::vector<RenderNode> transparentRenders;
 	std::vector<RenderNode> oitTransparentRenders;
+	std::vector<RenderNode> additiveRenders;
 	GLuint globalUniformsBuffer;
 	GLuint objectUniformsBuffer;
 	
@@ -101,6 +103,7 @@ private:
 	void EnqueueGizmo(const RenderNode& node);
 	void EnqueueOrderedTransparent(const RenderNode& node);
 	void EnqueueOITransparent(const RenderNode& node);
+	void EnqueueAdditive(const RenderNode& node);
 
 	void BindMaterialProperties(Material* mat);
 public:
@@ -146,6 +149,9 @@ public:
 
 	void RenderOITransparent(const RenderParams& params, Framebuffer* target);
 	void RenderOITransparent(const ShaderGlobalUniforms& uniforms, const RenderParams& params, Framebuffer* target);
+
+	void RenderAdditive(const RenderParams& params, Framebuffer* target);
+	void RenderAdditive(const ShaderGlobalUniforms& uniforms, const RenderParams& params, Framebuffer* target);
 
 	void RenderGizmos(const RenderParams& params, Framebuffer* target);
 	void RenderGizmos(const ShaderGlobalUniforms& uniforms, const RenderParams& params, Framebuffer* target);

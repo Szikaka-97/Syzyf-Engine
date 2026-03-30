@@ -360,19 +360,18 @@ void SceneGraphics::DrawMeshInstanced(const Mesh* mesh, int subMeshIndex, const 
 
 		return;
 	}
-	if (material->GetShader()->HasPragma("oit_transparent")) {
+	else if (material->GetShader()->HasPragma("oit_transparent")) {
 		EnqueueOITransparent(node);
+
+		return;
+	}
+	else if (material->GetShader()->HasPragma("additive")) {
+		EnqueueAdditive(node);
 
 		return;
 	}
 
 	EnqueueOpaque(node);
-
-	// auto& targetRenderQueue = material->GetShader()->IsTransparent() ? this->transparentRenders : this->currentRenders;
-
-	// targetRenderQueue.push_back();
-
-	// std::sort(targetRenderQueue.begin(), targetRenderQueue.end());
 }
 
 void SceneGraphics::Render() {
@@ -403,8 +402,6 @@ void SceneGraphics::Render() {
 	this->mainViewport->GetFramebuffer()->Apply();
 
 	glViewport(0, 0, this->mainViewport->GetSize().x, this->mainViewport->GetSize().y);
-
-	CompositeTransparentPass();
 
 	RenderCamera(this->mainCamera, this->mainViewport, RenderParams {
 		RenderPassType::PostProcessing,
@@ -451,6 +448,9 @@ void SceneGraphics::EnqueueOITransparent(const RenderNode& node) {
 	this->oitTransparentRenders.push_back(node);
 
 	std::sort(this->oitTransparentRenders.begin(), this->oitTransparentRenders.end());
+}
+void SceneGraphics::EnqueueAdditive(const RenderNode& node) {
+	this->additiveRenders.push_back(node);
 }
 
 void SceneGraphics::RenderPrepass(const RenderParams& params, Framebuffer* target) {
@@ -757,7 +757,6 @@ void SceneGraphics::RenderOrderedTransparent(const ShaderGlobalUniforms& uniform
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-
 	ShaderObjectUniforms objectUniforms;
 
 	Frustum viewFrustum = ComputeFrustum(uniforms.Global_VPMatrix);
@@ -977,6 +976,120 @@ void SceneGraphics::RenderOITransparent(const ShaderGlobalUniforms& uniforms, co
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
+void SceneGraphics::RenderAdditive(const RenderParams& params, Framebuffer* target) {
+	RenderAdditive(this->currentUniforms, params, target);
+}
+void SceneGraphics::RenderAdditive(const ShaderGlobalUniforms& uniforms, const RenderParams& params, Framebuffer* target) {
+	target->SetColorAttachmentEnabled(true);
+	glBindFramebuffer(GL_FRAMEBUFFER, target->GetHandle());
+
+	glViewport(params.viewport.x, params.viewport.y, params.viewport.z, params.viewport.w);
+	
+	glCullFace(GL_BACK);
+	glDepthMask(false);
+	glEnable(GL_BLEND);
+	glBlendFunci(0, GL_ONE, GL_ONE);
+	glBlendEquation(GL_FUNC_ADD);
+
+	ShaderObjectUniforms objectUniforms;
+
+	Frustum viewFrustum = ComputeFrustum(uniforms.Global_VPMatrix);
+
+	const ShaderProgram* currentProg = nullptr;
+
+	for (auto& render : this->additiveRenders) {
+		if (!render.material || !render.mesh) {
+			continue;
+		}
+
+		if (!params.layers.Test(render.layer)) {
+			continue;
+		}
+
+		if (!TestFrustum(viewFrustum, render.bounds.Transform(render.transformation))) {
+			continue;
+		}
+
+		objectUniforms.Object_ModelMatrix = render.transformation;
+		objectUniforms.Object_MVPMatrix = uniforms.Global_VPMatrix * objectUniforms.Object_ModelMatrix;
+		objectUniforms.Object_NormalModelMatrix = glm::transpose(glm::inverse(glm::mat3(objectUniforms.Object_ModelMatrix)));
+
+		glBindBuffer(GL_UNIFORM_BUFFER, objectUniformsBuffer);
+		glBufferData(GL_UNIFORM_BUFFER, sizeof(objectUniforms), &objectUniforms, GL_STREAM_DRAW);
+		glBindBuffer(GL_UNIFORM_BUFFER, 0);
+		
+		if (render.material->GetShader() != currentProg) {
+			currentProg = render.material->GetShader();
+
+			glUseProgram(currentProg->GetHandle());
+		}
+
+		render.material->Bind();
+
+		int shadowmaskUniformLocation = glGetUniformLocation(currentProg->GetHandle(), "Builtin_ShadowMask");
+
+		if (shadowmaskUniformLocation >= 0) {
+			glActiveTexture(GL_TEXTURE31);
+			glBindTexture(GL_TEXTURE_2D, GetLightSystem()->shadowAtlasFramebuffer->GetDepthTexture()->GetHandle());
+			glUniform1i(shadowmaskUniformLocation, 31);
+		}
+
+		int irradianceMapUniformLocation = glGetUniformLocation(currentProg->GetHandle(), "Builtin_EnvIrradianceMap");
+		int prefilterMapUniformLocation = glGetUniformLocation(currentProg->GetHandle(), "Builtin_EnvPrefilterMap");
+		int brdfConvolutionMapUniformLocation = glGetUniformLocation(currentProg->GetHandle(), "Builtin_BRDFConvolutionMap");
+
+		ReflectionProbe* closestProbe = nullptr;
+
+		if (irradianceMapUniformLocation >= 0 || prefilterMapUniformLocation >= 0 || brdfConvolutionMapUniformLocation >= 0){ 
+			closestProbe = envMapping->GetClosestProbe(render.mesh->GetBounds().Transform(render.transformation).center);
+		}
+
+		if (closestProbe) {
+			if (irradianceMapUniformLocation >= 0) {
+				glActiveTexture(GL_TEXTURE30);
+				glBindTexture(GL_TEXTURE_CUBE_MAP, closestProbe->GetIrradianceMap()->GetHandle());
+				glUniform1i(irradianceMapUniformLocation, 30);
+			}
+			if (prefilterMapUniformLocation >= 0) {
+				glActiveTexture(GL_TEXTURE29);
+				glBindTexture(GL_TEXTURE_CUBE_MAP, closestProbe->GetPrefilterMap()->GetHandle());
+				glUniform1i(prefilterMapUniformLocation, 29);
+			}
+			if (brdfConvolutionMapUniformLocation >= 0) {
+				glActiveTexture(GL_TEXTURE28);
+				glBindTexture(GL_TEXTURE_2D, envMapping->BRDFConvolutionMap()->GetHandle());
+				glUniform1i(brdfConvolutionMapUniformLocation, 28);
+			}
+		}
+
+		glBindVertexArray(render.mesh->GetVertexArrayHandle());
+
+		if (render.material->GetShader()->UsesPatches()) {
+			glPatchParameteri(GL_PATCH_VERTICES, (int) render.mesh->GetType());
+
+			if (render.instanceCount <= 0) {
+				glDrawElements(GL_PATCHES, render.mesh->GetVertexCount(), GL_UNSIGNED_INT, nullptr);
+			}
+			else {
+				glDrawElementsInstanced(GL_PATCHES, render.mesh->GetVertexCount(), GL_UNSIGNED_INT, nullptr, render.instanceCount);
+			}
+		}
+		else {
+			if (render.instanceCount <= 0) {
+				glDrawElements(render.mesh->GetDrawMode(), render.mesh->GetVertexCount(), GL_UNSIGNED_INT, nullptr);
+			}
+			else {
+				glDrawElementsInstanced(render.mesh->GetDrawMode(), render.mesh->GetVertexCount(), GL_UNSIGNED_INT, nullptr, render.instanceCount);
+			}
+		}
+	}
+
+	glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_LESS);
+	glDepthMask(true);
+	glDisable(GL_BLEND);
+}
+
 void SceneGraphics::RenderGizmos(const RenderParams& params, Framebuffer* target) {
 	RenderGizmos(this->currentUniforms, params, target);
 }
@@ -1180,6 +1293,14 @@ void SceneGraphics::RenderCamera(Camera* camera, Viewport* renderTarget, const R
 	
 		RenderOrderedTransparent(activeParams, renderTarget->GetFramebuffer());
 		RenderOITransparent(activeParams, this->transparentPassFramebuffer);
+
+		CompositeTransparentPass();
+	}
+
+	if ((params.pass & RenderPassType::Additive) == RenderPassType::Additive) {
+		activeParams.pass = RenderPassType(RenderPassType::Additive);
+	
+		RenderAdditive(activeParams, renderTarget->GetFramebuffer());
 	}
 
 	if ((params.pass & RenderPassType::PostProcessing) == RenderPassType::PostProcessing) {
