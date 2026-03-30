@@ -113,7 +113,7 @@ Shader Shader::LoadFromFile(const fs::path& filePath) {
 		auto partStr = code.codeParts.back();
 		
 		std::smatch variantMatch{};
-		if (std::regex_match(line, variantMatch, Regex::shaderVersionRegex)) {
+		if (std::regex_search(line, variantMatch, Regex::shaderVersionRegex)) {
 			*const_cast<char*>(partStr + partLength) = '\0';
 
 			code.codeParts.push_back(partStr + partLength + line.length() + 1);
@@ -489,7 +489,7 @@ ComputeShaderProgram* ComputeShaderBuilder::Link() {
 			spdlog::error(std::string(line));
 		}
 
-		exit(1);
+		throw 1;
 	}
 
 	glAttachShader(programHandle, shaderHandle);
@@ -767,7 +767,7 @@ ComputeShaderProgram::ComputeShaderProgram(const fs::path& shaderPath) {
 			spdlog::error(std::string(line));
 		}
 
-		exit(1);
+		throw 1;
 	}
 
 	glAttachShader(this->handle, shaderHandle);

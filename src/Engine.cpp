@@ -24,7 +24,7 @@ extern "C" {
 #include <TimeSystem.h>
 #include <Graphics.h>
 
-const char*   glsl_version     = "#version 460";
+const char* glsl_version = "#version 460";
 constexpr int32_t GL_VERSION_MAJOR = 4;
 constexpr int32_t GL_VERSION_MINOR = 6;
 
@@ -46,7 +46,7 @@ static void APIENTRY glDebugOutput(
 	const void *userParam
 ) {
 	// ignore non-significant error/warning codes
-	if(id == 131169 || id == 131185 || id == 131218 || id == 131204) return;
+	if (id == 131169 || id == 131185 || id == 131218 || id == 131204) return;
 
 	std::string sourceString;
 

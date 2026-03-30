@@ -337,6 +337,8 @@ int main(int, char**) {
 		spdlog::error("Failed to initialize project!");
 		return EXIT_FAILURE;
 	}
+
+	// spdlog::info("");
 	
 	// auto shader = ShaderProgram::Build()
 	// .WithVertexShader("./res/shaders/lit.vert")

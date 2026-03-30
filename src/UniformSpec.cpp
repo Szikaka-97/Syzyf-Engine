@@ -1,11 +1,9 @@
 #include <UniformSpec.h>
 
 #include <glad/glad.h>
-#include <cmath>
 #include <malloc.h>
 
 #include <Shader.h>
-#include <ranges>
 
 struct UniformTypeInfo {
 	UniformSpec::UniformType type;
@@ -84,6 +82,8 @@ void UniformSpec::CreateFrom(GLuint programHandle) {
 	for (int i = 0; i < uniformCount; i++) {
 		this->variables[i].name.resize(params[i] - 1);
 		glGetActiveUniformName(programHandle, this->variables[i].binding, params[i], &params[i], this->variables[i].name.data());
+		
+		this->variables[i].binding = glGetUniformLocation(programHandle, this->variables[i].name.c_str());
 	}
 
 	this->variablesBufferLength = currentOffset;
