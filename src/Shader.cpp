@@ -2,16 +2,12 @@
 #include "UniformSpec.h"
 #include <Shader.h>
 
-#include <algorithm>
-#include <cstddef>
 #include <cstring>
 #include <filesystem>
 #include <fstream>
-#include <ranges>
 #include <iostream>
 #include <regex>
 #include <sstream>
-#include <ranges>
 #include <malloc.h>
 #include <stb_include.h>
 
