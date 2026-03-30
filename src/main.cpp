@@ -38,6 +38,8 @@
 #include <Viewport.h>
 #include <AiNode.h>
 
+#include <vector>
+
 class Mover : public GameObject, public ImGuiDrawable {
 private:
 	float pitch;
@@ -617,6 +619,9 @@ void InitScene(Scene* mainScene) {
 	w_schnozNode->LocalTransform().Position() = glm::vec3(-20,0,-20);
 	schnozNode->LocalTransform().Scale() = glm::vec3(1,1,1);
 	w_schnozNode->AddObject<MeshRenderer>(schnozMesh, schnozMat);
+
+	
+
 	JPH::BodyCreationSettings w_schnozShapeSettings = Physics::Body::ConvexHullMesh(schnozMesh, JPH::EMotionType::Dynamic, Physics::Layers::MOVING);
 	auto* w_schnozBody = w_schnozNode-> AddObject<Physics::Body>(w_schnozShapeSettings);
 	w_schnozBody->SetRestitution(0.0f);
@@ -629,6 +634,20 @@ void InitScene(Scene* mainScene) {
 	if (enemyAI) {
 		enemyAI->SetTarget(cameraNode);
 	}
+
+	glm::vec2 patrolPoints[] = {
+		glm::vec2(-20,0),
+		glm::vec2(-40,0)
+	};
+
+	/*auto aiNode = w_schnozNode->GetObject<AiNode>();
+	if (aiNode) {
+		aiNode->SetPatrolPoints(patrolPointsVec);
+	}*/
+
+
+	std::vector<glm::vec2> patrolPointsVec(std::begin(patrolPoints), std::end(patrolPoints));
+	w_schnozNode->GetObject<AiNode>()->SetPatrolPoints(patrolPointsVec);
 
 	SceneNode* schnozLightNode = mainScene->CreateNode("Schnoz Light");
 	schnozLightNode->LocalTransform().Position() = glm::vec3(-55.5, 3.0, -2.0);

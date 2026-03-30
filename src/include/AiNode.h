@@ -4,6 +4,8 @@
 #include <Debug.h>
 #include "physics/Body.h"
 #include <Surface.h>
+#include <vector>
+#include <glm/vec3.hpp>
 
 
 class AiNode : public GameObject {
@@ -16,12 +18,16 @@ private:
     Physics::Body* m_Body;
     Surface* m_Surface;
     float m_PatrolTimeout;
+	std::vector <glm::vec3> patrolPoints;
+	int posIndex;
 
     void Patrol();
     void Chase();
     //void Attack();
 	void SearchWalkPoint();
     void RotateNode(glm::vec3 dir);
+
+	void LookForNextPoint();
     
 
      glm::vec3 walkPoint;
@@ -41,4 +47,5 @@ public:
 
     void SetTarget(SceneNode* target);
     void SetSurface(Surface* surface);
+    void SetPatrolPoints(const std::vector<glm::vec2>& points);
 };

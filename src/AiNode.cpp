@@ -36,8 +36,8 @@ AiNode::AiNode()
     , walkPointRange(10.0f)      
     , walkPointSet(false)    
     , m_Body(nullptr)
-    
 {
+    patrolPoints.clear();
     m_Surface = nullptr;
     myNode = GetNode(); 
     if (myNode) {
@@ -83,6 +83,15 @@ void AiNode::Update() {
 
 void AiNode::SetTarget(SceneNode* target) {
     m_TargetNode = target;
+}
+
+void AiNode::SetPatrolPoints(const std::vector<glm::vec2>& points) {
+	//patrolPoints = points;
+
+	for (const auto& point : points) {
+		patrolPoints.push_back(glm::vec3(point.x, m_Surface->GetGroundHeight(point.x,point.y), point.y));
+	}
+    
 }
 
 void AiNode::SetSurface(Surface* surface) {
@@ -189,8 +198,14 @@ void AiNode::RotateNode(glm::vec3 dir) {
 
 void AiNode::SearchWalkPoint() {
     if (m_Surface) {
-        walkPoint = m_Surface->GetRandomWalkPoint(transform, walkPointRange);
-        walkPointSet = true;
+		if (patrolPoints.size() > 0) {
+			LookForNextPoint();
+		}
+        else {
+            walkPoint = m_Surface->GetRandomWalkPoint(transform, walkPointRange);
+            walkPointSet = true;
+        }
+        
     }
     else {
 
@@ -227,4 +242,13 @@ void AiNode::SearchWalkPoint() {
             walkPointSet = true;
         }
     }
+}
+
+void AiNode::LookForNextPoint() {
+    posIndex++;
+	if (posIndex == patrolPoints.size()) {
+		posIndex = 0;
+	}
+	walkPoint = patrolPoints[posIndex];
+	walkPointSet = true;
 }

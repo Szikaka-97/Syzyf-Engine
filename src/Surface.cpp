@@ -12,17 +12,16 @@
 Surface::Surface(Mesh* floorMesh, float cellSize)
     : floorMesh(floorMesh), cellSize(cellSize) {
     if (!floorMesh || floorMesh->GetSubMeshCount() == 0) {
-        spdlog::error("Surface: No valid mesh provided or mesh has no submeshes");
+       // spdlog::error("Surface: No valid mesh provided or mesh has no submeshes");
         return;
     }
 
     SceneNode* node = GetNode();
     if (!node) {
-        spdlog::error("Surface: Node not found");
+       // spdlog::error("Surface: Node not found");
         return;
     }
 
-    // Zamiast generowaæ siatkê, zbierz wierzcho³ki
     CollectVertices();
     spdlog::info("Surface generated {} walkable points", walkablePoints.size());
 }
@@ -58,16 +57,14 @@ glm::vec3 Surface::GetRandomWalkPoint(const glm::vec3& center, float radius) con
     std::mt19937 gen(rd());
     std::uniform_int_distribution<size_t> dist(0, walkablePoints.size() - 1);
 
-    // Próbuj znaleŸæ punkt w promieniu
-    for (int attempts = 0; attempts < 20; ++attempts) {
+    /*for (int attempts = 0; attempts < 20; ++attempts) {
         const auto& candidate = walkablePoints[dist(gen)];
         if (glm::distance(candidate, center) <= radius) {
             return candidate;
         }
     }
 
-    // Jeœli nie znaleziono, zwróæ losowy punkt (mo¿e byæ daleko)
-    spdlog::warn("No walk point in radius, picking random point from whole list");
+    spdlog::warn("No walk point in radius, picking random point from whole list");*/
     return walkablePoints[dist(gen)];
 }
 
