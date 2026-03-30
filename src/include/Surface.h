@@ -11,6 +11,7 @@ private:
     Mesh* floorMesh;
     std::vector<glm::vec3> walkablePoints;
     float cellSize;
+    void CollectVertices();
 
     // convert mesh to grid of vertices
     void GenerateGrid(float minX, float maxX, float minZ, float maxZ);

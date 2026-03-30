@@ -45,6 +45,7 @@ AiNode::AiNode()
         transform = m_Body ? m_Body->GetPosition() : myNode->GlobalTransform().Position();
     }
 	walkPoint = glm::vec3(0.0f);
+    m_PatrolTimeout = 0.0f;
 	SetSurface(nullptr);
 }
 
@@ -120,11 +121,20 @@ void AiNode::Patrol() {
         SearchWalkPoint();
     }
     else {
-        glm::vec3 myPos = transform;
+        //glm::vec3 myPos = transform;
 
-        glm::vec3 dir = walkPoint - myPos;
+        glm::vec3 dir = walkPoint - transform;
         float distance = glm::length(dir);
-        if (distance > 0.1f) {
+
+        m_PatrolTimeout += Time::Delta();
+        if (m_PatrolTimeout > 5.0f) {
+			spdlog::warn("AiNode: Patrol timeout reached, resetting walk point");
+            walkPointSet = false;
+            m_PatrolTimeout = 0.0f;
+            return;
+        }
+
+        if (distance > 0.5f) {
             dir /= distance;
 
             //gravity

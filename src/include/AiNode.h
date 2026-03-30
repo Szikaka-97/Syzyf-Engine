@@ -15,6 +15,7 @@ private:
 	glm::vec3 transform;
     Physics::Body* m_Body;
     Surface* m_Surface;
+    float m_PatrolTimeout;
 
     void Patrol();
     void Chase();

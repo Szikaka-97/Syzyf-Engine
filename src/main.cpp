@@ -196,7 +196,7 @@ public:
       JPH::Character::EGroundState groundState = this->character->GetGroundState();
       if (groundState == JPH::Character::EGroundState::OnSteepGround
           || groundState == JPH::Character::EGroundState::NotSupported) {
-        spdlog::info("PhysicsMover: Character on steep ground");
+       // spdlog::info("PhysicsMover: Character on steep ground");
         JPH::Vec3 normal = this->character->GetGroundNormal();
         normal.SetY(0.0f);
         float dot = normal.Dot(jphMovement);
@@ -262,18 +262,18 @@ public:
       );
 
       if (result) {
-        spdlog::info("Raycast hit");
+      //  spdlog::info("Raycast hit");
 
-        spdlog::info("Hit node: {}", result->GetName());
+     //   spdlog::info("Hit node: {}", result->GetName());
         if (auto* object = result->GetObject<Physics::Body>()) {
           object->ApplyImpulse(this->cameraNode->GlobalTransform().Forward() * 100.0f);
           if (result->GetName() == "Physics Schnoz") {
             heldItem = result;
             object->OnDisable();
           }
-          spdlog::info("Applied impulse");
+        //  spdlog::info("Applied impulse");
         } else {
-          spdlog::info("Not a physics object");
+         // spdlog::info("Not a physics object");
         }
       }
     }
@@ -302,7 +302,7 @@ public:
       );
 
       if (!results.empty()) {
-        spdlog::info("Shape cast hit {} objects", results.size());
+       // spdlog::info("Shape cast hit {} objects", results.size());
 
         for (SceneNode* result : results) {
           if (result) {
@@ -310,7 +310,7 @@ public:
           }
         }
       } else {
-        spdlog::info("ShapeCast hit nothing");
+       // spdlog::info("ShapeCast hit nothing");
       }
     }
 
@@ -322,7 +322,7 @@ public:
 	}
 
   virtual void OnCollisionEnter(SceneNode* node) {
-    spdlog::info("PhysicsMover collided with: {}", node->GetName());
+   // spdlog::info("PhysicsMover collided with: {}", node->GetName());
   }
 
 	virtual void DrawImGui() {
@@ -614,7 +614,7 @@ void InitScene(Scene* mainScene) {
 	schnozNode->SetLayer(5);
 
 	SceneNode* w_schnozNode = mainScene->CreateNode("w_schnozNode");
-	w_schnozNode->LocalTransform().Position() = glm::vec3(-20,0,0);
+	w_schnozNode->LocalTransform().Position() = glm::vec3(-20,0,-20);
 	schnozNode->LocalTransform().Scale() = glm::vec3(1,1,1);
 	w_schnozNode->AddObject<MeshRenderer>(schnozMesh, schnozMat);
 	JPH::BodyCreationSettings w_schnozShapeSettings = Physics::Body::ConvexHullMesh(schnozMesh, JPH::EMotionType::Dynamic, Physics::Layers::MOVING);
