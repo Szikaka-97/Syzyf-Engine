@@ -6,6 +6,9 @@
 layout (IN_POSITION) in vec3 vPos;
 layout (IN_NORMAL) in vec3 vNormal;
 
+#pragma no_depth_prepass
+#pragma no_shadows
+
 float rand(vec2 co) {
     float a = 12.9898;
     float b = 78.233;
