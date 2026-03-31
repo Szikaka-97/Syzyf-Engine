@@ -17,7 +17,6 @@ res/testing/
 .idea/
 
 # Clang
-.clang-format
 .cache/
 
 # Nix
