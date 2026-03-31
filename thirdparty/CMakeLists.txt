@@ -27,10 +27,12 @@ CPMAddPackage(
     GIT_TAG v0.9.0
     OPTIONS "FASTGLTF_COMPILE_AS_CPP20"
 )
+CPMAddPackage(
     NAME SDL3
     GITHUB_REPOSITORY libsdl-org/SDL
     GIT_TAG release-3.4.2
-    OPTIONS "SDL_X11_XSCRNSAVER OFF")
+    OPTIONS "SDL_X11_XSCRNSAVER OFF"
+)
 CPMAddPackage(
     NAME JoltPhysics
     GITHUB_REPOSITORY jrouwe/JoltPhysics
@@ -65,7 +67,7 @@ set_target_properties(glad
                       glm 
                       imgui 
                       spdlog
-                      fastgltf PROPERTIES FOLDER "thirdparty")
+                      fastgltf
                       imgui
                       Jolt
                       spdlog PROPERTIES FOLDER "thirdparty")

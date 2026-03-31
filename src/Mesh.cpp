@@ -427,8 +427,6 @@ Mesh* Mesh::Load(fs::path modelPath, bool loadMaterials) {
   loadedMesh->vertexData = vertexData;
   loadedMesh->vertexBuffer = loadedMesh->UploadToGpu(VertexSpec::Mesh);
 
-	delete[] vertexData;
-
 	return loadedMesh;
 }
 
