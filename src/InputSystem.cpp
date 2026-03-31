@@ -5,12 +5,139 @@
 #include <format>
 
 #include <imgui.h>
-#include <GLFW/glfw3.h>
+#include <SDL3/SDL.h>
+#include "SDL3/SDL_keyboard.h"
+#include "SDL3/SDL_mouse.h"
+#include "SDL3/SDL_scancode.h"
+
+#include <spdlog/spdlog.h>
 
 #include <Engine.h>
 #include <TimeSystem.h>
+#include <Graphics.h>
 
 constexpr int MouseButtonOffset = 512;
+
+std::map<Key, int> keyToSDL {
+	{ Key::Space          , SDL_SCANCODE_SPACE },
+	{ Key::Apostrophe     , SDL_SCANCODE_APOSTROPHE },
+	{ Key::Comma          , SDL_SCANCODE_COMMA },
+	{ Key::Minus          , SDL_SCANCODE_MINUS },
+	{ Key::Period         , SDL_SCANCODE_PERIOD },
+	{ Key::Slash          , SDL_SCANCODE_SLASH },
+	{ Key::Alpha0         , SDL_SCANCODE_0 },
+	{ Key::Alpha1         , SDL_SCANCODE_1 },
+	{ Key::Alpha2         , SDL_SCANCODE_2 },
+	{ Key::Alpha3         , SDL_SCANCODE_3 },
+	{ Key::Alpha4         , SDL_SCANCODE_4 },
+	{ Key::Alpha5         , SDL_SCANCODE_5 },
+	{ Key::Alpha6         , SDL_SCANCODE_6 },
+	{ Key::Alpha7         , SDL_SCANCODE_7 },
+	{ Key::Alpha8         , SDL_SCANCODE_8 },
+	{ Key::Alpha9         , SDL_SCANCODE_9 },
+	{ Key::Semicolon      , SDL_SCANCODE_SEMICOLON },
+	{ Key::Equal          , SDL_SCANCODE_EQUALS },
+	{ Key::A              , SDL_SCANCODE_A },
+	{ Key::B              , SDL_SCANCODE_B },
+	{ Key::C              , SDL_SCANCODE_C },
+	{ Key::D              , SDL_SCANCODE_D },
+	{ Key::E              , SDL_SCANCODE_E },
+	{ Key::F              , SDL_SCANCODE_F },
+	{ Key::G              , SDL_SCANCODE_G },
+	{ Key::H              , SDL_SCANCODE_H },
+	{ Key::I              , SDL_SCANCODE_I },
+	{ Key::J              , SDL_SCANCODE_J },
+	{ Key::K              , SDL_SCANCODE_K },
+	{ Key::L              , SDL_SCANCODE_L },
+	{ Key::M              , SDL_SCANCODE_M },
+	{ Key::N              , SDL_SCANCODE_N },
+	{ Key::O              , SDL_SCANCODE_O },
+	{ Key::P              , SDL_SCANCODE_P },
+	{ Key::Q              , SDL_SCANCODE_Q },
+	{ Key::R              , SDL_SCANCODE_R },
+	{ Key::S              , SDL_SCANCODE_S },
+	{ Key::T              , SDL_SCANCODE_T },
+	{ Key::U              , SDL_SCANCODE_U },
+	{ Key::V              , SDL_SCANCODE_V },
+	{ Key::W              , SDL_SCANCODE_W },
+	{ Key::X              , SDL_SCANCODE_X },
+	{ Key::Y              , SDL_SCANCODE_Y },
+	{ Key::Z              , SDL_SCANCODE_Z },
+	{ Key::LeftBracket    , SDL_SCANCODE_LEFTBRACKET },
+	{ Key::Backslash      , SDL_SCANCODE_BACKSLASH },
+	{ Key::RightBracket   , SDL_SCANCODE_RIGHTBRACKET },
+	{ Key::Backtick       , SDL_SCANCODE_GRAVE },
+	{ Key::Escape         , SDL_SCANCODE_ESCAPE },
+	{ Key::Enter          , SDL_SCANCODE_RETURN },
+	{ Key::Tab            , SDL_SCANCODE_TAB },
+	{ Key::Backspace      , SDL_SCANCODE_BACKSPACE },
+	{ Key::Insert         , SDL_SCANCODE_INSERT },
+	{ Key::Delete         , SDL_SCANCODE_DELETE },
+	{ Key::Right          , SDL_SCANCODE_RIGHT },
+	{ Key::Left           , SDL_SCANCODE_LEFT },
+	{ Key::Down           , SDL_SCANCODE_DOWN },
+	{ Key::Up             , SDL_SCANCODE_UP },
+	{ Key::PageUp         , SDL_SCANCODE_PAGEUP },
+	{ Key::PageDown       , SDL_SCANCODE_PAGEDOWN },
+	{ Key::Home           , SDL_SCANCODE_HOME },
+	{ Key::End            , SDL_SCANCODE_END },
+	{ Key::CapsLock       , SDL_SCANCODE_CAPSLOCK },
+	{ Key::ScrollLock     , SDL_SCANCODE_SCROLLLOCK },
+	{ Key::NumLock        , SDL_SCANCODE_NUMLOCKCLEAR },
+	{ Key::PrintScreen    , SDL_SCANCODE_PRINTSCREEN },
+	{ Key::Pause          , SDL_SCANCODE_PAUSE },
+	{ Key::F1             , SDL_SCANCODE_F1 },
+	{ Key::F2             , SDL_SCANCODE_F2 },
+	{ Key::F3             , SDL_SCANCODE_F3 },
+	{ Key::F4             , SDL_SCANCODE_F4 },
+	{ Key::F5             , SDL_SCANCODE_F5 },
+	{ Key::F6             , SDL_SCANCODE_F6 },
+	{ Key::F7             , SDL_SCANCODE_F7 },
+	{ Key::F8             , SDL_SCANCODE_F8 },
+	{ Key::F9             , SDL_SCANCODE_F9 },
+	{ Key::F10            , SDL_SCANCODE_F10 },
+	{ Key::F11            , SDL_SCANCODE_F11 },
+	{ Key::F12            , SDL_SCANCODE_F12 },
+	{ Key::F13            , SDL_SCANCODE_F13 },
+	{ Key::F14            , SDL_SCANCODE_F14 },
+	{ Key::F15            , SDL_SCANCODE_F15 },
+	{ Key::F16            , SDL_SCANCODE_F16 },
+	{ Key::F17            , SDL_SCANCODE_F17 },
+	{ Key::F18            , SDL_SCANCODE_F18 },
+	{ Key::F19            , SDL_SCANCODE_F19 },
+	{ Key::F20            , SDL_SCANCODE_F20 },
+	{ Key::F21            , SDL_SCANCODE_F21 },
+	{ Key::F22            , SDL_SCANCODE_F22 },
+	{ Key::F23            , SDL_SCANCODE_F23 },
+	{ Key::F24            , SDL_SCANCODE_F24 },
+	{ Key::F25            , SDL_SCANCODE_F24 },
+	{ Key::Numpad0        , SDL_SCANCODE_KP_0 },
+	{ Key::Numpad1        , SDL_SCANCODE_KP_1 },
+	{ Key::Numpad2        , SDL_SCANCODE_KP_2 },
+	{ Key::Numpad3        , SDL_SCANCODE_KP_3 },
+	{ Key::Numpad4        , SDL_SCANCODE_KP_4 },
+	{ Key::Numpad5        , SDL_SCANCODE_KP_5 },
+	{ Key::Numpad6        , SDL_SCANCODE_KP_6 },
+	{ Key::Numpad7        , SDL_SCANCODE_KP_7 },
+	{ Key::Numpad8        , SDL_SCANCODE_KP_8 },
+	{ Key::Numpad9        , SDL_SCANCODE_KP_9 },
+	{ Key::NumpadDecimal  , SDL_SCANCODE_KP_DECIMAL },
+	{ Key::NumpadDivide   , SDL_SCANCODE_KP_DIVIDE },
+	{ Key::NumpadMultiply , SDL_SCANCODE_KP_MULTIPLY },
+	{ Key::NumpadSubtract , SDL_SCANCODE_KP_MINUS },
+	{ Key::NumpadAdd      , SDL_SCANCODE_KP_PLUS },
+	{ Key::NumpadEnter    , SDL_SCANCODE_KP_ENTER },
+	{ Key::NumpadEqual    , SDL_SCANCODE_KP_EQUALS },
+	{ Key::LeftShift      , SDL_SCANCODE_LSHIFT },
+	{ Key::LeftCtrl       , SDL_SCANCODE_LCTRL },
+	{ Key::LeftAlt        , SDL_SCANCODE_LALT },
+	{ Key::LeftSuper      , SDL_SCANCODE_LGUI },
+	{ Key::RightShift     , SDL_SCANCODE_RSHIFT },
+	{ Key::RightCtrl      , SDL_SCANCODE_RCTRL },
+	{ Key::RightAlt       , SDL_SCANCODE_RALT },
+	{ Key::RightSuper     , SDL_SCANCODE_RGUI },
+	{ Key::Menu           , SDL_SCANCODE_MENU },
+};
 
 std::map<char, Key> charToKey {
 	{ ' ', Key::Space },
@@ -201,7 +328,7 @@ value(value) { }
 
 InputSystem::InputSystem(Scene* scene):
 SceneComponent(scene),
-prevMouseMovement(0),
+prevMouseMovement(glm::zero<glm::vec2>()),
 mouseLocked(false) {
 	keys = {
 		{ (int) Key::Space, 0 },
@@ -464,24 +591,25 @@ bool InputSystem::MouseLocked() {
 }
 
 void InputSystem::SetMouseLocked(bool locked) {
-	static glm::vec2 prevMousePos;
+	static glm::vec2 mouseMovement;
 
-	if (locked) {
-		glfwSetInputMode(Engine::GetWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-		
-		double xpos, ypos;
-		glfwGetCursorPos(Engine::GetWindow(), &xpos, &ypos);
-		
-		prevMousePos = glm::vec2(xpos, ypos);
+	static auto mouseTransform = [](void *userdata, Uint64 timestamp, SDL_Window *window, SDL_MouseID mouseID, float *x, float *y) -> void {
+		InputSystem* input = (InputSystem*) userdata;
 
-		glfwSetCursorPos(Engine::GetWindow(), 0, 0);
+		input->prevMouseMovement = input->prevMouseMovement.load() + glm::vec2(*x, -*y);
 
+		*x = 0;
+		*y = 0;
+	};
+
+	if (locked) {		
 		this->prevMouseMovement = glm::vec2(0, 0);
+
+		SDL_SetRelativeMouseTransform(mouseTransform, this);
+		SDL_SetWindowRelativeMouseMode(Engine::GetWindow(), true);
 	}
 	else {
-		glfwSetInputMode(Engine::GetWindow(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-
-		glfwSetCursorPos(Engine::GetWindow(), prevMousePos.x, prevMousePos.y);
+		SDL_SetWindowRelativeMouseMode(Engine::GetWindow(), false);
 	}
 
 	this->mouseLocked = locked;
@@ -504,12 +632,18 @@ glm::vec2 InputSystem::GetMousePosition() {
 }
 
 void InputSystem::OnPreUpdate() {
+	int numKeys = 0;
+	
+	const bool* keyArray = SDL_GetKeyboardState(&numKeys);
+	float xpos, ypos;
+	SDL_MouseButtonFlags mouseState = this->mouseLocked ? SDL_GetRelativeMouseState(&xpos, &ypos) : SDL_GetMouseState(&xpos, &ypos);
+
 	for (auto& key : this->keys) {
 		int keyCode = key.first % MouseButtonOffset;
 
 		KeyBitMask mask = key.second;
 
-		bool pressed = (key.first < MouseButtonOffset ? glfwGetKey(Engine::GetWindow(), keyCode) : glfwGetMouseButton(Engine::GetWindow(), keyCode));
+		bool pressed = (key.first < MouseButtonOffset ? keyArray[keyToSDL[(Key) keyCode]] : mouseState & (1 << keyCode));
 
 		if (pressed ^ mask.GetKeyPressedBit()) {
 			mask.SetPressTime(Time::Current());
@@ -522,15 +656,15 @@ void InputSystem::OnPreUpdate() {
 		key.second = mask;
 	}
 
-	double xpos, ypos;
-	glfwGetCursorPos(Engine::GetWindow(), &xpos, &ypos);
 	
-	this->prevMouseMovement = glm::vec2(xpos, ypos);
-	
-	if (this->mouseLocked) {
-		glfwSetCursorPos(Engine::GetWindow(), 0, 0);
+	if (!this->mouseLocked) {
+		this->prevMouseMovement = glm::vec2(xpos, ypos);
+	}
+}
 
-		this->prevMouseMovement.y = -this->prevMouseMovement.y;
+void InputSystem::OnPostUpdate() {
+	if (this->mouseLocked) {
+		this->prevMouseMovement = glm::vec2(0);
 	}
 }
 
@@ -582,15 +716,16 @@ void InputSystem::DrawImGui() {
 				}
 			}
 			
+			glm::vec2 mouseMovement = this->prevMouseMovement;
 			ImGui::Text("%s", std::format("Mouse Locked: {}", this->mouseLocked).c_str());
 			ImGui::Text("%s", std::format("Mouse Movement: ({:.3f}, {:.3f})",
-				this->mouseLocked ? this->prevMouseMovement.x : 0,
-				this->mouseLocked ? this->prevMouseMovement.y : 0
+				this->mouseLocked ? mouseMovement.x : 0,
+				this->mouseLocked ? mouseMovement.y : 0
 			).c_str());
 	
 			ImGui::Text("%s", std::format("Mouse Position: ({:.3f}, {:.3f})",
-				this->mouseLocked ? 0 : this->prevMouseMovement.x,
-				this->mouseLocked ? 0 : this->prevMouseMovement.y
+				this->mouseLocked ? 0 : mouseMovement.x,
+				this->mouseLocked ? 0 : mouseMovement.y
 			).c_str());
 			
 			ImGui::TreePop();

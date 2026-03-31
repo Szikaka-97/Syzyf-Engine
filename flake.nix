@@ -22,6 +22,8 @@
         xorg.libXi
         xorg.libXrandr
         xorg.libXext
+        libxcb
+        libxtst
       ];
     in
     {
