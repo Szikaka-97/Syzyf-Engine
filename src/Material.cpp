@@ -1,4 +1,5 @@
 #include "Debug.h"
+#include "UniformSpec.h"
 #include <Material.h>
 
 #include <imgui.h>
@@ -32,6 +33,9 @@ void ShaderVariableStorage::Bind() const {
 			break;
 		case UniformSpec::UniformType::Uint3:
 			glUniform3uiv(this->uniformSpec->VariableAt(i).binding, 1, &GetValue<glm::uvec3>(i)[0]);
+			break;
+		case UniformSpec::UniformType::Uint4:
+			glUniform4uiv(this->uniformSpec->VariableAt(i).binding, 1, &GetValue<glm::uvec4>(i)[0]);
 			break;
 		case UniformSpec::UniformType::Matrix3x3:
 			glUniformMatrix3fv(this->uniformSpec->VariableAt(i).binding, 1, false, &GetValue<glm::mat3>(i)[0][0]);
@@ -140,6 +144,9 @@ void ShaderVariableStorage::Bind() const {
 
 			break;
 		}
+		case UniformSpec::UniformType::Unsupported:
+		default:
+			break;
 		}
 	}
 
