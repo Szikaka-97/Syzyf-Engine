@@ -20,10 +20,14 @@ out VS_OUT {
   vec2 texcoords2;
 } vs_out;
 
+layout(std430, binding = 2) readonly buffer SkinningBuffer {
+  mat4 jointMatrices[];
+};
+
+uniform int uBoneOffset;
+
 //from learnopengl
-const int MAX_BONES = 256;
-const int MAX_BONE_INFLUENCE = 8;
-uniform mat4 inverseBindMatrices[MAX_BONES];
+const int MAX_BONE_INFLUENCE = 4;
 
 void main() {
   vec4 totalPosition = vec4(0.0f);
@@ -34,11 +38,11 @@ void main() {
     int joint = int(vJoints[i]);
     float weight = vWeights[i];
 
-    if (weight <= 0.0f || joint >= MAX_BONES || joint < 0) {
+    if (weight <= 0.0f || joint < 0) {
       continue;
     }
 
-    mat4 jointMat = inverseBindMatrices[joint];
+    mat4 jointMat = jointMatrices[uBoneOffset + joint];
         
     vec4 localPosition = jointMat * vec4(vPos, 1.0f);
     totalPosition += localPosition * weight;

@@ -362,10 +362,10 @@ void InitScene(Scene* mainScene) {
   SceneNode* gltfAttachmentNode = mainScene->CreateNode("Gltf Scene Attachment");
   Scene* gltfScene = GltfImporter::LoadScene("./res/models/animated_cube.glb", "Animated Thing");
   gltfScene->GetRootNode()->AddObject<AnimatedThingTag>();
-  starsAttachmentNode->AttachScene(gltfScene);
+  gltfAttachmentNode->AttachScene(gltfScene);
 
   SceneNode* animatedGltfAttachmentNode = mainScene->CreateNode("Animated Gltf Attachment");
-  Scene* animatedGltfScene = GltfImporter::LoadScene("./res/models/RiggedFigure.glb", "Animated Gltf");
+  Scene* animatedGltfScene = GltfImporter::LoadScene("./res/models/jake_tangents.glb", "Animated Gltf");
   animatedGltfAttachmentNode->AttachScene(animatedGltfScene);
 
 	mainScene->AddComponent<DebugInspector>();

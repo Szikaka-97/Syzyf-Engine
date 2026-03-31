@@ -59,7 +59,7 @@ private:
 		const BoundingBox bounds;
 		uint8_t layer;
 
-    const std::vector<glm::mat4>* jointMatrices = nullptr;
+    int jointBufferOffset = -1;
 
 		RenderNode(const Mesh::SubMesh* mesh, const Material* material, unsigned int instanceCount, const glm::mat4& transformation, uint8_t layer);
 		RenderNode(const Mesh::SubMesh* mesh, const Material* material, unsigned int instanceCount, const glm::mat4& transformation, const BoundingBox& bounds, uint8_t layer);

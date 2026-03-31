@@ -1,6 +1,5 @@
 #include <VertexSpec.h>
 
-#include <algorithm>
 #include <map>
 
 VertexInputType VertexSpec::TypeFromSemantic(const std::string& s) {

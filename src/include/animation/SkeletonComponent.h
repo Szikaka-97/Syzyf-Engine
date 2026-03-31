@@ -13,4 +13,5 @@ public:
   std::vector<SceneNode*> joints;
   std::vector<glm::mat4> jointMatrices;
   SceneNode* skeletonRoot = nullptr;
+  int bufferOffset = 0;
 };

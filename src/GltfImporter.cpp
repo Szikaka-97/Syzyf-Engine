@@ -56,7 +56,7 @@ Scene* GltfImporter::LoadScene(const fs::path path, std::string name) {
     return nullptr;
   }
 
-  bool isSkinned = !asset->skins.empty() || !asset->animations.empty();
+  bool isSkinned = !asset->skins.empty();
   std::vector<Material*> materials = LoadMaterials(scene, asset.get(), isSkinned);
   
   SceneNode* root = scene->CreateNode(name);
