@@ -3,12 +3,12 @@
 #include <malloc.h>
 
 #include <glm/glm.hpp>
-#include <GLFW/glfw3.h>
 #include <imgui.h>
 
 #include <Light.h>
 #include <Camera.h>
 #include <Graphics.h>
+#include <TimeSystem.h>
 
 #include "../res/shaders/shared/shared.h"
 #include "../res/shaders/shared/uniforms.h"
@@ -53,7 +53,7 @@ void LightSystem::DoSpotLightShadowmap(Light* light, ShadowMapRegion& shadowmapR
 	globalUniforms.Global_ProjectionMatrix = glm::perspective(light->GetSpotlightAngle() * 2, 1.0f, 0.1f, light->GetRange());
 	globalUniforms.Global_VPMatrix = globalUniforms.Global_ProjectionMatrix * globalUniforms.Global_ViewMatrix;
 	globalUniforms.Global_CameraWorldPos = light->GlobalTransform().Position();
-	globalUniforms.Global_Time = (float) glfwGetTime();
+	globalUniforms.Global_Time = Time::Current();
 	globalUniforms.Global_CameraFarPlane = 0;
 	globalUniforms.Global_CameraNearPlane = 0;
 	globalUniforms.Global_CameraFov = 0;
@@ -74,7 +74,7 @@ void LightSystem::DoSpotLightShadowmap(Light* light, ShadowMapRegion& shadowmapR
 void LightSystem::DoDirectionalLightShadowmap(Light* light, ShadowMapRegion* shadowmapRects) {
 	ShaderGlobalUniforms globalUniforms;
 	
-	globalUniforms.Global_Time = (float) glfwGetTime();
+	globalUniforms.Global_Time = Time::Current();
 	globalUniforms.Global_CameraFarPlane = 0;
 	globalUniforms.Global_CameraNearPlane = 0;
 	globalUniforms.Global_CameraFov = 0;
@@ -179,7 +179,7 @@ void LightSystem::DoPointLightShadowmap(Light* light, ShadowMapRegion* shadowmap
 	ShaderGlobalUniforms globalUniforms;
 	
 	globalUniforms.Global_CameraWorldPos = light->GlobalTransform().Position();
-	globalUniforms.Global_Time = (float) glfwGetTime();
+	globalUniforms.Global_Time = Time::Current();
 	globalUniforms.Global_CameraFarPlane = 0;
 	globalUniforms.Global_CameraNearPlane = 0;
 	globalUniforms.Global_CameraFov = glm::radians(90.0f);

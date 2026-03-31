@@ -26,6 +26,10 @@ include(global_settings)
 # ---- Dependencies ----
 add_subdirectory(thirdparty)
 
+if (MSVC)
+add_link_options(/NODEFAULTLIB:LIBCMTD)
+endif()
+
 set(CMAKE_CXX_STANDARD 23)
 
 IF (MSVC)

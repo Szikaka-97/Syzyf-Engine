@@ -164,6 +164,18 @@ std::vector<Mesh::SubMesh> Mesh::GetSubMeshes() const {
 	return this->subMeshes;
 }
 
+unsigned int Mesh::GetVertexCount() const {
+  return this->vertexCount;
+}
+
+unsigned int Mesh::GetVertexStride() const {
+  return this->vertexStride;
+}
+
+const float* Mesh::GetVertexData() const {
+  return this->vertexData;
+}
+
 const Mesh::SubMesh& Mesh::SubMeshAt(unsigned int index) const {
 	return this->subMeshes.at(index);
 }

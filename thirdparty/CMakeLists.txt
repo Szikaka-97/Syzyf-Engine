@@ -18,7 +18,6 @@ target_include_directories(stb_image PRIVATE ${STB_IMAGE_DIR})
 
 # other
 CPMAddPackage("gh:assimp/assimp@6.0.4")
-CPMAddPackage("gh:glfw/glfw#3.4")
 CPMAddPackage("gh:g-truc/glm#1.0.3")
 CPMAddPackage("gh:ocornut/imgui@1.92.5")
 CPMAddPackage("gh:gabime/spdlog@1.17.0")
@@ -28,22 +27,48 @@ CPMAddPackage(
     GIT_TAG v0.9.0
     OPTIONS "FASTGLTF_COMPILE_AS_CPP20"
 )
+    NAME SDL3
+    GITHUB_REPOSITORY libsdl-org/SDL
+    GIT_TAG release-3.4.2
+    OPTIONS "SDL_X11_XSCRNSAVER OFF")
+CPMAddPackage(
+    NAME JoltPhysics
+    GITHUB_REPOSITORY jrouwe/JoltPhysics
+    GIT_TAG v5.5.0
+    SOURCE_SUBDIR "Build"
+    OPTIONS
+        "TARGET_UNIT_TESTS OFF"
+        "TARGET_SAMPLES OFF"
+        "TARGET_PERFORMANCE_TEST OFF"
+        "TARGET_VIEWER OFF"
+        "TARGET_HELLO_WORLD OFF"
+        "DEBUG_RENDERER ON"
+        "CPP_RTTI_ENABLED ON"
+        "DEBUG_RENDERER_IN_DISTRIBUTION ON"
+	"BUILD_SHARED_LIBS"
+)
+if (NOT MSVC)
+target_compile_options(Jolt PRIVATE -Wno-array-bounds)
+endif ()
 
 set(imgui_SOURCE_DIR ${imgui_SOURCE_DIR} CACHE INTERNAL "")
 add_library(imgui STATIC ${imgui_SOURCE_DIR}/imgui.cpp
 					     ${imgui_SOURCE_DIR}/imgui_demo.cpp
 					     ${imgui_SOURCE_DIR}/imgui_draw.cpp
-						 ${imgui_SOURCE_DIR}/imgui_tables.cpp
+					     ${imgui_SOURCE_DIR}/imgui_tables.cpp
 					     ${imgui_SOURCE_DIR}/imgui_widgets.cpp)
-						 
+
 set_target_properties(glad
                       stb_image 
                       assimp 
-                      glfw 
+                      SDL3-static
                       glm 
                       imgui 
                       spdlog
                       fastgltf PROPERTIES FOLDER "thirdparty")
+                      imgui
+                      Jolt
+                      spdlog PROPERTIES FOLDER "thirdparty")
 
 if (TARGET zlibstatic)
     set_target_properties(zlibstatic PROPERTIES FOLDER "thirdparty")

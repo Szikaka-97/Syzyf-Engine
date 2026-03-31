@@ -1,13 +1,14 @@
+#include "SDL3/SDL_video.h"
 #include "imgui.h"
-#include "imgui_impl/imgui_impl_glfw.h"
+#include "imgui_impl/imgui_impl_sdl3.h"
 #include "imgui_impl/imgui_impl_opengl3.h"
 #define IMGUI_IMPL_OPENGL_LOADER_GLAD
 
 #ifdef _WIN32
 extern "C" {
 #ifdef __GNUC__
-    __attribute__ ((dllexport)) unsigned long NvOptimusEnablement = 1;
-    __attribute__ ((dllexport)) int AmdPowerXpressRequestHighPerformance = 1;
+	__attribute__ ((dllexport)) unsigned long NvOptimusEnablement = 1;
+	__attribute__ ((dllexport)) int AmdPowerXpressRequestHighPerformance = 1;
 #else
 	_declspec(dllexport) DWORD NvOptimusEnablement = 1;
 	_declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
@@ -17,8 +18,16 @@ extern "C" {
 
 #include <Engine.h>
 
+#include "physics/Jolt.h"
+#include "physics/DebugRenderer.h"
+
+#include <Jolt/Jolt.h>
+#include <Jolt/RegisterTypes.h>
+#include <Jolt/Core/Factory.h>
+
 #include <glad/glad.h>
-#include <GLFW/glfw3.h>
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_opengl.h>
 
 #include <Scene.h>
 #include <TimeSystem.h>
@@ -28,13 +37,9 @@ const char*   glsl_version     = "#version 460";
 constexpr int32_t GL_VERSION_MAJOR = 4;
 constexpr int32_t GL_VERSION_MINOR = 6;
 
-GLFWwindow* Engine::window = nullptr;
+SDL_Window* Engine::window = nullptr;
+SDL_GLContextState* Engine::glContext = nullptr;
 Scene* Engine::rootScene = nullptr;
-
-
-static void GLFWErrorCallback(int error, const char* description) {
-	fprintf(stderr, "Glfw Error %d: %s\n", error, description);
-}
 
 static void APIENTRY glDebugOutput(
 	GLenum source,
@@ -82,41 +87,55 @@ static void APIENTRY glDebugOutput(
 }
 
 bool Engine::InitProgram() {
-	glfwSetErrorCallback(GLFWErrorCallback);
-	if (!glfwInit())  {
-		spdlog::error("Failed to initalize GLFW!");
+	if (!SDL_Init(SDL_INIT_VIDEO))  {
+		spdlog::error("Failed to initalize SDL!");
 
 		return false;
 	}
 
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, GL_VERSION_MAJOR);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, GL_VERSION_MINOR);
-	glfwWindowHint(GLFW_OPENGL_PROFILE,        GLFW_OPENGL_CORE_PROFILE);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, GL_VERSION_MAJOR);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, GL_VERSION_MINOR);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 
-	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, true);
-	glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT,  true);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG | SDL_GL_CONTEXT_DEBUG_FLAG);
 
-	auto monitor = glfwGetPrimaryMonitor();
-	auto vidMode = glfwGetVideoMode(monitor);
+	SDL_DisplayID mainScreen = SDL_GetPrimaryDisplay();
+	const SDL_DisplayMode* mainScreenMode = SDL_GetDesktopDisplayMode(mainScreen);
 
-	// window = glfwCreateWindow(vidMode->width, vidMode->height, "Syzyf Engine", nullptr, nullptr);
-	window = glfwCreateWindow(1280, 720, "Syzyf Engine", nullptr, nullptr);
+	float mainScale = SDL_GetDisplayContentScale(SDL_GetPrimaryDisplay());
+	SDL_WindowFlags windowFlags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN | SDL_WINDOW_HIGH_PIXEL_DENSITY;
+
+	window = SDL_CreateWindow("Syzyf Engine", (int) (mainScreenMode->w * mainScale), (int) (mainScreenMode->h * mainScale), windowFlags);
 	if (window == NULL) {
-		spdlog::error("Failed to create GLFW Window!");
+		spdlog::error("Failed to create SDL Window!");
 
 		return false;
 	}
 
-	glfwMakeContextCurrent(window);
-	glfwSwapInterval(1);
+	glContext = SDL_GL_CreateContext(window);
 
-	bool err = !gladLoadGLLoader((GLADloadproc) glfwGetProcAddress);
+	SDL_GL_MakeCurrent(window, glContext);
+	SDL_GL_SetSwapInterval(1);
+	SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+	SDL_ShowWindow(window);
+
+	bool err = !gladLoadGLLoader((GLADloadproc) SDL_GL_GetProcAddress);
 	
 	if (err) {
 		spdlog::error("Failed to initialize OpenGL loader!");
 		
 		return false;
 	}
+
+	// Jolt
+	JPH::RegisterDefaultAllocator();
+	JPH::Factory::sInstance = new JPH::Factory();
+	JPH::RegisterTypes();
+
+	JPH::Trace = Physics::TraceImpl;
+#ifdef JPH_ENABLE_ASSERTS
+	JPH::AssertFailed = Physics::AssertFailedImpl;
+#endif
 
 	int contextFlags = 0;
 	glGetIntegerv(GL_CONTEXT_FLAGS, &contextFlags);
@@ -145,7 +164,7 @@ bool Engine::InitImGui() {
 	
 	ImGui::CreateContext();
 
-	ImGui_ImplGlfw_InitForOpenGL(window, true);
+	ImGui_ImplSDL3_InitForOpenGL(window, glContext);
 	ImGui_ImplOpenGL3_Init(glsl_version);
 
 	ImGui::StyleColorsDark();
@@ -159,11 +178,13 @@ void Engine::Terminate() {
 	}
 
 	ImGui_ImplOpenGL3_Shutdown();
-	ImGui_ImplGlfw_Shutdown();
+	ImGui_ImplSDL3_Shutdown();
 	ImGui::DestroyContext();
 
-	glfwDestroyWindow(window);
-	glfwTerminate();
+	SDL_GL_DestroyContext(glContext);
+	SDL_DestroyWindow(window);
+
+	SDL_Quit();
 }
 
 void Engine::Update() {
@@ -174,17 +195,20 @@ void Engine::Update() {
 
 void Engine::Render() {
 	int display_w, display_h;
-	glfwMakeContextCurrent(window);
-	glfwGetFramebufferSize(window, &display_w, &display_h);
+	SDL_GL_MakeCurrent(window, glContext);
+	SDL_GetWindowSize(window, &display_w, &display_h);
 
 	rootScene->GetGraphics()->UpdateScreenResolution(glm::vec2(display_w, display_h));
 
 	rootScene->Render();
+
+	// remove later maybe
+	rootScene->GetComponent<Physics::DebugRenderer>()->Render();
 }
 
 void Engine::DrawImGui() {
 	ImGui_ImplOpenGL3_NewFrame();
-	ImGui_ImplGlfw_NewFrame();
+	ImGui_ImplSDL3_NewFrame();
 	ImGui::NewFrame();
 
 	static ImVec2 window_pos(0, 0);
@@ -199,8 +223,8 @@ void Engine::DrawImGui() {
 
 	ImGui::Render();
 	int display_w, display_h;
-	glfwMakeContextCurrent(window);
-	glfwGetFramebufferSize(window, &display_w, &display_h);
+	SDL_GL_MakeCurrent(window, glContext);
+	SDL_GetWindowSize(window, &display_w, &display_h);
 
 	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
@@ -218,16 +242,28 @@ bool Engine::Setup() {
 }
 
 void Engine::MainLoop() {
-	while (!glfwWindowShouldClose(window)) {
+	bool shouldClose = false;
+
+	while (!shouldClose) {
 		Update();
 
 		Render();
 
 		DrawImGui();
 
-		glfwPollEvents();
-		glfwMakeContextCurrent(window);
-		glfwSwapBuffers(window);
+		SDL_Event event;
+		while (SDL_PollEvent(&event)) {
+			ImGui_ImplSDL3_ProcessEvent(&event);
+			if (event.type == SDL_EVENT_QUIT) {
+				shouldClose = true;
+			}
+			if (event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED && event.window.windowID == SDL_GetWindowID(window)) {
+				shouldClose = true;
+			}
+		}
+
+		SDL_GL_MakeCurrent(window, glContext);
+		SDL_GL_SwapWindow(window);
 	}
 }
 
@@ -241,6 +277,6 @@ Scene* Engine::GetRoot() {
 	return rootScene;
 }
 
-GLFWwindow* Engine::GetWindow() {
+SDL_Window* Engine::GetWindow() {
 	return window;
 }
