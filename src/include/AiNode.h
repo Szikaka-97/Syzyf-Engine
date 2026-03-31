@@ -26,7 +26,7 @@ private:
     //void Attack();
 	void SearchWalkPoint();
     void RotateNode(glm::vec3 dir);
-
+    void DrawDebugView();
 	void LookForNextPoint();
     
 

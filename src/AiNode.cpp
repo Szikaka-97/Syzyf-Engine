@@ -77,6 +77,8 @@ void AiNode::Update() {
     bool playerInSightRange = dist < sightRange;
     bool playerInAttackRange = dist < attackRange;
 
+	DrawDebugView();
+
     if (!playerInSightRange && !playerInAttackRange) Patrol();
     if (playerInSightRange && !playerInAttackRange) Chase();
 }
@@ -252,3 +254,43 @@ void AiNode::LookForNextPoint() {
 	walkPoint = patrolPoints[posIndex];
 	walkPointSet = true;
 }
+void AiNode::DrawDebugView() {
+    if (!myNode) return;
+
+    auto* scene = GetScene();
+    auto* debugRenderer = scene ? scene->GetComponent<Physics::DebugRenderer>() : nullptr;
+    if (!debugRenderer) {
+        return;
+    }
+
+    float fov = glm::radians(90.0f);
+    float radius = sightRange;
+    int segments = 24;
+
+    glm::quat rotation = myNode->GlobalTransform().Rotation();
+    glm::vec3 forward = rotation * glm::vec3(0, 0, 1);
+    forward = glm::normalize(glm::vec3(forward.x, 0, forward.z));
+
+    glm::vec3 pos = transform;
+
+    std::vector<glm::vec3> arcPoints;
+    float startAngle = atan2(forward.x, forward.z) - fov / 2.0f;
+    for (int i = 0; i <= segments; ++i) {
+        float t = (float)i / segments;
+        float angle = startAngle + t * fov;
+        float x = radius * sin(angle);
+        float z = radius * cos(angle);
+        arcPoints.push_back(pos + glm::vec3(x, 0, z));
+    }
+
+    for (const auto& p : arcPoints) {
+        debugRenderer->DrawLine(JPH::Vec3(pos.x, pos.y, pos.z), JPH::Vec3(p.x, p.y, p.z), JPH::Color::sGreen);
+    }
+
+    for (size_t i = 0; i < arcPoints.size() - 1; ++i) {
+        debugRenderer->DrawLine(JPH::Vec3(arcPoints[i].x, arcPoints[i].y, arcPoints[i].z),
+            JPH::Vec3(arcPoints[i + 1].x, arcPoints[i + 1].y, arcPoints[i + 1].z),
+            JPH::Color::sGreen);
+    }
+}
+
