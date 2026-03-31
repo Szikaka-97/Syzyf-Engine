@@ -1,6 +1,11 @@
+#include "Debug.h"
 #include <Material.h>
 
+#include <imgui.h>
 #include <malloc.h>
+
+std::vector<Material*> Material::allMaterials;
+Texture* textureClipboard = nullptr;
 
 void ShaderVariableStorage::Bind() const {
 	int samplerIndex = 0;
@@ -160,8 +165,8 @@ ShaderVariableStorage::ShaderVariableStorage(const UniformSpec& uniformSpec):
 uniformSpec(&uniformSpec) {
 	unsigned int variableBufferSize = uniformSpec.GetBufferSize();
 	
-	this->dataBuffer = (void*) new char[variableBufferSize];
-	memset(this->dataBuffer, 0, variableBufferSize);
+	this->dataBuffer.resize(variableBufferSize);
+	memset(this->dataBuffer.data(), 0, variableBufferSize);
 
 	int uniformBuffersCount = uniformSpec.UniformBuffersCount();
 
@@ -230,9 +235,28 @@ void ShaderVariableStorage::BindStorageBuffer(int storageBufferIndex, GLuint buf
 	this->storageBuffers[storageBufferIndex].bufferHandle = bufferHandle;
 }
 
+void ShaderVariableStorage::RefreshVariables() {
+	std::vector<unsigned char> newBuffer;
+	newBuffer.resize(this->uniformSpec->GetBufferSize());
+
+	memcpy(newBuffer.data(), this->dataBuffer.data(), std::min(newBuffer.size(), this->dataBuffer.size()));
+
+	this->dataBuffer = newBuffer;
+}
+
 Material::Material(const ShaderProgram* shader):
 shader(shader),
-shaderVariables(shader->GetUniforms()) { }
+shaderVariables(shader->GetUniforms()) {
+	allMaterials.push_back(this);
+}
+
+void Material::OnReloadShader(ShaderProgram* shader) {
+	for (auto mat : allMaterials) {
+		if (mat->shader == shader) {
+			mat->shaderVariables.RefreshVariables();
+		}
+	}
+}
 
 void Material::Bind() const {
 	glUseProgram(this->shader->GetHandle());
@@ -290,4 +314,178 @@ const ComputeShaderProgram* ComputeDispatchData::GetShader() const {
 }
 const UniformSpec* ComputeDispatchData::GetUniforms() const {
 	return this->shaderVariables.GetUniforms();
+}
+
+template<> bool Debug::Property<Material>(Material& mat, const std::string &name) {
+	if (ImGui::TreeNode(std::format("Shader").c_str())) {
+		const ShaderProgram* shader = mat.GetShader();
+
+		ImGui::Text("Vertex shader: %s", shader->GetVertexShader().GetName().c_str());
+		ImGui::Text("Geometry shader: %s", shader->GetGeometryShader().GetName().c_str());
+		ImGui::Text("Tess control shader: %s", shader->GetTessCtrlShader().GetName().c_str());
+		ImGui::Text("Tess evaluation shader: %s", shader->GetTessEvalShader().GetName().c_str());
+		ImGui::Text("Fragment shader: %s", shader->GetPixelShader().GetName().c_str());
+
+		if (ImGui::Button("Reload")) {
+			const_cast<ShaderProgram*>(shader)->Reload();
+		}
+
+		ImGui::TreePop();
+	}
+
+	if (ImGui::TreeNode(std::format("Properties").c_str())) {
+		for (int j = 0; j < mat.GetUniforms()->VariableCount(); j++) {
+			auto& uniform = mat.GetUniforms()->VariableAt(j);
+
+			if (uniform.name.starts_with("Builtin")) {
+				continue;
+			}
+
+			ImGui::PushID(j);
+
+			ImGui::Text("%i: %s", uniform.binding, uniform.name.c_str());
+
+			switch (uniform.type) {
+			case UniformSpec::UniformType::Float1: {
+				float val = mat.GetValue<float>(j);
+
+				if (Debug::Property(val, uniform.name)) {
+					mat.SetValue(j, val);
+				}
+				
+				break;
+			}
+			case UniformSpec::UniformType::Float2: {
+				glm::vec2 val = mat.GetValue<glm::vec2>(j);
+				
+				if (Debug::Property(val, uniform.name)) {
+					mat.SetValue(j, val);
+				}
+				
+				break;
+			}
+			case UniformSpec::UniformType::Float3: {
+				glm::vec3 val = mat.GetValue<glm::vec3>(j);
+				
+				if (Debug::Property(val, uniform.name)) {
+					mat.SetValue(j, val);
+				}
+				
+				break;
+			}
+			case UniformSpec::UniformType::Float4: {
+				glm::vec4 val = mat.GetValue<glm::vec4>(j);
+				
+				if (Debug::Property(val, uniform.name)) {
+					mat.SetValue(j, val);
+				}
+				
+				break;
+			}
+			case UniformSpec::UniformType::Uint1: {
+				unsigned int val = mat.GetValue<unsigned int>(j);
+				
+				if (Debug::Property(val, uniform.name)) {
+					mat.SetValue(j, val);
+				}
+				
+				break;
+			}
+			case UniformSpec::UniformType::Uint2: {
+				glm::uvec2 val = mat.GetValue<glm::uvec2>(j);
+
+				if (Debug::Property(val, uniform.name)) {
+					mat.SetValue(j, val);
+				}
+				
+				break;
+			}
+			case UniformSpec::UniformType::Uint3: {
+				glm::uvec3 val = mat.GetValue<glm::uvec3>(j);
+				
+				if (Debug::Property(val, uniform.name)) {
+					mat.SetValue(j, val);
+				}
+				
+				break;
+			}
+			case UniformSpec::UniformType::Uint4: {
+				glm::uvec4 val = mat.GetValue<glm::uvec4>(j);
+				
+				if (Debug::Property(val, uniform.name)) {
+					mat.SetValue(j, val);
+				}
+				
+				break;
+			}
+			case UniformSpec::UniformType::Matrix3x3: {
+				glm::mat3 val = mat.GetValue<glm::mat3>(j);
+
+				if (Debug::Property(val, uniform.name)) {
+					mat.SetValue(j, val);
+				}
+				
+				break;
+			}
+			case UniformSpec::UniformType::Matrix4x4: {
+				glm::mat4 val = mat.GetValue<glm::mat4>(j);
+
+				if (Debug::Property(val, uniform.name)) {
+					mat.SetValue(j, val);
+				}
+				
+				break;
+			}
+			case UniformSpec::UniformType::Sampler2D:
+			case UniformSpec::UniformType::Cubemap: {
+				Texture* tex = nullptr;
+
+				tex = mat.GetValue<Texture2D>(j);
+				if (tex == nullptr) {
+					tex = mat.GetValue<Cubemap>(j);
+				}
+
+				ImGui::LabelText(uniform.name.c_str(), "%i", tex->GetHandle());
+
+				if (tex) {
+					if (ImGui::Button("Copy")) {
+						textureClipboard = tex;
+					}
+				}
+				else {
+					ImGui::Spacing();
+				}
+				
+				ImGui::SameLine();
+				
+				if (textureClipboard) {
+					if (ImGui::Button(std::format("Paste {}", textureClipboard->GetHandle()).c_str())) {
+						if (textureClipboard->GetType() == TextureType::Texture2D) {
+							mat.SetValue<Texture2D>(j, (Texture2D*) textureClipboard);
+						}
+						else {
+							mat.SetValue<Cubemap>(j, (Cubemap*) textureClipboard);
+						}
+					}
+				}
+				else {
+					ImGui::Spacing();
+				}
+
+				break;
+			}
+			case UniformSpec::UniformType::Image2D:
+			case UniformSpec::UniformType::ImageCube:
+			case UniformSpec::UniformType::UImage2D:
+			case UniformSpec::UniformType::Unsupported:
+				break;
+			}
+
+			ImGui::PopID();
+		}
+
+		ImGui::TreePop();
+	}
+
+	return false;
 }
