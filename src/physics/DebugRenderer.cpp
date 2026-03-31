@@ -166,7 +166,8 @@ void DebugRenderer::Render() {
 
     glm::mat4 vp = cameraObjects.front()->ViewProjectionMatrix();
 
-    glDisable(GL_DEPTH_TEST);
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LEQUAL);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -180,7 +181,6 @@ void DebugRenderer::Render() {
     glBindVertexArray(0);
     glUseProgram(0);
     glDisable(GL_BLEND);
-    glEnable(GL_DEPTH_TEST);
 
     lines.clear();
 }

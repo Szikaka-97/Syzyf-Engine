@@ -24,6 +24,7 @@
 #include "animation/SkeletonSystem.h"
 #include "include/Framebuffer.h"
 #include "include/Shader.h"
+#include "physics/DebugRenderer.h"
 
 #define LIGHT_GRID_SIZE 16
 
@@ -508,6 +509,10 @@ void SceneGraphics::Render() {
 	glViewport(0, 0, this->mainViewport->GetSize().x, this->mainViewport->GetSize().y);
 
 	CompositeTransparentPass();
+
+  if (Physics::DebugRenderer* debugRenderer = this->GetScene()->GetComponent<Physics::DebugRenderer>()) {
+    debugRenderer->Render();
+  }
 
 	RenderFullscreenFrameQuad();
 
