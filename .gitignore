@@ -14,9 +14,12 @@ CTestTestfile.cmake
 out/
 res/testing/
 
+.idea/
+
 # Clang
 .clang-format
 .cache/
 
 # Nix
 .direnv/
+

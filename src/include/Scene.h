@@ -17,6 +17,10 @@ class SceneGraphics;
 class SceneComponent;
 class Light;
 
+#ifdef _WIN32
+#include <Windows.h>
+#endif
+
 class Scene;
 
 class SceneNode {
@@ -336,6 +340,9 @@ T_GO* Scene::CreateObjectOn(SceneNode* node, T_Param... params) {
 	created->id = this->nextGameObjectID++;
 
 	created->enabled = true;
+
+  this->messageTree.MessageObject<Message::Awake>(created, node);
+  this->messageTree.MessageObject<Message::OnEnable>(created, node);
 
 	return created;
 }

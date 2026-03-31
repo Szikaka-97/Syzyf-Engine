@@ -26,12 +26,31 @@ CPMAddPackage(
     GITHUB_REPOSITORY libsdl-org/SDL
     GIT_TAG release-3.4.2
     OPTIONS "SDL_X11_XSCRNSAVER OFF")
+CPMAddPackage(
+    NAME JoltPhysics
+    GITHUB_REPOSITORY jrouwe/JoltPhysics
+    GIT_TAG v5.5.0
+    SOURCE_SUBDIR "Build"
+    OPTIONS
+        "TARGET_UNIT_TESTS OFF"
+        "TARGET_SAMPLES OFF"
+        "TARGET_PERFORMANCE_TEST OFF"
+        "TARGET_VIEWER OFF"
+        "TARGET_HELLO_WORLD OFF"
+        "DEBUG_RENDERER ON"
+        "CPP_RTTI_ENABLED ON"
+        "DEBUG_RENDERER_IN_DISTRIBUTION ON"
+	"BUILD_SHARED_LIBS"
+)
+if (NOT MSVC)
+target_compile_options(Jolt PRIVATE -Wno-array-bounds)
+endif ()
 
 set(imgui_SOURCE_DIR ${imgui_SOURCE_DIR} CACHE INTERNAL "")
 add_library(imgui STATIC ${imgui_SOURCE_DIR}/imgui.cpp
 					     ${imgui_SOURCE_DIR}/imgui_demo.cpp
 					     ${imgui_SOURCE_DIR}/imgui_draw.cpp
-						 ${imgui_SOURCE_DIR}/imgui_tables.cpp
+					     ${imgui_SOURCE_DIR}/imgui_tables.cpp
 					     ${imgui_SOURCE_DIR}/imgui_widgets.cpp)
 
 set_target_properties(glad
@@ -39,7 +58,8 @@ set_target_properties(glad
                       assimp 
                       SDL3-static
                       glm 
-                      imgui 
+                      imgui
+                      Jolt
                       spdlog PROPERTIES FOLDER "thirdparty")
 
 if (TARGET zlibstatic)

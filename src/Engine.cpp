@@ -18,6 +18,13 @@ extern "C" {
 
 #include <Engine.h>
 
+#include "physics/Jolt.h"
+#include "physics/DebugRenderer.h"
+
+#include <Jolt/Jolt.h>
+#include <Jolt/RegisterTypes.h>
+#include <Jolt/Core/Factory.h>
+
 #include <glad/glad.h>
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_opengl.h>
@@ -120,6 +127,16 @@ bool Engine::InitProgram() {
 		return false;
 	}
 
+	// Jolt
+	JPH::RegisterDefaultAllocator();
+	JPH::Factory::sInstance = new JPH::Factory();
+	JPH::RegisterTypes();
+
+	JPH::Trace = Physics::TraceImpl;
+#ifdef JPH_ENABLE_ASSERTS
+	JPH::AssertFailed = Physics::AssertFailedImpl;
+#endif
+
 	int contextFlags = 0;
 	glGetIntegerv(GL_CONTEXT_FLAGS, &contextFlags);
 
@@ -184,6 +201,9 @@ void Engine::Render() {
 	rootScene->GetGraphics()->UpdateScreenResolution(glm::vec2(display_w, display_h));
 
 	rootScene->Render();
+
+	// remove later maybe
+	rootScene->GetComponent<Physics::DebugRenderer>()->Render();
 }
 
 void Engine::DrawImGui() {
