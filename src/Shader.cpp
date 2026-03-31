@@ -593,16 +593,12 @@ void ShaderProgram::Reload() {
 	ShaderAttachment newTessEvalShader;
 	ShaderAttachment newPixelShader;
 
-	glDeleteProgram(this->handle);
 	this->pragmas.clear();
 
-	this->handle = glCreateProgram();
+	newHandle = glCreateProgram();
 
 	try {
-
 		if (this->vertexShader.Attached()) {
-			// glDeleteShader(this->vertexShader.handle);
-	
 			newVertexShader.shader = Shader::LoadFromFile(this->vertexShader.shader.GetFilePath());
 	
 			newPragmas.insert(newVertexShader.shader.GetCode().pragmas.begin(), newVertexShader.shader.GetCode().pragmas.end());
@@ -612,8 +608,6 @@ void ShaderProgram::Reload() {
 			glAttachShader(newHandle, newVertexShader.handle);
 		}
 		if (this->geometryShader.Attached()) {
-			// glDeleteShader(this->geometryShader.handle);
-	
 			newGeometryShader.shader = Shader::LoadFromFile(this->geometryShader.shader.GetFilePath());
 	
 			newPragmas.insert(newGeometryShader.shader.GetCode().pragmas.begin(), newGeometryShader.shader.GetCode().pragmas.end());
@@ -623,8 +617,6 @@ void ShaderProgram::Reload() {
 			glAttachShader(newHandle, newGeometryShader.handle);
 		}
 		if (this->tessCtrlShader.Attached()) {
-			// glDeleteShader(this->tessCtrlShader.handle);
-	
 			newTessCtrlShader.shader = Shader::LoadFromFile(this->tessCtrlShader.shader.GetFilePath());
 	
 			newPragmas.insert(newTessCtrlShader.shader.GetCode().pragmas.begin(), newTessCtrlShader.shader.GetCode().pragmas.end());
@@ -634,8 +626,6 @@ void ShaderProgram::Reload() {
 			glAttachShader(newHandle, newTessCtrlShader.handle);
 		}
 		if (this->tessEvalShader.Attached()) {
-			// glDeleteShader(this->tessEvalShader.handle);
-	
 			newTessEvalShader.shader = Shader::LoadFromFile(this->tessEvalShader.shader.GetFilePath());
 	
 			newPragmas.insert(newTessEvalShader.shader.GetCode().pragmas.begin(), newTessEvalShader.shader.GetCode().pragmas.end());
@@ -645,8 +635,6 @@ void ShaderProgram::Reload() {
 			glAttachShader(newHandle, newTessEvalShader.handle);
 		}
 		if (this->pixelShader.Attached()) {
-			// glDeleteShader(this->pixelShader.handle);
-	
 			newPixelShader.shader = Shader::LoadFromFile(this->pixelShader.shader.GetFilePath());
 	
 			newPragmas.insert(newPixelShader.shader.GetCode().pragmas.begin(), newPixelShader.shader.GetCode().pragmas.end());
@@ -702,24 +690,35 @@ void ShaderProgram::Reload() {
 
 	glDeleteProgram(this->handle);
 
-	if (this->vertexShader.handle) {
+	if (this->vertexShader.Attached()) {
 		glDeleteShader(this->vertexShader.handle);
+
+		this->vertexShader = newVertexShader;
 	}
-	if (this->geometryShader.handle) {
+	if (this->geometryShader.Attached()) {
 		glDeleteShader(this->geometryShader.handle);
+
+		this->geometryShader = newGeometryShader;
 	}
-	if (this->tessCtrlShader.handle) {
+	if (this->tessCtrlShader.Attached()) {
 		glDeleteShader(this->tessCtrlShader.handle);
+
+		this->tessCtrlShader = newTessCtrlShader;
 	}
-	if (this->tessEvalShader.handle) {
+	if (this->tessEvalShader.Attached()) {
 		glDeleteShader(this->tessEvalShader.handle);
+
+		this->tessEvalShader = newTessEvalShader;
 	}
-	if (this->pixelShader.handle) {
+	if (this->pixelShader.Attached()) {
 		glDeleteShader(this->pixelShader.handle);
+
+		this->pixelShader = newPixelShader;
 	}
 	
 	this->handle = newHandle;
 	this->pragmas = newPragmas;
+
 	this->uniforms = UniformSpec(this);
 }
 
