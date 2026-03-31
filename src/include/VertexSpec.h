@@ -2,10 +2,7 @@
 
 #include <vector>
 #include <string>
-#include <map>
 #include <stdint.h>
-#include <concepts>
-#include <algorithm>
 
 enum class VertexInputType : uint8_t {
 	Invalid = 0,
@@ -15,7 +12,9 @@ enum class VertexInputType : uint8_t {
 	Tangent,
 	UV1,
 	UV2,
-	Color
+	Color,
+  Joints,
+  Weights
 };
 
 struct VertexInput {
@@ -59,4 +58,5 @@ public:
 	const static VertexSpec Mesh;
 	const static VertexSpec MeshColor;
 	const static VertexSpec MeshFull;
+  const static VertexSpec MeshSkinned;
 };

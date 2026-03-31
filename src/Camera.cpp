@@ -13,11 +13,13 @@ aspectRatio(aspectRatio),
 nearPlane(nearPlane),
 farPlane(farPlane) { }
 
-Camera::Orthographic::Orthographic(float left, float right, float top, float bottom):
+Camera::Orthographic::Orthographic(float left, float right, float top, float bottom, float znear, float zfar):
 left(left),
 right(right),
 top(top),
-bottom(bottom) {}
+bottom(bottom),
+znear(znear),
+zfar(zfar) {}
 
 Camera::Orthographic::Orthographic(glm::vec2 viewportSize):
 left(viewportSize.x / 2.0f),
@@ -81,7 +83,7 @@ void Camera::MakePerspective(float fovyDegrees, float aspectRatio, float nearPla
 void Camera::MakeOrtho() {
 	this->type = CameraType::Orthographic;
 }
-void Camera::MakeOrtho(float left, float right, float top, float bottom) {
+void Camera::MakeOrtho(float left, float right, float top, float bottom, float znear, float zfar) {
 	this->type = CameraType::Orthographic;
 
 	this->orthoData.left = left;
@@ -325,7 +327,9 @@ glm::mat4 CameraData::ProjectionMatrix() const {
 			this->orthoParams.left,
 			this->orthoParams.right,
 			this->orthoParams.bottom,
-			this->orthoParams.top
+			this->orthoParams.top,
+      this->orthoParams.znear,
+      this->orthoParams.zfar
 		);
 	}
 }

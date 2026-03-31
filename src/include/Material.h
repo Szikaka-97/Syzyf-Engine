@@ -70,6 +70,7 @@ private:
 	const ShaderProgram* shader;
 	ShaderVariableStorage shaderVariables;
 public:
+  std::string name;
 	Material(const ShaderProgram* shader);
 
 	void Bind() const;

@@ -354,6 +354,8 @@ void LightSystem::OnPostRender() {
 				else {
 					rep.shadowAtlasIndex = -1;
 				}
+
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->lightsBuffer);
 		
 				glBufferSubData(GL_SHADER_STORAGE_BUFFER, 32 + sizeof(ShaderLightRep) * lightIndex, sizeof(rep), &rep);
 			}

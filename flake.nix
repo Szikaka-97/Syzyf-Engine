@@ -27,11 +27,12 @@
       ];
     in
     {
-      devShells.${system}.default = pkgs.mkShell {
+      devShells.${system}.default = pkgs.mkShell.override { stdenv = pkgs.clangStdenv; } {
 
         nativeBuildInputs = with pkgs; [
           cmake
           ninja
+          ccache
           pkg-config
           gdb
           wayland-scanner

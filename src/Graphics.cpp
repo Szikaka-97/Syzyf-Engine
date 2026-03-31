@@ -20,6 +20,8 @@
 
 #include "../res/shaders/shared/shared.h"
 #include "../res/shaders/shared/uniforms.h"
+#include "animation/SkeletonComponent.h"
+#include "animation/SkeletonSystem.h"
 #include "include/Framebuffer.h"
 #include "include/Shader.h"
 
@@ -243,6 +245,15 @@ void SceneGraphics::RenderObjects(const ShaderGlobalUniforms& globalUniforms, Re
 		
 		mat->Bind();
 
+    int offsetLocation = glGetUniformLocation(mat->GetShader()->handle, "uBoneOffet");
+    if (offsetLocation >= 0) {
+      if (node.jointBufferOffset >= 0) {
+        glUniform1i(offsetLocation, node.jointBufferOffset);
+      } else {
+        glUniform1i(offsetLocation, 0);
+      }
+    }
+
 		if (params.pass == RenderPassType::Color) {
 			int shadowmaskUniformLocation = glGetUniformLocation(mat->GetShader()->handle, "Builtin_ShadowMask");
 
@@ -416,20 +427,29 @@ void SceneGraphics::DrawGizmoMesh(const Mesh* mesh, int subMeshIndex, const Mate
 }
 
 void SceneGraphics::DrawMeshInstanced(MeshRenderer* renderer, unsigned int instanceCount) {
+  int skinningOffset = -1;
+  SkeletonComponent* skeleton = renderer->GetNode()->GetObject<SkeletonComponent>();
+  if (skeleton) {
+    skinningOffset = skeleton->bufferOffset;
+  }
+
 	for (int i = 0; i < renderer->GetMesh()->GetSubMeshCount(); i++) {
 		const Mesh::SubMesh* mesh = &renderer->GetMesh()->SubMeshAt(i);
-
 		const Material* material = renderer->GetMaterial(mesh->GetMaterialIndex()); 
 
 		auto& targetRenderQueue = material->GetShader()->IsTransparent() ? this->transparentRenders : this->currentRenders;
 
-		targetRenderQueue.push_back(RenderNode(
+		RenderNode node(
 			mesh,
 			renderer->GetMaterial(mesh->GetMaterialIndex()),
 			instanceCount,
 			renderer->GlobalTransform(),
-			renderer->GetNode()->GetLayer()
-		));
+      renderer->GetNode()->GetLayer()
+		);
+
+    node.jointBufferOffset = skinningOffset;
+
+    targetRenderQueue.push_back(node);
 	}
 }
 
@@ -591,6 +611,11 @@ void SceneGraphics::RenderScene(const ShaderGlobalUniforms& uniforms, Framebuffe
 	BindGlobalUniformBuffer(uniforms);
 
 	glBindBufferBase(GL_UNIFORM_BUFFER, 1, objectUniformsBuffer);
+
+  SkeletonSystem* skeletonSystem = GetScene()->GetComponent<SkeletonSystem>();
+  if (skeletonSystem) {
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, skeletonSystem->GetSkinningBufferHandle());
+  }
 
 	if (params.clearDepth) {
 		glClear(GL_DEPTH_BUFFER_BIT);

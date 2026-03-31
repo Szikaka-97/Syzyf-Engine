@@ -1,5 +1,7 @@
-#include "imgui.h"
+#include "GltfImporter.h"
 
+#include "animation/AnimationSystem.h"
+#include "imgui.h"
 #include "physics/CharacterController.h"
 #include "physics/ICollisionReceiver.h"
 #include "physics/System.h"
@@ -35,6 +37,10 @@
 #include <Debug.h>
 #include <InputSystem.h>
 #include <Engine.h>
+#include <glm/trigonometric.hpp>
+#include <spdlog/spdlog.h>
+
+class AnimatedThingTag : public GameObject {};
 #include <Viewport.h>
 #include <AiNode.h>
 
@@ -46,7 +52,7 @@ private:
 	float rotation;
 	bool movementEnabled;
 	int mode;
-	float movementSpeed = 0.1f;
+	float movementSpeed = 10.0f;
 	float mouseSensitivity = 1.0f;
 public:
 	Mover() {
@@ -76,6 +82,14 @@ public:
 			if (GetScene()->Input()->KeyPressed(Key::S)) {
 				movement -= forward;
 			}
+
+      if (GetScene()->Input()->KeyPressed(Key::Enter)) {
+        auto* thing = this->GetScene()->FindObjectsOfType<AnimatedThingTag>().front();
+        if (thing) {
+          auto* animationObject = thing->GetObject<AnimationComponent>();
+          animationObject->Play("pivotAction");
+        }
+      }
 	
 			glm::vec2 deltaMovement = GetScene()->Input()->GetMouseMovement();
 
@@ -556,13 +570,13 @@ void InitScene(Scene* mainScene) {
 	floorNode->AddObject<Surface>(gmConstructMesh, 1.0f);
 
 	auto lightNode = mainScene->CreateNode("Point Light");
-	lightNode->AddObject<Light>(Light::PointLight({1, 1, 1}, 10, 2))->SetShadowCasting(true);
+	lightNode->AddObject<Light>(Light::PointLight({1, 1, 1}, 10, 2))->SetShadowCasting(false);
 	lightNode->GlobalTransform().Position() = {-1, 2.2f, 0};
 
 	auto lightNode2 = mainScene->CreateNode("Directional Light");
 	lightNode2->AddObject<Light>(Light::DirectionalLight({1, 1, 1}, 2))->SetShadowCasting(true);
 	lightNode2->GlobalTransform().Position() = {1, 2.2f, 0};
-	lightNode2->GlobalTransform().Rotation() = glm::quat(glm::radians(glm::vec3(50.0f, -20.0f, 0.0f)));
+	lightNode2->GlobalTransform().Rotation() = glm::quat(glm::radians(glm::vec3(91.0f, 0.0f, 0.0f)));
 
 	auto envProbe = mainScene->CreateNode(cubeNode, "Reflection Probe");
 	envProbe->AddObject<ReflectionProbe>();
@@ -590,7 +604,7 @@ void InitScene(Scene* mainScene) {
 
 	SceneNode* tvNode = mainScene->CreateNode("TV");
 	tvNode->LocalTransform().Scale() = glm::vec3(1.5, 1.5, 1.5);
-	tvNode->LocalTransform().Position() = glm::vec3(3, 0, -2);
+	tvNode->LocalTransform().Position() = glm::vec3(3, -5, -2);
 	tvNode->LocalTransform().Rotation() = glm::quat(glm::radians(glm::vec3(-90.0f, 20.0f, 0.0f)));
 
 	auto tvRenderer = tvNode->AddObject<MeshRenderer>(tvMesh, nullptr);
@@ -682,7 +696,11 @@ void InitScene(Scene* mainScene) {
   waterBody->SetIsSensor(true);
   waterBody->SetCollisionLayerAndMask({1});
 
+  Scene* animatedGltfScene = GltfImporter::LoadScene("./res/models/jake_tangents.glb", "Animated Gltf");
+  mainScene->GetRootNode()->AttachScene(animatedGltfScene);
+
 	mainScene->AddComponent<DebugInspector>();
+  mainScene->AddComponent<AnimationSystem>();
 }
 
 int main(int, char**) {
