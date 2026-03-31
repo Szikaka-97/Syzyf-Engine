@@ -21,6 +21,7 @@
 #include <Debug.h>
 #include <InputSystem.h>
 #include <Engine.h>
+#include <glm/trigonometric.hpp>
 #include <spdlog/spdlog.h>
 
 class AnimatedThingTag : public GameObject {};
@@ -353,20 +354,19 @@ void InitScene(Scene* mainScene) {
 	cameraNode->AddObject<Bloom>();
 	cameraNode->AddObject<Tonemapper>()->SetOperator(Tonemapper::TonemapperOperator::GranTurismo);
 
-  // auto* sponzaNewNode = GltfImporter::LoadScene(mainScene, "./res/models/main_sponza/main_sponza/NewSponza_Main_glTF_003.gltf", "Sponza New");
-#warning make it so you can set a scenenode as a parent, move the loadscene function into the scene
-  // auto* sponzaCurtainsNode = GltfImporter::LoadScene(mainScene, "./res/models/main_sponza/pkg_a_curtains/NewSponza_Curtains_glTF.gltf", "Sponza Curtains");
-  // auto* sponzaTreesNode = GltfImporter::LoadScene(mainScene, "./res/models/main_sponza/pkg_c_trees/NewSponza_CypressTree_glTF.gltf", "Sponza Tree");
-
 	ShaderProgram* pbrGltfProg = ShaderProgram::Build().WithVertexShader(
 		mainScene->Resources()->Get<VertexShader>("./res/shaders/lit_gltf.vert")
 	).WithPixelShader(
 		mainScene->Resources()->Get<PixelShader>("./res/shaders/pbr_gltf.frag")
 	).Link();
-  auto tvsGltfImporterNode = GltfImporter::LoadScene(mainScene, "./res/models/animated_cube.glb", "Animated Thing");
-  tvsGltfImporterNode->AddObject<AnimatedThingTag>();
+  SceneNode* gltfAttachmentNode = mainScene->CreateNode("Gltf Scene Attachment");
+  Scene* gltfScene = GltfImporter::LoadScene("./res/models/animated_cube.glb", "Animated Thing");
+  gltfScene->GetRootNode()->AddObject<AnimatedThingTag>();
+  starsAttachmentNode->AttachScene(gltfScene);
 
-  auto* jake = GltfImporter::LoadScene(mainScene, "./res/models/jake_tangents.glb", "jake");
+  SceneNode* animatedGltfAttachmentNode = mainScene->CreateNode("Animated Gltf Attachment");
+  Scene* animatedGltfScene = GltfImporter::LoadScene("./res/models/RiggedFigure.glb", "Animated Gltf");
+  animatedGltfAttachmentNode->AttachScene(animatedGltfScene);
 
 	mainScene->AddComponent<DebugInspector>();
   mainScene->AddComponent<AnimationSystem>();

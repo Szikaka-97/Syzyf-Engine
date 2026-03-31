@@ -22,7 +22,9 @@
 #include <glm/trigonometric.hpp>
 #include <spdlog/spdlog.h>
 
-SceneNode* GltfImporter::LoadScene(Scene* scene, const fs::path path, std::string name) {
+Scene* GltfImporter::LoadScene(const fs::path path, std::string name) {
+  Scene* scene = new Scene(); 
+
   if (!std::filesystem::exists(path)) {
     spdlog::warn("GltfImporter: File not found: {}", path.string());
     return nullptr;
@@ -113,7 +115,7 @@ SceneNode* GltfImporter::LoadScene(Scene* scene, const fs::path path, std::strin
     }
   }
 
-  return root; 
+  return scene; 
 }
 
 std::optional<AnimationComponent::Animation> GltfImporter::LoadAnimation(
