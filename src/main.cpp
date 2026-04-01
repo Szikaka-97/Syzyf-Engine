@@ -564,7 +564,6 @@ void InitScene(Scene* mainScene) {
 	Camera* camera = cameraNode->AddObject<Camera>(Camera::Perspective(40.0f, 16.0f/9.0f, 0.5f, 200.0f));
 	camera->GlobalTransform().Position() = glm::vec3(2.0f, 30.0f, -10.0f);
 
-  //auto* floorMesh = mainScene->Resources()->Get<Mesh>("./res/models/floor/floor.obj", true);
 	auto floorNode = mainScene->CreateNode("Floor");
     floorNode->AddObject<MeshRenderer>(gmConstructMesh, gmConstructMesh->GetDefaultMaterials());
 	floorNode->AddObject<Skybox>(skyMat); 
@@ -687,7 +686,6 @@ void InitScene(Scene* mainScene) {
 	schnozLightNode->AddObject<Light>(Light::PointLight(glm::vec3(1, 1, 1), 5, 5));
 
 
-  // cameraNode->AddObject<VolumetricFog>();
   for (int i = 0; i < 50; ++i) {
     SceneNode* physicsSchnozNode = mainScene->CreateNode("Physics Schnoz");
     physicsSchnozNode->AddObject<MeshRenderer>(schnozMesh, schnozMat);
@@ -701,28 +699,8 @@ void InitScene(Scene* mainScene) {
 
 	cameraNode->AddObject<Bloom>();
 	cameraNode->AddObject<Tonemapper>()->SetOperator(Tonemapper::TonemapperOperator::GranTurismo);
-    cameraNode->AddObject<Fog>();
 
-  Mesh* waterMesh = mainScene->Resources()->Get<Mesh>("./res/models/water.obj");
-  SceneNode* water = mainScene->CreateNode("Water");
-  water->AddObject<MeshRenderer>(waterMesh, blueTransparentMat);
-  water->AddObject<Physics::Water>();
-  water->GlobalTransform().Position() = {
-    4.0f, 0.0f, -8.0f
-  };
-  auto* waterBody = water->AddObject<Physics::Body>(Physics::Body::ConvexHullMesh(
-    waterMesh,
-    JPH::EMotionType::Static,
-    Physics::Layers::NON_MOVING
-  ));
-  waterBody->SetIsSensor(true);
-  waterBody->SetCollisionLayerAndMask({1});
-
-  Scene* animatedGltfScene = GltfImporter::LoadScene("./res/models/jake_tangents.glb", "Animated Gltf");
-  mainScene->GetRootNode()->AttachScene(animatedGltfScene);
-
-	mainScene->AddComponent<DebugInspector>();
-  mainScene->AddComponent<AnimationSystem>();
+    mainScene->AddComponent<DebugInspector>();
 }
 
 int main(int, char**) {

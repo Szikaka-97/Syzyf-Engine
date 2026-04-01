@@ -1,4 +1,4 @@
-#include "fog/FogVolume.h"
+#include <fog/FogVolume.h>
 #include <Graphics.h>
 #include <Material.h>
 #include <Mesh.h>
@@ -6,7 +6,10 @@
 #include <Scene.h>
 #include <Shader.h>
 #include <imgui.h>
-#include "LightSystem.h"
+#include <LightSystem.h>
+
+#include "FastNoiseLite.h"
+#include "Texture.h"
 
 FogVolume::FogVolume() {
   this->mesh = GetScene()->Resources()->Get<Mesh>("./res/models/not_cube.obj");
@@ -18,10 +21,54 @@ FogVolume::FogVolume() {
           .WithPixelShader(GetScene()->Resources()->Get<PixelShader>(
               "./res/shaders/fog/fog_volume.frag"))
           .Link();
-
   prog->SetVolumetric(true);
 
   this->material = new Material(prog);
+
+  FastNoiseLite noise;
+  noise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
+  noise.SetFractalType(FastNoiseLite::FractalType_FBm);
+  noise.SetFractalOctaves(4);
+  noise.SetFrequency(0.05f);
+
+  const unsigned int SIZE = 64;
+  int bufferSize = SIZE * SIZE * SIZE;
+    unsigned char* data = new unsigned char[bufferSize];
+
+    for (int z = 0; z < SIZE; z++) {
+        for (int y = 0; y < SIZE; y++) {
+            for (int x = 0; x < SIZE; x++) {
+                float rawNoise = noise.GetNoise((float)x, (float)y, (float)z);
+
+                float normalized = (rawNoise + 1.0f) * 0.5f;
+                normalized = std::clamp(normalized, 0.0f, 1.0f);
+
+                int index = z * SIZE * SIZE + y * SIZE + x;
+                data[index] = (unsigned char)(normalized * 255.0f);
+            }
+        }
+    }
+
+    TextureParams params;
+    params.channels = TextureChannels::Grayscale;
+    params.format = TextureFormat::Ubyte;
+    params.colorSpace = TextureColor::Linear;
+
+    params.wrapU = TextureWrap::Repeat;
+    params.wrapV = TextureWrap::Repeat;
+    params.wrapW = TextureWrap::Repeat;
+
+    params.minFilter = TextureFilter::LinearMipmapLinear;
+    params.magFilter = TextureFilter::Linear;
+
+    Texture3D* noiseTexture = Texture3D::Create(data, SIZE, SIZE, SIZE, params);
+
+    noiseTexture->GenerateMipmaps();
+    noiseTexture->Update();
+
+    delete[] data;
+
+    this->noiseTexture = noiseTexture;
 }
 
 void FogVolume::Render() {
@@ -33,7 +80,11 @@ void FogVolume::Render() {
   this->material->SetValue("transmittanceThreshold",
                            this->transmittanceThreshold);
   this->material->SetValue("bias", this->bias);
-  this->material->SetValue("maxSteps", this->maxSteps);
+  if (this->noiseTexture != nullptr) {
+      this->material->SetValue("noiseTex", this->noiseTexture);
+      this->material->SetValue("noiseScale", this->noiseScale);
+      this->material->SetValue("windDirection", this->windDirection);
+  }
 
   std::vector<int> intersectingLightIndices;
   auto* lights = GetScene()->GetGraphics()->GetLightSystem()->GetAllObjects();
@@ -93,4 +144,6 @@ void FogVolume::DrawImGui() {
   ImGui::SliderFloat("Anisotropy", &this->k, -0.99f, 0.99f);
   ImGui::InputFloat("Transmittance Threshold", &this->transmittanceThreshold);
   ImGui::InputFloat("Bias", &this->bias, -0.99f, 0.99f);
+  ImGui::InputFloat("Noise Scale", &this->noiseScale, 0.0f, 5.0f);
+  ImGui::InputFloat3("Wind Direction", &this->windDirection.x);
 }

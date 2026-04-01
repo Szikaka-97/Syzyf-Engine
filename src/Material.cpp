@@ -58,6 +58,28 @@ void ShaderVariableStorage::Bind() const {
 
 			break;
 		}
+		case UniformSpec::UniformType::Sampler3D:
+		{
+			UniformSpec::TextureUniform<Texture3D> imageTex = GetValue<Texture3D>(i);
+
+			GLuint imageTexHandle = 0;
+
+			if (imageTex.tex) {
+				if (imageTex.tex->IsDirty()) {
+					imageTex.tex->Update();
+				}
+				
+				imageTexHandle = imageTex.tex->GetHandle();
+			}
+			
+			glActiveTexture(GL_TEXTURE0 + samplerIndex);
+			glBindTexture(GL_TEXTURE_3D, imageTexHandle);
+			glUniform1i(this->uniformSpec->VariableAt(i).binding, samplerIndex);
+
+			samplerIndex++;
+
+			break;
+		}
 		case UniformSpec::UniformType::Cubemap:
 		{
 			UniformSpec::TextureUniform<Cubemap> cubeTex = GetValue<Cubemap>(i);

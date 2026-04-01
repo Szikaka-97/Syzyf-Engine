@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Texture.h"
 #include <Debug.h>
 #include <GameObject.h>
 #include <glm/glm.hpp>
@@ -19,6 +20,10 @@ public:
 
   float bias = 0.005f;
   unsigned int maxSteps = 64;
+    
+    Texture3D* noiseTexture = nullptr;
+    float noiseScale = 0.01f;
+    glm::vec3 windDirection = { 0.0f, 0.0f, 0.0f };
 private:
   Mesh *mesh;
   Material *material;

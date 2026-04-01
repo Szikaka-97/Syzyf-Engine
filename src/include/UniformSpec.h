@@ -56,6 +56,7 @@ public:
 		Matrix3x3,
 		Matrix4x4,
 		Sampler2D,
+        Sampler3D,
 		Cubemap,
 		Image2D,
 		UImage2D,

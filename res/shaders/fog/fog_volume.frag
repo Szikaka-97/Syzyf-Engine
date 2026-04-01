@@ -10,6 +10,10 @@ in VS_OUT {
 
 uniform sampler2D depthTex;
 
+uniform sampler3D noiseTex;
+uniform float noiseScale;
+uniform vec3 windDirection;
+
 uniform float stepSize;
 uniform float scatteringDensity;
 uniform float absorptionDensity;
@@ -17,7 +21,6 @@ uniform vec3 scatteringColor;
 uniform float k;
 uniform float transmittanceThreshold;
 uniform float bias;
-
 uniform int intersectingLightCount;
 uniform int intersectingLightIndices[128];
 
@@ -114,13 +117,23 @@ void main() {
     float transmittance = 1.0;
 
     for (float l = 0; l < rayDistance; l += finalStepSize) {
+        float noiseValue = texture(noiseTex, (marchPos * noiseScale) + (windDirection * Global_Time)).r;
+
+        float localScattering = scatteringDensity * noiseValue;
+        float localAbsorption = absorptionDensity * noiseValue;
+
+        if (noiseValue <= 0.01) {
+            marchPos += deltaStep;
+            continue;
+        }
+
         vec3 stepRadiance = vec3(0.0);
 
         float viewZ = viewRayOrigin.z + viewRayDir.z * l;
         float pixelDepth = max(0.0, -viewZ / Global_CameraFarPlane);
         uint dirCascadeIndex = uint(floor(sqrt(pixelDepth) * Light_DirectionalLightCascadeCount));
 
-        for (int i = 0; i < intersectingLightCount; i++) {
+        for (uint i = 0; i < intersectingLightCount; i++) {
             int lightIndex = intersectingLightIndices[i];
 
             Light light = Light_LightsList[lightIndex];
@@ -172,12 +185,14 @@ void main() {
 
             vec3 lightStrength = getLightStrength(light, marchPos);
 
-            vec3 Lin = AbsorptionFactor(absorptionDensity, lightDistance) * lightStrength * visibility;
-            vec3 Li = Lin * scatteringDensity * scatteringColor * PhaseFunction_Schlick(normalize(lightToPos), fragToCameraNorm);
+            vec3 Lin = AbsorptionFactor(localAbsorption, lightDistance) * lightStrength * visibility;
+            vec3 Li = Lin * localScattering * scatteringColor * PhaseFunction_Schlick(normalize(lightToPos), fragToCameraNorm);
 
             stepRadiance += Li;
         }
-        transmittance *= AbsorptionFactor(scatteringDensity + absorptionDensity, finalStepSize);
+        float density = localScattering + localAbsorption;
+
+        transmittance *= AbsorptionFactor(density, finalStepSize);
         radiance += stepRadiance * transmittance * finalStepSize;
 
         if (transmittance < transmittanceThreshold) {

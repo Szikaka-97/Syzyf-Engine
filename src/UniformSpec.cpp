@@ -1,7 +1,6 @@
 #include <UniformSpec.h>
 
 #include <glad/glad.h>
-#include <cmath>
 #include <malloc.h>
 
 #include <Shader.h>
@@ -24,6 +23,7 @@ UniformTypeInfo GetUniformInfo(GLenum type) {
 		{ GL_FLOAT_MAT3, { UniformSpec::UniformType::Matrix3x3, 9 * sizeof(GLfloat)} },
 		{ GL_FLOAT_MAT4, { UniformSpec::UniformType::Matrix4x4, 16 * sizeof(GLfloat)} },
 		{ GL_SAMPLER_2D, { UniformSpec::UniformType::Sampler2D, sizeof(UniformSpec::TextureUniform<Texture2D>)} },
+		{ GL_SAMPLER_3D, { UniformSpec::UniformType::Sampler3D, sizeof(UniformSpec::TextureUniform<Texture3D>)} },
 		{ GL_SAMPLER_CUBE, { UniformSpec::UniformType::Cubemap, sizeof(UniformSpec::TextureUniform<Cubemap>)} },
 		{ GL_IMAGE_2D, { UniformSpec::UniformType::Image2D, sizeof(UniformSpec::TextureUniform<Texture2D>)} },
 		{ GL_UNSIGNED_INT_IMAGE_2D, { UniformSpec::UniformType::UImage2D, sizeof(UniformSpec::TextureUniform<Texture2D>)} },

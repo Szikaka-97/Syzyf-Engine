@@ -13,6 +13,7 @@ namespace fs = std::filesystem;
 
 enum class TextureType {
 	Texture2D,
+    Texture3D,
 	Cubemap
 };
 
@@ -180,6 +181,35 @@ public:
 	}
 };
 
+class Texture3D : public Texture {
+private:
+	unsigned int depth;
+	TextureInfoBit<TextureWrap> wrapW;
+protected:
+	virtual void Create();
+public:
+	Texture3D() = default;
+	Texture3D(unsigned int width, unsigned int height, unsigned int depth, const TextureParams& creationParams);
+	Texture3D(unsigned int width, unsigned int height, unsigned int depth, const TextureParams& creationParams, GLuint handle);
+
+
+  static Texture3D* Create(unsigned char* textureData, int width, int height, int depth, const TextureParams& loadParams);
+
+  static Texture3D* Load(const unsigned char* data, const int length, const TextureParams loadParams);
+
+	virtual constexpr TextureType GetType() const {
+		return TextureType::Texture3D;
+	}
+
+	unsigned int GetDepth() const;
+    glm::uvec3 GetSize3D() const;
+
+	void Resize3D(const glm::uvec3& newSize);
+
+	TextureWrap GetWrapModeW() const;
+	void SetWrapModeW(TextureWrap wrapMode);
+};
+
 class Cubemap : public Texture {
 private:
 	TextureInfoBit<TextureWrap> wrapW;
@@ -207,6 +237,7 @@ public:
 
 template<> Texture2D* Texture::Load<Texture2D>(const fs::path& texturePath, const TextureParams& loadParams);
 template<> Texture2D* Texture::Load<Texture2D>(const unsigned char* data, const int length, const TextureParams loadParams);
+template<> Texture3D* Texture::Load<Texture3D>(const unsigned char* data, const int length, const TextureParams loadParams);
 template<> Cubemap* Texture::Load<Cubemap>(const fs::path& texturePath, const TextureParams& loadParams);
 
 template <class T_Tex>
