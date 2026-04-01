@@ -176,7 +176,8 @@ void Engine::Render() {
 	glfwMakeContextCurrent(window);
 	glfwGetFramebufferSize(window, &display_w, &display_h);
 
-	rootScene->GetGraphics()->UpdateScreenResolution(glm::vec2(display_w, display_h));
+	// rootScene->GetGraphics()->UpdateScreenResolution(glm::vec2(display_w, display_h));
+  rootScene->GetGraphics()->UpdateScreenResolution(glm::vec2(1280, 720));
 
 	rootScene->Render();
 }

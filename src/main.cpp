@@ -319,9 +319,17 @@ void InitScene(Scene* mainScene) {
 	tvRenderer->SetMaterial(tvMatStand, 3);
 
 	SceneNode* fogVolume = mainScene->CreateNode("Fog Volume");
-	fogVolume->AddObject<FogVolume>();
-	fogVolume->GlobalTransform().Position() = { 0.0f, -0.1f, 0.0f };
-	fogVolume->GlobalTransform().Scale() = { 20.0f, 1.0f, 20.0f };
+	FogVolume* fogVolumeObject = fogVolume->AddObject<FogVolume>();
+  fogVolumeObject->stepSize = 0.06f;
+  fogVolumeObject->scatteringDensity = 0.042f;
+  fogVolumeObject->absorptionDensity = 0.0f;
+  fogVolumeObject->k = 0.005f;
+	fogVolume->GlobalTransform().Position() = { -28.0f, 1.5f, 0.0f };
+	fogVolume->GlobalTransform().Scale() = { 20.0f, 12.0f, 20.0f };
+
+  SceneNode* fogVolume2 = mainScene->CreateNode("Fog Volume 2");
+  fogVolume2->AddObject<FogVolume>();
+  fogVolume2->GlobalTransform().Position() = { 0.0f, 0.6f, 0.0f };
 
 	SceneNode* schnozCameraNode = mainScene->CreateNode("Schnoz Camera");
 	schnozCameraNode->LocalTransform().Position() = glm::vec3(-56.5, 2.0, -2.0);

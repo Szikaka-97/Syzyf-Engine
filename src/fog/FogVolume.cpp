@@ -6,6 +6,7 @@
 #include <Scene.h>
 #include <Shader.h>
 #include <imgui.h>
+#include "LightSystem.h"
 
 FogVolume::FogVolume() {
   this->mesh = GetScene()->Resources()->Get<Mesh>("./res/models/not_cube.obj");
@@ -31,6 +32,49 @@ void FogVolume::Render() {
   this->material->SetValue("k", this->k);
   this->material->SetValue("transmittanceThreshold",
                            this->transmittanceThreshold);
+
+  std::vector<int> intersectingLightIndices;
+  auto* lights = GetScene()->GetGraphics()->GetLightSystem()->GetAllObjects();
+
+  glm::vec3 scale = this->GlobalTransform().Scale();
+  glm::vec3 position = this->GlobalTransform().Position();
+  glm::vec3 boxMin = position - (scale * 0.5f);
+  glm::vec3 boxMax = position + (scale * 0.5f);
+
+  int lightIndex = 0;
+  for (const auto& light : *lights) {
+    if (!light->IsEnabled()) {
+      lightIndex++;
+      continue;
+    }
+
+    if (light->GetType() == Light::LightType::Directional) {
+      intersectingLightIndices.push_back(lightIndex);
+    } else if (light->GetType() == Light::LightType::Point || light->GetType() == Light::LightType::Spot) {
+      glm::vec3 lightPos = light->GlobalTransform().Position();
+      float range = light->GetRange();
+
+      glm::vec3 closestPoint = glm::clamp(lightPos, boxMin, boxMax);
+      glm::vec3 difference = lightPos - closestPoint;
+      float distanceSquared = glm::dot(difference, difference);
+
+      if (distanceSquared <= (range * range)) {
+        intersectingLightIndices.push_back(lightIndex);
+      }
+    }
+
+    lightIndex++;
+  }
+
+  this->material->Bind();
+  GLuint shaderHandle = this->material->GetShader()->GetHandle();
+  int countLocation = glGetUniformLocation(shaderHandle, "intersectingLightCount");
+  glUniform1i(countLocation, intersectingLightIndices.size());
+
+  if (!intersectingLightIndices.empty()) {
+    int arrayLocation = glGetUniformLocation(shaderHandle, "intersectingLightIndices");
+    glUniform1iv(arrayLocation, intersectingLightIndices.size(), intersectingLightIndices.data());
+  }
 
   GetScene()->GetGraphics()->DrawMesh(this->mesh, 0, this->material,
                                       this->GlobalTransform());

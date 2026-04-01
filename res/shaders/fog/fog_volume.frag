@@ -17,6 +17,9 @@ uniform vec3 scatteringColor;
 uniform float k;
 uniform float transmittanceThreshold;
 
+uniform int intersectingLightCount;
+uniform int intersectingLightIndices[128];
+
 const float PI = 3.14159265359;
 
 out vec4 fragColor;
@@ -92,85 +95,79 @@ void main() {
     }
 
     float rayDistance = endDist - startDist;
+
+    // change to uniform
+    const float MAX_STEPS = 64.0;
+    float finalStepSize = max(stepSize, rayDistance / MAX_STEPS);
+    vec3 deltaStep = rayDir * finalStepSize;
+
     vec3 marchPos = Global_CameraWorldPos + (rayDir * startDist);
-
-    vec3 deltaStep = rayDir * stepSize;
-
     float rand = random(screenUV);
     marchPos += deltaStep * rand;
 
-    vec3 fragToCameraNorm = -rayDir;
+    vec3 viewRayDir = (Global_ViewMatrix * vec4(rayDir, 0.0)).xyz;
+    vec3 viewRayOrigin = (Global_ViewMatrix * vec4(marchPos, 1.0)).xyz;
 
+    vec3 fragToCameraNorm = -rayDir;
     vec3 radiance = vec3(0.0);
     float transmittance = 1.0;
 
-    for (float l = 0; l < rayDistance; l += stepSize) {
+    for (float l = 0; l < rayDistance; l += finalStepSize) {
         vec3 stepRadiance = vec3(0.0);
 
-        for (int i = 0; i < Light_LightCount; i++) {
-            float visibility = 1.0f;
+        float viewZ = viewRayOrigin.z + viewRayDir.z * l;
+        float pixelDepth = max(0.0, -viewZ / Global_CameraFarPlane);
+        uint dirCascadeIndex = uint(floor(sqrt(pixelDepth) * Light_DirectionalLightCascadeCount));
 
-            Light light = Light_LightsList[i];
+        for (int i = 0; i < intersectingLightCount; i++) {
+            int lightIndex = intersectingLightIndices[i];
 
+            Light light = Light_LightsList[lightIndex];
             if (light.intensity <= 0.0) {
                 continue;
             }
 
-            vec3 lightToPos = marchPos - light.position;
+            vec3 lightToPos;
+            float lightDistance;
+            uint shadowIndex = 0;
+
+            if (light.type == DIRECTIONAL_LIGHT) {
+              lightToPos = -light.direction;
+              lightDistance = 1.0;
+              shadowIndex = dirCascadeIndex;
+            } else {
+              lightToPos = marchPos - light.position;
+              lightDistance = length(lightToPos);
+              if (lightDistance > light.range) continue;
+
+              vec3 lightDir = normalize(-lightToPos);
+              if (abs(lightDir.x) > abs(lightDir.y) && abs(lightDir.x) > abs(lightDir.z)) {
+                shadowIndex = lightDir.x > 0 ? 1 : 0;
+              } else if (abs(lightDir.y) > abs(lightDir.z)) {
+                shadowIndex = lightDir.y > 0 ? 3 : 2;
+              } else {
+                shadowIndex = lightDir.z > 0 ? 5 : 4;
+              }
+            }
+
+            float visibility = 1.0;
+
             if (light.type == DIRECTIONAL_LIGHT) {
                 lightToPos = -light.direction;
             }
 
-            float lightDistance = length(lightToPos);
-
-            if (light.type == POINT_LIGHT && lightDistance > light.range) {
-                continue;
-            }
-
-            float shadowAmount = 0.0;
             if (light.shadowAtlasIndex >= 0) {
-                vec3 lightDir = normalize(light.position - marchPos);
-
-                float pixelDepth = -(Global_ViewMatrix * vec4(marchPos, 1.0)).z / Global_CameraFarPlane;
-
-                uint index = 0;
-
-                if (light.type == DIRECTIONAL_LIGHT) {
-                    index = uint(floor(sqrt(pixelDepth) * Light_DirectionalLightCascadeCount));
-
-                    lightDir = -light.direction;
-                }
-                else if (light.type == POINT_LIGHT) {
-                    if (abs(lightDir.x) > abs(lightDir.y) && abs(lightDir.x) > abs(lightDir.z)) {
-                        index = lightDir.x > 0 ? 1 : 0;
-                    }
-                    else if (abs(lightDir.y) > abs(lightDir.z)) {
-                        index = lightDir.y > 0 ? 3 : 2;
-                    }
-                    else {
-                        index = lightDir.z > 0 ? 5 : 4;
-                    }
-                }
-
-                ShadowMapRegion mask = Light_ShadowMapRegions[light.shadowAtlasIndex + index];
-
+                ShadowMapRegion mask = Light_ShadowMapRegions[light.shadowAtlasIndex + shadowIndex];
                 vec4 lightViewPos = mask.viewTransform * vec4(marchPos, 1);
                 lightViewPos /= lightViewPos.w;
                 lightViewPos.z = (lightViewPos.z + 1) * 0.5;
 
-                vec2 texelSize = 1.0 / (textureSize(Builtin_ShadowMask, 0) * (mask.end.x - mask.start.x));
-                float bias = 0.005;
-
-                vec2 uvLocal = clamp(vec2(
-                            (lightViewPos.x + 1) * 0.5,
-                            (lightViewPos.y + 1) * 0.5
-                        ), 0, 1);
-
+                float bias = 0.005; // change to uniform
+                vec2 uvLocal = clamp(vec2((lightViewPos.x + 1) * 0.5, (lightViewPos.y + 1) * 0.5), 0, 1);
                 vec2 uv = mix(mask.start, mask.end, uvLocal);
-                float shadowZ = texture(Builtin_ShadowMask, uv).x;
-                shadowAmount = (lightViewPos.z - bias > shadowZ) ? 1.0 : 0.0;
 
-                visibility = 1.0 - shadowAmount;
+                float shadowZ = texture(Builtin_ShadowMask, uv).x;
+                visibility = (lightViewPos.z - bias > shadowZ) ? 0.0 : 1.0;
             }
 
             vec3 lightStrength = getLightStrength(light, marchPos);
@@ -180,8 +177,8 @@ void main() {
 
             stepRadiance += Li;
         }
-        transmittance *= AbsorptionFactor(scatteringDensity + absorptionDensity, stepSize);
-        radiance += stepRadiance * transmittance * stepSize;
+        transmittance *= AbsorptionFactor(scatteringDensity + absorptionDensity, finalStepSize);
+        radiance += stepRadiance * transmittance * finalStepSize;
 
         if (transmittance < transmittanceThreshold) {
             break;
