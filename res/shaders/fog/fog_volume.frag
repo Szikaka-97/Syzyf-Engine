@@ -17,10 +17,15 @@ uniform vec3 windDirection;
 uniform float stepSize;
 uniform float scatteringDensity;
 uniform float absorptionDensity;
-uniform vec3 scatteringColor;
 uniform float k;
 uniform float transmittanceThreshold;
 uniform float bias;
+
+uniform vec3 scatteringColor;
+uniform sampler2D colorRamp;
+uniform float useColorRamp;
+uniform float emissiveStrength;
+
 uniform int intersectingLightCount;
 uniform int intersectingLightIndices[128];
 
@@ -127,7 +132,14 @@ void main() {
             continue;
         }
 
+        vec3 color = scatteringColor;
+        if (useColorRamp > 0.5) {
+            color = texture(colorRamp, vec2(noiseValue, 0.5)).rgb;
+        }
+
         vec3 stepRadiance = vec3(0.0);
+
+        stepRadiance += color * emissiveStrength * noiseValue;
 
         float viewZ = viewRayOrigin.z + viewRayDir.z * l;
         float pixelDepth = max(0.0, -viewZ / Global_CameraFarPlane);
@@ -185,8 +197,8 @@ void main() {
 
             vec3 lightStrength = getLightStrength(light, marchPos);
 
-            vec3 Lin = AbsorptionFactor(localAbsorption, lightDistance) * lightStrength * visibility;
-            vec3 Li = Lin * localScattering * scatteringColor * PhaseFunction_Schlick(normalize(lightToPos), fragToCameraNorm);
+            vec3 Lin = AbsorptionFactor(absorptionDensity, lightDistance) * lightStrength * visibility;
+            vec3 Li = Lin * localScattering * color * PhaseFunction_Schlick(normalize(lightToPos), fragToCameraNorm);
 
             stepRadiance += Li;
         }

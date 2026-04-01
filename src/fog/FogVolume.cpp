@@ -63,12 +63,15 @@ FogVolume::FogVolume() {
 
     Texture3D* noiseTexture = Texture3D::Create(data, SIZE, SIZE, SIZE, params);
 
+
     noiseTexture->GenerateMipmaps();
     noiseTexture->Update();
 
     delete[] data;
 
     this->noiseTexture = noiseTexture;
+
+    this->colorRamp = this->GetScene()->Resources()->Get<Texture2D>("./res/textures/colorramp.png", Texture::ColorTextureRGB);
 }
 
 void FogVolume::Render() {
@@ -80,10 +83,18 @@ void FogVolume::Render() {
   this->material->SetValue("transmittanceThreshold",
                            this->transmittanceThreshold);
   this->material->SetValue("bias", this->bias);
+  this->material->SetValue("emissiveStrength", this->emissiveStrength);
   if (this->noiseTexture != nullptr) {
       this->material->SetValue("noiseTex", this->noiseTexture);
       this->material->SetValue("noiseScale", this->noiseScale);
       this->material->SetValue("windDirection", this->windDirection);
+  }
+  if (this->colorRamp != nullptr) {
+      // xd
+      this->material->SetValue("useColorRamp", 1.0f);
+      this->material->SetValue("colorRamp", this->colorRamp);
+  } else {
+      this->material->SetValue("useColorRamp", 0.0f);
   }
 
   std::vector<int> intersectingLightIndices;
@@ -146,4 +157,5 @@ void FogVolume::DrawImGui() {
   ImGui::InputFloat("Bias", &this->bias, -0.99f, 0.99f);
   ImGui::InputFloat("Noise Scale", &this->noiseScale, 0.0f, 5.0f);
   ImGui::InputFloat3("Wind Direction", &this->windDirection.x);
+  ImGui::InputFloat("Emissive Strength", &this->emissiveStrength);
 }

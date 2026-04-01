@@ -14,12 +14,16 @@ public:
   float stepSize = 0.1f;
   float scatteringDensity = 0.7f;
   float absorptionDensity = 0.03f;
-  glm::vec3 scatteringColor = glm::vec3(1.0f);
   float k = 0.005f;
   float transmittanceThreshold = 0.001f;
 
   float bias = 0.005f;
   unsigned int maxSteps = 64;
+
+    glm::vec3 scatteringColor = glm::vec3(1.0f);
+    Texture2D* colorRamp = nullptr;
+    float emissiveStrength = 0.0f; // maybe only works when additive?
+                                   // or not at all?
     
     Texture3D* noiseTexture = nullptr;
     float noiseScale = 0.01f;
