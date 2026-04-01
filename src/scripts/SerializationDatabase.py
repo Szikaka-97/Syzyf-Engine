@@ -337,7 +337,7 @@ def generate_cpp_for_class(writer: CodeWriter, cls: SerializedClass) -> None:
 
 def main():
 	compile_args: list[str] = []
-
+	
 	with open(COMMAND_FILE, "r") as compile_json_file:
 		compile_commands: list = json.load(compile_json_file)
 
@@ -353,10 +353,21 @@ def main():
 					if arg == "-isystem":
 						compile_args.append(arg)
 						consume_next = True
+					if arg.startswith("@"):
+						rsp_path = os.path.abspath(COMMAND_FILE + "/../src/" + arg[1:])
+
+						if os.path.exists(rsp_path):
+							with open(rsp_path, "r") as rsp_file:
+								rsp_args = rsp_file.readline()
+								rsp_args = rsp_args.removesuffix("\n")
+
+								rsp_args_array = rsp_args.split(" ")
+
+								rsp_args_array = [ file_path.removeprefix("\"").removesuffix("\"") for file_path in rsp_args_array ]
+
+								compile_args += rsp_args_array
 
 				break
-
-	print(COMMAND_FILE)
 
 	files = [os.path.abspath(HEADER_FILES_DIRECTORY + "/" + file) for file in os.listdir(HEADER_FILES_DIRECTORY)]
 
