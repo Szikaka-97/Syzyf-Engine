@@ -1,6 +1,5 @@
 #include <ReflectionProbeSystem.h>
 
-#include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <imgui.h>
 
@@ -8,6 +7,7 @@
 #include <Graphics.h>
 #include <Resources.h>
 #include <Skybox.h>
+#include <TimeSystem.h>
 
 #include "../res/shaders/shared/shared.h"
 #include "../res/shaders/shared/uniforms.h"
@@ -143,7 +143,7 @@ void ReflectionProbeSystem::OnPostRender() {
 		ShaderGlobalUniforms globalUniforms;
 		
 		globalUniforms.Global_CameraWorldPos = probe->GlobalTransform().Position();
-		globalUniforms.Global_Time = (float) glfwGetTime();
+		globalUniforms.Global_Time = Time::Current();
 		globalUniforms.Global_CameraFarPlane = 0;
 		globalUniforms.Global_CameraNearPlane = 0;
 		globalUniforms.Global_CameraFov = glm::radians(90.0f);

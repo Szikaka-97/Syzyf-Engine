@@ -16,13 +16,14 @@
 #include <Skybox.h>
 #include <Texture.h>
 #include <Viewport.h>
+#include <TimeSystem.h>
 
-#include "../res/shaders/shared/shared.h"
 #include "../res/shaders/shared/uniforms.h"
+#include "animation/SkeletonComponent.h"
+#include "animation/SkeletonSystem.h"
 #include "include/Framebuffer.h"
 #include "include/Shader.h"
-
-#include <GLFW/glfw3.h>
+#include "physics/DebugRenderer.h"
 
 #define LIGHT_GRID_SIZE 16
 
@@ -251,6 +252,15 @@ void SceneGraphics::RenderObjects(const ShaderGlobalUniforms &globalUniforms,
 
     mat->Bind();
 
+    int offsetLocation = glGetUniformLocation(mat->GetShader()->handle, "uBoneOffet");
+    if (offsetLocation >= 0) {
+      if (node.jointBufferOffset >= 0) {
+        glUniform1i(offsetLocation, node.jointBufferOffset);
+      } else {
+        glUniform1i(offsetLocation, 0);
+      }
+    }
+
     if (params.pass == RenderPassType::Color) {
       int shadowmaskUniformLocation =
           glGetUniformLocation(mat->GetShader()->handle, "Builtin_ShadowMask");
@@ -476,9 +486,14 @@ void SceneGraphics::DrawGizmoMesh(const Mesh *mesh, int subMeshIndex,
 
 void SceneGraphics::DrawMeshInstanced(MeshRenderer *renderer,
                                       unsigned int instanceCount) {
+  int skinningOffset = -1;
+  SkeletonComponent* skeleton = renderer->GetNode()->GetObject<SkeletonComponent>();
+  if (skeleton) {
+    skinningOffset = skeleton->bufferOffset;
+  }
+
   for (int i = 0; i < renderer->GetMesh()->GetSubMeshCount(); i++) {
     const Mesh::SubMesh *mesh = &renderer->GetMesh()->SubMeshAt(i);
-
     const Material *material = renderer->GetMaterial(mesh->GetMaterialIndex());
 
     auto *targetRenderQueue = &this->currentRenders;
@@ -488,9 +503,11 @@ void SceneGraphics::DrawMeshInstanced(MeshRenderer *renderer,
       targetRenderQueue = &this->volumetricRenders;
     }
 
-    targetRenderQueue->push_back(RenderNode(mesh, material, instanceCount,
-                                            renderer->GlobalTransform(),
-                                            renderer->GetNode()->GetLayer()));
+    RenderNode node(mesh, material, instanceCount,
+                    renderer->GlobalTransform(),
+                    renderer->GetNode()->GetLayer());
+    node.jointBufferOffset = skinningOffset;
+    targetRenderQueue->push_back(node);
   }
 }
 
@@ -563,6 +580,10 @@ void SceneGraphics::Render() {
 
   CompositeTransparentPass();
 
+  if (Physics::DebugRenderer* debugRenderer = this->GetScene()->GetComponent<Physics::DebugRenderer>()) {
+    debugRenderer->Render();
+  }
+
   RenderFullscreenFrameQuad();
 
   this->currentRenders.clear();
@@ -619,7 +640,7 @@ void SceneGraphics::RenderCamera(Camera *camera, Viewport *renderTarget,
       globalUniforms.Global_ProjectionMatrix * globalUniforms.Global_ViewMatrix;
   globalUniforms.Global_CameraWorldPos =
       glm::vec4(camera->GlobalTransform().Position().Value(), 0.0);
-  globalUniforms.Global_Time = (float)glfwGetTime();
+  globalUniforms.Global_Time = Time::Current();
   globalUniforms.Global_CameraFarPlane = camera->GetFarPlane();
   globalUniforms.Global_CameraNearPlane = camera->GetNearPlane();
   globalUniforms.Global_CameraFov = camera->GetFovRad();
@@ -685,6 +706,11 @@ void SceneGraphics::RenderScene(const ShaderGlobalUniforms &uniforms,
   BindGlobalUniformBuffer(uniforms);
 
   glBindBufferBase(GL_UNIFORM_BUFFER, 1, objectUniformsBuffer);
+
+  SkeletonSystem* skeletonSystem = GetScene()->GetComponent<SkeletonSystem>();
+  if (skeletonSystem) {
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, skeletonSystem->GetSkinningBufferHandle());
+  }
 
   if (params.clearDepth) {
     glClear(GL_DEPTH_BUFFER_BIT);
@@ -869,7 +895,7 @@ void SceneGraphics::RenderScene(const CameraData &camera,
       globalUniforms.Global_ProjectionMatrix * globalUniforms.Global_ViewMatrix;
   globalUniforms.Global_CameraWorldPos =
       glm::vec4((glm::vec3)camera.cameraTransform[3], 0.0);
-  globalUniforms.Global_Time = (float)glfwGetTime();
+  globalUniforms.Global_Time = Time::Current();
   globalUniforms.Global_CameraFarPlane = camera.GetFarPlane();
   globalUniforms.Global_CameraNearPlane = camera.GetNearPlane();
   globalUniforms.Global_CameraFov = camera.GetFovRad();

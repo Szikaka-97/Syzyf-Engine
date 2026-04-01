@@ -3,12 +3,12 @@
 #include <malloc.h>
 
 #include <glm/glm.hpp>
-#include <GLFW/glfw3.h>
 #include <imgui.h>
 
 #include <Light.h>
 #include <Camera.h>
 #include <Graphics.h>
+#include <TimeSystem.h>
 
 #include "../res/shaders/shared/shared.h"
 #include "../res/shaders/shared/uniforms.h"
@@ -60,7 +60,7 @@ void LightSystem::DoSpotLightShadowmap(Light* light, ShadowMapRegion& shadowmapR
 	globalUniforms.Global_InverseProjectionMatrix = glm::inverse(globalUniforms.Global_ProjectionMatrix);
 	globalUniforms.Global_VPMatrix = globalUniforms.Global_ProjectionMatrix * globalUniforms.Global_ViewMatrix;
 	globalUniforms.Global_CameraWorldPos = light->GlobalTransform().Position();
-	globalUniforms.Global_Time = (float) glfwGetTime();
+	globalUniforms.Global_Time = Time::Current();
 	globalUniforms.Global_CameraFarPlane = 0;
 	globalUniforms.Global_CameraNearPlane = 0;
 	globalUniforms.Global_CameraFov = 0;
@@ -80,8 +80,7 @@ void LightSystem::DoSpotLightShadowmap(Light* light, ShadowMapRegion& shadowmapR
 
 void LightSystem::DoDirectionalLightShadowmap(Light* light, ShadowMapRegion* shadowmapRects) {
 	ShaderGlobalUniforms globalUniforms;
-
-	globalUniforms.Global_Time = (float) glfwGetTime();
+	globalUniforms.Global_Time = Time::Current();
 	globalUniforms.Global_CameraFarPlane = 0;
 	globalUniforms.Global_CameraNearPlane = 0;
 	globalUniforms.Global_CameraFov = 0;
@@ -188,7 +187,7 @@ void LightSystem::DoPointLightShadowmap(Light* light, ShadowMapRegion* shadowmap
 	ShaderGlobalUniforms globalUniforms;
 
 	globalUniforms.Global_CameraWorldPos = light->GlobalTransform().Position();
-	globalUniforms.Global_Time = (float) glfwGetTime();
+	globalUniforms.Global_Time = Time::Current();
 	globalUniforms.Global_CameraFarPlane = 0;
 	globalUniforms.Global_CameraNearPlane = 0;
 	globalUniforms.Global_CameraFov = glm::radians(90.0f);
@@ -368,6 +367,7 @@ void LightSystem::OnPostRender() {
 					rep.shadowAtlasIndex = -1;
 				}
 
+                glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->lightsBuffer);
 				glBufferSubData(GL_SHADER_STORAGE_BUFFER, 32 + sizeof(ShaderLightRep) * lightIndex, sizeof(rep), &rep);
 			}
 

@@ -61,19 +61,13 @@ private:
     const BoundingBox bounds;
     uint8_t layer;
 
-    RenderNode(const Mesh::SubMesh *mesh, const Material *material,
-               unsigned int instanceCount, const glm::mat4 &transformation,
-               uint8_t layer);
-    RenderNode(const Mesh::SubMesh *mesh, const Material *material,
-               unsigned int instanceCount, const glm::mat4 &transformation,
-               const BoundingBox &bounds, uint8_t layer);
-    RenderNode(const Mesh::SubMesh *mesh, const Material *material,
-               bool ignoreDepth, const glm::mat4 &transformation,
-               uint8_t layer);
-    RenderNode(const Mesh::SubMesh *mesh, const Material *material,
-               bool ignoreDepth, const glm::mat4 &transformation,
-               const BoundingBox &bounds, uint8_t layer);
-  };
+    int jointBufferOffset = -1;
+
+    RenderNode(const Mesh::SubMesh* mesh, const Material* material, unsigned int instanceCount, const glm::mat4& transformation, uint8_t layer);
+    RenderNode(const Mesh::SubMesh* mesh, const Material* material, unsigned int instanceCount, const glm::mat4& transformation, const BoundingBox& bounds, uint8_t layer);
+    RenderNode(const Mesh::SubMesh* mesh, const Material* material, bool ignoreDepth, const glm::mat4& transformation, uint8_t layer);
+    RenderNode(const Mesh::SubMesh* mesh, const Material* material, bool ignoreDepth, const glm::mat4& transformation, const BoundingBox& bounds, uint8_t layer);
+	};
 
   std::vector<RenderNode> currentRenders;
   std::vector<RenderNode> gizmoRenders;
@@ -173,5 +167,5 @@ inline constexpr RenderPassType operator&(RenderPassType a, RenderPassType b) {
 }
 
 inline constexpr RenderPassType operator|(RenderPassType a, RenderPassType b) {
-  return static_cast<RenderPassType>(static_cast<int>(a) | static_cast<int>(b));
+	return static_cast<RenderPassType>(static_cast<int>(a) | static_cast<int>(b));
 }

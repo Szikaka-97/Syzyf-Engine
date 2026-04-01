@@ -3,6 +3,11 @@
 #include <concepts>
 #include <typeinfo>
 
+#ifdef _WIN32
+#include <Windows.h>
+#endif
+
+
 #include <Scene.h>
 #include <Messaging.h>
 

@@ -22,6 +22,8 @@
         xorg.libXi
         xorg.libXrandr
         xorg.libXext
+        libxcb
+        libxtst
       ];
     in
     {
@@ -30,6 +32,7 @@
         nativeBuildInputs = with pkgs; [
           cmake
           ninja
+          ccache
           pkg-config
           gdb
           wayland-scanner

@@ -14,7 +14,9 @@ class ComputeShaderProgram;
 
 template <class T>
 concept Blittable = ( // It's stupid, but frankly idk if there's a better way to do it
-	std::same_as<T, float>
+	std::same_as<T, bool> //idk
+  ||
+  std::same_as<T, float>
 	||
 	std::same_as<T, glm::vec2>
 	||

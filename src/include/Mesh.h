@@ -1,5 +1,6 @@
 #pragma once
 
+#include "GltfImporter.h"
 #include <filesystem>
 
 #include <glad/glad.h>
@@ -13,6 +14,7 @@ namespace fs = std::filesystem;
 class Material;
 
 class Mesh : public Resource {
+friend class GltfImporter;
 public:
 	enum class MeshType {
 		Points = 1,
@@ -22,6 +24,7 @@ public:
 
 	class SubMesh {
 		friend class Mesh;
+    friend class GltfImporter;
 	private:
 		unsigned int faceCount;
 		unsigned int* indexData;
@@ -64,6 +67,8 @@ private:
 	std::vector<SubMesh> subMeshes;
 	std::vector<Material*> materials;
 	// std::map<std::string, MeshPart> parts;
+  
+  std::vector<glm::mat4> inverseBindMatrices;
 	
 	unsigned int materialCount;
 	unsigned int vertexCount;
@@ -77,8 +82,15 @@ public:
 	unsigned int GetMaterialsCount() const;
 	std::vector<Material*> GetDefaultMaterials() const;
 
+  const std::vector<glm::mat4>& GetInverseBindMatrices() const;
+
 	unsigned int GetSubMeshCount() const;
 	std::vector<SubMesh> GetSubMeshes() const;
+
+  unsigned int GetVertexCount() const;
+  unsigned int GetVertexStride() const;
+
+  const float* GetVertexData() const;
 
 	const SubMesh& SubMeshAt(unsigned int index) const;
 	const SubMesh& operator[](unsigned int index) const;
@@ -87,4 +99,6 @@ public:
 
 	static Mesh* Load(fs::path modelPath, bool loadMaterials = false);
 	// static Mesh* Create(unsigned int vertexCount, float* vertexData, unsigned int triangleCount, unsigned int* indexData, const VertexSpec& meshSpec);
+private:
+  GLuint UploadToGpu(const VertexSpec meshSpec);
 };
