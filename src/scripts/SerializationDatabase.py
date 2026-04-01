@@ -447,6 +447,36 @@ def main():
 
 		dest_impl.line("}")
 
+		dest_impl.line()
+
+		dest_impl.line("size_t GetObjectSize(const std::string& className) {")
+
+		dest_impl.more_indent()
+
+		dest_impl.line("static const std::unordered_map<std::string, size_t> typeBindings = {")
+
+		dest_impl.more_indent()
+
+		for name, cls in SerializedClass.all_classes.items():
+			if cls.generate_code:
+				dest_impl.line(f"{{ \"{cls.name}\", {cls.cursor.type.get_size()} }},")
+
+		dest_impl.less_indent()
+
+		dest_impl.line("};")
+		dest_impl.line()
+		dest_impl.line("auto deserializerIterator = typeBindings.find(className);")
+		dest_impl.line()
+		dest_impl.line("if (deserializerIterator == typeBindings.end()) {")
+		dest_impl.line("	return 0;")
+		dest_impl.line("}")
+		dest_impl.line()
+		dest_impl.line("return deserializerIterator->second;")
+
+		dest_impl.less_indent()
+
+		dest_impl.line("}")
+
 
 if __name__ == "__main__":
 	main()

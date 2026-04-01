@@ -19,3 +19,5 @@ struct SerializedReference {
 	void** field_ptr;
 	char obj_uuid[36];
 };
+
+size_t GetObjectSize(const std::string& className);
