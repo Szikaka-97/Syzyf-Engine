@@ -27,7 +27,8 @@ enum class ShaderProgramFlags {
 	IgnoreDepthPrepass = 1,
 	DontCastShadows = 2,
 	UsePatches = 4,
-	Transparent = 8
+	Transparent = 8,
+	Volumetric = 16
 };
 
 class ComputeShaderProgram {
@@ -36,7 +37,7 @@ private:
 	UniformSpec uniforms;
 
 	GLuint handle;
-public:	
+public:
 	ComputeShaderProgram(ComputeShader* computeShader);
 	~ComputeShaderProgram();
 
@@ -70,7 +71,7 @@ public:
 	virtual ~ShaderBase();
 	static ShaderBase* Load(fs::path filePath);
 	static ShaderBase* Load(fs::path filePath, const ShaderVariantInfo& variantInfo);
-	
+
 	const fs::path& GetFilePath() const;
 	std::string GetName() const;
 	const ShaderVariantInfo& GetVariantInfo() const;
@@ -82,7 +83,7 @@ class VertexShader : public ShaderBase {
 	friend class ShaderBase;
 private:
 	const VertexSpec vertexSpec;
-	
+
 	VertexShader(fs::path filePath, ShaderVariantInfo variantInfo, GLuint handle, VertexSpec spec);
 public:
 	static VertexShader* Load(fs::path filePath);
@@ -149,7 +150,7 @@ public:
 	TesselationEvaluationShader* tessEvalShader;
 	TesselationControlShader* tessCtrlShader;
 	PixelShader* pixelShader;
-	
+
 	ShaderBuilder& WithVertexShader(VertexShader* vertexShader);
 	ShaderBuilder& WithGeometryShader(GeometryShader* geometryShader);
 	ShaderBuilder& WithTessEvaluationShader(TesselationEvaluationShader* tessEvalShader);
@@ -175,7 +176,7 @@ private:
 public:
 	~ShaderProgram();
 	static ShaderBuilder Build();
-	
+
 	GLuint GetHandle() const;
 	const UniformSpec& GetUniforms() const;
 	const VertexSpec& GetVertexSpec() const;
@@ -184,10 +185,12 @@ public:
 	bool CastsShadows() const;
 	bool UsesPatches() const;
 	bool IsTransparent() const;
+	bool IsVolumetric() const;
 
 	void SetIgnoresDepthPrepass(bool ignores);
 	void SetCastsShadows(bool casts);
 	void SetTransparent(bool transparent);
+	void SetVolumetric(bool volumetric);
 };
 
 class ComputeShaderDispatch {

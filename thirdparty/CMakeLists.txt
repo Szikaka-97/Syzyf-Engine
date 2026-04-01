@@ -16,6 +16,9 @@ set(stb_image_SOURCE_DIR ${STB_IMAGE_DIR} CACHE INTERNAL "")
 add_library(stb_image STATIC ${STB_IMAGE_DIR}/stb_image.cpp)
 target_include_directories(stb_image PRIVATE ${STB_IMAGE_DIR})
 
+# fastnoiselite
+set(FASTNOISELITE_DIR ${CMAKE_CURRENT_LIST_DIR}/fastnoiselite CACHE INTERNAL "")
+
 # other
 CPMAddPackage("gh:assimp/assimp@6.0.4")
 CPMAddPackage("gh:g-truc/glm#1.0.3")

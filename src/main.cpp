@@ -1,3 +1,6 @@
+#include "fog/Fog.h"
+#include "fog/FogVolume.h"
+#include "fog/VolumetricFog.h"
 #include "GltfImporter.h"
 
 #include "animation/AnimationSystem.h"
@@ -376,7 +379,7 @@ private:
 public:
 	Stars(int starCount = 1000) {
 		this->starMesh = GetScene()->Resources()->Get<Mesh>("./res/models/star.obj");
-		
+
 		ShaderProgram* starProgram = ShaderProgram::Build()
 		.WithVertexShader(
 			GetScene()->Resources()->Get<VertexShader>("./res/shaders/star.vert")
@@ -463,7 +466,7 @@ void InitScene(Scene* mainScene) {
 	Texture2D* cannonDiffuse = mainScene->Resources()->Get<Texture2D>("./res/models/cannon/textures/cannon_01_diff_1k.png", Texture::ColorTextureRGB);
 	Texture2D* cannonNormal = mainScene->Resources()->Get<Texture2D>("./res/models/cannon/textures/cannon_01_nor_gl_1k.png", Texture::TechnicalMapXYZ);
 	Texture2D* cannonARM = mainScene->Resources()->Get<Texture2D>("./res/models/cannon/textures/cannon_01_arm_1k.png", Texture::TechnicalMapXYZ);
-	
+
 	Texture2D* reflectiveDiffuse = mainScene->Resources()->Get<Texture2D>("./res/textures/material_preview/worn-shiny-metal-albedo.png", Texture::ColorTextureRGB);
 	Texture2D* reflectiveNormal = mainScene->Resources()->Get<Texture2D>("./res/textures/material_preview/worn-shiny-metal-Normal-ogl.png", Texture::TechnicalMapXYZ);
 	Texture2D* reflectiveARM = mainScene->Resources()->Get<Texture2D>("./res/textures/material_preview/worn-shiny-metal-arm.png", Texture::TechnicalMapXYZ);
@@ -563,7 +566,6 @@ void InitScene(Scene* mainScene) {
 
   //auto* floorMesh = mainScene->Resources()->Get<Mesh>("./res/models/floor/floor.obj", true);
 	auto floorNode = mainScene->CreateNode("Floor");
-    floorNode->GlobalTransform().Position() = { 0.0f, -8.5f, 0.0f };
     floorNode->AddObject<MeshRenderer>(gmConstructMesh, gmConstructMesh->GetDefaultMaterials());
 	floorNode->AddObject<Skybox>(skyMat); 
 	floorNode->AddObject<Physics::Body>(Physics::Body::Mesh(gmConstructMesh, JPH::EMotionType::Static, Physics::Layers::NON_MOVING));
@@ -574,9 +576,9 @@ void InitScene(Scene* mainScene) {
 	lightNode->GlobalTransform().Position() = {-1, 2.2f, 0};
 
 	auto lightNode2 = mainScene->CreateNode("Directional Light");
-	lightNode2->AddObject<Light>(Light::DirectionalLight({1, 1, 1}, 2))->SetShadowCasting(true);
+	lightNode2->AddObject<Light>(Light::DirectionalLight({1, 1, 1}, 4))->SetShadowCasting(true);
 	lightNode2->GlobalTransform().Position() = {1, 2.2f, 0};
-	lightNode2->GlobalTransform().Rotation() = glm::quat(glm::radians(glm::vec3(91.0f, 0.0f, 0.0f)));
+	lightNode2->GlobalTransform().Rotation() = glm::quat(glm::radians(glm::vec3(64.0f, 0.0f, 0.0f)));
 
 	auto envProbe = mainScene->CreateNode(cubeNode, "Reflection Probe");
 	envProbe->AddObject<ReflectionProbe>();
@@ -613,10 +615,27 @@ void InitScene(Scene* mainScene) {
 	tvRenderer->SetMaterial(tvMatStand, 2);
 	tvRenderer->SetMaterial(tvMatStand, 3);
 
+	SceneNode* fogVolume = mainScene->CreateNode("Fog Volume");
+	FogVolume* fogVolumeObject = fogVolume->AddObject<FogVolume>();
+  fogVolumeObject->stepSize = 0.06f;
+  fogVolumeObject->scatteringDensity = 0.042f;
+  fogVolumeObject->absorptionDensity = 0.0f;
+  fogVolumeObject->k = 0.005f;
+	fogVolume->GlobalTransform().Position() = { -28.0f, 1.5f, 0.0f };
+	fogVolume->GlobalTransform().Scale() = { 20.0f, 12.0f, 20.0f };
+
+  SceneNode* fogVolume2 = mainScene->CreateNode("Fog Volume 2");
+  FogVolume* fogVolume2Object = fogVolume2->AddObject<FogVolume>();
+  fogVolume2Object->scatteringColor = { 173, 0, 255 };
+  fogVolume2Object->stepSize = 0.03f;
+  fogVolume2Object->scatteringDensity = 2.0f;
+  fogVolume2Object->absorptionDensity = 0.0f;
+  fogVolume2->GlobalTransform().Position() = { 0.0f, 0.6f, 3.0f };
+
 	SceneNode* schnozCameraNode = mainScene->CreateNode("Schnoz Camera");
 	schnozCameraNode->LocalTransform().Position() = glm::vec3(-56.5, 2.0, -2.0);
 	schnozCameraNode->LocalTransform().Rotation() = glm::quat(glm::radians(glm::vec3(5.0f, 85.0f, 0.0f)));
-	
+
 	auto schnozCamera = schnozCameraNode->AddObject<Camera>(Camera::Perspective(40.0f, 16.0f/9.0f, 0.5f, 200.0f));
 	schnozCamera->SetAspectRatio(2);
 	schnozCamera->SetRenderTarget(schnozPreview);
@@ -667,6 +686,8 @@ void InitScene(Scene* mainScene) {
 	schnozLightNode->LocalTransform().Position() = glm::vec3(-55.5, 3.0, -2.0);
 	schnozLightNode->AddObject<Light>(Light::PointLight(glm::vec3(1, 1, 1), 5, 5));
 
+
+  // cameraNode->AddObject<VolumetricFog>();
   for (int i = 0; i < 50; ++i) {
     SceneNode* physicsSchnozNode = mainScene->CreateNode("Physics Schnoz");
     physicsSchnozNode->AddObject<MeshRenderer>(schnozMesh, schnozMat);
@@ -680,6 +701,7 @@ void InitScene(Scene* mainScene) {
 
 	cameraNode->AddObject<Bloom>();
 	cameraNode->AddObject<Tonemapper>()->SetOperator(Tonemapper::TonemapperOperator::GranTurismo);
+    cameraNode->AddObject<Fog>();
 
   Mesh* waterMesh = mainScene->Resources()->Get<Mesh>("./res/models/water.obj");
   SceneNode* water = mainScene->CreateNode("Water");

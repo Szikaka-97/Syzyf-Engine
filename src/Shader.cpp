@@ -45,13 +45,13 @@ char* LoadFile(const fs::path& filePath) {
 	// }
 
 	char* buf = new char[shaderFile.file_size() + 1];
-	
+
 	std::ifstream shaderFileStream(filePath, std::ios::binary);
 
 	shaderFileStream.read(buf, shaderFile.file_size());
-	
+
 	buf[shaderFile.file_size()] = '\0';
-	
+
 	return buf;
 }
 
@@ -59,7 +59,7 @@ char* LoadFile(const fs::path& filePath, GLenum& shaderType) {
 	fs::directory_entry shaderFile(filePath);
 
 	shaderType = GL_INVALID_ENUM;
-	
+
 	if (filePath.extension() == ".vert") {
 		shaderType = GL_VERTEX_SHADER;
 	}
@@ -199,7 +199,7 @@ ShaderBase* ShaderBase::Load(fs::path filePath) {
 				const auto& match = *codeIt;
 
 				newCodeSegments.push_back({segment.str + pointer, match.position() - pointer});
-				
+
 				pointer = match.position() + match.length();
 
 				fs::path includedFilePath = BaseShaderPath / match[1].str();
@@ -235,7 +235,7 @@ ShaderBase* ShaderBase::Load(fs::path filePath) {
 	glCompileShader(shaderHandle);
 
 	int compileSuccess;
-	
+
 	glGetShaderiv(shaderHandle, GL_COMPILE_STATUS, &compileSuccess);
 
 	if (!compileSuccess) {
@@ -263,7 +263,7 @@ ShaderBase* ShaderBase::Load(fs::path filePath) {
 		spdlog::error("Shader source: \n{}", outss.str());
 
 		*((int *) 0) = 0;
-		
+
 		return nullptr;
 
 		// throw shader::shader_compilation_exception(path_to_file, compile_msg);
@@ -339,7 +339,7 @@ VertexShader* VertexShader::Load(fs::path filePath) {
 
 		return nullptr;
 	}
-	
+
 	return result;
 }
 
@@ -364,7 +364,7 @@ GeometryShader* GeometryShader::Load(fs::path filePath) {
 
 		return nullptr;
 	}
-	
+
 	return result;
 }
 
@@ -385,7 +385,7 @@ TesselationEvaluationShader* TesselationEvaluationShader::Load(fs::path filePath
 
 		return nullptr;
 	}
-	
+
 	return result;
 }
 
@@ -406,7 +406,7 @@ TesselationControlShader* TesselationControlShader::Load(fs::path filePath) {
 
 		return nullptr;
 	}
-	
+
 	return result;
 }
 
@@ -427,7 +427,7 @@ PixelShader* PixelShader::Load(fs::path filePath) {
 
 		return nullptr;
 	}
-	
+
 	return result;
 }
 
@@ -448,7 +448,7 @@ ComputeShader* ComputeShader::Load(fs::path filePath) {
 
 		return nullptr;
 	}
-	
+
 	return result;
 }
 
@@ -493,11 +493,11 @@ ShaderProgram* ShaderBuilder::Link() {
 
 	glAttachShader(programHandle, this->vertexShader->GetHandle());
 	glAttachShader(programHandle, this->pixelShader->GetHandle());
-	
+
 	if (this->geometryShader) {
 		glAttachShader(programHandle, this->geometryShader->GetHandle());
 	}
-	
+
 	if (this->tessCtrlShader && this->tessEvalShader) {
 		glAttachShader(programHandle, this->tessEvalShader->GetHandle());
 		glAttachShader(programHandle, this->tessCtrlShader->GetHandle());
@@ -575,6 +575,10 @@ bool ShaderProgram::IsTransparent() const {
 	return int(this->flags & ShaderProgramFlags::Transparent) != 0;
 }
 
+bool ShaderProgram::IsVolumetric() const {
+    return int(this->flags & ShaderProgramFlags::Volumetric) != 0;
+}
+
 void ShaderProgram::SetIgnoresDepthPrepass(bool ignores) {
 	unsigned int temp = (unsigned int) ShaderProgramFlags::IgnoreDepthPrepass;
 	temp = ~temp;
@@ -608,6 +612,17 @@ void ShaderProgram::SetTransparent(bool transparent) {
 	this->flags = (ShaderProgramFlags) temp;
 }
 
+void ShaderProgram::SetVolumetric(bool volumetric) {
+    unsigned int temp = (unsigned int) ShaderProgramFlags::Volumetric;
+    temp = ~temp;
+
+    temp = (unsigned int) this->flags & temp;
+
+    temp |= (unsigned int) ShaderProgramFlags::Volumetric * volumetric;
+
+    this->flags = (ShaderProgramFlags) temp;
+}
+
 ComputeShaderProgram::ComputeShaderProgram(ComputeShader* computeShader) {
 	assert(computeShader);
 
@@ -626,7 +641,7 @@ ComputeShaderProgram::ComputeShaderProgram(ComputeShader* computeShader) {
 		spdlog::error("Error linking compute shader program:\n{}", compileMsg);
 	}
 
-	this->uniforms = UniformSpec(this);	
+	this->uniforms = UniformSpec(this);
 }
 
 ComputeShaderProgram::~ComputeShaderProgram() {
