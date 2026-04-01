@@ -4,7 +4,7 @@
 #include "Material.h"
 #include "imgui.h"
 
-Fog::Fog(float minDistance, float maxDistance, glm::vec4 fogColor) : minDistance(minDistance), maxDistance(maxDistance), fogColor(fogColor) {
+Fog::Fog(Fog::Type fogType, float minDistance, float maxDistance, glm::vec4 fogColor) : minDistance(minDistance), maxDistance(maxDistance), fogColor(fogColor) {
   this->shader = ShaderProgram::Build()
     .WithVertexShader(
       GetScene()->Resources()->Get<VertexShader>("./res/shaders/fullscreen.vert")
@@ -21,6 +21,8 @@ void Fog::OnPostProcess(const PostProcessParams* params) {
   this->material->SetValue("fogColor", this->fogColor);
   this->material->SetValue("minDistance", this->minDistance);
   this->material->SetValue("maxDistance", this->maxDistance);
+  this->material->SetValue("density", this->density);
+  this->material->SetValue("fogType", (unsigned int)this->fogType);
   this->material->SetValue("fogColor", this->fogColor);
 
   this->material->Bind();
@@ -49,7 +51,18 @@ void Fog::OnPostProcess(const PostProcessParams* params) {
 }
 
 void Fog::DrawImGui() {
-  ImGui::InputFloat("Min Distance", &this->maxDistance);
-  ImGui::InputFloat("Max Distance", &this->minDistance);
-  ImGui::ColorPicker4("Fog Color", &this->fogColor.x);
+    const char* fogTypes[] = { "Linear", "Exponential", "Exponential Squared" };
+    int currentType = (int) this->fogType;
+    if (ImGui::Combo("FogType", &currentType, fogTypes, IM_ARRAYSIZE(fogTypes))) {
+        this->fogType = (Type) currentType;
+    }
+
+    ImGui::ColorPicker4("Fog Color", &this->fogColor.x);
+
+    if (this->fogType == Type::Linear) {
+        ImGui::InputFloat("Min Distance", &this->minDistance);
+        ImGui::InputFloat("Max Distance", &this->maxDistance);
+    } else {
+        ImGui::DragFloat("Density", &this->density, 0.001f, 0.0f, 1.0f);
+    }
 }

@@ -32,6 +32,8 @@ void FogVolume::Render() {
   this->material->SetValue("k", this->k);
   this->material->SetValue("transmittanceThreshold",
                            this->transmittanceThreshold);
+  this->material->SetValue("bias", this->bias);
+  this->material->SetValue("maxSteps", this->maxSteps);
 
   std::vector<int> intersectingLightIndices;
   auto* lights = GetScene()->GetGraphics()->GetLightSystem()->GetAllObjects();
@@ -90,4 +92,5 @@ void FogVolume::DrawImGui() {
   ImGui::ColorEdit3("Scattering Color", &this->scatteringColor.x);
   ImGui::SliderFloat("Anisotropy", &this->k, -0.99f, 0.99f);
   ImGui::InputFloat("Transmittance Threshold", &this->transmittanceThreshold);
+  ImGui::InputFloat("Bias", &this->bias, -0.99f, 0.99f);
 }

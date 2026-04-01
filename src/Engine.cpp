@@ -196,8 +196,7 @@ void Engine::Render() {
 	int display_w, display_h;
 	SDL_GetWindowSize(window, &display_w, &display_h);
 
-	// rootScene->GetGraphics()->UpdateScreenResolution(glm::vec2(display_w, display_h));
-  rootScene->GetGraphics()->UpdateScreenResolution(glm::vec2(1280, 720));
+	rootScene->GetGraphics()->UpdateScreenResolution(glm::vec2(display_w, display_h));
 
 	rootScene->Render();
 }

@@ -16,6 +16,7 @@ uniform float absorptionDensity;
 uniform vec3 scatteringColor;
 uniform float k;
 uniform float transmittanceThreshold;
+uniform float bias;
 
 uniform int intersectingLightCount;
 uniform int intersectingLightIndices[128];
@@ -162,7 +163,6 @@ void main() {
                 lightViewPos /= lightViewPos.w;
                 lightViewPos.z = (lightViewPos.z + 1) * 0.5;
 
-                float bias = 0.005; // change to uniform
                 vec2 uvLocal = clamp(vec2((lightViewPos.x + 1) * 0.5, (lightViewPos.y + 1) * 0.5), 0, 1);
                 vec2 uv = mix(mask.start, mask.end, uvLocal);
 

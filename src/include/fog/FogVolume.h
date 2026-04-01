@@ -16,6 +16,9 @@ public:
   glm::vec3 scatteringColor = glm::vec3(1.0f);
   float k = 0.005f;
   float transmittanceThreshold = 0.001f;
+
+  float bias = 0.005f;
+  unsigned int maxSteps = 64;
 private:
   Mesh *mesh;
   Material *material;

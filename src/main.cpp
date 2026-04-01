@@ -566,7 +566,6 @@ void InitScene(Scene* mainScene) {
 
   //auto* floorMesh = mainScene->Resources()->Get<Mesh>("./res/models/floor/floor.obj", true);
 	auto floorNode = mainScene->CreateNode("Floor");
-    floorNode->GlobalTransform().Position() = { 0.0f, -8.5f, 0.0f };
     floorNode->AddObject<MeshRenderer>(gmConstructMesh, gmConstructMesh->GetDefaultMaterials());
 	floorNode->AddObject<Skybox>(skyMat); 
 	floorNode->AddObject<Physics::Body>(Physics::Body::Mesh(gmConstructMesh, JPH::EMotionType::Static, Physics::Layers::NON_MOVING));
@@ -577,9 +576,9 @@ void InitScene(Scene* mainScene) {
 	lightNode->GlobalTransform().Position() = {-1, 2.2f, 0};
 
 	auto lightNode2 = mainScene->CreateNode("Directional Light");
-	lightNode2->AddObject<Light>(Light::DirectionalLight({1, 1, 1}, 2))->SetShadowCasting(true);
+	lightNode2->AddObject<Light>(Light::DirectionalLight({1, 1, 1}, 4))->SetShadowCasting(true);
 	lightNode2->GlobalTransform().Position() = {1, 2.2f, 0};
-	lightNode2->GlobalTransform().Rotation() = glm::quat(glm::radians(glm::vec3(91.0f, 0.0f, 0.0f)));
+	lightNode2->GlobalTransform().Rotation() = glm::quat(glm::radians(glm::vec3(64.0f, 0.0f, 0.0f)));
 
 	auto envProbe = mainScene->CreateNode(cubeNode, "Reflection Probe");
 	envProbe->AddObject<ReflectionProbe>();
@@ -626,8 +625,12 @@ void InitScene(Scene* mainScene) {
 	fogVolume->GlobalTransform().Scale() = { 20.0f, 12.0f, 20.0f };
 
   SceneNode* fogVolume2 = mainScene->CreateNode("Fog Volume 2");
-  fogVolume2->AddObject<FogVolume>();
-  fogVolume2->GlobalTransform().Position() = { 0.0f, 0.6f, 0.0f };
+  FogVolume* fogVolume2Object = fogVolume2->AddObject<FogVolume>();
+  fogVolume2Object->scatteringColor = { 173, 0, 255 };
+  fogVolume2Object->stepSize = 0.03f;
+  fogVolume2Object->scatteringDensity = 2.0f;
+  fogVolume2Object->absorptionDensity = 0.0f;
+  fogVolume2->GlobalTransform().Position() = { 0.0f, 0.6f, 3.0f };
 
 	SceneNode* schnozCameraNode = mainScene->CreateNode("Schnoz Camera");
 	schnozCameraNode->LocalTransform().Position() = glm::vec3(-56.5, 2.0, -2.0);
@@ -698,6 +701,7 @@ void InitScene(Scene* mainScene) {
 
 	cameraNode->AddObject<Bloom>();
 	cameraNode->AddObject<Tonemapper>()->SetOperator(Tonemapper::TonemapperOperator::GranTurismo);
+    cameraNode->AddObject<Fog>();
 
   Mesh* waterMesh = mainScene->Resources()->Get<Mesh>("./res/models/water.obj");
   SceneNode* water = mainScene->CreateNode("Water");
