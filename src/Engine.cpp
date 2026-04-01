@@ -10,7 +10,7 @@ extern "C" {
 	__attribute__ ((dllexport)) unsigned long NvOptimusEnablement = 1;
 	__attribute__ ((dllexport)) int AmdPowerXpressRequestHighPerformance = 1;
 #else
-	_declspec(dllexport) DWORD NvOptimusEnablement = 1;
+	_declspec(dllexport) unsigned long NvOptimusEnablement = 1;
 	_declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
 #endif
 }
@@ -68,7 +68,7 @@ static void APIENTRY glDebugOutput(
 	switch (type) {
 		case GL_DEBUG_TYPE_ERROR:               typeString = "Error"; break;
 		case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR: typeString = "Deprecated Behaviour"; break;
-		case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:  typeString = "Undefined Behaviour"; break; 
+		case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:  typeString = "Undefined Behaviour"; break;
 		case GL_DEBUG_TYPE_PORTABILITY:         typeString = "Portability"; break;
 		case GL_DEBUG_TYPE_PERFORMANCE:         typeString = "Performance"; break;
 		case GL_DEBUG_TYPE_MARKER:              typeString = "Marker"; break;
@@ -119,10 +119,10 @@ bool Engine::InitProgram() {
 	SDL_ShowWindow(window);
 
 	bool err = !gladLoadGLLoader((GLADloadproc) SDL_GL_GetProcAddress);
-	
+
 	if (err) {
 		spdlog::error("Failed to initialize OpenGL loader!");
-		
+
 		return false;
 	}
 
@@ -160,7 +160,7 @@ bool Engine::InitImGui() {
 	if (!IMGUI_CHECKVERSION()) {
 		return false;
 	}
-	
+
 	ImGui::CreateContext();
 
 	ImGui_ImplSDL3_InitForOpenGL(window, glContext);
@@ -194,7 +194,6 @@ void Engine::Update() {
 
 void Engine::Render() {
 	int display_w, display_h;
-	SDL_GL_MakeCurrent(window, glContext);
 	SDL_GetWindowSize(window, &display_w, &display_h);
 
 	rootScene->GetGraphics()->UpdateScreenResolution(glm::vec2(display_w, display_h));
@@ -219,7 +218,6 @@ void Engine::DrawImGui() {
 
 	ImGui::Render();
 	int display_w, display_h;
-	SDL_GL_MakeCurrent(window, glContext);
 	SDL_GetWindowSize(window, &display_w, &display_h);
 
 	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -258,7 +256,6 @@ void Engine::MainLoop() {
 			}
 		}
 
-		SDL_GL_MakeCurrent(window, glContext);
 		SDL_GL_SwapWindow(window);
 	}
 }

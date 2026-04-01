@@ -18,7 +18,6 @@
 #include <Viewport.h>
 #include <TimeSystem.h>
 
-#include "../res/shaders/shared/shared.h"
 #include "../res/shaders/shared/uniforms.h"
 #include "animation/SkeletonComponent.h"
 #include "animation/SkeletonSystem.h"
@@ -44,7 +43,7 @@ Frustum ComputeFrustum(const glm::mat4& projectionMatrix) {
 	result.top = Plane(glm::vec3(planeTopParams), planeTopParams.w);
 	result.nearPlane = Plane(glm::vec3(planeNearParams), planeNearParams.w);
 	result.farPlane = Plane(glm::vec3(planeFarParams), planeFarParams.w);
-	
+
 	return result;
 }
 
@@ -132,7 +131,7 @@ mainViewport(new Viewport()) {
 	glBindBuffer(GL_UNIFORM_BUFFER, this->globalUniformsBuffer);
 	glBufferData(GL_UNIFORM_BUFFER, sizeof(ShaderGlobalUniforms), nullptr, GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_UNIFORM_BUFFER, 0);
-	
+
 	glGenBuffers(1, &this->objectUniformsBuffer);
 	glBindBuffer(GL_UNIFORM_BUFFER, this->objectUniformsBuffer);
 	glBufferData(GL_UNIFORM_BUFFER, sizeof(ShaderObjectUniforms), nullptr, GL_DYNAMIC_DRAW);
@@ -144,7 +143,7 @@ mainViewport(new Viewport()) {
 
 	this->opaquePassFramebuffer = this->mainViewport->GetFramebuffer();
 	this->transparentPassFramebuffer = new Framebuffer(Framebuffer::Attachment::None, 0, 0);
-	
+
 	this->opaquePassFramebuffer->CreateColorAttachment(true, false);
 	this->opaquePassFramebuffer->CreateDepthAttachment(false, false);
 
@@ -243,7 +242,7 @@ void SceneGraphics::RenderObjects(const ShaderGlobalUniforms& globalUniforms, Re
 		glBindBuffer(GL_UNIFORM_BUFFER, objectUniformsBuffer);
 		glBufferData(GL_UNIFORM_BUFFER, sizeof(objectUniforms), &objectUniforms, GL_STREAM_DRAW);
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
-		
+
 		mat->Bind();
 
     int offsetLocation = glGetUniformLocation(mat->GetShader()->handle, "uBoneOffet");
@@ -270,7 +269,7 @@ void SceneGraphics::RenderObjects(const ShaderGlobalUniforms& globalUniforms, Re
 
 			ReflectionProbe* closestProbe = nullptr;
 
-			if (irradianceMapUniformLocation >= 0 || prefilterMapUniformLocation >= 0 || brdfConvolutionMapUniformLocation >= 0){ 
+			if (irradianceMapUniformLocation >= 0 || prefilterMapUniformLocation >= 0 || brdfConvolutionMapUniformLocation >= 0){
 				closestProbe = envMapping->GetClosestProbe(mesh->GetBounds().Transform(node.transformation).center);
 			}
 
@@ -292,7 +291,7 @@ void SceneGraphics::RenderObjects(const ShaderGlobalUniforms& globalUniforms, Re
 				}
 			}
 		}
-		
+
 		glBindVertexArray(mesh->GetVertexArrayHandle());
 
 		if (drawsGizmos && node.ignoreDepth) {
@@ -332,7 +331,7 @@ void SceneGraphics::BindGlobalUniformBuffer(const ShaderGlobalUniforms& globalUn
 	glBindBuffer(GL_UNIFORM_BUFFER, this->globalUniformsBuffer);
 	glBufferData(GL_UNIFORM_BUFFER, sizeof(globalUniforms), &globalUniforms, GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_UNIFORM_BUFFER, 0);
-	
+
 	glBindBufferBase(GL_UNIFORM_BUFFER, 0, this->globalUniformsBuffer);
 }
 
@@ -357,9 +356,9 @@ void SceneGraphics::RenderFullscreenFrameQuad() {
 
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, this->GetMainFramebuffer()->GetColorTexture()->GetHandle());
-	
+
 	glDrawElements(GL_TRIANGLES, quadMesh->SubMeshAt(0).GetVertexCount(), GL_UNSIGNED_INT, nullptr);
-	
+
 	glBindTexture(GL_TEXTURE_2D, 0);
 
 	glEnable(GL_DEPTH_TEST);
@@ -393,9 +392,9 @@ void SceneGraphics::CompositeTransparentPass() {
 	glBindTexture(GL_TEXTURE_2D, transparentPassFramebuffer->GetColorTexture()->GetHandle());
 	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_2D, transparentPassFramebuffer->GetCustomAttachmentTexture(0)->GetHandle());
-	
+
 	glDrawElements(GL_TRIANGLES, quadMesh->SubMeshAt(0).GetVertexCount(), GL_UNSIGNED_INT, nullptr);
-	
+
 	glBindTexture(GL_TEXTURE_2D, 0);
 
 	glEnable(GL_DEPTH_TEST);
@@ -436,7 +435,7 @@ void SceneGraphics::DrawMeshInstanced(MeshRenderer* renderer, unsigned int insta
 
 	for (int i = 0; i < renderer->GetMesh()->GetSubMeshCount(); i++) {
 		const Mesh::SubMesh* mesh = &renderer->GetMesh()->SubMeshAt(i);
-		const Material* material = renderer->GetMaterial(mesh->GetMaterialIndex()); 
+		const Material* material = renderer->GetMaterial(mesh->GetMaterialIndex());
 
 		auto& targetRenderQueue = material->GetShader()->IsTransparent() ? this->transparentRenders : this->currentRenders;
 
@@ -487,7 +486,7 @@ void SceneGraphics::Render() {
 	for (Camera* camera : *this->GetAllObjects()) {
 		if (camera == this->mainCamera) {
 			camera->SetAspectRatio((float) this->mainViewport->GetSize().x / this->mainViewport->GetSize().y);
-			
+
 			continue;
 		}
 
@@ -584,26 +583,26 @@ void SceneGraphics::RenderCamera(Camera* camera, Viewport* renderTarget, const R
 	if ((params.pass & RenderPassType::Color) == RenderPassType::Color) {
 		activeParams.clearDepth = false;
 		activeParams.pass = RenderPassType(RenderPassType::Color);
-	
+
 		this->GetMainFramebuffer()->SetColorAttachmentEnabled(true);
 		RenderScene(globalUniforms, renderTarget, activeParams);
 	}
 
 	if ((params.pass & RenderPassType::Gizmos) == RenderPassType::Gizmos) {
 		activeParams.pass = RenderPassType(RenderPassType::Gizmos);
-	
+
 		RenderScene(globalUniforms, renderTarget, activeParams);
 	}
 
 	if ((params.pass & RenderPassType::PostProcessing) == RenderPassType::PostProcessing) {
 		activeParams.pass = RenderPassType(RenderPassType::PostProcessing);
-	
+
 		RenderScene(globalUniforms, renderTarget, activeParams);
 	}
 
 	if (camera == this->mainCamera && (params.pass & RenderPassType::Transparent) == RenderPassType::Transparent) {
 		activeParams.pass = RenderPassType(RenderPassType::Transparent);
-	
+
 		RenderScene(globalUniforms, this->transparentPassFramebuffer, activeParams);
 	}
 }
@@ -633,9 +632,9 @@ void SceneGraphics::RenderScene(const ShaderGlobalUniforms& uniforms, Framebuffe
 		else {
 		}
 		glCullFace(GL_BACK);
-	
+
 		glDepthFunc(GL_LESS);
-	
+
 		RenderParams depthPrepassParams = params;
 
 		RenderObjects(uniforms, depthPrepassParams);
@@ -678,14 +677,14 @@ void SceneGraphics::RenderScene(const ShaderGlobalUniforms& uniforms, Framebuffe
 		glBlendFunci(1, GL_ZERO, GL_ONE_MINUS_SRC_COLOR);
 		glBlendEquation(GL_FUNC_ADD);
 
-		glClearBufferfv(GL_COLOR, 0, &glm::zero<glm::vec4>()[0]); 
+		glClearBufferfv(GL_COLOR, 0, &glm::zero<glm::vec4>()[0]);
 		glClearBufferfv(GL_COLOR, 1, &glm::one<glm::vec4>()[0]);
 
 		RenderParams transparentPassParams = params;
 		transparentPassParams.pass = RenderPassType::Transparent;
 
 		RenderObjects(uniforms, transparentPassParams);
-		
+
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LESS);
 		glDepthMask(GL_TRUE);
@@ -700,17 +699,17 @@ void SceneGraphics::RenderScene(const ShaderGlobalUniforms& uniforms, Framebuffe
 			Texture2D* frameTex = dynamic_cast<Texture2D*>(framebuffer->GetColorTexture());
 			Texture2D* frameDepth = dynamic_cast<Texture2D*>(framebuffer->GetDepthTexture());
 			Texture2D postProcessBuffer = Texture::Wrap<Texture2D>(postProcess->GetPostProcessBuffer());
-			
+
 			PostProcessParams postProcessParams;
 			postProcessParams.inputTexture = &postProcessBuffer;
 			postProcessParams.outputTexture = frameTex;
 			postProcessParams.depthTexture = frameDepth;
-			
+
 			for (auto* effect : *postProcess->GetAllObjects()) {
 				if (!effect->IsEnabled()) {
 					continue;
 				}
-				
+
 				glCopyImageSubData(
 					this->GetMainFramebuffer()->GetColorTexture()->GetHandle(),
 					GL_TEXTURE_2D,
@@ -728,7 +727,7 @@ void SceneGraphics::RenderScene(const ShaderGlobalUniforms& uniforms, Framebuffe
 					this->mainViewport->GetSize().y,
 					1
 				);
-	
+
 				effect->OnPostProcess(&postProcessParams);
 			}
 		}

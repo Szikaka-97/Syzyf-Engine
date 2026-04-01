@@ -47,7 +47,7 @@ CPMAddPackage(
         "DEBUG_RENDERER ON"
         "CPP_RTTI_ENABLED ON"
         "DEBUG_RENDERER_IN_DISTRIBUTION ON"
-	"BUILD_SHARED_LIBS"
+	    "BUILD_SHARED_LIBS ON"
 )
 if (NOT MSVC)
 target_compile_options(Jolt PRIVATE -Wno-array-bounds)
@@ -61,11 +61,11 @@ add_library(imgui STATIC ${imgui_SOURCE_DIR}/imgui.cpp
 					     ${imgui_SOURCE_DIR}/imgui_widgets.cpp)
 
 set_target_properties(glad
-                      stb_image 
-                      assimp 
+                      stb_image
+                      assimp
                       SDL3-static
-                      glm 
-                      imgui 
+                      glm
+                      imgui
                       spdlog
                       fastgltf
                       imgui
