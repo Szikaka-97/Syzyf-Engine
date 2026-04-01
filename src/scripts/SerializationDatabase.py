@@ -289,7 +289,7 @@ def construct_file(files: list[str], compile_args: list[str]) -> clang.Translati
 	return result
 
 
-def generate_cpp_for_class(writer: CodeWriter, cls: SerializedClass) -> None:
+def generate_deserializer_for_class(writer: CodeWriter, cls: SerializedClass) -> None:
 	writer.line("template<>")
 	writer.line(f"void DeserializeOn<{cls.name}>(volatile {cls.name}* ptr, const json& json_node, std::vector<SerializedReference>& references) {{")
 	writer.more_indent()
@@ -331,6 +331,30 @@ def generate_cpp_for_class(writer: CodeWriter, cls: SerializedClass) -> None:
 			writer.line(f"references.push_back({{(void**) (data + {field.offset:.0f}), json_node[\"{field.name}\"][\"_index\"].get<int>()}});")
 		# add_line(f"*value_{field.name} = ;")
 
+	writer.indent = 0
+	writer.line("}")
+
+
+def generate_serializer_for_class(writer: CodeWriter, cls: SerializedClass) -> None:
+	writer.line("template<>")
+	writer.line(f"json Serialize<{cls.name}>(const {cls.name}* ptr) {{")
+	writer.more_indent()
+	
+	writer.line("const uint8_t* data = reinterpret_cast<const uint8_t*>(ptr);")
+	writer.line("json result;")
+	writer.line()
+	writer.line(f"result[\"_type_name\"] = \"{cls.name}\";")
+	writer.line("json& dataNode = (result[\"_data\"] = json{});")
+
+	for field in cls.fields:
+		if field.type.strategy == DeserializationStrategy.SIMPLE:
+			writer.line(f"dataNode[\"{field.name}\"] = *(const {field.type.c_name} *) (data + {field.offset:.0f});")
+		elif field.type.strategy == DeserializationStrategy.CHAIN:
+			writer.line(f"dataNode[\"{field.name}\"] = Serialize<{field.type.c_name}>(*(const {field.type.c_name} *) (data + {field.offset:.0f}));")
+			# writer.line(f"DeserializeOn<{field.type.c_name}>(({field.type.c_name}*) (data + {field.offset:.0f}), json_node[\"{field.name}\"]);")
+	
+	writer.line()
+	writer.line("return result;")
 	writer.indent = 0
 	writer.line("}")
 
@@ -393,6 +417,9 @@ def main():
 		dest_header.line("template <typename T>")
 		dest_header.line("void DeserializeOn(volatile T* ptr, const json& json_node, std::vector<SerializedReference>& references) = delete;")
 		dest_header.line()
+		dest_header.line("template <typename T>")
+		dest_header.line("json Serialize(const T* ptr);")
+		dest_header.line()
 		dest_header.line("void Deserialize(volatile void* ptr, const json& json_node, std::vector<SerializedReference>& references);")
 
 		for cls in classes:
@@ -401,6 +428,10 @@ def main():
 			dest_header.line()
 			dest_header.line("template<>")
 			dest_header.line(f"void DeserializeOn<{cls.name}>(volatile {cls.name}* ptr, const json& json_node, std::vector<SerializedReference>& references);")
+			dest_header.line()
+			dest_header.line("template<>")
+			dest_header.line(f"json Serialize<{cls.name}>(const {cls.name}* ptr);")
+			dest_header.line()
 
 
 	with CodeWriter(DEST_SOURCE_FILE_PATH) as dest_impl:
@@ -414,7 +445,7 @@ def main():
 
 		for cls in classes:
 			if cls.generate_code:
-				generate_cpp_for_class(dest_impl, cls)
+				generate_deserializer_for_class(dest_impl, cls)
 		
 		dest_impl.line()
 		dest_impl.line("typedef void (*DeserializeOnSpecialization)(volatile void* ptr, const json& json_node, std::vector<SerializedReference>& references);")
@@ -476,6 +507,10 @@ def main():
 		dest_impl.less_indent()
 
 		dest_impl.line("}")
+
+		for cls in classes:
+			if cls.generate_code:
+				generate_serializer_for_class(dest_impl, cls)
 
 
 if __name__ == "__main__":
