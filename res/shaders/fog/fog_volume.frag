@@ -30,6 +30,7 @@ uniform int intersectingLightCount;
 uniform int intersectingLightIndices[128];
 
 const float PI = 3.14159265359;
+const float TEXTURE_SCALE = 0.5; // hardcoded
 
 out vec4 fragColor;
 
@@ -75,7 +76,7 @@ vec2 IntersectAABB(vec3 rayOrigin, vec3 rayDir, vec3 boxMin, vec3 boxMax) {
 
 void main() {
     // pass the texture size as uniform instead
-    vec2 texSize = vec2(textureSize(depthTex, 0)) * 0.5;
+    vec2 texSize = vec2(textureSize(depthTex, 0)) * TEXTURE_SCALE;
     vec2 screenUV = gl_FragCoord.xy / texSize;
 
     float z = texture(depthTex, screenUV).x;
