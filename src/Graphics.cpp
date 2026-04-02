@@ -767,8 +767,6 @@ void SceneGraphics::RenderScene(const ShaderGlobalUniforms &uniforms,
     glDepthMask(GL_FALSE);
     glEnable(GL_BLEND);
     glBlendEquation(GL_FUNC_ADD);
-    // GL_ONE to use as lighting, i think
-    // glBlendFunc(GL_ONE, GL_SRC_ALPHA);
     glBlendFuncSeparate(GL_ONE, GL_SRC_ALPHA, GL_ZERO, GL_SRC_ALPHA);
 
     glEnable(GL_DEPTH_TEST);
@@ -803,18 +801,12 @@ void SceneGraphics::RenderScene(const ShaderGlobalUniforms &uniforms,
     glUseProgram(quadProgVolumetric->GetHandle());
 
     int colorTexLocation = glGetUniformLocation(quadProgVolumetric->GetHandle(), "colorTex");
-    int depthTexLocation = glGetUniformLocation(quadProgVolumetric->GetHandle(), "depthTex");
-    if (colorTexLocation >= 0) glUniform1i(colorTexLocation, 0);
-    if (depthTexLocation >= 0) glUniform1i(depthTexLocation, 1);
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, this->volumetricFramebuffer->GetColorTexture()->GetHandle());
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, this->opaquePassFramebuffer->GetDepthTexture()->GetHandle());
 
     glDrawElements(GL_TRIANGLES, quadMesh->SubMeshAt(0).GetVertexCount(), GL_UNSIGNED_INT, nullptr);
 
-    glBindTexture(GL_TEXTURE_2D, 0);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, 0);
     glBindVertexArray(0);

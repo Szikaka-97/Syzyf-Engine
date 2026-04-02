@@ -26,6 +26,9 @@ public:
     Texture3D* noiseTexture = nullptr;
     float noiseScale = 0.01f;
     glm::vec3 windDirection = { 0.0f, 0.0f, 0.0f };
+    
+    float coverage = 0.45f;
+    float sharpness = 2.5;
 private:
     Mesh *mesh;
     Material *material;

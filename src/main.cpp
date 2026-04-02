@@ -43,6 +43,9 @@
 #include <glm/trigonometric.hpp>
 #include <spdlog/spdlog.h>
 
+#include "FastNoiseLite.h"
+#include "Noise3D.h"
+
 class AnimatedThingTag : public GameObject {};
 #include <Viewport.h>
 #include <AiNode.h>
@@ -571,7 +574,7 @@ void InitScene(Scene* mainScene) {
 	floorNode->AddObject<Surface>(gmConstructMesh, 1.0f);
 
 	auto lightNode = mainScene->CreateNode("Point Light");
-	lightNode->AddObject<Light>(Light::PointLight({1, 1, 1}, 10, 2))->SetShadowCasting(false);
+	lightNode->AddObject<Light>(Light::PointLight({1, 1, 1}, 10, 400))->SetShadowCasting(false);
 	lightNode->GlobalTransform().Position() = {-1, 2.2f, 0};
 
 	auto lightNode2 = mainScene->CreateNode("Directional Light");
@@ -623,13 +626,27 @@ void InitScene(Scene* mainScene) {
 	fogVolume->GlobalTransform().Position() = { -28.0f, 1.5f, 0.0f };
 	fogVolume->GlobalTransform().Scale() = { 20.0f, 12.0f, 20.0f };
 
+  FastNoiseLite noise;
+  noise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
+  noise.SetFractalType(FastNoiseLite::FractalType_FBm);
+  noise.SetFractalOctaves(4);
+  noise.SetFrequency(0.02f);
+
+  Texture3D* noiseTexture = Noise3D::Create3DNoiseTexture(noise, 256, true);
+
   SceneNode* fogVolume2 = mainScene->CreateNode("Fog Volume 2");
   FogVolume* fogVolume2Object = fogVolume2->AddObject<FogVolume>();
-  fogVolume2Object->scatteringColor = { 173, 0, 255 };
+  fogVolume2Object->scatteringColor = { 1.0f, 1.0f, 1.0f };
   fogVolume2Object->stepSize = 0.03f;
   fogVolume2Object->scatteringDensity = 2.0f;
-  fogVolume2Object->absorptionDensity = 0.0f;
+  fogVolume2Object->absorptionDensity = 0.95f;
+  fogVolume2Object->noiseScale = 0.04f;
+  fogVolume2Object->windDirection = { 0.001f, 0.04f, 0.0f };
+  fogVolume2Object->coverage = 0.49f;
+  fogVolume2Object->sharpness = 6.0f;
   fogVolume2->GlobalTransform().Position() = { 0.0f, 0.6f, 3.0f };
+  fogVolume2->GlobalTransform().Scale() = { 20.0f, 1.0f, 20.0f };
+  fogVolume2Object->noiseTexture = noiseTexture;
 
 	SceneNode* schnozCameraNode = mainScene->CreateNode("Schnoz Camera");
 	schnozCameraNode->LocalTransform().Position() = glm::vec3(-56.5, 2.0, -2.0);

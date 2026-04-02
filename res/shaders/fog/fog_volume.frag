@@ -15,6 +15,9 @@ uniform bool useNoiseTex;
 uniform float noiseScale;
 uniform vec3 windDirection;
 
+uniform float coverage;
+uniform float sharpness;
+
 uniform float stepSize;
 uniform float scatteringDensity;
 uniform float absorptionDensity;
@@ -123,10 +126,12 @@ void main() {
     float transmittance = 1.0;
 
     for (float l = 0; l < rayDistance; l += finalStepSize) {
-        float noiseValue = 1.0f;
+        float rawNoise = 1.0f;
         if (useNoiseTex) {
-          noiseValue = texture(noiseTex, (marchPos * noiseScale) + (windDirection * Global_Time)).r;
+          rawNoise = texture(noiseTex, (marchPos * noiseScale) + (windDirection * Global_Time)).r;
         }
+
+        float noiseValue = max(0.0, rawNoise - coverage) * sharpness;
 
         float localScattering = scatteringDensity * noiseValue;
         float localAbsorption = absorptionDensity * noiseValue;

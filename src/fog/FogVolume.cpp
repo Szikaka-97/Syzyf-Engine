@@ -33,6 +33,8 @@ void FogVolume::Render() {
   this->material->SetValue("k", this->k);
   this->material->SetValue("transmittanceThreshold",
                            this->transmittanceThreshold);
+  this->material->SetValue("coverage", this->coverage);
+  this->material->SetValue("sharpness", this->sharpness);
   this->material->SetValue("bias", this->bias);
   if (this->noiseTexture != nullptr) {
       this->material->SetValue("useNoiseTex", true);
@@ -109,4 +111,7 @@ void FogVolume::DrawImGui() {
   ImGui::InputFloat("Bias", &this->bias, -0.99f, 0.99f);
   ImGui::InputFloat("Noise Scale", &this->noiseScale, 0.0f, 5.0f);
   ImGui::InputFloat3("Wind Direction", &this->windDirection.x);
+
+  ImGui::InputFloat("Coverage", &this->coverage, -0.99f, 0.99f);
+  ImGui::InputFloat("Sharpness", &this->sharpness, -0.99f, 0.99f);
 }
