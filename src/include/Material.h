@@ -462,6 +462,9 @@ void ComputeDispatchData::SetUniformBuffer(int uniformBufferBinding, const T_Buf
 
 #pragma endregion
 
+template<> inline bool IsUniformOfRightType<bool>(UniformSpec::UniformType type) {
+  return type == UniformSpec::UniformType::Bool;
+}
 template<> inline bool IsUniformOfRightType<float>(UniformSpec::UniformType type) {
 	return type == UniformSpec::UniformType::Float1;
 }

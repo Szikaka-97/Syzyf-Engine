@@ -9,8 +9,9 @@ in VS_OUT {
 } ps_in;
 
 uniform sampler2D depthTex;
-
 uniform sampler3D noiseTex;
+
+uniform bool useNoiseTex;
 uniform float noiseScale;
 uniform vec3 windDirection;
 
@@ -23,8 +24,7 @@ uniform float bias;
 
 uniform vec3 scatteringColor;
 uniform sampler2D colorRamp;
-uniform float useColorRamp;
-uniform float emissiveStrength;
+uniform bool useColorRamp;
 
 uniform int intersectingLightCount;
 uniform int intersectingLightIndices[128];
@@ -122,7 +122,10 @@ void main() {
     float transmittance = 1.0;
 
     for (float l = 0; l < rayDistance; l += finalStepSize) {
-        float noiseValue = texture(noiseTex, (marchPos * noiseScale) + (windDirection * Global_Time)).r;
+        float noiseValue = 1.0f;
+        if (useNoiseTex) {
+          noiseValue = texture(noiseTex, (marchPos * noiseScale) + (windDirection * Global_Time)).r;
+        }
 
         float localScattering = scatteringDensity * noiseValue;
         float localAbsorption = absorptionDensity * noiseValue;
@@ -133,13 +136,11 @@ void main() {
         }
 
         vec3 color = scatteringColor;
-        if (useColorRamp > 0.5) {
+        if (useColorRamp) {
             color = texture(colorRamp, vec2(noiseValue, 0.5)).rgb;
         }
 
         vec3 stepRadiance = vec3(0.0);
-
-        stepRadiance += color * emissiveStrength * noiseValue;
 
         float viewZ = viewRayOrigin.z + viewRayDir.z * l;
         float pixelDepth = max(0.0, -viewZ / Global_CameraFarPlane);

@@ -12,6 +12,7 @@ struct UniformTypeInfo {
 
 UniformTypeInfo GetUniformInfo(GLenum type) {
 	const static std::map<GLenum, UniformTypeInfo> dict {
+    { GL_BOOL, { UniformSpec::UniformType::Bool, 1 * sizeof(GLint)} },
 		{ GL_FLOAT, { UniformSpec::UniformType::Float1, 1 * sizeof(GLfloat)} },
 		{ GL_FLOAT_VEC2, { UniformSpec::UniformType::Float2, 2 * sizeof(GLfloat)} },
 		{ GL_FLOAT_VEC3, { UniformSpec::UniformType::Float3, 3 * sizeof(GLfloat)} },

@@ -9,6 +9,9 @@ void ShaderVariableStorage::Bind() const {
 		int offset = this->uniformSpec->VariableAt(i).offset;
 
 		switch (this->uniformSpec->VariableAt(i).type) {
+    case UniformSpec::UniformType::Bool:
+      glUniform1i(this->uniformSpec->VariableAt(i).binding, GetValue<bool>(i));
+      break;
 		case UniformSpec::UniformType::Float1:
 			glUniform1f(this->uniformSpec->VariableAt(i).binding, GetValue<float>(i));
 			break;

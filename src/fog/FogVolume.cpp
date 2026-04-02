@@ -8,7 +8,6 @@
 #include <imgui.h>
 #include <LightSystem.h>
 
-#include "FastNoiseLite.h"
 #include "Texture.h"
 
 FogVolume::FogVolume() {
@@ -24,54 +23,6 @@ FogVolume::FogVolume() {
   prog->SetVolumetric(true);
 
   this->material = new Material(prog);
-
-  FastNoiseLite noise;
-  noise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
-  noise.SetFractalType(FastNoiseLite::FractalType_FBm);
-  noise.SetFractalOctaves(4);
-  noise.SetFrequency(0.05f);
-
-  const unsigned int SIZE = 64;
-  int bufferSize = SIZE * SIZE * SIZE;
-    unsigned char* data = new unsigned char[bufferSize];
-
-    for (int z = 0; z < SIZE; z++) {
-        for (int y = 0; y < SIZE; y++) {
-            for (int x = 0; x < SIZE; x++) {
-                float rawNoise = noise.GetNoise((float)x, (float)y, (float)z);
-
-                float normalized = (rawNoise + 1.0f) * 0.5f;
-                normalized = std::clamp(normalized, 0.0f, 1.0f);
-
-                int index = z * SIZE * SIZE + y * SIZE + x;
-                data[index] = (unsigned char)(normalized * 255.0f);
-            }
-        }
-    }
-
-    TextureParams params;
-    params.channels = TextureChannels::Grayscale;
-    params.format = TextureFormat::Ubyte;
-    params.colorSpace = TextureColor::Linear;
-
-    params.wrapU = TextureWrap::Repeat;
-    params.wrapV = TextureWrap::Repeat;
-    params.wrapW = TextureWrap::Repeat;
-
-    params.minFilter = TextureFilter::LinearMipmapLinear;
-    params.magFilter = TextureFilter::Linear;
-
-    Texture3D* noiseTexture = Texture3D::Create(data, SIZE, SIZE, SIZE, params);
-
-
-    noiseTexture->GenerateMipmaps();
-    noiseTexture->Update();
-
-    delete[] data;
-
-    this->noiseTexture = noiseTexture;
-
-    this->colorRamp = this->GetScene()->Resources()->Get<Texture2D>("./res/textures/colorramp.png", Texture::ColorTextureRGB);
 }
 
 void FogVolume::Render() {
@@ -83,18 +34,19 @@ void FogVolume::Render() {
   this->material->SetValue("transmittanceThreshold",
                            this->transmittanceThreshold);
   this->material->SetValue("bias", this->bias);
-  this->material->SetValue("emissiveStrength", this->emissiveStrength);
   if (this->noiseTexture != nullptr) {
+      this->material->SetValue("useNoiseTex", true);
       this->material->SetValue("noiseTex", this->noiseTexture);
       this->material->SetValue("noiseScale", this->noiseScale);
       this->material->SetValue("windDirection", this->windDirection);
+  } else {
+    this->material->SetValue("useNoiseTex", false);
   }
   if (this->colorRamp != nullptr) {
-      // xd
-      this->material->SetValue("useColorRamp", 1.0f);
+      this->material->SetValue("useColorRamp", true);
       this->material->SetValue("colorRamp", this->colorRamp);
   } else {
-      this->material->SetValue("useColorRamp", 0.0f);
+      this->material->SetValue("useColorRamp", false);
   }
 
   std::vector<int> intersectingLightIndices;
@@ -157,5 +109,4 @@ void FogVolume::DrawImGui() {
   ImGui::InputFloat("Bias", &this->bias, -0.99f, 0.99f);
   ImGui::InputFloat("Noise Scale", &this->noiseScale, 0.0f, 5.0f);
   ImGui::InputFloat3("Wind Direction", &this->windDirection.x);
-  ImGui::InputFloat("Emissive Strength", &this->emissiveStrength);
 }
