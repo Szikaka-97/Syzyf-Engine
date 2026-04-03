@@ -1,3 +1,4 @@
+#include "ParticleSpawner.h"
 #include "fog/Fog.h"
 #include "fog/FogVolume.h"
 #include "fog/VolumetricFog.h"
@@ -559,6 +560,18 @@ void InitScene(Scene* mainScene) {
   characterSettings->mLayer = Physics::Layers::MOVING;
   playerNode->AddObject<Physics::CharacterController>(characterSettings);
   playerNode->AddObject<PhysicsMover>();
+
+	ShaderProgram* diffuseTexInstancedProg = ShaderProgram::Build().WithVertexShader(
+		mainScene->Resources()->Get<VertexShader>("./res/shaders/particles/particles.vert")
+	).WithPixelShader(
+		mainScene->Resources()->Get<PixelShader>("./res/shaders/lambert.frag")
+	).Link();
+    diffuseTexInstancedProg->SetCastsShadows(false);
+    diffuseTexInstancedProg->SetIgnoresDepthPrepass(true);
+    Material* schnozInstancedMat = new Material(diffuseTexInstancedProg);
+	schnozInstancedMat->SetValue("uColor", glm::vec3(1, 1, 1));
+	schnozInstancedMat->SetValue("colorTex", schnozTexture);
+    playerNode->AddObject<ParticleSpawner>(schnozMesh, schnozInstancedMat, glm::vec3(100.0f), 100);
 
 	auto cameraNode = mainScene->CreateNode(playerNode, "Camera");
 	Camera* camera = cameraNode->AddObject<Camera>(Camera::Perspective(40.0f, 16.0f/9.0f, 0.5f, 200.0f));

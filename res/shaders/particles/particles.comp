@@ -1,0 +1,30 @@
+#version 460 core
+
+struct ParticleData {
+    vec4 position;
+    vec4 velocity;
+};
+
+layout(std430, binding = 3) buffer ParticleBuffer {
+    ParticleData particles[];  
+};
+
+uniform float uDeltaTime;
+uniform vec3 uAreaCenter;
+uniform vec3 uAreaExtents;
+
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+
+void main() {
+    uint index = gl_GlobalInvocationID.x;
+    if (index >= particles.length()) return;
+
+    particles[index].position.xyz += particles[index].velocity.xyz * uDeltaTime;
+
+    vec3 localPosition = particles[index].position.xyz - uAreaCenter;
+    vec3 size = uAreaExtents * 2.0;
+
+    localPosition = mod(localPosition + uAreaExtents, size) - uAreaExtents;
+    
+    particles[index].position.xyz = uAreaCenter + localPosition;
+}
