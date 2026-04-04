@@ -561,17 +561,29 @@ void InitScene(Scene* mainScene) {
   playerNode->AddObject<Physics::CharacterController>(characterSettings);
   playerNode->AddObject<PhysicsMover>();
 
-	ShaderProgram* diffuseTexInstancedProg = ShaderProgram::Build().WithVertexShader(
+    Texture2D* smokeTex = mainScene->Resources()->Get<Texture2D>("./res/textures/smoke_08.png", Texture::ColorTextureRGBA);
+    Mesh* quadMesh = mainScene->Resources()->Get<Mesh>("./res/models/quad.obj");
+	ShaderProgram* particleProg = ShaderProgram::Build().WithVertexShader(
 		mainScene->Resources()->Get<VertexShader>("./res/shaders/particles/particles.vert")
 	).WithPixelShader(
-		mainScene->Resources()->Get<PixelShader>("./res/shaders/lambert.frag")
+		mainScene->Resources()->Get<PixelShader>("./res/shaders/particles/particles.frag")
 	).Link();
-    diffuseTexInstancedProg->SetCastsShadows(false);
-    diffuseTexInstancedProg->SetIgnoresDepthPrepass(true);
-    Material* schnozInstancedMat = new Material(diffuseTexInstancedProg);
-	schnozInstancedMat->SetValue("uColor", glm::vec3(1, 1, 1));
-	schnozInstancedMat->SetValue("colorTex", schnozTexture);
-    playerNode->AddObject<ParticleSpawner>(schnozMesh, schnozInstancedMat, glm::vec3(100.0f), 100);
+    particleProg->SetCastsShadows(false);
+    particleProg->SetIgnoresDepthPrepass(false);
+    particleProg->SetTransparent(true);
+    Material* schnozInstancedMat = new Material(particleProg);
+	schnozInstancedMat->SetValue("colorTex", smokeTex);
+    playerNode->AddObject<ParticleSpawner>(
+        quadMesh,
+        schnozInstancedMat,
+        ParticleSpawnerSettings {
+            .maxParticles = 1024,
+            .areaExtents = glm::vec3(150.0f),
+            .minScale = 15.0f,
+            .maxScale = 30.0f,
+            .billboardMode = BillboardMode::Z,
+        }
+    );
 
 	auto cameraNode = mainScene->CreateNode(playerNode, "Camera");
 	Camera* camera = cameraNode->AddObject<Camera>(Camera::Perspective(40.0f, 16.0f/9.0f, 0.5f, 200.0f));
