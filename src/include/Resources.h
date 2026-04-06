@@ -12,6 +12,8 @@ namespace fs = std::filesystem;
 class Resource {
 public:
 	virtual ~Resource() = default;
+
+	virtual fs::path GetName() const = 0;
 };
 
 template<class T, typename... T_Params>

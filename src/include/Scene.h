@@ -1,9 +1,10 @@
 #pragma once
 
 #include <concepts>
+#include <nlohmann/json_fwd.hpp>
 #include <vector>
-#include <typeinfo>
 #include <queue>
+#include <Serialized.h>
 
 #include <spdlog/spdlog.h>
 
@@ -205,6 +206,9 @@ public:
 	void DrawImGui();
 
 	static void operator delete(Scene* ptr, std::destroying_delete_t);
+
+	void Deserialize(const nlohmann::json& json_node, std::vector<SerializedReference>& references);
+	nlohmann::json Serialize();
 };
 
 #include <GameObject.h>

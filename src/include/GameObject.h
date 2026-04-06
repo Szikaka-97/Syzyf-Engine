@@ -6,10 +6,12 @@
 #include <Scene.h>
 #include <Messaging.h>
 
+#include <Serialized.h>
+
 class GameObject : public MessageReceiver {
 	friend class Scene;
 private:
-	int id;
+	serialized int id;
 	const std::type_info* runtimeTypeInfo;
 	bool enabled;
 	SceneNode* node;

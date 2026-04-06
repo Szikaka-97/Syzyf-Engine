@@ -19,18 +19,17 @@ assert(os.path.exists(SOURCE_FILES_DIRECTORY))
 assert(os.path.exists(HEADER_FILES_DIRECTORY))
 assert(os.path.exists(COMMAND_FILE))
 
-json_type_regex = regex.compile(r"(const)?\s+(nlohmann::)?json(\s+&)?")
+json_arg_regex = regex.compile(r"(const)?\s+(nlohmann::)?json(\s+&)?")
+json_return_regex = regex.compile(r"(nlohmann::)?json")
 references_vector_type_regex = regex.compile(r"(std::)?vector<SerializedReference>\s*&")
+vector_type_regex = regex.compile(r"(std::)?vector<(.*)>")
 
 #region Serious
 
 class DeserializationStrategy(Enum):
 	SIMPLE = 1,
 	CHAIN = 2,
-	VECTOR_CHAIN = 3,
-	DICT_VALUE_CHAIN = 4,
-	POINTER_SIMPLE = 5
-	POINTER_CLASS = 6
+	SPECIAL = 3,
 
 
 class SerializedClass:
@@ -47,42 +46,45 @@ class SerializedClass:
 
 		SerializedClass.all_classes[self.name] = self
 
-		self.generate_code = True
+		self.is_abstract = False
 
 		class_part: clang.Cursor
-		for class_part in class_cursor.get_children():
-			deserialize_present = False
-			serialize_present = False
 
+		deserialize_present = False
+		serialize_present = False
+
+		self.parent_classes: list[SerializedClass] = []
+
+		for class_part in class_cursor.get_children():
 			if class_part.kind == clang.CursorKind.CXX_METHOD and class_part.spelling == "Deserialize":
 				method_args = [arg.type.spelling for arg in class_part.get_arguments()]
 
-				deserialize_present = (
+				deserialize_present = deserialize_present or (
 					class_part.result_type.spelling == "void"
 					and
 					len(method_args) == 2
 					and
-					json_type_regex.match(method_args[0])
+					json_arg_regex.match(method_args[0])
 					and
 					references_vector_type_regex.match(method_args[1])
 				)
 			elif class_part.kind == clang.CursorKind.CXX_METHOD and class_part.spelling == "Serialize":
 				method_args = [arg.type.spelling for arg in class_part.get_arguments()]
 
-				serialize_present = (
-					class_part.result_type.spelling == "void"
+				serialize_present = serialize_present or (
+					json_return_regex.match(class_part.result_type.spelling)
 					and
-					len(method_args) == 2
-					and
-					json_type_regex.match(method_args[0])
-					and
-					references_vector_type_regex.match(method_args[1])
+					len(method_args) == 0
 				)
-				
 
 			if class_part.kind == clang.CursorKind.CXX_METHOD and class_part.is_pure_virtual_method():
-				self.generate_code = False
+				self.is_abstract = True
+
 				break
+		
+		if serialize_present and deserialize_present:
+			self.serialization_methods = True
+
 
 
 	def read_fields(self):
@@ -96,7 +98,7 @@ class SerializedClass:
 		for class_part in self.cursor.get_children():
 			if class_part.kind == clang.CursorKind.CXX_BASE_SPECIFIER:
 				if class_part.spelling in SerializedClass.all_classes:
-					self.fields += SerializedClass.all_classes[class_part.spelling].fields
+					self.parent_classes.append(SerializedClass.all_classes[class_part.spelling])
 
 		for field_decl in self.cursor.type.get_fields():
 			if is_serialized_field(field_decl):
@@ -105,12 +107,16 @@ class SerializedClass:
 				if field:
 					self.fields.append(field)
 		
-		if len(self.fields) == 0:
-			self.generate_code = False
-
 
 	def serialized(self) -> bool:
-		return len(self.fields) > 0
+		if len(self.fields) > 0 or self.serialization_methods:
+			return True
+
+		for parent in self.parent_classes:
+			if parent.serialized():
+				return True
+
+		return False
 
 	def __str__(self):
 		result = "class " + self.name + " {\n"
@@ -121,6 +127,16 @@ class SerializedClass:
 		result += "}"
 
 		return result
+
+
+class SpecialSerializers:
+	@staticmethod
+	def deserialize_GameObjectPtr():
+		pass
+
+	@staticmethod
+	def serialize_GameObjectPtr():
+		pass
 
 
 class SerializedType:
@@ -143,6 +159,10 @@ class SerializedType:
 		"std::string": ("std::string", DeserializationStrategy.SIMPLE),
 		"string": ("std::string", DeserializationStrategy.SIMPLE),
 	}
+
+	SPECIAL_TYPES = {
+		"GameObject *" : -1
+	}
 	
 	def __init__(self, name: str, type_data: tuple):
 		self.name = name
@@ -153,32 +173,24 @@ class SerializedType:
 	def __str__(self):
 		return self.name
 
-
 	@classmethod
 	def get_type(cls: Self, field_cursor: clang.Cursor) -> Self:
 		type_name: str = field_cursor.type.spelling
 		if type_name in SerializedType.BUILTIN_SIMPLE_TYPES:
 			return SerializedType(type_name, SerializedType.BUILTIN_SIMPLE_TYPES[type_name])
 
-		if type_name.endswith("*"):
-			type_name = type_name[:-2]
+		# if type_name.endswith("*"):
+		# 	type_name = type_name[:-2]
 
-			if type_name in SerializedType.BUILTIN_SIMPLE_TYPES:
-				return SerializedType(type_name, (SerializedType.BUILTIN_SIMPLE_TYPES[type_name][0], DeserializationStrategy.POINTER_SIMPLE))
-			elif type_name in SerializedClass.all_classes:
-				return SerializedType(type_name, (type_name, DeserializationStrategy.POINTER_CLASS))
-			else:
-				return None
+		# 	if type_name in SerializedType.BUILTIN_SIMPLE_TYPES:
+		# 		return SerializedType(type_name, (SerializedType.BUILTIN_SIMPLE_TYPES[type_name][0], DeserializationStrategy.POINTER_SIMPLE))
+		# 	elif type_name in SerializedClass.all_classes:
+		# 		return SerializedType(type_name, (type_name, DeserializationStrategy.POINTER_CLASS))
+		# 	else:
+		# 		return None
 
 		if "vector<" in type_name:
-			template_arg_name = field_cursor.type.get_template_argument_type(0).spelling
-
-			if template_arg_name in SerializedType.BUILTIN_SIMPLE_TYPES:
-				return SerializedType(type_name, (type_name if type_name.startswith("std::") else "std::" + type_name, DeserializationStrategy.SIMPLE))
-			elif template_arg_name in SerializedClass.all_classes:
-				return SerializedType(type_name, (type_name, DeserializationStrategy.VECTOR_CHAIN))
-			else:
-				return None
+			return SerializedVector.get_vector_type(field_cursor)
 		
 		if "map<" in type_name or "unordered_map<" in type_name:
 			template_arg_name = field_cursor.type.get_template_argument_type(1).spelling
@@ -194,6 +206,33 @@ class SerializedType:
 			return SerializedType(type_name, (type_name, DeserializationStrategy.CHAIN))
 
 		return None
+
+
+class SerializedVector(SerializedType):
+	def __init__(self, field_cursor: clang.Cursor):
+		super().__init__(field_cursor, (field_cursor.type.spelling, DeserializationStrategy.SPECIAL))
+		
+		type_name: str = field_cursor.type.spelling
+		
+		template_arg_name = field_cursor.type.get_template_argument_type(0).spelling
+
+		if template_arg_name in SerializedType.BUILTIN_SIMPLE_TYPES:
+			self.element_type = SerializedType(type_name, (type_name if type_name.startswith("std::") else "std::" + type_name, DeserializationStrategy.SIMPLE))
+		elif template_arg_name in SerializedClass.all_classes:
+			self.element_type = SerializedType(type_name, (type_name, DeserializationStrategy.CHAIN))
+		elif template_arg_name in SerializedType.SPECIAL_TYPES:
+			self.element_type = SerializedType(type_name, (type_name, SerializedType.SPECIAL))
+		
+
+	@classmethod
+	def get_vector_type(cls: Self, field_cursor: clang.Cursor) -> Self:
+		return SerializedVector(field_cursor)
+
+
+class SerializedMap(SerializedType):
+	def __init__(self, key_type: SerializedType, value_type: SerializedType):
+		self.key_type = key_type
+		self.value_type = value_type
 
 
 class SerializedField:
@@ -289,50 +328,47 @@ def construct_file(files: list[str], compile_args: list[str]) -> clang.Translati
 	return result
 
 
-def generate_deserializer_for_class(writer: CodeWriter, cls: SerializedClass) -> None:
-	writer.line("template<>")
-	writer.line(f"void DeserializeOn<{cls.name}>(volatile {cls.name}* ptr, const json& json_node, std::vector<SerializedReference>& references) {{")
-	writer.more_indent()
+def generate_deserializer_for_field(writer: CodeWriter, field: SerializedField) -> None:
+	if field.type.strategy == DeserializationStrategy.SIMPLE:
+		writer.line(f"new(({field.type.c_name}*) (data + {field.offset:.0f})) {field.type.c_name}{{json_node[\"{field.name}\"].get<{field.type.c_name}>()}};")
+	elif field.type.strategy == DeserializationStrategy.CHAIN:
+		writer.line(f"DeserializeOn<{field.type.c_name}>(({field.type.c_name}*) (data + {field.offset:.0f}), json_node[\"{field.name}\"]);")
+
+
+def flatten_parents_list(arr: list[SerializedClass]) -> list:
+	if arr == []:
+		return arr
+
+	visited_states = []
+	states_to_visit = arr
+
+	while len(states_to_visit):
+		state = states_to_visit.pop()
+		
+		if state in visited_states:
+			continue
+		
+		visited_states.append(state)
+		states_to_visit += state.parent_classes
 	
-	writer.line("volatile uint8_t* data = reinterpret_cast<volatile uint8_t*>(ptr);")
-	writer.line("")
+	return visited_states
 
-	for field in cls.fields:
-		if field.type.strategy == DeserializationStrategy.SIMPLE:
-			writer.line(f"new(({field.type.c_name}*) (data + {field.offset:.0f})) {field.type.c_name}{{json_node[\"{field.name}\"].get<{field.type.c_name}>()}};")
-		elif field.type.strategy == DeserializationStrategy.CHAIN:
-			writer.line(f"DeserializeOn<{field.type.c_name}>(({field.type.c_name}*) (data + {field.offset:.0f}), json_node[\"{field.name}\"]);")
-		elif field.type.strategy == DeserializationStrategy.VECTOR_CHAIN:
-			writer.line("{")
-			writer.more_indent()
-			writer.line(f"auto value_{field.name} = new(({field.type.c_name}*) (data + {field.offset:.0f})) {field.type.c_name}{{json_node[\"{field.name}\"].size()}};")
-			writer.line(f"for (int i = 0; i < value_{field.name}->size(); i++) {{")
-			writer.more_indent()
-			writer.line(f"Deserialize(&(*value_{field.name})[i], json_node[\"{field.name}\"][i]);")
-			writer.less_indent()
-			writer.line("}")
-			writer.less_indent()
-			writer.line("}")
-		elif field.type.strategy == DeserializationStrategy.DICT_VALUE_CHAIN:
-			writer.line("{")
-			writer.more_indent()
-			writer.line(f"auto value_{field.name} = new(({field.type.c_name}*) (data + {field.offset:.0f})) {field.type.c_name}{{}};")
-			writer.line(f"auto value__list = json_node[\"{field.name}\"].get<json::object_t>();")
-			writer.line("for (auto& child : value__list) {")
-			writer.more_indent()
-			writer.line(f"Deserialize(&(*value_{field.name})[child.first], child.second, references);")
-			writer.less_indent()
-			writer.line("}")
-			writer.less_indent()
-			writer.line("}")
-		elif field.type.strategy == DeserializationStrategy.POINTER_SIMPLE:
-			writer.line(f"*(({field.type.c_name}**) (data + {field.offset:.0f})) = new {field.type.c_name}(json_node[\"{field.name}\"].get<{field.type.c_name}>());")
-		elif field.type.strategy == DeserializationStrategy.POINTER_CLASS:
-			writer.line(f"references.push_back({{(void**) (data + {field.offset:.0f}), json_node[\"{field.name}\"][\"_index\"].get<int>()}});")
-		# add_line(f"*value_{field.name} = ;")
 
-	writer.indent = 0
-	writer.line("}")
+def generate_deserializer_for_class(writer: CodeWriter, cls: SerializedClass) -> None:
+	for parent in cls.parent_classes:
+		generate_deserializer_for_class(writer, parent)
+
+	if not cls.serialization_methods and len(cls.fields) == 0:
+		return
+
+	writer.line()
+	writer.line(f"// {cls.name}")
+
+	if cls.serialization_methods:
+		writer.line(f"const_cast<{cls.name} *>(ptr)->Deserialize(json_node, references);")
+	else:
+		for field in cls.fields:
+			generate_deserializer_for_field(writer, field)
 
 
 def generate_serializer_for_class(writer: CodeWriter, cls: SerializedClass) -> None:
@@ -344,14 +380,34 @@ def generate_serializer_for_class(writer: CodeWriter, cls: SerializedClass) -> N
 	writer.line("json result;")
 	writer.line()
 	writer.line(f"result[\"_type_name\"] = \"{cls.name}\";")
-	writer.line("json& dataNode = (result[\"_data\"] = json{});")
 
+	if cls.serialization_methods:
+		writer.line(f"result[\"_data\"] = const_cast<{cls.name} *>(ptr)->Serialize();")
+		writer.line()
+		writer.line("return result;")
+		writer.indent = 0
+		writer.line("}")
+		return
+
+	writer.line("json& dataNode = (result[\"_data\"] = json{});")
 	for field in cls.fields:
 		if field.type.strategy == DeserializationStrategy.SIMPLE:
 			writer.line(f"dataNode[\"{field.name}\"] = *(const {field.type.c_name} *) (data + {field.offset:.0f});")
 		elif field.type.strategy == DeserializationStrategy.CHAIN:
 			writer.line(f"dataNode[\"{field.name}\"] = Serialize<{field.type.c_name}>(*(const {field.type.c_name} *) (data + {field.offset:.0f}));")
-			# writer.line(f"DeserializeOn<{field.type.c_name}>(({field.type.c_name}*) (data + {field.offset:.0f}), json_node[\"{field.name}\"]);")
+		# elif field.type.strategy == DeserializationStrategy.GAME_OBJECT_VECTOR:
+		# 	writer.line("{")
+		# 	writer.more_indent()
+		# 	writer.line("std::vector<int> nodeIDs;")
+		# 	writer.line(f"for (const GameObject* obj : *(const {field.type.c_name} *) (data + {field.offset:.0f})) {{")
+		# 	writer.more_indent()
+		# 	writer.line("nodeIDs.push_back(obj->GetID());")
+		# 	writer.less_indent()
+		# 	writer.line("}")
+
+		# 	writer.line(f"dataNode[\"{field.name}\"] = nodeIDs;")
+		# 	writer.less_indent()
+		# 	writer.line("}")
 	
 	writer.line()
 	writer.line("return result;")
@@ -407,7 +463,7 @@ def main():
 	for cls in classes:
 		cls.read_fields()
 	
-	classes = [cls for cls in classes if cls.serialized() > 0]
+	classes = [cls for cls in classes if cls.serialized()]
 
 	with CodeWriter(DEST_INCLUDE_FILE_PATH) as dest_header:
 		dest_header.line("#pragma once")
@@ -423,15 +479,19 @@ def main():
 		dest_header.line("void Deserialize(volatile void* ptr, const json& json_node, std::vector<SerializedReference>& references);")
 
 		for cls in classes:
-			dest_header.line()
-			dest_header.line(f"class {cls.name};")
-			dest_header.line()
-			dest_header.line("template<>")
-			dest_header.line(f"void DeserializeOn<{cls.name}>(volatile {cls.name}* ptr, const json& json_node, std::vector<SerializedReference>& references);")
-			dest_header.line()
-			dest_header.line("template<>")
-			dest_header.line(f"json Serialize<{cls.name}>(const {cls.name}* ptr);")
-			dest_header.line()
+			if cls.serialized() and not cls.is_abstract:
+				dest_header.line()
+				dest_header.line(f"class {cls.name};")
+				dest_header.line()
+				dest_header.line("template<>")
+				dest_header.line(f"void DeserializeOn<{cls.name}>(volatile {cls.name}* ptr, const json& json_node, std::vector<SerializedReference>& references);")
+				dest_header.line()
+				dest_header.line("template<>")
+				dest_header.line(f"json Serialize<{cls.name}>(const {cls.name}* ptr);")
+				dest_header.line()
+		
+		dest_header.line("nlohmann::json SerializeGameObject(GameObject* obj);")
+		dest_header.line("size_t GetObjectSize(const std::string& className);")
 
 
 	with CodeWriter(DEST_SOURCE_FILE_PATH) as dest_impl:
@@ -440,12 +500,29 @@ def main():
 		dest_impl.line("#include <unordered_map>")
 		dest_impl.line("#include <nlohmann/json.hpp>")
 		dest_impl.line()
+		dest_impl.line(f"#include <GameObject.h>")
+		for cls in classes:
+			if cls.serialization_methods:
+				dest_impl.line(f"#include <{cls.cursor.location.file.name.split("/include/")[-1]}>")
+		dest_impl.line()
+
 		dest_impl.line("using json = nlohmann::json;")
 		dest_impl.line()
 
 		for cls in classes:
-			if cls.generate_code:
+			if cls.serialized() and not cls.is_abstract:
+				dest_impl.line("template<>")
+				dest_impl.line(f"void DeserializeOn<{cls.name}>(volatile {cls.name}* ptr, const json& json_node, std::vector<SerializedReference>& references) {{")
+				dest_impl.more_indent()
+
+				dest_impl.line("volatile uint8_t* data = reinterpret_cast<volatile uint8_t*>(ptr);")
+				
 				generate_deserializer_for_class(dest_impl, cls)
+
+				dest_impl.indent = 0
+				dest_impl.line("}")
+				dest_impl.line()
+				generate_serializer_for_class(dest_impl, cls)
 		
 		dest_impl.line()
 		dest_impl.line("typedef void (*DeserializeOnSpecialization)(volatile void* ptr, const json& json_node, std::vector<SerializedReference>& references);")
@@ -459,7 +536,7 @@ def main():
 		dest_impl.more_indent()
 
 		for name, cls in SerializedClass.all_classes.items():
-			if cls.generate_code:
+			if cls.serialized() and not cls.is_abstract:
 				dest_impl.line(f"{{ \"{cls.name}\", (DeserializeOnSpecialization) DeserializeOn<{cls.name}> }},")
 
 		dest_impl.less_indent()
@@ -480,6 +557,36 @@ def main():
 
 		dest_impl.line()
 
+		dest_impl.line("typedef nlohmann::json (*SerializationFunc)(GameObject*);")
+
+		dest_impl.line("nlohmann::json SerializeGameObject(GameObject* obj) {")
+		dest_impl.more_indent()
+		
+		dest_impl.line("static const std::unordered_map<std::string, SerializationFunc> typeBindings = {")
+		dest_impl.more_indent()
+
+		for name, cls in SerializedClass.all_classes.items():
+			if cls.serialized() and not cls.is_abstract:
+				dest_impl.line(f"{{ \"{cls.name}\", (SerializationFunc) Serialize<{cls.name}> }},")
+
+		dest_impl.less_indent()
+		dest_impl.line("};")
+		dest_impl.line()
+		dest_impl.line("std::string className = obj->GetName();")
+		dest_impl.line()
+		dest_impl.line("auto serializerIterator = typeBindings.find(className);")
+		dest_impl.line()
+		dest_impl.line("if (serializerIterator == typeBindings.end()) {")
+		dest_impl.line("	return 0;")
+		dest_impl.line("}")
+		dest_impl.line()
+		dest_impl.line("return serializerIterator->second(obj);")
+
+		dest_impl.less_indent()
+		dest_impl.line("}")
+
+		dest_impl.line()
+
 		dest_impl.line("size_t GetObjectSize(const std::string& className) {")
 
 		dest_impl.more_indent()
@@ -489,7 +596,7 @@ def main():
 		dest_impl.more_indent()
 
 		for name, cls in SerializedClass.all_classes.items():
-			if cls.generate_code:
+			if cls.serialized() and not cls.is_abstract:
 				dest_impl.line(f"{{ \"{cls.name}\", {cls.cursor.type.get_size()} }},")
 
 		dest_impl.less_indent()
@@ -507,10 +614,6 @@ def main():
 		dest_impl.less_indent()
 
 		dest_impl.line("}")
-
-		for cls in classes:
-			if cls.generate_code:
-				generate_serializer_for_class(dest_impl, cls)
 
 
 if __name__ == "__main__":

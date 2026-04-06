@@ -452,3 +452,7 @@ Mesh* Mesh::Load(fs::path modelPath, bool loadMaterials) {
 
 	return loadedMesh;
 }
+
+fs::path Mesh::GetName() const {
+	return this->path;
+}

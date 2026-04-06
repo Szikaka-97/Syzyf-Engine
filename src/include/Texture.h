@@ -99,6 +99,8 @@ protected:
 	TextureInfoBit<TextureFilter> magFilter;
 	TextureInfoBit<bool> mipmapped;
 
+	fs::path path;
+
 	virtual void Create() = 0;
 public:
 	static constexpr TextureParams ColorTextureRGB {.channels = TextureChannels::RGB, .colorSpace = TextureColor::SRGB, .format = TextureFormat::Ubyte, .minFilter = TextureFilter::LinearMipmapLinear};
@@ -152,6 +154,8 @@ public:
 
 	bool IsDirty() const;
 	void Update();
+
+	virtual fs::path GetName() const;
 };
 
 class Texture2D : public Texture {

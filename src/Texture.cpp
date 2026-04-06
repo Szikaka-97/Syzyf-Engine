@@ -288,6 +288,10 @@ void Texture::Update() {
 	glBindTexture(type, 0);
 }
 
+fs::path Mesh::GetName() const {
+	return this->path;
+}
+
 template<> Texture2D* Texture::Load<Texture2D>(const fs::path& texturePath, const TextureParams& loadParams) {
 	return Texture2D::Load(texturePath, loadParams);
 }

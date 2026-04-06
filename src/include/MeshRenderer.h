@@ -5,11 +5,12 @@
 #include <GameObject.h>
 #include <Mesh.h>
 #include <Material.h>
+#include <Serialized.h>
 
 class MeshRenderer : public GameObject {
 private:
-	Mesh* mesh;
-	std::vector<Material*> materials;
+	serialized Mesh* mesh;
+	serialized std::vector<Material*> materials;
 
 	void ResetUniformBuffer();
 public:

@@ -70,6 +70,7 @@ private:
 	float* vertexData;
 	unsigned int vertexStride;
 	GLuint vertexBuffer;
+	fs::path path;
 public:
 	Mesh() = default;
 	virtual ~Mesh();
@@ -87,4 +88,6 @@ public:
 
 	static Mesh* Load(fs::path modelPath, bool loadMaterials = false);
 	// static Mesh* Create(unsigned int vertexCount, float* vertexData, unsigned int triangleCount, unsigned int* indexData, const VertexSpec& meshSpec);
+
+	virtual fs::path GetName() const;
 };

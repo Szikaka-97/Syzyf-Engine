@@ -1,4 +1,6 @@
+#include "SerializationDecls.h"
 #include "imgui.h"
+#include <fstream>
 
 #include <Formatters.h>
 #include <Shader.h>
@@ -19,6 +21,9 @@
 #include <InputSystem.h>
 #include <Engine.h>
 #include <Viewport.h>
+#include <nlohmann/detail/conversions/from_json.hpp>
+#include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 class Mover : public GameObject, public ImGuiDrawable {
 private:
@@ -349,6 +354,16 @@ void InitScene(Scene* mainScene) {
 	cameraNode->AddObject<Tonemapper>()->SetOperator(Tonemapper::TonemapperOperator::GranTurismo);
 
 	mainScene->AddComponent<DebugInspector>();
+
+	std::ofstream destJson("kurwa.json");
+
+	nlohmann::json sceneDump = Serialize(mainScene);
+
+	destJson << sceneDump.dump(4) << "\n";
+
+	destJson.close();
+
+	exit(0);
 }
 
 int main(int, char**) {

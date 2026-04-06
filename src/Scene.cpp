@@ -1,3 +1,4 @@
+#include "SerializationDecls.h"
 #include <Scene.h>
 
 #include <algorithm>
@@ -6,6 +7,7 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
+#include <nlohmann/json.hpp>
 
 #include <spdlog/spdlog.h>
 #include <GameObject.h>
@@ -468,4 +470,52 @@ void Scene::operator delete(Scene* ptr, std::destroying_delete_t) {
 	if (ptr->root->parent) {
 		ptr->root->parent->GetScene()->QueueDelete(ptr);
 	}
+}
+
+void Scene::Deserialize(const nlohmann::json& json_node, std::vector<SerializedReference>& references) {
+	
+}
+
+nlohmann::json Scene::Serialize() {
+	json data;
+
+	std::vector<json> nodesData;
+
+	std::stack<SceneNode*> nodes;
+	nodes.push(this->root);
+
+	while (!nodes.empty()) {
+		SceneNode* current = nodes.top();
+		nodes.pop();
+
+		json nodeRep;
+
+		nodeRep["id"] = current->id;
+		nodeRep["name"] = current->name;
+		nodeRep["parent"] = current->parent ? current->parent->id : -1;
+
+		std::array<std::array<float, 4>, 4> transformData;
+		for (int y = 0; y < 4; y++) {
+			for (int x = 0; x < 4; x++) {
+				transformData[y][x] = current->LocalTransform().Value()[y][x];
+			}
+		}
+		nodeRep["transform"] = transformData;
+
+		std::vector<nlohmann::json> gameObjectData;
+		for (GameObject* obj : current->objects) {
+			gameObjectData.push_back(SerializeGameObject(obj));
+		}
+		nodeRep["objects"] = gameObjectData;
+
+		for (auto child : current->children) {
+			nodes.push(child);
+		}
+
+		nodesData.push_back(nodeRep);
+	}
+
+	data["nodes"] = nodesData;
+
+	return data;
 }
