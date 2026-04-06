@@ -20,7 +20,9 @@
 UNIFORM_DECL(0) ShaderGlobalUniforms
 {
 	mat4 Global_ViewMatrix;
+	mat4 Global_InverseViewMatrix;
 	mat4 Global_ProjectionMatrix;
+	mat4 Global_InverseProjectionMatrix;
 	mat4 Global_VPMatrix;
 	vec3 Global_CameraWorldPos;
 	float Global_Time;
@@ -31,6 +33,7 @@ UNIFORM_DECL(0) ShaderGlobalUniforms
 UNIFORM_DECL(1) ShaderObjectUniforms
 {
 	mat4 Object_ModelMatrix;
+	mat4 Object_InverseModelMatrix;
 	mat4 Object_MVPMatrix;
 	mat3 Object_NormalModelMatrix;
 };

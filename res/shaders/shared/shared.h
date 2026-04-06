@@ -26,6 +26,8 @@
 #define IN_UV1 location=4
 #define IN_UV2 location=5
 #define IN_COLOR location=6
+#define IN_JOINTS location=7
+#define IN_WEIGHTS location=8
 
 #define POINT_LIGHT 0
 #define SPOT_LIGHT 1

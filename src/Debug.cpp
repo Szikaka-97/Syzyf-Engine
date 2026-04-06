@@ -1,3 +1,4 @@
+#include "animation/AnimationComponent.h"
 #include <Debug.h>
 
 #include <stack>
@@ -120,6 +121,24 @@ void DrawNodeImGui(SceneNode* node) {
 
 			ImGui::TreePop();
 		}
+
+    AnimationComponent* animationComponent = node->GetObject<AnimationComponent>();
+    if (animationComponent != nullptr) {
+      if (ImGui::TreeNode("Animation")) {
+        for (auto& animation : animationComponent->animations) {
+          if (ImGui::TreeNode(animation.data.name.c_str())) {
+            ImGui::Text("%s", std::format("Duration: {}", animation.data.duration).c_str());
+            ImGui::Text("%s", std::format("Progress: {}", animation.timeActive).c_str());
+            ImGui::Checkbox("Playing", &animation.playing);
+            ImGui::Checkbox("Looping", &animation.looping);
+            ImGui::DragFloat("Speed", &animation.speed, 1.0f, 0.0f, 5.0f, "%.2f");
+            // animation.data.tracks.front().inputs add this maybe
+            ImGui::TreePop();
+          }
+        }
+        ImGui::TreePop();
+      };
+    }
 
 		std::string objectSectionHeader = std::format("Object count: {}", (int) node->AttachedObjects().size());
 

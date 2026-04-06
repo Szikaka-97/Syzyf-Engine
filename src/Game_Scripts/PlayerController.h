@@ -5,10 +5,12 @@
 #include <InputSystem.h>
 #include <Graphics.h>
 #include <Camera.h>
-#include <Mesh.h>
-#include <Material.h>
-#include <MeshRenderer.h>
 #include <Game_Scripts/ThrowBottle.h>
+#include <physics/VirtualCharacterController.h>
+
+#include <Jolt/Jolt.h>
+#include <Jolt/Physics/Character/CharacterBase.h>
+
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/matrix_inverse.hpp>
@@ -17,15 +19,22 @@
 
 class PlayerController : public GameObject, public ImGuiDrawable {
 private:
-    float moveSpeed = 0.08f;
-    SceneNode* markerNode;
-    Mesh* bottleMesh = nullptr;
-    Material* bottleMaterial = nullptr;
-    bool throwButtonHeld = false;
+    float moveSpeed = 6.0f;
+    float jumpSpeed = 8.0f;
+
+    SceneNode* markerNode = nullptr;
+    ThrowBottle* bottleThrower = nullptr;
+
+    Physics::VirtualCharacterController* virtualController = nullptr;
+    glm::vec3 velocity = glm::vec3(0.0f);
 
     glm::vec3 GetMousePointOnGround(Camera* camera) {
         glm::vec2 mousePos = GetScene()->Input()->GetMousePosition();
         glm::vec2 screenSize = GetScene()->GetGraphics()->GetScreenResolution();
+
+        if (screenSize.x <= 0.0f || screenSize.y <= 0.0f) {
+            return GlobalTransform().Position().Value();
+        }
 
         float x = (2.0f * mousePos.x) / screenSize.x - 1.0f;
         float y = 1.0f - (2.0f * mousePos.y) / screenSize.y;
@@ -52,35 +61,27 @@ private:
         return rayOrigin + rayDir * t;
     }
 
-    void SpawnBottle(const glm::vec3& targetPoint)
-    {
-        if (!bottleMesh || !bottleMaterial)
-            return;
-
-        glm::vec3 startPos = GlobalTransform().Position().Value() + glm::vec3(0.0f, 1.2f, 0.0f);
-
-        SceneNode* bottleNode = GetScene()->CreateNode("Thrown Bottle");
-        bottleNode->AddObject<MeshRenderer>(bottleMesh, bottleMaterial);
-        bottleNode->AddObject<ThrowBottle>(startPos, targetPoint, 0.8f, 3.0f);
-        bottleNode->GlobalTransform().Position() = startPos;
-        bottleNode->GlobalTransform().Scale() = glm::vec3(0.3f);
+    void TryInitController() {
+        if (!virtualController) {
+            virtualController = GetObject<Physics::VirtualCharacterController>();
+        }
     }
 
 public:
     PlayerController(SceneNode* markerNode = nullptr) : markerNode(markerNode) {}
 
-    void SetBottleResources(Mesh* mesh, Material* material)
-    {
-        bottleMesh = mesh;
-        bottleMaterial = material;
+    void SetBottleThrower(ThrowBottle* thrower) {
+        bottleThrower = thrower;
     }
 
     void Update() {
-        glm::vec3 movement = glm::vec3(0.0f);
+        TryInitController();
+        if (!virtualController) return;
 
         Camera* camera = GetScene()->GetGraphics()->GetMainCamera();
         if (!camera) return;
 
+        glm::vec3 movement(0.0f);
         glm::vec3 cameraRight = camera->GlobalTransform().Right();
         glm::vec3 cameraForward = camera->GlobalTransform().Forward();
 
@@ -109,8 +110,25 @@ public:
 
         if (glm::length(movement) > 0.0f) {
             movement = glm::normalize(movement);
-            GlobalTransform().Position() += movement * moveSpeed;
         }
+
+        velocity.x = movement.x * moveSpeed;
+        velocity.z = movement.z * moveSpeed;
+
+        if (virtualController->IsSupported()) {
+            velocity.y = 0.0f;
+
+            if (GetScene()->Input()->KeyPressed(Key::Space) &&
+                virtualController->GetGroundState() == JPH::CharacterBase::EGroundState::OnGround) {
+                velocity.y = jumpSpeed;
+            }
+        } else {
+            velocity.y += -9.81f * virtualController->GetGravityFactor() * (1.0f / 60.0f);
+        }
+
+        virtualController->Move(velocity, 1.0f / 60.0f);
+
+        GlobalTransform().Position() = virtualController->GetPosition();
 
         glm::vec3 mouseWorld = GetMousePointOnGround(camera);
 
@@ -127,18 +145,19 @@ public:
             toMouse = glm::normalize(toMouse);
             float angle = std::atan2(toMouse.x, toMouse.z);
             GlobalTransform().Rotation() = glm::angleAxis(angle, glm::vec3(0, 1, 0));
+            virtualController->SetRotation(GlobalTransform().Rotation().Value());
         }
 
-        bool leftPressed = GetScene()->Input()->ButtonPressed(MouseButton::Left);
-
-        if (GetScene()->Input()->ButtonPressed(MouseButton::Left)) {
-            SpawnBottle(mouseWorld);
+        if (GetScene()->Input()->ButtonDown(MouseButton::Left)) {
+            if (bottleThrower) {
+                glm::vec3 startPos = GlobalTransform().Position().Value() + glm::vec3(0.0f, 1.2f, 0.0f);
+                bottleThrower->LaunchBottle(startPos, mouseWorld, 0.8f, 3.0f);
+            }
         }
-
-        throwButtonHeld = leftPressed;
     }
 
     void DrawImGui() override {
         ImGui::InputFloat("Player move speed", &moveSpeed);
+        ImGui::InputFloat("Jump speed", &jumpSpeed);
     }
 };

@@ -380,6 +380,47 @@ Texture2D::Texture2D(unsigned int width, unsigned int height, const TextureParam
 	this->Update();
 }
 
+Texture2D* Texture2D::Create(unsigned char* textureData, int width, int height, const TextureParams& loadParams) {
+	GLuint textureHandle;
+	glGenTextures(1, &textureHandle);
+
+	glBindTexture(GL_TEXTURE_2D, textureHandle);
+
+	GLenum internalFormat = CalcInternalFormat(loadParams);
+	GLenum format = ToGL(loadParams.channels);
+	GLenum textureType = ToGL(loadParams.format);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, format, textureType, textureData);		
+	glBindTexture(GL_TEXTURE_2D, 0);
+	
+	Texture2D* result = new Texture2D(width, height, loadParams, textureHandle);
+
+	return result;
+}
+
+Texture2D* Texture2D::Load(const unsigned char* data, const int length, const TextureParams loadParams) {
+  stbi_set_flip_vertically_on_load(false);
+
+  int width, height, nrChannels;
+  unsigned char* textureData = nullptr;
+  
+  if (loadParams.format == TextureFormat::Float) {
+    textureData = (unsigned char*)stbi_loadf_from_memory(data, length, &width, &height, &nrChannels, loadParams.NumChannels());
+  } else {
+    textureData = stbi_load_from_memory(data, length, &width, &height, &nrChannels, loadParams.NumChannels());
+  }
+
+  if (!textureData) {
+    spdlog::error("Failed to load texture from data");
+    return nullptr;
+  }
+
+  Texture2D* texture = Create(textureData, width, height, loadParams);
+
+  stbi_image_free(textureData);
+  return texture;
+}
+
 Texture2D* Texture2D::Load(const fs::path& texturePath, const TextureParams& loadParams) {
 	stbi_set_flip_vertically_on_load(true);
 	
@@ -398,24 +439,10 @@ Texture2D* Texture2D::Load(const fs::path& texturePath, const TextureParams& loa
 		return nullptr;
 	}
 
-	GLuint textureHandle;
-	glGenTextures(1, &textureHandle);
-
-	glBindTexture(GL_TEXTURE_2D, textureHandle);
-
-	GLenum internalFormat = CalcInternalFormat(loadParams);
-	GLenum format = ToGL(loadParams.channels);
-	GLenum textureType = ToGL(loadParams.format);
-
-	glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, format, textureType, textureData);
+  Texture2D* texture = Create(textureData, width, height, loadParams);
 	
-	stbi_image_free(textureData);
-	
-	glBindTexture(GL_TEXTURE_2D, 0);
-	
-	Texture2D* result = new Texture2D(width, height, loadParams, textureHandle);
-
-	return result;
+  stbi_image_free(textureData);
+  return texture;
 }
 
 void Cubemap::Create() {

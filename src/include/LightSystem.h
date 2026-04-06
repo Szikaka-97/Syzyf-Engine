@@ -28,6 +28,7 @@ public:
 
 	GLuint GetLightsBufferHandle();
 	GLuint GetShadowmapsBufferHandle();
+	Framebuffer* GetShadowAtlasFramebuffer();
 
 	virtual void OnPostRender();
 

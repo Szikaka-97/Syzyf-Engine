@@ -29,8 +29,8 @@ vec3 getLightStrength(in Light light, in vec3 worldPos) {
 	return light.color * (light.intensity / (1 + light.linearAttenuation * dist + light.quadraticAttenuation * dist * dist));
 }
 
-vec3 shade(in Material mat, in vec3 worldPos, in vec3 normal, in vec3 tangent) {
 #ifdef SHADING_FUNCTION
+vec3 shade(in Material mat, in vec3 worldPos, in vec3 normal, in vec3 tangent) {
 #ifndef IGNORE_AMBIENT
 	vec3 result = mat.diffuseColor * (Light_AmbientLight.rgb * Light_AmbientLight.a);
 #else
@@ -118,10 +118,8 @@ vec3 shade(in Material mat, in vec3 worldPos, in vec3 normal, in vec3 tangent) {
 	}
 
 	return result;
-#else
-	return mat.diffuseColor;
-#endif
 }
+#endif
 
 #endif
 

@@ -13,10 +13,11 @@ IF (WIN32)
 ENDIF()
 
 find_program(CCACHE_PATH ccache HINTS ENV PATH)
-if (CCACHE_PATH)
+if(CCACHE_PATH)
+  message(STATUS "Using ccache: ${CCACHE_PATH}")
   set(CMAKE_C_COMPILER_LAUNCHER "${CCACHE_PATH}")
   set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE_PATH}")
-endif ()
+endif()
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
@@ -24,6 +25,10 @@ include(global_settings)
 
 # ---- Dependencies ----
 add_subdirectory(thirdparty)
+
+if (MSVC)
+add_link_options(/NODEFAULTLIB:LIBCMTD)
+endif()
 
 set(CMAKE_CXX_STANDARD 23)
 
