@@ -2,8 +2,6 @@
 
 #ifdef __cplusplus
 
-#pragma once
-
 #include <glm/glm.hpp>
 #define vec3 glm::vec3
 #define vec2 glm::vec2

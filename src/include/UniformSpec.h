@@ -66,12 +66,16 @@ public:
 		int offset;
 		int binding;
 		std::string name;
+
+		UniformVariableSpec() = default;
 	};
 	
 	struct UniformBufferSpec {
 		std::string name;
 		int binding;
 		int size;
+
+		UniformBufferSpec() = default;
 	};
 	
 	struct ShaderStorageBufferSpec {
@@ -92,7 +96,7 @@ private:
 	std::vector<ShaderStorageBufferSpec> storageBuffers;
 	void CreateFrom(GLuint programHandle);
 public:
-	UniformSpec();
+	UniformSpec() = default;
 	UniformSpec(const ShaderProgram* program);
 	UniformSpec(const ComputeShaderProgram* program);
 

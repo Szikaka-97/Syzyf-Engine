@@ -29,7 +29,8 @@ Camera::Camera(Perspective perspectiveData):
 type(CameraType::Perspective),
 perspectiveData(perspectiveData),
 orthoData(),
-layerMask(LayerMask::All) {
+layerMask(LayerMask::All),
+priority(0) {
 	if (GetScene()->GetGraphics() && GetScene()->GetGraphics()->GetMainCamera() == nullptr) {
 		SetAsMainCamera();
 	}
@@ -39,7 +40,8 @@ Camera::Camera(Orthographic orthoData):
 type(CameraType::Orthographic),
 perspectiveData(),
 orthoData(orthoData),
-layerMask(LayerMask::All) {
+layerMask(LayerMask::All),
+priority(0) {
 	if (GetScene()->GetGraphics() && GetScene()->GetGraphics()->GetMainCamera() == nullptr) {
 		SetAsMainCamera();
 	}
@@ -226,7 +228,14 @@ uint32_t Camera::GetLayerMask() const {
 bool Camera::TestLayer(uint8_t layer) {
 	return this->layerMask.Test(layer);
 }
-	
+
+int Camera::GetPriority() const {
+	return this->priority;
+}
+void Camera::SetPriority(int priority) {
+	this->priority = priority;
+}
+
 void Camera::SetLayerMask(LayerMask newMask) {
 	this->layerMask = newMask;
 }

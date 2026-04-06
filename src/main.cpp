@@ -123,15 +123,11 @@ public:
 		this->starMesh = GetScene()->Resources()->Get<Mesh>("./res/models/star.obj");
 		
 		ShaderProgram* starProgram = ShaderProgram::Build()
-		.WithVertexShader(
-			GetScene()->Resources()->Get<VertexShader>("./res/shaders/star.vert")
-		).WithGeometryShader(
-			GetScene()->Resources()->Get<GeometryShader>("./res/shaders/star.geom")
-		).WithPixelShader(
-			GetScene()->Resources()->Get<PixelShader>("./res/shaders/star.frag")
-		).Link();
-		starProgram->SetIgnoresDepthPrepass(true);
-		starProgram->SetCastsShadows(false);
+		.WithVertexShader("./res/shaders/star.vert")
+		.WithGeometryShader("./res/shaders/star.geom")
+		.WithPixelShader("./res/shaders/star.frag").Link();
+		// starProgram->SetIgnoresDepthPrepass(true);
+		// starProgram->SetCastsShadows(false);
 
 		this->starMaterial = new Material(starProgram);
 		this->starCount = starCount;
@@ -154,35 +150,31 @@ public:
 };
 
 void InitScene(Scene* mainScene) {
-	ShaderProgram* skyProg = ShaderProgram::Build().WithVertexShader(
-		mainScene->Resources()->Get<VertexShader>("./res/shaders/skybox.vert")
-	).WithPixelShader(
-		mainScene->Resources()->Get<PixelShader>("./res/shaders/skybox.frag")
-	).Link();
+	ShaderProgram* skyProg = ShaderProgram::Build()
+	.WithVertexShader("./res/shaders/skybox.vert")
+	.WithPixelShader("./res/shaders/skybox.frag")
+	.Link();
 
-	ShaderProgram* coloredProg = ShaderProgram::Build().WithVertexShader(
-		mainScene->Resources()->Get<VertexShader>("./res/shaders/lit.vert")
-	).WithPixelShader(
-		mainScene->Resources()->Get<PixelShader>("./res/shaders/lambert color.frag")
-	).Link();
+	ShaderProgram* coloredProg = ShaderProgram::Build()
+	.WithVertexShader("./res/shaders/lit.vert")
+	.WithPixelShader("./res/shaders/lambert color.frag")
+	.Link();
 
-	ShaderProgram* diffuseTexProg = ShaderProgram::Build().WithVertexShader(
-		mainScene->Resources()->Get<VertexShader>("./res/shaders/lit.vert")
-	).WithPixelShader(
-		mainScene->Resources()->Get<PixelShader>("./res/shaders/lambert.frag")
-	).Link();
+	ShaderProgram* diffuseTexProg = ShaderProgram::Build()
+	.WithVertexShader("./res/shaders/lit.vert")
+	.WithPixelShader("./res/shaders/lambert.frag")
+	.Link();
 
-	ShaderProgram* pbrProg = ShaderProgram::Build().WithVertexShader(
-		mainScene->Resources()->Get<VertexShader>("./res/shaders/lit.vert")
-	).WithPixelShader(
-		mainScene->Resources()->Get<PixelShader>("./res/shaders/pbr.frag")
-	).Link();
+	ShaderProgram* pbrProg = ShaderProgram::Build()
+	.WithVertexShader("./res/shaders/lit.vert")
+	.WithPixelShader("./res/shaders/pbr.frag")
+	.Link();
 
-	ShaderProgram* pbrRefractProg = ShaderProgram::Build().WithVertexShader(
-		mainScene->Resources()->Get<VertexShader>("./res/shaders/lit.vert")
-	).WithPixelShader(
-		mainScene->Resources()->Get<PixelShader>("./res/shaders/pbr refract.frag")
-	).Link();
+	ShaderProgram* transparentProg = ShaderProgram::Build()
+	.WithVertexShader("./res/shaders/lit.vert")
+	.WithPixelShader("./res/shaders/transparent.frag")
+	.Link();
+	// transparentProg->SetTransparent(true);
 
 	Mesh* gmConstructMesh = mainScene->Resources()->Get<Mesh>("./res/models/construct/construct.obj", true);
 	Mesh* cannonMesh = mainScene->Resources()->Get<Mesh>("./res/models/cannon/cannon.obj");
@@ -227,10 +219,11 @@ void InitScene(Scene* mainScene) {
 	roughMat->SetValue("normalMap", reflectiveNormal);
 	roughMat->SetValue("armMap", roughARM);
 
-	Material* shinyMat = new Material(pbrRefractProg);
-	shinyMat->SetValue("albedoMap", reflectiveDiffuse);
-	shinyMat->SetValue("normalMap", reflectiveNormal);
-	shinyMat->SetValue("armMap", reflectiveARM);
+	Material* pinkTransparentMat = new Material(transparentProg);
+	pinkTransparentMat->SetValue("uColor", glm::vec4(1.0, 0.5, 0.5, 0.6));
+
+	Material* blueTransparentMat = new Material(transparentProg);
+	blueTransparentMat->SetValue("uColor", glm::vec4(0.5, 0.5, 1.0, 0.6));
 
 	Material* skyMat = new Material(skyProg);
 	skyMat->SetValue("skyboxTexture", skyCubemap);
@@ -261,22 +254,13 @@ void InitScene(Scene* mainScene) {
 	roughCubeNode->AddObject<MeshRenderer>(cubeMesh, roughMat);
 	roughCubeNode->LocalTransform().Position() = {0, 0, 3};
 
-	auto shinyCubeNode = mainScene->CreateNode(cubeNode, "Shiny Cube");
-	shinyCubeNode->AddObject<MeshRenderer>(cubeMesh, shinyMat);
-	shinyCubeNode->LocalTransform().Position() = {0, 0, -3};
+	auto pinkTransparentCubeNode = mainScene->CreateNode(cubeNode, "Pink Cube");
+	pinkTransparentCubeNode->AddObject<MeshRenderer>(cubeMesh, pinkTransparentMat);
+	pinkTransparentCubeNode->LocalTransform().Position() = {-3, 0, -3};
 
-	auto cubeNode2 = mainScene->CreateNode("Reflective Cube");
-	cubeNode2->AddObject<MeshRenderer>(cubeMesh, reflectiveMat);
-	cubeNode2->GlobalTransform().Position() = {-25.0f, 1.0f, 0.0f};
-	cubeNode2->GlobalTransform().Scale() = glm::vec3(0.6f);
-
-	auto roughCubeNode2 = mainScene->CreateNode(cubeNode2, "Rough Cube");
-	roughCubeNode2->AddObject<MeshRenderer>(cubeMesh, roughMat);
-	roughCubeNode2->LocalTransform().Position() = {0, 0, 3};
-
-	auto shinyCubeNode2 = mainScene->CreateNode(cubeNode2, "Shiny Cube");
-	shinyCubeNode2->AddObject<MeshRenderer>(cubeMesh, shinyMat);
-	shinyCubeNode2->LocalTransform().Position() = {0, 0, -3};
+	auto blueTransparentCubeNode = mainScene->CreateNode(cubeNode, "Blue Cube");
+	blueTransparentCubeNode->AddObject<MeshRenderer>(cubeMesh, blueTransparentMat);
+	blueTransparentCubeNode->LocalTransform().Position() = {-3, 0, -5};
 
 	auto cameraNode = mainScene->CreateNode("Camera");
 	Camera* camera = cameraNode->AddObject<Camera>(Camera::Perspective(40.0f, 16.0f/9.0f, 0.5f, 200.0f));
@@ -306,9 +290,6 @@ void InitScene(Scene* mainScene) {
 	envProbe3->AddObject<ReflectionProbe>();
 	envProbe3->GlobalTransform().Position() = {-29.0f, 1.5f, 0.6f};
 
-	auto envProbe4 = mainScene->CreateNode(shinyCubeNode, "Reflection Probe");
-	envProbe4->AddObject<ReflectionProbe>();
-	
 	auto starsAttachmentNode = mainScene->CreateNode("Stars Scene Attachment");
 	
 	auto starsScene = new Scene();
@@ -372,6 +353,32 @@ int main(int, char**) {
 		return EXIT_FAILURE;
 	}
 
+	// spdlog::info("");
+	
+	// auto shader = ShaderProgram::Build()
+	// .WithVertexShader("./res/shaders/lit.vert")
+	// .WithPixelShader("./res/shaders/lambert.frag")
+	// .WithKeyword("KEY", 0)
+	// .Link();
+
+	// int uniformCount = 0;
+
+	// glGetProgramiv(shader->GetHandle(), GL_ACTIVE_UNIFORMS, &uniformCount);
+
+	// spdlog::warn(uniformCount);
+
+	// for (int i = 0; i < uniformCount; i++) {
+	// 	char buf[512];
+	// 	int len;
+
+	// 	glGetActiveUniformName(shader->GetHandle(), i, 511, &len, buf);
+
+	// 	spdlog::warn("{} - {}", i, std::string(buf));
+	// }
+
+	// spdlog::info(shader->HasPragma("poop"));
+	
+	// return 0;
 	spdlog::info("Initialized project.");
 
 	Engine::MainLoop();

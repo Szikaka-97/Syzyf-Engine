@@ -65,7 +65,7 @@ void LightSystem::DoSpotLightShadowmap(Light* light, ShadowMapRegion& shadowmapR
 		shadowmapRect.end.x - shadowmapRect.start.x, shadowmapRect.end.y - shadowmapRect.start.y
 	));
 
-	GetScene()->GetGraphics()->RenderScene(globalUniforms, this->shadowAtlasFramebuffer, renderParams);
+	GetScene()->GetGraphics()->RenderShadows(globalUniforms, renderParams, this->shadowAtlasFramebuffer);
 
 	shadowmapRect.start /= this->shadowmapAtlasSize;
 	shadowmapRect.end /= this->shadowmapAtlasSize;
@@ -159,7 +159,7 @@ void LightSystem::DoDirectionalLightShadowmap(Light* light, ShadowMapRegion* sha
 			shadowmapRect.end.x - shadowmapRect.start.x, shadowmapRect.end.y - shadowmapRect.start.y
 		));
 		
-		GetScene()->GetGraphics()->RenderScene(globalUniforms, this->shadowAtlasFramebuffer, renderParams);
+		GetScene()->GetGraphics()->RenderShadows(globalUniforms, renderParams, this->shadowAtlasFramebuffer);
 
 		shadowmapRect.start /= this->shadowmapAtlasSize;
 		shadowmapRect.end /= this->shadowmapAtlasSize;
@@ -218,7 +218,7 @@ void LightSystem::DoPointLightShadowmap(Light* light, ShadowMapRegion* shadowmap
 			shadowmapRect.end.x - shadowmapRect.start.x, shadowmapRect.end.y - shadowmapRect.start.y
 		));
 		
-		GetScene()->GetGraphics()->RenderScene(globalUniforms, this->shadowAtlasFramebuffer, renderParams);
+		GetScene()->GetGraphics()->RenderShadows(globalUniforms, renderParams, this->shadowAtlasFramebuffer);
 
 		shadowmapRect.start /= this->shadowmapAtlasSize;
 		shadowmapRect.end /= this->shadowmapAtlasSize;

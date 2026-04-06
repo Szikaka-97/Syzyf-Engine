@@ -31,9 +31,9 @@ Bloom::Bloom() {
 	glTextureParameteri(this->bloomTexture, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTextureParameteri(this->bloomTexture, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-	this->downsampleShader = new ComputeShaderProgram(GetScene()->Resources()->Get<ComputeShader>("./res/shaders/bloom/bloom_downsample.comp"));
-	this->upsampleShader = new ComputeShaderProgram(GetScene()->Resources()->Get<ComputeShader>("./res/shaders/bloom/bloom_upsample.comp"));
-	this->finalShader = new ComputeShaderProgram(GetScene()->Resources()->Get<ComputeShader>("./res/shaders/bloom/bloom_final.comp"));
+	this->downsampleShader = new ComputeShaderProgram("./res/shaders/bloom/bloom_downsample.comp");
+	this->upsampleShader = new ComputeShaderProgram("./res/shaders/bloom/bloom_upsample.comp");
+	this->finalShader = new ComputeShaderProgram("./res/shaders/bloom/bloom_final.comp");
 }
 
 void Bloom::OnPostProcess(const PostProcessParams* params) {

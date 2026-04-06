@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <unordered_set>
 
 #include <glad/glad.h>
 #include <glm/glm.hpp>
@@ -11,9 +12,6 @@
 
 namespace fs = std::filesystem;
 
-class SceneGraphics;
-class ComputeShader;
-
 template<class T>
 concept ShaderLike = requires(T a) {
 	{ a.GetHandle() } -> std::same_as<GLuint>;
@@ -22,169 +20,181 @@ concept ShaderLike = requires(T a) {
 
 const fs::path BaseShaderPath{"./res/shaders"};
 
-enum class ShaderProgramFlags {
-	None = 0,
-	IgnoreDepthPrepass = 1,
-	DontCastShadows = 2,
-	UsePatches = 4
-};
-
-class ComputeShaderProgram {
-private:
-	ComputeShader* computeShader;
-	UniformSpec uniforms;
-
-	GLuint handle;
-public:	
-	ComputeShaderProgram(ComputeShader* computeShader);
-	~ComputeShaderProgram();
-
-	GLuint GetHandle() const;
-	const UniformSpec& GetUniforms() const;
-};
-
 class ComputeDispatchData;
+class Shader;
 
-class ShaderProgram;
+struct ShaderBundle {
+	GLuint vertexShaderHandle;
+	GLuint geometryShaderHandle;
+	GLuint tessEvalShaderHandle;
+	GLuint tessCtrlShaderHandle;
+	GLuint pixelShaderHandle;
+};
 
-struct ShaderVariantInfo {
-	struct ShaderVariantPoint {
-		std::string name;
-		std::string value;
+struct ShaderKeywords {
+	struct Variant {
+		std::vector<std::string> keywords;
+		ShaderBundle shaders;
 	};
 
-	std::vector<ShaderVariantPoint> variantPoints;
-
-	ShaderVariantInfo(std::initializer_list<ShaderVariantPoint> variantPoints);
-};
-
-class ShaderBase : public Resource {
-protected:
-	const fs::path filePath;
-	const ShaderVariantInfo variantInfo;
-	const GLuint handle;
-
-	ShaderBase(fs::path filePath, ShaderVariantInfo variantInfo, GLuint handle);
-public:
-	virtual ~ShaderBase();
-	static ShaderBase* Load(fs::path filePath);
-	static ShaderBase* Load(fs::path filePath, const ShaderVariantInfo& variantInfo);
+	ShaderKeywords() = default;
 	
-	const fs::path& GetFilePath() const;
-	std::string GetName() const;
-	const ShaderVariantInfo& GetVariantInfo() const;
-	GLuint GetHandle() const;
-	virtual GLenum GetType() const = 0;
+	std::map<std::string, int> keywordMap;
+	std::vector<Variant> variants;
 };
 
-class VertexShader : public ShaderBase {
-	friend class ShaderBase;
-private:
-	const VertexSpec vertexSpec;
-	
-	VertexShader(fs::path filePath, ShaderVariantInfo variantInfo, GLuint handle, VertexSpec spec);
-public:
-	static VertexShader* Load(fs::path filePath);
+struct ShaderCode {
+	struct KeywordInfo {
+		int location;
+		std::string name;
+		std::string defaultValue;
+	};
 
-	const VertexSpec& GetVertexSpec() const;
-
-	virtual GLenum GetType() const;
-};
-
-class GeometryShader : public ShaderBase {
-	friend class ShaderBase;
-private:
-	GeometryShader(fs::path filePath, ShaderVariantInfo variantInfo, GLuint handle);
-public:
-	static GeometryShader* Load(fs::path filePath);
-
-	virtual GLenum GetType() const;
-};
-
-class TesselationControlShader : public ShaderBase {
-	friend class ShaderBase;
-private:
-	TesselationControlShader(fs::path filePath, ShaderVariantInfo variantInfo, GLuint handle);
-public:
-	static TesselationControlShader* Load(fs::path filePath);
-
-	virtual GLenum GetType() const;
-};
-
-class TesselationEvaluationShader : public ShaderBase {
-	friend class ShaderBase;
-private:
-	TesselationEvaluationShader(fs::path filePath, ShaderVariantInfo variantInfo, GLuint handle);
-public:
-	static TesselationEvaluationShader* Load(fs::path filePath);
-
-	virtual GLenum GetType() const;
-};
-
-class PixelShader : public ShaderBase {
-	friend class ShaderBase;
-private:
-	PixelShader(fs::path filePath, ShaderVariantInfo variantInfo, GLuint handle);
-public:
-	static PixelShader* Load(fs::path filePath);
-
-	virtual GLenum GetType() const;
-};
-
-class ComputeShader : public ShaderBase {
-	friend class ShaderBase;
-private:
-	ComputeShader(fs::path filePath, ShaderVariantInfo variantInfo, GLuint handle);
-public:
-	static ComputeShader* Load(fs::path filePath);
-
-	virtual GLenum GetType() const;
+	std::vector<const char*> codeParts;
+	std::map<std::string, KeywordInfo> keywords;
+	std::vector<std::string> pragmas;
 };
 
 class ShaderBuilder {
+private:
+	fs::path vertexShaderPath;
+	fs::path geometryShaderPath;
+	fs::path tessEvalShaderPath;
+	fs::path tessCtrlShaderPath;
+	fs::path pixelShaderPath;
+
+	std::map<std::string, std::string> keywordOverrides;
 public:
-	VertexShader* vertexShader;
-	GeometryShader* geometryShader;
-	TesselationEvaluationShader* tessEvalShader;
-	TesselationControlShader* tessCtrlShader;
-	PixelShader* pixelShader;
-	
-	ShaderBuilder& WithVertexShader(VertexShader* vertexShader);
-	ShaderBuilder& WithGeometryShader(GeometryShader* geometryShader);
-	ShaderBuilder& WithTessEvaluationShader(TesselationEvaluationShader* tessEvalShader);
-	ShaderBuilder& WithTessControlShader(TesselationControlShader* tessCtrlShader);
-	ShaderBuilder& WithPixelShader(PixelShader* pixelShader);
+	ShaderBuilder& WithVertexShader(const fs::path& vertexShaderPath);
+	ShaderBuilder& WithGeometryShader(const fs::path& geometryShaderPath);
+	ShaderBuilder& WithTessEvaluationShader(const fs::path& tessEvalShaderPath);
+	ShaderBuilder& WithTessControlShader(const fs::path& tessCtrlShaderPath);
+	ShaderBuilder& WithPixelShader(const fs::path& pixelShaderPath);
+
+	ShaderBuilder& WithKeyword(const std::string& keyword, const std::string& keywordValue);
+	ShaderBuilder& WithKeyword(const std::string& keyword, int keywordValue);
+	ShaderBuilder& WithKeyword(const std::string& keyword, float keywordValue);
 
 	ShaderProgram* Link();
 };
 
+class ComputeShaderBuilder {
+private:
+	struct KeywordOverride {
+		std::string name;
+		std::string value;
+	};
+
+	fs::path shaderPath;
+
+	std::vector<KeywordOverride> keywordOverrides;
+public:
+	ComputeShaderBuilder& WithComputeShader(const fs::path& shaderPath);
+
+	ComputeShaderBuilder& WithKeyword(const std::string& keyword, const std::string& keywordValue);
+	ComputeShaderBuilder& WithKeyword(const std::string& keyword, int keywordValue);
+	ComputeShaderBuilder& WithKeyword(const std::string& keyword, float keywordValue);
+
+	ComputeShaderProgram* Link();
+};
+
+class Shader {
+	friend class ShaderBuilder;
+protected:
+	ShaderCode code;
+	fs::path filePath;
+	bool valid;
+
+	Shader(const fs::path& filePath, ShaderCode code);
+public:
+	Shader();
+	static Shader LoadFromFile(const fs::path& filePath);
+	
+	static ShaderBuilder Build();
+	static ComputeShaderBuilder BuildCompute();
+	static ComputeShaderBuilder BuildCompute(const fs::path& shaderPath);
+
+	const fs::path& GetFilePath() const;
+	std::string GetName() const;
+	const ShaderCode& GetCode() const;
+};
+
 class ShaderProgram {
-	friend class SceneGraphics;
 	friend class ShaderBuilder;
 private:
-	VertexShader* vertexShader;
-	GeometryShader* geometryShader;
-	PixelShader* pixelShader;
+	struct ShaderAttachment {
+		Shader shader;
+		GLuint handle = 0;
+
+		inline bool Attached() const {
+			return handle != 0;
+		}
+	};
+
+	std::map<std::string, std::string> keywords;
+
+	ShaderAttachment vertexShader;
+	ShaderAttachment geometryShader;
+	ShaderAttachment tessEvalShader;
+	ShaderAttachment tessCtrlShader;
+	ShaderAttachment pixelShader;
+
 	UniformSpec uniforms;
-	ShaderProgramFlags flags;
+	std::unordered_set<std::string> pragmas;
 
 	GLuint handle;
 
-	ShaderProgram(VertexShader* vertexShader, GeometryShader* geometryShader, PixelShader* pixelShader, GLuint handle);
+	ShaderProgram(GLuint handle);
+
+	static std::vector<ShaderProgram*> allPrograms;
 public:
 	~ShaderProgram();
 	static ShaderBuilder Build();
 	
 	GLuint GetHandle() const;
 	const UniformSpec& GetUniforms() const;
-	const VertexSpec& GetVertexSpec() const;
+
+	bool HasKeyword(const std::string& keyword) const;
+	std::string GetKeyword(const std::string& keyword) const;
+	void SetKeyword(const std::string& keyword, const std::string& keywordValue);
+	void SetKeyword(const std::string& keyword, int keywordValue);
+	void SetKeyword(const std::string& keyword, float keywordValue);
 
 	bool IgnoresDepthPrepass() const;
 	bool CastsShadows() const;
 	bool UsesPatches() const;
+	bool IsTransparent() const;
 
-	void SetIgnoresDepthPrepass(bool ignores);
-	void SetCastsShadows(bool casts);
+	const Shader GetVertexShader() const;
+	const Shader GetGeometryShader() const;
+	const Shader GetTessCtrlShader() const;
+	const Shader GetTessEvalShader() const;
+	const Shader GetPixelShader() const;
+
+	bool HasPragma(const std::string& pragma) const;
+
+	void Reload();
+
+	static void ReloadAllShaders();
+};
+
+class ComputeShaderProgram {
+	friend class ComputeShaderBuilder;
+private:
+	Shader computeShader;
+	UniformSpec uniforms;
+
+	GLuint handle;
+	ComputeShaderProgram(GLuint handle);
+public:	
+	ComputeShaderProgram(const fs::path& shaderPath);
+	~ComputeShaderProgram();
+
+	static ComputeShaderBuilder Build();
+	static ComputeShaderBuilder Build(const fs::path& shaderPath);
+
+	GLuint GetHandle() const;
+	const UniformSpec& GetUniforms() const;
 };
 
 class ComputeShaderDispatch {
@@ -192,7 +202,7 @@ private:
 	ComputeDispatchData* dispatchData;
 	ComputeShaderProgram* program;
 public:
-	ComputeShaderDispatch(ComputeShader* compShader);
+	ComputeShaderDispatch(const fs::path& shaderPath);
 	ComputeShaderDispatch(ComputeShaderProgram* program);
 
 	void Dispatch(int groupsX, int groupsY, int groupsZ) const;

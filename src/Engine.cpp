@@ -9,7 +9,7 @@ extern "C" {
     __attribute__ ((dllexport)) unsigned long NvOptimusEnablement = 1;
     __attribute__ ((dllexport)) int AmdPowerXpressRequestHighPerformance = 1;
 #else
-	_declspec(dllexport) DWORD NvOptimusEnablement = 1;
+	_declspec(dllexport) unsigned long NvOptimusEnablement = 1;
 	_declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
 #endif
 }
@@ -24,7 +24,7 @@ extern "C" {
 #include <TimeSystem.h>
 #include <Graphics.h>
 
-const char*   glsl_version     = "#version 460";
+const char* glsl_version = "#version 460";
 constexpr int32_t GL_VERSION_MAJOR = 4;
 constexpr int32_t GL_VERSION_MINOR = 6;
 
@@ -46,7 +46,7 @@ static void APIENTRY glDebugOutput(
 	const void *userParam
 ) {
 	// ignore non-significant error/warning codes
-	if(id == 131169 || id == 131185 || id == 131218 || id == 131204) return;
+	if (id == 131169 || id == 131185 || id == 131218 || id == 131204) return;
 
 	std::string sourceString;
 
@@ -74,7 +74,16 @@ static void APIENTRY glDebugOutput(
 	}
 
 	switch (severity) {
-		case GL_DEBUG_SEVERITY_HIGH:         spdlog::error("GL {} {}: {} ({})", sourceString, typeString, message, id); exit(1); break;
+		case GL_DEBUG_SEVERITY_HIGH:
+			if (source != GL_DEBUG_SOURCE_SHADER_COMPILER) { // Shader errors handled separately
+				spdlog::error("GL {} {}: {} ({})", sourceString, typeString, message, id);
+			
+				asm("INT3");
+
+				throw 1;
+			}
+
+			break;
 		case GL_DEBUG_SEVERITY_MEDIUM:
 		case GL_DEBUG_SEVERITY_LOW:          spdlog::warn("GL {} {}: {} ({})", sourceString, typeString, message, id); break;
 		case GL_DEBUG_SEVERITY_NOTIFICATION: spdlog::info("GL {} {}: {} ({})", sourceString, typeString, message, id); break;

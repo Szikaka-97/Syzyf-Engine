@@ -3,14 +3,15 @@
 #include <vector>
 
 #include <GameObject.h>
-#include <Mesh.h>
-#include <Material.h>
-#include <Serialized.h>
+#include <Debug.h>
 
-class MeshRenderer : public GameObject {
+class Mesh;
+class Material;
+
+class MeshRenderer : public GameObject, public ImGuiDrawable {
 private:
-	serialized Mesh* mesh;
-	serialized std::vector<Material*> materials;
+	Mesh* mesh;
+	std::vector<Material*> materials;
 
 	void ResetUniformBuffer();
 public:
@@ -26,4 +27,6 @@ public:
 	void SetMaterial(Material* newMaterial, int materialIndex = 0);
 
 	void Render() const;
+
+	virtual void DrawImGui();
 };

@@ -1,6 +1,5 @@
 #include <ReflectionProbeSystem.h>
 
-#include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <imgui.h>
 
@@ -8,16 +7,12 @@
 #include <Graphics.h>
 #include <Resources.h>
 #include <Skybox.h>
+#include <TimeSystem.h>
 
-#include "../res/shaders/shared/shared.h"
 #include "../res/shaders/shared/uniforms.h"
 
 Texture2D* GenerateBRDFConvolution() {
-	static ComputeShaderDispatch* BrdfConvolutionDispatch;
-
-	if (BrdfConvolutionDispatch == nullptr) {
-		BrdfConvolutionDispatch = new ComputeShaderDispatch(ResourceDatabase::Global->Get<ComputeShader>("./res/shaders/cubemapBlit/brdf_convolution.comp"));
-	}
+	static ComputeShaderDispatch* BrdfConvolutionDispatch = new ComputeShaderDispatch("./res/shaders/cubemapBlit/brdf_convolution.comp");
 
 	TextureParams creationParams;
 	creationParams.channels = TextureChannels::RG;
@@ -143,7 +138,7 @@ void ReflectionProbeSystem::OnPostRender() {
 		ShaderGlobalUniforms globalUniforms;
 		
 		globalUniforms.Global_CameraWorldPos = probe->GlobalTransform().Position();
-		globalUniforms.Global_Time = (float) glfwGetTime();
+		globalUniforms.Global_Time = Time::Current();
 		globalUniforms.Global_CameraFarPlane = 0;
 		globalUniforms.Global_CameraNearPlane = 0;
 		globalUniforms.Global_CameraFov = glm::radians(90.0f);
@@ -173,11 +168,13 @@ void ReflectionProbeSystem::OnPostRender() {
 			globalUniforms.Global_ProjectionMatrix = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 100.0f);
 			globalUniforms.Global_VPMatrix = globalUniforms.Global_ProjectionMatrix * globalUniforms.Global_ViewMatrix;
 
+			GetScene()->GetGraphics()->BindUniformBuffers();
+
 			this->reflectionProbeFramebuffer->SetColorTexture(this->reflectionProbeFramebuffer->GetColorTexture(), face);
 
 			RenderParams params(RenderPassType::Color, glm::vec4(0, 0, ReflectionProbe::resolution, ReflectionProbe::resolution), true);
 			
-			GetScene()->GetGraphics()->RenderScene(globalUniforms, this->reflectionProbeFramebuffer, params);
+			GetScene()->GetGraphics()->RenderOpaque(globalUniforms, params, this->reflectionProbeFramebuffer);
 		}
 		
 		probe->dirty = false;

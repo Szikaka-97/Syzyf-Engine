@@ -7,6 +7,7 @@
 #include <UniformSpec.h>
 #include <Shader.h>
 #include <Texture.h>
+#include <Debug.h>
 
 class ShaderVariableStorage {
 	friend class SceneGraphics;
@@ -16,7 +17,7 @@ private:
 		GLuint bufferHandle;
 	};
 
-	void* dataBuffer;
+	std::vector<uint8_t> dataBuffer;
 	BufferPair* uniformBuffers;
 	BufferPair* storageBuffers;
 	const UniformSpec* uniformSpec;
@@ -63,12 +64,19 @@ public:
 	void BindStorageBuffer(int storageBufferIndex, GLuint bufferHandle);
 
 	const UniformSpec* GetUniforms() const;
+
+	void RefreshVariables();
 };
 
 class Material {
+	friend bool Debug::Property<Material>(Material&, const std::string&);
 private:
 	const ShaderProgram* shader;
 	ShaderVariableStorage shaderVariables;
+
+	static std::vector<Material*> allMaterials;
+
+	static void OnReloadShader(ShaderProgram* shader);
 public:
 	Material(const ShaderProgram* shader);
 
@@ -207,7 +215,7 @@ T ShaderVariableStorage::GetValue(unsigned int uniformIndex) const {
 		return T{};
 	}
 
-	return *((T*) ((char*) this->dataBuffer + this->uniformSpec->VariableAt(uniformIndex).offset));
+	return *((T*) (this->dataBuffer.data() + this->uniformSpec->VariableAt(uniformIndex).offset));
 }
 
 template<TextureClass T>
@@ -220,7 +228,7 @@ UniformSpec::TextureUniform<T> ShaderVariableStorage::GetValue(unsigned int unif
 		return UniformSpec::TextureUniform<T>{nullptr, 0};
 	}
 
-	return *((UniformSpec::TextureUniform<T>*) ((char*) this->dataBuffer + this->uniformSpec->VariableAt(uniformIndex).offset));
+	return *((UniformSpec::TextureUniform<T>*) (this->dataBuffer.data() + this->uniformSpec->VariableAt(uniformIndex).offset));
 }
 
 template<Blittable T>
@@ -250,7 +258,7 @@ void ShaderVariableStorage::SetValue(unsigned int uniformIndex, const T& value) 
 		return;
 	}
 
-	*((T*) ((char*) this->dataBuffer + this->uniformSpec->VariableAt(uniformIndex).offset)) = value;
+	*((T*) (this->dataBuffer.data() + this->uniformSpec->VariableAt(uniformIndex).offset)) = value;
 }
 
 template<TextureClass T>
@@ -263,7 +271,7 @@ void ShaderVariableStorage::SetValue(unsigned int uniformIndex, T* value, unsign
 		return;
 	}
 
-	*((UniformSpec::TextureUniform<T>*) ((char*) this->dataBuffer + this->uniformSpec->VariableAt(uniformIndex).offset)) = UniformSpec::TextureUniform<T>{value, level};
+	*((UniformSpec::TextureUniform<T>*) (this->dataBuffer.data() + this->uniformSpec->VariableAt(uniformIndex).offset)) = UniformSpec::TextureUniform<T>{value, level};
 }
 
 template<typename T_BufferRep>
@@ -496,4 +504,9 @@ template<> inline bool IsUniformOfRightType<Texture2D>(UniformSpec::UniformType 
 }
 template<> inline bool IsUniformOfRightType<Cubemap>(UniformSpec::UniformType type) {
 	return type == UniformSpec::UniformType::Cubemap || type == UniformSpec::UniformType::ImageCube;
+}
+
+namespace Debug {
+	template<>
+	bool Property<Material>(Material& mat, const std::string &name);
 }

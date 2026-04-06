@@ -43,6 +43,7 @@ private:
 	Orthographic orthoData;
 	Viewport* renderTarget;
 	LayerMask layerMask;
+	int priority;
 public:
 	Camera(Perspective perspectiveData);
 	Camera(Orthographic orthoData);
@@ -88,6 +89,9 @@ public:
 
 	uint32_t GetLayerMask() const;
 	bool TestLayer(uint8_t layer);
+
+	int GetPriority() const;
+	void SetPriority(int priority);
 
 	void SetLayerMask(LayerMask newMask);
 	void AddLayerToMask(uint8_t layer);

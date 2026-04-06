@@ -1,8 +1,7 @@
 #include <Debug.h>
 
-#include <stack>
-
 #include <imgui.h>
+#include <glm/gtc/matrix_access.hpp>
 
 #include <Scene.h>
 
@@ -184,4 +183,161 @@ void DebugInspector::DrawImGui() {
 
 int DebugInspector::Order() {
 	return -1000;
+}
+
+template<>
+bool Debug::Property(float& property, const std::string& name) {
+	float mutValue = property;
+
+	ImGui::InputFloat(name.c_str(), &property);
+
+	return property != mutValue;
+}
+template<>
+bool Debug::Property(glm::vec2& property, const std::string& name) {
+	glm::vec2 mutValue = property;
+
+	ImGui::InputFloat2(name.c_str(), &property[0]);
+
+	return property != mutValue;
+}
+template<>
+bool Debug::Property(glm::vec3& property, const std::string& name) {
+	glm::vec3 mutValue = property;
+
+	ImGui::InputFloat3(name.c_str(), &property[0]);
+
+	return property != mutValue;
+}
+template<>
+bool Debug::Property(glm::vec4& property, const std::string& name) {
+	glm::vec4 mutValue = property;
+
+	ImGui::InputFloat4(name.c_str(), &property[0]);
+
+	return property != mutValue;
+}
+
+template<>
+bool Debug::Property(int& property, const std::string& name) {
+	int mutValue = property;
+
+	ImGui::InputInt(name.c_str(), &property);
+
+	return property != mutValue;
+}
+template<>
+bool Debug::Property(glm::ivec2& property, const std::string& name) {
+	glm::ivec2 mutValue = property;
+
+	ImGui::InputInt2(name.c_str(), &property[0]);
+
+	return property != mutValue;
+}
+template<>
+bool Debug::Property(glm::ivec3& property, const std::string& name) {
+	glm::ivec3 mutValue = property;
+
+	ImGui::InputInt3(name.c_str(), &property[0]);
+
+	return property != mutValue;
+}
+template<>
+bool Debug::Property(glm::ivec4& property, const std::string& name) {
+	glm::ivec4 mutValue = property;
+
+	ImGui::InputInt4(name.c_str(), &property[0]);
+
+	return property != mutValue;
+}
+
+template<>
+bool Debug::Property(unsigned int& property, const std::string& name) {
+	unsigned int mutValue = property;
+
+	ImGui::InputScalar(name.c_str(), ImGuiDataType_U32, &property, NULL, NULL, "%d", 0);
+
+	return property != mutValue;
+}
+template<>
+bool Debug::Property(glm::uvec2& property, const std::string& name) {
+	glm::uvec2 mutValue = property;
+
+	ImGui::InputScalarN(name.c_str(), ImGuiDataType_U32, &property, 2, NULL, NULL, "%d", 0);
+
+	return property != mutValue;
+}
+template<>
+bool Debug::Property(glm::uvec3& property, const std::string& name) {
+	glm::uvec3 mutValue = property;
+
+	ImGui::InputScalarN(name.c_str(), ImGuiDataType_U32, &property, 3, NULL, NULL, "%d", 0);
+
+	return property != mutValue;
+}
+template<>
+bool Debug::Property(glm::uvec4& property, const std::string& name) {
+	glm::uvec4 mutValue = property;
+
+	ImGui::InputScalarN(name.c_str(), ImGuiDataType_U32, &property, 4, NULL, NULL, "%d", 0);
+
+	return property != mutValue;
+}
+
+template<>
+bool Debug::Property(glm::mat3& property, const std::string& name) {
+	glm::mat3 origVal = property;
+
+	glm::vec3 row0 = glm::row(property, 0);
+	glm::vec3 row1 = glm::row(property, 1);
+	glm::vec3 row2 = glm::row(property, 2);
+
+	ImGui::InputFloat3(name.c_str(), &row0[0]);
+	ImGui::InputFloat3(" ", &row1[0]);
+	ImGui::InputFloat3("", &row2[0]);
+
+	property[0][0] = row0[0];
+	property[0][1] = row1[0];
+	property[0][2] = row2[0];
+	property[1][0] = row0[1];
+	property[1][1] = row1[1];
+	property[1][2] = row2[1];
+	property[2][0] = row0[2];
+	property[2][1] = row1[2];
+	property[2][2] = row2[2];
+
+	return origVal != property;
+}
+template<>
+bool Debug::Property(glm::mat4& property, const std::string& name) {
+	glm::mat4 origVal = property;
+
+	glm::vec4 row0 = glm::row(property, 0);
+	glm::vec4 row1 = glm::row(property, 1);
+	glm::vec4 row2 = glm::row(property, 2);
+	glm::vec4 row3 = glm::row(property, 3);
+
+	ImGui::InputFloat4(name.c_str(), &row0[0]);
+	ImGui::InputFloat4(" ", &row1[0]);
+	ImGui::InputFloat4("", &row2[0]);
+	ImGui::InputFloat4("  ", &row3[0]);
+
+	property[0][0] = row0[0];
+	property[0][1] = row1[0];
+	property[0][2] = row2[0];
+	property[0][3] = row3[0];
+	property[1][0] = row0[1];
+	property[1][1] = row1[1];
+	property[1][2] = row2[1];
+	property[1][3] = row3[1];
+	property[2][0] = row0[2];
+	property[2][1] = row1[2];
+	property[2][2] = row2[2];
+	property[2][3] = row3[2];
+	property[3][0] = row0[3];
+	property[3][1] = row1[3];
+	property[3][2] = row2[3];
+	property[3][3] = row3[3];
+
+	return origVal != property;
 }

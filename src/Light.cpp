@@ -8,12 +8,12 @@
 
 ShaderProgram* GetGizmoShader(Scene* scene) {
 	static ShaderProgram* gizmoProg = ShaderProgram::Build()
-	.WithVertexShader(scene->Resources()->Get<VertexShader>("./res/shaders/lit.vert"))
-	.WithPixelShader(scene->Resources()->Get<PixelShader>("./res/shaders/halo.frag"))
+	.WithVertexShader("./res/shaders/lit.vert")
+	.WithPixelShader("./res/shaders/halo.frag")
 	.Link();
 	
-	gizmoProg->SetCastsShadows(false);
-	gizmoProg->SetIgnoresDepthPrepass(true);
+	// gizmoProg->SetCastsShadows(false);
+	// gizmoProg->SetIgnoresDepthPrepass(true);
 
 	return gizmoProg;
 }
