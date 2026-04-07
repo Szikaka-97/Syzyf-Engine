@@ -64,6 +64,13 @@ struct ParticleSpawnerSettings {
     float distanceFadeMin = 30.0f;
     float distanceFadeMax = 40.0f;
 
+    FadeMode lifetimeFadeMode = FadeMode::Disabled;
+    glm::vec2 lifetimeFadeIn = { 0.0f, 0.2f };
+    glm::vec2 lifetimeFadeOut = { 0.8f, 1.0f };
+
+    bool enableDepthFade = false;
+    float depthFadeDistance = 1.5f;
+
     BillboardMode billboardMode = BillboardMode::Disabled;
 
     bool wrapAround = false;

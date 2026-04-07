@@ -78,6 +78,18 @@ void ParticleSpawner::Update() {
         this->material->SetValue("distanceFadeMax", this->settings.distanceFadeMax);
     }
 
+    this->material->SetValue("lifetimeFadeMode", static_cast<unsigned int>(this->settings.lifetimeFadeMode));
+    if (this->settings.lifetimeFadeMode != FadeMode::Disabled) {
+        this->material->SetValue("lifetimeFadeIn", this->settings.lifetimeFadeIn);
+        this->material->SetValue("lifetimeFadeOut", this->settings.lifetimeFadeOut);
+    }
+
+    this->material->SetValue("enableDepthFade", static_cast<unsigned int>(this->settings.enableDepthFade ? 1 : 0)); // XD
+    if (this->settings.enableDepthFade == true) {
+        this->material->SetValue("depthTex", static_cast<Texture2D*>(this->GetScene()->GetGraphics()->GetMainFramebuffer()->GetDepthTexture()));
+        this->material->SetValue("depthFadeDistance", this->settings.depthFadeDistance);
+    }
+
     glUseProgram(this->computeShader->GetHandle());
 
     glm::vec3 center = this->GlobalTransform().Position();
@@ -87,7 +99,7 @@ void ParticleSpawner::Update() {
     glUniform3fv(glGetUniformLocation(this->computeShader->GetHandle(), "uEmissionShapeExtents"), 1, &this->settings.emissionShapeExtents[0]);
     glUniform3fv(glGetUniformLocation(this->computeShader->GetHandle(), "uAreaExtents"), 1, &extents[0]);
     glUniform1f(glGetUniformLocation(this->computeShader->GetHandle(), "uDeltaTime"), Time::Delta());
-    glUniform1ui(glGetUniformLocation(this->computeShader->GetHandle(), "uWrapAround"), this->settings.wrapAround ? 1 : 0);
+    glUniform1i(glGetUniformLocation(this->computeShader->GetHandle(), "uWrapAround"), this->settings.wrapAround ? 1 : 0);
 
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, this->particleBuffer);
     GLuint workGroups = (this->settings.maxParticles + 63) / 64;
@@ -138,5 +150,19 @@ void ParticleSpawner::DrawImGui() {
     if (this->settings.distanceFadeMode != FadeMode::Disabled) {
         ImGui::InputFloat("Distance Fade Min", &this->settings.distanceFadeMin);
         ImGui::InputFloat("Distance Fade Max", &this->settings.distanceFadeMax);
+    }
+
+    int currentLifetimeFadeMode = static_cast<int>(this->settings.lifetimeFadeMode);
+    if (ImGui::Combo("Lifetime Fade Mode", &currentLifetimeFadeMode, fadeModes, IM_ARRAYSIZE(fadeModes))) {
+        this->settings.lifetimeFadeMode= static_cast<FadeMode>(currentLifetimeFadeMode);
+    }
+    if (this->settings.lifetimeFadeMode != FadeMode::Disabled) {
+        ImGui::InputFloat2("Lifetime Fade Min", &this->settings.lifetimeFadeIn[0]);
+        ImGui::InputFloat2("Lifetime Fade Max", &this->settings.lifetimeFadeOut[0]);
+    }
+
+    ImGui::Checkbox("Enable Depth Fade", &this->settings.enableDepthFade);
+    if (this->settings.enableDepthFade == true) {
+        ImGui::InputFloat("Depth Fade Distance", &this->settings.depthFadeDistance);
     }
 }

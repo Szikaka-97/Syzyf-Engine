@@ -32,13 +32,13 @@ uniform vec3 areaCenter;
 // change later
 uniform uint billboardMode;
 
-uniform uint proximityFadeMode;
-uniform float proximityFadeMin;
-uniform float proximityFadeMax;
-
 uniform uint distanceFadeMode;
 uniform float distanceFadeMin;
 uniform float distanceFadeMax;
+
+uniform uint lifetimeFadeMode;
+uniform vec2 lifetimeFadeIn;
+uniform vec2 lifetimeFadeOut;
 
 void main() {
     vec4 particle = particles[gl_InstanceID].position;
@@ -89,19 +89,19 @@ void main() {
 	vs_out.tangent = Object_NormalModelMatrix * vTangent;
 	vs_out.texcoords = vUVCoords;
 
-    // Distance fade
-    // Doesn't always work with large quads, could move to the fragment shader if necessary
-    vs_out.alpha = 1.0;
-    float distanceToCenter = length((Global_ViewMatrix * vec4(particle.xyz, 1.0)).xyz);
-    float distanceToEdge = distanceToCenter - (particle.w * 0.5);
+    float normalizedAge = clamp(lifetime.x / lifetime.y, 0.0, 1.0);
 
-    if (proximityFadeMode > 0) {
-        vs_out.alpha *= smoothstep(proximityFadeMin, proximityFadeMax, distanceToEdge);
-    }
-    // remove distance fade, replace with lifetime
+    // Distance fade
+
+    vs_out.alpha = 1.0;
+
     if (distanceFadeMode > 0) {
-        vs_out.alpha *= 1.0 - smoothstep(distanceFadeMin, distanceFadeMax, lifetime.x);
-        // fade in, chagne
-        vs_out.alpha *= smoothstep(0.0, distanceFadeMax - distanceFadeMin, lifetime.x);
+        float distanceToCenter = length(particlePosition - areaCenter);
+        vs_out.alpha *= 1.0 - smoothstep(distanceFadeMin, distanceFadeMax, distanceToCenter);
+    }
+
+    if (lifetimeFadeMode > 0) {
+        vs_out.alpha *= smoothstep(lifetimeFadeIn.x, lifetimeFadeIn.y, normalizedAge);
+        vs_out.alpha *= 1.0 - smoothstep(lifetimeFadeOut.x, lifetimeFadeOut.y, normalizedAge);
     }
 }

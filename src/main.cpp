@@ -573,35 +573,39 @@ void InitScene(Scene* mainScene) {
     particleProg->SetTransparent(true);
     Material* schnozInstancedMat = new Material(particleProg);
 	schnozInstancedMat->SetValue("colorTex", smokeTex);
-    playerNode->AddObject<ParticleSpawner>(
-        quadMesh,
-        schnozInstancedMat,
-        ParticleSpawnerSettings {
-            .maxParticles = 1024,
-            .areaExtents = glm::vec3(150.0f),
-            .emissionShapeExtents = glm::vec3(150.0f),
+	   playerNode->AddObject<ParticleSpawner>(
+	       quadMesh,
+	       schnozInstancedMat,
+	       ParticleSpawnerSettings {
+	           .maxParticles = 1024,
+	           .areaExtents = glm::vec3(150.0f),
+	           .emissionShapeExtents = glm::vec3(150.0f),
 
-            .maxLifetime = 1000.0f,
+	           .maxLifetime = 1000.0f,
 
-            .minScale = 15.0f,
-            .maxScale = 30.0f,
+	           .minScale = 15.0f,
+	           .maxScale = 30.0f,
 
-            .proximityFadeMode = FadeMode::Alpha,
-            .proximityFadeMin = 3.0f,
-            .proximityFadeMax = 8.0f,
+	           .proximityFadeMode = FadeMode::Alpha,
+	           .proximityFadeMin = 3.0f,
+	           .proximityFadeMax = 8.0f,
 
 
-            .distanceFadeMode = FadeMode::Alpha,
-            .distanceFadeMin = 130.0f,
-            .distanceFadeMax = 140.0f,
+	           .distanceFadeMode = FadeMode::Alpha,
+	           .distanceFadeMin = 130.0f,
+	           .distanceFadeMax = 140.0f,
 
-            .billboardMode = BillboardMode::Z,
-            .wrapAround = true,
-            .continuous = false,
-        }
-    );
+               .enableDepthFade = true,
+               .depthFadeDistance = 3.0f,
 
-	   // Texture2D* smoke2Tex = mainScene->Resources()->Get<Texture2D>("./res/textures/T_smoke_b7.png", Texture::ColorTextureRGBA);
+	           .billboardMode = BillboardMode::Z,
+
+	           .wrapAround = true,
+	           .continuous = false,
+	       }
+	   );
+
+	Texture2D* smoke2Tex = mainScene->Resources()->Get<Texture2D>("./res/textures/T_smoke_b7.png", Texture::ColorTextureRGBA);
 	// schnozInstancedMat->SetValue("colorTex", smoke2Tex);
     // SceneNode* smokeParticlesNode = mainScene->CreateNode("Smoke Particles");
     // smokeParticlesNode->AddObject<ParticleSpawner>(

@@ -19,9 +19,21 @@ in VS_OUT {
 #include "shared/light.h"
 
 uniform sampler2D colorTex;
+uniform sampler2D depthTex;
+uniform float depthFadeDistance;
+uniform uint enableDepthFade;
+
+uniform uint proximityFadeMode;
+uniform float proximityFadeMin;
+uniform float proximityFadeMax;
 
 layout (location = 0) out vec4 accumValue;
 layout (location = 1) out float revealValue;
+
+float LinearizeDepth(float depth) {
+    float z = depth * 2.0 - 1.0;
+    return (2.0 * Global_CameraNearPlane * Global_CameraFarPlane) / (Global_CameraFarPlane + Global_CameraNearPlane - z * (Global_CameraFarPlane - Global_CameraNearPlane));
+}
 
 float calcWeight(float alpha) {
 	return clamp(
@@ -34,6 +46,29 @@ float calcWeight(float alpha) {
 void main() {
 	vec4 color = texture(colorTex, ps_in.texcoords);
     float alpha = color.a * ps_in.alpha;
+
+    // Doesn't work well with large quads in the vertex shader
+    //  if the performance is bad for smaller particles try moving this there again
+    if (proximityFadeMode > 0) {
+        float distanceToCamera = length(ps_in.viewPos);
+        alpha *= smoothstep(proximityFadeMin, proximityFadeMax, distanceToCamera);
+    }
+
+    if (enableDepthFade > 0) {
+        vec2 screenSize = vec2(textureSize(depthTex, 0));
+
+        vec2 screenUV = gl_FragCoord.xy / screenSize;
+        float rawDepth = texture(depthTex, screenUV).r;
+        float sceneDepth = LinearizeDepth(rawDepth);
+        float particleDepth = LinearizeDepth(gl_FragCoord.z);
+
+        float distanceToScene = sceneDepth - particleDepth;
+
+        float depthFade = clamp(distanceToScene / depthFadeDistance, 0.0, 1.0);
+        alpha *= depthFade;
+    }
+
+    if (alpha < 0.001) discard;
 	
     const float weight = calcWeight(alpha);
     const vec3 viewDir = normalize(Global_CameraWorldPos - ps_in.worldPos);
