@@ -632,7 +632,7 @@ void InitScene(Scene* mainScene) {
 
 	auto enemyAI = w_schnozNode->AddObject<AiNode>();
 	if (enemyAI) {
-		enemyAI->SetTarget(cameraNode);
+		enemyAI->SetTarget(playerNode);
 	}
 
 	glm::vec2 patrolPoints[] = {

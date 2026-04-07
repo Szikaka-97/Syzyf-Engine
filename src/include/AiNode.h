@@ -20,6 +20,8 @@ private:
     float m_PatrolTimeout;
 	std::vector <glm::vec3> patrolPoints;
 	int posIndex;
+    float fov;
+
 
     void Patrol();
     void Chase();

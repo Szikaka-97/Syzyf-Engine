@@ -26,6 +26,8 @@
 #include "physics/Body.h"
 #include "physics/Water.h"
 
+#include <Jolt/Physics/Collision/Shape/ConvexHullShape.h>
+#include <Jolt/Physics/Collision/CollideShape.h>
 
 AiNode::AiNode()
     : m_Speed(5.0f)
@@ -36,6 +38,7 @@ AiNode::AiNode()
     , walkPointRange(10.0f)      
     , walkPointSet(false)    
     , m_Body(nullptr)
+	, fov(glm::radians(180.0f))
 {
     patrolPoints.clear();
     m_Surface = nullptr;
@@ -46,6 +49,7 @@ AiNode::AiNode()
     }
 	walkPoint = glm::vec3(0.0f);
     m_PatrolTimeout = 0.0f;
+
 	SetSurface(nullptr);
 }
 
@@ -72,15 +76,38 @@ void AiNode::Update() {
     transform = m_Body->GetPosition();
     myNode->GlobalTransform().Position() = transform;
     myNode->GlobalTransform().Rotation() = m_Body->GetRotation();
+    glm::vec3 targetPos = m_TargetNode->GlobalTransform().Position();
+    glm::vec3 dirToTarget = targetPos - transform;
+    float dist = glm::length(dirToTarget);
+    bool canSeePlayer = false;
 
-    float dist = glm::distance(transform, glm::vec3(m_TargetNode->GlobalTransform().Position()));
-    bool playerInSightRange = dist < sightRange;
-    bool playerInAttackRange = dist < attackRange;
+    if (dist < sightRange) {
+        dirToTarget /= dist;
+        glm::mat3 rotMat = glm::toMat3(m_Body->GetRotation());
+        glm::vec3 forward = rotMat * glm::vec3(0, 0, 1);
+        forward = glm::normalize(glm::vec3(forward.x, 0, forward.z));
+        glm::vec3 dirFlat = glm::normalize(glm::vec3(dirToTarget.x, 0, dirToTarget.z));
+        float dot = glm::dot(forward, dirFlat);
+        float angle = acos(glm::clamp(dot, -1.0f, 1.0f));
+        if (angle <= fov / 2.0f) {
+            canSeePlayer = true;  // bez raycasta ?
+            //pdlog::info("can see player");
+        }
+    }
 
-	DrawDebugView();
+    bool playerInAttackRange = canSeePlayer && dist < attackRange;
 
-    if (!playerInSightRange && !playerInAttackRange) Patrol();
-    if (playerInSightRange && !playerInAttackRange) Chase();
+    if (!canSeePlayer && !playerInAttackRange) {
+        Patrol();
+    }
+    else if (canSeePlayer && !playerInAttackRange) {
+        Chase();
+    }
+    else if (canSeePlayer && playerInAttackRange) {
+        // Attack();
+    }
+
+    DrawDebugView();
 }
 
 void AiNode::SetTarget(SceneNode* target) {
@@ -101,23 +128,9 @@ void AiNode::SetSurface(Surface* surface) {
         m_Surface = surface;
     }
     else {
-        /*auto* floorNode = GetScene()->FindNode("/Floor");
-        if (floorNode) {
-            m_Surface = floorNode->GetObject<Surface>();
-            if (m_Surface) {
-                spdlog::info("AiNode: Found Surface on Floor node");
-            }
-            else {
-                spdlog::error("AiNode: Floor node has no Surface component");
-            }
-        }
-        else {
-            spdlog::error("AiNode: Floor node not found");
-        }*/
         auto surfaces = GetScene()->FindObjectsOfType<Surface>();
         if (!surfaces.empty()) {
             m_Surface = surfaces[0];
-            spdlog::info("AiNode: Found Surface component in scene");
         }
         else {
             spdlog::error("AiNode: No Surface component found in scene");
@@ -221,6 +234,7 @@ void AiNode::SearchWalkPoint() {
         glm::vec3 candidate(transform.x + randomX, transform.y + 10.0f, transform.z + randomZ);
        
         //ground check
+        ///unused
         auto* physics = GetScene()->GetComponent<Physics::System>();
         if (physics) {
             JPH::RRayCast ray(JPH::RVec3(candidate.x, candidate.y, candidate.z), JPH::Vec3(0, -1, 0));
@@ -243,6 +257,7 @@ void AiNode::SearchWalkPoint() {
             walkPoint.y = transform.y;
             walkPointSet = true;
         }
+        ///
     }
 }
 
@@ -263,34 +278,32 @@ void AiNode::DrawDebugView() {
         return;
     }
 
-    float fov = glm::radians(90.0f);
-    float radius = sightRange;
     int segments = 24;
 
     glm::quat rotation = myNode->GlobalTransform().Rotation();
     glm::vec3 forward = rotation * glm::vec3(0, 0, 1);
     forward = glm::normalize(glm::vec3(forward.x, 0, forward.z));
 
-    glm::vec3 pos = transform;
+    //glm::vec3 pos = transform;
 
     std::vector<glm::vec3> arcPoints;
     float startAngle = atan2(forward.x, forward.z) - fov / 2.0f;
     for (int i = 0; i <= segments; ++i) {
         float t = (float)i / segments;
         float angle = startAngle + t * fov;
-        float x = radius * sin(angle);
-        float z = radius * cos(angle);
-        arcPoints.push_back(pos + glm::vec3(x, 0, z));
+        float x = sightRange * sin(angle);
+        float z = sightRange * cos(angle);
+        arcPoints.push_back(transform + glm::vec3(x, 0, z));
     }
 
     for (const auto& p : arcPoints) {
-        debugRenderer->DrawLine(JPH::Vec3(pos.x, pos.y, pos.z), JPH::Vec3(p.x, p.y, p.z), JPH::Color::sGreen);
+        debugRenderer->DrawLine(JPH::Vec3(transform.x, transform.y, transform.z), JPH::Vec3(p.x, p.y, p.z), JPH::Color::sPurple);
     }
 
     for (size_t i = 0; i < arcPoints.size() - 1; ++i) {
         debugRenderer->DrawLine(JPH::Vec3(arcPoints[i].x, arcPoints[i].y, arcPoints[i].z),
             JPH::Vec3(arcPoints[i + 1].x, arcPoints[i + 1].y, arcPoints[i + 1].z),
-            JPH::Color::sGreen);
+            JPH::Color::sPurple);
     }
 }
 
