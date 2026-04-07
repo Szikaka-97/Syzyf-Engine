@@ -573,26 +573,60 @@ void InitScene(Scene* mainScene) {
     particleProg->SetTransparent(true);
     Material* schnozInstancedMat = new Material(particleProg);
 	schnozInstancedMat->SetValue("colorTex", smokeTex);
-    playerNode->AddObject<ParticleSpawner>(
+    // playerNode->AddObject<ParticleSpawner>(
+    //     quadMesh,
+    //     schnozInstancedMat,
+    //     ParticleSpawnerSettings {
+    //         .maxParticles = 1024,
+    //         .areaExtents = glm::vec3(150.0f),
+    //         .minScale = 15.0f,
+    //         .maxScale = 30.0f,
+    //
+    //         .proximityFadeMode = FadeMode::Alpha,
+    //         .proximityFadeMin = 3.0f,
+    //         .proximityFadeMax = 8.0f,
+    //
+    //         .distanceFadeMode = FadeMode::Alpha,
+    //         .distanceFadeMin = 130.0f,
+    //         .distanceFadeMax = 140.0f,
+    //
+    //         .billboardMode = BillboardMode::Z,
+    //     }
+    // );
+
+    Texture2D* smoke2Tex = mainScene->Resources()->Get<Texture2D>("./res/textures/T_smoke_b7.png", Texture::ColorTextureRGBA);
+	schnozInstancedMat->SetValue("colorTex", smoke2Tex);
+    SceneNode* smokeParticlesNode = mainScene->CreateNode("Smoke Particles");
+    smokeParticlesNode->AddObject<ParticleSpawner>(
         quadMesh,
         schnozInstancedMat,
         ParticleSpawnerSettings {
-            .maxParticles = 1024,
-            .areaExtents = glm::vec3(150.0f),
-            .minScale = 15.0f,
-            .maxScale = 30.0f,
+            .maxParticles = 20,
+            .areaExtents = { 2.0f, 2.0f, 2.0f },
+            .emissionShapeExtents = { 0.2f, 0.2f, 0.2f },
+            .minVelocity = { 0.0f, 1.5f, 0.0f },
+            .maxVelocity = { 0.0f, 2.8f, 0.0f },
+
+            .minInitialAngle = glm::radians(-180.0f),
+            .maxInitialAngle = glm::radians(180.0f),
+            .minAngularVelocity = -1.5f,
+            .maxAngularVelocity = 1.5f,
+
+            .minLifetime = 2.0f,
+            .maxLifetime = 2.0f,
 
             .proximityFadeMode = FadeMode::Alpha,
-            .proximityFadeMin = 3.0f,
-            .proximityFadeMax = 8.0f,
+            .proximityFadeMin = 0.5f,
+            .proximityFadeMax = 3.0f,
 
             .distanceFadeMode = FadeMode::Alpha,
-            .distanceFadeMin = 130.0f,
-            .distanceFadeMax = 140.0f,
+            .distanceFadeMin = 1.4f,
+            .distanceFadeMax = 2.0f,
 
             .billboardMode = BillboardMode::Z,
         }
     );
+    smokeParticlesNode->GlobalTransform().Position() = { 0.0f, 1.0f, 0.0f };
 
 	auto cameraNode = mainScene->CreateNode(playerNode, "Camera");
 	Camera* camera = cameraNode->AddObject<Camera>(Camera::Perspective(40.0f, 16.0f/9.0f, 0.5f, 200.0f));
@@ -735,7 +769,7 @@ void InitScene(Scene* mainScene) {
 
 	cameraNode->AddObject<Bloom>();
 	cameraNode->AddObject<Tonemapper>()->SetOperator(Tonemapper::TonemapperOperator::GranTurismo);
-    cameraNode->AddObject<Fog>();
+    // cameraNode->AddObject<Fog>();
 
   Mesh* waterMesh = mainScene->Resources()->Get<Mesh>("./res/models/water.obj");
   SceneNode* water = mainScene->CreateNode("Water");

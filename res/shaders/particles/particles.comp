@@ -3,6 +3,7 @@
 struct ParticleData {
     vec4 position;
     vec4 velocity;
+    vec4 lifetime;
 };
 
 layout(std430, binding = 3) buffer ParticleBuffer {
@@ -12,6 +13,7 @@ layout(std430, binding = 3) buffer ParticleBuffer {
 uniform float uDeltaTime;
 uniform vec3 uAreaCenter;
 uniform vec3 uAreaExtents;
+// add uselifetime
 
 layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 
@@ -19,12 +21,23 @@ void main() {
     uint index = gl_GlobalInvocationID.x;
     if (index >= particles.length()) return;
 
+    particles[index].lifetime.x += uDeltaTime;
+    if (particles[index].lifetime.x >= particles[index].lifetime.y) {
+        particles[index].lifetime.x = 0.0;
+
+        // temporary, replace with recalculating a random position
+        particles[index].position.xyz = uAreaCenter - uAreaExtents;
+    }
+
     particles[index].position.xyz += particles[index].velocity.xyz * uDeltaTime;
+    // angle
+    particles[index].lifetime.z += particles[index].lifetime.w * uDeltaTime;
 
     vec3 localPosition = particles[index].position.xyz - uAreaCenter;
     vec3 size = uAreaExtents * 2.0;
 
-    localPosition = mod(localPosition + uAreaExtents, size) - uAreaExtents;
+    // Add a toggle for this
+    // localPosition = mod(localPosition + uAreaExtents, size) - uAreaExtents;
     
     particles[index].position.xyz = uAreaCenter + localPosition;
 }

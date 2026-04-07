@@ -13,8 +13,8 @@ ParticleSpawner::ParticleSpawner(Mesh* mesh, Material* material, ParticleSpawner
     this->computeShader.reset(new ComputeShaderProgram(shader));
 
     glm::vec3 center = this->GlobalTransform().Position();
-    glm::vec3 min = -settings.areaExtents;
-    glm::vec3 max = settings.areaExtents;
+    glm::vec3 min = -settings.emissionShapeExtents;
+    glm::vec3 max = settings.emissionShapeExtents;
 
     this->initialParticleData.reserve(settings.maxParticles);
 
@@ -23,10 +23,22 @@ ParticleSpawner::ParticleSpawner(Mesh* mesh, Material* material, ParticleSpawner
 
         glm::vec3 randomPosition = center + glm::linearRand(min, max);
         glm::vec3 randomVelocity = glm::linearRand(settings.minVelocity, settings.maxVelocity);
+
+        float lifetimeFraction = static_cast<float>(i) / static_cast<float>(settings.maxParticles);
+        float initialLifetime = lifetimeFraction * settings.maxLifetime;
+        float randomLifetime = glm::linearRand(settings.minLifetime, settings.maxLifetime);
+
+        float randomAngle = glm::linearRand(settings.minInitialAngle, settings.maxInitialAngle);
+        float randomAngularVelocity = glm::linearRand(settings.minAngularVelocity, settings.maxAngularVelocity);
+
         float randomScale = glm::linearRand(settings.minScale, settings.maxScale);
 
         p.position = glm::vec4(randomPosition, randomScale);
         p.velocity = glm::vec4(randomVelocity, 1.0f);
+        p.lifetime.x = initialLifetime;
+        p.lifetime.y = randomLifetime;
+        p.lifetime.z = randomAngle;
+        p.lifetime.w = randomAngularVelocity;
 
         this->initialParticleData.push_back(p);
     }
@@ -44,6 +56,9 @@ ParticleSpawner::~ParticleSpawner() {
 }
 
 void ParticleSpawner::Update() {
+    // rename so either nothing has the 'u' prefix or every uniform has it
+    this->material->SetValue("areaCenter", this->GlobalTransform().Position().value);
+
     // change later
     this->material->SetValue("billboardMode", static_cast<unsigned int>(this->settings.billboardMode));
 
@@ -65,11 +80,13 @@ void ParticleSpawner::Update() {
     glm::vec3 extents = this->settings.areaExtents;
 
     glUniform3fv(glGetUniformLocation(this->computeShader->GetHandle(), "uAreaCenter"), 1, &center[0]);
+    glUniform3fv(glGetUniformLocation(this->computeShader->GetHandle(), "uEmissionShapeExtents"), 1, &this->settings.emissionShapeExtents[0]);
     glUniform3fv(glGetUniformLocation(this->computeShader->GetHandle(), "uAreaExtents"), 1, &extents[0]);
     glUniform1f(glGetUniformLocation(this->computeShader->GetHandle(), "uDeltaTime"), Time::Delta());
 
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, this->particleBuffer);
-    glDispatchCompute(this->settings.maxParticles / 64, 1, 1);
+    GLuint workGroups = (this->settings.maxParticles + 63) / 64;
+    glDispatchCompute(workGroups, 1, 1);
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
     // will break if another ssbo gets bound to 3 ,fix
 }

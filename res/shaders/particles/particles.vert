@@ -11,6 +11,7 @@ layout (IN_UV1) in vec2 vUVCoords;
 struct ParticleData {
     vec4 position; // w is size
     vec4 velocity;
+    vec4 lifetime;
 };
 
 layout(std430, binding = 3) buffer ParticleBuffer {
@@ -26,6 +27,8 @@ out VS_OUT {
     float alpha;
 } vs_out;
 
+uniform vec3 areaCenter;
+
 // change later
 uniform uint billboardMode;
 
@@ -39,7 +42,13 @@ uniform float distanceFadeMax;
 
 void main() {
     vec4 particle = particles[gl_InstanceID].position;
+    vec4 lifetime = particles[gl_InstanceID].lifetime;
     vec3 particlePosition = particle.xyz;
+
+    float c = cos(lifetime.z);
+    float s = sin(lifetime.z);
+    mat2 rotation = mat2(c, -s, s, c);
+    vec2 rotatedPosition = rotation * vPos.xy;
 
     if (billboardMode > 0) {
         vec3 worldCameraRight = vec3(
@@ -58,12 +67,12 @@ void main() {
         }
 
         vs_out.worldPos = particlePosition
-            + worldCameraRight * vPos.x * particle.w
-            + worldCameraUp * vPos.y * particle.w;
+            + worldCameraRight * rotatedPosition.x * particle.w
+            + worldCameraUp * rotatedPosition.y * particle.w;
 
         vs_out.normal = cross(worldCameraRight, worldCameraUp);
     } else {
-	    vs_out.worldPos = (mat3(Object_ModelMatrix) * (vPos * particle.w)) + particlePosition;
+	    vs_out.worldPos = (mat3(Object_ModelMatrix) * (vec3(rotatedPosition, vPos.z) * particle.w)) + particlePosition;
         vs_out.normal = Object_NormalModelMatrix * vNormal;
     }
 
@@ -82,7 +91,10 @@ void main() {
     if (proximityFadeMode > 0) {
         vs_out.alpha *= smoothstep(proximityFadeMin, proximityFadeMax, distanceToEdge);
     }
+    // remove distance fade, replace with lifetime
     if (distanceFadeMode > 0) {
-        vs_out.alpha *= smoothstep(distanceFadeMax, distanceFadeMin, distanceToEdge);
+        vs_out.alpha *= 1.0 - smoothstep(distanceFadeMin, distanceFadeMax, lifetime.x);
+        // fade in, chagne
+        vs_out.alpha *= smoothstep(0.0, distanceFadeMax - distanceFadeMin, lifetime.x);
     }
 }
