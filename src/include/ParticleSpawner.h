@@ -64,7 +64,10 @@ struct ParticleSpawnerSettings {
     float distanceFadeMin = 30.0f;
     float distanceFadeMax = 40.0f;
 
-    BillboardMode billboardMode = BillboardMode::Disabled; 
+    BillboardMode billboardMode = BillboardMode::Disabled;
+
+    bool wrapAround = false;
+    bool continuous = false;
 };
 
 class ParticleSpawner : public GameObject, public ImGuiDrawable {

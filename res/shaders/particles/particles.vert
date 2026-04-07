@@ -43,6 +43,13 @@ uniform float distanceFadeMax;
 void main() {
     vec4 particle = particles[gl_InstanceID].position;
     vec4 lifetime = particles[gl_InstanceID].lifetime;
+
+    if (lifetime.x < 0.0) {
+        vs_out.alpha = 0.0;
+        gl_Position = vec4(2.0, 2.0, 2.0, 0.0);
+        return;
+    }
+
     vec3 particlePosition = particle.xyz;
 
     float c = cos(lifetime.z);

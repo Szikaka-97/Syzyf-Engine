@@ -12,21 +12,26 @@ ParticleSpawner::ParticleSpawner(Mesh* mesh, Material* material, ParticleSpawner
     ComputeShader* shader = this->GetScene()->Resources()->Get<ComputeShader>("res/shaders/particles/particles.comp");
     this->computeShader.reset(new ComputeShaderProgram(shader));
 
-    glm::vec3 center = this->GlobalTransform().Position();
-    glm::vec3 min = -settings.emissionShapeExtents;
-    glm::vec3 max = settings.emissionShapeExtents;
-
     this->initialParticleData.reserve(settings.maxParticles);
+
+    glm::vec3 spawnExtents = settings.wrapAround ? settings.areaExtents : settings.emissionShapeExtents;
+    glm::vec3 min = -spawnExtents;
+    glm::vec3 max = spawnExtents;
 
     for (int i = 0; i < settings.maxParticles; i++) {
         ParticleData p;
 
-        glm::vec3 randomPosition = center + glm::linearRand(min, max);
+        glm::vec3 randomPosition = glm::linearRand(min, max);
         glm::vec3 randomVelocity = glm::linearRand(settings.minVelocity, settings.maxVelocity);
 
-        float lifetimeFraction = static_cast<float>(i) / static_cast<float>(settings.maxParticles);
-        float initialLifetime = lifetimeFraction * settings.maxLifetime;
         float randomLifetime = glm::linearRand(settings.minLifetime, settings.maxLifetime);
+
+        if (settings.continuous) {
+            float spawnDelay = (static_cast<float>(i) / static_cast<float>(settings.maxParticles)) * settings.maxLifetime;
+            p.lifetime.x = -spawnDelay;
+        } else {
+            p.lifetime.x = glm::linearRand(0.0f, randomLifetime);
+        }
 
         float randomAngle = glm::linearRand(settings.minInitialAngle, settings.maxInitialAngle);
         float randomAngularVelocity = glm::linearRand(settings.minAngularVelocity, settings.maxAngularVelocity);
@@ -35,7 +40,6 @@ ParticleSpawner::ParticleSpawner(Mesh* mesh, Material* material, ParticleSpawner
 
         p.position = glm::vec4(randomPosition, randomScale);
         p.velocity = glm::vec4(randomVelocity, 1.0f);
-        p.lifetime.x = initialLifetime;
         p.lifetime.y = randomLifetime;
         p.lifetime.z = randomAngle;
         p.lifetime.w = randomAngularVelocity;
@@ -83,6 +87,7 @@ void ParticleSpawner::Update() {
     glUniform3fv(glGetUniformLocation(this->computeShader->GetHandle(), "uEmissionShapeExtents"), 1, &this->settings.emissionShapeExtents[0]);
     glUniform3fv(glGetUniformLocation(this->computeShader->GetHandle(), "uAreaExtents"), 1, &extents[0]);
     glUniform1f(glGetUniformLocation(this->computeShader->GetHandle(), "uDeltaTime"), Time::Delta());
+    glUniform1ui(glGetUniformLocation(this->computeShader->GetHandle(), "uWrapAround"), this->settings.wrapAround ? 1 : 0);
 
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, this->particleBuffer);
     GLuint workGroups = (this->settings.maxParticles + 63) / 64;
