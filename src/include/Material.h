@@ -1,8 +1,10 @@
 #pragma once
 
+#include "Resources.h"
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 #include <spdlog/spdlog.h>
+#include <nlohmann/json.hpp>
 
 #include <UniformSpec.h>
 #include <Shader.h>
@@ -23,6 +25,7 @@ private:
 	const UniformSpec* uniformSpec;
 	bool dirty;
 public:
+	ShaderVariableStorage() = default;
 	ShaderVariableStorage(const UniformSpec& uniformSpec);
 	
 	void Bind() const;
@@ -68,7 +71,7 @@ public:
 	void RefreshVariables();
 };
 
-class Material {
+class Material : public Resource {
 	friend bool Debug::Property<Material>(Material&, const std::string&);
 private:
 	const ShaderProgram* shader;
@@ -76,9 +79,15 @@ private:
 
 	static std::vector<Material*> allMaterials;
 
+	fs::path path;
+
+	Material();
+
 	static void OnReloadShader(ShaderProgram* shader);
 public:
 	Material(const ShaderProgram* shader);
+
+	static Material* Load(fs::path materialPath);
 
 	void Bind() const;
 
@@ -120,6 +129,11 @@ public:
 
 	const ShaderProgram* GetShader() const;
 	const UniformSpec* GetUniforms() const;
+
+	virtual fs::path GetName() const;
+
+	void Deserialize(const nlohmann::json& json_node);
+	nlohmann::json Serialize();
 };
 
 class ComputeDispatchData {

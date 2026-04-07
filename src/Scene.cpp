@@ -472,7 +472,7 @@ void Scene::operator delete(Scene* ptr, std::destroying_delete_t) {
 	}
 }
 
-void Scene::Deserialize(const nlohmann::json& json_node, std::vector<SerializedReference>& references) {
+void Scene::Deserialize(const nlohmann::json& json_node) {
 	
 }
 
@@ -494,13 +494,7 @@ nlohmann::json Scene::Serialize() {
 		nodeRep["name"] = current->name;
 		nodeRep["parent"] = current->parent ? current->parent->id : -1;
 
-		std::array<std::array<float, 4>, 4> transformData;
-		for (int y = 0; y < 4; y++) {
-			for (int x = 0; x < 4; x++) {
-				transformData[y][x] = current->LocalTransform().Value()[y][x];
-			}
-		}
-		nodeRep["transform"] = transformData;
+		nodeRep["transform"] = Serialization::Serialize(current->LocalTransform().Value());
 
 		std::vector<nlohmann::json> gameObjectData;
 		for (GameObject* obj : current->objects) {

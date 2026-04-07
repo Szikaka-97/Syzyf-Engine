@@ -1,9 +1,15 @@
-#include "Debug.h"
-#include "UniformSpec.h"
 #include <Material.h>
 
-#include <imgui.h>
+#include <fstream>
 #include <malloc.h>
+
+#include <imgui.h>
+#include <nlohmann/json_fwd.hpp>
+
+#include "UniformSpec.h"
+#include "Debug.h"
+
+#include "SerializationDecls.h"
 
 std::vector<Material*> Material::allMaterials;
 Texture* textureClipboard = nullptr;
@@ -251,10 +257,28 @@ void ShaderVariableStorage::RefreshVariables() {
 	this->dataBuffer = newBuffer;
 }
 
+Material::Material():
+shader(nullptr),
+shaderVariables() {
+	allMaterials.push_back(this);
+}
+
 Material::Material(const ShaderProgram* shader):
 shader(shader),
 shaderVariables(shader->GetUniforms()) {
 	allMaterials.push_back(this);
+}
+
+Material* Material::Load(fs::path materialPath) {
+	std::ifstream jsonFile(materialPath);
+
+	nlohmann::json materialData = nlohmann::json::parse(jsonFile);
+
+	volatile Material* result = new Material();
+
+	DeserializeOn(result, materialData);
+
+	return const_cast<Material*>(result);
 }
 
 void Material::OnReloadShader(ShaderProgram* shader) {
@@ -283,6 +307,23 @@ void Material::BindStorageBuffer(const std::string& storageBufferName, GLuint bu
 }
 void Material::BindStorageBuffer(int storageBufferIndex, GLuint bufferHandle) {
 	this->shaderVariables.BindStorageBuffer(storageBufferIndex, bufferHandle);
+}
+
+fs::path Material::GetName() const {
+	return this->path;
+}
+
+void Material::Deserialize(const nlohmann::json& json_node) {
+	// this->shader = ShaderProgram::Load(json_node["shader"].get<std::string>());
+
+	// for (const auto& uniform : json_node["values"]) {
+
+	// }
+
+	spdlog::info("Material Serialize");
+}
+nlohmann::json Material::Serialize() {
+	spdlog::info("Material Deserialize");
 }
 
 const ShaderProgram* Material::GetShader() const {

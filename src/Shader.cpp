@@ -583,6 +583,10 @@ bool ShaderProgram::HasPragma(const std::string& pragma) const {
 	return this->pragmas.contains(pragma);
 }
 
+fs::path ShaderProgram::GetName() const {
+	return this->path;
+}
+
 void ShaderProgram::Reload() {
 	decltype(this->pragmas) newPragmas;
 	GLuint newHandle = glCreateProgram();

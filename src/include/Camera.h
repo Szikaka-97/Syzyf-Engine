@@ -16,20 +16,20 @@ public:
 		Perspective() = default;
 		Perspective(float fovyDegrees, float aspectRatio, float nearPlane, float farPlane);
 
-		float fovyDegrees = 0;
-		float aspectRatio = 0;
-		float nearPlane = 0;
-		float farPlane = 0;
+		serialized float fovyDegrees = 0;
+		serialized float aspectRatio = 0;
+		serialized float nearPlane = 0;
+		serialized float farPlane = 0;
 	};
 	struct Orthographic {
 		Orthographic() = default;
 		Orthographic(float left, float right, float top, float bottom);
 		Orthographic(glm::vec2 viewportSize);
 
-		float left = 0;
-		float right = 0;
-		float top = 0;
-		float bottom = 0;
+		serialized float left = 0;
+		serialized float right = 0;
+		serialized float top = 0;
+		serialized float bottom = 0;
 	};
 
 	enum class CameraType {
@@ -39,8 +39,8 @@ public:
 private:
 	CameraType type;
 
-	Perspective perspectiveData;
-	Orthographic orthoData;
+	serialized Perspective perspectiveData;
+	serialized Orthographic orthoData;
 	Viewport* renderTarget;
 	LayerMask layerMask;
 	int priority;

@@ -449,6 +449,8 @@ Mesh* Mesh::Load(fs::path modelPath, bool loadMaterials) {
 
 	delete[] vertexData;
 
+	loadedMesh->path = modelPath;
+
 	return loadedMesh;
 }
 

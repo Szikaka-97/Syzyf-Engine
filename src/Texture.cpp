@@ -304,7 +304,7 @@ void Texture::Update() {
 	glBindTexture(type, 0);
 }
 
-fs::path Mesh::GetName() const {
+fs::path Texture::GetName() const {
 	return this->path;
 }
 
@@ -418,6 +418,8 @@ Texture2D* Texture2D::Load(const fs::path& texturePath, const TextureParams& loa
 	glBindTexture(GL_TEXTURE_2D, 0);
 	
 	Texture2D* result = new Texture2D(width, height, loadParams, textureHandle);
+	
+	result->path = texturePath;
 
 	return result;
 }
@@ -553,6 +555,8 @@ Cubemap* Cubemap::LoadEquirectangular(const fs::path& texturePath, const Texture
 	cubemapBlitProg->Dispatch(std::ceil(texSize / 8.0f), std::ceil(texSize / 8.0f), 1);
 
 	delete equTex;
+	
+	result->path = texturePath;
 
 	return result;
 }
@@ -629,6 +633,8 @@ Cubemap* Cubemap::LoadParts(const fs::path& texturePath, const TextureParams& lo
 	result->SetMagFilter(loadParams.magFilter);
 	
 	result->Update();
+	
+	result->path = texturePath;
 
 	return result;
 }

@@ -119,7 +119,7 @@ public:
 	const ShaderCode& GetCode() const;
 };
 
-class ShaderProgram {
+class ShaderProgram : Resource {
 	friend class ShaderBuilder;
 private:
 	struct ShaderAttachment {
@@ -145,6 +145,8 @@ private:
 	GLuint handle;
 
 	ShaderProgram(GLuint handle);
+
+	fs::path path;
 
 	static std::vector<ShaderProgram*> allPrograms;
 public:
@@ -173,9 +175,13 @@ public:
 
 	bool HasPragma(const std::string& pragma) const;
 
+	virtual fs::path GetName() const;
+
 	void Reload();
 
 	static void ReloadAllShaders();
+
+	static ShaderProgram* Load(const fs::path& shaderPath);
 };
 
 class ComputeShaderProgram {
