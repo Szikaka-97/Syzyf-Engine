@@ -23,10 +23,19 @@ out VS_OUT {
 	vec3 normal;
 	vec3 tangent;
 	vec2 texcoords;
+    float alpha;
 } vs_out;
 
 // change later
 uniform uint billboardMode;
+
+uniform uint proximityFadeMode;
+uniform float proximityFadeMin;
+uniform float proximityFadeMax;
+
+uniform uint distanceFadeMode;
+uniform float distanceFadeMin;
+uniform float distanceFadeMax;
 
 void main() {
     vec4 particle = particles[gl_InstanceID].position;
@@ -63,4 +72,17 @@ void main() {
 	vs_out.viewPos = (Global_ViewMatrix * vec4(vs_out.worldPos, 1.0)).xyz;
 	vs_out.tangent = Object_NormalModelMatrix * vTangent;
 	vs_out.texcoords = vUVCoords;
+
+    // Distance fade
+    // Doesn't always work with large quads, could move to the fragment shader if necessary
+    vs_out.alpha = 1.0;
+    float distanceToCenter = length((Global_ViewMatrix * vec4(particle.xyz, 1.0)).xyz);
+    float distanceToEdge = distanceToCenter - (particle.w * 0.5);
+
+    if (proximityFadeMode > 0) {
+        vs_out.alpha *= smoothstep(proximityFadeMin, proximityFadeMax, distanceToEdge);
+    }
+    if (distanceFadeMode > 0) {
+        vs_out.alpha *= smoothstep(distanceFadeMax, distanceFadeMin, distanceToEdge);
+    }
 }

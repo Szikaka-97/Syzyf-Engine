@@ -5,6 +5,7 @@
 #include "TimeSystem.h"
 #include "Graphics.h"
 
+#include "imgui.h"
 #include <glm/gtc/random.hpp>
 
 ParticleSpawner::ParticleSpawner(Mesh* mesh, Material* material, ParticleSpawnerSettings settings) : mesh(mesh), material(material), settings(settings) {
@@ -46,6 +47,18 @@ void ParticleSpawner::Update() {
     // change later
     this->material->SetValue("billboardMode", static_cast<unsigned int>(this->settings.billboardMode));
 
+    this->material->SetValue("proximityFadeMode", static_cast<unsigned int>(this->settings.proximityFadeMode));
+    if (this->settings.proximityFadeMode != FadeMode::Disabled) {
+        this->material->SetValue("proximityFadeMin", this->settings.proximityFadeMin);
+        this->material->SetValue("proximityFadeMax", this->settings.proximityFadeMax);
+    }
+
+    this->material->SetValue("distanceFadeMode", static_cast<unsigned int>(this->settings.distanceFadeMode));
+    if (this->settings.distanceFadeMode != FadeMode::Disabled) {
+        this->material->SetValue("distanceFadeMin", this->settings.distanceFadeMin);
+        this->material->SetValue("distanceFadeMax", this->settings.distanceFadeMax);
+    }
+
     glUseProgram(this->computeShader->GetHandle());
 
     glm::vec3 center = this->GlobalTransform().Position();
@@ -76,4 +89,32 @@ void ParticleSpawner::Render() {
         BoundingBox::CenterAndExtents(glm::vec3(0.0f), this->settings.areaExtents),
         Layer::Default
     );
+}
+
+void ParticleSpawner::DrawImGui() {
+    const char* billboardModes[] = { "Disabled", "Enabled", "Z" };
+    int currentBillboardMode = static_cast<int>(this->settings.billboardMode);
+    if (ImGui::Combo("Billboard Mode", &currentBillboardMode, billboardModes, IM_ARRAYSIZE(billboardModes))) {
+        this->settings.billboardMode = static_cast<BillboardMode>(currentBillboardMode);
+    }
+
+    const char* fadeModes[] = { "Disabled", "Alpha", "Dither" };
+
+    int currentProximityFadeMode = static_cast<int>(this->settings.proximityFadeMode);
+    if (ImGui::Combo("Proximity Fade Mode", &currentProximityFadeMode, fadeModes, IM_ARRAYSIZE(fadeModes))) {
+        this->settings.proximityFadeMode= static_cast<FadeMode>(currentProximityFadeMode);
+    }
+    if (this->settings.proximityFadeMode != FadeMode::Disabled) {
+        ImGui::InputFloat("Proximity Fade Min", &this->settings.proximityFadeMin);
+        ImGui::InputFloat("Proximity Fade Max", &this->settings.proximityFadeMax);
+    }
+
+    int currentDistanceFadeMode = static_cast<int>(this->settings.distanceFadeMode);
+    if (ImGui::Combo("Distance Fade Mode", &currentDistanceFadeMode, fadeModes, IM_ARRAYSIZE(fadeModes))) {
+        this->settings.distanceFadeMode = static_cast<FadeMode>(currentDistanceFadeMode);
+    }
+    if (this->settings.distanceFadeMode != FadeMode::Disabled) {
+        ImGui::InputFloat("Distance Fade Min", &this->settings.distanceFadeMin);
+        ImGui::InputFloat("Distance Fade Max", &this->settings.distanceFadeMax);
+    }
 }

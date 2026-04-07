@@ -6,6 +6,7 @@ in VS_OUT {
 	vec3 normal;
 	vec3 tangent;
 	vec2 texcoords;
+    float alpha;
 } ps_in;
 
 #include "shared/shared.h"
@@ -32,11 +33,11 @@ float calcWeight(float alpha) {
 
 void main() {
 	vec4 color = texture(colorTex, ps_in.texcoords);
-    color.a = color.a * 0.2;
+    float alpha = color.a * ps_in.alpha;
 	
-    const float weight = calcWeight(color.a);
+    const float weight = calcWeight(alpha);
     const vec3 viewDir = normalize(Global_CameraWorldPos - ps_in.worldPos);
     
-    accumValue = vec4(color.rgb * dot(viewDir, normalize(ps_in.normal)) * color.a, color.a) * weight;
-    revealValue = color.a;
+    accumValue = vec4(color.rgb * dot(viewDir, normalize(ps_in.normal)) * alpha, alpha) * weight;
+    revealValue = alpha;
 }

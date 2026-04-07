@@ -581,6 +581,15 @@ void InitScene(Scene* mainScene) {
             .areaExtents = glm::vec3(150.0f),
             .minScale = 15.0f,
             .maxScale = 30.0f,
+
+            .proximityFadeMode = FadeMode::Alpha,
+            .proximityFadeMin = 3.0f,
+            .proximityFadeMax = 8.0f,
+
+            .distanceFadeMode = FadeMode::Alpha,
+            .distanceFadeMin = 130.0f,
+            .distanceFadeMax = 140.0f,
+
             .billboardMode = BillboardMode::Z,
         }
     );
