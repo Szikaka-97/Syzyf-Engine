@@ -36,7 +36,6 @@
           pkg-config
           gdb
           wayland-scanner
-          ccache
 
           glslls
           clang-tools

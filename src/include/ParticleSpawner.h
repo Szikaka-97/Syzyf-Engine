@@ -41,8 +41,10 @@ struct ParticleSpawnerSettings {
     glm::vec3 minVelocity = { 0.0f, -1.0f, 0.0f };
     glm::vec3 maxVelocity = { 0.0f, -0.2f, 0.0f };
 
+    // in radians
     float minInitialAngle = 0.0f;
     float maxInitialAngle = 0.0f;
+
     float minAngularVelocity = 0.0f;
     float maxAngularVelocity = 0.0f;
 
@@ -68,12 +70,15 @@ struct ParticleSpawnerSettings {
     glm::vec2 lifetimeFadeIn = { 0.0f, 0.2f };
     glm::vec2 lifetimeFadeOut = { 0.8f, 1.0f };
 
+    // Fades out the intersections between the particle and scene geometry
     bool enableDepthFade = false;
     float depthFadeDistance = 1.5f;
 
     BillboardMode billboardMode = BillboardMode::Disabled;
 
+    // Teleports particles to the opposite end of the area if they go outside it
     bool wrapAround = false;
+
     bool continuous = false;
 };
 

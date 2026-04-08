@@ -25,6 +25,7 @@ out VS_OUT {
 	vec3 tangent;
 	vec2 texcoords;
     float alpha;
+    float lifetime;
 } vs_out;
 
 uniform vec3 areaCenter;
@@ -89,7 +90,7 @@ void main() {
 	vs_out.tangent = Object_NormalModelMatrix * vTangent;
 	vs_out.texcoords = vUVCoords;
 
-    float normalizedAge = clamp(lifetime.x / lifetime.y, 0.0, 1.0);
+    vs_out.lifetime = clamp(lifetime.x / lifetime.y, 0.0, 1.0);
 
     // Distance fade
 
@@ -101,7 +102,7 @@ void main() {
     }
 
     if (lifetimeFadeMode > 0) {
-        vs_out.alpha *= smoothstep(lifetimeFadeIn.x, lifetimeFadeIn.y, normalizedAge);
-        vs_out.alpha *= 1.0 - smoothstep(lifetimeFadeOut.x, lifetimeFadeOut.y, normalizedAge);
+        vs_out.alpha *= smoothstep(lifetimeFadeIn.x, lifetimeFadeIn.y, vs_out.lifetime);
+        vs_out.alpha *= 1.0 - smoothstep(lifetimeFadeOut.x, lifetimeFadeOut.y, vs_out.lifetime);
     }
 }

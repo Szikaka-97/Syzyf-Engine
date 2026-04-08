@@ -59,7 +59,6 @@ void main() {
             random(seed) * 2.0 - 1.0
         );
 
-        // temporary, replace with recalculating a random position
         particles[index].position.xyz = uAreaCenter + (randomOffset * uEmissionShapeExtents);
     }
 
