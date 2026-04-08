@@ -24,6 +24,7 @@ uniform sampler2D colorRamp;
 uniform sampler2D depthTex;
 uniform float depthFadeDistance;
 uniform uint enableDepthFade;
+uniform uint useColorRamp;
 
 uniform uint proximityFadeMode;
 uniform float proximityFadeMin;
@@ -47,8 +48,11 @@ float calcWeight(float alpha) {
 
 void main() {
 	vec4 color = texture(colorTex, ps_in.texcoords);
-    vec4 colorRamp = texture(colorRamp, vec2(ps_in.lifetime, 0.0));
-    color.rgb *= colorRamp.rgb * 5.0;
+    if (useColorRamp > 0) {
+        vec4 colorRamp = texture(colorRamp, vec2(ps_in.lifetime, 0.0));
+        color.rgb *= colorRamp.rgb * 5.0;
+    }
+
     float alpha = color.a * ps_in.alpha;
 
     // Doesn't work well with large quads in the vertex shader

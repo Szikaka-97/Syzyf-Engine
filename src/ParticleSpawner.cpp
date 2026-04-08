@@ -8,9 +8,9 @@
 #include "imgui.h"
 #include <glm/gtc/random.hpp>
 
-ParticleSpawner::ParticleSpawner(Mesh* mesh, Material* material, ParticleSpawnerSettings settings) : mesh(mesh), material(material), settings(settings) {
+ParticleSpawner::ParticleSpawner(Mesh* mesh, std::unique_ptr<Material> material, ParticleSpawnerSettings settings) : mesh(mesh), material(std::move(material)), settings(settings) {
     ComputeShader* shader = this->GetScene()->Resources()->Get<ComputeShader>("res/shaders/particles/particles.comp");
-    this->computeShader.reset(new ComputeShaderProgram(shader));
+    this->computeDispatch.reset(new ComputeShaderDispatch(shader));
 
     this->initialParticleData.reserve(settings.maxParticles);
 
@@ -51,6 +51,9 @@ ParticleSpawner::ParticleSpawner(Mesh* mesh, Material* material, ParticleSpawner
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, particleBuffer);
     glBufferData(GL_SHADER_STORAGE_BUFFER, settings.maxParticles * sizeof(ParticleData), this->initialParticleData.data(), GL_DYNAMIC_COPY);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+    this->material->BindStorageBuffer("ParticleBuffer", this->particleBuffer);
+    this->computeDispatch->GetData()->BindStorageBuffer("ParticleBuffer", this->particleBuffer);
 }
 
 ParticleSpawner::~ParticleSpawner() {
@@ -90,22 +93,22 @@ void ParticleSpawner::Update() {
         this->material->SetValue("depthFadeDistance", this->settings.depthFadeDistance);
     }
 
-    glUseProgram(this->computeShader->GetHandle());
+    this->material->SetValue("useColorRamp", static_cast<unsigned int>(this->settings.useColorRamp ? 1 : 0));
 
     glm::vec3 center = this->GlobalTransform().Position();
     glm::vec3 extents = this->settings.areaExtents;
 
-    glUniform3fv(glGetUniformLocation(this->computeShader->GetHandle(), "uAreaCenter"), 1, &center[0]);
-    glUniform3fv(glGetUniformLocation(this->computeShader->GetHandle(), "uEmissionShapeExtents"), 1, &this->settings.emissionShapeExtents[0]);
-    glUniform3fv(glGetUniformLocation(this->computeShader->GetHandle(), "uAreaExtents"), 1, &extents[0]);
-    glUniform1f(glGetUniformLocation(this->computeShader->GetHandle(), "uDeltaTime"), Time::Delta());
-    glUniform1i(glGetUniformLocation(this->computeShader->GetHandle(), "uWrapAround"), this->settings.wrapAround ? 1 : 0);
+    ComputeDispatchData* computeDispatchData = this->computeDispatch->GetData();
+    
+    computeDispatchData->SetValue("uAreaCenter", center);
+    computeDispatchData->SetValue("uEmissionShapeExtents", this->settings.emissionShapeExtents);
+    computeDispatchData->SetValue("uAreaExtents", this->settings.areaExtents);
+    computeDispatchData->SetValue("uDeltaTime", Time::Delta());
+    computeDispatchData->SetValue("uWrapAround", static_cast<unsigned int>(this->settings.wrapAround));
 
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, this->particleBuffer);
+
     GLuint workGroups = (this->settings.maxParticles + 63) / 64;
-    glDispatchCompute(workGroups, 1, 1);
-    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-    // will break if another ssbo gets bound to 3 ,fix
+    this->computeDispatch->Dispatch(workGroups, 1, 1);
 }
 
 void ParticleSpawner::Render() {
@@ -117,7 +120,7 @@ void ParticleSpawner::Render() {
     this->GetScene()->GetGraphics()->DrawMeshInstanced(
         this->mesh,
         0,
-        this->material,
+        this->material.get(),
         this->GlobalTransform(),
         this->settings.maxParticles,
         BoundingBox::CenterAndExtents(glm::vec3(0.0f), this->settings.areaExtents),

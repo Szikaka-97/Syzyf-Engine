@@ -80,20 +80,23 @@ struct ParticleSpawnerSettings {
     bool wrapAround = false;
 
     bool continuous = false;
+    
+    // maybe have the particlespawner hold textures itself instead?
+    bool useColorRamp = false;
 };
 
 class ParticleSpawner : public GameObject, public ImGuiDrawable {
 private:
-    std::unique_ptr<ComputeShaderProgram> computeShader;
-
     Mesh* mesh = nullptr;
-    Material* material = nullptr;
+    std::unique_ptr<Material> material = nullptr;
+    std::unique_ptr<ComputeShaderDispatch> computeDispatch;
+
     ParticleSpawnerSettings settings;
 
     std::vector<ParticleData> initialParticleData;
     GLuint particleBuffer;
 public:
-    ParticleSpawner(Mesh* mesh, Material* material, ParticleSpawnerSettings = {});
+    ParticleSpawner(Mesh* mesh, std::unique_ptr<Material> material, ParticleSpawnerSettings = {});
     ~ParticleSpawner();
 
     void Update();

@@ -571,48 +571,49 @@ void InitScene(Scene* mainScene) {
     particleProg->SetCastsShadows(false);
     particleProg->SetIgnoresDepthPrepass(false);
     particleProg->SetTransparent(true);
-    Material* schnozInstancedMat = new Material(particleProg);
-	// schnozInstancedMat->SetValue("colorTex", smokeTex);
-	//    playerNode->AddObject<ParticleSpawner>(
-	//        quadMesh,
-	//        schnozInstancedMat,
-	//        ParticleSpawnerSettings {
-	//            .maxParticles = 1024,
-	//            .areaExtents = glm::vec3(150.0f),
-	//            .emissionShapeExtents = glm::vec3(150.0f),
-	//
-	//            .maxLifetime = 1000.0f,
-	//
-	//            .minScale = 15.0f,
-	//            .maxScale = 30.0f,
-	//
-	//            .proximityFadeMode = FadeMode::Alpha,
-	//            .proximityFadeMin = 3.0f,
-	//            .proximityFadeMax = 8.0f,
-	//
-	//
-	//            .distanceFadeMode = FadeMode::Alpha,
-	//            .distanceFadeMin = 130.0f,
-	//            .distanceFadeMax = 140.0f,
-	//
-	//               .enableDepthFade = true,
-	//               .depthFadeDistance = 3.0f,
-	//
-	//            .billboardMode = BillboardMode::Z,
-	//
-	//            .wrapAround = true,
-	//            .continuous = false,
-	//        }
-	//    );
+    std::unique_ptr<Material> schnozInstancedMat = std::make_unique<Material>(particleProg);
+	schnozInstancedMat->SetValue("colorTex", smokeTex);
+	   playerNode->AddObject<ParticleSpawner>(
+	       quadMesh,
+	       std::move(schnozInstancedMat),
+	       ParticleSpawnerSettings {
+	           .maxParticles = 1024,
+	           .areaExtents = glm::vec3(150.0f),
+	           .emissionShapeExtents = glm::vec3(150.0f),
 
+	           .maxLifetime = 1000.0f,
+
+	           .minScale = 15.0f,
+	           .maxScale = 30.0f,
+
+	           .proximityFadeMode = FadeMode::Alpha,
+	           .proximityFadeMin = 3.0f,
+	           .proximityFadeMax = 8.0f,
+
+
+	           .distanceFadeMode = FadeMode::Alpha,
+	           .distanceFadeMin = 130.0f,
+	           .distanceFadeMax = 140.0f,
+
+	              .enableDepthFade = true,
+	              .depthFadeDistance = 3.0f,
+
+	           .billboardMode = BillboardMode::Z,
+
+	           .wrapAround = true,
+	           .continuous = false,
+	       }
+	   );
+
+    std::unique_ptr<Material> schnozInstancedMat2 = std::make_unique<Material>(particleProg);
 	Texture2D* smoke2Tex = mainScene->Resources()->Get<Texture2D>("./res/textures/T_smoke_b7.png", Texture::ColorTextureRGBA);
-	schnozInstancedMat->SetValue("colorTex", smoke2Tex);
+	schnozInstancedMat2->SetValue("colorTex", smoke2Tex);
     Texture2D* colorRampTex = mainScene->Resources()->Get<Texture2D>("./res/textures/inkpink-32x.png", Texture::ColorTextureRGB);
-    schnozInstancedMat->SetValue("colorRamp", colorRampTex);
+    schnozInstancedMat2->SetValue("colorRamp", colorRampTex);
     SceneNode* smokeParticlesNode = mainScene->CreateNode("Smoke Particles");
     smokeParticlesNode->AddObject<ParticleSpawner>(
         quadMesh,
-        schnozInstancedMat,
+        std::move(schnozInstancedMat2),
         ParticleSpawnerSettings {
             .maxParticles = 32,
             .areaExtents = { 2.0f, 8.0f, 2.0f },
@@ -640,6 +641,7 @@ void InitScene(Scene* mainScene) {
 
             .wrapAround = false,
             .continuous = true,
+            .useColorRamp = true,
         }
     );
     smokeParticlesNode->GlobalTransform().Position() = { 0.0f, 2.0f, 0.0f };
