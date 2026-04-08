@@ -1,3 +1,4 @@
+#include "GameObject.h"
 #include "imgui.h"
 
 #include <Formatters.h>
@@ -19,6 +20,8 @@
 #include <InputSystem.h>
 #include <Engine.h>
 #include <Viewport.h>
+#include <glm/ext/quaternion_trigonometric.hpp>
+#include <glm/trigonometric.hpp>
 
 class Mover : public GameObject, public ImGuiDrawable {
 private:
@@ -144,6 +147,22 @@ public:
 	}
 };
 
+class MovableBar : public GameObject, public ImGuiDrawable {
+public:
+	float amount;
+
+	MovableBar():
+	amount(1) { }
+
+	void Update() {		
+		GetObject<MeshRenderer>()->GetMaterial()->SetValue("amount", this->amount);
+	}
+
+	virtual void DrawImGui() {
+		ImGui::SliderFloat("Amount", &this->amount, 0, 1);
+	}
+};
+
 void InitScene(Scene* mainScene) {
 	ShaderProgram* skyProg = ShaderProgram::Build()
 	.WithVertexShader("./res/shaders/skybox.vert")
@@ -171,11 +190,22 @@ void InitScene(Scene* mainScene) {
 	.Link();
 	// transparentProg->SetTransparent(true);
 
+	ShaderProgram* sliderProg = ShaderProgram::Build()
+	.WithVertexShader("./res/shaders/slider.vert")
+	.WithPixelShader("./res/shaders/slider.frag")
+	.Link();
+
+	ShaderProgram* cutoutProg = ShaderProgram::Build()
+	.WithVertexShader("./res/shaders/lit.vert")
+	.WithPixelShader("./res/shaders/cutout.frag")
+	.Link();
+
 	Mesh* gmConstructMesh = mainScene->Resources()->Get<Mesh>("./res/models/construct/construct.obj", true);
 	Mesh* cannonMesh = mainScene->Resources()->Get<Mesh>("./res/models/cannon/cannon.obj");
 	Mesh* cubeMesh = mainScene->Resources()->Get<Mesh>("./res/models/not_cube.obj");
 	Mesh* tvMesh = mainScene->Resources()->Get<Mesh>("./res/models/tv_stand.fbx");
 	Mesh* schnozMesh = mainScene->Resources()->Get<Mesh>("./res/models/schnoz/schnoz.obj");
+	Mesh* quad = mainScene->Resources()->Get<Mesh>("./res/models/sldier_quad.obj");
 
 	Cubemap* skyCubemap = mainScene->Resources()->Get<Cubemap>("./res/textures/citrus_orchard_road_puresky.hdr", Texture::HDRColorBuffer);
 	skyCubemap->SetWrapModeU(TextureWrap::Clamp);
@@ -193,6 +223,8 @@ void InitScene(Scene* mainScene) {
 	Texture2D* shinyNonMetalARM = mainScene->Resources()->Get<Texture2D>("./res/textures/material_preview/worn-shiny-nonmetal-arm.png", Texture::TechnicalMapXYZ);
 
 	Texture2D* schnozTexture = mainScene->Resources()->Get<Texture2D>("./res/models/schnoz/Diffuse.png", Texture::ColorTextureRGB);
+
+	Texture2D* kotTexture = mainScene->Resources()->Get<Texture2D>("./res/textures/transparent_kot.gif", Texture::ColorTextureRGBA);
 
 	Viewport* schnozPreview = new Viewport();
 	schnozPreview->GetFramebuffer()->CreateColorAttachment(true, false);
@@ -233,6 +265,11 @@ void InitScene(Scene* mainScene) {
 	Material* schnozMat = new Material(diffuseTexProg);
 	schnozMat->SetValue("uColor", glm::vec3(1, 1, 1));
 	schnozMat->SetValue("colorTex", schnozTexture);
+
+	Material* sliderMat = new Material(sliderProg);
+
+	Material* cutoutMat = new Material(cutoutProg);
+	cutoutMat->SetValue("colorTex", kotTexture);
 
 	auto constructNode = mainScene->CreateNode("gm_construct");
 	constructNode->AddObject<MeshRenderer>(gmConstructMesh, gmConstructMesh->GetDefaultMaterials());
@@ -325,6 +362,19 @@ void InitScene(Scene* mainScene) {
 	SceneNode* schnozLightNode = mainScene->CreateNode("Schnoz Light");
 	schnozLightNode->LocalTransform().Position() = glm::vec3(-55.5, 3.0, -2.0);
 	schnozLightNode->AddObject<Light>(Light::PointLight(glm::vec3(1, 1, 1), 5, 5));
+
+	SceneNode* sliderNode = mainScene->CreateNode(cameraNode, "Slider");
+	sliderNode->AddObject<MeshRenderer>(quad, sliderMat);
+	sliderNode->AddObject<MovableBar>();
+	sliderNode->LocalTransform().Position() = glm::vec3(-2, 2, 6);
+	sliderNode->LocalTransform().Rotation() = glm::angleAxis(glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	sliderNode->LocalTransform().Scale() = glm::vec3(1, 0.1, 1);
+
+	SceneNode* kotNode = mainScene->CreateNode(cameraNode, "Transparent Kot");
+	kotNode->AddObject<MeshRenderer>(quad, cutoutMat);
+	kotNode->AddObject<MovableBar>();
+	kotNode->LocalTransform().Position() = glm::vec3(-2, 1, 6);
+	kotNode->LocalTransform().Rotation() = glm::angleAxis(glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
 	cameraNode->AddObject<Bloom>();
 	cameraNode->AddObject<Tonemapper>()->SetOperator(Tonemapper::TonemapperOperator::GranTurismo);
