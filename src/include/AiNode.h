@@ -21,6 +21,7 @@ private:
 	std::vector <glm::vec3> patrolPoints;
 	int posIndex;
     float fov;
+    float m_PathUpdateTimer;
 
 
     void Patrol();
@@ -30,6 +31,7 @@ private:
     void RotateNode(glm::vec3 dir);
     void DrawDebugView();
 	void LookForNextPoint();
+    float CalculateDistance(glm::vec3 current, glm::vec3 target);
     
 
      glm::vec3 walkPoint;
@@ -40,6 +42,14 @@ private:
     float sightRange = 10.0f;
     float attackRange = 5.0f;
      bool playerInSightRange, playerInAttackRange;
+     std::vector<glm::vec3> m_Path;           //current
+     int m_CurrentPathIndex = 0;
+
+     std::vector<glm::vec3> FindPath(const glm::vec3& start, const glm::vec3& target);
+     std::vector<glm::vec3> GetNeighbors(const glm::vec3& node);
+     float Heuristic(const glm::vec3& a, const glm::vec3& b);
+     bool IsWalkable(const glm::vec3& point);
+
 
 public:
     AiNode();
