@@ -41,6 +41,8 @@ uniform uint lifetimeFadeMode;
 uniform vec2 lifetimeFadeIn;
 uniform vec2 lifetimeFadeOut;
 
+uniform uint rotateY;
+
 void main() {
     vec4 particle = particles[gl_InstanceID].position;
     vec4 lifetime = particles[gl_InstanceID].lifetime;
@@ -55,8 +57,29 @@ void main() {
 
     float c = cos(lifetime.z);
     float s = sin(lifetime.z);
-    mat2 rotation = mat2(c, -s, s, c);
-    vec2 rotatedPosition = rotation * vPos.xy;
+    vec3 rotatedPosition;
+
+    if (rotateY > 0) {
+        rotatedPosition = vec3(
+            vPos.x * c + vPos.z * s,
+            vPos.y,
+            -vPos.x * s + vPos.z * c
+        );
+    } else {
+        rotatedPosition = vec3(
+            vPos.x * c - vPos.y * s,
+            vPos.x * s + vPos.y * c,
+            vPos.z
+        );
+    }
+
+    vs_out.lifetime = clamp(lifetime.x / lifetime.y, 0.0, 1.0);
+
+    // remove these two lines later
+    float size = particle.w * vs_out.lifetime;
+    if (rotateY == 0) {
+        size = particle.w;
+    }
 
     if (billboardMode > 0) {
         vec3 worldCameraRight = vec3(
@@ -69,18 +92,25 @@ void main() {
             Global_ViewMatrix[1][1],
             Global_ViewMatrix[2][1]
         );
+        vec3 worldCameraForward = vec3(
+            Global_ViewMatrix[0][2],
+            Global_ViewMatrix[1][2],
+            Global_ViewMatrix[2][2]
+        );
 
         if (billboardMode == 2) {
             worldCameraUp = vec3(0.0, 1.0, 0.0);
+            worldCameraForward = normalize(cross(worldCameraRight, worldCameraUp));
         }
 
         vs_out.worldPos = particlePosition
-            + worldCameraRight * rotatedPosition.x * particle.w
-            + worldCameraUp * rotatedPosition.y * particle.w;
+            + worldCameraRight * rotatedPosition.x * size
+            + worldCameraUp * rotatedPosition.y * size
+            + worldCameraForward * rotatedPosition.z * size;
 
         vs_out.normal = cross(worldCameraRight, worldCameraUp);
     } else {
-	    vs_out.worldPos = (mat3(Object_ModelMatrix) * (vec3(rotatedPosition, vPos.z) * particle.w)) + particlePosition;
+	    vs_out.worldPos = (mat3(Object_ModelMatrix) * rotatedPosition * size) + particlePosition;
         vs_out.normal = Object_NormalModelMatrix * vNormal;
     }
 
@@ -89,8 +119,6 @@ void main() {
 	vs_out.viewPos = (Global_ViewMatrix * vec4(vs_out.worldPos, 1.0)).xyz;
 	vs_out.tangent = Object_NormalModelMatrix * vTangent;
 	vs_out.texcoords = vUVCoords;
-
-    vs_out.lifetime = clamp(lifetime.x / lifetime.y, 0.0, 1.0);
 
     // Distance fade
 

@@ -95,6 +95,8 @@ void ParticleSpawner::Update() {
 
     this->material->SetValue("useColorRamp", static_cast<unsigned int>(this->settings.useColorRamp ? 1 : 0));
 
+    this->material->SetValue("rotateY", static_cast<unsigned int>(this->settings.rotateY ? 1 : 0));
+
     glm::vec3 center = this->GlobalTransform().Position();
     glm::vec3 extents = this->settings.areaExtents;
 
@@ -128,6 +130,7 @@ void ParticleSpawner::Render() {
     );
 }
 
+// Move set value to here perhaps?
 void ParticleSpawner::DrawImGui() {
     const char* billboardModes[] = { "Disabled", "Enabled", "Z" };
     int currentBillboardMode = static_cast<int>(this->settings.billboardMode);
@@ -168,4 +171,6 @@ void ParticleSpawner::DrawImGui() {
     if (this->settings.enableDepthFade == true) {
         ImGui::InputFloat("Depth Fade Distance", &this->settings.depthFadeDistance);
     }
+
+    ImGui::Checkbox("Rotate Y", &this->settings.rotateY);
 }

@@ -48,6 +48,8 @@ struct ParticleSpawnerSettings {
     float minAngularVelocity = 0.0f;
     float maxAngularVelocity = 0.0f;
 
+    bool rotateY = false;
+
     bool enableLifetime = false;
     // The time until the particle 'despawns'
     float minLifetime = 2.0f;
