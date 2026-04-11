@@ -22,6 +22,7 @@ private:
 	int posIndex;
     float fov;
     float m_PathUpdateTimer;
+    float m_ChasePathUpdateTimer = 0.0f;
 
 
     void Patrol();
@@ -49,6 +50,7 @@ private:
      std::vector<glm::vec3> GetNeighbors(const glm::vec3& node);
      float Heuristic(const glm::vec3& a, const glm::vec3& b);
      bool IsWalkable(const glm::vec3& point);
+     glm::vec3 GetNearestWalkable(const glm::vec3& point, float radius = 3.0f);
 
 
 public:

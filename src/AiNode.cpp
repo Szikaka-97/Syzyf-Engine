@@ -130,36 +130,37 @@ void AiNode::Update() {
 	bool playerInAttackRange = canSeePlayer && dist < attackRange;
 
 	if (!canSeePlayer && !playerInAttackRange) {
-		if (m_Surface) {
-			m_PathUpdateTimer += Time::Delta();
-			if (m_PathUpdateTimer > 0.5f || m_Path.empty()) {
-				m_Path = FindPath(transform, targetPos);
-				m_CurrentPathIndex = 0;
-				m_PathUpdateTimer = 0.0f;
-			}
+		//if (m_Surface) {
+		//	m_PathUpdateTimer += Time::Delta();
+		//	if (m_PathUpdateTimer > 0.5f || m_Path.empty()) {
+		//		m_Path = FindPath(transform, targetPos);
+		//		m_CurrentPathIndex = 0;
+		//		m_PathUpdateTimer = 0.0f;
+		//	}
 
-			if (!m_Path.empty() && m_CurrentPathIndex < m_Path.size()) {
-				glm::vec3 nextPoint = m_Path[m_CurrentPathIndex];
-				float distToNext = glm::distance(transform, nextPoint);
-				if (distToNext < 0.5f) {
-					m_CurrentPathIndex++;
-					if (m_CurrentPathIndex >= m_Path.size()) {
-						m_Path.clear();
-						m_CurrentPathIndex = 0;
-					}
-				}
-				else {
-					glm::vec3 dir = nextPoint - transform;
-					dir = glm::normalize(dir);
-					// ruch jak w Chase
-					glm::vec3 currentVel = m_Body->GetLinearVelocity();
-					glm::vec3 newVel = dir * m_Speed;
-					newVel.y = currentVel.y;
-					m_Body->SetLinearVelocity(newVel);
-					RotateNode(dir);
-				}
-			}
-		}
+		//	if (!m_Path.empty() && m_CurrentPathIndex < m_Path.size()) {
+		//		glm::vec3 nextPoint = m_Path[m_CurrentPathIndex];
+		//		float distToNext = glm::distance(transform, nextPoint);
+		//		if (distToNext < 0.5f) {
+		//			m_CurrentPathIndex++;
+		//			if (m_CurrentPathIndex >= m_Path.size()) {
+		//				m_Path.clear();
+		//				m_CurrentPathIndex = 0;
+		//			}
+		//		}
+		//		else {
+		//			glm::vec3 dir = nextPoint - transform;
+		//			dir = glm::normalize(dir);
+		//			// ruch jak w Chase
+		//			glm::vec3 currentVel = m_Body->GetLinearVelocity();
+		//			glm::vec3 newVel = dir * m_Speed;
+		//			newVel.y = currentVel.y;
+		//			m_Body->SetLinearVelocity(newVel);
+		//			RotateNode(dir);
+		//		}
+		//	}
+		//}
+		Patrol();
 	}
 		else if (canSeePlayer && !playerInAttackRange) {
 			Chase();
@@ -241,42 +242,73 @@ void AiNode::Update() {
 
 	std::vector<glm::vec3> AiNode::FindPath(const glm::vec3& start, const glm::vec3& target) {
 		if (!m_Surface) return {};
+
+		glm::vec3 walkableStart = GetNearestWalkable(start, 3.0f);
+		glm::vec3 walkableTarget = GetNearestWalkable(target, 3.0f);
+
+		if (!IsWalkable(walkableStart) || !IsWalkable(walkableTarget)) {
+			spdlog::warn("FindPath: start or target not walkable even after correction");
+			return {};
+		}
+
+		spdlog::info("FindPath: using start ({:.2f},{:.2f},{:.2f}) target ({:.2f},{:.2f},{:.2f})",
+			walkableStart.x, walkableStart.y, walkableStart.z,
+			walkableTarget.x, walkableTarget.y, walkableTarget.z);
+
 		struct Node {
 			glm::vec3 pos;
-			float gCost;
-			float hCost;
-			Node* parent;
+			float gCost = 0.0f;
+			float hCost = 0.0f;
+			Node* parent = nullptr;
+			bool closed = false;
 			float fCost() const { return gCost + hCost; }
 		};
 
-		// Komparator dla priority_queue (min-heap)
-		auto cmp = [](const Node* a, const Node* b) { return a->fCost() > b->fCost(); };
-		std::priority_queue<Node*, std::vector<Node*>, decltype(cmp)> openSet(cmp);
-
-		std::map<glm::vec3, Node, CompareVec3> allNodes;
+		// W³asny hasher dla glm::vec3 z tolerancj¹
+		struct Vec3Hash {
+			size_t operator()(const glm::vec3& v) const {
+				// Kwantyzacja do 0.1 dla stabilnoœci
+				int xi = static_cast<int>(std::round(v.x * 10.0f));
+				int yi = static_cast<int>(std::round(v.y * 10.0f));
+				int zi = static_cast<int>(std::round(v.z * 10.0f));
+				return std::hash<int>()(xi) ^ (std::hash<int>()(yi) << 1) ^ (std::hash<int>()(zi) << 2);
+			}
+		};
+		struct Vec3Equal {
+			bool operator()(const glm::vec3& a, const glm::vec3& b) const {
+				return glm::distance(a, b) < 0.05f;
+			}
+		};
+		std::unordered_map<glm::vec3, Node, Vec3Hash, Vec3Equal> allNodes;
 
 		auto getNode = [&](const glm::vec3& p) -> Node& {
-
 			auto it = allNodes.find(p);
 			if (it != allNodes.end()) return it->second;
 			Node n;
 			n.pos = p;
 			n.gCost = std::numeric_limits<float>::max();
-			n.parent = nullptr;
 			allNodes[p] = n;
 			return allNodes[p];
 			};
 
-		Node& startNode = getNode(start);
+		Node& startNode = getNode(walkableStart);
 		startNode.gCost = 0;
-		startNode.hCost = Heuristic(start, target);
+		startNode.hCost = Heuristic(walkableStart, walkableTarget);
+
+		auto cmp = [](const Node* a, const Node* b) { return a->fCost() > b->fCost(); };
+		std::priority_queue<Node*, std::vector<Node*>, decltype(cmp)> openSet(cmp);
 		openSet.push(&startNode);
 
-		int maxIter = 10000;
+		const int maxIter = 5000; // zmniejszamy dla bezpieczeñstwa
 		int iter = 0;
 		while (!openSet.empty() && iter++ < maxIter) {
-			Node* current = openSet.top(); openSet.pop();
-			if (Heuristic(current->pos, target) < 0.5f) {
+			Node* current = openSet.top();
+			openSet.pop();
+
+			if (current->closed) continue;
+			current->closed = true;
+
+			if (Heuristic(current->pos, walkableTarget) < 0.5f) {
 				std::vector<glm::vec3> path;
 				Node* node = current;
 				while (node) {
@@ -284,21 +316,25 @@ void AiNode::Update() {
 					node = node->parent;
 				}
 				std::reverse(path.begin(), path.end());
+				spdlog::info("FindPath: path found with {} nodes", path.size());
 				return path;
 			}
 
 			for (const auto& neighborPos : GetNeighbors(current->pos)) {
 				Node& neighbor = getNode(neighborPos);
+				if (neighbor.closed) continue;
+
 				float tentativeGCost = current->gCost + glm::distance(current->pos, neighborPos);
 				if (tentativeGCost < neighbor.gCost) {
 					neighbor.parent = current;
 					neighbor.gCost = tentativeGCost;
-					neighbor.hCost = Heuristic(neighborPos, target);
+					neighbor.hCost = Heuristic(neighborPos, walkableTarget);
 					openSet.push(&neighbor);
 				}
 			}
 		}
-		if (iter >= maxIter) return {};
+
+		spdlog::warn("FindPath: no path found after {} iterations", iter);
 		return {};
 	}
 
@@ -310,7 +346,7 @@ void AiNode::Update() {
 
 	bool AiNode::IsWalkable(const glm::vec3 & point) {
 
-		if (!m_Surface) return false;
+		/*if (!m_Surface) return false;
 		float groundY = m_Surface->GetGroundHeight(point.x, point.z);
 		if (std::abs(point.y - groundY) > 0.5f) return false; 
 
@@ -320,12 +356,38 @@ void AiNode::Update() {
 			JPH::RayCastResult result;
 			if (!physics->GetSystem().GetNarrowPhaseQuery().CastRay(ray, result)) return false;
 		}
-		return true;
+		return true;*/
+		if(!m_Surface) return false;
+		float groundY = m_Surface->GetGroundHeight(point.x, point.z);
+		if (std::abs(point.y - groundY) > 0.5f) return false;
+		return true;  // bez raycasta
 	}
+
+	glm::vec3 AiNode::GetNearestWalkable(const glm::vec3& point, float radius) {
+		if (!m_Surface) return point;
+		if (IsWalkable(point)) return point;
+
+		const float step = 0.5f;
+		for (float r = step; r <= radius; r += step) {
+			for (int dx = -1; dx <= 1; ++dx) {
+				for (int dz = -1; dz <= 1; ++dz) {
+					if (dx == 0 && dz == 0) continue;
+					glm::vec3 candidate(point.x + dx * r, point.y, point.z + dz * r);
+					candidate.y = m_Surface->GetGroundHeight(candidate.x, candidate.z);
+					if (IsWalkable(candidate)) {
+						return candidate;
+					}
+				}
+			}
+		}
+		return point; // fallback – oryginalny punkt
+	}
+
 	std::vector<glm::vec3> AiNode::GetNeighbors(const glm::vec3 & node) {
 		if (!m_Surface) return {};
 		std::vector<glm::vec3> neighbors;
 		const float step = 1.0f;
+		//const float step = 0.5f;
 		for (int dx = -1; dx <= 1; ++dx) {
 			for (int dz = -1; dz <= 1; ++dz) {
 				if (dx == 0 && dz == 0) continue;
@@ -340,20 +402,51 @@ void AiNode::Update() {
 	}
 
 	void AiNode::Chase() {
-		glm::vec3 targetPos = m_TargetNode->GlobalTransform().Position();
-		glm::vec3 dir = targetPos - transform;
-		float distance = glm::length(dir);
-		if (distance > 0.1f) {
-			dir /= distance;
-			glm::vec3 currentVel = m_Body->GetLinearVelocity();
-			glm::vec3 newVel = dir * m_Speed;
-			newVel.y = currentVel.y;
-			m_Body->SetLinearVelocity(newVel);
+		if (!m_Surface || !m_TargetNode) return;
 
-			// only yaw rotation
-			RotateNode(dir);
+		// Upewnij siê, ¿e pozycja AI jest aktualna
+		transform = m_Body->GetPosition();
+		glm::vec3 targetPos = m_TargetNode->GlobalTransform().Position();
+
+		// Aktualizuj œcie¿kê co 0.5 s lub gdy jest pusta
+		m_ChasePathUpdateTimer += Time::Delta();
+		if (m_ChasePathUpdateTimer > 0.5f || m_Path.empty()) {
+			m_Path = FindPath(transform, targetPos);
+			if (m_Path.empty()) {
+				spdlog::warn("Chase: Path is empty!");
+			}
+			else {
+				spdlog::info("Chase: Path found with {} points", m_Path.size());
+			}
+			m_CurrentPathIndex = 0;
+			m_ChasePathUpdateTimer = 0.0f;
+		}
+
+		// Wykonaj ruch po œcie¿ce
+		if (!m_Path.empty() && m_CurrentPathIndex < m_Path.size()) {
+			glm::vec3 nextPoint = m_Path[m_CurrentPathIndex];
+			float distToNext = glm::distance(transform, nextPoint);
+
+			if (distToNext < 0.5f) {
+				m_CurrentPathIndex++;
+				// Jeœli dotarliœmy do koñca œcie¿ki (blisko gracza), wyczyœæ œcie¿kê
+				if (m_CurrentPathIndex >= m_Path.size()) {
+					// Opcjonalnie: sprawdŸ, czy gracz jest w zasiêgu ataku
+					m_Path.clear();
+					m_CurrentPathIndex = 0;
+				}
+			}
+			else {
+				glm::vec3 dir = glm::normalize(nextPoint - transform);
+				glm::vec3 currentVel = m_Body->GetLinearVelocity();
+				glm::vec3 newVel = dir * m_Speed;
+				newVel.y = currentVel.y;
+				m_Body->SetLinearVelocity(newVel);
+				RotateNode(dir);
+			}
 		}
 		else {
+			// Œcie¿ka pusta – zatrzymaj AI
 			glm::vec3 currentVel = m_Body->GetLinearVelocity();
 			m_Body->SetLinearVelocity(glm::vec3(0, currentVel.y, 0));
 		}
