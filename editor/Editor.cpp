@@ -1,9 +1,17 @@
 #include "include/Editor.h"
-#include "SDL3/SDL_video.h"
+
+#include "thirdparty/ImGuizmo.h"
+
+#include <algorithm>
+#include <imgui.h>
+#define IMVIEWGUIZMO_IMPLEMENTATION
+#include "thirdparty/ImViewGuizmo.h"
 
 #include <SDL3/SDL.h>
+#include <SDL3/SDL_video.h>
 #include <filesystem>
 #include <glad/glad.h>
+#include <glm/gtc/type_ptr.hpp>
 #include <imgui.h>
 #include <imgui_impl/imgui_impl_opengl3.h>
 #include <imgui_impl/imgui_impl_sdl3.h>
@@ -40,15 +48,17 @@
 #include <physics/Water.h>
 
 namespace Editor {
-const char *GLSL_VERSION = "#version 460";
+const char* GLSL_VERSION = "#version 460";
 constexpr int32_t GL_VERSION_MAJOR = 4;
 constexpr int32_t GL_VERSION_MINOR = 6;
 
-SDL_Window *window = nullptr;
+SDL_Window* window = nullptr;
 SDL_GLContext glContext = nullptr;
 
 // Move into some struct
-SceneNode *selectedNode = nullptr;
+SceneNode* selectedNode = nullptr;
+Camera* mainCamera = nullptr;
+ImGuizmo::OPERATION currentGizmoOperation = ImGuizmo::TRANSLATE;
 
 bool InitProgram() {
     if (!SDL_Init(SDL_INIT_VIDEO)) {
@@ -99,7 +109,7 @@ bool InitImGui() {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
 
-    ImGuiIO &io = ImGui::GetIO();
+    ImGuiIO& io = ImGui::GetIO();
     (void)io;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
@@ -156,6 +166,7 @@ class Mover : public GameObject, public ImGuiDrawable {
         if (movementEnabled) {
             glm::vec3 movement = glm::zero<glm::vec3>();
             glm::quat rotation = glm::identity<glm::quat>();
+            float movementSpeed = this->movementSpeed;
 
             glm::vec3 right = this->GlobalTransform().Right();
             glm::vec3 up = glm::vec3(0, 1, 0);
@@ -180,13 +191,16 @@ class Mover : public GameObject, public ImGuiDrawable {
             if (GetScene()->Input()->KeyPressed(Key::Q)) {
                 movement -= up;
             }
+            if (GetScene()->Input()->KeyPressed(Key::LeftShift)) {
+                movementSpeed *= 2;
+            }
 
             if (glm::length(movement) > 0.0f) {
                 movement = glm::normalize(movement);
             }
 
             this->GlobalTransform().Position() +=
-                movement * (this->movementSpeed * Time::Delta());
+                movement * (movementSpeed * Time::Delta());
 
             glm::vec2 deltaMovement = GetScene()->Input()->GetMouseMovement();
 
@@ -209,13 +223,19 @@ class Mover : public GameObject, public ImGuiDrawable {
 
         if (GetScene()->Input()->KeyDown(Key::Escape)) {
             this->movementEnabled = !this->movementEnabled;
-
             GetScene()->Input()->SetMouseLocked(this->movementEnabled);
+
+            if (this->movementEnabled) {
+                glm::vec3 forward = this->GlobalTransform().Forward();
+                this->pitch =
+                    glm::degrees(asin(glm::clamp(-forward.y, -1.0f, 1.0f)));
+                this->rotation = glm::degrees(atan2(forward.x, forward.z));
+            }
         }
     }
 
     virtual void DrawImGui() {
-        const char *modes[]{
+        const char* modes[]{
             "Walking",
             "Freecam",
         };
@@ -227,11 +247,11 @@ class Mover : public GameObject, public ImGuiDrawable {
     }
 };
 
-void InitScene(Scene &mainScene) {
+void InitScene(Scene& mainScene) {
     mainScene.AddComponent<Physics::System>();
     mainScene.AddComponent<Physics::DebugRenderer>();
 
-    ShaderProgram *skyProg =
+    ShaderProgram* skyProg =
         ShaderProgram::Build()
             .WithVertexShader(mainScene.Resources()->Get<VertexShader>(
                 "./res/shaders/skybox.vert"))
@@ -239,7 +259,7 @@ void InitScene(Scene &mainScene) {
                 "./res/shaders/skybox.frag"))
             .Link();
 
-    ShaderProgram *coloredProg =
+    ShaderProgram* coloredProg =
         ShaderProgram::Build()
             .WithVertexShader(mainScene.Resources()->Get<VertexShader>(
                 "./res/shaders/lit.vert"))
@@ -247,7 +267,7 @@ void InitScene(Scene &mainScene) {
                 "./res/shaders/lambert color.frag"))
             .Link();
 
-    ShaderProgram *diffuseTexProg =
+    ShaderProgram* diffuseTexProg =
         ShaderProgram::Build()
             .WithVertexShader(mainScene.Resources()->Get<VertexShader>(
                 "./res/shaders/lit.vert"))
@@ -255,7 +275,7 @@ void InitScene(Scene &mainScene) {
                 "./res/shaders/lambert.frag"))
             .Link();
 
-    ShaderProgram *pbrProg =
+    ShaderProgram* pbrProg =
         ShaderProgram::Build()
             .WithVertexShader(mainScene.Resources()->Get<VertexShader>(
                 "./res/shaders/lit.vert"))
@@ -263,7 +283,7 @@ void InitScene(Scene &mainScene) {
                 "./res/shaders/pbr.frag"))
             .Link();
 
-    ShaderProgram *pbrRefractProg =
+    ShaderProgram* pbrRefractProg =
         ShaderProgram::Build()
             .WithVertexShader(mainScene.Resources()->Get<VertexShader>(
                 "./res/shaders/lit.vert"))
@@ -271,7 +291,7 @@ void InitScene(Scene &mainScene) {
                 "./res/shaders/pbr refract.frag"))
             .Link();
 
-    ShaderProgram *transparentProg =
+    ShaderProgram* transparentProg =
         ShaderProgram::Build()
             .WithVertexShader(mainScene.Resources()->Get<VertexShader>(
                 "./res/shaders/lit.vert"))
@@ -280,95 +300,95 @@ void InitScene(Scene &mainScene) {
             .Link();
     transparentProg->SetTransparent(true);
 
-    Mesh *gmConstructMesh = mainScene.Resources()->Get<Mesh>(
+    Mesh* gmConstructMesh = mainScene.Resources()->Get<Mesh>(
         "./res/models/construct/construct.obj", true);
-    Mesh *cannonMesh =
+    Mesh* cannonMesh =
         mainScene.Resources()->Get<Mesh>("./res/models/cannon/cannon.obj");
-    Mesh *cubeMesh =
+    Mesh* cubeMesh =
         mainScene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
-    Mesh *tvMesh =
+    Mesh* tvMesh =
         mainScene.Resources()->Get<Mesh>("./res/models/tv_stand.fbx");
-    Mesh *schnozMesh =
+    Mesh* schnozMesh =
         mainScene.Resources()->Get<Mesh>("./res/models/schnoz/schnoz.obj");
 
-    Cubemap *skyCubemap = mainScene.Resources()->Get<Cubemap>(
+    Cubemap* skyCubemap = mainScene.Resources()->Get<Cubemap>(
         "./res/textures/citrus_orchard_road_puresky.hdr",
         Texture::HDRColorBuffer);
     skyCubemap->SetWrapModeU(TextureWrap::Clamp);
     skyCubemap->SetWrapModeV(TextureWrap::Clamp);
     skyCubemap->SetWrapModeW(TextureWrap::Clamp);
 
-    Texture2D *cannonDiffuse = mainScene.Resources()->Get<Texture2D>(
+    Texture2D* cannonDiffuse = mainScene.Resources()->Get<Texture2D>(
         "./res/models/cannon/textures/cannon_01_diff_1k.png",
         Texture::ColorTextureRGB);
-    Texture2D *cannonNormal = mainScene.Resources()->Get<Texture2D>(
+    Texture2D* cannonNormal = mainScene.Resources()->Get<Texture2D>(
         "./res/models/cannon/textures/cannon_01_nor_gl_1k.png",
         Texture::TechnicalMapXYZ);
-    Texture2D *cannonARM = mainScene.Resources()->Get<Texture2D>(
+    Texture2D* cannonARM = mainScene.Resources()->Get<Texture2D>(
         "./res/models/cannon/textures/cannon_01_arm_1k.png",
         Texture::TechnicalMapXYZ);
 
-    Texture2D *reflectiveDiffuse = mainScene.Resources()->Get<Texture2D>(
+    Texture2D* reflectiveDiffuse = mainScene.Resources()->Get<Texture2D>(
         "./res/textures/material_preview/worn-shiny-metal-albedo.png",
         Texture::ColorTextureRGB);
-    Texture2D *reflectiveNormal = mainScene.Resources()->Get<Texture2D>(
+    Texture2D* reflectiveNormal = mainScene.Resources()->Get<Texture2D>(
         "./res/textures/material_preview/worn-shiny-metal-Normal-ogl.png",
         Texture::TechnicalMapXYZ);
-    Texture2D *reflectiveARM = mainScene.Resources()->Get<Texture2D>(
+    Texture2D* reflectiveARM = mainScene.Resources()->Get<Texture2D>(
         "./res/textures/material_preview/worn-shiny-metal-arm.png",
         Texture::TechnicalMapXYZ);
-    Texture2D *roughARM = mainScene.Resources()->Get<Texture2D>(
+    Texture2D* roughARM = mainScene.Resources()->Get<Texture2D>(
         "./res/textures/material_preview/worn-rough-metal-arm.png",
         Texture::TechnicalMapXYZ);
-    Texture2D *shinyNonMetalARM = mainScene.Resources()->Get<Texture2D>(
+    Texture2D* shinyNonMetalARM = mainScene.Resources()->Get<Texture2D>(
         "./res/textures/material_preview/worn-shiny-nonmetal-arm.png",
         Texture::TechnicalMapXYZ);
 
-    Texture2D *schnozTexture = mainScene.Resources()->Get<Texture2D>(
+    Texture2D* schnozTexture = mainScene.Resources()->Get<Texture2D>(
         "./res/models/schnoz/Diffuse.png", Texture::ColorTextureRGB);
 
-    Viewport *schnozPreview = new Viewport();
+    Viewport* schnozPreview = new Viewport();
     schnozPreview->GetFramebuffer()->CreateColorAttachment(true, false);
     schnozPreview->GetFramebuffer()->CreateDepthAttachment(false, false);
     schnozPreview->SetSize(glm::uvec2(1024, 512));
 
-    Material *cannonMat = new Material(pbrProg);
+    Material* cannonMat = new Material(pbrProg);
     cannonMat->SetValue("albedoMap", cannonDiffuse);
     cannonMat->SetValue("normalMap", cannonNormal);
     cannonMat->SetValue("armMap", cannonARM);
 
-    Material *reflectiveMat = new Material(pbrProg);
+    Material* reflectiveMat = new Material(pbrProg);
     reflectiveMat->SetValue("albedoMap", reflectiveDiffuse);
     reflectiveMat->SetValue("normalMap", reflectiveNormal);
     reflectiveMat->SetValue("armMap", reflectiveARM);
 
-    Material *roughMat = new Material(pbrProg);
+    Material* roughMat = new Material(pbrProg);
     roughMat->SetValue("albedoMap", reflectiveDiffuse);
     roughMat->SetValue("normalMap", reflectiveNormal);
     roughMat->SetValue("armMap", roughARM);
 
-    Material *shinyMat = new Material(pbrRefractProg);
+    Material* shinyMat = new Material(pbrRefractProg);
     shinyMat->SetValue("albedoMap", reflectiveDiffuse);
     shinyMat->SetValue("normalMap", reflectiveNormal);
     shinyMat->SetValue("armMap", reflectiveARM);
 
-    Material *skyMat = new Material(skyProg);
+    Material* skyMat = new Material(skyProg);
     skyMat->SetValue("skyboxTexture", skyCubemap);
 
-    Material *tvMatStand = new Material(coloredProg);
+    Material* tvMatStand = new Material(coloredProg);
     tvMatStand->SetValue("uColor", glm::vec3(0.8, 0.8, 0.8));
 
-    Material *screenMat = new Material(diffuseTexProg);
+    Material* screenMat = new Material(diffuseTexProg);
     screenMat->SetValue("uColor", glm::vec3(1, 1, 1));
     screenMat->SetValue(
         "colorTex",
-        (Texture2D *)schnozPreview->GetFramebuffer()->GetColorTexture());
+        (Texture2D*)schnozPreview->GetFramebuffer()->GetColorTexture());
 
-    Material *schnozMat = new Material(diffuseTexProg);
+    Material* schnozMat = new Material(diffuseTexProg);
     schnozMat->SetValue("uColor", glm::vec3(1, 1, 1));
     schnozMat->SetValue("colorTex", schnozTexture);
 
-    Material *blueTransparentMat = new Material(transparentProg);
+    Material* blueTransparentMat = new Material(transparentProg);
     blueTransparentMat->SetValue("uColor", glm::vec4(0.5, 0.5, 1.0, 0.6));
 
     // auto constructNode = mainScene->CreateNode("gm_construct");
@@ -406,13 +426,14 @@ void InitScene(Scene &mainScene) {
     shinyCubeNode2->AddObject<MeshRenderer>(cubeMesh, shinyMat);
     shinyCubeNode2->LocalTransform().Position() = {0, 0, -3};
 
-    SceneNode *playerNode = mainScene.CreateNode("Player");
+    SceneNode* playerNode = mainScene.CreateNode("Player");
     playerNode->GlobalTransform().Position() = glm::vec3(2.0f, 2.0f, -10.0f);
     playerNode->AddObject<Mover>();
 
-    Camera *camera = playerNode->AddObject<Camera>(
+    // MOVE OUTSIDE OF HERE
+    mainCamera = playerNode->AddObject<Camera>(
         Camera::Perspective(40.0f, 16.0f / 9.0f, 0.5f, 200.0f));
-    camera->GlobalTransform().Position() = glm::vec3(2.0f, 2.0f, -10.0f);
+    mainCamera->GlobalTransform().Position() = glm::vec3(2.0f, 2.0f, -10.0f);
 
     // auto* floorMesh =
     // mainScene->Resources()->Get<Mesh>("./res/models/floor/floor.obj", true);
@@ -462,7 +483,7 @@ void InitScene(Scene &mainScene) {
     //
     // starsAttachmentNode->AttachScene(starsScene);
 
-    SceneNode *tvNode = mainScene.CreateNode("TV");
+    SceneNode* tvNode = mainScene.CreateNode("TV");
     tvNode->LocalTransform().Scale() = glm::vec3(1.5, 1.5, 1.5);
     tvNode->LocalTransform().Position() = glm::vec3(3, -5, -2);
     tvNode->LocalTransform().Rotation() =
@@ -474,8 +495,8 @@ void InitScene(Scene &mainScene) {
     tvRenderer->SetMaterial(tvMatStand, 2);
     tvRenderer->SetMaterial(tvMatStand, 3);
 
-    SceneNode *fogVolume = mainScene.CreateNode("Fog Volume");
-    FogVolume *fogVolumeObject = fogVolume->AddObject<FogVolume>();
+    SceneNode* fogVolume = mainScene.CreateNode("Fog Volume");
+    FogVolume* fogVolumeObject = fogVolume->AddObject<FogVolume>();
     fogVolumeObject->stepSize = 0.06f;
     fogVolumeObject->scatteringDensity = 0.042f;
     fogVolumeObject->absorptionDensity = 0.0f;
@@ -483,15 +504,15 @@ void InitScene(Scene &mainScene) {
     fogVolume->GlobalTransform().Position() = {-28.0f, 1.5f, 0.0f};
     fogVolume->GlobalTransform().Scale() = {20.0f, 12.0f, 20.0f};
 
-    SceneNode *fogVolume2 = mainScene.CreateNode("Fog Volume 2");
-    FogVolume *fogVolume2Object = fogVolume2->AddObject<FogVolume>();
+    SceneNode* fogVolume2 = mainScene.CreateNode("Fog Volume 2");
+    FogVolume* fogVolume2Object = fogVolume2->AddObject<FogVolume>();
     fogVolume2Object->scatteringColor = {173, 0, 255};
     fogVolume2Object->stepSize = 0.03f;
     fogVolume2Object->scatteringDensity = 2.0f;
     fogVolume2Object->absorptionDensity = 0.0f;
     fogVolume2->GlobalTransform().Position() = {0.0f, 0.6f, 3.0f};
 
-    SceneNode *schnozCameraNode = mainScene.CreateNode("Schnoz Camera");
+    SceneNode* schnozCameraNode = mainScene.CreateNode("Schnoz Camera");
     schnozCameraNode->LocalTransform().Position() = glm::vec3(-56.5, 2.0, -2.0);
     schnozCameraNode->LocalTransform().Rotation() =
         glm::quat(glm::radians(glm::vec3(5.0f, 85.0f, 0.0f)));
@@ -502,13 +523,13 @@ void InitScene(Scene &mainScene) {
     schnozCamera->SetRenderTarget(schnozPreview);
     schnozCamera->SetLayerMask(uint8_t(5));
 
-    SceneNode *schnozNode = mainScene.CreateNode("Schnoz");
+    SceneNode* schnozNode = mainScene.CreateNode("Schnoz");
     schnozNode->LocalTransform().Position() = glm::vec3(-53.5, 1.75, -2.4);
     schnozNode->LocalTransform().Scale() = glm::vec3(0.15, 0.15, 0.15);
     schnozNode->AddObject<MeshRenderer>(schnozMesh, schnozMat);
     schnozNode->SetLayer(5);
 
-    SceneNode *w_schnozNode = mainScene.CreateNode("w_schnozNode");
+    SceneNode* w_schnozNode = mainScene.CreateNode("w_schnozNode");
     w_schnozNode->LocalTransform().Position() = glm::vec3(-20, 0, -20);
     schnozNode->LocalTransform().Scale() = glm::vec3(1, 1, 1);
     w_schnozNode->AddObject<MeshRenderer>(schnozMesh, schnozMat);
@@ -516,7 +537,7 @@ void InitScene(Scene &mainScene) {
     JPH::BodyCreationSettings w_schnozShapeSettings =
         Physics::Body::ConvexHullMesh(schnozMesh, JPH::EMotionType::Dynamic,
                                       Physics::Layers::MOVING);
-    auto *w_schnozBody =
+    auto* w_schnozBody =
         w_schnozNode->AddObject<Physics::Body>(w_schnozShapeSettings);
     w_schnozBody->SetRestitution(0.0f);
     w_schnozBody->SetFriction(0.5f);
@@ -540,14 +561,14 @@ void InitScene(Scene &mainScene) {
                                            std::end(patrolPoints));
     w_schnozNode->GetObject<AiNode>()->SetPatrolPoints(patrolPointsVec);
 
-    SceneNode *schnozLightNode = mainScene.CreateNode("Schnoz Light");
+    SceneNode* schnozLightNode = mainScene.CreateNode("Schnoz Light");
     schnozLightNode->LocalTransform().Position() = glm::vec3(-55.5, 3.0, -2.0);
     schnozLightNode->AddObject<Light>(
         Light::PointLight(glm::vec3(1, 1, 1), 5, 5));
 
     // cameraNode->AddObject<VolumetricFog>();
     for (int i = 0; i < 50; ++i) {
-        SceneNode *physicsSchnozNode = mainScene.CreateNode("Physics Schnoz");
+        SceneNode* physicsSchnozNode = mainScene.CreateNode("Physics Schnoz");
         physicsSchnozNode->AddObject<MeshRenderer>(schnozMesh, schnozMat);
         physicsSchnozNode->GlobalTransform().Position() = {
             2.0f + i, 10.0f + i * 2.0f, 0.0f - i};
@@ -555,7 +576,7 @@ void InitScene(Scene &mainScene) {
         JPH::BodyCreationSettings schnozShapeSettings =
             Physics::Body::ConvexHullMesh(schnozMesh, JPH::EMotionType::Dynamic,
                                           Physics::Layers::MOVING);
-        auto *schnozBody =
+        auto* schnozBody =
             physicsSchnozNode->AddObject<Physics::Body>(schnozShapeSettings);
 
         schnozBody->SetCollisionLayerAndMask({0});
@@ -566,19 +587,19 @@ void InitScene(Scene &mainScene) {
         Tonemapper::TonemapperOperator::GranTurismo);
     // playerNode->AddObject<Fog>();
 
-    Mesh *waterMesh =
+    Mesh* waterMesh =
         mainScene.Resources()->Get<Mesh>("./res/models/water.obj");
-    SceneNode *water = mainScene.CreateNode("Water");
+    SceneNode* water = mainScene.CreateNode("Water");
     water->AddObject<MeshRenderer>(waterMesh, blueTransparentMat);
     water->AddObject<Physics::Water>();
     water->GlobalTransform().Position() = {4.0f, 0.0f, -8.0f};
-    auto *waterBody =
+    auto* waterBody =
         water->AddObject<Physics::Body>(Physics::Body::ConvexHullMesh(
             waterMesh, JPH::EMotionType::Static, Physics::Layers::NON_MOVING));
     waterBody->SetIsSensor(true);
     waterBody->SetCollisionLayerAndMask({1});
 
-    Scene *animatedGltfScene = GltfImporter::LoadScene(
+    Scene* animatedGltfScene = GltfImporter::LoadScene(
         "./res/models/jake_tangents.glb", "Animated Gltf");
     mainScene.GetRootNode()->AttachScene(animatedGltfScene);
 
@@ -586,7 +607,7 @@ void InitScene(Scene &mainScene) {
     mainScene.AddComponent<AnimationSystem>();
 }
 
-void DrawMainMenuBar(bool &shouldClose) {
+void DrawMainMenuBar(bool& shouldClose) {
     if (ImGui::BeginMainMenuBar()) {
         if (ImGui::BeginMenu("File")) {
             if (ImGui::MenuItem("Exit")) {
@@ -612,7 +633,7 @@ void DrawMainMenuBar(bool &shouldClose) {
     }
 }
 
-void DrawGraphNode(SceneNode &node) {
+void DrawGraphNode(SceneNode& node) {
     ImGui::PushID(node.GetID());
 
     ImGui::TableNextRow();
@@ -640,7 +661,7 @@ void DrawGraphNode(SceneNode &node) {
         flags |= ImGuiTreeNodeFlags_Leaf;
     }
 
-    bool nodeOpen = ImGui::TreeNodeEx((void *)(intptr_t)node.GetID(), flags,
+    bool nodeOpen = ImGui::TreeNodeEx((void*)(intptr_t)node.GetID(), flags,
                                       "%s", treeHeader.c_str());
 
     if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen()) {
@@ -668,7 +689,7 @@ void DrawGraphNode(SceneNode &node) {
 
     if (nodeOpen) {
         if (!isLeaf) {
-            for (SceneNode *child : node.GetChildren()) {
+            for (SceneNode* child : node.GetChildren()) {
                 DrawGraphNode(*child);
             }
         }
@@ -677,10 +698,10 @@ void DrawGraphNode(SceneNode &node) {
     ImGui::PopID();
 }
 
-void DrawGraph(Scene &scene) {
+void DrawGraph(Scene& scene) {
     ImGui::Begin("Graph");
 
-    SceneNode *root = scene.GetRootNode();
+    SceneNode* root = scene.GetRootNode();
 
     if (root != nullptr) {
         ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, 10.0f);
@@ -811,11 +832,11 @@ void DrawInspector() {
             ImGui::TreePop();
         }
 
-        AnimationComponent *animationComponent =
+        AnimationComponent* animationComponent =
             selectedNode->GetObject<AnimationComponent>();
         if (animationComponent != nullptr) {
             if (ImGui::TreeNode("Animation")) {
-                for (auto &animation : animationComponent->animations) {
+                for (auto& animation : animationComponent->animations) {
                     if (ImGui::TreeNode(animation.data.name.c_str())) {
                         ImGui::Text("%s", std::format("Duration: {}",
                                                       animation.data.duration)
@@ -836,7 +857,7 @@ void DrawInspector() {
         }
 
         int index = 0;
-        for (GameObject *obj : selectedNode->AttachedObjects()) {
+        for (GameObject* obj : selectedNode->AttachedObjects()) {
             ImGui::PushID(obj->GetID());
             if (ImGui::TreeNode(
                     std::format("{}: {}", index, obj->GetName()).c_str())) {
@@ -848,7 +869,7 @@ void DrawInspector() {
 
                 obj->SetEnabled(objEnabled);
 
-                ImGuiDrawable *imguiObj = dynamic_cast<ImGuiDrawable *>(obj);
+                ImGuiDrawable* imguiObj = dynamic_cast<ImGuiDrawable*>(obj);
 
                 if (imguiObj) {
                     ImGui::Separator();
@@ -866,6 +887,118 @@ void DrawInspector() {
 
 void DrawFiles() {
     ImGui::Begin("Files");
+    ImGui::End();
+}
+
+void DrawSceneView(Scene& scene) {
+    ImGui::SetNextWindowSize(ImVec2(1024, 576), ImGuiCond_FirstUseEver);
+    ImGui::Begin("Scene View", nullptr, ImGuiWindowFlags_MenuBar);
+
+    if (ImGui::BeginMenuBar()) {
+        if (ImGui::RadioButton("Translate",
+                               currentGizmoOperation == ImGuizmo::TRANSLATE)) {
+            currentGizmoOperation = ImGuizmo::TRANSLATE;
+        }
+        ImGui::SameLine();
+        if (ImGui::RadioButton("Rotate",
+                               currentGizmoOperation == ImGuizmo::ROTATE)) {
+            currentGizmoOperation = ImGuizmo::ROTATE;
+        }
+        ImGui::SameLine();
+        if (ImGui::RadioButton("Scale",
+                               currentGizmoOperation == ImGuizmo::SCALE)) {
+            currentGizmoOperation = ImGuizmo::SCALE;
+        }
+        ImGui::EndMenuBar();
+    }
+
+    ImVec2 viewportSize = ImGui::GetContentRegionAvail();
+    float resX = std::max(1.0f, viewportSize.x);
+    float resY = std::max(1.0f, viewportSize.y);
+
+    scene.GetGraphics()->UpdateScreenResolution(glm::vec2(resX, resY));
+    scene.GetGraphics()->GetMainFramebuffer()->SetSize(glm::uvec2(resX, resY));
+
+    // ImGui::ShowDemoWindow();
+
+    Time::Update();
+    scene.Update();
+    scene.Render();
+
+    GLuint textureID = scene.GetGraphics()
+                           ->GetMainFramebuffer()
+                           ->GetColorTexture()
+                           ->GetHandle();
+
+    ImVec2 cursorScreenPosition = ImGui::GetCursorScreenPos();
+
+    ImGui::Image((ImTextureID)(intptr_t)textureID, ImVec2(resX, resY),
+                 ImVec2(0, 1), ImVec2(1, 0));
+
+    if (mainCamera != nullptr) {
+        if (selectedNode != nullptr) {
+            ImGuizmo::SetDrawlist();
+            ImGuizmo::SetRect(cursorScreenPosition.x, cursorScreenPosition.y,
+                              resX, resY);
+
+            glm::mat4 cameraView = mainCamera->ViewMatrix();
+            glm::mat4 cameraProjection = mainCamera->ProjectionMatrix();
+            glm::mat4 nodeTransform = selectedNode->GlobalTransform().Value();
+
+            ImGuizmo::Manipulate(glm::value_ptr(cameraView),
+                                 glm::value_ptr(cameraProjection),
+                                 currentGizmoOperation, ImGuizmo::WORLD,
+                                 glm::value_ptr(nodeTransform));
+
+            if (ImGuizmo::IsUsing()) {
+                selectedNode->GlobalTransform() = nodeTransform;
+            }
+        }
+
+        ImViewGuizmo::Style& viewStyle = ImViewGuizmo::GetStyle();
+        viewStyle.scale = 0.65f;
+        viewStyle.bigCircleColor = IM_COL32(30, 30, 30, 120);
+
+        glm::vec3 cameraPosition = mainCamera->GlobalTransform().Position();
+        glm::quat cameraRotation = mainCamera->GlobalTransform().Rotation();
+
+        glm::vec3 pivot =
+            (selectedNode != nullptr)
+                ? selectedNode->GlobalTransform().Position().Value()
+                : glm::vec3(0.0f);
+
+        float gizmoRadius = 128.0f * viewStyle.scale;
+        ImVec2 viewGizmoCenter =
+            ImVec2(cursorScreenPosition.x + resX - gizmoRadius - 2.0f,
+                   cursorScreenPosition.y + gizmoRadius + 2.0f);
+
+        if (ImViewGuizmo::Rotate(cameraPosition, cameraRotation, pivot,
+                                 viewGizmoCenter)) {
+            mainCamera->GlobalTransform().Position() = cameraPosition;
+            mainCamera->GlobalTransform().Rotation() = cameraRotation;
+        }
+
+        float toolButtonSize = viewStyle.toolButtonRadius * viewStyle.scale;
+        float spacing = 10.0f;
+
+        ImVec2 panPosition = ImVec2(
+            viewGizmoCenter.x - (toolButtonSize * 2.0f) - (spacing / 2.0f),
+            viewGizmoCenter.y + gizmoRadius + spacing);
+
+        ImVec2 dollyPosition =
+            ImVec2(viewGizmoCenter.x + (spacing / 2.0f),
+                   viewGizmoCenter.y + gizmoRadius + spacing);
+        if (ImViewGuizmo::Pan(cameraPosition, cameraRotation, panPosition,
+                              0.05f)) {
+            mainCamera->GlobalTransform().Position() = cameraPosition;
+        }
+
+        if (ImViewGuizmo::Dolly(cameraPosition, cameraRotation, dollyPosition,
+                                0.2f)) {
+            mainCamera->GlobalTransform().Position() = cameraPosition;
+        }
+    }
+
     ImGui::End();
 }
 
@@ -891,6 +1024,8 @@ void MainLoop() {
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplSDL3_NewFrame();
         ImGui::NewFrame();
+        ImGuizmo::BeginFrame();
+        ImViewGuizmo::BeginFrame();
 
         ImGui::DockSpaceOverViewport(ImGui::GetMainViewport()->ID);
 
@@ -898,33 +1033,10 @@ void MainLoop() {
         Editor::DrawGraph(*scene);
         Editor::DrawInspector();
         Editor::DrawFiles();
-
-        ImGui::SetNextWindowSize(ImVec2(1024, 576), ImGuiCond_FirstUseEver);
-        ImGui::Begin("Scene View");
-        ImVec2 viewportSize = ImGui::GetContentRegionAvail();
-        float resX = std::max(1.0f, viewportSize.x);
-        float resY = std::max(1.0f, viewportSize.y);
-
-        scene->GetGraphics()->UpdateScreenResolution(glm::vec2(resX, resY));
-        scene->GetGraphics()->GetMainFramebuffer()->SetSize(
-            glm::uvec2(resX, resY));
-
-        // ImGui::ShowDemoWindow();
-
-        Time::Update();
-        scene->Update();
-        scene->Render();
-
-        GLuint textureID = scene->GetGraphics()
-                               ->GetMainFramebuffer()
-                               ->GetColorTexture()
-                               ->GetHandle();
-        ImGui::Image((ImTextureID)(intptr_t)textureID, ImVec2(resX, resY),
-                     ImVec2(0, 1), ImVec2(1, 0));
-        ImGui::End();
+        Editor::DrawSceneView(*scene);
 
         ImGui::Render();
-        ImGuiIO &io = ImGui::GetIO();
+        ImGuiIO& io = ImGui::GetIO();
         glViewport(0, 0, (int)io.DisplaySize.x, (int)io.DisplaySize.y);
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
