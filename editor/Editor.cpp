@@ -47,6 +47,9 @@ constexpr int32_t GL_VERSION_MINOR = 6;
 SDL_Window *window = nullptr;
 SDL_GLContext glContext = nullptr;
 
+// Move into some struct
+SceneNode *selectedNode = nullptr;
+
 bool InitProgram() {
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         spdlog::error("Failed to initialize SDL3: {}", SDL_GetError());
@@ -109,7 +112,9 @@ bool InitImGui() {
         }
     }
 
-    ImGui::StyleColorsDark();
+    // Add a toggle, add a custom
+    // ImGui::StyleColorsDark();
+    ImGui::StyleColorsLight();
 
     ImGui_ImplSDL3_InitForOpenGL(window, glContext);
     ImGui_ImplOpenGL3_Init(GLSL_VERSION);
@@ -581,6 +586,263 @@ void InitScene(Scene &mainScene) {
     mainScene.AddComponent<AnimationSystem>();
 }
 
+void DrawGraphNode(SceneNode &node) {
+    ImGui::PushID(node.GetID());
+
+    ImGui::TableNextRow();
+    ImGui::TableNextColumn();
+
+    std::string treeHeader = node.GetName();
+    if (treeHeader.empty()) {
+        treeHeader = std::to_string(node.GetID());
+    }
+
+    bool isLeaf = node.GetChildren().empty();
+
+    ImGuiTreeNodeFlags flags =
+        ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth;
+
+    if (&node == node.GetScene()->GetRootNode()) {
+        flags |= ImGuiTreeNodeFlags_DefaultOpen;
+    }
+
+    if (selectedNode == &node) {
+        flags |= ImGuiTreeNodeFlags_Selected;
+    }
+
+    if (isLeaf) {
+        flags |= ImGuiTreeNodeFlags_Leaf;
+    }
+
+    bool nodeOpen = ImGui::TreeNodeEx((void *)(intptr_t)node.GetID(), flags,
+                                      "%s", treeHeader.c_str());
+
+    if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen()) {
+        selectedNode = &node;
+    }
+
+    ImGui::TableNextColumn();
+
+    const bool isEnabled = node.IsEnabled();
+
+    if (!isEnabled) {
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered,
+                              ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive,
+                              ImVec4(0.4f, 0.4f, 0.4f, 1.0f));
+    }
+
+    if (ImGui::Button("E", ImVec2(24, ImGui::GetFrameHeight()))) {
+        node.SetEnabled(!node.IsEnabled());
+    }
+
+    if (!isEnabled)
+        ImGui::PopStyleColor(3);
+
+    if (nodeOpen) {
+        if (!isLeaf) {
+            for (SceneNode *child : node.GetChildren()) {
+                DrawGraphNode(*child);
+            }
+        }
+        ImGui::TreePop();
+    }
+    ImGui::PopID();
+}
+
+void DrawGraph(Scene &scene) {
+    ImGui::Begin("Graph");
+
+    SceneNode *root = scene.GetRootNode();
+
+    if (root != nullptr) {
+        ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, 10.0f);
+
+        ImGuiTableFlags tableFlags =
+            ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable |
+            ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_NoBordersInBody;
+
+        if (ImGui::BeginTable("Graph Table", 2, tableFlags)) {
+            ImGui::TableSetupColumn("Node", ImGuiTableColumnFlags_WidthStretch);
+
+            // change so the 30px isnt hardcoded
+            ImGui::TableSetupColumn("Visibility",
+                                    ImGuiTableColumnFlags_WidthFixed, 30.0f);
+
+            DrawGraphNode(*root);
+
+            ImGui::EndTable();
+        }
+        ImGui::PopStyleVar();
+    }
+
+    ImGui::End();
+}
+
+void DrawInspector() {
+    ImGui::Begin("Inspector");
+    if (selectedNode != nullptr) {
+        std::string name = selectedNode->GetName();
+        if (name.empty()) {
+            ImGui::TextUnformatted(
+                std::to_string(selectedNode->GetID()).c_str());
+        } else {
+            ImGui::TextUnformatted(name.c_str());
+        }
+
+        bool nodeEnabled = selectedNode->IsEnabled();
+        ImGui::Checkbox("Enabled", &nodeEnabled);
+        selectedNode->SetEnabled(nodeEnabled);
+
+        if (ImGui::TreeNode("Layer")) {
+            const float size = ImGui::CalcTextSize("00").x;
+
+            for (int y = 0; y < 4; y++) {
+                for (int x = 0; x < 8; x++) {
+                    if (x > 0) {
+                        ImGui::SameLine();
+                    }
+
+                    uint8_t layer = y * 8 + x;
+
+                    ImGui::PushID(layer);
+
+                    if (ImGui::Selectable(std::to_string(layer).c_str(),
+                                          selectedNode->GetLayer() == layer, 0,
+                                          ImVec2(size, size))) {
+                        selectedNode->SetLayer(layer);
+                    }
+
+                    ImGui::PopID();
+                }
+            }
+
+            ImGui::TreePop();
+        }
+
+        if (ImGui::TreeNode("Transform")) {
+            ImGui::Text("Position");
+
+            glm::vec3 position = selectedNode->GlobalTransform().Position();
+
+            ImGui::InputFloat3("##Position", &position[0]);
+
+            glm::vec3 positionDelta = glm::zero<glm::vec3>();
+
+            ImGui::SliderFloat3("##PositionDelta", &positionDelta[0], -1, 1);
+
+            position += positionDelta;
+
+            selectedNode->GlobalTransform().Position() = position;
+
+            ImGui::Text("Rotation");
+
+            glm::vec3 rotationEuler = glm::degrees(glm::eulerAngles(
+                selectedNode->GlobalTransform().Rotation().Value()));
+
+            ImGui::InputFloat3("##Rotation", &rotationEuler[0]);
+
+            selectedNode->GlobalTransform().Rotation() =
+                glm::quat(glm::radians(rotationEuler));
+
+            glm::vec3 rotationDelta = glm::zero<glm::vec3>();
+
+            ImGui::SliderFloat3("##RotationDelta", &rotationDelta[0], -1, 1);
+
+            selectedNode->GlobalTransform().Rotation() *=
+                glm::angleAxis(glm::radians(rotationDelta.x),
+                               glm::vec3(1, 0, 0)) *
+                glm::angleAxis(glm::radians(rotationDelta.y),
+                               glm::vec3(0, 1, 0)) *
+                glm::angleAxis(glm::radians(rotationDelta.z),
+                               glm::vec3(0, 0, 1));
+
+            ImGui::Text("Scale");
+
+            glm::vec3 scale = selectedNode->GlobalTransform().Scale();
+
+            ImGui::InputFloat3("##Scale", &scale[0]);
+
+            glm::vec3 scaleDelta = glm::zero<glm::vec3>();
+
+            ImGui::SliderFloat3("##ScaleDelta", &scaleDelta[0], -1, 1);
+
+            scale += scaleDelta;
+
+            if (glm::abs(scale.x) < 0.0001) {
+                scale.x = 0.0001;
+            }
+            if (glm::abs(scale.y) < 0.0001) {
+                scale.y = 0.0001;
+            }
+            if (glm::abs(scale.z) < 0.0001) {
+                scale.z = 0.0001;
+            }
+
+            selectedNode->GlobalTransform().Scale() = scale;
+
+            ImGui::TreePop();
+        }
+
+        AnimationComponent *animationComponent =
+            selectedNode->GetObject<AnimationComponent>();
+        if (animationComponent != nullptr) {
+            if (ImGui::TreeNode("Animation")) {
+                for (auto &animation : animationComponent->animations) {
+                    if (ImGui::TreeNode(animation.data.name.c_str())) {
+                        ImGui::Text("%s", std::format("Duration: {}",
+                                                      animation.data.duration)
+                                              .c_str());
+                        ImGui::Text("%s", std::format("Progress: {}",
+                                                      animation.timeActive)
+                                              .c_str());
+                        ImGui::Checkbox("Playing", &animation.playing);
+                        ImGui::Checkbox("Looping", &animation.looping);
+                        ImGui::DragFloat("Speed", &animation.speed, 1.0f, 0.0f,
+                                         5.0f, "%.2f");
+                        // animation.data.tracks.front().inputs add this maybe
+                        ImGui::TreePop();
+                    }
+                }
+                ImGui::TreePop();
+            };
+        }
+
+        int index = 0;
+        for (GameObject *obj : selectedNode->AttachedObjects()) {
+            ImGui::PushID(obj->GetID());
+            if (ImGui::TreeNode(
+                    std::format("{}: {}", index, obj->GetName()).c_str())) {
+                ImGui::Text("Object ID: %i", obj->GetID());
+
+                bool objEnabled = obj->IsEnabled();
+
+                ImGui::Checkbox("Enabled", &objEnabled);
+
+                obj->SetEnabled(objEnabled);
+
+                ImGuiDrawable *imguiObj = dynamic_cast<ImGuiDrawable *>(obj);
+
+                if (imguiObj) {
+                    ImGui::Separator();
+
+                    imguiObj->DrawImGui();
+                }
+                ImGui::TreePop();
+            }
+            index++;
+            ImGui::PopID();
+        }
+    }
+    ImGui::End();
+}
+
+void DrawFiles() {
+    ImGui::Begin("Files");
+    ImGui::End();
+}
+
 void MainLoop() {
     // temporary
     std::unique_ptr<Scene> scene(Scene::CreateStandaloneScene());
@@ -606,9 +868,9 @@ void MainLoop() {
 
         ImGui::DockSpaceOverViewport(ImGui::GetMainViewport()->ID);
 
-        ImGui::Begin("Inspector");
-        scene->DrawImGui();
-        ImGui::End();
+        Editor::DrawGraph(*scene);
+        Editor::DrawInspector();
+        Editor::DrawFiles();
 
         ImGui::SetNextWindowSize(ImVec2(1024, 576), ImGuiCond_FirstUseEver);
         ImGui::Begin("Scene View");
@@ -619,6 +881,8 @@ void MainLoop() {
         scene->GetGraphics()->UpdateScreenResolution(glm::vec2(resX, resY));
         scene->GetGraphics()->GetMainFramebuffer()->SetSize(
             glm::uvec2(resX, resY));
+
+        // ImGui::ShowDemoWindow();
 
         Time::Update();
         scene->Update();
