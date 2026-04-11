@@ -65,6 +65,11 @@ AiNode::AiNode()
 	, walkPointSet(false)
 	, m_Body(nullptr)
 	, fov(glm::radians(180.0f))
+	 , m_AttackCooldown(1.5f)        
+    , m_AttackTimer(0.0f)
+    , m_ProjectileSpeed(15.0f)
+    , m_ProjectileMesh(nullptr)
+    , m_ProjectileMaterial(nullptr)
 {
 	patrolPoints.clear();
 	m_Surface = nullptr;
@@ -166,7 +171,7 @@ void AiNode::Update() {
 			Chase();
 		}
 		else if (canSeePlayer && playerInAttackRange) {
-			// Attack();
+			 Attack();
 		}
 
 		DrawDebugView();
@@ -199,6 +204,16 @@ void AiNode::Update() {
 			}
 		}
 
+	}
+
+	void AiNode::SetProjectileResources(Mesh* mesh, Material* material){
+		m_ProjectileMesh = mesh;
+		m_ProjectileMaterial = material;
+	}
+	
+
+	void AiNode::SetAttackCooldown(float cooldown){
+		m_AttackCooldown = cooldown;
 	}
 
 	void AiNode::Patrol() {
@@ -451,6 +466,51 @@ void AiNode::Update() {
 			m_Body->SetLinearVelocity(glm::vec3(0, currentVel.y, 0));
 		}
 	}
+
+	void AiNode::Attack() {
+    if (!m_TargetNode) return;
+
+    m_AttackTimer += Time::Delta();
+    if (m_AttackTimer >= m_AttackCooldown) {
+        m_AttackTimer = 0.0f;
+
+        glm::vec3 targetPos = m_TargetNode->GlobalTransform().Position();
+        SpawnProjectile(targetPos);
+    }
+}
+void AiNode::SpawnProjectile(const glm::vec3& targetPos) {
+    if (!m_ProjectileMesh || !m_ProjectileMaterial) {
+        spdlog::warn("AiNode: Projectile resources not set!");
+        return;
+    }
+
+    glm::vec3 startPos = transform + glm::vec3(0.0f, 1.0f, 0.0f);
+    glm::vec3 dir = glm::normalize(targetPos - startPos);
+
+    auto* projectileNode = GetScene()->CreateNode("EnemyProjectile");
+    //
+    projectileNode->GlobalTransform().Position() = startPos;
+    projectileNode->GlobalTransform().Scale() = glm::vec3(0.2f);
+
+    // Tworzenie ustawień ciała fizycznego
+    JPH::BodyCreationSettings projectileSettings(
+        new JPH::SphereShape(0.2f),
+        JPH::RVec3(startPos.x, startPos.y, startPos.z),
+        JPH::Quat::sIdentity(),
+        JPH::EMotionType::Dynamic,
+        Physics::Layers::MOVING
+    );
+
+    auto* body = projectileNode->AddObject<Physics::Body>(projectileSettings);
+    
+    // Konwersja prędkości z JPH::Vec3 na glm::vec3
+    JPH::Vec3 jphVel = JPH::Vec3(dir.x, dir.y, dir.z) * m_ProjectileSpeed;
+    body->SetLinearVelocity(glm::vec3(jphVel.GetX(), jphVel.GetY(), jphVel.GetZ()));
+    
+    body->SetRestitution(0.3f);
+    body->SetFriction(0.5f);
+    body->Awake();
+}
 
 	void AiNode::RotateNode(glm::vec3 dir) {
 		if (glm::length(dir) > 0.01f) {

@@ -23,11 +23,18 @@ private:
     float fov;
     float m_PathUpdateTimer;
     float m_ChasePathUpdateTimer = 0.0f;
+    float m_AttackCooldown;
+    float m_AttackTimer;
+    float m_AttackRange;
+    float m_ProjectileSpeed;
+    Mesh* m_ProjectileMesh;
+    Material* m_ProjectileMaterial; 
 
 
     void Patrol();
     void Chase();
-    //void Attack();
+    void Attack();
+    void SpawnProjectile(const glm::vec3& targetPos);
 	void SearchWalkPoint();
     void RotateNode(glm::vec3 dir);
     void DrawDebugView();
@@ -62,4 +69,6 @@ public:
     void SetTarget(SceneNode* target);
     void SetSurface(Surface* surface);
     void SetPatrolPoints(const std::vector<glm::vec2>& points);
+    void SetProjectileResources(Mesh* mesh, Material* material);
+    void SetAttackCooldown(float cooldown);
 };

@@ -715,6 +715,8 @@ void InitScene(Scene* mainScene) {
 	auto enemyAI = w_schnozNode->AddObject<AiNode>();
 	if (enemyAI) {
 		enemyAI->SetTarget(playerNode);
+		enemyAI->SetProjectileResources(cubeMesh, reflectiveMat); // u¿yj istniej¹cych zasobów
+		enemyAI->SetAttackCooldown(1.2f);
 	}
 
 	glm::vec2 patrolPoints[] = {
