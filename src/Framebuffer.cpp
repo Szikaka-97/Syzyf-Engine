@@ -222,6 +222,8 @@ void Framebuffer::SetSize(const glm::uvec2& size) {
 			this->customAttachments[i].texture->Resize(this->size);
 		}
 	}
+
+    this->dirty = true;
 }
 
 void Framebuffer::Apply() {

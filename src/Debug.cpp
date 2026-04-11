@@ -1,8 +1,6 @@
 #include "animation/AnimationComponent.h"
 #include <Debug.h>
 
-#include <stack>
-
 #include <imgui.h>
 
 #include <Scene.h>
