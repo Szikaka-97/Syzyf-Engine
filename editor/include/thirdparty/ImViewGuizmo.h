@@ -55,47 +55,47 @@ using mat4_t = IMVIEWGUIZMO_MAT4;
 
 #ifdef IMVIEWGUIZMO_USE_GLM_DEFAULTS
 namespace GizmoMath {
-inline float get_vec_comp(const vec3_t &v, int index) { return v[index]; }
-inline float get_vec_comp(const vec4_t &v, int index) { return v[index]; }
+inline float get_vec_comp(const vec3_t& v, int index) { return v[index]; }
+inline float get_vec_comp(const vec4_t& v, int index) { return v[index]; }
 
 inline vec3_t make_vec3(float x, float y, float z) { return vec3_t(x, y, z); }
 inline vec4_t make_vec4(float x, float y, float z, float w) {
     return vec4_t(x, y, z, w);
 }
-inline quat_t angleAxis(float angle, const vec3_t &axis) {
+inline quat_t angleAxis(float angle, const vec3_t& axis) {
     return glm::angleAxis(angle, axis);
 }
-inline quat_t quatLookAt(const vec3_t &dir, const vec3_t &up) {
+inline quat_t quatLookAt(const vec3_t& dir, const vec3_t& up) {
     return glm::quatLookAt(dir, up);
 }
 inline mat4_t mat4_identity() { return mat4_t(1.0f); }
 
-inline vec3_t cross(const vec3_t &a, const vec3_t &b) {
+inline vec3_t cross(const vec3_t& a, const vec3_t& b) {
     return glm::cross(a, b);
 }
-inline float dot(const vec3_t &a, const vec3_t &b) { return glm::dot(a, b); }
-inline float dot(const quat_t &a, const quat_t &b) { return glm::dot(a, b); }
-inline float length(const vec3_t &v) { return glm::length(v); }
-inline float length2(const vec3_t &v) { return glm::length2(v); }
-inline vec3_t normalize(const vec3_t &v) { return glm::normalize(v); }
-inline vec3_t mix(const vec3_t &a, const vec3_t &b, float t) {
+inline float dot(const vec3_t& a, const vec3_t& b) { return glm::dot(a, b); }
+inline float dot(const quat_t& a, const quat_t& b) { return glm::dot(a, b); }
+inline float length(const vec3_t& v) { return glm::length(v); }
+inline float length2(const vec3_t& v) { return glm::length2(v); }
+inline vec3_t normalize(const vec3_t& v) { return glm::normalize(v); }
+inline vec3_t mix(const vec3_t& a, const vec3_t& b, float t) {
     return glm::mix(a, b, t);
 }
-inline vec3_t add_vv(const vec3_t &a, const vec3_t &b) { return a + b; }
-inline vec3_t subtract_vv(const vec3_t &a, const vec3_t &b) { return a - b; }
-inline vec3_t multiply_vf(const vec3_t &v, float f) { return v * f; }
+inline vec3_t add_vv(const vec3_t& a, const vec3_t& b) { return a + b; }
+inline vec3_t subtract_vv(const vec3_t& a, const vec3_t& b) { return a - b; }
+inline vec3_t multiply_vf(const vec3_t& v, float f) { return v * f; }
 
-inline mat4_t mat4_cast(const quat_t &q) { return glm::mat4_cast(q); }
-inline mat4_t transpose(const mat4_t &m) { return glm::transpose(m); }
-inline vec3_t get_matrix_col(const mat4_t &m, int col) {
+inline mat4_t mat4_cast(const quat_t& q) { return glm::mat4_cast(q); }
+inline mat4_t transpose(const mat4_t& m) { return glm::transpose(m); }
+inline vec3_t get_matrix_col(const mat4_t& m, int col) {
     return vec3_t(m[col]);
 }
-inline void set_matrix_col(mat4_t &m, int col, const vec4_t &v) { m[col] = v; }
+inline void set_matrix_col(mat4_t& m, int col, const vec4_t& v) { m[col] = v; }
 
-inline quat_t multiply_qq(const quat_t &a, const quat_t &b) { return a * b; }
-inline vec3_t multiply_qv(const quat_t &q, const vec3_t &v) { return q * v; }
-inline mat4_t multiply_mm(const mat4_t &a, const mat4_t &b) { return a * b; }
-inline vec4_t multiply_mv4(const mat4_t &m, const vec4_t &v) { return m * v; }
+inline quat_t multiply_qq(const quat_t& a, const quat_t& b) { return a * b; }
+inline vec3_t multiply_qv(const quat_t& q, const vec3_t& v) { return q * v; }
+inline mat4_t multiply_mm(const mat4_t& a, const mat4_t& b) { return a * b; }
+inline vec4_t multiply_mv4(const mat4_t& m, const vec4_t& v) { return m * v; }
 } // namespace GizmoMath
 #else
 // User must provide a GizmoMath namespace implementing all functions if using
@@ -125,7 +125,7 @@ struct Style {
 
     // Labels
     float labelSize = 1.0f;
-    const char *axisLabels[3] = {"X", "Y", "Z"};
+    const char* axisLabels[3] = {"X", "Y", "Z"};
     ImU32 labelColor = IM_COL32(255, 255, 255, 255);
 
     // Big Circle
@@ -157,7 +157,7 @@ static constexpr mat4_t gizmoProjectionMatrix = {
     -1.0f, 0.0f, 0.0f,   0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
     0.0f,  0.0f, -0.01f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f};
 
-inline Style &GetStyle() {
+inline Style& GetStyle() {
     static Style style;
     return style;
 }
@@ -198,12 +198,12 @@ struct Context {
 };
 
 // Global context
-inline Context &GetContext() {
+inline Context& GetContext() {
     static Context ctx;
     return ctx;
 }
 
-static float ImLengthSqr(const ImVec2 &v) { return v.x * v.x + v.y * v.y; }
+static float ImLengthSqr(const ImVec2& v) { return v.x * v.x + v.y * v.y; }
 static float mix(float a, float b, float t) { return a * (1.0f - t) + b * t; }
 
 inline void BeginFrame() {
@@ -217,7 +217,7 @@ inline void BeginFrame() {
 inline bool IsUsing() { return GetContext().activeTool != TOOL_NONE; }
 
 inline bool IsOver() {
-    const Context &ctx = GetContext();
+    const Context& ctx = GetContext();
     return ctx.hoveredAxisID != -1 || ctx.isZoomButtonHovered ||
            ctx.isPanButtonHovered;
 }
@@ -230,7 +230,7 @@ inline bool IsOver() {
 /// rendered.
 /// @param rotationSpeed The rotation speed when dragging the gizmo.
 /// @return True if the camera was modified, false otherwise.
-bool Rotate(vec3_t &cameraPos, quat_t &cameraRot, const vec3_t &pivot,
+bool Rotate(vec3_t& cameraPos, quat_t& cameraRot, const vec3_t& pivot,
             ImVec2 position, float rotationSpeed = 0.01f);
 
 /// @brief Renders a zoom button and handles its logic.
@@ -239,7 +239,7 @@ bool Rotate(vec3_t &cameraPos, quat_t &cameraRot, const vec3_t &pivot,
 /// @param position The top-left screen position of the button.
 /// @param zoomSpeed The speed/sensitivity of the zoom.
 /// @return True if the camera was modified, false otherwise.
-bool Dolly(vec3_t &cameraPos, const quat_t &cameraRot, ImVec2 position,
+bool Dolly(vec3_t& cameraPos, const quat_t& cameraRot, ImVec2 position,
            float zoomSpeed = 0.05f);
 
 /// @brief Renders a pan button and handles its logic.
@@ -248,7 +248,7 @@ bool Dolly(vec3_t &cameraPos, const quat_t &cameraRot, ImVec2 position,
 /// @param position The top-left screen position of the button.
 /// @param panSpeed The speed/sensitivity of the pan.
 /// @return True if the camera was modified, false otherwise.
-bool Pan(vec3_t &cameraPos, const quat_t &cameraRot, ImVec2 position,
+bool Pan(vec3_t& cameraPos, const quat_t& cameraRot, ImVec2 position,
          float panSpeed = 0.01f);
 } // namespace ImViewGuizmo
 
@@ -256,13 +256,13 @@ bool Pan(vec3_t &cameraPos, const quat_t &cameraRot, ImVec2 position,
 namespace ImViewGuizmo {
 
 /// @brief Renders and handles the view gizmo logic.
-inline bool Rotate(vec3_t &cameraPos, quat_t &cameraRot, const vec3_t &pivot,
+inline bool Rotate(vec3_t& cameraPos, quat_t& cameraRot, const vec3_t& pivot,
                    ImVec2 position, float rotationSpeed) {
 
-    auto &io = ImGui::GetIO();
-    ImDrawList *drawList = ImGui::GetWindowDrawList();
-    auto &ctx = GetContext();
-    auto &style = GetStyle();
+    auto& io = ImGui::GetIO();
+    ImDrawList* drawList = ImGui::GetWindowDrawList();
+    auto& ctx = GetContext();
+    auto& style = GetStyle();
     bool wasModified = false;
 
     // Animation
@@ -349,12 +349,12 @@ inline bool Rotate(vec3_t &cameraPos, quat_t &cameraRot, const vec3_t &pivot,
                GizmoMath::multiply_vf(axisVectors[2], -1.0f)};
 
     std::sort(axes.begin(), axes.end(),
-              [](const GizmoAxis &a, const GizmoAxis &b) {
+              [](const GizmoAxis& a, const GizmoAxis& b) {
                   return a.depth < b.depth;
               });
 
     // world->screen
-    auto worldToScreen = [&](const vec3_t &worldPos) -> ImVec2 {
+    auto worldToScreen = [&](const vec3_t& worldPos) -> ImVec2 {
         const vec4_t clipPos = GizmoMath::multiply_mv4(
             gizmoMvp,
             GizmoMath::make_vec4(worldPos.x, worldPos.y, worldPos.z, 1.0f));
@@ -379,7 +379,7 @@ inline bool Rotate(vec3_t &cameraPos, quat_t &cameraRot, const vec3_t &pivot,
         if (distToCenterSq < (halfGizmoSize + scaledCircleRadius) *
                                  (halfGizmoSize + scaledCircleRadius)) {
             const float minDistanceSq = scaledCircleRadius * scaledCircleRadius;
-            for (const auto &axis : axes) {
+            for (const auto& axis : axes) {
                 if (axis.depth < -0.1f)
                     continue;
 
@@ -403,8 +403,8 @@ inline bool Rotate(vec3_t &cameraPos, quat_t &cameraRot, const vec3_t &pivot,
         drawList->AddCircleFilled(originScreenPos, scaledBigCircleRadius,
                                   style.bigCircleColor);
 
-    ImFont *font = ImGui::GetFont();
-    for (const auto &axis : axes) {
+    ImFont* font = ImGui::GetFont();
+    for (const auto& axis : axes) {
         float colorFactor =
             mix(style.fadeFactor, 1.0f, (axis.depth + 1.0f) * 0.5f);
         ImVec4 baseColor =
@@ -437,7 +437,7 @@ inline bool Rotate(vec3_t &cameraPos, quat_t &cameraRot, const vec3_t &pivot,
         if (textFactor > 0.01f) {
             ImVec4 textColor = ImGui::ColorConvertU32ToFloat4(style.labelColor);
             textColor.w *= textFactor;
-            const char *label = style.axisLabels[axis.axisIndex];
+            const char* label = style.axisLabels[axis.axisIndex];
             ImVec2 textSize =
                 font->CalcTextSizeA(scaledFontSize, FLT_MAX, 0.f, label);
             drawList->AddText(font, scaledFontSize,
@@ -554,13 +554,13 @@ inline bool Rotate(vec3_t &cameraPos, quat_t &cameraRot, const vec3_t &pivot,
 }
 
 /// @brief Renders a zoom button and handles its logic.
-inline bool Dolly(vec3_t &cameraPos, const quat_t &cameraRot,
+inline bool Dolly(vec3_t& cameraPos, const quat_t& cameraRot,
                   const ImVec2 position, const float zoomSpeed) {
 
-    const ImGuiIO &io = ImGui::GetIO();
-    ImDrawList *drawList = ImGui::GetWindowDrawList();
-    auto &ctx = GetContext();
-    const Style &style = GetStyle();
+    const ImGuiIO& io = ImGui::GetIO();
+    ImDrawList* drawList = ImGui::GetWindowDrawList();
+    auto& ctx = GetContext();
+    const Style& style = GetStyle();
     bool wasModified = false;
 
     const bool canInteract = !(io.ConfigFlags & ImGuiConfigFlags_NoMouse);
@@ -629,13 +629,13 @@ inline bool Dolly(vec3_t &cameraPos, const quat_t &cameraRot,
 }
 
 /// @brief Renders a pan button and handles its logic.
-inline bool Pan(vec3_t &cameraPos, const quat_t &cameraRot,
+inline bool Pan(vec3_t& cameraPos, const quat_t& cameraRot,
                 const ImVec2 position, const float panSpeed) {
 
-    const ImGuiIO &io = ImGui::GetIO();
-    ImDrawList *drawList = ImGui::GetWindowDrawList();
-    auto &ctx = GetContext();
-    const Style &style = GetStyle();
+    const ImGuiIO& io = ImGui::GetIO();
+    ImDrawList* drawList = ImGui::GetWindowDrawList();
+    auto& ctx = GetContext();
+    const Style& style = GetStyle();
     bool wasModified = false;
 
     const vec3_t worldRight = GizmoMath::make_vec3(1.0f, 0.0f, 0.0f);

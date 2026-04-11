@@ -12,6 +12,8 @@ void DrawGraphNode(SceneNode& node);
 void DrawGraph(Scene& scene);
 void DrawInspector();
 void DrawFiles();
+
+void HandleMousePicking(Scene& scene, float resX, float resY);
 void DrawSceneView(Scene& scene);
 
 void MainLoop();

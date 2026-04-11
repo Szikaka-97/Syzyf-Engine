@@ -890,6 +890,62 @@ void DrawFiles() {
     ImGui::End();
 }
 
+void HandleMousePicking(Scene& scene, float resX, float resY) {
+    if (mainCamera != nullptr && ImGui::IsWindowHovered() &&
+        ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+        if (!ImGuizmo::IsOver() && !ImViewGuizmo::IsOver()) {
+            ImVec2 mousePosition = ImGui::GetMousePos();
+            ImVec2 cursorScreenPosition = ImGui::GetCursorScreenPos();
+
+            float mouseX = mousePosition.x - cursorScreenPosition.x;
+            float mouseY = mousePosition.y - cursorScreenPosition.y;
+
+            if (mouseX >= 0.0f && mouseX <= resX && mouseY >= 0.0f &&
+                mouseY <= resY) {
+                float ndcX = (2.0f * mouseX) / resX - 1.0f;
+                float ndcY = 1.0f - (2.0f * mouseY) / resY;
+
+                // Move somewhere else
+                mainCamera->SetAspectRatio(resX / resY);
+
+                glm::mat4 projection = mainCamera->ProjectionMatrix();
+                glm::mat4 view = mainCamera->ViewMatrix();
+
+                glm::vec4 clipSpacePosition(ndcX, ndcY, -1.0f, 1.0f);
+                glm::vec4 viewSpacePosition =
+                    glm::inverse(projection) * clipSpacePosition;
+                viewSpacePosition.z = -1.0f;
+                viewSpacePosition.w = 0.0f;
+
+                glm::vec3 rayDirection = glm::normalize(
+                    glm::vec3(glm::inverse(view) * viewSpacePosition));
+                glm::vec3 rayOrigin =
+                    mainCamera->GlobalTransform().Position().Value();
+
+                bool hitSomething = false;
+
+                if (Physics::System* physicsSystem =
+                        scene.GetComponent<Physics::System>()) {
+                    float maxDistance = 1000.0f;
+                    glm::vec3 ray = rayDirection * maxDistance;
+
+                    SceneNode* hitNode = physicsSystem->CastRay(rayOrigin, ray);
+                    if (hitNode != nullptr) {
+                        selectedNode = hitNode;
+                        hitSomething = true;
+                    }
+                }
+
+                if (!hitSomething) {
+                    // Add Bounds fallback
+
+                    selectedNode = nullptr;
+                }
+            }
+        }
+    }
+}
+
 void DrawSceneView(Scene& scene) {
     ImGui::SetNextWindowSize(ImVec2(1024, 576), ImGuiCond_FirstUseEver);
     ImGui::Begin("Scene View", nullptr, ImGuiWindowFlags_MenuBar);
@@ -915,6 +971,8 @@ void DrawSceneView(Scene& scene) {
     ImVec2 viewportSize = ImGui::GetContentRegionAvail();
     float resX = std::max(1.0f, viewportSize.x);
     float resY = std::max(1.0f, viewportSize.y);
+
+    Editor::HandleMousePicking(scene, resX, resY);
 
     scene.GetGraphics()->UpdateScreenResolution(glm::vec2(resX, resY));
     scene.GetGraphics()->GetMainFramebuffer()->SetSize(glm::uvec2(resX, resY));
