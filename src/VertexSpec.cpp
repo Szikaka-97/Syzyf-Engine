@@ -1,6 +1,5 @@
 #include <VertexSpec.h>
 
-#include <algorithm>
 #include <map>
 
 VertexInputType VertexSpec::TypeFromSemantic(const std::string& s) {
@@ -12,6 +11,8 @@ VertexInputType VertexSpec::TypeFromSemantic(const std::string& s) {
 			{ "UV1", VertexInputType::UV1 },
 			{ "UV2", VertexInputType::UV2 },
 			{ "COLOR", VertexInputType::Color },
+      { "JOINTS", VertexInputType::Joints },
+      { "WEIGHTS", VertexInputType::Weights },
 		});
 
 	if (nameToTypeMap.contains(s)) {
@@ -30,6 +31,8 @@ VertexInputType VertexSpec::TypeFromName(const std::string& s) {
 			{ "UV1", VertexInputType::UV1 },
 			{ "UV2", VertexInputType::UV2 },
 			{ "Color", VertexInputType::Color },
+      { "Joints", VertexInputType::Joints },
+      { "Weights", VertexInputType::Weights },
 		});
 
 	if (nameToTypeMap.contains(s)) {
@@ -49,6 +52,8 @@ const std::string& VertexSpec::TypeToName(VertexInputType t) {
 		{ VertexInputType::UV1, "UV1" },
 		{ VertexInputType::UV2, "UV2" },
 		{ VertexInputType::Color, "Color" },
+    { VertexInputType::Joints, "Joints" },
+    { VertexInputType::Weights, "Weights" },
 		});
 
 	if (nameToTypeMap.contains(t)) {
@@ -59,10 +64,8 @@ const std::string& VertexSpec::TypeToName(VertexInputType t) {
 }
 
 void VertexSpec::SetInputAt(int index, VertexInput input) {
-	uint64_t inputHash = input.length + 0b1000;
-
-	this->hash |= (inputHash << ((uint64_t) input.type - 1u) * 4u);
-	this->hash |= ((uint64_t) input.type) << (32u + index * 4);
+  uint64_t packed = ((uint64_t)input.type << 4) | (input.length & 0xF);
+	this->hash |= (packed << (index * 8));
 }
 
 VertexSpec::VertexSpec(std::initializer_list<VertexInput> inputs) {
@@ -89,38 +92,50 @@ VertexSpec::VertexSpec() :
 hash(0) { }
 
 std::vector<VertexInput> VertexSpec::GetInputs() const {
-	std::vector<VertexInput> result;
+  std::vector<VertexInput> result;
 
 	for (int i = 0; i < 8; i++) {
-		uint64_t type = ((this->hash >> (32u + i * 4)) & 0xf);
+		uint64_t packed = (this->hash >> (i * 8)) & 0xFF;
+		uint8_t type = packed >> 4;
+		uint8_t length = packed & 0xF;
 
-		if (type == (uint64_t) VertexInputType::Invalid) {
+		if (type == (uint8_t) VertexInputType::Invalid) {
 			break;
 		}
-
-		uint8_t count = (uint8_t) (this->hash >> (type - 1u) * 4) & 0xf;
-
-		result.push_back({(VertexInputType) type, count});
+		result.push_back({(VertexInputType)type, length});
 	}
 
 	return result;
 }
 
 int VertexSpec::GetLengthOf(VertexInputType input) const {
-	return (this->hash >> (((uint64_t) input - 1) * 4)) & 0b111;
+  for (int i = 0; i < 8; i++) {
+		uint64_t packed = (this->hash >> (i * 8)) & 0xFF;
+		uint8_t type = packed >> 4;
+		uint8_t length = packed & 0xF;
+
+		if (type == (uint8_t) input) {
+			return length;
+		}
+		if (type == (uint8_t) VertexInputType::Invalid) {
+			break;
+		}
+	}
+	return 0;
 }
 
 unsigned int VertexSpec::VertexSize() const {
-	unsigned int result = 0;
+  unsigned int result = 0;
 
 	for (int i = 0; i < 8; i++) {
-		uint64_t type = ((this->hash >> (32u + i * 4)) & 0xf);
+		uint64_t packed = (this->hash >> (i * 8)) & 0xFF;
+		uint8_t type = packed >> 4;
+		uint8_t length = packed & 0xF;
 
-		if (type == (uint64_t) VertexInputType::Invalid) {
+		if (type == (uint8_t) VertexInputType::Invalid) {
 			break;
 		}
-
-		result += (this->hash >> (type - 1u) * 4) & 0xf;
+		result += length;
 	}
 
 	return result;
@@ -131,21 +146,21 @@ uint64_t VertexSpec::GetHash() const {
 }
 
 bool VertexSpec::Compatible(const VertexSpec& other) const {
-	if (*this == other) {
+  if (*this == other) {
 		return true;
 	}
 
 	for (int i = 0; i < 8; i++) {
-		uint64_t type = ((this->hash >> (32u + i * 4)) & 0xf);
+		uint64_t packed = (this->hash >> (i * 8)) & 0xFF;
+		uint8_t type = packed >> 4;
+		uint8_t length = packed & 0xF;
 
-		if (type == (uint64_t) VertexInputType::Invalid) {
+		if (type == (uint8_t) VertexInputType::Invalid) {
 			break;
 		}
 
-		unsigned int otherCount = other.hash >> ((type - 1u) * 4u) & 0b111;
-		unsigned int thisCount = this->hash >> ((type - 1u) * 4u) & 0b111;
-
-		if (otherCount < thisCount) {
+		int otherLength = other.GetLengthOf((VertexInputType)type);
+		if (otherLength < length) {
 			return false;
 		}
 	}
@@ -196,8 +211,18 @@ const VertexSpec VertexSpec::MeshFull {
 	{ VertexInputType::Position, 3 },
 	{ VertexInputType::Normal, 3},
 	{ VertexInputType::Binormal, 3},
-	{ VertexInputType::Tangent, 3},
+	{ VertexInputType::Tangent, 4},
 	{ VertexInputType::UV1, 2 },
 	{ VertexInputType::UV2, 2 },
 	{ VertexInputType::Color, 4 },
+};
+
+const VertexSpec VertexSpec::MeshSkinned {
+  { VertexInputType::Position, 3 },
+  { VertexInputType::Normal, 3 },
+  { VertexInputType::Tangent, 4 },
+  { VertexInputType::UV1, 2 },
+  { VertexInputType::Color, 4 },
+  { VertexInputType::Joints, 4 },
+  { VertexInputType::Weights, 4 },
 };

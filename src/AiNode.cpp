@@ -264,10 +264,10 @@ void AiNode::Update() {
 			float fCost() const { return gCost + hCost; }
 		};
 
-		// W³asny hasher dla glm::vec3 z tolerancj¹
+		// WÂ³asny hasher dla glm::vec3 z tolerancjÂ¹
 		struct Vec3Hash {
 			size_t operator()(const glm::vec3& v) const {
-				// Kwantyzacja do 0.1 dla stabilnoœci
+				// Kwantyzacja do 0.1 dla stabilnoÅ“ci
 				int xi = static_cast<int>(std::round(v.x * 10.0f));
 				int yi = static_cast<int>(std::round(v.y * 10.0f));
 				int zi = static_cast<int>(std::round(v.z * 10.0f));
@@ -299,7 +299,7 @@ void AiNode::Update() {
 		std::priority_queue<Node*, std::vector<Node*>, decltype(cmp)> openSet(cmp);
 		openSet.push(&startNode);
 
-		const int maxIter = 5000; // zmniejszamy dla bezpieczeñstwa
+		const int maxIter = 5000; // zmniejszamy dla bezpieczeÃ±stwa
 		int iter = 0;
 		while (!openSet.empty() && iter++ < maxIter) {
 			Node* current = openSet.top();
@@ -380,7 +380,7 @@ void AiNode::Update() {
 				}
 			}
 		}
-		return point; // fallback – oryginalny punkt
+		return point; // fallback â€“ oryginalny punkt
 	}
 
 	std::vector<glm::vec3> AiNode::GetNeighbors(const glm::vec3 & node) {
@@ -404,11 +404,11 @@ void AiNode::Update() {
 	void AiNode::Chase() {
 		if (!m_Surface || !m_TargetNode) return;
 
-		// Upewnij siê, ¿e pozycja AI jest aktualna
+		// Upewnij siÃª, Â¿e pozycja AI jest aktualna
 		transform = m_Body->GetPosition();
 		glm::vec3 targetPos = m_TargetNode->GlobalTransform().Position();
 
-		// Aktualizuj œcie¿kê co 0.5 s lub gdy jest pusta
+		// Aktualizuj Å“cieÂ¿kÃª co 0.5 s lub gdy jest pusta
 		m_ChasePathUpdateTimer += Time::Delta();
 		if (m_ChasePathUpdateTimer > 0.5f || m_Path.empty()) {
 			m_Path = FindPath(transform, targetPos);
@@ -422,16 +422,16 @@ void AiNode::Update() {
 			m_ChasePathUpdateTimer = 0.0f;
 		}
 
-		// Wykonaj ruch po œcie¿ce
+		// Wykonaj ruch po Å“cieÂ¿ce
 		if (!m_Path.empty() && m_CurrentPathIndex < m_Path.size()) {
 			glm::vec3 nextPoint = m_Path[m_CurrentPathIndex];
 			float distToNext = glm::distance(transform, nextPoint);
 
 			if (distToNext < 0.5f) {
 				m_CurrentPathIndex++;
-				// Jeœli dotarliœmy do koñca œcie¿ki (blisko gracza), wyczyœæ œcie¿kê
+				// JeÅ“li dotarliÅ“my do koÃ±ca Å“cieÂ¿ki (blisko gracza), wyczyÅ“Ã¦ Å“cieÂ¿kÃª
 				if (m_CurrentPathIndex >= m_Path.size()) {
-					// Opcjonalnie: sprawdŸ, czy gracz jest w zasiêgu ataku
+					// Opcjonalnie: sprawdÅ¸, czy gracz jest w zasiÃªgu ataku
 					m_Path.clear();
 					m_CurrentPathIndex = 0;
 				}
@@ -446,7 +446,7 @@ void AiNode::Update() {
 			}
 		}
 		else {
-			// Œcie¿ka pusta – zatrzymaj AI
+			// Å’cieÂ¿ka pusta â€“ zatrzymaj AI
 			glm::vec3 currentVel = m_Body->GetLinearVelocity();
 			m_Body->SetLinearVelocity(glm::vec3(0, currentVel.y, 0));
 		}
@@ -506,7 +506,7 @@ void AiNode::Update() {
 
 			}
 			else {
-				// fallback – no physics
+				// fallback â€“ no physics
 				walkPoint = candidate;
 				walkPoint.y = transform.y;
 				walkPointSet = true;
@@ -567,4 +567,3 @@ void AiNode::Update() {
 			}
 		}
 	}
-

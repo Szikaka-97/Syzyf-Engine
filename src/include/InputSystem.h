@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <string>
 #include <map>
 #include <glm/glm.hpp>
@@ -10,54 +11,54 @@
 struct GLFWwindow;
 
 enum class Key {
-	Space          = 32,
-	Apostrophe     = 39,  /* ' */
-	Comma          = 44,  /* , */
-	Minus          = 45,  /* - */
-	Period         = 46,  /* . */
-	Slash          = 47,  /* / */
-	Alpha0         = 48,
-	Alpha1         = 49,
-	Alpha2         = 50,
-	Alpha3         = 51,
-	Alpha4         = 52,
-	Alpha5         = 53,
-	Alpha6         = 54,
-	Alpha7         = 55,
-	Alpha8         = 56,
-	Alpha9         = 57,
-	Semicolon      = 59,  /* ; */
-	Equal          = 61,  /* = */
-	A              = 65,
-	B              = 66,
-	C              = 67,
-	D              = 68,
-	E              = 69,
-	F              = 70,
-	G              = 71,
-	H              = 72,
-	I              = 73,
-	J              = 74,
-	K              = 75,
-	L              = 76,
-	M              = 77,
-	N              = 78,
-	O              = 79,
-	P              = 80,
-	Q              = 81,
-	R              = 82,
-	S              = 83,
-	T              = 84,
-	U              = 85,
-	V              = 86,
-	W              = 87,
-	X              = 88,
-	Y              = 89,
-	Z              = 90,
-	LeftBracket    = 91,  /* [ */
-	Backslash      = 92,  /* \ */
-	RightBracket   = 93,  /* ] */
-	Backtick       = 96,  /* ` */
+	Space          = ' ',
+	Apostrophe     = '\'',
+	Comma          = ',',
+	Minus          = '-',
+	Period         = '.',
+	Slash          = '/',
+	Alpha0         = '0',
+	Alpha1         = '1',
+	Alpha2         = '2',
+	Alpha3         = '3',
+	Alpha4         = '4',
+	Alpha5         = '5',
+	Alpha6         = '6',
+	Alpha7         = '7',
+	Alpha8         = '8',
+	Alpha9         = '9',
+	Semicolon      = ';',
+	Equal          = '=',
+	A              = 'A',
+	B              = 'B',
+	C              = 'C',
+	D              = 'D',
+	E              = 'E',
+	F              = 'F',
+	G              = 'G',
+	H              = 'H',
+	I              = 'I',
+	J              = 'J',
+	K              = 'K',
+	L              = 'L',
+	M              = 'M',
+	N              = 'N',
+	O              = 'O',
+	P              = 'P',
+	Q              = 'Q',
+	R              = 'R',
+	S              = 'S',
+	T              = 'T',
+	U              = 'U',
+	V              = 'V',
+	W              = 'W',
+	X              = 'X',
+	Y              = 'Y',
+	Z              = 'Z',
+	LeftBracket    = '[',
+	Backslash      = '\\',
+	RightBracket   = ']',
+	Backtick       = '`',
 	Escape         = 256,
 	Enter          = 257,
 	Tab            = 258,
@@ -194,7 +195,7 @@ private:
 	};
 
 	std::map<int, KeyBitMask> keys;
-	glm::vec2 prevMouseMovement;
+	std::atomic<glm::vec2> prevMouseMovement;
 	bool mouseLocked;
 public:
 	InputSystem(Scene* scene);
@@ -228,6 +229,7 @@ public:
 	glm::vec2 GetMousePosition();
 
 	virtual void OnPreUpdate();
+	virtual void OnPostUpdate();
 
 	virtual int Order();
 
