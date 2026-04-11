@@ -586,6 +586,32 @@ void InitScene(Scene &mainScene) {
     mainScene.AddComponent<AnimationSystem>();
 }
 
+void DrawMainMenuBar(bool &shouldClose) {
+    if (ImGui::BeginMainMenuBar()) {
+        if (ImGui::BeginMenu("File")) {
+            if (ImGui::MenuItem("Exit")) {
+                shouldClose = true;
+            }
+            ImGui::EndMenu();
+        }
+
+        if (ImGui::BeginMenu("View")) {
+            if (ImGui::BeginMenu("Theme")) {
+                if (ImGui::MenuItem("Dark")) {
+                    ImGui::StyleColorsDark();
+                }
+                if (ImGui::MenuItem("Light")) {
+                    ImGui::StyleColorsLight();
+                }
+                ImGui::EndMenu();
+            }
+            ImGui::EndMenu();
+        }
+
+        ImGui::EndMainMenuBar();
+    }
+}
+
 void DrawGraphNode(SceneNode &node) {
     ImGui::PushID(node.GetID());
 
@@ -868,6 +894,7 @@ void MainLoop() {
 
         ImGui::DockSpaceOverViewport(ImGui::GetMainViewport()->ID);
 
+        Editor::DrawMainMenuBar(shouldClose);
         Editor::DrawGraph(*scene);
         Editor::DrawInspector();
         Editor::DrawFiles();

@@ -7,6 +7,7 @@ namespace Editor {
 bool Setup();
 void Terminate();
 
+void DrawMainMenuBar(bool &shouldClose);
 void DrawGraphNode(SceneNode &node);
 void DrawGraph(Scene &scene);
 void DrawInspector();
