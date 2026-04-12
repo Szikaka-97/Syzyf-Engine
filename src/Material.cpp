@@ -153,8 +153,11 @@ void ShaderVariableStorage::Bind() const {
 
 	for (unsigned int i = 0; i < this->uniformSpec->StorageBuffersCount(); i++) {
 		auto storageBufferData = storageBuffers[i];
+        auto storageBufferSpec = this->uniformSpec->StorageBufferAt(i);
 
-		// glBindBufferBase(GL_SHADER_STORAGE_BUFFER, i, storageBufferData.bufferHandle);
+        if (storageBufferData.bufferHandle != 0) {
+            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, storageBufferSpec.binding, storageBufferData.bufferHandle);
+        }
 	}
 }
 
