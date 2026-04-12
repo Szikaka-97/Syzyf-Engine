@@ -5,19 +5,20 @@
 #include <Mesh.h>
 #include <Material.h>
 #include <MeshRenderer.h>
+#include <AiNode.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <algorithm>
 #include <vector>
 
-class ThrowBottle : public GameObject
+class ThrowBottle : public GameObject, public Physics::ICollisionReceiver 
 {
 private:
     struct BottleInstance {
         SceneNode* node = nullptr;
         bool active = false;
-
+        Physics::Body* body = nullptr;
         glm::vec3 startPosition = glm::vec3(0.0f);
         glm::vec3 targetPosition = glm::vec3(0.0f);
 
@@ -51,9 +52,21 @@ private:
 
             BottleInstance instance;
             instance.node = bottleNode;
-
+            instance.body = nullptr;
+            instance.active = false;
             bottles.push_back(instance);
         }
+    }
+
+    void DisableBottle(BottleInstance& bottle) {
+        if (bottle.body) {
+            bottle.node->DeleteObject(bottle.body);
+            bottle.body = nullptr;
+        }
+        bottle.active = false;
+        bottle.node->SetEnabled(false);
+        bottle.node->GlobalTransform().Position() = hiddenPosition;
+        bottle.timer = 0.0f;
     }
 
 public:
@@ -90,10 +103,59 @@ public:
                 bottle.node->SetEnabled(true);
                 bottle.node->GlobalTransform().Position() = startPos;
                 bottle.node->GlobalTransform().Scale() = glm::vec3(0.3f);
-                return;
-            }
+
+               JPH::BodyCreationSettings bottleSettings(
+                    new JPH::SphereShape(0.2f),
+                    JPH::RVec3(startPos.x, startPos.y, startPos.z),
+                    JPH::Quat::sIdentity(),
+                    JPH::EMotionType::Dynamic,
+                    Physics::Layers::MOVING
+                );
+                bottle.body = bottle.node->AddObject<Physics::Body>(bottleSettings);
+                bottle.body->SetRestitution(0.3f);
+                bottle.body->SetFriction(0.5f);
+
+                float gravity = 9.81f;
+                glm::vec3 displacement = targetPos - startPos;
+                float verticalVel = (displacement.y + 0.5f * gravity * duration * duration) / duration;
+                glm::vec3 flatDispl(displacement.x, 0.0f, displacement.z);
+                float flatDist = glm::length(flatDispl);
+                glm::vec3 horizontalVel = flatDist > 0.001f ? glm::normalize(flatDispl) * (flatDist / duration) : glm::vec3(0.0f);
+                glm::vec3 velocity = horizontalVel + glm::vec3(0.0f, verticalVel, 0.0f);
+
+                bottle.body->SetLinearVelocity(velocity);
+                bottle.body->Awake();
+
+              }
         }
     }
+
+    void OnCollisionExit(SceneNode* node) override {}
+
+    void OnCollisionEnter(SceneNode* other) {
+    if (!other) return;
+    AiNode* ai = other->GetObject<AiNode>();
+    if (ai) {
+        ai->TakeDamage(25);
+        for (auto& bottle : bottles) {
+                if (bottle.active && bottle.body) {
+                    DisableBottle(bottle);
+                    break;
+                }
+            }
+    }
+    if (other->GetName() == "Floor") {
+            for (auto& bottle : bottles) {
+                if (bottle.active && bottle.body) {
+                    DisableBottle(bottle);
+                    break;
+                }
+            }
+            return;
+        }
+    // zniszcz butelkê po uderzeniu
+}
+
 
     void Update() {
         const float dt = 1.0f / 60.0f;

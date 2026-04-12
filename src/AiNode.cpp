@@ -477,6 +477,7 @@ void AiNode::SpawnProjectile(const glm::vec3& targetPos) {
 }
 
 void AiNode::TakeDamage(int damage) {
+	spdlog::info("AiNode: Took {} damage", damage);
 	m_hp -= damage;
 	if (m_hp <= 0) {
 		Die();

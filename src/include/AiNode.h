@@ -37,7 +37,7 @@ private:
     void Attack();
 
     void Flee();
-    void TakeDamage(int damage);
+    
     void Die();
 
     void MoveInDirection(const glm::vec3& direction);
@@ -81,4 +81,6 @@ public:
     void SetPatrolPoints(const std::vector<glm::vec2>& points);
     void SetProjectileResources(Mesh* mesh, Material* material);
     void SetAttackCooldown(float cooldown);
+
+    void TakeDamage(int damage);
 };
