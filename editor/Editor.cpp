@@ -1,5 +1,6 @@
 #include "include/Editor.h"
 
+#include "ParticleSpawner.h"
 #include "thirdparty/ImGuizmo.h"
 
 #include <algorithm>
@@ -145,6 +146,163 @@ void Terminate() {
     SDL_DestroyWindow(window);
     SDL_Quit();
 }
+
+class Tornado : public GameObject, public ImGuiDrawable {
+  private:
+    Mesh* tornadoMesh;
+    std::unique_ptr<ShaderProgram> tornadoShader;
+    std::unique_ptr<Material> tornadoMaterial;
+    SceneNode* tornadoNode;
+
+    Mesh* particlesMesh;
+    std::unique_ptr<ShaderProgram> particlesShader;
+    std::unique_ptr<Material> particlesBottomMaterial;
+    std::unique_ptr<Material> particlesTopMaterial;
+    SceneNode* particlesBottom;
+    SceneNode* particleTop;
+
+    float rotationSpeed = 10.0f;
+    float opacity = 0.7f;
+    float intensity = 5.5f;
+    glm::vec2 uvSpeed = {2.0f, 1.0f};
+
+  public:
+    Tornado() {
+        this->tornadoMesh = this->GetScene()->Resources()->Get<Mesh>(
+            "./res/models/tornado/tornado.obj");
+        this->tornadoShader.reset(
+            ShaderProgram::Build()
+                .WithVertexShader(GetScene()->Resources()->Get<VertexShader>(
+                    "./res/shaders/lit.vert"))
+                .WithPixelShader(GetScene()->Resources()->Get<PixelShader>(
+                    "./res/shaders/tornado.frag"))
+                .Link());
+        this->tornadoShader->SetCastsShadows(false);
+        this->tornadoShader->SetTransparent(true);
+        this->tornadoMaterial =
+            std::make_unique<Material>(this->tornadoShader.get());
+        this->tornadoMaterial->SetValue("uOpacity", this->opacity);
+        this->tornadoMaterial->SetValue("uSpeed", this->uvSpeed);
+        this->tornadoMaterial->SetValue("uIntensity", this->intensity);
+
+        this->tornadoMaterial->SetValue(
+            "uNoiseTexture", this->GetScene()->Resources()->Get<Texture2D>(
+                                 "./res/textures/noise/T_Noise_HU85k.png",
+                                 Texture::TechnicalMapXYZ));
+        this->tornadoMaterial->SetValue(
+            "uColorGradientTexture",
+            this->GetScene()->Resources()->Get<Texture2D>(
+                "./res/textures/inkpink-alpha.png", Texture::ColorTextureRGBA));
+        this->tornadoMaterial->SetValue(
+            "uSubtractionTexture",
+            this->GetScene()->Resources()->Get<Texture2D>(
+                "./res/textures/subtraction.png", Texture::TechnicalMapXYZ));
+
+        this->tornadoNode =
+            this->GetScene()->CreateNode(this->GetNode(), "Tornado");
+        this->tornadoNode->AddObject<MeshRenderer>(this->tornadoMesh,
+                                                   this->tornadoMaterial.get());
+
+        this->particlesBottom = this->GetScene()->CreateNode(
+            this->GetNode(), "Tornado Particles Bottom");
+        this->particlesMesh = this->GetScene()->Resources()->Get<Mesh>(
+            "./res/models/tornado/tornado_base.obj");
+        this->particlesShader.reset(
+            ShaderProgram::Build()
+                .WithVertexShader(
+                    this->GetScene()->Resources()->Get<VertexShader>(
+                        "./res/shaders/particles/particles.vert"))
+                .WithPixelShader(
+                    this->GetScene()->Resources()->Get<PixelShader>(
+                        "./res/shaders/particles/tornado_base.frag"))
+                .Link());
+        this->particlesShader->SetCastsShadows(false);
+        this->particlesShader->SetIgnoresDepthPrepass(true);
+        this->particlesShader->SetTransparent(true);
+
+        this->particlesBottomMaterial =
+            std::make_unique<Material>(this->particlesShader.get());
+        this->particlesTopMaterial =
+            std::make_unique<Material>(this->particlesShader.get());
+
+        this->particlesBottomMaterial->SetValue(
+            "colorTex", this->GetScene()->Resources()->Get<Texture2D>(
+                            "./res/textures/noise/T_FirePanningCyl45.png",
+                            Texture::TechnicalMapXYZ));
+
+        Texture2D* colorRampTex = this->GetScene()->Resources()->Get<Texture2D>(
+            "./res/textures/inkpink-32x.png", Texture::ColorTextureRGB);
+        this->particlesBottomMaterial->SetValue("colorRamp", colorRampTex);
+
+        ParticleSpawnerSettings particleSettings = {
+            .maxParticles = 8,
+            .emissionShapeExtents = glm::vec3(0.01f),
+
+            .minVelocity = {0.0f, 0.0f, 0.0f},
+            .maxVelocity = {0.0f, 0.2f, 0.0f},
+
+            .minInitialAngle = glm::radians(-180.0f),
+            .maxInitialAngle = glm::radians(180.0f),
+            .minAngularVelocity = -4.0f,
+            .maxAngularVelocity = 8.0f,
+            .rotateY = true,
+
+            .enableLifetime = true,
+            .minLifetime = 2.0f,
+            .maxLifetime = 3.0f,
+
+            .lifetimeFadeMode = FadeMode::Alpha,
+            .lifetimeFadeIn = {0.0f, 0.1f},
+            .lifetimeFadeOut = {0.9f, 1.0f},
+
+            .minScale = 1.5f,
+            .maxScale = 1.8f,
+
+            .wrapAround = false,
+            .continuous = true,
+            .useColorRamp = true,
+        };
+
+        this->particlesBottom->AddObject<ParticleSpawner>(
+            this->particlesMesh, std::move(particlesBottomMaterial),
+            particleSettings);
+
+        this->particleTop = this->GetScene()->CreateNode(
+            this->GetNode(), "Tornado Particles Top");
+        this->particlesTopMaterial->SetValue(
+            "colorTex", this->GetScene()->Resources()->Get<Texture2D>(
+                            "./res/textures/noise/T_FirePanningCyl45.png",
+                            Texture::TechnicalMapXYZ));
+        this->particlesTopMaterial->SetValue("colorRamp", colorRampTex);
+
+        particleSettings.minScale = 3.5f;
+        particleSettings.maxScale = 4.0f;
+        this->particleTop->AddObject<ParticleSpawner>(
+            this->particlesMesh, std::move(particlesTopMaterial),
+            particleSettings);
+        this->particleTop->LocalTransform().Position() = {0.0f, 4.8f, 0.0f};
+    }
+
+    void Update() {
+        glm::quat rotation = glm::angleAxis(glm::radians(this->rotationSpeed),
+                                            glm::vec3(0.0f, 1.0f, 0.0f));
+
+        this->tornadoNode->LocalTransform().Rotation() *= rotation;
+    }
+
+    void DrawImGui() {
+        ImGui::SliderFloat("Rotation Speed", &this->rotationSpeed, 0.0f, 50.0f);
+        if (ImGui::SliderFloat("Opacity", &this->opacity, 0.0f, 1.0f)) {
+            this->tornadoMaterial->SetValue("uOpacity", this->opacity);
+        }
+        if (ImGui::InputFloat2("UV Speed", &this->uvSpeed[0])) {
+            this->tornadoMaterial->SetValue("uSpeed", this->uvSpeed);
+        }
+        if (ImGui::SliderFloat("Intensity", &this->intensity, 0.0f, 10.0f)) {
+            this->tornadoMaterial->SetValue("uIntensity", this->intensity);
+        }
+    }
+};
 
 class Mover : public GameObject, public ImGuiDrawable {
   private:
@@ -605,6 +763,10 @@ void InitScene(Scene& mainScene) {
 
     mainScene.AddComponent<DebugInspector>();
     mainScene.AddComponent<AnimationSystem>();
+
+    SceneNode* tornadoNode = mainScene.CreateNode("Tornado Node");
+    tornadoNode->AddObject<Tornado>();
+    tornadoNode->GlobalTransform().Position() = {5.0f, 0.0f, 0.0f};
 }
 
 void DrawMainMenuBar(bool& shouldClose) {
