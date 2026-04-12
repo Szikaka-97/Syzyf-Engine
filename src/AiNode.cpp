@@ -503,7 +503,6 @@ void AiNode::SpawnProjectile(const glm::vec3& targetPos) {
 
     auto* body = projectileNode->AddObject<Physics::Body>(projectileSettings);
     
-    // Konwersja prędkości z JPH::Vec3 na glm::vec3
     JPH::Vec3 jphVel = JPH::Vec3(dir.x, dir.y, dir.z) * m_ProjectileSpeed;
     body->SetLinearVelocity(glm::vec3(jphVel.GetX(), jphVel.GetY(), jphVel.GetZ()));
     
