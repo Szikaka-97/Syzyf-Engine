@@ -25,15 +25,25 @@ private:
     float m_ChasePathUpdateTimer = 0.0f;
     float m_AttackCooldown;
     float m_AttackTimer;
-    float m_AttackRange;
     float m_ProjectileSpeed;
     Mesh* m_ProjectileMesh;
     Material* m_ProjectileMaterial; 
+    int m_hp;
 
 
     void Patrol();
     void Chase();
+    void AstarChase();
     void Attack();
+
+    void Flee();
+    void TakeDamage(int damage);
+    void Die();
+
+    void MoveInDirection(const glm::vec3& direction);
+    void StopMoving();
+
+
     void SpawnProjectile(const glm::vec3& targetPos);
 	void SearchWalkPoint();
     void RotateNode(glm::vec3 dir);

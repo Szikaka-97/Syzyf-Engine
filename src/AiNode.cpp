@@ -37,23 +37,23 @@
 #include <Jolt/Physics/Collision/Shape/ConvexHullShape.h>
 #include <Jolt/Physics/Collision/CollideShape.h>
 
-struct PathNode {
-	glm::vec3 position;
-	float gCost;  // koszt od startu
-	float hCost;  // heurystyka do celu
-	float fCost() const { return gCost + hCost; }
-	PathNode* parent;
-
-	bool operator>(const PathNode& other) const { return fCost() > other.fCost(); }
-};
-
-struct CompareVec3 {
-	bool operator()(const glm::vec3& a, const glm::vec3& b) const {
-		if (a.x != b.x) return a.x < b.x;
-		if (a.y != b.y) return a.y < b.y;
-		return a.z < b.z;
-	}
-};
+//struct PathNode {
+//	glm::vec3 position;
+//	float gCost;  // koszt od startu
+//	float hCost;  // heurystyka do celu
+//	float fCost() const { return gCost + hCost; }
+//	PathNode* parent;
+//
+//	bool operator>(const PathNode& other) const { return fCost() > other.fCost(); }
+//};
+//
+//struct CompareVec3 {
+//	bool operator()(const glm::vec3& a, const glm::vec3& b) const {
+//		if (a.x != b.x) return a.x < b.x;
+//		if (a.y != b.y) return a.y < b.y;
+//		return a.z < b.z;
+//	}
+//};
 
 AiNode::AiNode()
 	: m_Speed(5.0f)
@@ -70,6 +70,7 @@ AiNode::AiNode()
     , m_ProjectileSpeed(15.0f)
     , m_ProjectileMesh(nullptr)
     , m_ProjectileMaterial(nullptr)
+	, m_hp(100)
 {
 	patrolPoints.clear();
 	m_Surface = nullptr;
@@ -80,9 +81,6 @@ AiNode::AiNode()
 	}
 	walkPoint = glm::vec3(0.0f);
 	m_PatrolTimeout = 0.0f;
-
-
-
 
 	SetSurface(nullptr);
 }
@@ -135,36 +133,6 @@ void AiNode::Update() {
 	bool playerInAttackRange = canSeePlayer && dist < attackRange;
 
 	if (!canSeePlayer && !playerInAttackRange) {
-		//if (m_Surface) {
-		//	m_PathUpdateTimer += Time::Delta();
-		//	if (m_PathUpdateTimer > 0.5f || m_Path.empty()) {
-		//		m_Path = FindPath(transform, targetPos);
-		//		m_CurrentPathIndex = 0;
-		//		m_PathUpdateTimer = 0.0f;
-		//	}
-
-		//	if (!m_Path.empty() && m_CurrentPathIndex < m_Path.size()) {
-		//		glm::vec3 nextPoint = m_Path[m_CurrentPathIndex];
-		//		float distToNext = glm::distance(transform, nextPoint);
-		//		if (distToNext < 0.5f) {
-		//			m_CurrentPathIndex++;
-		//			if (m_CurrentPathIndex >= m_Path.size()) {
-		//				m_Path.clear();
-		//				m_CurrentPathIndex = 0;
-		//			}
-		//		}
-		//		else {
-		//			glm::vec3 dir = nextPoint - transform;
-		//			dir = glm::normalize(dir);
-		//			// ruch jak w Chase
-		//			glm::vec3 currentVel = m_Body->GetLinearVelocity();
-		//			glm::vec3 newVel = dir * m_Speed;
-		//			newVel.y = currentVel.y;
-		//			m_Body->SetLinearVelocity(newVel);
-		//			RotateNode(dir);
-		//		}
-		//	}
-		//}
 		Patrol();
 	}
 		else if (canSeePlayer && !playerInAttackRange) {
@@ -236,20 +204,10 @@ void AiNode::Update() {
 			}
 
 			if (distance > 0.5f) {
-				dir /= distance;
-
-				//gravity
-				glm::vec3 currentVel = m_Body->GetLinearVelocity();
-				glm::vec3 newVel = dir * m_Speed;
-				newVel.y = currentVel.y;
-				m_Body->SetLinearVelocity(newVel);
-
-				// only yaw rotation
-				RotateNode(dir);
+				 MoveInDirection(dir);
 			}
 			else {
-				glm::vec3 currentVel = m_Body->GetLinearVelocity();
-				m_Body->SetLinearVelocity(glm::vec3(0, currentVel.y, 0));
+				StopMoving();
 				walkPointSet = false;
 			}
 		}
@@ -416,7 +374,7 @@ void AiNode::Update() {
 		return neighbors;
 	}
 
-	void AiNode::Chase() {
+	void AiNode::AstarChase() {
 		if (!m_Surface || !m_TargetNode) return;
 
 		// Upewnij siê, ¿e pozycja AI jest aktualna
@@ -452,12 +410,7 @@ void AiNode::Update() {
 				}
 			}
 			else {
-				glm::vec3 dir = glm::normalize(nextPoint - transform);
-				glm::vec3 currentVel = m_Body->GetLinearVelocity();
-				glm::vec3 newVel = dir * m_Speed;
-				newVel.y = currentVel.y;
-				m_Body->SetLinearVelocity(newVel);
-				RotateNode(dir);
+				MoveInDirection(nextPoint - transform);
 			}
 		}
 		else {
@@ -465,6 +418,18 @@ void AiNode::Update() {
 			glm::vec3 currentVel = m_Body->GetLinearVelocity();
 			m_Body->SetLinearVelocity(glm::vec3(0, currentVel.y, 0));
 		}
+	}
+
+	void AiNode::Chase() {
+		glm::vec3 targetPos = m_TargetNode->GlobalTransform().Position();
+    glm::vec3 dir = targetPos - transform;
+    float distance = glm::length(dir);
+    if (distance > 0.1f) {
+       MoveInDirection(dir);
+    }
+    else {
+        StopMoving();
+    }
 	}
 
 	void AiNode::Attack() {
@@ -509,6 +474,52 @@ void AiNode::SpawnProjectile(const glm::vec3& targetPos) {
     body->SetRestitution(0.3f);
     body->SetFriction(0.5f);
     body->Awake();
+}
+
+void AiNode::TakeDamage(int damage) {
+	m_hp -= damage;
+	if (m_hp <= 0) {
+		Die();
+	}
+}
+
+void AiNode::Die() {
+	if (myNode) {
+        GetScene()->QueueDelete(myNode);
+        myNode = nullptr;
+    }
+}
+
+void AiNode::Flee() {
+    if (m_hp > 30) return;
+    glm::vec3 targetPos = m_TargetNode->GlobalTransform().Position();
+    glm::vec3 dirAway = transform - targetPos;
+    if (glm::length(dirAway) < 0.1f) {
+        StopMoving();
+        return;
+    }
+    dirAway = glm::normalize(dirAway);
+    glm::vec3 fleeTarget = transform + dirAway * 10.0f; 
+	///opt  AstarChase do ruchu w kierunku fleeTarget
+    MoveInDirection(dirAway);
+}
+
+void AiNode::MoveInDirection(const glm::vec3& direction) {
+    if (glm::length(direction) < 0.001f) {
+        StopMoving();
+        return;
+    }
+    glm::vec3 dir = glm::normalize(direction);
+    glm::vec3 currentVel = m_Body->GetLinearVelocity();
+    glm::vec3 newVel = dir * m_Speed;
+    newVel.y = currentVel.y;
+    m_Body->SetLinearVelocity(newVel);
+    RotateNode(dir);
+}
+
+void AiNode::StopMoving() {
+    glm::vec3 currentVel = m_Body->GetLinearVelocity();
+    m_Body->SetLinearVelocity(glm::vec3(0, currentVel.y, 0));
 }
 
 	void AiNode::RotateNode(glm::vec3 dir) {
