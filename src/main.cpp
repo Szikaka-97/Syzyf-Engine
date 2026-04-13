@@ -710,7 +710,7 @@ void InitScene(Scene* mainScene) {
 	w_schnozBody->SetFriction(0.5f);
 	w_schnozBody->SetLinearDamping(0.1f);
 	w_schnozBody->Awake();
-	//w_schnozBody->SetCollisionLayerAndMask({ 0 });
+	w_schnozBody->SetCollisionLayerAndMask({ 0 });
 
 	auto enemyAI = w_schnozNode->AddObject<AiNode>();
 	if (enemyAI) {
