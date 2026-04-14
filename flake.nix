@@ -36,7 +36,11 @@
           pkg-config
           gdb
           wayland-scanner
+          python3
 
+          cppcheck
+          include-what-you-use
+          glslang
           glslls
           clang-tools
         ];
@@ -52,3 +56,4 @@
       };
     };
 }
+
