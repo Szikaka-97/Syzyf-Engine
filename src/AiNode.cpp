@@ -3,12 +3,11 @@
 #include <Scene.h>
 #include <TimeSystem.h>
 #include <glm/gtc/quaternion.hpp>
-#include <glm/gtx/quaternion.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/constants.hpp>
 #include <Camera.h>
 #include <Graphics.h>
-#include <ImGui.h>
+#include <imgui.h>
 #include <random>
 #include <vector>
 #include <queue>
@@ -117,8 +116,7 @@ void AiNode::Update() {
 	if (dist < sightRange) {
 		if (dist > 0.001f){
 			dirToTarget /= dist;
-			glm::mat3 rotMat = glm::toMat3(m_Body->GetRotation());
-			glm::vec3 forward = rotMat * glm::vec3(0, 0, 1);
+			glm::vec3 forward = m_Body->GetRotation() * glm::vec3(0, 0, 1);
 			forward = glm::normalize(glm::vec3(forward.x, 0, forward.z));
 			glm::vec3 dirFlat = glm::normalize(glm::vec3(dirToTarget.x, 0, dirToTarget.z));
 			float dot = glm::dot(forward, dirFlat);
