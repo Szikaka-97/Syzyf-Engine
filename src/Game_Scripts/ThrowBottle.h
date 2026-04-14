@@ -11,20 +11,32 @@
 #include <glm/gtc/quaternion.hpp>
 #include <algorithm>
 #include <vector>
+#include <TimeSystem.h>
 
-class ThrowBottle : public GameObject, public Physics::ICollisionReceiver 
+class Bottle : public GameObject, public Physics::ICollisionReceiver {
+public:
+    std::function<void(SceneNode*)> onCollision;
+
+    void OnCollisionEnter(SceneNode* other) override {
+        if (onCollision) onCollision(other);
+    }
+    void OnCollisionExit(SceneNode* other) override {}
+};
+
+class ThrowBottle : public GameObject 
 {
 private:
     struct BottleInstance {
         SceneNode* node = nullptr;
         bool active = false;
         Physics::Body* body = nullptr;
-        glm::vec3 startPosition = glm::vec3(0.0f);
-        glm::vec3 targetPosition = glm::vec3(0.0f);
+       // glm::vec3 startPosition = glm::vec3(0.0f);
+        //glm::vec3 targetPosition = glm::vec3(0.0f);
 
-        float flightDuration = 0.8f;
-        float arcHeight = 3.0f;
+        //float flightDuration = 0.8f;
+      //  float arcHeight = 3.0f;
         float timer = 0.0f;
+        const float maxLifetime = 5.0f;
     };
 
     std::vector<BottleInstance> bottles;
@@ -69,6 +81,20 @@ private:
         bottle.timer = 0.0f;
     }
 
+    void HandleBottleCollision(int index, SceneNode* other) {
+        if (index < 0 || index >= bottles.size()) return;
+        auto& bottle = bottles[index];
+        if (!bottle.active) return;
+
+        if (other->GetName() == "Floor") {
+            DisableBottle(bottle);
+        }
+        else if (AiNode* ai = other->GetObject<AiNode>()) {
+            ai->TakeDamage(25);
+            DisableBottle(bottle);
+        }
+    }
+
 public:
     ThrowBottle() = default;
 
@@ -91,13 +117,14 @@ public:
     {
         CreatePoolIfNeeded();
 
-        for (auto& bottle : bottles) {
+        for (int i = 0; i < bottles.size(); ++i) {
+            auto& bottle = bottles[i];
             if (!bottle.active) {
                 bottle.active = true;
-                bottle.startPosition = startPos;
-                bottle.targetPosition = targetPos;
-                bottle.flightDuration = duration;
-                bottle.arcHeight = arc;
+                //bottle.startPosition = startPos;
+                //bottle.targetPosition = targetPos;
+               // bottle.flightDuration = duration;
+              //  bottle.arcHeight = arc;
                 bottle.timer = 0.0f;
 
                 bottle.node->SetEnabled(true);
@@ -124,42 +151,19 @@ public:
                 glm::vec3 velocity = horizontalVel + glm::vec3(0.0f, verticalVel, 0.0f);
 
                 bottle.body->SetLinearVelocity(velocity);
-                bottle.body->Awake();
-
+                //bottle.body->Awake();
+                auto* bottleComp = bottle.node->AddObject<Bottle>();
+                bottleComp->onCollision = [this, i](SceneNode* other) {
+                    HandleBottleCollision(i, other);
+                };
+                return;
               }
         }
     }
 
-    void OnCollisionExit(SceneNode* node) override {}
-
-    void OnCollisionEnter(SceneNode* other) {
-    if (!other) return;
-    AiNode* ai = other->GetObject<AiNode>();
-    if (ai) {
-        ai->TakeDamage(25);
-        for (auto& bottle : bottles) {
-                if (bottle.active && bottle.body) {
-                    DisableBottle(bottle);
-                    break;
-                }
-            }
-    }
-    if (other->GetName() == "Floor") {
-            for (auto& bottle : bottles) {
-                if (bottle.active && bottle.body) {
-                    DisableBottle(bottle);
-                    break;
-                }
-            }
-            return;
-        }
-    // zniszcz butelkê po uderzeniu
-}
-
-
     void Update() {
-        const float dt = 1.0f / 60.0f;
-
+        //const float dt = 1.0f / 60.0f;
+        const float dt = Time::Delta();
         for (auto& bottle : bottles) {
             if (!bottle.active || bottle.node == nullptr) {
                 continue;
@@ -167,7 +171,7 @@ public:
 
             bottle.timer += dt;
 
-            float t = std::clamp(bottle.timer / bottle.flightDuration, 0.0f, 1.0f);
+           /* float t = std::clamp(bottle.timer / bottle.flightDuration, 0.0f, 1.0f);
             glm::vec3 pos = glm::mix(bottle.startPosition, bottle.targetPosition, t);
 
             float arc = 4.0f * bottle.arcHeight * t * (1.0f - t);
@@ -181,6 +185,17 @@ public:
                 bottle.active = false;
                 bottle.node->SetEnabled(false);
                 bottle.node->GlobalTransform().Position() = hiddenPosition;
+            }*/
+            if (bottle.timer > bottle.maxLifetime) {
+                DisableBottle(bottle);
+                continue;
+            }
+            if (bottle.body) {
+                bottle.node->GlobalTransform().Position() = bottle.body->GetPosition();
+                bottle.node->GlobalTransform().Rotation() *= glm::angleAxis(glm::radians(360.0f * dt), glm::vec3(1,0,0));
+            }
+            if (bottle.node->GlobalTransform().Position().y < -5.0f) {
+                DisableBottle(bottle);
             }
         }
     }

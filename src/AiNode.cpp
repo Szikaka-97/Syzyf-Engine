@@ -18,6 +18,7 @@
 #include <limits>
 #include <functional>
 #include <map>
+#include <MeshRenderer.h>
 
 #include <Jolt/Jolt.h>
 #include <Jolt/Physics/Character/Character.h>
@@ -453,7 +454,7 @@ void AiNode::SpawnProjectile(const glm::vec3& targetPos) {
     glm::vec3 dir = glm::normalize(targetPos - startPos);
 
     auto* projectileNode = GetScene()->CreateNode("EnemyProjectile");
-    //
+    projectileNode->AddObject<MeshRenderer>(m_ProjectileMesh, m_ProjectileMaterial); 
     projectileNode->GlobalTransform().Position() = startPos;
     projectileNode->GlobalTransform().Scale() = glm::vec3(0.2f);
 
@@ -473,7 +474,7 @@ void AiNode::SpawnProjectile(const glm::vec3& targetPos) {
     
     body->SetRestitution(0.3f);
     body->SetFriction(0.5f);
-    body->Awake();
+   // body->Awake();
 }
 
 void AiNode::TakeDamage(int damage) {
