@@ -25,15 +25,15 @@ SceneNode::SceneNode(Scene* scene)
 }
 
 SceneNode::~SceneNode() {
-    int objectsCount = this->objects.size();
-    GameObject** objectsCopy =
-        (GameObject**)alloca(sizeof(GameObject*) * objectsCount);
+    // int objectsCount = this->objects.size();
+    // GameObject** objectsCopy =
+    //     (GameObject**)alloca(sizeof(GameObject*) * objectsCount);
 
-    std::copy(this->objects.begin(), this->objects.end(), objectsCopy);
+    // std::copy(this->objects.begin(), this->objects.end(), objectsCopy);
 
-    for (int i = 0; i < objectsCount; i++) {
-        delete objectsCopy[i];
-    }
+    // for (int i = 0; i < objectsCount; i++) {
+    //     delete objectsCopy[i];
+    // }
 
     this->SetParent(nullptr);
 
@@ -268,6 +268,8 @@ Scene::~Scene() {
 void Scene::DeleteObjectInternal(GameObject* obj) {
     SceneNode* node = obj->node;
 
+    spdlog::error("Deleting object on scene {:x}", (intptr_t) obj);
+
     this->messageTree.RemoveMessageReceiver(obj, node);
 
     for (auto* component : this->components) {
@@ -401,7 +403,12 @@ void Scene::DeleteNode(SceneNode* node) {
 
 void Scene::QueueDelete(SceneNode* node) {
     this->deletedNodesQueue.push(node);
+
     node->SetEnabled(false);
+
+    for (GameObject* obj : node->objects) {
+        delete obj;
+    }
 }
 void Scene::QueueDelete(GameObject* object) {
 	this->deletedReceiversQueue.push(object);
