@@ -23,6 +23,7 @@ extern "C" {
 #include <Scene.h>
 #include <TimeSystem.h>
 #include <Graphics.h>
+#include <TextRenderingSystem.h>
 
 const char* glsl_version = "#version 460";
 constexpr int32_t GL_VERSION_MAJOR = 4;
@@ -142,6 +143,8 @@ bool Engine::InitProgram() {
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
 	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+
+	TextRenderingSystem::Reset();
 
 	return true;
 }

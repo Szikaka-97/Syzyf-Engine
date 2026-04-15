@@ -1,6 +1,7 @@
 #include <Graphics.h>
 
 #include <glad/glad.h>
+#include <glm/common.hpp>
 #include <glm/geometric.hpp>
 #include <spdlog/spdlog.h>
 #include <glm/gtc/matrix_access.hpp>
@@ -20,8 +21,10 @@
 #include <TimeSystem.h>
 
 #include "Scene.h"
+#include "TextRenderer.h"
 #include "include/Framebuffer.h"
 #include "include/Shader.h"
+#include "include/TextRenderingSystem.h"
 
 #include <GLFW/glfw3.h>
 #include <utility>
@@ -1090,6 +1093,14 @@ void SceneGraphics::RenderAdditive(const ShaderGlobalUniforms& uniforms, const R
 	glDisable(GL_BLEND);
 }
 
+glm::vec3 rainbow(float x) {
+	float level = floor(x * 6.0);
+	float r = float(level <= 2.0) + float(level > 4.0) * 0.5;
+	float g = glm::max(1.0 - abs(level - 2.0) * 0.5, 0.0);
+	float b = (1.0 - (level - 4.0) * 0.5) * float(level >= 4.0);
+	return glm::vec3(r, g, b);
+}
+
 void SceneGraphics::RenderGizmos(const RenderParams& params, Framebuffer* target) {
 	RenderGizmos(this->currentUniforms, params, target);
 }
@@ -1159,6 +1170,58 @@ void SceneGraphics::RenderGizmos(const ShaderGlobalUniforms& uniforms, const Ren
 			glDrawElements(render.mesh->GetDrawMode(), render.mesh->GetVertexCount(), GL_UNSIGNED_INT, nullptr);
 		}
 
+		glUseProgram(TextRenderingSystem::textRenderingShader->GetHandle());
+		
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);  
+
+		glm::vec3 textColor = rainbow(glm::fract(Time::Current() / 3.0f));
+
+		glUniform3f(glGetUniformLocation(TextRenderingSystem::textRenderingShader->GetHandle(), "textColor"), textColor.x, textColor.y, textColor.z);
+		glm::mat4 projection = glm::ortho(0.0f, 1920.0f, 0.0f, 1080.0f);
+		glUniformMatrix4fv(glGetUniformLocation(TextRenderingSystem::textRenderingShader->GetHandle(), "projection"), 1, 0, &projection[0][0]);
+
+		for (TextRenderer* text : GetScene()->FindObjectsOfType<TextRenderer>()) {
+			glActiveTexture(GL_TEXTURE0);
+			glBindVertexArray(TextRenderingSystem::textMeshVAO);
+			
+			float x = text->LocalTransform().Position().x;
+			float y = text->LocalTransform().Position().y;
+			
+			for (char c : text->GetText()) {
+				TextRenderingSystem::Character ch = text->GetFont()->characters[c];
+
+
+				float xpos = x + ch.bearing.x * text->GetSize();
+				float ypos = y - (ch.size.y - ch.bearing.y) * text->GetSize();
+
+				float w = ch.size.x * text->GetSize();
+				float h = ch.size.y * text->GetSize();
+
+				float vertices[6][4] = {
+					{ xpos,     ypos + h,   0.0f, 0.0f },            
+					{ xpos,     ypos,       0.0f, 1.0f },
+					{ xpos + w, ypos,       1.0f, 1.0f },
+
+					{ xpos,     ypos + h,   0.0f, 0.0f },
+					{ xpos + w, ypos,       1.0f, 1.0f },
+					{ xpos + w, ypos + h,   1.0f, 0.0f }           
+				};
+
+				glBindTexture(GL_TEXTURE_2D, ch.textureHandle);
+
+				glBindBuffer(GL_ARRAY_BUFFER, TextRenderingSystem::textMeshVBO);
+				glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices); 
+				glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+				glDrawArrays(GL_TRIANGLES, 0, 6);
+
+				x += (ch.advance >> 6) * text->GetSize();
+			}
+		}
+
+		glDisable(GL_BLEND);
+		
 		if (render.ignoreDepth) {
 			glEnable(GL_DEPTH_TEST);
 		}
@@ -1282,12 +1345,6 @@ void SceneGraphics::RenderCamera(Camera* camera, Viewport* renderTarget, const R
 		RenderOpaque(activeParams, renderTarget->GetFramebuffer());
 	}
 
-	if ((params.pass & RenderPassType::Gizmos) == RenderPassType::Gizmos) {
-		activeParams.pass = RenderPassType(RenderPassType::Gizmos);
-	
-		RenderGizmos(activeParams, renderTarget->GetFramebuffer());
-	}
-
 	if (camera == this->mainCamera && (params.pass & RenderPassType::Transparent) == RenderPassType::Transparent) {
 		activeParams.pass = RenderPassType(RenderPassType::Transparent);
 	
@@ -1301,6 +1358,12 @@ void SceneGraphics::RenderCamera(Camera* camera, Viewport* renderTarget, const R
 		activeParams.pass = RenderPassType(RenderPassType::Additive);
 	
 		RenderAdditive(activeParams, renderTarget->GetFramebuffer());
+	}
+
+	if ((params.pass & RenderPassType::Gizmos) == RenderPassType::Gizmos) {
+		activeParams.pass = RenderPassType(RenderPassType::Gizmos);
+	
+		RenderGizmos(activeParams, renderTarget->GetFramebuffer());
 	}
 
 	if ((params.pass & RenderPassType::PostProcessing) == RenderPassType::PostProcessing) {

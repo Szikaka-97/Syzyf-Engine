@@ -1,4 +1,5 @@
 #include "GameObject.h"
+#include "TextRenderer.h"
 #include "imgui.h"
 
 #include <Formatters.h>
@@ -375,6 +376,13 @@ void InitScene(Scene* mainScene) {
 	kotNode->AddObject<MovableBar>();
 	kotNode->LocalTransform().Position() = glm::vec3(-2, 1, 6);
 	kotNode->LocalTransform().Rotation() = glm::angleAxis(glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+
+	SceneNode* textNode = mainScene->CreateNode(cameraNode, "Text");
+	textNode->LocalTransform().Position() = glm::vec2(1400, 500);
+	auto textThing = textNode->AddObject<TextRenderer>();
+	textThing->SetText("To jest tekst ktory wyswietla sie pod kotem");
+	textThing->SetFont(TextRenderingSystem::LoadFont("./res/fonts/COMIC.TTF"));
+	textThing->SetSize(0.5);
 
 	cameraNode->AddObject<Bloom>();
 	cameraNode->AddObject<Tonemapper>()->SetOperator(Tonemapper::TonemapperOperator::GranTurismo);
