@@ -1,15 +1,16 @@
 #include "panels/GraphPanel.h"
+#include "Application.h"
 
 #include <Scene.h>
 
 namespace Editor {
-void GraphPanel::Draw(Scene* selectedScene, SceneNode* selectedNode) {
+void GraphPanel::Draw(Context& context) {
     ImGui::Begin("Graph");
 
-    if (selectedScene == nullptr)
+    if (context.selectedScene == nullptr)
         return;
 
-    SceneNode* root = selectedScene->GetRootNode();
+    SceneNode* root = context.selectedScene->GetRootNode();
 
     if (root != nullptr) {
         ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, 10.0f);
@@ -25,7 +26,7 @@ void GraphPanel::Draw(Scene* selectedScene, SceneNode* selectedNode) {
             ImGui::TableSetupColumn("Visibility",
                                     ImGuiTableColumnFlags_WidthFixed, 30.0f);
 
-            this->DrawGraphNode(*root, selectedNode);
+            this->DrawGraphNode(context, *root);
 
             ImGui::EndTable();
         }
@@ -35,7 +36,7 @@ void GraphPanel::Draw(Scene* selectedScene, SceneNode* selectedNode) {
     ImGui::End();
 }
 
-void GraphPanel::DrawGraphNode(SceneNode& node, SceneNode* selectedNode) {
+void GraphPanel::DrawGraphNode(Context& context, SceneNode& node) {
     ImGui::PushID(node.GetID());
 
     ImGui::TableNextRow();
@@ -55,7 +56,7 @@ void GraphPanel::DrawGraphNode(SceneNode& node, SceneNode* selectedNode) {
         flags |= ImGuiTreeNodeFlags_DefaultOpen;
     }
 
-    if (selectedNode == &node) {
+    if (context.selectedNode == &node) {
         flags |= ImGuiTreeNodeFlags_Selected;
     }
 
@@ -67,7 +68,7 @@ void GraphPanel::DrawGraphNode(SceneNode& node, SceneNode* selectedNode) {
                                       "%s", treeHeader.c_str());
 
     if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen()) {
-        selectedNode = &node;
+        context.selectedNode = &node;
     }
 
     ImGui::TableNextColumn();
@@ -92,7 +93,7 @@ void GraphPanel::DrawGraphNode(SceneNode& node, SceneNode* selectedNode) {
     if (nodeOpen) {
         if (!isLeaf) {
             for (SceneNode* child : node.GetChildren()) {
-                DrawGraphNode(*child, selectedNode);
+                DrawGraphNode(context, *child);
             }
         }
         ImGui::TreePop();

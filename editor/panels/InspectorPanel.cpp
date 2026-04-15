@@ -1,4 +1,5 @@
 #include "panels/InspectorPanel.h"
+#include "Application.h"
 
 #include <Debug.h>
 #include <Scene.h>
@@ -11,20 +12,20 @@
 #include <string>
 
 namespace Editor {
-void InspectorPanel::Draw(SceneNode* selectedNode) {
+void InspectorPanel::Draw(Context& context) {
     ImGui::Begin("Inspector");
-    if (selectedNode != nullptr) {
-        std::string name = selectedNode->GetName();
+    if (context.selectedNode != nullptr) {
+        std::string name = context.selectedNode->GetName();
         if (name.empty()) {
             ImGui::TextUnformatted(
-                std::to_string(selectedNode->GetID()).c_str());
+                std::to_string(context.selectedNode->GetID()).c_str());
         } else {
             ImGui::TextUnformatted(name.c_str());
         }
 
-        bool nodeEnabled = selectedNode->IsEnabled();
+        bool nodeEnabled = context.selectedNode->IsEnabled();
         ImGui::Checkbox("Enabled", &nodeEnabled);
-        selectedNode->SetEnabled(nodeEnabled);
+        context.selectedNode->SetEnabled(nodeEnabled);
 
         if (ImGui::TreeNode("Layer")) {
             const float size = ImGui::CalcTextSize("00").x;
@@ -40,9 +41,10 @@ void InspectorPanel::Draw(SceneNode* selectedNode) {
                     ImGui::PushID(layer);
 
                     if (ImGui::Selectable(std::to_string(layer).c_str(),
-                                          selectedNode->GetLayer() == layer, 0,
-                                          ImVec2(size, size))) {
-                        selectedNode->SetLayer(layer);
+                                          context.selectedNode->GetLayer() ==
+                                              layer,
+                                          0, ImVec2(size, size))) {
+                        context.selectedNode->SetLayer(layer);
                     }
 
                     ImGui::PopID();
@@ -55,7 +57,8 @@ void InspectorPanel::Draw(SceneNode* selectedNode) {
         if (ImGui::TreeNode("Transform")) {
             ImGui::Text("Position");
 
-            glm::vec3 position = selectedNode->GlobalTransform().Position();
+            glm::vec3 position =
+                context.selectedNode->GlobalTransform().Position();
 
             ImGui::InputFloat3("##Position", &position[0]);
 
@@ -65,23 +68,23 @@ void InspectorPanel::Draw(SceneNode* selectedNode) {
 
             position += positionDelta;
 
-            selectedNode->GlobalTransform().Position() = position;
+            context.selectedNode->GlobalTransform().Position() = position;
 
             ImGui::Text("Rotation");
 
             glm::vec3 rotationEuler = glm::degrees(glm::eulerAngles(
-                selectedNode->GlobalTransform().Rotation().Value()));
+                context.selectedNode->GlobalTransform().Rotation().Value()));
 
             ImGui::InputFloat3("##Rotation", &rotationEuler[0]);
 
-            selectedNode->GlobalTransform().Rotation() =
+            context.selectedNode->GlobalTransform().Rotation() =
                 glm::quat(glm::radians(rotationEuler));
 
             glm::vec3 rotationDelta = glm::zero<glm::vec3>();
 
             ImGui::SliderFloat3("##RotationDelta", &rotationDelta[0], -1, 1);
 
-            selectedNode->GlobalTransform().Rotation() *=
+            context.selectedNode->GlobalTransform().Rotation() *=
                 glm::angleAxis(glm::radians(rotationDelta.x),
                                glm::vec3(1, 0, 0)) *
                 glm::angleAxis(glm::radians(rotationDelta.y),
@@ -91,7 +94,7 @@ void InspectorPanel::Draw(SceneNode* selectedNode) {
 
             ImGui::Text("Scale");
 
-            glm::vec3 scale = selectedNode->GlobalTransform().Scale();
+            glm::vec3 scale = context.selectedNode->GlobalTransform().Scale();
 
             ImGui::InputFloat3("##Scale", &scale[0]);
 
@@ -111,13 +114,13 @@ void InspectorPanel::Draw(SceneNode* selectedNode) {
                 scale.z = 0.0001;
             }
 
-            selectedNode->GlobalTransform().Scale() = scale;
+            context.selectedNode->GlobalTransform().Scale() = scale;
 
             ImGui::TreePop();
         }
 
         AnimationComponent* animationComponent =
-            selectedNode->GetObject<AnimationComponent>();
+            context.selectedNode->GetObject<AnimationComponent>();
         if (animationComponent != nullptr) {
             if (ImGui::TreeNode("Animation")) {
                 for (auto& animation : animationComponent->animations) {
@@ -141,7 +144,7 @@ void InspectorPanel::Draw(SceneNode* selectedNode) {
         }
 
         int index = 0;
-        for (GameObject* obj : selectedNode->AttachedObjects()) {
+        for (GameObject* obj : context.selectedNode->AttachedObjects()) {
             ImGui::PushID(obj->GetID());
             if (ImGui::TreeNode(
                     std::format("{}: {}", index, obj->GetName()).c_str())) {

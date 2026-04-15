@@ -3,8 +3,10 @@
 class SceneNode;
 
 namespace Editor {
+class Context;
+
 class InspectorPanel {
   public:
-    void Draw(SceneNode* selectedNode);
+    void Draw(Context& context);
 };
 } // namespace Editor

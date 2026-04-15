@@ -135,9 +135,8 @@ void Application::MainLoop() {
         ImGui::DockSpaceOverViewport(ImGui::GetMainViewport()->ID);
 
         this->mainMenuBar.Draw(shouldClose);
-        this->graphPanel.Draw(this->context.selectedScene,
-                              this->context.selectedNode);
-        this->inspectorPanel.Draw(this->context.selectedNode);
+        this->graphPanel.Draw(this->context);
+        this->inspectorPanel.Draw(this->context);
         this->filesPanel.Draw();
         this->sceneViewPanel.Draw(this->context);
 

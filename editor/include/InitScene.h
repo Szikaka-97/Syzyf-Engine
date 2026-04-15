@@ -284,7 +284,7 @@ class Mover : public GameObject, public ImGuiDrawable {
     }
 };
 
-inline void InitScene(Scene& mainScene, Camera* mainCamera) {
+inline void InitScene(Scene& mainScene, Camera*& mainCamera) {
     mainScene.AddComponent<Physics::System>();
     mainScene.AddComponent<Physics::DebugRenderer>();
 

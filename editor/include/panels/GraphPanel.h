@@ -6,11 +6,13 @@ class Scene;
 class SceneNode;
 
 namespace Editor {
+class Context;
+
 class GraphPanel {
   public:
-    void Draw(Scene* selectedScene, SceneNode* selectedNode);
+    void Draw(Context& context);
 
   private:
-    void DrawGraphNode(SceneNode& node, SceneNode* selectedNode);
+    void DrawGraphNode(Context& context, SceneNode& node);
 };
 } // namespace Editor
