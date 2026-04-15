@@ -1,13 +1,14 @@
-#include "include/Editor.h"
-#include <Scene.h>
+#include "include/Application.h"
 
 int main(int, char**) {
-    if (!Editor::Setup()) {
+    Editor::Application app = Editor::Application();
+
+    if (!app.Setup()) {
         return -1;
     }
 
-    Editor::MainLoop();
-    Editor::Terminate();
+    app.MainLoop();
+    app.Terminate();
 
     return 0;
 }
