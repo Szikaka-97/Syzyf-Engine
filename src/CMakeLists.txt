@@ -39,6 +39,7 @@ target_link_libraries(${PROJECT_NAME} imgui)
 target_link_libraries(${PROJECT_NAME} spdlog)
 target_link_libraries(${PROJECT_NAME} fastgltf)
 target_link_libraries(${PROJECT_NAME} glm::glm)
+target_link_libraries(${PROJECT_NAME} nlohmann_json::nlohmann_json)
 target_link_libraries(${PROJECT_NAME} Jolt)
 
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD 

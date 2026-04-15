@@ -83,9 +83,11 @@ bool Application::InitImGui() {
         }
     }
 
-    // Add a toggle, add a custom
-    // ImGui::StyleColorsDark();
-    ImGui::StyleColorsLight();
+    if (this->settings.darkThemeEnabled) {
+        ImGui::StyleColorsDark();
+    } else {
+        ImGui::StyleColorsLight();
+    }
 
     ImGui_ImplSDL3_InitForOpenGL(window, glContext);
     ImGui_ImplOpenGL3_Init(GLSL_VERSION);
@@ -93,7 +95,11 @@ bool Application::InitImGui() {
     return true;
 }
 
-bool Application::Setup() { return InitProgram() && InitImGui(); }
+bool Application::Setup() {
+    this->settings.Load();
+
+    return InitProgram() && InitImGui();
+}
 
 void Application::Terminate() {
     ImGui::DestroyPlatformWindows();
@@ -134,7 +140,7 @@ void Application::MainLoop() {
 
         ImGui::DockSpaceOverViewport(ImGui::GetMainViewport()->ID);
 
-        this->mainMenuBar.Draw(shouldClose);
+        this->mainMenuBar.Draw(shouldClose, this->settings);
         this->graphPanel.Draw(this->context);
         this->inspectorPanel.Draw(this->context);
         this->filesPanel.Draw();

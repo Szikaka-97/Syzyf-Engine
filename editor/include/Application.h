@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Settings.h"
 #include "panels/FilesPanel.h"
 #include "panels/GraphPanel.h"
 #include "panels/InspectorPanel.h"
@@ -30,6 +31,7 @@ class Application {
     SDL_Window* window = nullptr;
     SDL_GLContext glContext = nullptr;
 
+    Settings settings;
     Context context;
 
     FilesPanel filesPanel;
