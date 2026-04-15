@@ -1,4 +1,5 @@
 #include "include/Application.h"
+#include "EditorBodySystem.h"
 #include "InitScene.h"
 
 #include "thirdparty/ImViewGuizmo.h"
@@ -113,12 +114,26 @@ void Application::Terminate() {
     SDL_Quit();
 }
 
+void DrawSystemDebug(Context& context) {
+    ImGui::Begin("Systems");
+
+    if (context.selectedScene) {
+        if (Physics::System* physicsSystem =
+                context.selectedScene->GetComponent<Physics::System>()) {
+            physicsSystem->DrawImGui();
+        }
+    }
+
+    ImGui::End();
+}
+
 void Application::MainLoop() {
     // temporary
     this->context.selectedScene = Scene::CreateStandaloneScene();
     InitScene(*this->context.selectedScene, this->context.mainCamera);
     this->context.selectedScene->GetGraphics()->UpdateScreenResolution(
         glm::vec2(1024.0f, 576.0f));
+    this->context.selectedScene->AddComponent<EditorBodySystem>();
 
     bool shouldClose = false;
     while (!shouldClose) {
@@ -145,6 +160,7 @@ void Application::MainLoop() {
         this->inspectorPanel.Draw(this->context);
         this->filesPanel.Draw();
         this->sceneViewPanel.Draw(this->context);
+        DrawSystemDebug(this->context);
 
         ImGui::Render();
         ImGuiIO& io = ImGui::GetIO();

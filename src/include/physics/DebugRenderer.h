@@ -3,6 +3,8 @@
 #include "BoundingBox.h"
 #include "SceneComponent.h"
 #include <Jolt/Jolt.h>
+#include "physics/System.h"
+#include <Jolt/Physics/Body/BodyFilter.h>
 #include <Jolt/Renderer/DebugRendererSimple.h>
 #include <glm/geometric.hpp>
 #include <vector>
@@ -13,8 +15,17 @@
 class ShaderProgram;
 
 namespace Physics {
+class IgnoreEditorLayerFilter : public JPH::BodyDrawFilter {
+    public:
+        virtual bool ShouldDraw(const JPH::Body& inBody) const override {
+            return inBody.GetObjectLayer() != Layers::EDITOR;
+        }
+    };
+
 class DebugRenderer : public JPH::DebugRendererSimple, public SceneComponent
 {
+public:
+    IgnoreEditorLayerFilter filter;
 public:
   DebugRenderer(Scene *scene);
   virtual ~DebugRenderer() = default;

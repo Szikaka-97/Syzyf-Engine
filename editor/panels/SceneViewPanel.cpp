@@ -81,6 +81,15 @@ void SceneViewPanel::Draw(Context& context) {
 
             if (ImGuizmo::IsUsing()) {
                 context.selectedNode->GlobalTransform() = nodeTransform;
+
+                if (SceneNode* parent = context.selectedNode->GetParent()) {
+                    glm::mat4 parentGlobal = parent->GlobalTransform().Value();
+                    glm::mat4 newLocal =
+                        glm::inverse(parentGlobal) * nodeTransform;
+                    context.selectedNode->LocalTransform() = newLocal;
+                } else {
+                    context.selectedNode->LocalTransform() = nodeTransform;
+                }
             }
         }
 
@@ -174,7 +183,9 @@ void SceneViewPanel::HandleMousePicking(Context& context, float resX,
                     float maxDistance = 1000.0f;
                     glm::vec3 ray = rayDirection * maxDistance;
 
-                    SceneNode* hitNode = physicsSystem->CastRay(rayOrigin, ray);
+                    SceneNode* hitNode = physicsSystem->CastRay(
+                        rayOrigin, ray, JPH::BroadPhaseLayerFilter(),
+                        this->filter);
                     if (hitNode != nullptr) {
                         context.selectedNode = hitNode;
                         hitSomething = true;
@@ -182,8 +193,6 @@ void SceneViewPanel::HandleMousePicking(Context& context, float resX,
                 }
 
                 if (!hitSomething) {
-                    // Add Bounds fallback
-
                     context.selectedNode = nullptr;
                 }
             }

@@ -46,6 +46,9 @@ namespace Physics {
   class ObjectLayerPairFilterImpl : public JPH::ObjectLayerPairFilter {
   public:
     virtual bool ShouldCollide(JPH::ObjectLayer inObject1, JPH::ObjectLayer inObject2) const override {
+      if (inObject1 == Layers::EDITOR || inObject2 == Layers::EDITOR)
+          return false;
+
       switch (inObject1) {
       case Layers::NON_MOVING:
         return inObject2 == Layers::MOVING; // Non moving only collides with moving
@@ -66,6 +69,7 @@ namespace Physics {
       // Create a mapping table from object to broad phase layer
       mObjectToBroadPhase[Layers::NON_MOVING] = BroadPhaseLayers::NON_MOVING;
       mObjectToBroadPhase[Layers::MOVING] = BroadPhaseLayers::MOVING;
+      mObjectToBroadPhase[Layers::EDITOR] = BroadPhaseLayers::EDITOR;
     }
 
     virtual unsigned int GetNumBroadPhaseLayers() const override {
@@ -100,6 +104,8 @@ namespace Physics {
         return inLayer2 == BroadPhaseLayers::MOVING;
       case Layers::MOVING:
         return true;
+      case Layers::EDITOR:
+        return false;
       default:
         JPH_ASSERT(false);
         return false;
@@ -261,7 +267,7 @@ namespace Physics {
         settings.mDrawCenterOfMassTransform = true;
         settings.mDrawShapeWireframe = true;
 
-        physicsSystem->DrawBodies(settings, debugRenderer);
+        physicsSystem->DrawBodies(settings, debugRenderer, &debugRenderer->filter);
         physicsSystem->DrawConstraints(debugRenderer);
       }
     }
@@ -335,7 +341,7 @@ namespace Physics {
 
         Body* object = reinterpret_cast<Body*>(body.GetUserData());
         
-      if (object) {
+      if (object && body.GetObjectLayer() != Layers::EDITOR) {
         const JPH::RVec3& position = body.GetPosition();
         const JPH::Quat& rotation = body.GetRotation();
 

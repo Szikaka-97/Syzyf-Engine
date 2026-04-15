@@ -26,6 +26,8 @@
 
 #include <imgui.h>
 
+class EditorCameraTag : public GameObject {};
+
 class Tornado : public GameObject, public ImGuiDrawable {
   private:
     Mesh* tornadoMesh;
@@ -161,13 +163,17 @@ class Tornado : public GameObject, public ImGuiDrawable {
             particleSettings);
         this->particleTop->LocalTransform().Position() = {0.0f, 4.8f, 0.0f};
     }
-
-    void Update() {
-        glm::quat rotation = glm::angleAxis(glm::radians(this->rotationSpeed),
-                                            glm::vec3(0.0f, 1.0f, 0.0f));
-
-        this->tornadoNode->LocalTransform().Rotation() *= rotation;
-    }
+    //
+    // void Update() {
+    //     glm::quat rotation =
+    //     glm::angleAxis(glm::radians(this->rotationSpeed),
+    //                                         glm::vec3(0.0f, 1.0f, 0.0f));
+    //     glm::quat newRotation =
+    //         this->tornadoNode->LocalTransform().Rotation() * rotation;
+    //
+    //     this->tornadoNode->LocalTransform().Rotation() =
+    //         glm::normalize(newRotation);
+    // }
 
     void DrawImGui() {
         ImGui::SliderFloat("Rotation Speed", &this->rotationSpeed, 0.0f, 50.0f);
@@ -471,6 +477,7 @@ inline void InitScene(Scene& mainScene, Camera*& mainCamera) {
     mainCamera = playerNode->AddObject<Camera>(
         Camera::Perspective(40.0f, 16.0f / 9.0f, 0.5f, 200.0f));
     mainCamera->GlobalTransform().Position() = glm::vec3(2.0f, 2.0f, -10.0f);
+    mainCamera->AddObject<EditorCameraTag>();
 
     // auto* floorMesh =
     // mainScene->Resources()->Get<Mesh>("./res/models/floor/floor.obj", true);
