@@ -28,7 +28,7 @@ void TextRenderer::SetSize(float newSize) {
 
 void TextRenderer::DrawImGui() {
 	char buf[256];
-	strncpy_s(buf, this->text.c_str(), 256);
+	strncpy(buf, this->text.c_str(), 256);
 
 	ImGui::InputText("Text", buf, 255);
 
