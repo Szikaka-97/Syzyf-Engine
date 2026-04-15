@@ -21,7 +21,7 @@ public:
 
 namespace Debug {
 	template<typename T>
-	bool Property(T& property, const std::string& name) = delete;
+	bool Property(T& property, const std::string& name);
 	
 	template<>
 	bool Property(float& property, const std::string& name);
@@ -55,3 +55,10 @@ namespace Debug {
 	template<>
 	bool Property(glm::mat4& property, const std::string& name);
 };
+
+template<typename T>
+bool Debug::Property(T &property, const std::string &name) {
+	static_assert(false);
+
+	return false;
+}

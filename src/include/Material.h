@@ -69,7 +69,7 @@ public:
 };
 
 class Material {
-	friend bool Debug::Property<Material>(Material&, const std::string&);
+	friend bool Debug::Property(Material&, const std::string&);
 private:
 	const ShaderProgram* shader;
 	ShaderVariableStorage shaderVariables;
@@ -508,5 +508,5 @@ template<> inline bool IsUniformOfRightType<Cubemap>(UniformSpec::UniformType ty
 
 namespace Debug {
 	template<>
-	bool Property<Material>(Material& mat, const std::string &name);
+	bool Property(Material& mat, const std::string& name);
 }

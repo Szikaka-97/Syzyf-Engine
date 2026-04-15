@@ -79,7 +79,11 @@ static void APIENTRY glDebugOutput(
 			if (source != GL_DEBUG_SOURCE_SHADER_COMPILER) { // Shader errors handled separately
 				spdlog::error("GL {} {}: {} ({})", sourceString, typeString, message, id);
 			
+#ifdef _MSC_VER
+				__asm("INT3");
+#else
 				asm("INT3");
+#endif
 
 				throw 1;
 			}
