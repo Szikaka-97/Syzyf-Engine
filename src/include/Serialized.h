@@ -14,6 +14,7 @@
 using json = nlohmann::json;
 
 class GameObject;
+class SceneNode;
 
 class Mesh;
 
@@ -27,6 +28,7 @@ json Serialize(const T* ptr);
 
 void DeserializeInPlace(volatile void* ptr, const json& json_node);
 
+GameObject* DeserializeGameObject(SceneNode* node, nlohmann::json json_node);
 nlohmann::json SerializeGameObject(GameObject* obj);
 size_t GetObjectSize(const std::string& className);
 
@@ -51,7 +53,7 @@ namespace Serialization {
 	template<>
 	glm::mat3 Deserialize(const json& json_node);
 	template<>
-glm::mat4 Deserialize(const json& json_node);
+	glm::mat4 Deserialize(const json& json_node);
 
 	json Serialize(const glm::vec2& v);
 	json Serialize(const glm::vec3& v);
@@ -64,3 +66,8 @@ glm::mat4 Deserialize(const json& json_node);
 	json Serialize(const glm::mat3& v);
 	json Serialize(const glm::mat4& v);
 };
+
+// template<class T>
+// T Serialization::Deserialize(const json& json_node) {
+
+// }

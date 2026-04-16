@@ -2,21 +2,23 @@
 
 #include <glm/glm.hpp>
 
+#include <Serialized.h>
+
 struct Plane {
-	glm::vec3 normal;
-	float distance;
+	serialized glm::vec3 normal;
+	serialized float distance;
 
 	Plane() = default;
 	Plane(const glm::vec3& normal, float distance);
 };
 
 struct Frustum {
-	Plane top;
-	Plane bottom;
-	Plane left;
-	Plane right;
-	Plane nearPlane;
-	Plane farPlane;
+	serialized Plane top;
+	serialized Plane bottom;
+	serialized Plane left;
+	serialized Plane right;
+	serialized Plane nearPlane;
+	serialized Plane farPlane;
 
 	Frustum() = default;
 	Frustum(const Plane& top,

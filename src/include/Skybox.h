@@ -9,10 +9,11 @@
 class Skybox : public GameObject {
 private:
 	static Mesh* skyMesh;
-	Material* skyMaterial;
+	serialized Material* skyMaterial;
 
 	static Skybox* currentSkybox;
 public:
+	Skybox();
 	Skybox(Material* skyMaterial);
 
 	Material* GetSkyMaterial();

@@ -37,14 +37,15 @@ public:
 		Orthographic
 	};
 private:
-	CameraType type;
+	serialized CameraType type;
 
 	serialized Perspective perspectiveData;
 	serialized Orthographic orthoData;
 	Viewport* renderTarget;
-	LayerMask layerMask;
-	int priority;
+	serialized LayerMask layerMask;
+	serialized int priority;
 public:
+	Camera();
 	Camera(Perspective perspectiveData);
 	Camera(Orthographic orthoData);
 	virtual ~Camera();

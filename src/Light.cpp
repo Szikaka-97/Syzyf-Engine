@@ -39,6 +39,18 @@ intensity(intensity) { }
 
 Light::~Light() { }
 
+Light::Light():
+type(Light::LightType::Point),
+dirty(true),
+color(glm::vec3(1, 1, 1)),
+range(1),
+spotlightAngle(0),
+intensity(1),
+linearAttenuation(1),
+quadraticAttenuation(1),
+shadowCasting(false),
+savedTransform(GlobalTransform()) { }
+
 Light::Light(Light::PointLight lightInfo):
 type(Light::LightType::Point),
 dirty(true),

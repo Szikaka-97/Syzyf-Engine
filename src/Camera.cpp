@@ -25,6 +25,13 @@ right(-viewportSize.x / 2.0f),
 top(viewportSize.y / 2.0f),
 bottom(-viewportSize.y / 2.0f) { }
 
+Camera::Camera():
+type(CameraType::Perspective),
+perspectiveData(Camera::Perspective()),
+orthoData(),
+layerMask(LayerMask::All),
+priority(0) { }
+
 Camera::Camera(Perspective perspectiveData):
 type(CameraType::Perspective),
 perspectiveData(perspectiveData),

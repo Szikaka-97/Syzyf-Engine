@@ -1245,7 +1245,9 @@ void SceneGraphics::RenderCamera(Camera* camera, const RenderParams& params) {
 }
 
 void SceneGraphics::RenderCamera(Camera* camera, Viewport* renderTarget, const RenderParams& params) {
-	assert(camera != nullptr);
+	if (camera == nullptr) {
+		return;
+	}
 
 	if (renderTarget == nullptr) {
 		renderTarget = camera->GetRenderTarget();

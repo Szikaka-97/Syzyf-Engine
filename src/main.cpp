@@ -1,4 +1,5 @@
 #include "SerializationDecls.h"
+#include "Serialized.h"
 #include "imgui.h"
 #include <fstream>
 
@@ -292,13 +293,13 @@ void InitScene(Scene* mainScene) {
 
 	auto starsAttachmentNode = mainScene->CreateNode("Stars Scene Attachment");
 	
-	auto starsScene = new Scene();
+	// auto starsScene = new Scene();
 
-	auto starsNode = starsScene->CreateNode("Stars");
-	starsNode->AddObject<Stars>(1000);
-	starsNode->GlobalTransform().Position() = {-15.0f, 5.5f, -105.0f};
+	// auto starsNode = starsScene->CreateNode("Stars");
+	// starsNode->AddObject<Stars>(1000);
+	// starsNode->GlobalTransform().Position() = {-15.0f, 5.5f, -105.0f};
 
-	starsAttachmentNode->AttachScene(starsScene);
+	// starsAttachmentNode->AttachScene(starsScene);
 
 	SceneNode* tvNode = mainScene->CreateNode("TV");
 	tvNode->LocalTransform().Scale() = glm::vec3(1.5, 1.5, 1.5);
@@ -336,7 +337,7 @@ void InitScene(Scene* mainScene) {
 
 	mainScene->AddComponent<DebugInspector>();
 
-	std::ofstream destJson("kurwa.json");
+	std::ofstream destJson("sceneDump.json");
 
 	nlohmann::json sceneDump = Serialize(mainScene);
 
@@ -345,6 +346,19 @@ void InitScene(Scene* mainScene) {
 	destJson.close();
 
 	exit(0);
+}
+
+void LoadScene(Scene* mainScene) {
+	std::ifstream srcJson("kurwa.json");
+	Scene* desedScene = new Scene();
+
+	nlohmann::json sceneDump = json::parse(srcJson);
+
+	mainScene->GetRootNode()->AttachScene(desedScene);
+
+	DeserializeOn(desedScene, sceneDump);
+
+	mainScene->AddComponent<DebugInspector>();
 }
 
 int main(int, char**) {

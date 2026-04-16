@@ -29,6 +29,24 @@ template<>
 json Serialize<ShaderProgram>(const ShaderProgram* ptr);
 
 
+class Plane;
+
+template<>
+void DeserializeOn<Plane>(volatile Plane* ptr, const json& json_node);
+
+template<>
+json Serialize<Plane>(const Plane* ptr);
+
+
+class Frustum;
+
+template<>
+void DeserializeOn<Frustum>(volatile Frustum* ptr, const json& json_node);
+
+template<>
+json Serialize<Frustum>(const Frustum* ptr);
+
+
 class Scene;
 
 template<>
@@ -47,6 +65,15 @@ template<>
 json Serialize<GameObject>(const GameObject* ptr);
 
 
+class LayerMask;
+
+template<>
+void DeserializeOn<LayerMask>(volatile LayerMask* ptr, const json& json_node);
+
+template<>
+json Serialize<LayerMask>(const LayerMask* ptr);
+
+
 class Material;
 
 template<>
@@ -63,6 +90,15 @@ void DeserializeOn<Light>(volatile Light* ptr, const json& json_node);
 
 template<>
 json Serialize<Light>(const Light* ptr);
+
+
+class BoundingBox;
+
+template<>
+void DeserializeOn<BoundingBox>(volatile BoundingBox* ptr, const json& json_node);
+
+template<>
+json Serialize<BoundingBox>(const BoundingBox* ptr);
 
 
 #include <Mesh.h>

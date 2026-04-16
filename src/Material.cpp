@@ -6,10 +6,11 @@
 #include <imgui.h>
 #include <nlohmann/json_fwd.hpp>
 
-#include "UniformSpec.h"
-#include "Debug.h"
+#include <UniformSpec.h>
+#include <Debug.h>
 
 #include "SerializationDecls.h"
+
 
 std::vector<Material*> Material::allMaterials;
 Texture* textureClipboard = nullptr;
@@ -323,7 +324,9 @@ void Material::Deserialize(const nlohmann::json& json_node) {
 	spdlog::info("Material Serialize");
 }
 nlohmann::json Material::Serialize() {
-	spdlog::info("Material Deserialize");
+	spdlog::info("Material Serialize");
+
+	return json{};
 }
 
 const ShaderProgram* Material::GetShader() const {

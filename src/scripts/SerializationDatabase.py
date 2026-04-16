@@ -29,6 +29,7 @@ class DeserializationStrategy(Enum):
 	SIMPLE = 1,
 	CHAIN = 2,
 	SPECIAL = 3,
+	INTRINSIC = 4,
 
 
 class SerializedClass:
@@ -110,6 +111,16 @@ class SerializedClass:
 					self.fields.append(field)
 		
 
+	def instance_of(self, parent_name: str) -> bool:
+		if self.name == parent_name:
+			return True
+		
+		for parent in self.parent_classes:
+			if parent.instance_of(parent_name):
+				return True
+			
+		return False
+
 	def serialized(self) -> bool:
 		if len(self.fields) > 0 or self.serialization_methods:
 			return True
@@ -122,14 +133,7 @@ class SerializedClass:
 
 
 	def is_resource(self) -> bool:
-		if self.name == "Resource":
-			return True
-		
-		for parent in self.parent_classes:
-			if parent.is_resource():
-				return True
-			
-		return False
+		return self.instance_of("Resource")
 
 
 	def __str__(self):
@@ -174,6 +178,31 @@ class SerializedType:
 		"string": ("std::string", DeserializationStrategy.SIMPLE),
 	}
 
+	INTRISICED_TYPES = {
+		"glm::vec2": "glm::vec2",
+		"vec2": "glm::vec2",
+		"glm::vec3": "glm::vec3",
+		"vec3": "glm::vec3",
+		"glm::vec4": "glm::vec4",
+		"vec4": "glm::vec4",
+		"glm::ivec2": "glm::ivec2",
+		"ivec2": "glm::ivec2",
+		"glm::ivec3": "glm::ivec3",
+		"ivec3": "glm::ivec3",
+		"glm::ivec4": "glm::ivec4",
+		"ivec4": "glm::ivec4",
+		"glm::uvec2": "glm::uvec2",
+		"uvec2": "glm::uvec2",
+		"glm::uvec3": "glm::uvec3",
+		"uvec3": "glm::uvec3",
+		"glm::uvec4": "glm::uvec4",
+		"uvec4": "glm::uvec4",
+		"glm::mat3": "glm::mat3",
+		"mat3": "glm::mat3",
+		"glm::mat4": "glm::mat4",
+		"mat4": "glm::mat4",
+	}
+
 	SPECIAL_TYPES = {
 		"GameObject *" : -1
 	}
@@ -191,13 +220,29 @@ class SerializedType:
 	def get_type(cls: Self, field_cursor: clang.Cursor) -> Self:
 		type_name: str = field_cursor.type.spelling
 
+		if field_cursor.type.get_declaration().kind == clang.CursorKind.ENUM_DECL:
+			size: int = field_cursor.type.get_size()
+
+			if size == 1:
+				return SerializedType(type_name, ("uint8_t", DeserializationStrategy.SIMPLE))
+			if size == 2:
+				return SerializedType(type_name, ("uint16_t", DeserializationStrategy.SIMPLE))
+			if size == 4:
+				return SerializedType(type_name, ("uint32_t", DeserializationStrategy.SIMPLE))
+			if size == 8:
+				return SerializedType(type_name, ("uint64_t", DeserializationStrategy.SIMPLE))
+
+
 		thing_type: clang.Type = field_cursor.type
 
-		if thing_type.get_declaration().semantic_parent:
+		if thing_type.get_declaration().semantic_parent and not (thing_type.get_declaration().semantic_parent.spelling + "::") in type_name and thing_type.get_declaration().semantic_parent.kind != clang.CursorKind.TRANSLATION_UNIT:
 			type_name = thing_type.get_declaration().semantic_parent.spelling + "::" + type_name
 
 		if type_name in SerializedType.BUILTIN_SIMPLE_TYPES:
 			return SerializedType(type_name, SerializedType.BUILTIN_SIMPLE_TYPES[type_name])
+
+		if type_name in SerializedType.INTRISICED_TYPES:
+			return SerializedType(type_name, (SerializedType.INTRISICED_TYPES[type_name], DeserializationStrategy.INTRINSIC))
 
 		# if type_name.endswith("*"):
 		# 	type_name = type_name[:-2]
@@ -238,16 +283,18 @@ class SerializedVector(SerializedType):
 	def __init__(self, field_cursor: clang.Cursor):
 		super().__init__(field_cursor, (field_cursor.type.spelling, DeserializationStrategy.SPECIAL))
 		
-		type_name: str = field_cursor.type.spelling
-		
 		template_arg_name = field_cursor.type.get_template_argument_type(0).spelling
 
 		if template_arg_name in SerializedType.BUILTIN_SIMPLE_TYPES:
-			self.element_type = SerializedType(type_name, (type_name if type_name.startswith("std::") else "std::" + type_name, DeserializationStrategy.SIMPLE))
+			self.element_type = SerializedType(template_arg_name, (template_arg_name if template_arg_name.startswith("std::") else "std::" + template_arg_name, DeserializationStrategy.SIMPLE))
 		elif template_arg_name in SerializedClass.all_classes:
-			self.element_type = SerializedType(type_name, (type_name, DeserializationStrategy.CHAIN))
+			self.element_type = SerializedType(template_arg_name, (template_arg_name, DeserializationStrategy.CHAIN))
+		elif template_arg_name.rstrip("* ") in SerializedClass.all_classes:
+			class_name = template_arg_name.rstrip("* ")
+
+			self.element_type = SerializedType(class_name, (template_arg_name, DeserializationStrategy.SPECIAL))
 		elif template_arg_name in SerializedType.SPECIAL_TYPES:
-			self.element_type = SerializedType(type_name, (type_name, SerializedType.SPECIAL))
+			self.element_type = SerializedType(template_arg_name, (template_arg_name, SerializedType.SPECIAL))
 		
 
 	@classmethod
@@ -358,13 +405,15 @@ def generate_deserializer_for_field(writer: CodeWriter, field: SerializedField) 
 	if field.type.strategy == DeserializationStrategy.SIMPLE:
 		writer.line(f"new(({field.type.c_name}*) (data + {field.offset:.0f})) {field.type.c_name}{{json_node[\"{field.name}\"].get<{field.type.c_name}>()}};")
 	elif field.type.strategy == DeserializationStrategy.CHAIN:
-		writer.line(f"DeserializeOn<{field.type.c_name}>(({field.type.c_name}*) (data + {field.offset:.0f}), json_node[\"{field.name}\"]);")
+		writer.line(f"DeserializeOn<{field.type.c_name}>(({field.type.c_name}*) (data + {field.offset:.0f}), json_node[\"{field.name}\"][\"_data\"]);")
 	elif field.type.strategy == DeserializationStrategy.SPECIAL:
 		if field.type.name in SerializedClass.all_classes:
 			field_class = SerializedClass.all_classes[field.type.name]
 
 			if field_class.is_resource():
 				writer.line(f"*(({field.type.c_name}*) (data + {field.offset:.0f})) = ResourceDatabase::Global->Get<{field.type.name}>({{json_node[\"{field.name}\"].get<std::string>()}});")
+	elif field.type.strategy == DeserializationStrategy.INTRINSIC:
+		writer.line(f"new(({field.type.c_name}*) (data + {field.offset:.0f})) {field.type.c_name}{{Serialization::Deserialize<{field.type.c_name}>(json_node[\"{field.name}\"])}};")
 
 
 def generate_serializer_for_field(writer: CodeWriter, field: SerializedField) -> None:
@@ -374,11 +423,37 @@ def generate_serializer_for_field(writer: CodeWriter, field: SerializedField) ->
 		writer.line(f"dataNode[\"{field.name}\"] = Serialize<{field.type.c_name}>((const {field.type.c_name} *) (data + {field.offset:.0f}));")
 
 	elif field.type.strategy == DeserializationStrategy.SPECIAL:
-		if field.type.name in SerializedClass.all_classes:
+		if isinstance(field.type, SerializedVector):
+			field_class = SerializedClass.all_classes[field.type.element_type.name]
+
+			writer.line("{")
+			writer.more_indent()
+			
+			writer.line(f"std::vector<json> values;")
+
+			writer.line(f"for (const auto val : *((const {field.type.c_name} *) (data + {field.offset:.0f}))) {{")
+			writer.more_indent()
+
+			if field_class.is_resource():
+				writer.line("values.push_back(val->GetName());")
+			else:
+				writer.line("values.push_back(Serialize(val));")
+
+			writer.less_indent()
+			writer.line("}")
+
+			writer.line()
+			writer.line(f"dataNode[\"{field.name}\"] = values;")
+
+			writer.less_indent()
+			writer.line("}")
+		elif field.type.name in SerializedClass.all_classes:
 			field_class = SerializedClass.all_classes[field.type.name]
 
 			if field_class.is_resource():
 				writer.line(f"dataNode[\"{field.name}\"] = (*(const {field.type.c_name}*) (data + {field.offset:.0f}))->GetName();")
+	elif field.type.strategy == DeserializationStrategy.INTRINSIC:
+		writer.line(f"dataNode[\"{field.name}\"] = Serialization::Serialize(*(const {field.type.c_name} *) (data + {field.offset:.0f}));")
 
 
 def flatten_parents_list(arr: list[SerializedClass]) -> list:
@@ -411,39 +486,26 @@ def generate_deserializer_for_class(writer: CodeWriter, cls: SerializedClass) ->
 	writer.line(f"// {cls.name}")
 
 	if cls.serialization_methods:
-		writer.line(f"const_cast<{cls.name} *>(ptr)->Deserialize(json_node);")
+		writer.line(f"const_cast<{cls.name} *>(ptr)->Deserialize(json_node[\"_data\"]);")
 	else:
 		for field in cls.fields:
 			generate_deserializer_for_field(writer, field)
 
 
 def generate_serializer_for_class(writer: CodeWriter, cls: SerializedClass) -> None:
-	writer.line("template<>")
-	writer.line(f"json Serialize<{cls.name}>(const {cls.name}* ptr) {{")
-	writer.more_indent()
-	
-	writer.line("const uint8_t* data = reinterpret_cast<const uint8_t*>(ptr);")
-	writer.line("json result;")
+	for parent in cls.parent_classes:
+		generate_serializer_for_class(writer, parent)
+
 	writer.line()
-	writer.line(f"result[\"_type_name\"] = \"{cls.name}\";")
+	writer.line(f"// {cls.name}")
 
 	if cls.serialization_methods:
-		writer.line(f"result[\"_data\"] = const_cast<{cls.name} *>(ptr)->Serialize();")
-		writer.line()
-		writer.line("return result;")
-		writer.indent = 0
-		writer.line("}")
+		writer.line(f"dataNode = const_cast<{cls.name} *>(ptr)->Serialize();")
+
 		return
 
-	writer.line("json& dataNode = (result[\"_data\"] = json{});")
-	writer.line()
 	for field in cls.fields:
 		generate_serializer_for_field(writer, field)
-	
-	writer.line()
-	writer.line("return result;")
-	writer.indent = 0
-	writer.line("}")
 
 
 def main():
@@ -526,8 +588,7 @@ def main():
 		dest_impl.line()
 		dest_impl.line(f"#include <GameObject.h>")
 		for cls in classes:
-			if cls.serialization_methods or cls.is_resource():
-				dest_impl.line(f"#include <{cls.cursor.location.file.name.split("/include/")[-1]}>")
+			dest_impl.line(f"#include <{cls.cursor.location.file.name.split("/include/")[-1]}>")
 		dest_impl.line()
 
 		dest_impl.line("using json = nlohmann::json;")
@@ -545,8 +606,27 @@ def main():
 
 				dest_impl.indent = 0
 				dest_impl.line("}")
+
+				dest_impl.line("template<>")
+				dest_impl.line(f"json Serialize<{cls.name}>(const {cls.name}* ptr) {{")
+				dest_impl.more_indent()
+				
+				dest_impl.line("const uint8_t* data = reinterpret_cast<const uint8_t*>(ptr);")
+				dest_impl.line("json result;")
 				dest_impl.line()
+				dest_impl.line(f"result[\"_type_name\"] = \"{cls.name}\";")
+
+				dest_impl.line("json& dataNode = (result[\"_data\"] = json{});")
+
 				generate_serializer_for_class(dest_impl, cls)
+				
+				dest_impl.line()
+
+				dest_impl.line("return result;")
+	
+				dest_impl.indent = 0
+				dest_impl.line("}")
+				dest_impl.line()
 		
 		dest_impl.line()
 		dest_impl.line("typedef void (*DeserializeOnSpecialization)(volatile void* ptr, const json& json_node);")
@@ -581,8 +661,36 @@ def main():
 
 		dest_impl.line()
 
-		dest_impl.line("typedef nlohmann::json (*SerializationFunc)(GameObject*);")
+		dest_impl.line("GameObject* DeserializeGameObject(SceneNode* node, nlohmann::json json_node) {")
+		dest_impl.more_indent()
 
+		dest_impl.line("std::string className = json_node[\"_type_name\"];")
+		dest_impl.line("GameObject* addedObj = nullptr;")
+
+		index = 0
+		for name, cls in SerializedClass.all_classes.items():
+			if cls.instance_of("GameObject") and not cls.is_abstract:
+				if index == 0:
+					dest_impl.line(f"if (className == \"{cls.name}\") {{")
+				else:
+					dest_impl.line(f"else if (className == {cls.name}) {{")
+				
+				dest_impl.more_indent()
+				dest_impl.line(f"addedObj = node->AddObject<{cls.name}>();")
+				dest_impl.less_indent()
+				dest_impl.line("}")
+
+		dest_impl.line()
+		dest_impl.line("Deserialize(addedObj, json_node);")
+		dest_impl.line()
+		dest_impl.line("return addedObj;")
+
+		dest_impl.less_indent()
+		dest_impl.line("}")
+
+		dest_impl.line()
+
+		dest_impl.line("typedef nlohmann::json (*SerializationFunc)(GameObject*);")
 		dest_impl.line("nlohmann::json SerializeGameObject(GameObject* obj) {")
 		dest_impl.more_indent()
 		

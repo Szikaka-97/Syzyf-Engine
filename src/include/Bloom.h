@@ -14,9 +14,9 @@ private:
 	ComputeShaderProgram* upsampleShader;
 	ComputeShaderProgram* finalShader;
 
-	float threshold = 1.5f;
-	float knee = 0.1f;
-	float intensity = 0.6f;
+	serialized float threshold = 1.5f;
+	serialized float knee = 0.1f;
+	serialized float intensity = 0.6f;
 
 	void UpdateTexture();
 public:

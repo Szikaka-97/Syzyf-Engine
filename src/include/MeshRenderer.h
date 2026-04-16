@@ -11,7 +11,7 @@ class Material;
 class MeshRenderer : public GameObject, public ImGuiDrawable {
 private:
 	serialized Mesh* mesh;
-	std::vector<Material*> materials;
+	serialized std::vector<Material*> materials;
 
 	void ResetUniformBuffer();
 public:
