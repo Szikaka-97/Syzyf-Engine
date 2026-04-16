@@ -1,6 +1,6 @@
 #include "include/Application.h"
-#include "EditorBodySystem.h"
 #include "InitScene.h"
+#include "MousePickingBodySystem.h"
 
 #include "thirdparty/ImViewGuizmo.h"
 #include <imgui.h>
@@ -133,7 +133,7 @@ void Application::MainLoop() {
     InitScene(*this->context.selectedScene, this->context.mainCamera);
     this->context.selectedScene->GetGraphics()->UpdateScreenResolution(
         glm::vec2(1024.0f, 576.0f));
-    this->context.selectedScene->AddComponent<EditorBodySystem>();
+    this->context.selectedScene->AddComponent<MousePickingBodySystem>();
 
     bool shouldClose = false;
     while (!shouldClose) {
