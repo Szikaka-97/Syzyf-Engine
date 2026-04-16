@@ -157,10 +157,10 @@ void Application::MainLoop() {
 
         this->mainMenuBar.Draw(shouldClose, this->settings);
         this->graphPanel.Draw(this->context);
+        DrawSystemDebug(this->context);
         this->inspectorPanel.Draw(this->context);
         this->filesPanel.Draw();
         this->sceneViewPanel.Draw(this->context);
-        DrawSystemDebug(this->context);
 
         ImGui::Render();
         ImGuiIO& io = ImGui::GetIO();
