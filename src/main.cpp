@@ -50,7 +50,6 @@ class AnimatedThingTag : public GameObject {};
 #include <Game_Scripts/CameraSettings.h>
 #include <Game_Scripts/PlayerController.h>
 #include <AiNode.h>
-#include "astar/AStarManager.h"
 #include "astar/NavigationGrid.h"
 
 #include <vector>

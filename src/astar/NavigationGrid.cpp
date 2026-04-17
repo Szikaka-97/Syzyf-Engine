@@ -8,7 +8,7 @@
 #include <spdlog/spdlog.h>
 
 void NavigationGrid::Build(Surface* surface, float cellSize, float maxSlopeDeg) {
-    if (!surface) return;
+        if (!surface) return;
     m_surface = surface;
     m_cellSize = cellSize;
     m_maxSlopeCos = glm::cos(glm::radians(maxSlopeDeg));
@@ -30,7 +30,8 @@ void NavigationGrid::Build(Surface* surface, float cellSize, float maxSlopeDeg) 
             node.worldPos = m_origin + glm::vec3((x + 0.5f) * m_cellSize, 0.0f, (y + 0.5f) * m_cellSize);
             float groundY = m_surface->GetGroundHeight(node.worldPos.x, node.worldPos.z);
             node.worldPos.y = groundY;
-            node.walkable = (groundY != 0.0f);
+            
+            node.walkable = m_surface->IsOnSurface(glm::vec3(node.worldPos.x, groundY + 0.1f, node.worldPos.z));
         }
     }
 
@@ -57,7 +58,6 @@ void NavigationGrid::ConnectNeighbors() {
                 if (!IsInsideGrid(nx, ny)) continue;
                 NavGridNode& nb = m_nodes[GetIndex(nx, ny)];
                 if (!nb.walkable) continue;
-                // Blokada œcinania rogów
                 if (d.x != 0 && d.y != 0) {
                     if (!m_nodes[GetIndex(x + d.x, y)].walkable ||
                         !m_nodes[GetIndex(x, y + d.y)].walkable)

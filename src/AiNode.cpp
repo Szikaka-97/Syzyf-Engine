@@ -18,7 +18,6 @@
 #include <functional>
 #include <map>
 #include <MeshRenderer.h>
-#include "astar/AStarManager.h"
 #include "astar/NavigationGrid.h"
 
 #include <Jolt/Jolt.h>
@@ -405,13 +404,34 @@ void AiNode::Update() {
 	//		m_Body->SetLinearVelocity(glm::vec3(0, currentVel.y, 0));
 	//	}
 	//}
+	//void AiNode::AstarChase() {
+	//if (!m_Surface || !m_TargetNode) return;if (!m_TargetNode) return;
+ //   glm::vec3 targetPos = m_TargetNode->GlobalTransform().Position();
+
+ //   m_ChasePathUpdateTimer += Time::Delta();
+ //   if (m_ChasePathUpdateTimer > 0.5f || m_Path.empty()) {
+ //       m_Path = AStarManager::Instance().FindPath(transform, targetPos);
+ //       m_CurrentPathIndex = 0;
+ //       m_ChasePathUpdateTimer = 0.0f;
+ //   }
+
+ //   if (!m_Path.empty() && m_CurrentPathIndex < m_Path.size()) {
+ //       glm::vec3 next = m_Path[m_CurrentPathIndex];
+ //       if (glm::distance(transform, next) < 0.5f) {
+ //           m_CurrentPathIndex++;
+ //       } else {
+ //           MoveInDirection(next - transform);
+ //       }
+ //   }
+	//}
 	void AiNode::AstarChase() {
-	if (!m_Surface || !m_TargetNode) return;if (!m_TargetNode) return;
+    if (!m_NavGrid || !m_TargetNode) return;
+    
     glm::vec3 targetPos = m_TargetNode->GlobalTransform().Position();
 
     m_ChasePathUpdateTimer += Time::Delta();
     if (m_ChasePathUpdateTimer > 0.5f || m_Path.empty()) {
-        m_Path = AStarManager::Instance().FindPath(transform, targetPos);
+        m_Path = m_NavGrid->FindPath(transform, targetPos);
         m_CurrentPathIndex = 0;
         m_ChasePathUpdateTimer = 0.0f;
     }
@@ -424,7 +444,7 @@ void AiNode::Update() {
             MoveInDirection(next - transform);
         }
     }
-	}
+}
 	void AiNode::Chase() {
 		glm::vec3 targetPos = m_TargetNode->GlobalTransform().Position();
     glm::vec3 dir = targetPos - transform;
@@ -540,7 +560,7 @@ void AiNode::StopMoving() {
 		}
 	}
 
-	void AiNode::SearchWalkPoint() {
+void AiNode::SearchWalkPoint() {
 		/*if (m_Surface) {
 			if (patrolPoints.size() > 0) {
 				LookForNextPoint();
@@ -552,7 +572,8 @@ void AiNode::StopMoving() {
 
 		}*/
 		if (m_NavGrid && m_NavGrid->IsBuilt()) {
-    walkPoint = m_NavGrid->GetRandomWalkablePosition(transform, walkPointRange);
+    //walkPoint = m_NavGrid->GetRandomWalkablePosition(transform, walkPointRange);
+			walkPoint = m_NavGrid->GetRandomWalkablePosition(transform, 1000.0f);
     walkPointSet = true;
 }
 		else {
@@ -593,6 +614,7 @@ void AiNode::StopMoving() {
 			///
 		}
 	}
+
 
 	void AiNode::LookForNextPoint() {
 		posIndex++;
