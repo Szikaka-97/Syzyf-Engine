@@ -105,7 +105,7 @@ class Mover : public GameObject, public ImGuiDrawable {
                 glm::angleAxis(glm::radians(this->pitch), glm::vec3(1, 0, 0));
 
             this->GlobalTransform().Rotation() =
-                glm::normalize(this->GlobalTransform().Rotation().value);
+                this->GlobalTransform().Rotation().value;
         }
 
         if (GetScene()->Input()->KeyDown(Key::Escape)) {
