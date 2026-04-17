@@ -38,7 +38,11 @@ void MousePickingBody::SyncToNode() {
     if (auto* physics = GetScene()->GetComponent<Physics::System>()) {
         glm::vec3 pos = GetNode()->GlobalTransform().Position().Value();
 
-        if (glm::any(glm::isnan(pos)) || glm::any(glm::isinf(pos))) {
+        const float MAX_VALID_POSITION = 1000000.0f;
+
+        if (glm::any(glm::isnan(pos)) || glm::any(glm::isinf(pos)) ||
+            glm::any(glm::greaterThan(glm::abs(pos),
+                                      glm::vec3(MAX_VALID_POSITION)))) {
             return;
         }
 
