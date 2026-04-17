@@ -123,7 +123,7 @@ void AiNode::Update() {
 		Patrol();
 	}
 		else if (canSeePlayer && !playerInAttackRange) {
-			AstarChase();
+			Chase();
 		}
 		else if (canSeePlayer && playerInAttackRange) {
 			 Attack();
@@ -561,17 +561,12 @@ void AiNode::StopMoving() {
 	}
 
 void AiNode::SearchWalkPoint() {
-		/*if (m_Surface) {
+		if (m_Surface) {
 			if (patrolPoints.size() > 0) {
 				LookForNextPoint();
 			}
 			else {
-				walkPoint = m_Surface->GetRandomWalkPoint(transform, walkPointRange);
-				walkPointSet = true;
-			}
-
-		}*/
-		if (m_NavGrid && m_NavGrid->IsBuilt()) {
+				if (m_NavGrid && m_NavGrid->IsBuilt()) {
     //walkPoint = m_NavGrid->GetRandomWalkablePosition(transform, walkPointRange);
 			walkPoint = m_NavGrid->GetRandomWalkablePosition(transform, 1000.0f);
     walkPointSet = true;
@@ -613,6 +608,10 @@ void AiNode::SearchWalkPoint() {
 			}
 			///
 		}
+			}
+
+		}
+		
 	}
 
 
