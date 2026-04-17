@@ -7,6 +7,7 @@
 #include <InputSystem.h>
 #include <TimeSystem.h>
 
+// When replacing the Mover with this, fix the gizmo as well
 class CameraController : public GameObject, public ImGuiDrawable {
   private:
     float pitch;

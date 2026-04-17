@@ -29,7 +29,7 @@ void InspectorPanel::Draw(Context& context) {
         ImGui::Checkbox("Enabled", &nodeEnabled);
         context.selectedNode->SetEnabled(nodeEnabled);
 
-        if (ImGui::TreeNode("Layer")) {
+        if (ImGui::TreeNodeEx("Layer", ImGuiTreeNodeFlags_DefaultOpen)) {
             const float size = ImGui::CalcTextSize("00").x;
 
             for (int y = 0; y < 4; y++) {
@@ -56,7 +56,7 @@ void InspectorPanel::Draw(Context& context) {
             ImGui::TreePop();
         }
 
-        if (ImGui::TreeNode("Transform")) {
+        if (ImGui::TreeNodeEx("Transform", ImGuiTreeNodeFlags_DefaultOpen)) {
             ImGui::Text("Position");
 
             glm::vec3 position =
@@ -124,7 +124,8 @@ void InspectorPanel::Draw(Context& context) {
         AnimationComponent* animationComponent =
             context.selectedNode->GetObject<AnimationComponent>();
         if (animationComponent != nullptr) {
-            if (ImGui::TreeNode("Animation")) {
+            if (ImGui::TreeNodeEx("Animation",
+                                  ImGuiTreeNodeFlags_DefaultOpen)) {
                 int animationIndex = 0;
                 for (auto& animation : animationComponent->animations) {
                     ImGui::PushID(animationIndex++);

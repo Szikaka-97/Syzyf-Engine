@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Settings.h"
+#include "panels/ConsolePanel.h"
 #include "panels/FilesPanel.h"
 #include "panels/GraphPanel.h"
 #include "panels/InspectorPanel.h"
@@ -36,6 +37,7 @@ class Application {
     Context context;
 
     FilesPanel filesPanel;
+    ConsolePanel consolePanel;
     MainMenuBar mainMenuBar;
     InspectorPanel inspectorPanel;
     GraphPanel graphPanel;
@@ -48,6 +50,7 @@ class Application {
     void MainLoop();
 
   private:
+    void InitSpdlog();
     bool InitProgram();
     bool InitImGui();
 };

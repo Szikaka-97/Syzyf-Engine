@@ -1,6 +1,7 @@
 #include "include/Application.h"
 #include "InitScene.h"
 #include "MousePickingBodySystem.h"
+#include "panels/ConsolePanel.h"
 
 #include "thirdparty/ImViewGuizmo.h"
 #include <imgui.h>
@@ -14,6 +15,7 @@
 #include <imgui.h>
 #include <imgui_impl/imgui_impl_opengl3.h>
 #include <imgui_impl/imgui_impl_sdl3.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 
 #include <Engine.h>
@@ -67,6 +69,20 @@ bool Application::InitProgram() {
     return true;
 }
 
+void Application::InitSpdlog() {
+    auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+
+    auto imgui_sink = std::make_shared<ImGuiConsoleSink<std::mutex>>();
+    imgui_sink->set_pattern("[%H:%M:%S] [%l] %v");
+
+    std::vector<spdlog::sink_ptr> sinks{console_sink, imgui_sink};
+
+    auto combined_logger =
+        std::make_shared<spdlog::logger>("Syzyf", sinks.begin(), sinks.end());
+
+    spdlog::set_default_logger(combined_logger);
+}
+
 bool Application::InitImGui() {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -98,8 +114,9 @@ bool Application::InitImGui() {
 
 bool Application::Setup() {
     this->settings.Load();
+    this->InitSpdlog();
 
-    return InitProgram() && InitImGui();
+    return this->InitProgram() && this->InitImGui();
 }
 
 void Application::Terminate() {
@@ -147,6 +164,7 @@ void Application::MainLoop() {
         this->systemsDebugPanel.Draw(this->context);
         this->inspectorPanel.Draw(this->context);
         this->filesPanel.Draw();
+        this->consolePanel.Draw();
         this->sceneViewPanel.Draw(this->context);
 
         ImGui::Render();

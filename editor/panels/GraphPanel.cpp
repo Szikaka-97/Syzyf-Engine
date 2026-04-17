@@ -33,6 +33,30 @@ void GraphPanel::Draw(Context& context) {
         ImGui::PopStyleVar();
     }
 
+    // Context menu
+    if (ImGui::BeginPopupContextWindow("GraphContextMenu",
+                                       ImGuiPopupFlags_MouseButtonRight)) {
+        bool hasScene = (context.selectedScene != nullptr);
+
+        if (ImGui::MenuItem("Create Node", nullptr, false, hasScene)) {
+            if (context.selectedScene != nullptr) {
+                SceneNode* parent = context.selectedNode
+                                        ? context.selectedNode
+                                        : context.selectedScene->GetRootNode();
+                context.selectedScene->CreateNode(parent, "New Node");
+            }
+        }
+        ImGui::EndPopup();
+    }
+
+    // Deselect node if empty space is pressed
+    if (ImGui::IsWindowHovered() &&
+        ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+        if (!ImGui::IsAnyItemHovered()) {
+            context.selectedNode = nullptr;
+        }
+    }
+
     ImGui::End();
 }
 
