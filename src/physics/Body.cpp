@@ -125,29 +125,37 @@ JPH::BodyCreationSettings Body::ConvexHullMesh(const class Mesh* mesh, const JPH
 JPH::BodyCreationSettings Body::Mesh(const class Mesh* mesh, const JPH::EMotionType type, const JPH::ObjectLayer layer) {
   const uint8_t* vertexDataPointer = reinterpret_cast<const uint8_t*>(mesh->GetVertexData());
   const unsigned int vertexStride = mesh->GetVertexStride() * sizeof(float);
-  const unsigned int vertexCount = mesh->GetVertexCount();
 
   JPH::TriangleList triangles;
-  triangles.reserve(vertexCount / 3);
 
-  for (unsigned int i = 0; i < vertexCount; i += 3) {
-    const float* p1 = reinterpret_cast<const float*>(vertexDataPointer);
-    JPH::Vec3 v1(p1[0], p1[1], p1[2]);
-    vertexDataPointer += vertexStride;
+  for (const auto& subMesh : mesh->GetSubMeshes()) {
+    if (subMesh.GetType() != Mesh::MeshType::Triangles) {
+      continue;
+    }
 
-    const float* p2 = reinterpret_cast<const float*>(vertexDataPointer);
-    JPH::Vec3 v2(p2[0], p2[1], p2[2]);
-    vertexDataPointer += vertexStride;
+    const unsigned int* indices = subMesh.GetIndexData();
+    unsigned int faceCount = subMesh.GetFaceCount();
 
-    const float* p3 = reinterpret_cast<const float*>(vertexDataPointer);
-    JPH::Vec3 v3(p3[0], p3[1], p3[2]);
-    vertexDataPointer += vertexStride;
+    for (unsigned int i = 0; i < faceCount * 3; i += 3) {
+      const float* p1 = reinterpret_cast<const float*>(vertexDataPointer + indices[i] * vertexStride);
+      JPH::Vec3 v1(p1[0], p1[1], p1[2]);
 
-    triangles.emplace_back(v1, v2, v3);
+      const float* p2 = reinterpret_cast<const float*>(vertexDataPointer + indices[i + 1] * vertexStride);
+      JPH::Vec3 v2(p2[0], p2[1], p2[2]);
+
+      const float* p3 = reinterpret_cast<const float*>(vertexDataPointer + indices[i + 2] * vertexStride);
+      JPH::Vec3 v3(p3[0], p3[1], p3[2]);
+
+      triangles.emplace_back(v1, v2, v3);
+    }
+  }
+
+  if (triangles.empty()) {
+    spdlog::warn("Physics::Body::Mesh: Mesh has no valid triangles. Falling back to a minimal sphere.");
+    return Body::Sphere(0.1f, type, layer);
   }
 
   JPH::MeshShapeSettings* shapeSettings = new JPH::MeshShapeSettings(triangles);
-
   shapeSettings->Sanitize();
 
   return JPH::BodyCreationSettings(
@@ -157,7 +165,6 @@ JPH::BodyCreationSettings Body::Mesh(const class Mesh* mesh, const JPH::EMotionT
     type,
     layer
   );
- 
 }
 
 Body::~Body() {

@@ -252,7 +252,7 @@ void SceneGraphics::RenderObjects(const ShaderGlobalUniforms &globalUniforms,
 
     mat->Bind();
 
-    int offsetLocation = glGetUniformLocation(mat->GetShader()->handle, "uBoneOffet");
+    int offsetLocation = glGetUniformLocation(mat->GetShader()->handle, "uBoneOffset");
     if (offsetLocation >= 0) {
       if (node.jointBufferOffset >= 0) {
         glUniform1i(offsetLocation, node.jointBufferOffset);
@@ -503,8 +503,15 @@ void SceneGraphics::DrawMeshInstanced(MeshRenderer *renderer,
       targetRenderQueue = &this->volumetricRenders;
     }
 
+    BoundingBox bounds = mesh->GetBounds();
+    // A hack to stop animated meshes from getting culled
+    if (skeleton) {
+        bounds = BoundingBox(glm::vec3(-100000.0f), glm::vec3(100000.0f));
+    }
+
     RenderNode node(mesh, material, instanceCount,
                     renderer->GlobalTransform(),
+                    bounds,
                     renderer->GetNode()->GetLayer());
     node.jointBufferOffset = skinningOffset;
     targetRenderQueue->push_back(node);

@@ -648,10 +648,12 @@ inline void InitScene(Scene& mainScene, Camera*& mainCamera) {
     //     GltfImporter::LoadScene("./res/models/jake_tangents.glb", "Jake");
     // jakeAttachment->AttachScene(animatedGltfScene);
 
-    SceneNode* skeletonAttachment = mainScene.CreateNode("Skeleton");
-    Scene* skeletonGltfScene =
-        GltfImporter::LoadScene("./res/models/szkielet5.glb", "Szkielet");
-    skeletonAttachment->AttachScene(skeletonGltfScene);
+    SceneNode* skeletonNode = GltfImporter::LoadScene(
+        &mainScene, "./res/models/szkielet5.glb", "Szkielet");
+
+    SceneNode* skeleton2Node = GltfImporter::LoadScene(
+        &mainScene, "./res/models/szkielet5.glb", "Szkielet2");
+    skeleton2Node->GlobalTransform().Position() = {0.0f, 0.0f, 7.0f};
 
     mainScene.AddComponent<DebugInspector>();
     mainScene.AddComponent<AnimationSystem>();

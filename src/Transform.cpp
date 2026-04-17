@@ -201,6 +201,18 @@ source(source) {
 
 	glm::mat3 rotationMatrix = (glm::mat3) this->source.transformation;
 
+    const float epsilon = glm::epsilon<float>();
+
+    if (glm::abs(scale.x) > epsilon) {
+        rotationMatrix[0] /= scale.x;
+    }
+    if (glm::abs(scale.y) > epsilon) {
+        rotationMatrix[1] /= scale.y;
+    }
+    if (glm::abs(scale.z) > epsilon) {
+        rotationMatrix[2] /= scale.z;
+    }
+
 	rotationMatrix[0] /= scale.x;
 	rotationMatrix[1] /= scale.y;
 	rotationMatrix[2] /= scale.z;

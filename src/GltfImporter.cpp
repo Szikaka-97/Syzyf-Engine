@@ -22,9 +22,7 @@
 #include <glm/trigonometric.hpp>
 #include <spdlog/spdlog.h>
 
-Scene* GltfImporter::LoadScene(const fs::path path, std::string name) {
-  Scene* scene = new Scene(); 
-
+SceneNode* GltfImporter::LoadScene(Scene* scene, const fs::path path, std::string name) {
   if (!std::filesystem::exists(path)) {
     spdlog::warn("GltfImporter: File not found: {}", path.string());
     return nullptr;
@@ -115,7 +113,7 @@ Scene* GltfImporter::LoadScene(const fs::path path, std::string name) {
     }
   }
 
-  return scene; 
+  return root; 
 }
 
 std::optional<AnimationComponent::Animation> GltfImporter::LoadAnimation(
@@ -365,18 +363,6 @@ Mesh* GltfImporter::LoadMesh(fastgltf::Mesh& gltfMesh, fastgltf::Asset& asset, s
             static_cast<float>(positionAccessor.max->get<double>(1)),
             static_cast<float>(positionAccessor.max->get<double>(2))
         );
-
-        // Hack to fix frustum culling not working on animated models
-        if (isSkinned) {
-            glm::vec3 size = maxBound - minBound;
-
-            float maxDimension = std::max({size.x, size.y, size.z});
-
-            float paddingAmount = maxDimension * 0.6f;
-
-            minBound -= glm::vec3(paddingAmount);
-            maxBound += glm::vec3(paddingAmount);
-        }
 
         primitive.bounds = BoundingBox(minBound, maxBound);
     }
