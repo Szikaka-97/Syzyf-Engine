@@ -355,18 +355,30 @@ Mesh* GltfImporter::LoadMesh(fastgltf::Mesh& gltfMesh, fastgltf::Asset& asset, s
     if (positionAccessor.min.has_value() && positionAccessor.max.has_value()
         && positionAccessor.min.value().size() == 3 && positionAccessor.max.value().size() == 3
       ) {
-      primitive.bounds = BoundingBox(
-        glm::vec3(
-          static_cast<float>(positionAccessor.min->get<double>(0)),
-          static_cast<float>(positionAccessor.min->get<double>(1)),
-          static_cast<float>(positionAccessor.min->get<double>(2))
-        ),
-        glm::vec3(
-          static_cast<float>(positionAccessor.max->get<double>(0)),
-          static_cast<float>(positionAccessor.max->get<double>(1)),
-          static_cast<float>(positionAccessor.max->get<double>(2))
-        )
-      );
+        glm::vec3 minBound(
+            static_cast<float>(positionAccessor.min->get<double>(0)),
+            static_cast<float>(positionAccessor.min->get<double>(1)),
+            static_cast<float>(positionAccessor.min->get<double>(2))
+        );
+        glm::vec3 maxBound(
+            static_cast<float>(positionAccessor.max->get<double>(0)),
+            static_cast<float>(positionAccessor.max->get<double>(1)),
+            static_cast<float>(positionAccessor.max->get<double>(2))
+        );
+
+        // Hack to fix frustum culling not working on animated models
+        if (isSkinned) {
+            glm::vec3 size = maxBound - minBound;
+
+            float maxDimension = std::max({size.x, size.y, size.z});
+
+            float paddingAmount = maxDimension * 0.6f;
+
+            minBound -= glm::vec3(paddingAmount);
+            maxBound += glm::vec3(paddingAmount);
+        }
+
+        primitive.bounds = BoundingBox(minBound, maxBound);
     }
 
     if (positionIt != it->attributes.end()) {
