@@ -41,6 +41,7 @@
 #include <Debug.h>
 #include <InputSystem.h>
 #include <Engine.h>
+
 #include <glm/trigonometric.hpp>
 #include <spdlog/spdlog.h>
 
@@ -49,6 +50,8 @@ class AnimatedThingTag : public GameObject {};
 #include <Game_Scripts/CameraSettings.h>
 #include <Game_Scripts/PlayerController.h>
 #include <AiNode.h>
+#include "astar/AStarManager.h"
+#include "astar/NavigationGrid.h"
 
 #include <vector>
 
@@ -618,7 +621,7 @@ void InitScene(Scene* mainScene) {
     floorNode->AddObject<MeshRenderer>(gmConstructMesh, gmConstructMesh->GetDefaultMaterials());
 	floorNode->AddObject<Skybox>(skyMat);
 	floorNode->AddObject<Physics::Body>(Physics::Body::Mesh(gmConstructMesh, JPH::EMotionType::Static, Physics::Layers::NON_MOVING));
-	floorNode->AddObject<Surface>(gmConstructMesh, 1.0f);
+	
 
 	auto lightNode = mainScene->CreateNode("Point Light");
 	lightNode->AddObject<Light>(Light::PointLight({1, 1, 1}, 10, 2))->SetShadowCasting(false);
@@ -697,11 +700,16 @@ void InitScene(Scene* mainScene) {
 	schnozNode->AddObject<AutoRotator>(1);
 	schnozNode->SetLayer(5);
 
+
+	floorNode->AddObject<Surface>(gmConstructMesh, 10.0f);
+	//AStarManager::Instance().BuildGraph(floorNode->GetObject<Surface>(), 10.0f);
+	auto* navGrid = floorNode->AddObject<NavigationGrid>();
+	navGrid->Build(floorNode->GetObject<Surface>(), 2.0f, 45.0f);
+
 	SceneNode* w_schnozNode = mainScene->CreateNode("w_schnozNode");
 	w_schnozNode->LocalTransform().Position() = glm::vec3(-20,0,-20);
 	schnozNode->LocalTransform().Scale() = glm::vec3(1,1,1);
 	w_schnozNode->AddObject<MeshRenderer>(schnozMesh, schnozMat);
-
 
 
 	JPH::BodyCreationSettings w_schnozShapeSettings = Physics::Body::ConvexHullMesh(schnozMesh, JPH::EMotionType::Dynamic, Physics::Layers::MOVING);
@@ -716,7 +724,7 @@ void InitScene(Scene* mainScene) {
 	auto enemyAI = w_schnozNode->AddObject<AiNode>();
 	if (enemyAI) {
 		enemyAI->SetTarget(playerNode);
-		enemyAI->SetProjectileResources(cubeMesh, reflectiveMat); // u¿yj istniej¹cych zasobów
+		enemyAI->SetProjectileResources(cubeMesh, reflectiveMat); // uï¿½yj istniejï¿½cych zasobï¿½w
 		enemyAI->SetAttackCooldown(1.2f);
 	}
 

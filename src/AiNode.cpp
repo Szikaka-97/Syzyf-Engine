@@ -19,6 +19,8 @@
 #include <functional>
 #include <map>
 #include <MeshRenderer.h>
+#include "astar/AStarManager.h"
+#include "astar/NavigationGrid.h"
 
 #include <Jolt/Jolt.h>
 #include <Jolt/Physics/Character/Character.h>
@@ -37,24 +39,6 @@
 
 #include <Jolt/Physics/Collision/Shape/ConvexHullShape.h>
 #include <Jolt/Physics/Collision/CollideShape.h>
-
-//struct PathNode {
-//	glm::vec3 position;
-//	float gCost;  // koszt od startu
-//	float hCost;  // heurystyka do celu
-//	float fCost() const { return gCost + hCost; }
-//	PathNode* parent;
-//
-//	bool operator>(const PathNode& other) const { return fCost() > other.fCost(); }
-//};
-//
-//struct CompareVec3 {
-//	bool operator()(const glm::vec3& a, const glm::vec3& b) const {
-//		if (a.x != b.x) return a.x < b.x;
-//		if (a.y != b.y) return a.y < b.y;
-//		return a.z < b.z;
-//	}
-//};
 
 AiNode::AiNode()
 	: m_Speed(5.0f)
@@ -104,6 +88,11 @@ void AiNode::Update() {
 		if (!m_TargetNode) return;
 	}
 
+	if (!m_NavGrid) {
+    auto grids = GetScene()->FindObjectsOfType<NavigationGrid>();
+    if (!grids.empty()) m_NavGrid = grids[0];
+}
+
 	if (!myNode) return;
 
 	transform = m_Body->GetPosition();
@@ -137,7 +126,7 @@ void AiNode::Update() {
 		Patrol();
 	}
 		else if (canSeePlayer && !playerInAttackRange) {
-			Chase();
+			AstarChase();
 		}
 		else if (canSeePlayer && playerInAttackRange) {
 			 Attack();
@@ -238,10 +227,8 @@ void AiNode::Update() {
 			float fCost() const { return gCost + hCost; }
 		};
 
-		// W³asny hasher dla glm::vec3 z tolerancj¹
 		struct Vec3Hash {
 			size_t operator()(const glm::vec3& v) const {
-				// Kwantyzacja do 0.1 dla stabilnoœci
 				int xi = static_cast<int>(std::round(v.x * 10.0f));
 				int yi = static_cast<int>(std::round(v.y * 10.0f));
 				int zi = static_cast<int>(std::round(v.z * 10.0f));
@@ -273,7 +260,7 @@ void AiNode::Update() {
 		std::priority_queue<Node*, std::vector<Node*>, decltype(cmp)> openSet(cmp);
 		openSet.push(&startNode);
 
-		const int maxIter = 5000; // zmniejszamy dla bezpieczeñstwa
+		const int maxIter = 5000; 
 		int iter = 0;
 		while (!openSet.empty() && iter++ < maxIter) {
 			Node* current = openSet.top();
@@ -375,52 +362,71 @@ void AiNode::Update() {
 		return neighbors;
 	}
 
+	//void AiNode::AstarChase() {
+	//	if (!m_Surface || !m_TargetNode) return;
+
+	//	// Upewnij siê, ¿e pozycja AI jest aktualna
+	//	transform = m_Body->GetPosition();
+	//	glm::vec3 targetPos = m_TargetNode->GlobalTransform().Position();
+
+	//	// Aktualizuj œcie¿kê co 0.5 s lub gdy jest pusta
+	//	m_ChasePathUpdateTimer += Time::Delta();
+	//	if (m_ChasePathUpdateTimer > 0.5f || m_Path.empty()) {
+	//		m_Path = FindPath(transform, targetPos);
+	//		if (m_Path.empty()) {
+	//			spdlog::warn("Chase: Path is empty!");
+	//		}
+	//		else {
+	//			spdlog::info("Chase: Path found with {} points", m_Path.size());
+	//		}
+	//		m_CurrentPathIndex = 0;
+	//		m_ChasePathUpdateTimer = 0.0f;
+	//	}
+
+	//	// Wykonaj ruch po œcie¿ce
+	//	if (!m_Path.empty() && m_CurrentPathIndex < m_Path.size()) {
+	//		glm::vec3 nextPoint = m_Path[m_CurrentPathIndex];
+	//		float distToNext = glm::distance(transform, nextPoint);
+
+	//		if (distToNext < 0.5f) {
+	//			m_CurrentPathIndex++;
+	//			// Jeœli dotarliœmy do koñca œcie¿ki (blisko gracza), wyczyœæ œcie¿kê
+	//			if (m_CurrentPathIndex >= m_Path.size()) {
+	//				// Opcjonalnie: sprawdŸ, czy gracz jest w zasiêgu ataku
+	//				m_Path.clear();
+	//				m_CurrentPathIndex = 0;
+	//			}
+	//		}
+	//		else {
+	//			MoveInDirection(nextPoint - transform);
+	//		}
+	//	}
+	//	else {
+	//		// Œcie¿ka pusta – zatrzymaj AI
+	//		glm::vec3 currentVel = m_Body->GetLinearVelocity();
+	//		m_Body->SetLinearVelocity(glm::vec3(0, currentVel.y, 0));
+	//	}
+	//}
 	void AiNode::AstarChase() {
-		if (!m_Surface || !m_TargetNode) return;
+	if (!m_Surface || !m_TargetNode) return;if (!m_TargetNode) return;
+    glm::vec3 targetPos = m_TargetNode->GlobalTransform().Position();
 
-		// Upewnij siê, ¿e pozycja AI jest aktualna
-		transform = m_Body->GetPosition();
-		glm::vec3 targetPos = m_TargetNode->GlobalTransform().Position();
+    m_ChasePathUpdateTimer += Time::Delta();
+    if (m_ChasePathUpdateTimer > 0.5f || m_Path.empty()) {
+        m_Path = AStarManager::Instance().FindPath(transform, targetPos);
+        m_CurrentPathIndex = 0;
+        m_ChasePathUpdateTimer = 0.0f;
+    }
 
-		// Aktualizuj œcie¿kê co 0.5 s lub gdy jest pusta
-		m_ChasePathUpdateTimer += Time::Delta();
-		if (m_ChasePathUpdateTimer > 0.5f || m_Path.empty()) {
-			m_Path = FindPath(transform, targetPos);
-			if (m_Path.empty()) {
-				spdlog::warn("Chase: Path is empty!");
-			}
-			else {
-				spdlog::info("Chase: Path found with {} points", m_Path.size());
-			}
-			m_CurrentPathIndex = 0;
-			m_ChasePathUpdateTimer = 0.0f;
-		}
-
-		// Wykonaj ruch po œcie¿ce
-		if (!m_Path.empty() && m_CurrentPathIndex < m_Path.size()) {
-			glm::vec3 nextPoint = m_Path[m_CurrentPathIndex];
-			float distToNext = glm::distance(transform, nextPoint);
-
-			if (distToNext < 0.5f) {
-				m_CurrentPathIndex++;
-				// Jeœli dotarliœmy do koñca œcie¿ki (blisko gracza), wyczyœæ œcie¿kê
-				if (m_CurrentPathIndex >= m_Path.size()) {
-					// Opcjonalnie: sprawdŸ, czy gracz jest w zasiêgu ataku
-					m_Path.clear();
-					m_CurrentPathIndex = 0;
-				}
-			}
-			else {
-				MoveInDirection(nextPoint - transform);
-			}
-		}
-		else {
-			// Œcie¿ka pusta – zatrzymaj AI
-			glm::vec3 currentVel = m_Body->GetLinearVelocity();
-			m_Body->SetLinearVelocity(glm::vec3(0, currentVel.y, 0));
-		}
+    if (!m_Path.empty() && m_CurrentPathIndex < m_Path.size()) {
+        glm::vec3 next = m_Path[m_CurrentPathIndex];
+        if (glm::distance(transform, next) < 0.5f) {
+            m_CurrentPathIndex++;
+        } else {
+            MoveInDirection(next - transform);
+        }
+    }
 	}
-
 	void AiNode::Chase() {
 		glm::vec3 targetPos = m_TargetNode->GlobalTransform().Position();
     glm::vec3 dir = targetPos - transform;
@@ -458,7 +464,6 @@ void AiNode::SpawnProjectile(const glm::vec3& targetPos) {
     projectileNode->GlobalTransform().Position() = startPos;
     projectileNode->GlobalTransform().Scale() = glm::vec3(0.2f);
 
-    // Tworzenie ustawień ciała fizycznego
     JPH::BodyCreationSettings projectileSettings(
         new JPH::SphereShape(0.2f),
         JPH::RVec3(startPos.x, startPos.y, startPos.z),
@@ -538,7 +543,7 @@ void AiNode::StopMoving() {
 	}
 
 	void AiNode::SearchWalkPoint() {
-		if (m_Surface) {
+		/*if (m_Surface) {
 			if (patrolPoints.size() > 0) {
 				LookForNextPoint();
 			}
@@ -547,7 +552,11 @@ void AiNode::StopMoving() {
 				walkPointSet = true;
 			}
 
-		}
+		}*/
+		if (m_NavGrid && m_NavGrid->IsBuilt()) {
+    walkPoint = m_NavGrid->GetRandomWalkablePosition(transform, walkPointRange);
+    walkPointSet = true;
+}
 		else {
 
 			std::random_device rd;

@@ -6,6 +6,9 @@
 #include <Surface.h>
 #include <vector>
 #include <glm/vec3.hpp>
+#include "astar/NavigationGrid.h"
+
+class NavigationGrid;
 
 
 class AiNode : public GameObject {
@@ -29,7 +32,7 @@ private:
     Mesh* m_ProjectileMesh;
     Material* m_ProjectileMaterial; 
     int m_hp;
-
+    NavigationGrid* m_NavGrid = nullptr;
 
     void Patrol();
     void Chase();

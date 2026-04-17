@@ -25,4 +25,6 @@ public:
     bool IsOnSurface(const glm::vec3& point) const;
 
     float GetGroundHeight(float x, float z) const;
+    const std::vector<glm::vec3>& GetWalkablePoints() const { return walkablePoints; }
+
 };
