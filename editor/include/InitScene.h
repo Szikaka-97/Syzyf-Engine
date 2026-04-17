@@ -241,11 +241,13 @@ inline void InitScene(Scene& mainScene, Camera*& mainCamera) {
     envProbe3->GlobalTransform().Position() = {-29.0f, 1.5f, 0.6f};
 
     SceneNode* skeletonNode = GltfImporter::LoadScene(
-        &mainScene, "./res/models/szkielet5.glb", "Szkielet");
+        &mainScene, "./res/models/szkielet6.glb", "Szkielet");
+    skeletonNode->GlobalTransform().Scale() = glm::vec3(0.2f);
 
     SceneNode* skeleton2Node = GltfImporter::LoadScene(
-        &mainScene, "./res/models/szkielet5.glb", "Szkielet2");
-    skeleton2Node->GlobalTransform().Position() = {0.0f, 0.0f, 7.0f};
+        &mainScene, "./res/models/szkielet6.glb", "Szkielet2");
+    skeleton2Node->GlobalTransform().Position() = {0.0f, 0.0f, 5.0f};
+    skeleton2Node->GlobalTransform().Scale() = glm::vec3(0.2f);
 
     SceneNode* bimberman = GltfImporter::LoadScene(
         &mainScene, "./res/models/bimbermann.glb", "Bimberman");

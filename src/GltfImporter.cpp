@@ -22,7 +22,7 @@
 #include <glm/trigonometric.hpp>
 #include <spdlog/spdlog.h>
 
-SceneNode* GltfImporter::LoadScene(Scene* scene, const fs::path path, std::string name) {
+SceneNode* GltfImporter::LoadScene(Scene* scene, const fs::path path, std::string name, SceneNode* parent) {
   if (!std::filesystem::exists(path)) {
     spdlog::warn("GltfImporter: File not found: {}", path.string());
     return nullptr;
@@ -57,7 +57,7 @@ SceneNode* GltfImporter::LoadScene(Scene* scene, const fs::path path, std::strin
   bool isSkinned = !asset->skins.empty();
   std::vector<Material*> materials = LoadMaterials(scene, asset.get(), isSkinned);
   
-  SceneNode* root = scene->CreateNode(name);
+  SceneNode* root = scene->CreateNode(parent, name);
   auto& nodeIndices = asset->scenes[asset->defaultScene.value()].nodeIndices;
 
   // Saving scene nodes to be able to add them as targets when adding animations

@@ -15,7 +15,7 @@ class Mesh;
 
 class GltfImporter {
 public:
-  static SceneNode* LoadScene(Scene* scene, const std::filesystem::path path, std::string name = "");
+  static SceneNode* LoadScene(Scene* scene, const std::filesystem::path path, std::string name = "", SceneNode* parent = nullptr);
 private:
   static SceneNode* CreateNode(fastgltf::Node& gltfNode, std::vector<Material*>& materials, fastgltf::Asset& asset, Scene* scene, std::vector<SceneNode*>& sceneNodes, SceneNode* parent = nullptr);
 
