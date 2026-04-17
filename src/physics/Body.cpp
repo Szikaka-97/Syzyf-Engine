@@ -79,8 +79,11 @@ JPH::BodyCreationSettings Body::Capsule(float halfHeight, float radius, const JP
 }
 
 JPH::BodyCreationSettings Body::Plane(glm::vec3 normal, const JPH::EMotionType type, const JPH::ObjectLayer layer) {
+  JPH::Vec3 joltNormal(normal.x, normal.y, normal.z);
+  joltNormal = joltNormal.Normalized();
+
   return JPH::BodyCreationSettings (
-    new JPH::PlaneShape,
+    new JPH::PlaneShape(JPH::Plane(joltNormal, 0.0f)),
     JPH::RVec3Arg::sZero(),
     JPH::QuatArg::sIdentity(),
     type,

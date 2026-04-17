@@ -1,4 +1,5 @@
 #include "physics/System.h"
+#include "Jolt/Physics/Collision/BroadPhase/BroadPhase.h"
 #include "Jolt/Physics/Collision/TransformedShape.h"
 #include "physics/CharacterController.h"
 #include "physics/ICollisionReceiver.h"
@@ -86,6 +87,7 @@ namespace Physics {
       switch ((JPH::BroadPhaseLayer::Type)inLayer) {
       case (JPH::BroadPhaseLayer::Type)BroadPhaseLayers::NON_MOVING:	return "NON_MOVING";
       case (JPH::BroadPhaseLayer::Type)BroadPhaseLayers::MOVING: return "MOVING";
+      case (JPH::BroadPhaseLayer::Type)BroadPhaseLayers::EDITOR: return "EDITOR";
       default: JPH_ASSERT(false); return "INVALID";
       }
     }

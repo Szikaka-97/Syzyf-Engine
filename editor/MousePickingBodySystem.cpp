@@ -1,6 +1,7 @@
 #include "MousePickingBodySystem.h"
 #include "InitScene.h"
 #include "MousePickingBody.h"
+#include "ReflectionProbe.h"
 
 #include <MeshRenderer.h>
 #include <Scene.h>
@@ -23,7 +24,8 @@ void MousePickingBodySystem::UpdateBodies(SceneNode* node) {
     if (!body && !node->GetObject<EditorCameraTag>()) {
         if (auto* mr = node->GetObject<MeshRenderer>()) {
             body = MousePickingBody::CreateFromMesh(node, mr->GetMesh());
-        } else if (node->GetObject<Light>()) {
+        } else if (node->GetObject<Light>() ||
+                   node->GetObject<ReflectionProbe>()) {
             // enable this for other objects as well
             body = MousePickingBody::CreateSphere(node);
         }
