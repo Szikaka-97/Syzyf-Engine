@@ -7,6 +7,7 @@
 #include "panels/MainMenuBar.h"
 #include "panels/SceneViewPanel.h"
 
+#include "panels/SystemsDebugPanel.h"
 #include "thirdparty/ImGuizmo.h"
 #include <SDL3/SDL_video.h>
 class Scene;
@@ -39,6 +40,7 @@ class Application {
     InspectorPanel inspectorPanel;
     GraphPanel graphPanel;
     SceneViewPanel sceneViewPanel;
+    SystemsDebugPanel systemsDebugPanel; // Rename
 
   public:
     bool Setup();

@@ -1,5 +1,6 @@
 #include "panels/InspectorPanel.h"
 #include "Application.h"
+#include "MousePickingBody.h"
 
 #include <Debug.h>
 #include <Scene.h>
@@ -12,6 +13,7 @@
 #include <string>
 
 namespace Editor {
+
 void InspectorPanel::Draw(Context& context) {
     ImGui::Begin("Inspector");
     if (context.selectedNode != nullptr) {
@@ -123,7 +125,9 @@ void InspectorPanel::Draw(Context& context) {
             context.selectedNode->GetObject<AnimationComponent>();
         if (animationComponent != nullptr) {
             if (ImGui::TreeNode("Animation")) {
+                int animationIndex = 0;
                 for (auto& animation : animationComponent->animations) {
+                    ImGui::PushID(animationIndex++);
                     if (ImGui::TreeNode(animation.data.name.c_str())) {
                         ImGui::Text("%s", std::format("Duration: {}",
                                                       animation.data.duration)
@@ -138,6 +142,8 @@ void InspectorPanel::Draw(Context& context) {
                         // animation.data.tracks.front().inputs add this maybe
                         ImGui::TreePop();
                     }
+
+                    ImGui::PopID();
                 }
                 ImGui::TreePop();
             };
@@ -145,6 +151,10 @@ void InspectorPanel::Draw(Context& context) {
 
         int index = 0;
         for (GameObject* obj : context.selectedNode->AttachedObjects()) {
+            if (dynamic_cast<MousePickingBody*>(obj) != nullptr) {
+                continue;
+            }
+
             ImGui::PushID(obj->GetID());
             if (ImGui::TreeNode(
                     std::format("{}: {}", index, obj->GetName()).c_str())) {

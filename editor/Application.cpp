@@ -114,19 +114,6 @@ void Application::Terminate() {
     SDL_Quit();
 }
 
-void DrawSystemDebug(Context& context) {
-    ImGui::Begin("Systems");
-
-    if (context.selectedScene) {
-        if (Physics::System* physicsSystem =
-                context.selectedScene->GetComponent<Physics::System>()) {
-            physicsSystem->DrawImGui();
-        }
-    }
-
-    ImGui::End();
-}
-
 void Application::MainLoop() {
     // temporary
     this->context.selectedScene = Scene::CreateStandaloneScene();
@@ -157,7 +144,7 @@ void Application::MainLoop() {
 
         this->mainMenuBar.Draw(shouldClose, this->settings);
         this->graphPanel.Draw(this->context);
-        DrawSystemDebug(this->context);
+        this->systemsDebugPanel.Draw(this->context);
         this->inspectorPanel.Draw(this->context);
         this->filesPanel.Draw();
         this->sceneViewPanel.Draw(this->context);
