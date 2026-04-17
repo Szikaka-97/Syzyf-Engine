@@ -1,6 +1,12 @@
 #include "include/Application.h"
+#include "ComponentRegistry.h"
 #include "InitScene.h"
+#include "Jolt/Physics/Body/BodyCreationSettings.h"
+#include "Light.h"
 #include "MousePickingBodySystem.h"
+#include "ParticleSpawner.h"
+#include "fog/Fog.h"
+#include "fog/VolumetricFog.h"
 #include "panels/ConsolePanel.h"
 
 #include "thirdparty/ImViewGuizmo.h"
@@ -115,6 +121,7 @@ bool Application::InitImGui() {
 bool Application::Setup() {
     this->settings.Load();
     this->InitSpdlog();
+    ComponentRegistry::RegisterComponents();
 
     return this->InitProgram() && this->InitImGui();
 }

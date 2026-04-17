@@ -14,5 +14,6 @@ class GraphPanel {
 
   private:
     void DrawGraphNode(Context& context, SceneNode& node);
+    void DrawContextMenu(Context& context);
 };
 } // namespace Editor

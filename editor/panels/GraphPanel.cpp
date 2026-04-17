@@ -1,5 +1,6 @@
 #include "panels/GraphPanel.h"
 #include "Application.h"
+#include "imgui.h"
 
 #include <Scene.h>
 
@@ -33,29 +34,7 @@ void GraphPanel::Draw(Context& context) {
         ImGui::PopStyleVar();
     }
 
-    // Context menu
-    if (ImGui::BeginPopupContextWindow("GraphContextMenu",
-                                       ImGuiPopupFlags_MouseButtonRight)) {
-        bool hasScene = (context.selectedScene != nullptr);
-
-        if (ImGui::MenuItem("Create Node", nullptr, false, hasScene)) {
-            if (context.selectedScene != nullptr) {
-                SceneNode* parent = context.selectedNode
-                                        ? context.selectedNode
-                                        : context.selectedScene->GetRootNode();
-                context.selectedScene->CreateNode(parent, "New Node");
-            }
-        }
-        ImGui::EndPopup();
-    }
-
-    // Deselect node if empty space is pressed
-    if (ImGui::IsWindowHovered() &&
-        ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
-        if (!ImGui::IsAnyItemHovered()) {
-            context.selectedNode = nullptr;
-        }
-    }
+    this->DrawContextMenu(context);
 
     ImGui::End();
 }
@@ -91,7 +70,9 @@ void GraphPanel::DrawGraphNode(Context& context, SceneNode& node) {
     bool nodeOpen = ImGui::TreeNodeEx((void*)(intptr_t)node.GetID(), flags,
                                       "%s", treeHeader.c_str());
 
-    if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen()) {
+    if ((ImGui::IsItemClicked(ImGuiMouseButton_Left) ||
+         ImGui::IsItemClicked(ImGuiMouseButton_Right)) &&
+        !ImGui::IsItemToggledOpen()) {
         context.selectedNode = &node;
     }
 
@@ -123,5 +104,77 @@ void GraphPanel::DrawGraphNode(Context& context, SceneNode& node) {
         ImGui::TreePop();
     }
     ImGui::PopID();
+}
+
+void GraphPanel::DrawContextMenu(Context& context) {
+    bool drawRenamePopup = false;
+
+    if (ImGui::BeginPopupContextWindow("GraphContextMenu",
+                                       ImGuiPopupFlags_MouseButtonRight)) {
+        bool hasScene = (context.selectedScene != nullptr);
+
+        if (ImGui::MenuItem("Create Node", nullptr, false, hasScene)) {
+            if (context.selectedScene != nullptr) {
+                SceneNode* parent = context.selectedNode
+                                        ? context.selectedNode
+                                        : context.selectedScene->GetRootNode();
+                context.selectedScene->CreateNode(parent, "New Node");
+            }
+        }
+
+        if (context.selectedNode != nullptr) {
+            if (ImGui::MenuItem("Rename Node")) {
+                drawRenamePopup = true;
+            }
+        }
+        ImGui::EndPopup();
+    }
+
+    // Deselect node if empty space is pressed
+    if (ImGui::IsWindowHovered() &&
+        (ImGui::IsMouseClicked(ImGuiMouseButton_Left) ||
+         ImGui::IsMouseClicked(ImGuiMouseButton_Right))) {
+        if (!ImGui::IsAnyItemHovered()) {
+            context.selectedNode = nullptr;
+        }
+    }
+
+    if (drawRenamePopup) {
+        ImGui::OpenPopup("RenamePopup");
+    }
+
+    if (ImGui::BeginPopup("RenamePopup")) {
+        static char nameBuffer[256] = "";
+
+        if (context.selectedNode != nullptr) {
+            if (ImGui::IsWindowAppearing()) {
+                strncpy(nameBuffer, context.selectedNode->GetName().c_str(),
+                        sizeof(nameBuffer) - 1);
+                nameBuffer[sizeof(nameBuffer) - 1] = '\0';
+                ImGui::SetKeyboardFocusHere();
+            }
+
+            bool applyRename = false;
+            if (ImGui::InputText("##NewNodeName", nameBuffer,
+                                 sizeof(nameBuffer),
+                                 ImGuiInputTextFlags_EnterReturnsTrue)) {
+                applyRename = true;
+            }
+
+            ImGui::SameLine();
+            if (ImGui::Button("Save")) {
+                applyRename = true;
+            }
+
+            if (applyRename) {
+                context.selectedNode->SetName(nameBuffer);
+                ImGui::CloseCurrentPopup();
+            }
+        } else {
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
+    }
 }
 } // namespace Editor

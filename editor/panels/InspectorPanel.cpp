@@ -1,5 +1,6 @@
 #include "panels/InspectorPanel.h"
 #include "Application.h"
+#include "ComponentRegistry.h"
 #include "MousePickingBody.h"
 
 #include <Debug.h>
@@ -179,7 +180,39 @@ void InspectorPanel::Draw(Context& context) {
             index++;
             ImGui::PopID();
         }
+
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        if (ImGui::Button("Add Component", ImVec2(-1, 30))) {
+            this->showAddComponentWindow = true;
+        }
     }
     ImGui::End();
+
+    if (this->showAddComponentWindow && context.selectedNode != nullptr) {
+        ImGuiWindowFlags flags =
+            ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_AlwaysAutoResize;
+
+        ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+        ImGui::SetNextWindowPos(center, ImGuiCond_Appearing,
+                                ImVec2(0.5f, 0.5f));
+
+        ImGui::Begin("Add Component", &this->showAddComponentWindow, flags);
+
+        ImGui::Text("Select a component to add to: %s",
+                    context.selectedNode->GetName().c_str());
+        ImGui::Separator();
+
+        for (const auto& [name, factoryFunc] :
+             ComponentRegistry::Get().GetFactories()) {
+            if (ImGui::Selectable(name.c_str())) {
+                factoryFunc(context.selectedNode);
+                this->showAddComponentWindow = false;
+            }
+        }
+        ImGui::End();
+    }
 }
 } // namespace Editor
