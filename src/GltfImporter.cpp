@@ -437,12 +437,13 @@ Mesh* GltfImporter::LoadMesh(fastgltf::Mesh& gltfMesh, fastgltf::Asset& asset, s
     auto* jointsIt = it->findAttribute("JOINTS_0");
     if (jointsIt != it->attributes.end()) {
       auto& jointsAccessor = asset.accessors[jointsIt->accessorIndex];
-      fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec4>(asset, jointsAccessor, [&](fastgltf::math::fvec4 joints, std::size_t index) {
+      
+      fastgltf::iterateAccessorWithIndex<fastgltf::math::uvec4>(asset, jointsAccessor, [&](fastgltf::math::uvec4 joints, std::size_t index) {
         float* target = mesh->vertexData + ((vertexPointer + index) * mesh->vertexStride) + jointsOffset;
-        target[0] = joints.x();
-        target[1] = joints.y();
-        target[2] = joints.z();
-        target[3] = joints.w();
+        target[0] = static_cast<float>(joints.x());
+        target[1] = static_cast<float>(joints.y());
+        target[2] = static_cast<float>(joints.z());
+        target[3] = static_cast<float>(joints.w());
       });
     }
 
@@ -463,6 +464,61 @@ Mesh* GltfImporter::LoadMesh(fastgltf::Mesh& gltfMesh, fastgltf::Asset& asset, s
       primitive.indexData[index] = ind + vertexPointer;
     });
 
+    // Replace with this later: https://github.com/mmikk/MikkTSpace
+    if (tangentIt == it->attributes.end() && primitive.type == Mesh::MeshType::Triangles) {
+        for (unsigned int i = 0; i < primitive.faceCount * 3; i += 3) {
+            unsigned int i0 = primitive.indexData[i];
+            unsigned int i1 = primitive.indexData[i + 1];
+            unsigned int i2 = primitive.indexData[i + 2];
+
+            float* v0 = mesh->vertexData + (i0 * mesh->vertexStride);
+            float* v1 = mesh->vertexData + (i1 * mesh->vertexStride);
+            float* v2 = mesh->vertexData + (i2 * mesh->vertexStride);
+
+            glm::vec3 pos0(v0[0], v0[1], v0[2]);
+            glm::vec3 pos1(v1[0], v1[1], v1[2]);
+            glm::vec3 pos2(v2[0], v2[1], v2[2]);
+
+            glm::vec2 uv0(v0[uv1Offset], v0[uv1Offset + 1]);
+            glm::vec2 uv1(v1[uv1Offset], v1[uv1Offset + 1]);
+            glm::vec2 uv2(v2[uv1Offset], v2[uv1Offset + 1]);
+
+            glm::vec3 edge1 = pos1 - pos0;
+            glm::vec3 edge2 = pos2 - pos0;
+
+            glm::vec2 deltaUV1 = uv1 - uv0;
+            glm::vec2 deltaUV2 = uv2 - uv0;
+
+            float f = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
+            
+            if (!std::isfinite(f)) f = 0.0f;
+
+            glm::vec3 tangent;
+            tangent.x = f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
+            tangent.y = f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
+            tangent.z = f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
+
+            v0[tangentOffset] += tangent.x; v0[tangentOffset + 1] += tangent.y; v0[tangentOffset + 2] += tangent.z;
+            v1[tangentOffset] += tangent.x; v1[tangentOffset + 1] += tangent.y; v1[tangentOffset + 2] += tangent.z;
+            v2[tangentOffset] += tangent.x; v2[tangentOffset + 1] += tangent.y; v2[tangentOffset + 2] += tangent.z;
+        }
+
+        auto& positionAccessor = asset.accessors[positionIt->accessorIndex];
+        for (std::size_t i = 0; i < positionAccessor.count; ++i) {
+            float* v = mesh->vertexData + ((vertexPointer + i) * mesh->vertexStride);
+            glm::vec3 t(v[tangentOffset], v[tangentOffset + 1], v[tangentOffset + 2]);
+            
+            if (glm::length(t) > 0.0001f) {
+                t = glm::normalize(t);
+                v[tangentOffset] = t.x;
+                v[tangentOffset + 1] = t.y;
+                v[tangentOffset + 2] = t.z;
+                v[tangentOffset + 3] = 1.0f;
+            } else {
+                v[tangentOffset] = 1.0f; v[tangentOffset + 1] = 0.0f; v[tangentOffset + 2] = 0.0f; v[tangentOffset + 3] = 1.0f;
+            }
+        }
+    }
     vertexPointer += positionAccessor.count;
   }
 

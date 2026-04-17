@@ -22,7 +22,12 @@ void SkeletonSystem::OnPreUpdate() {
   }
 
   glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->skinningBuffer);
-  glBufferData(GL_SHADER_STORAGE_BUFFER, totalJoints * sizeof(glm::mat4), nullptr, GL_DYNAMIC_DRAW);
+
+  std::size_t requiredSize = totalJoints * sizeof(glm::mat4);
+  if (this->currentBufferSize < requiredSize) {
+      glBufferData(GL_SHADER_STORAGE_BUFFER, requiredSize, nullptr, GL_DYNAMIC_DRAW);
+      this->currentBufferSize = requiredSize;
+  }
 
   int currentOffset = 0;
   for (auto* skeleton : objects) {

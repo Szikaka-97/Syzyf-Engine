@@ -138,10 +138,10 @@ void AnimationSystem::OnPreUpdate() {
                     track.outputs[upperIndex * 4 + 6],
                   };
 
-                  glm::quat previousTangent = deltaTime * lowerOutputTangent;
-                  glm::quat nextTangent = deltaTime * upperInputTangent;
+                  glm::quat previousTangent = keyFrameDuration * lowerOutputTangent;
+                  glm::quat nextTangent = keyFrameDuration * upperInputTangent;
 
-                  rotation = cubicSpline(lowerValue, previousTangent, upperValue, nextTangent, interpolationValue);
+                  rotation = glm::normalize(cubicSpline(lowerValue, previousTangent, upperValue, nextTangent, interpolationValue));
                   break;
                 }
               track.target->LocalTransform().Rotation() = rotation;
@@ -199,8 +199,8 @@ void AnimationSystem::OnPreUpdate() {
                     track.outputs[upperIndex * 3 + 5],
                   };
 
-                  glm::vec3 previousTangent = deltaTime * lowerOutputTangent;
-                  glm::vec3 nextTangent = deltaTime * upperInputTangent;
+                  glm::vec3 previousTangent = keyFrameDuration * lowerOutputTangent;
+                  glm::vec3 nextTangent = keyFrameDuration * upperInputTangent;
 
                   position = cubicSpline(lowerValue, previousTangent, upperValue, nextTangent, interpolationValue);
                   break;
@@ -260,8 +260,8 @@ void AnimationSystem::OnPreUpdate() {
                     track.outputs[upperIndex * 3 + 5],
                   };
 
-                  glm::vec3 previousTangent = deltaTime * lowerOutputTangent;
-                  glm::vec3 nextTangent = deltaTime * upperInputTangent;
+                  glm::vec3 previousTangent = keyFrameDuration * lowerOutputTangent;
+                  glm::vec3 nextTangent = keyFrameDuration * upperInputTangent;
 
                   scale = cubicSpline(lowerValue, previousTangent, upperValue, nextTangent, interpolationValue);
                   break;

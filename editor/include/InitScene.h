@@ -643,9 +643,15 @@ inline void InitScene(Scene& mainScene, Camera*& mainCamera) {
     waterBody->SetIsSensor(true);
     waterBody->SetCollisionLayerAndMask({1});
 
-    Scene* animatedGltfScene = GltfImporter::LoadScene(
-        "./res/models/jake_tangents.glb", "Animated Gltf");
-    mainScene.GetRootNode()->AttachScene(animatedGltfScene);
+    // SceneNode* jakeAttachment = mainScene.CreateNode("Jake");
+    // Scene* animatedGltfScene =
+    //     GltfImporter::LoadScene("./res/models/jake_tangents.glb", "Jake");
+    // jakeAttachment->AttachScene(animatedGltfScene);
+
+    SceneNode* skeletonAttachment = mainScene.CreateNode("Skeleton");
+    Scene* skeletonGltfScene =
+        GltfImporter::LoadScene("./res/models/szkielet5.glb", "Szkielet");
+    skeletonAttachment->AttachScene(skeletonGltfScene);
 
     mainScene.AddComponent<DebugInspector>();
     mainScene.AddComponent<AnimationSystem>();
