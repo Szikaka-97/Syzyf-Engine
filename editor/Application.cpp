@@ -161,18 +161,15 @@ void Application::MainLoop() {
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplSDL3_NewFrame();
         ImGui::NewFrame();
+
+        this->Input();
+
         ImGuizmo::BeginFrame();
         ImViewGuizmo::BeginFrame();
 
         ImGui::DockSpaceOverViewport(ImGui::GetMainViewport()->ID);
 
-        this->mainMenuBar.Draw(shouldClose, this->settings);
-        this->graphPanel.Draw(this->context);
-        this->systemsDebugPanel.Draw(this->context);
-        this->inspectorPanel.Draw(this->context);
-        this->filesPanel.Draw();
-        this->consolePanel.Draw();
-        this->sceneViewPanel.Draw(this->context);
+        this->DrawPanels(shouldClose);
 
         ImGui::Render();
         ImGuiIO& io = ImGui::GetIO();
@@ -183,5 +180,28 @@ void Application::MainLoop() {
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         SDL_GL_SwapWindow(window);
     }
+}
+
+void Application::Input() {
+    if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Z,
+                        ImGuiInputFlags_RouteGlobal)) {
+        spdlog::info("ctrlz");
+        this->context.commandHistory.Undo();
+    }
+    if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_Z,
+                        ImGuiInputFlags_RouteGlobal)) {
+        this->context.commandHistory.Redo();
+        spdlog::info("ctrlz shift");
+    }
+}
+
+void Application::DrawPanels(bool& shouldClose) {
+    this->mainMenuBar.Draw(this->context, shouldClose, this->settings);
+    this->graphPanel.Draw(this->context);
+    this->systemsDebugPanel.Draw(this->context);
+    this->inspectorPanel.Draw(this->context);
+    this->filesPanel.Draw();
+    this->consolePanel.Draw();
+    this->sceneViewPanel.Draw(this->context);
 }
 } // namespace Editor

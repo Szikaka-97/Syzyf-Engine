@@ -1,5 +1,6 @@
 #include "panels/SceneViewPanel.h"
 #include "Application.h"
+#include "Commands.h"
 
 #include <imgui.h>
 #define IMVIEWGUIZMO_IMPLEMENTATION
@@ -80,6 +81,12 @@ void SceneViewPanel::Draw(Context& context) {
                                  glm::value_ptr(nodeTransform));
 
             if (ImGuizmo::IsUsing()) {
+                if (this->wasViewGuizmoUsed == false) {
+                    this->wasViewGuizmoUsed = true;
+                    this->initialLocalTransform =
+                        context.selectedNode->LocalTransform().Value();
+                }
+
                 context.selectedNode->GlobalTransform() = nodeTransform;
 
                 if (SceneNode* parent = context.selectedNode->GetParent()) {
@@ -90,6 +97,13 @@ void SceneViewPanel::Draw(Context& context) {
                 } else {
                     context.selectedNode->LocalTransform() = nodeTransform;
                 }
+            } else if (this->wasViewGuizmoUsed) {
+                this->wasViewGuizmoUsed = false;
+
+                context.commandHistory.ExecuteCommand(
+                    std::make_unique<TransformCommand>(
+                        context.selectedNode, this->initialLocalTransform,
+                        context.selectedNode->LocalTransform().Value()));
             }
         }
 

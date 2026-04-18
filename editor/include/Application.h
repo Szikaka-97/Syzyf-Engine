@@ -1,5 +1,6 @@
 #pragma once
 
+#include "CommandHistory.h"
 #include "Settings.h"
 #include "panels/ConsolePanel.h"
 #include "panels/FilesPanel.h"
@@ -18,6 +19,7 @@ class Camera;
 namespace Editor {
 
 struct Context {
+    CommandHistory commandHistory;
     Scene* selectedScene = nullptr;
     SceneNode* selectedNode = nullptr;
     Camera* mainCamera = nullptr;
@@ -53,5 +55,8 @@ class Application {
     void InitSpdlog();
     bool InitProgram();
     bool InitImGui();
+
+    void Input();
+    void DrawPanels(bool& shouldClose);
 };
 } // namespace Editor

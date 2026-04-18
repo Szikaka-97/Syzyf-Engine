@@ -2,6 +2,7 @@
 
 #include <Jolt/Jolt.h>
 #include <Jolt/Physics/Collision/ObjectLayer.h>
+#include <glm/glm.hpp>
 #include <physics/System.h>
 
 class Scene;
@@ -18,6 +19,10 @@ class SceneViewPanel {
             return inLayer == Physics::Layers::EDITOR;
         }
     };
+
+    bool wasViewGuizmoUsed = false;
+    glm::mat4 initialGlobalTransform;
+    glm::mat4 initialLocalTransform;
 
     EditorLayerFilter filter;
 

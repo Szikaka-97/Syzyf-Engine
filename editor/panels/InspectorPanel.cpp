@@ -1,5 +1,6 @@
 #include "panels/InspectorPanel.h"
 #include "Application.h"
+#include "Commands.h"
 #include "ComponentRegistry.h"
 #include "MousePickingBody.h"
 
@@ -59,65 +60,136 @@ void InspectorPanel::Draw(Context& context) {
 
         if (ImGui::TreeNodeEx("Transform", ImGuiTreeNodeFlags_DefaultOpen)) {
             ImGui::Text("Position");
-
             glm::vec3 position =
                 context.selectedNode->GlobalTransform().Position();
 
             ImGui::InputFloat3("##Position", &position[0]);
+            if (ImGui::IsItemActivated()) {
+                this->initialPosition =
+                    context.selectedNode->GlobalTransform().Position();
+            }
+            if (ImGui::IsItemEdited()) {
+                context.selectedNode->GlobalTransform().Position() = position;
+            }
+            if (ImGui::IsItemDeactivatedAfterEdit()) {
+                context.commandHistory.ExecuteCommand(
+                    std::make_unique<TranslateCommand>(
+                        context.selectedNode, this->initialPosition, position));
+            }
 
             glm::vec3 positionDelta = glm::zero<glm::vec3>();
-
             ImGui::SliderFloat3("##PositionDelta", &positionDelta[0], -1, 1);
-
-            position += positionDelta;
-
-            context.selectedNode->GlobalTransform().Position() = position;
+            if (ImGui::IsItemActivated()) {
+                this->initialPosition =
+                    context.selectedNode->GlobalTransform().Position();
+            }
+            if (ImGui::IsItemEdited()) {
+                position += positionDelta;
+                context.selectedNode->GlobalTransform().Position() = position;
+            }
+            if (ImGui::IsItemDeactivatedAfterEdit()) {
+                context.commandHistory.ExecuteCommand(
+                    std::make_unique<TranslateCommand>(
+                        context.selectedNode, this->initialPosition,
+                        context.selectedNode->GlobalTransform().Position()));
+            }
 
             ImGui::Text("Rotation");
-
             glm::vec3 rotationEuler = glm::degrees(glm::eulerAngles(
                 context.selectedNode->GlobalTransform().Rotation().Value()));
 
             ImGui::InputFloat3("##Rotation", &rotationEuler[0]);
 
-            context.selectedNode->GlobalTransform().Rotation() =
-                glm::quat(glm::radians(rotationEuler));
+            if (ImGui::IsItemActivated()) {
+                this->initialRotation =
+                    context.selectedNode->GlobalTransform().Rotation().Value();
+            }
+            if (ImGui::IsItemEdited()) {
+                context.selectedNode->GlobalTransform().Rotation() =
+                    glm::quat(glm::radians(rotationEuler));
+            }
+            if (ImGui::IsItemDeactivatedAfterEdit()) {
+                context.commandHistory.ExecuteCommand(
+                    std::make_unique<RotateCommand>(
+                        context.selectedNode, initialRotation,
+                        context.selectedNode->GlobalTransform()
+                            .Rotation()
+                            .Value()));
+            }
 
             glm::vec3 rotationDelta = glm::zero<glm::vec3>();
-
             ImGui::SliderFloat3("##RotationDelta", &rotationDelta[0], -1, 1);
-
-            context.selectedNode->GlobalTransform().Rotation() *=
-                glm::angleAxis(glm::radians(rotationDelta.x),
-                               glm::vec3(1, 0, 0)) *
-                glm::angleAxis(glm::radians(rotationDelta.y),
-                               glm::vec3(0, 1, 0)) *
-                glm::angleAxis(glm::radians(rotationDelta.z),
-                               glm::vec3(0, 0, 1));
+            if (ImGui::IsItemActivated()) {
+                this->initialRotation =
+                    context.selectedNode->GlobalTransform().Rotation().Value();
+            }
+            if (ImGui::IsItemEdited()) {
+                context.selectedNode->GlobalTransform().Rotation() *=
+                    glm::angleAxis(glm::radians(rotationDelta.x),
+                                   glm::vec3(1, 0, 0)) *
+                    glm::angleAxis(glm::radians(rotationDelta.y),
+                                   glm::vec3(0, 1, 0)) *
+                    glm::angleAxis(glm::radians(rotationDelta.z),
+                                   glm::vec3(0, 0, 1));
+            }
+            if (ImGui::IsItemDeactivatedAfterEdit()) {
+                context.commandHistory.ExecuteCommand(
+                    std::make_unique<RotateCommand>(
+                        context.selectedNode, this->initialRotation,
+                        context.selectedNode->GlobalTransform()
+                            .Rotation()
+                            .Value()));
+            }
 
             ImGui::Text("Scale");
-
             glm::vec3 scale = context.selectedNode->GlobalTransform().Scale();
 
             ImGui::InputFloat3("##Scale", &scale[0]);
+            if (ImGui::IsItemActivated()) {
+                this->initialScale =
+                    context.selectedNode->GlobalTransform().Scale();
+            }
+            if (ImGui::IsItemEdited()) {
+                context.selectedNode->GlobalTransform().Scale() = scale;
+            }
+            if (ImGui::IsItemDeactivatedAfterEdit()) {
+                context.commandHistory.ExecuteCommand(
+                    std::make_unique<ScaleCommand>(
+                        context.selectedNode, this->initialScale,
+                        context.selectedNode->GlobalTransform()
+                            .Scale()
+                            .Value()));
+            }
 
             glm::vec3 scaleDelta = glm::zero<glm::vec3>();
-
             ImGui::SliderFloat3("##ScaleDelta", &scaleDelta[0], -1, 1);
 
-            scale += scaleDelta;
+            if (ImGui::IsItemActivated()) {
+                this->initialScale =
+                    context.selectedNode->GlobalTransform().Scale();
+            }
+            if (ImGui::IsItemEdited()) {
+                scale += scaleDelta;
 
-            if (glm::abs(scale.x) < 0.0001) {
-                scale.x = 0.0001;
+                if (glm::abs(scale.x) < 0.0001) {
+                    scale.x = 0.0001;
+                }
+                if (glm::abs(scale.y) < 0.0001) {
+                    scale.y = 0.0001;
+                }
+                if (glm::abs(scale.z) < 0.0001) {
+                    scale.z = 0.0001;
+                }
+                context.selectedNode->GlobalTransform().Scale() = scale;
             }
-            if (glm::abs(scale.y) < 0.0001) {
-                scale.y = 0.0001;
+            if (ImGui::IsItemDeactivatedAfterEdit()) {
+                context.commandHistory.ExecuteCommand(
+                    std::make_unique<ScaleCommand>(
+                        context.selectedNode, this->initialScale,
+                        context.selectedNode->GlobalTransform()
+                            .Scale()
+                            .Value()));
             }
-            if (glm::abs(scale.z) < 0.0001) {
-                scale.z = 0.0001;
-            }
-
-            context.selectedNode->GlobalTransform().Scale() = scale;
 
             ImGui::TreePop();
         }
