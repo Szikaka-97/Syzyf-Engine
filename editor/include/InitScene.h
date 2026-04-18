@@ -13,6 +13,7 @@
 #include <MeshRenderer.h>
 #include <ParticleSpawner.h>
 #include <ReflectionProbe.h>
+#include <Scatter.h>
 #include <Scene.h>
 #include <Shader.h>
 #include <Skybox.h>
@@ -211,8 +212,6 @@ inline void InitScene(Scene& mainScene, Camera*& mainCamera) {
     playerNode->AddObject<Tonemapper>()->SetOperator(
         Tonemapper::TonemapperOperator::GranTurismo);
     auto* colorGrading = playerNode->AddObject<ColorGrading>();
-    colorGrading->SetCurveTexture(mainScene.Resources()->Get<Texture2D>(
-        "./res/textures/color_grading_lut.png", Texture2D::TechnicalMapXYZ));
 
     auto floorNode =
         GltfImporter::LoadScene(&mainScene, "./res/models/floor.glb");
@@ -256,4 +255,20 @@ inline void InitScene(Scene& mainScene, Camera*& mainCamera) {
     SceneNode* bimberman = GltfImporter::LoadScene(
         &mainScene, "./res/models/bimbermann.glb", "Bimberman");
     bimberman->GlobalTransform().Position() = {0.0f, 0.0f, 10.0f};
+
+    Mesh* cubeMesh =
+        mainScene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
+    ShaderProgram* scatterProgram =
+        ShaderProgram::Build()
+            .WithVertexShader(mainScene.Resources()->Get<VertexShader>(
+                "./res/shaders/scatter.vert"))
+            .WithPixelShader(mainScene.Resources()->Get<PixelShader>(
+                "./res/shaders/lambert color.frag"))
+            .Link();
+    scatterProgram->SetCastsShadows(false);
+    scatterProgram->SetIgnoresDepthPrepass(true);
+    auto scatterMaterial = std::make_unique<Material>(scatterProgram);
+    scatterMaterial->SetValue("uColor", glm::vec3(0.2, 0.6, 0.9));
+    SceneNode* scatter = mainScene.CreateNode("Scatter");
+    scatter->AddObject<Scatter>(cubeMesh, std::move(scatterMaterial));
 }
