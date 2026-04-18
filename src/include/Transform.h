@@ -50,6 +50,7 @@ public:
 	class PositionAccess {
 	private:
 		TransformAccess& source;
+        glm::vec3 initialValue;
 	public:
 		union {
 			struct {
@@ -86,6 +87,7 @@ public:
 	class RotationAccess {
 	private:
 		TransformAccess& source;
+        glm::quat initialValue;
 	public:
 		union {
 			struct {
@@ -112,6 +114,7 @@ public:
 	class ScaleAccess {
 	private:
 		TransformAccess& source;
+        glm::vec3 initialValue;
 	public:
 		union {
 			struct {
