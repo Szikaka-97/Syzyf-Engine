@@ -22,17 +22,53 @@ void Scatter::Generate() {
     glm::vec3 min = -settings.areaExtents;
     glm::vec3 max = settings.areaExtents;
 
-    for (int i = 0; i < settings.instanceCount; i++) {
-        glm::vec3 randomPosition = glm::linearRand(min, max);
+    std::vector<glm::vec3> validPositions;
+    if (this->settings.relaxSettings.enabled == true) {
+        validPositions.reserve(settings.instanceCount);
+    }
 
-        randomPosition.y = settings.baseLevelY;
+    for (int i = 0; i < settings.instanceCount; i++) {
+        glm::vec3 randomPosition;
+
+        if (this->settings.relaxSettings.enabled == true) {
+            bool positionFound = false;
+
+            for (int attempt = 0; attempt < this->settings.relaxSettings.maxAttempts; attempt++) {
+                randomPosition = glm::linearRand(min, max);
+                randomPosition.y = settings.baseLevelY;
+                
+                bool isOverlapping = false;
+
+                for (const glm::vec3& existingPosition : validPositions) {
+                    if (glm::distance(randomPosition, existingPosition) < this->settings.relaxSettings.minDistance) {
+                        isOverlapping = true;
+                        break;
+                    }
+                }
+
+                if (!isOverlapping) {
+                    positionFound = true;
+                    break;
+                }
+            }
+
+            if (!positionFound) {
+                continue;
+            }
+
+            validPositions.push_back(randomPosition);
+        } else {
+            randomPosition = glm::linearRand(min, max);
+            randomPosition.y = settings.baseLevelY;
+        }
 
         glm::mat4 transform = glm::translate(glm::mat4(1.0f), randomPosition);
 
-        if (settings.randomRotationY) {
-            float randomRotation = glm::linearRand(0.0f, glm::two_pi<float>());
-            transform = glm::rotate(transform, randomRotation, glm::vec3(0.0f, 1.0f, 0.0f));
-        }
+        glm::vec3 randomRotation = glm::linearRand(this->settings.minRotation, this->settings.maxRotation);
+
+        transform = glm::rotate(transform, randomRotation.x, glm::vec3(1.0f, 0.0f, 0.0f));
+        transform = glm::rotate(transform, randomRotation.y, glm::vec3(0.0f, 1.0f, 0.0f));
+        transform = glm::rotate(transform, randomRotation.z, glm::vec3(0.0f, 0.0f, 1.0f));
 
         // add an option to make non uniform late
         float randomScale = glm::linearRand(settings.minScale, settings.maxScale);
@@ -63,7 +99,7 @@ void Scatter::Render() {
         0,
         this->material.get(),
         this->GlobalTransform(),
-        this->settings.instanceCount,
+        this->instanceData.size(),
         BoundingBox::CenterAndExtents(glm::vec3(0.0f), this->settings.areaExtents),
         Layer::Default
     );
@@ -72,11 +108,19 @@ void Scatter::Render() {
 void Scatter::DrawImGui() {
     // add missing stuff
     //  also add something similar to the particle spawner
-    // also make it so the instance count doesn't change until you press generate
     ImGui::InputInt("Instance Count", &this->settings.instanceCount);
     ImGui::InputFloat3("Area Extents", &this->settings.areaExtents.x);
+
     ImGui::InputFloat("Min Scale", &this->settings.minScale);
     ImGui::InputFloat("Max Scale", &this->settings.maxScale);
+    ImGui::InputFloat3("Min Rotation", &this->settings.minRotation.x);
+    ImGui::InputFloat3("Max Rotation", &this->settings.maxRotation.x);
+
+    ImGui::Checkbox("Relax Positions", &this->settings.relaxSettings.enabled);
+    if (this->settings.relaxSettings.enabled) {
+        ImGui::InputFloat("Min Distance", &this->settings.relaxSettings.minDistance);
+        ImGui::InputInt("Max Attempts", &this->settings.relaxSettings.maxAttempts);
+    }
 
     if (ImGui::Button("Generate")) {
         this->Generate();

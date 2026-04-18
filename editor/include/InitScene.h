@@ -23,6 +23,7 @@
 #include <animation/AnimationSystem.h>
 #include <fog/FogVolume.h>
 #include <glm/geometric.hpp>
+#include <glm/trigonometric.hpp>
 #include <physics/Body.h>
 #include <physics/DebugRenderer.h>
 #include <physics/System.h>
@@ -270,5 +271,20 @@ inline void InitScene(Scene& mainScene, Camera*& mainCamera) {
     auto scatterMaterial = std::make_unique<Material>(scatterProgram);
     scatterMaterial->SetValue("uColor", glm::vec3(0.2, 0.6, 0.9));
     SceneNode* scatter = mainScene.CreateNode("Scatter");
-    scatter->AddObject<Scatter>(cubeMesh, std::move(scatterMaterial));
+    scatter->AddObject<Scatter>(cubeMesh, std::move(scatterMaterial),
+                                ScatterSettings{.minRotation =
+                                                    {
+                                                        glm::radians(-15.0f),
+                                                        glm::radians(0.0f),
+                                                        glm::radians(-15.0f),
+                                                    },
+                                                .maxRotation =
+                                                    {
+                                                        glm::radians(15.0f),
+                                                        glm::radians(360.0f),
+                                                        glm::radians(15.0f),
+                                                    },
+                                                .relaxSettings = {
+                                                    .enabled = true,
+                                                }});
 }

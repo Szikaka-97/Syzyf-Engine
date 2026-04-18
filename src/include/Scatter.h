@@ -11,6 +11,14 @@ struct ScatterInstanceData {
     glm::mat4 transform;
 };
 
+struct ScatterRelaxSettings {
+    bool enabled = false;
+    float minDistance = 2.0f;
+    // max number of attempts it will try to place the object
+    //  before giving up
+    int maxAttempts = 30; 
+};
+
 struct ScatterSettings {
     int instanceCount = 1000;
 
@@ -21,7 +29,10 @@ struct ScatterSettings {
     float minScale = 1.0f;
     float maxScale = 1.0f;
 
-    bool randomRotationY = true;
+    glm::vec3 minRotation = { 0.0f, 0.0f, 0.0f };
+    glm::vec3 maxRotation = { 0.0f, 0.0f, 0.0f };
+
+    ScatterRelaxSettings relaxSettings = {};
 };
 
 class Scatter : public GameObject, public ImGuiDrawable {
