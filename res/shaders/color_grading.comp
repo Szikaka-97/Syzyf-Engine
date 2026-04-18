@@ -1,0 +1,48 @@
+#version 460 core
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+
+layout(binding = 0) uniform sampler2D inputTex;
+layout(rgba16f, binding = 0) uniform writeonly image2D outputImg;
+
+uniform float brightness;
+uniform float contrast;
+uniform float saturation;
+
+uniform float enableGammaCorrection;
+uniform float gamma;
+
+uniform sampler2D curveTex; 
+uniform float useCurve; // wtf
+
+void main() {
+    ivec2 texCoord = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 size = textureSize(inputTex, 0);
+    
+    if (texCoord.x >= size.x || texCoord.y >= size.y) {
+        return;
+    }
+
+    vec4 color = texelFetch(inputTex, texCoord, 0);
+
+    if (useCurve > 0.5f) { // wtf 
+        color.r = texture(curveTex, vec2(color.r, 0.5)).r;
+        color.g = texture(curveTex, vec2(color.g, 0.5)).g;
+        color.b = texture(curveTex, vec2(color.b, 0.5)).b;
+    }
+
+    color.rgb *= brightness;
+
+    color.rgb = (color.rgb - 0.5) * contrast + 0.5;
+
+    float luminance = dot(color.rgb, vec3(0.2126, 0.7152, 0.0722));
+    color.rgb = mix(vec3(luminance), color.rgb, saturation);
+
+    color.rgb = clamp(color.rgb, 0.0, 1.0);
+
+    if (enableGammaCorrection > 0.5f) { // wtf
+	    color.rgb = pow(color.rgb, vec3(1.0/gamma));
+    }
+
+    imageStore(outputImg, texCoord, vec4(color.rgb, color.a));
+}

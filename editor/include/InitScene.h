@@ -4,6 +4,7 @@
 #include <AiNode.h>
 #include <Bloom.h>
 #include <Camera.h>
+#include <ColorGrading.h>
 #include <Framebuffer.h>
 #include <InputSystem.h>
 #include <Light.h>
@@ -209,6 +210,9 @@ inline void InitScene(Scene& mainScene, Camera*& mainCamera) {
     playerNode->AddObject<Bloom>();
     playerNode->AddObject<Tonemapper>()->SetOperator(
         Tonemapper::TonemapperOperator::GranTurismo);
+    auto* colorGrading = playerNode->AddObject<ColorGrading>();
+    colorGrading->SetCurveTexture(mainScene.Resources()->Get<Texture2D>(
+        "./res/textures/color_grading_lut.png", Texture2D::TechnicalMapXYZ));
 
     auto floorNode =
         GltfImporter::LoadScene(&mainScene, "./res/models/floor.glb");
