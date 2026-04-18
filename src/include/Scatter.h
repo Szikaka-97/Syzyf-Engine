@@ -5,6 +5,8 @@
 #include "Mesh.h"
 #include "Material.h"
 
+#include <future>
+
 #include <glm/glm.hpp>
 
 struct ScatterInstanceData {
@@ -32,6 +34,10 @@ struct ScatterSettings {
     glm::vec3 minRotation = { 0.0f, 0.0f, 0.0f };
     glm::vec3 maxRotation = { 0.0f, 0.0f, 0.0f };
 
+    int arraySize = 0;
+    glm::vec3 arrayOffset = glm::vec3(0.0f, 1.0f, 0.0f);
+
+    // Replace with a 'modifier stack' pattern
     ScatterRelaxSettings relaxSettings = {};
 };
 
@@ -43,12 +49,19 @@ private:
 
     std::vector<ScatterInstanceData> instanceData;
     GLuint instanceBuffer = 0;
+
+    std::future<std::vector<ScatterInstanceData>> generationFuture;
+    std::atomic<bool> isGenerating{false};
 public:
     Scatter(Mesh* mesh, std::unique_ptr<Material> material, ScatterSettings settings = {});
     ~Scatter();
 
     void Generate();
+    
+    void Update();
     void Render();
 
     void DrawImGui();
+private:
+    void UploadToGPU();
 };
