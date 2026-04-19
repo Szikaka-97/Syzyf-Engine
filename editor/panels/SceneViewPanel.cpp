@@ -51,19 +51,22 @@ void SceneViewPanel::Draw(Context& context) {
                  ImVec2(0, 1), ImVec2(1, 0));
 
     if (ImGui::BeginDragDropTarget()) {
-        if (const ImGuiPayload* payload =
-                ImGui::AcceptDragDropPayload("DND_FILE_PATH")) {
-            const char* droppedFilePath = (const char*)payload->Data;
-            std::string filePathStr(droppedFilePath);
-            std::filesystem::path droppedPath(filePathStr);
+            if (const ImGuiPayload* payload =
+                    ImGui::AcceptDragDropPayload("DND_FILE_PATH")) {
+                const char* droppedFilePath = (const char*)payload->Data;
+                std::string filePathStr(droppedFilePath);
+                std::filesystem::path droppedPath(filePathStr);
 
-            if (droppedPath.extension() == ".glb" ||
-                droppedPath.extension() == ".gltf") {
-                GltfImporter::LoadScene(context.selectedScene, droppedFilePath);
+                if (droppedPath.extension() == ".glb" ||
+                    droppedPath.extension() == ".gltf") {
+
+                    std::string normalizedPath = droppedPath.generic_string();
+
+                    GltfImporter::LoadScene(context.selectedScene, normalizedPath.c_str());
+                }
             }
+            ImGui::EndDragDropTarget();
         }
-        ImGui::EndDragDropTarget();
-    }
 
     if (context.mainCamera != nullptr) {
         if (context.selectedNode != nullptr) {
