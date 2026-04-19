@@ -226,7 +226,7 @@ void CharacterController::Awake() {
   JPH::RVec3 position = JPH::RVec3(nodePosition.x, nodePosition.y, nodePosition.z);
   JPH::Quat rotation = JPH::Quat(nodeRotation.x, nodeRotation.y, nodeRotation.z, nodeRotation.w);
 
-  this->character = new JPH::Character(this->characterSettings, position, rotation, 0, &physics->GetSystem());
+  this->character = new JPH::Character(this->characterSettings, position, rotation, 0, physics->GetJoltSystem());
 
   JPH::CollisionGroup group(physics->GetLayerGroupFilter(), collisionLayer, collisionMask);
   physics->GetBodyInterface().SetCollisionGroup(this->character->GetBodyID(), group);

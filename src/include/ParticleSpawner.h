@@ -27,6 +27,7 @@ enum class FadeMode {
     Dither = 2,
 };
 
+// somethings broken, turning off lifetimes doesnt work i dont think
 struct ParticleSpawnerSettings {
     int maxParticles = 1024;
 

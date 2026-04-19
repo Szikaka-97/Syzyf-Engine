@@ -231,8 +231,8 @@ namespace Physics {
     return *bodyInterface;
   }
 
-  JPH::PhysicsSystem& System::GetSystem() {
-    return *physicsSystem;
+  JPH::PhysicsSystem* System::GetJoltSystem() {
+    return physicsSystem;
   }
 
   JPH::TempAllocatorImpl& System::GetTempAllocator() {

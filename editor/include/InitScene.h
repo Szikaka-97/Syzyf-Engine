@@ -1,6 +1,7 @@
 #pragma once
 
 #include "GltfImporter.h"
+#include "LightSystem.h"
 #include <AiNode.h>
 #include <Bloom.h>
 #include <Camera.h>
@@ -22,6 +23,7 @@
 #include <Viewport.h>
 #include <animation/AnimationSystem.h>
 #include <fog/FogVolume.h>
+#include <glm/fwd.hpp>
 #include <glm/geometric.hpp>
 #include <glm/trigonometric.hpp>
 #include <physics/Body.h>
@@ -31,6 +33,7 @@
 
 #include <Jolt/Jolt.h>
 #include <Jolt/Physics/Body/MotionType.h>
+#include <Jolt/Physics/Collision/Shape/Shape.h>
 #include <imgui.h>
 
 class EditorCameraTag : public GameObject {};
@@ -217,7 +220,7 @@ inline void InitScene(Scene& mainScene, Camera*& mainCamera) {
     playerNode->AddObject<ColorGrading>();
 
     auto floorNode =
-        GltfImporter::LoadScene(&mainScene, "./res/models/floor.glb");
+        GltfImporter::LoadScene(&mainScene, "./res/models/floor.glb", "Floor");
     floorNode->AddObject<Skybox>(skyMat);
     MeshRenderer* floorMeshRenderer =
         floorNode->GetObjectInChildren<MeshRenderer>();
@@ -225,6 +228,17 @@ inline void InitScene(Scene& mainScene, Camera*& mainCamera) {
         floorMeshRenderer->GetMesh(), JPH::EMotionType::Static,
         Physics::Layers::NON_MOVING));
     floorNode->AddObject<Surface>(floorMeshRenderer->GetMesh(), 1.0f);
+
+    SceneNode* monkey = GltfImporter::LoadScene(
+        &mainScene, "./res/models/big_monkey.glb", "Monkey", floorNode);
+    JPH::ShapeRefC monkeyShape = Physics::CreateCompoundShapeFromNode(
+        monkey, false, JPH::EMotionType::Static, Physics::Layers::NON_MOVING);
+    monkey->AddObject<Physics::Body>(JPH::BodyCreationSettings{
+        monkeyShape, JPH::Vec3::sZero(), JPH::Quat::sIdentity(),
+        JPH::EMotionType::Static, Physics::Layers::MOVING});
+
+    mainScene.GetComponent<LightSystem>()->SetAmbientLight(
+        {1.0f, 1.0f, 1.0f, 0.8f});
 
     auto lightNode = mainScene.CreateNode("Point Light");
     lightNode->AddObject<Light>(Light::PointLight({1, 1, 1}, 10, 1))
@@ -257,7 +271,15 @@ inline void InitScene(Scene& mainScene, Camera*& mainCamera) {
 
     SceneNode* bimberman = GltfImporter::LoadScene(
         &mainScene, "./res/models/bimbermann.glb", "Bimberman");
+    bimberman->GlobalTransform().Scale() = glm::vec3(5.0f);
+    bimberman->GlobalTransform().Rotation() =
+        glm::quat(glm::radians(glm::vec3(0.0f, 90.0f, 0.0f)));
     bimberman->GlobalTransform().Position() = {0.0f, 0.0f, 10.0f};
+    JPH::ShapeRefC bimbermanShape = Physics::CreateCompoundShapeFromNode(
+        bimberman, true, JPH::EMotionType::Dynamic, Physics::Layers::MOVING);
+    bimberman->AddObject<Physics::Body>(JPH::BodyCreationSettings{
+        bimbermanShape, JPH::Vec3::sZero(), JPH::Quat::sIdentity(),
+        JPH::EMotionType::Dynamic, Physics::Layers::MOVING});
 
     Mesh* cubeMesh =
         mainScene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
@@ -274,7 +296,8 @@ inline void InitScene(Scene& mainScene, Camera*& mainCamera) {
     scatterMaterial->SetValue("uColor", glm::vec3(0.2, 0.6, 0.9));
     SceneNode* scatter = mainScene.CreateNode("Scatter");
     scatter->AddObject<Scatter>(cubeMesh, std::move(scatterMaterial),
-                                ScatterSettings{.minRotation =
+                                ScatterSettings{.instanceCount = 5000,
+                                                .minRotation =
                                                     {
                                                         glm::radians(-15.0f),
                                                         glm::radians(0.0f),
@@ -286,12 +309,60 @@ inline void InitScene(Scene& mainScene, Camera*& mainCamera) {
                                                         glm::radians(360.0f),
                                                         glm::radians(15.0f),
                                                     },
-                                                .relaxSettings = {
+                                                .projectionSettings{
                                                     .enabled = true,
-                                                }});
-    JPH::ShapeRefC bimbermanShape = Physics::CreateCompoundShapeFromNode(
-        bimberman, true, JPH::EMotionType::Dynamic, Physics::Layers::MOVING);
-    bimberman->AddObject<Physics::Body>(JPH::BodyCreationSettings{
-        bimbermanShape, JPH::Vec3::sZero(), JPH::Quat::sIdentity(),
-        JPH::EMotionType::Dynamic, Physics::Layers::MOVING});
+                                                    .raycastLength = 20.0f,
+                                                    .raycastOffset = 20.0f,
+                                                }
+
+                                });
+
+    ShaderProgram* dustProgram =
+        ShaderProgram::Build()
+            .WithVertexShader(mainScene.Resources()->Get<VertexShader>(
+                "./res/shaders/particles/particles.vert"))
+            .WithPixelShader(mainScene.Resources()->Get<PixelShader>(
+                "./res/shaders/particles/particles.frag"))
+            .Link();
+    dustProgram->SetTransparent(true);
+    dustProgram->SetCastsShadows(false);
+
+    auto dustMaterial = std::make_unique<Material>(dustProgram);
+    dustMaterial->SetValue("colorTex", mainScene.Resources()->Get<Texture2D>(
+                                           "./res/textures/dust.png",
+                                           Texture2D::ColorTextureRGBA));
+    dustMaterial->SetValue("color", glm::vec4(500.0f, 500.0f, 500.0f, 1.0f));
+
+    playerNode->AddObject<ParticleSpawner>(
+        mainScene.Resources()->Get<Mesh>("./res/models/fullscreenquad.obj"),
+        std::move(dustMaterial),
+        ParticleSpawnerSettings{.maxParticles = 8192,
+                                .areaExtents = glm::vec3(15.0f),
+                                .emissionShapeExtents = glm::vec3(15.0f),
+                                .minVelocity =
+                                    glm::vec3(-0.08f, -0.05f, -0.08f),
+                                .maxVelocity = glm::vec3(0.08f, 0.05f, 0.08f),
+                                .minInitialAngle = 0.0f,
+                                .maxInitialAngle = 6.28318f,
+                                .minAngularVelocity = -0.2f,
+                                .maxAngularVelocity = 0.2f,
+                                .rotateY = false,
+                                .enableLifetime = false,
+                                .minLifetime = 1.0f,
+                                .maxLifetime = 10000.0f,
+                                .minScale = 0.01f,
+                                .maxScale = 0.02f,
+                                .proximityFadeMode = FadeMode::Alpha,
+                                .proximityFadeMin = 0.2f,
+                                .proximityFadeMax = 1.5f,
+                                .distanceFadeMode = FadeMode::Alpha,
+                                .distanceFadeMin = 9.0f,
+                                .distanceFadeMax = 12.0f,
+                                .lifetimeFadeMode = FadeMode::Alpha,
+                                .enableDepthFade = true,
+                                .depthFadeDistance = 0.3f,
+                                .billboardMode = BillboardMode::Enabled,
+                                .wrapAround = true,
+                                .continuous = false,
+                                .useColorRamp = false});
 }

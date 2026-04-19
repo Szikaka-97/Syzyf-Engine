@@ -1,10 +1,15 @@
 #include "Scatter.h"
 #include "Layer.h"
 #include "Graphics.h"
+#include "physics/System.h"
 
 #include <glm/ext/matrix_transform.hpp>
 #include <imgui.h>
 #include <glm/gtc/random.hpp>
+#include <Jolt/Jolt.h>
+#include <Jolt/Math/Real.h>
+#include <Jolt/Physics/Collision/RayCast.h>
+#include <Jolt/Physics/Collision/CastResult.h>
 
 Scatter::Scatter(Mesh* mesh, std::unique_ptr<Material> material, ScatterSettings settings) : mesh(mesh), material(std::move(material)), settings(settings) {
     Generate();
@@ -16,6 +21,8 @@ Scatter::~Scatter() {
     }
 }
 
+// Right now relax and projection dont work when both are enabled
+//  fix
 void Scatter::Generate() {
     if (this->isGenerating) {
         spdlog::warn("Scatter::Generate: Already generating, returning");
@@ -24,7 +31,18 @@ void Scatter::Generate() {
     this->isGenerating = true;
     ScatterSettings settingsCopy = this->settings;
 
-    this->generationFuture = std::async(std::launch::async, [settingsCopy]() {
+    JPH::PhysicsSystem* joltSystem = nullptr;
+    glm::mat4 scatterTransform;
+    glm::mat4 inverseScatterTransform;
+    if (this->settings.projectionSettings.enabled) {
+        Physics::System* physicsSystem = GetScene()->GetComponent<Physics::System>();
+        joltSystem = physicsSystem ? physicsSystem->GetJoltSystem() : nullptr;
+
+        scatterTransform = this->GlobalTransform().Value();
+        inverseScatterTransform = glm::inverse(scatterTransform); 
+    }
+
+    this->generationFuture = std::async(std::launch::async, [settingsCopy, joltSystem, scatterTransform, inverseScatterTransform]() {
         std::vector<ScatterInstanceData> newData;
         newData.reserve(settingsCopy.instanceCount * (1 + settingsCopy.arraySize));
 
@@ -37,14 +55,33 @@ void Scatter::Generate() {
         }
 
         for (int i = 0; i < settingsCopy.instanceCount; i++) {
-            glm::vec3 randomPosition;
+            glm::vec3 randomPosition = glm::linearRand(min, max);
+
+            if (settingsCopy.projectionSettings.enabled && joltSystem) {
+                glm::vec3 glmOrigin = scatterTransform * glm::vec4((randomPosition
+                    + -settingsCopy.projectionSettings.raycastDirection
+                    * settingsCopy.projectionSettings.raycastOffset), 1.0f);
+                glm::vec3 glmDirection = glm::normalize(settingsCopy.projectionSettings.raycastDirection)
+                    * settingsCopy.projectionSettings.raycastLength;
+                JPH::RVec3 origin(glmOrigin.x, glmOrigin.y, glmOrigin.z);
+                JPH::RVec3 direction(glmDirection.x, glmDirection.y, glmDirection.z);
+                JPH::RRayCast ray(origin, direction);
+
+                JPH::RayCastResult hit;
+                bool rayHit = joltSystem->GetNarrowPhaseQuery().CastRay(ray, hit);
+
+                if (rayHit) {
+                    randomPosition = glm::vec3(inverseScatterTransform * glm::vec4(glmOrigin + (glmDirection * hit.mFraction), 1.0f));
+                } else {
+                    continue;
+                }  
+            }
 
             if (settingsCopy.relaxSettings.enabled == true) {
                 bool positionFound = false;
 
                 for (int attempt = 0; attempt < settingsCopy.relaxSettings.maxAttempts; attempt++) {
                     randomPosition = glm::linearRand(min, max);
-                    randomPosition.y = settingsCopy.baseLevelY;
                     
                     bool isOverlapping = false;
 
@@ -66,9 +103,6 @@ void Scatter::Generate() {
                 }
 
                 validPositions.push_back(randomPosition);
-            } else {
-                randomPosition = glm::linearRand(min, max);
-                randomPosition.y = settingsCopy.baseLevelY;
             }
 
             glm::mat4 transform = glm::translate(glm::mat4(1.0f), randomPosition);
@@ -149,15 +183,28 @@ void Scatter::DrawImGui() {
     ImGui::InputFloat3("Min Rotation", &this->settings.minRotation.x);
     ImGui::InputFloat3("Max Rotation", &this->settings.maxRotation.x);
 
+    ImGui::Separator();
+
     ImGui::InputInt("Array Size", &this->settings.arraySize);
     if (this->settings.arraySize > 0) {
         ImGui::InputFloat3("Array Offset", &this->settings.arrayOffset.x);
     }
 
+    ImGui::Separator();
+
     ImGui::Checkbox("Relax Positions", &this->settings.relaxSettings.enabled);
     if (this->settings.relaxSettings.enabled) {
         ImGui::InputFloat("Min Distance", &this->settings.relaxSettings.minDistance);
         ImGui::InputInt("Max Attempts", &this->settings.relaxSettings.maxAttempts);
+    }
+
+    ImGui::Separator();
+
+    ImGui::Checkbox("Project On Colliders", &this->settings.projectionSettings.enabled);
+    if (this->settings.projectionSettings.enabled) {
+        ImGui::InputFloat3("Ray Direction", &this->settings.projectionSettings.raycastDirection.x);
+        ImGui::InputFloat("Ray Length", &this->settings.projectionSettings.raycastLength);
+        ImGui::InputFloat("Ray Offset", &this->settings.projectionSettings.raycastOffset);
     }
 
     if (this->isGenerating) {

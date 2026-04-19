@@ -273,7 +273,7 @@ float Body::GetGravityFactor() const {
 float Body::GetLinearDamping() const {
   if (bodyCreated) {
     if (System* physics = GetScene()->GetComponent<System>()) {
-      JPH::BodyLockRead lock(physics->GetSystem().GetBodyLockInterface(), bodyID);
+      JPH::BodyLockRead lock(physics->GetJoltSystem()->GetBodyLockInterface(), bodyID);
       if (lock.Succeeded()) {
         if (const JPH::MotionProperties* motionProperties = lock.GetBody().GetMotionProperties()) {
           return motionProperties->GetLinearDamping();
@@ -287,7 +287,7 @@ float Body::GetLinearDamping() const {
 float Body::GetAngularDamping() const {
   if (bodyCreated) {
     if (System* physics = GetScene()->GetComponent<System>()) {
-      JPH::BodyLockRead lock(physics->GetSystem().GetBodyLockInterface(), bodyID);
+      JPH::BodyLockRead lock(physics->GetJoltSystem()->GetBodyLockInterface(), bodyID);
       if (lock.Succeeded()) {
         if (const JPH::MotionProperties* motionProperties = lock.GetBody().GetMotionProperties()) {
           return motionProperties->GetAngularDamping();
@@ -319,7 +319,7 @@ bool Body::IsActive() const {
 bool Body::IsSensor() const {
   if (bodyCreated) {
     if (System* physics = GetScene()->GetComponent<System>()) {
-      JPH::BodyLockRead lock(physics->GetSystem().GetBodyLockInterface(), bodyID);
+      JPH::BodyLockRead lock(physics->GetJoltSystem()->GetBodyLockInterface(), bodyID);
       if (lock.Succeeded()) {
         return lock.GetBody().IsSensor();
       }
@@ -446,7 +446,7 @@ void Body::SetLinearDamping(float damping) {
   bodyCreationSettings.mAngularDamping = damping;
   if (!bodyCreated) return;
   if (System* physics = GetScene()->GetComponent<System>()) {
-    JPH::BodyLockWrite lock(physics->GetSystem().GetBodyLockInterface(), bodyID);
+    JPH::BodyLockWrite lock(physics->GetJoltSystem()->GetBodyLockInterface(), bodyID);
 
     if (lock.Succeeded()) {
       if (JPH::MotionProperties* motionProperties = lock.GetBody().GetMotionProperties()) {
@@ -460,7 +460,7 @@ void Body::SetAngularDamping(float damping) {
   bodyCreationSettings.mAngularDamping = damping;
   if (!bodyCreated) return;
   if (System* physics = GetScene()->GetComponent<System>()) {
-    JPH::BodyLockWrite lock(physics->GetSystem().GetBodyLockInterface(), bodyID);
+    JPH::BodyLockWrite lock(physics->GetJoltSystem()->GetBodyLockInterface(), bodyID);
 
     if (lock.Succeeded()) {
       if (JPH::MotionProperties* motionProperties = lock.GetBody().GetMotionProperties()) {

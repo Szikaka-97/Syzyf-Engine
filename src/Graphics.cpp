@@ -585,8 +585,6 @@ void SceneGraphics::Render() {
   glViewport(0, 0, this->mainViewport->GetSize().x,
              this->mainViewport->GetSize().y);
 
-  CompositeTransparentPass();
-
   if (Physics::DebugRenderer* debugRenderer = this->GetScene()->GetComponent<Physics::DebugRenderer>()) {
     debugRenderer->Render();
   }
@@ -686,19 +684,21 @@ void SceneGraphics::RenderCamera(Camera *camera, Viewport *renderTarget,
     RenderScene(globalUniforms, renderTarget, activeParams);
   }
 
-  if ((params.pass & RenderPassType::PostProcessing) ==
-      RenderPassType::PostProcessing) {
-    activeParams.pass = RenderPassType(RenderPassType::PostProcessing);
-
-    RenderScene(globalUniforms, renderTarget, activeParams);
-  }
-
   if (camera == this->mainCamera &&
       (params.pass & RenderPassType::Transparent) ==
           RenderPassType::Transparent) {
     activeParams.pass = RenderPassType(RenderPassType::Transparent);
 
     RenderScene(globalUniforms, this->transparentPassFramebuffer, activeParams);
+
+    CompositeTransparentPass();
+  }
+
+  if ((params.pass & RenderPassType::PostProcessing) ==
+      RenderPassType::PostProcessing) {
+    activeParams.pass = RenderPassType(RenderPassType::PostProcessing);
+
+    RenderScene(globalUniforms, renderTarget, activeParams);
   }
 }
 

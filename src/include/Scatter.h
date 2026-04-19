@@ -21,12 +21,17 @@ struct ScatterRelaxSettings {
     int maxAttempts = 30; 
 };
 
+struct ScatterProjectionSettings {
+    bool enabled = false;
+    float raycastLength = 5.0f;
+    float raycastOffset = 5.0f;
+    glm::vec3 raycastDirection = { 0.0f, -1.0f, 0.0f };
+};
+
 struct ScatterSettings {
     int instanceCount = 1000;
 
     glm::vec3 areaExtents = glm::vec3(50.0f, 0.0f, 50.0f);
-
-    float baseLevelY = 0.0f; // change to somethign else later perhaps
 
     float minScale = 1.0f;
     float maxScale = 1.0f;
@@ -39,6 +44,7 @@ struct ScatterSettings {
 
     // Replace with a 'modifier stack' pattern
     ScatterRelaxSettings relaxSettings = {};
+    ScatterProjectionSettings projectionSettings = {};
 };
 
 class Scatter : public GameObject, public ImGuiDrawable {
