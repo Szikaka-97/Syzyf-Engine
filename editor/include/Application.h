@@ -19,6 +19,9 @@ class Camera;
 namespace Editor {
 
 struct Context {
+    SDL_Window* window = nullptr;
+    SDL_GLContext glContext = nullptr;
+
     CommandHistory commandHistory;
     Scene* selectedScene = nullptr;
     SceneNode* selectedNode = nullptr;
@@ -31,9 +34,6 @@ class Application {
     const char* GLSL_VERSION = "#version 460";
     const int32_t GL_VERSION_MAJOR = 4;
     const int32_t GL_VERSION_MINOR = 6;
-
-    SDL_Window* window = nullptr;
-    SDL_GLContext glContext = nullptr;
 
     Settings settings;
     Context context;

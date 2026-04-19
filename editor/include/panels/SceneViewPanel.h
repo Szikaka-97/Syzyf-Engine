@@ -1,5 +1,7 @@
 #pragma once
 
+#include "KeyboardControls.h"
+
 #include <Jolt/Jolt.h>
 #include <Jolt/Physics/Collision/ObjectLayer.h>
 #include <glm/glm.hpp>
@@ -26,10 +28,14 @@ class SceneViewPanel {
 
     EditorLayerFilter filter;
 
+    KeyboardControls keyboardControls;
+
   public:
     void Draw(Context& context);
 
   private:
     void HandleMousePicking(Context& context, float resX, float resY);
+
+    void DrawMenuBar(Context& context);
 };
 } // namespace Editor

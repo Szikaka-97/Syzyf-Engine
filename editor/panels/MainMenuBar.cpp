@@ -55,6 +55,25 @@ void MainMenuBar::Draw(Context& context, bool& shouldClose,
             ImGui::EndMenu();
         }
 
+        if (ImGui::BeginMenu("Options")) {
+            if (ImGui::MenuItem("Reset to defaults")) {
+                settings = Settings{};
+
+                SDL_RestoreWindow(context.window);
+                SDL_SetWindowSize(context.window, settings.windowWidth,
+                                  settings.windowHeight);
+                SDL_SetWindowPosition(context.window, SDL_WINDOWPOS_CENTERED,
+                                      SDL_WINDOWPOS_CENTERED);
+
+                if (settings.darkThemeEnabled) {
+                    ImGui::StyleColorsDark();
+                } else {
+                    ImGui::StyleColorsLight();
+                }
+            }
+            ImGui::EndMenu();
+        }
+
         ImGui::EndMainMenuBar();
     }
 }

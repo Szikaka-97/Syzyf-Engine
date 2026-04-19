@@ -5,8 +5,13 @@
 #include <spdlog/spdlog.h>
 
 namespace Editor {
+
 struct Settings {
     bool darkThemeEnabled = false;
+
+    bool isMaximized = false;
+    int windowWidth = 1280;
+    int windowHeight = 720;
 
     void Load() {
         std::ifstream file("editor_settings.json");
@@ -15,9 +20,18 @@ struct Settings {
                 nlohmann::json j;
                 file >> j;
 
-                if (j.contains("darkThemeEnabled")) {
+                if (j.contains("darkThemeEnabled"))
                     this->darkThemeEnabled = j["darkThemeEnabled"].get<bool>();
-                }
+
+                if (j.contains("windowWidth"))
+                    this->windowWidth = j["windowWidth"].get<int>();
+
+                if (j.contains("windowHeight"))
+                    this->windowHeight = j["windowHeight"].get<int>();
+
+                if (j.contains("isMaximized"))
+                    this->isMaximized = j["isMaximized"].get<bool>();
+
             } catch (const nlohmann::json::parse_error& e) {
                 spdlog::error("Editor: Settings file missing or corrupted, "
                               "using default values");
@@ -31,6 +45,9 @@ struct Settings {
         if (file.is_open()) {
             nlohmann::json j;
             j["darkThemeEnabled"] = this->darkThemeEnabled;
+            j["windowWidth"] = this->windowWidth;
+            j["windowHeight"] = this->windowHeight;
+            j["isMaximized"] = this->isMaximized;
 
             file << j.dump(4);
         }

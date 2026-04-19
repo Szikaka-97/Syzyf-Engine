@@ -1,12 +1,7 @@
 #include "include/Application.h"
 #include "ComponentRegistry.h"
 #include "InitScene.h"
-#include "Jolt/Physics/Body/BodyCreationSettings.h"
-#include "Light.h"
 #include "MousePickingBodySystem.h"
-#include "ParticleSpawner.h"
-#include "fog/Fog.h"
-#include "fog/VolumetricFog.h"
 #include "panels/ConsolePanel.h"
 
 #include "thirdparty/ImViewGuizmo.h"
@@ -41,15 +36,20 @@ bool Application::InitProgram() {
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK,
                         SDL_GL_CONTEXT_PROFILE_CORE);
 
-    window = SDL_CreateWindow("Syzyf Editor", 1280, 720,
-                              SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
-    if (!window) {
+    context.window = SDL_CreateWindow(
+        "Syzyf Editor", this->settings.windowWidth, this->settings.windowHeight,
+        SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
+    if (!context.window) {
         spdlog::error("Failed to create window: {}", SDL_GetError());
         return false;
     }
 
-    glContext = SDL_GL_CreateContext(window);
-    SDL_GL_MakeCurrent(window, glContext);
+    if (this->settings.isMaximized) {
+        SDL_MaximizeWindow(context.window);
+    }
+
+    context.glContext = SDL_GL_CreateContext(context.window);
+    SDL_GL_MakeCurrent(context.window, context.glContext);
     SDL_GL_SetSwapInterval(1);
 
     if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress)) {
@@ -57,7 +57,7 @@ bool Application::InitProgram() {
         return false;
     }
 
-    Engine::window = window;
+    Engine::window = context.window;
 
     JPH::RegisterDefaultAllocator();
     JPH::Factory::sInstance = new JPH::Factory();
@@ -112,7 +112,7 @@ bool Application::InitImGui() {
         ImGui::StyleColorsLight();
     }
 
-    ImGui_ImplSDL3_InitForOpenGL(window, glContext);
+    ImGui_ImplSDL3_InitForOpenGL(context.window, context.glContext);
     ImGui_ImplOpenGL3_Init(GLSL_VERSION);
 
     return true;
@@ -127,14 +127,26 @@ bool Application::Setup() {
 }
 
 void Application::Terminate() {
+    SDL_WindowFlags flags = SDL_GetWindowFlags(this->context.window);
+    this->settings.isMaximized = (flags & SDL_WINDOW_MAXIMIZED) != 0;
+
+    if (!this->settings.isMaximized) {
+        int w, h;
+        SDL_GetWindowSize(this->context.window, &w, &h);
+        this->settings.windowWidth = w;
+        this->settings.windowHeight = h;
+    }
+
+    this->settings.Save();
+
     ImGui::DestroyPlatformWindows();
 
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplSDL3_Shutdown();
     ImGui::DestroyContext();
 
-    SDL_GL_DestroyContext(this->glContext);
-    SDL_DestroyWindow(this->window);
+    SDL_GL_DestroyContext(this->context.glContext);
+    SDL_DestroyWindow(this->context.window);
     SDL_Quit();
 }
 
@@ -154,7 +166,7 @@ void Application::MainLoop() {
             if (event.type == SDL_EVENT_QUIT)
                 shouldClose = true;
             if (event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED &&
-                event.window.windowID == SDL_GetWindowID(window))
+                event.window.windowID == SDL_GetWindowID(context.window))
                 shouldClose = true;
         }
 
@@ -178,20 +190,18 @@ void Application::MainLoop() {
         glClear(GL_COLOR_BUFFER_BIT);
 
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-        SDL_GL_SwapWindow(window);
+        SDL_GL_SwapWindow(context.window);
     }
 }
 
 void Application::Input() {
     if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Z,
                         ImGuiInputFlags_RouteGlobal)) {
-        spdlog::info("ctrlz");
         this->context.commandHistory.Undo();
     }
     if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_Z,
                         ImGuiInputFlags_RouteGlobal)) {
         this->context.commandHistory.Redo();
-        spdlog::info("ctrlz shift");
     }
 }
 
