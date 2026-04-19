@@ -1,5 +1,7 @@
 #include <Transform.h>
 
+#include <Formatters.h>
+
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/matrix_access.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -71,6 +73,16 @@ SceneTransform::RotationAccess SceneTransform::TransformAccess::Rotation() {
 }
 SceneTransform::ScaleAccess SceneTransform::TransformAccess::Scale() {
 	return SceneTransform::ScaleAccess(*this);
+}
+
+const SceneTransform::PositionAccess SceneTransform::TransformAccess::Position() const {
+	return SceneTransform::PositionAccess(*const_cast<SceneTransform::TransformAccess *>(this));
+}
+const SceneTransform::RotationAccess SceneTransform::TransformAccess::Rotation() const {
+	return SceneTransform::RotationAccess(*const_cast<SceneTransform::TransformAccess *>(this));
+}
+const SceneTransform::ScaleAccess SceneTransform::TransformAccess::Scale() const {
+	return SceneTransform::ScaleAccess(*const_cast<SceneTransform::TransformAccess *>(this));
 }
 
 glm::vec3 SceneTransform::TransformAccess::Forward() const {
@@ -240,6 +252,14 @@ SceneTransform::RotationAccess::operator glm::quat() const {
 	return Value();
 }
 
+glm::vec3 SceneTransform::RotationAccess::EulerAngles() const {
+	return glm::eulerAngles(this->value);
+}
+
+SceneTransform::RotationAccess::operator glm::vec3() const {
+	return EulerAngles();
+}
+
 SceneTransform::RotationAccess& SceneTransform::RotationAccess::operator=(const glm::quat& rotation) {
 	this->value = rotation;
 
@@ -280,12 +300,32 @@ SceneTransform::ScaleAccess::~ScaleAccess() {
 	);
 
 	if (this->value != oldScale) {
-		this->source.transformation[0][0] /= oldScale.x;
-		this->source.transformation[0][0] *= this->value.x;
-		this->source.transformation[1][1] /= oldScale.y;
-		this->source.transformation[1][1] *= this->value.y;
-		this->source.transformation[2][2] /= oldScale.z;
-		this->source.transformation[2][2] *= this->value.z;
+		this->source.transformation = glm::column(
+			this->source.transformation,
+			0,
+			(glm::column(
+				this->source.transformation,
+				0
+			) / oldScale.x) * this->value.x
+		);
+
+		this->source.transformation = glm::column(
+			this->source.transformation,
+			1,
+			(glm::column(
+				this->source.transformation,
+				1
+			) / oldScale.y) * this->value.y
+		);
+
+		this->source.transformation = glm::column(
+			this->source.transformation,
+			2,
+			(glm::column(
+				this->source.transformation,
+				2
+			) / oldScale.z) * this->value.z
+		);
 
 		this->source.MarkDirty();
 	}

@@ -60,7 +60,7 @@ void DrawNodeImGui(SceneNode* node) {
 		if (ImGui::TreeNode("Transform")) {
 			ImGui::Text("Position");
 
-			glm::vec3 position = node->GlobalTransform().Position();
+			glm::vec3 position = node->LocalTransform().Position();
 
 			ImGui::InputFloat3("##Position", &position[0]);
 
@@ -70,34 +70,19 @@ void DrawNodeImGui(SceneNode* node) {
 
 			position += positionDelta;
 
-			node->GlobalTransform().Position() = position;
-
 			ImGui::Text("Rotation");
 
-			glm::vec3 rotationEuler = glm::degrees(glm::eulerAngles(node->GlobalTransform().Rotation().Value()));
+			glm::vec3 rotationEuler = glm::degrees(glm::eulerAngles(node->LocalTransform().Rotation().Value()));
 
 			ImGui::InputFloat3("##Rotation", &rotationEuler[0]);
-
-			node->GlobalTransform().Rotation() = glm::quat(glm::radians(rotationEuler));
 
 			glm::vec3 rotationDelta = glm::zero<glm::vec3>();
 
 			ImGui::SliderFloat3("##RotationDelta", &rotationDelta[0], -1, 1);
 
-			node->GlobalTransform().Rotation() *= glm::angleAxis(
-				glm::radians(rotationDelta.x),
-				glm::vec3(1, 0, 0)
-			) * glm::angleAxis(
-				glm::radians(rotationDelta.y),
-				glm::vec3(0, 1, 0)
-			) * glm::angleAxis(
-				glm::radians(rotationDelta.z),
-				glm::vec3(0, 0, 1)
-			);
-			
 			ImGui::Text("Scale");
 			
-			glm::vec3 scale = node->GlobalTransform().Scale();
+			glm::vec3 scale = node->LocalTransform().Scale();
 
 			ImGui::InputFloat3("##Scale", &scale[0]);
 
@@ -117,7 +102,18 @@ void DrawNodeImGui(SceneNode* node) {
 				scale.z = 0.0001;
 			}
 
-			node->GlobalTransform().Scale() = scale;
+			node->LocalTransform().Position() = position;
+			node->LocalTransform().Rotation() = glm::quat(glm::radians(rotationEuler)) * glm::angleAxis(
+				glm::radians(rotationDelta.x),
+				glm::vec3(1, 0, 0)
+			) * glm::angleAxis(
+				glm::radians(rotationDelta.y),
+				glm::vec3(0, 1, 0)
+			) * glm::angleAxis(
+				glm::radians(rotationDelta.z),
+				glm::vec3(0, 0, 1)
+			);
+			node->LocalTransform().Scale() = scale;
 
 			ImGui::TreePop();
 		}
