@@ -45,8 +45,21 @@ void FilesPanel::Draw() {
                         this->currentDirectory /= path.filename();
                         ImGui::PopID();
                         break;
-                    } else {
-                        // If a file is clicked do something
+                    }
+                }
+
+                if (!directoryEntry.is_directory()) {
+                    std::string fullPath = path.string();
+
+                    if (ImGui::BeginDragDropSource(
+                            ImGuiDragDropFlags_SourceAllowNullID)) {
+                        ImGui::SetDragDropPayload("DND_FILE_PATH",
+                                                  fullPath.c_str(),
+                                                  fullPath.size() + 1);
+
+                        ImGui::Text("Drop %s", filenameString.c_str());
+
+                        ImGui::EndDragDropSource();
                     }
                 }
 
