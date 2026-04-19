@@ -418,7 +418,63 @@ public:
 	}
 };
 
+void SingleWall(SceneNode* node, glm::vec3 pos, glm::vec3 wallSize,Mesh* cubeMesh,Material* roomMat, std::string name ) {
+	JPH::BodyCreationSettings playerRoomSettings = Physics::Body::ConvexHullMesh(cubeMesh, JPH::EMotionType::Static, Physics::Layers::NON_MOVING);
+	auto wallNode = node->GetScene()->CreateNode(node->GetName() + " Wall"+ name);
+	wallNode->AddObject<MeshRenderer>(cubeMesh, roomMat);
+	wallNode->GlobalTransform().Position() = (pos);
+	wallNode->GlobalTransform().Scale() = wallSize;
+	auto* wallBody = wallNode->AddObject<Physics::Body>(playerRoomSettings);
+	wallNode->SetParent(node);
+}
 
+void MakeWalls(Mesh* cubeMesh, Material* roomMat, SceneNode* node, bool south, bool north, bool east, bool west) {
+    glm::vec3 pos = node->GlobalTransform().Position(); // środek podłogi
+    glm::vec3 size = node->GlobalTransform().Scale();   // wymiary podłogi (x, y, z)
+    float wallThick = 0.2f;
+    float wallHeight = size.y + 4.0f; // wysokość ściany (od podłogi w górę)
+    
+    // Ściana zachodnia (ujemny X)
+    if (west) {
+        glm::vec3 wallSize = glm::vec3(wallThick, wallHeight, size.z);
+        glm::vec3 wallPos = glm::vec3(
+            pos.x - size.x/2.0f - wallThick/2.0f,
+            pos.y + size.y/2.0f + wallHeight/2.0f,
+            pos.z
+        );
+        SingleWall(node, wallPos, wallSize, cubeMesh, roomMat, "West");
+    }
+    // Ściana wschodnia (dodatni X)
+    if (east) {
+        glm::vec3 wallSize = glm::vec3(wallThick, wallHeight, size.z);
+        glm::vec3 wallPos = glm::vec3(
+            pos.x + size.x/2.0f + wallThick/2.0f,
+            pos.y + size.y/2.0f + wallHeight/2.0f,
+            pos.z
+        );
+        SingleWall(node, wallPos, wallSize, cubeMesh, roomMat, "East");
+    }
+    // Ściana północna (dodatni Z)
+    if (north) {
+        glm::vec3 wallSize = glm::vec3(size.x, wallHeight, wallThick);
+        glm::vec3 wallPos = glm::vec3(
+            pos.x,
+            pos.y + size.y/2.0f + wallHeight/2.0f,
+            pos.z + size.z/2.0f + wallThick/2.0f
+        );
+        SingleWall(node, wallPos, wallSize, cubeMesh, roomMat, "North");
+    }
+    // Ściana południowa (ujemny Z)
+    if (south) {
+        glm::vec3 wallSize = glm::vec3(size.x, wallHeight, wallThick);
+        glm::vec3 wallPos = glm::vec3(
+            pos.x,
+            pos.y + size.y/2.0f + wallHeight/2.0f,
+            pos.z - size.z/2.0f - wallThick/2.0f
+        );
+        SingleWall(node, wallPos, wallSize, cubeMesh, roomMat, "South");
+    }
+}
 
 void MakeRooms(Mesh* cubeMesh,Material* roomMat, Scene* mainScene, Material* skyMat) {
 	JPH::BodyCreationSettings playerRoomSettings = Physics::Body::ConvexHullMesh(cubeMesh, JPH::EMotionType::Static, Physics::Layers::NON_MOVING);
@@ -429,6 +485,7 @@ void MakeRooms(Mesh* cubeMesh,Material* roomMat, Scene* mainScene, Material* sky
     playerRoomNode->GlobalTransform().Scale() = glm::vec3(10.0f, 0.2f, 10.0f);
     playerRoomNode->GlobalTransform().Position() = glm::vec3(0.0f, -0.5f, 0.0f);
     auto* playerRoomBody = playerRoomNode->AddObject<Physics::Body>(playerRoomSettings);
+	MakeWalls(cubeMesh, roomMat, playerRoomNode,true,true,false, true);
 
 	auto enemyRoomNode = mainScene->CreateNode("Enemy Room");
 	enemyRoomNode->AddObject<MeshRenderer>(cubeMesh, roomMat);
@@ -440,14 +497,16 @@ void MakeRooms(Mesh* cubeMesh,Material* roomMat, Scene* mainScene, Material* sky
 	enemyRoomNode->GlobalTransform().Scale() = glm::vec3(10.0f, 0.2f, 10.0f);
 	enemyRoomNode->GlobalTransform().Position() = glm::vec3(10.5f, -0.5f, 0.0f);
 	auto* enemyRoomBody = enemyRoomNode->AddObject<Physics::Body>(playerRoomSettings);
+	MakeWalls(cubeMesh, roomMat, enemyRoomNode,true,false,true, false);
 
 	auto enemyRoomNode2 = mainScene->CreateNode("Enemy Room 2");
 	enemyRoomNode2->AddObject<MeshRenderer>(cubeMesh, roomMat);
 	enemyRoomNode2->GlobalTransform().Scale() = glm::vec3(14.0f, 0.2f, 18.0f);
 	enemyRoomNode2->GlobalTransform().Position() = glm::vec3(10.5f, -0.5f, 14.5f);
 	auto* enemyRoomBody2 = enemyRoomNode2->AddObject<Physics::Body>(playerRoomSettings);
-  
+  	MakeWalls(cubeMesh, roomMat, enemyRoomNode2,false,true,true, true);
 }
+
 
 void AddEnemies(Mesh* enemyMesh, Material* enemyMat, Scene* mainScene, SceneNode* target, Mesh* cubeMesh, Material* reflectiveMat) {
 
@@ -543,7 +602,7 @@ void InitScene(Scene* mainScene) {
 
 
 	MakeRooms(cubeMesh, roomMat, mainScene, skyMat);
-	AddEnemies(schnozMesh, schnozMat, mainScene, playerNode, cubeMesh, reflectiveMat);
+	//AddEnemies(schnozMesh, schnozMat, mainScene, playerNode, cubeMesh, reflectiveMat);
 
 	
 
