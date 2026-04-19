@@ -418,6 +418,62 @@ public:
 	}
 };
 
+
+
+void MakeRooms(Mesh* cubeMesh,Material* roomMat, Scene* mainScene, Material* skyMat) {
+	JPH::BodyCreationSettings playerRoomSettings = Physics::Body::ConvexHullMesh(cubeMesh, JPH::EMotionType::Static, Physics::Layers::NON_MOVING);
+
+	auto playerRoomNode = mainScene->CreateNode("Player Room");
+    playerRoomNode->AddObject<MeshRenderer>(cubeMesh, roomMat);
+    playerRoomNode->AddObject<Skybox>(skyMat);
+    playerRoomNode->GlobalTransform().Scale() = glm::vec3(10.0f, 0.2f, 10.0f);
+    playerRoomNode->GlobalTransform().Position() = glm::vec3(0.0f, -0.5f, 0.0f);
+    auto* playerRoomBody = playerRoomNode->AddObject<Physics::Body>(playerRoomSettings);
+
+	auto enemyRoomNode = mainScene->CreateNode("Enemy Room");
+	enemyRoomNode->AddObject<MeshRenderer>(cubeMesh, roomMat);
+	///
+	enemyRoomNode->AddObject<Surface>(cubeMesh);
+	auto* navGrid = enemyRoomNode->AddObject<NavigationGrid>();
+	navGrid->Build(enemyRoomNode->GetObject<Surface>(), 2.0f, 45.0f);
+	///
+	enemyRoomNode->GlobalTransform().Scale() = glm::vec3(10.0f, 0.2f, 10.0f);
+	enemyRoomNode->GlobalTransform().Position() = glm::vec3(10.5f, -0.5f, 0.0f);
+	auto* enemyRoomBody = enemyRoomNode->AddObject<Physics::Body>(playerRoomSettings);
+
+	auto enemyRoomNode2 = mainScene->CreateNode("Enemy Room 2");
+	enemyRoomNode2->AddObject<MeshRenderer>(cubeMesh, roomMat);
+	enemyRoomNode2->GlobalTransform().Scale() = glm::vec3(14.0f, 0.2f, 18.0f);
+	enemyRoomNode2->GlobalTransform().Position() = glm::vec3(10.5f, -0.5f, 14.5f);
+	auto* enemyRoomBody2 = enemyRoomNode2->AddObject<Physics::Body>(playerRoomSettings);
+  
+}
+
+void AddEnemies(Mesh* enemyMesh, Material* enemyMat, Scene* mainScene, SceneNode* target, Mesh* cubeMesh, Material* reflectiveMat) {
+
+	JPH::BodyCreationSettings enemyhapeSettings = Physics::Body::ConvexHullMesh(enemyMesh, JPH::EMotionType::Dynamic, Physics::Layers::MOVING);
+
+	SceneNode* enemy1 = mainScene->CreateNode("Enemy 1");
+	enemy1->AddObject<MeshRenderer>(enemyMesh, enemyMat);
+	enemy1->GlobalTransform().Position() = glm::vec3(10.5f, 0.0f, 2.0f);
+	enemy1->GlobalTransform().Scale() = glm::vec3(0.5f, 0.5f, 0.5f);
+	auto * enemyBody1 = enemy1->AddObject<Physics::Body>(enemyhapeSettings);
+	enemyBody1->SetRestitution(0.0f);
+	enemyBody1->SetFriction(0.5f);
+	enemyBody1->SetLinearDamping(0.1f);
+	enemyBody1->SetCollisionLayerAndMask({ Physics::Layers::MOVING, Physics::Layers::NON_MOVING });
+	auto enemyAi1= enemy1->AddObject<AiNode>();
+	enemyAi1->SetTarget(target);
+		enemyAi1->SetProjectileResources(cubeMesh, reflectiveMat);
+		enemyAi1->SetAttackCooldown(1.2f);
+	glm::vec2 patrolPoints[] = {
+		glm::vec2(10.5,0),
+		glm::vec2(1,0)
+	};
+	std::vector<glm::vec2> patrolPointsVec(std::begin(patrolPoints), std::end(patrolPoints));
+	enemy1->GetObject<AiNode>()->SetPatrolPoints(patrolPointsVec);
+}
+
 void InitScene(Scene* mainScene) {
   mainScene->AddComponent<Physics::System>();
   mainScene->AddComponent<Physics::DebugRenderer>();
@@ -447,9 +503,6 @@ void InitScene(Scene* mainScene) {
 	).Link();
 
 	Mesh* cubeMesh = mainScene->Resources()->Get<Mesh>("./res/models/not_cube.obj");
-	Mesh* roomMesh = mainScene->Resources()->Get<Mesh>("./res/models/floor/separateFloors1427.fbx");
-	Mesh* dungeon1Mesh = mainScene->Resources()->Get<Mesh>("./res/models/floor/room1.fbx");
-	Mesh* dungeon2Mesh = mainScene->Resources()->Get<Mesh>("./res/models/floor/room2.fbx");
 	Mesh* schnozMesh = mainScene->Resources()->Get<Mesh>("./res/models/schnoz/schnoz.obj");
 
 	Cubemap* skyCubemap = mainScene->Resources()->Get<Cubemap>("./res/textures/citrus_orchard_road_puresky.hdr", Texture::HDRColorBuffer);
@@ -482,10 +535,17 @@ void InitScene(Scene* mainScene) {
 	Material* schnozMat = new Material(diffuseTexProg);
 	schnozMat->SetValue("uColor", glm::vec3(1, 1, 1));
 	schnozMat->SetValue("colorTex", schnozTexture);
+
 	SceneNode* playerNode = mainScene->CreateNode("Player");
 	playerNode->GlobalTransform().Position() = glm::vec3(0.0f, 2.0f, 0.0f);
 	playerNode->GlobalTransform().Scale() = glm::vec3(0.5f, 0.5f, 0.5f);
 	playerNode->AddObject<MeshRenderer>(schnozMesh, reflectiveMat);
+
+
+	MakeRooms(cubeMesh, roomMat, mainScene, skyMat);
+	AddEnemies(schnozMesh, schnozMat, mainScene, playerNode, cubeMesh, reflectiveMat);
+
+	
 
 	JPH::Ref<JPH::CharacterVirtualSettings> characterSettings = new JPH::CharacterVirtualSettings();
 	characterSettings->mShape = new JPH::CapsuleShape(1.0f, 0.5f);
@@ -494,7 +554,6 @@ void InitScene(Scene* mainScene) {
 	auto* virtualCharacter = playerNode->AddObject<Physics::VirtualCharacterController>(characterSettings);
 	virtualCharacter->SetPosition(playerNode->GlobalTransform().Position().Value());
 	virtualCharacter->Awake();
-	//virtualCharacter->SetCollisionLayerAndMask(Physics::Layers::MOVING, { Physics::Layers::NON_MOVING });
 
 	auto mouseMarkerNode = mainScene->CreateNode("Mouse Marker");
 	mouseMarkerNode->AddObject<MeshRenderer>(cubeMesh, reflectiveMat);
@@ -513,30 +572,6 @@ void InitScene(Scene* mainScene) {
 	camera->SetAsMainCamera();
 	cameraNode->AddObject<CameraSettings>(playerNode);
 
-
-auto floorNode = mainScene->CreateNode("Floor");
-floorNode->AddObject<MeshRenderer>(roomMesh, roomMat);
-floorNode->AddObject<Skybox>(skyMat);
-floorNode->GlobalTransform().Position() = glm::vec3(0, 0,0);
-floorNode->GlobalTransform().Scale() = glm::vec3(10, 10, 10); 
-floorNode->GlobalTransform().Rotation() = glm::quat(glm::radians(glm::vec3(90, 0, 0)));
-
-JPH::BodyCreationSettings meshSettings = Physics::Body::Mesh(roomMesh, JPH::EMotionType::Static, Physics::Layers::NON_MOVING);
-auto shapeSettings = meshSettings.GetShapeSettings();
-if (shapeSettings != nullptr) {
-    auto scaledSettings = new JPH::ScaledShapeSettings(shapeSettings, JPH::Vec3(10,10,10));
-    auto result = scaledSettings->Create(); 
-    if (result.HasError()) {
-        spdlog::error("Shape conversion error: {}", result.GetError().c_str());
-    } else {
-        meshSettings.SetShape(result.Get());
-    }
-}
-meshSettings.mPosition = JPH::RVec3(0, 0,0); 
-
-auto* body = floorNode->AddObject<Physics::Body>(meshSettings);
-
-	
 	auto lightNode2 = mainScene->CreateNode("Directional Light");
 	lightNode2->AddObject<Light>(Light::DirectionalLight({1, 1, 1}, 4))->SetShadowCasting(true);
 	lightNode2->GlobalTransform().Position() = {1, 2.2f, 0};
@@ -550,41 +585,6 @@ auto* body = floorNode->AddObject<Physics::Body>(meshSettings);
 	schnozCamera->SetAspectRatio(2);
 	schnozCamera->SetRenderTarget(schnozPreview);
 	schnozCamera->SetLayerMask(uint8_t(5));
-
-	/*floorNode->AddObject<Surface>(gmConstructMesh, 10.0f);
-	auto* navGrid = floorNode->AddObject<NavigationGrid>();
-	navGrid->Build(floorNode->GetObject<Surface>(), 2.0f, 45.0f);
-
-	SceneNode* w_schnozNode = mainScene->CreateNode("w_schnozNode");
-	w_schnozNode->LocalTransform().Position() = glm::vec3(-20,0,-20);
-	w_schnozNode->LocalTransform().Scale() = glm::vec3(1,1,1);
-	w_schnozNode->AddObject<MeshRenderer>(schnozMesh, schnozMat);
-
-	JPH::BodyCreationSettings w_schnozShapeSettings = Physics::Body::ConvexHullMesh(schnozMesh, JPH::EMotionType::Dynamic, Physics::Layers::MOVING);
-	auto* w_schnozBody = w_schnozNode-> AddObject<Physics::Body>(w_schnozShapeSettings);
-	w_schnozBody->SetRestitution(0.0f);
-	w_schnozBody->SetFriction(0.5f);
-	w_schnozBody->SetLinearDamping(0.1f);
-	w_schnozBody->SetCollisionLayerAndMask({ Physics::Layers::MOVING, Physics::Layers::NON_MOVING });
-
-	auto enemyAI = w_schnozNode->AddObject<AiNode>();
-	if (enemyAI) {
-		enemyAI->SetTarget(playerNode);
-		enemyAI->SetProjectileResources(cubeMesh, reflectiveMat); 
-		enemyAI->SetAttackCooldown(1.2f);
-	}
-
-	glm::vec2 patrolPoints[] = {
-		glm::vec2(-20,0),
-		glm::vec2(-40,0)
-	};
-
-	std::vector<glm::vec2> patrolPointsVec(std::begin(patrolPoints), std::end(patrolPoints));
-	w_schnozNode->GetObject<AiNode>()->SetPatrolPoints(patrolPointsVec);*/
-
-	//SceneNode* schnozLightNode = mainScene->CreateNode("Schnoz Light");
-	//schnozLightNode->LocalTransform().Position() = glm::vec3(-55.5, 3.0, -2.0);
-	//schnozLightNode->AddObject<Light>(Light::PointLight(glm::vec3(1, 1, 1), 5, 5));
 }
 
 int main(int, char**) {
