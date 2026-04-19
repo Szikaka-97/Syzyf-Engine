@@ -1,6 +1,7 @@
 #include "panels/MainMenuBar.h"
 #include "Application.h"
 #include "Settings.h"
+#include "Themes.h"
 
 #include <imgui.h>
 
@@ -42,12 +43,27 @@ void MainMenuBar::Draw(Context& context, bool& shouldClose,
                 if (ImGui::MenuItem("Dark")) {
                     ImGui::StyleColorsDark();
                     // maybe make it a function so it saves there by itself
-                    settings.darkThemeEnabled = true;
+                    settings.theme = Themes::Theme::Dark;
                     settings.Save();
                 }
                 if (ImGui::MenuItem("Light")) {
                     ImGui::StyleColorsLight();
-                    settings.darkThemeEnabled = false;
+                    settings.theme = Themes::Theme::Light;
+                    settings.Save();
+                }
+                if (ImGui::MenuItem("Dark Purple")) {
+                    Themes::SetDarkPurpleTheme();
+                    settings.theme = Themes::Theme::PurpleDark;
+                    settings.Save();
+                }
+                if (ImGui::MenuItem("Light Purple")) {
+                    Themes::SetLightPurpleTheme();
+                    settings.theme = Themes::Theme::PurpleLight;
+                    settings.Save();
+                }
+                if (ImGui::MenuItem("Classic")) {
+                    ImGui::StyleColorsClassic();
+                    settings.theme = Themes::Theme::Classic;
                     settings.Save();
                 }
                 ImGui::EndMenu();
@@ -65,11 +81,7 @@ void MainMenuBar::Draw(Context& context, bool& shouldClose,
                 SDL_SetWindowPosition(context.window, SDL_WINDOWPOS_CENTERED,
                                       SDL_WINDOWPOS_CENTERED);
 
-                if (settings.darkThemeEnabled) {
-                    ImGui::StyleColorsDark();
-                } else {
-                    ImGui::StyleColorsLight();
-                }
+                Themes::SetTheme(settings.theme);
             }
             ImGui::EndMenu();
         }

@@ -85,12 +85,6 @@ void KeyboardControls::HandleScaleInput(Context& context) {
 
     if (!this->initialMousePosition.has_value()) {
         this->initialMousePosition = mousePosition;
-        this->savedRotation =
-            context.selectedNode->LocalTransform().Rotation().value;
-    }
-
-    if (!this->initialMousePosition.has_value()) {
-        this->initialMousePosition = mousePosition;
         this->savedScale = context.selectedNode->LocalTransform().Scale().value;
     }
 
@@ -99,8 +93,6 @@ void KeyboardControls::HandleScaleInput(Context& context) {
     float distanceToCenter = glm::length(mousePosition - screenCenter);
 
     float scaleAmount = distanceToCenter / (initialDistanceToCenter + 0.0001f);
-
-    spdlog::info("Scale amount: {}", scaleAmount);
 
     switch (this->currentAxis) {
     case Axis::None:
@@ -152,7 +144,9 @@ void KeyboardControls::SwitchInputMode(Context& context) {
         return;
     }
 
-    if (ImGui::Shortcut(ImGuiKey_Escape) && this->currentMode != Mode::None) {
+    if ((ImGui::Shortcut(ImGuiKey_Escape) ||
+         ImGui::IsMouseClicked(ImGuiMouseButton_Right)) &&
+        this->currentMode != Mode::None) {
         switch (this->currentMode) {
         case Mode::Rotation:
             context.selectedNode->GetTransform().LocalTransform().Rotation() =
@@ -192,7 +186,5 @@ void KeyboardControls::SwitchAxis() {
     }
 }
 
-bool KeyboardControls::IsActive() {
-    return this->currentMode == Mode::None ? true : false;
-}
+bool KeyboardControls::IsActive() { return this->currentMode != Mode::None; }
 } // namespace Editor

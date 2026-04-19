@@ -9,6 +9,7 @@
 #include "panels/MainMenuBar.h"
 #include "panels/SceneViewPanel.h"
 
+#include "panels/StatusBar.h"
 #include "panels/SystemsDebugPanel.h"
 #include "thirdparty/ImGuizmo.h"
 #include <SDL3/SDL_video.h>
@@ -45,6 +46,7 @@ class Application {
     GraphPanel graphPanel;
     SceneViewPanel sceneViewPanel;
     SystemsDebugPanel systemsDebugPanel; // Rename
+    StatusBar statusBar;
 
   public:
     bool Setup();

@@ -2,8 +2,10 @@
 #include "ComponentRegistry.h"
 #include "InitScene.h"
 #include "MousePickingBodySystem.h"
+#include "Themes.h"
 #include "panels/ConsolePanel.h"
 
+#include "thirdparty/ImGuizmo.h"
 #include "thirdparty/ImViewGuizmo.h"
 #include <imgui.h>
 
@@ -106,11 +108,7 @@ bool Application::InitImGui() {
         }
     }
 
-    if (this->settings.darkThemeEnabled) {
-        ImGui::StyleColorsDark();
-    } else {
-        ImGui::StyleColorsLight();
-    }
+    Themes::SetTheme(this->settings.theme);
 
     ImGui_ImplSDL3_InitForOpenGL(context.window, context.glContext);
     ImGui_ImplOpenGL3_Init(GLSL_VERSION);
@@ -213,5 +211,6 @@ void Application::DrawPanels(bool& shouldClose) {
     this->filesPanel.Draw();
     this->consolePanel.Draw();
     this->sceneViewPanel.Draw(this->context);
+    // this->statusBar.Draw(); a bit broken
 }
 } // namespace Editor

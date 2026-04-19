@@ -1,7 +1,9 @@
 #include "panels/SceneViewPanel.h"
 #include "Application.h"
 #include "Commands.h"
+#include "SDL3/SDL_mouse.h"
 
+#include <SDL3/SDL.h>
 #include <imgui.h>
 #define IMVIEWGUIZMO_IMPLEMENTATION
 #include "thirdparty/ImViewGuizmo.h"
@@ -51,9 +53,24 @@ void SceneViewPanel::Draw(Context& context) {
     if (context.mainCamera != nullptr) {
         if (context.selectedNode != nullptr) {
             // Having this commented out might cause problems later
-            // if (ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows) ||
-            // this->keyboardControls.IsActive()) {
-            this->keyboardControls.Run(context);
+            if ((ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows) ||
+                 this->keyboardControls.IsActive()) &&
+                !SDL_GetWindowRelativeMouseMode(context.window)) {
+                // Keyboard Controls
+                this->keyboardControls.Run(context);
+
+                // Switching ImGuizmo mode
+                // DOTA :frog:
+                if (ImGui::Shortcut(ImGuiKey_Z)) {
+                    context.currentGizmoOperation = ImGuizmo::TRANSLATE;
+                }
+                if (ImGui::Shortcut(ImGuiKey_X)) {
+                    context.currentGizmoOperation = ImGuizmo::ROTATE;
+                }
+                if (ImGui::Shortcut(ImGuiKey_C)) {
+                    context.currentGizmoOperation = ImGuizmo::SCALE;
+                }
+            }
             // Should let the user know in some way that this is running
             //  also perhaps move it out of the class into here
 
@@ -193,6 +210,15 @@ void SceneViewPanel::HandleMousePicking(Context& context, float resX,
                         this->filter);
                     if (hitNode != nullptr) {
                         context.selectedNode = hitNode;
+                        if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl)) {
+                            while (context.selectedNode->GetParent() !=
+                                       context.selectedScene->GetRootNode() ||
+                                   context.selectedNode->GetParent() ==
+                                       nullptr) {
+                                context.selectedNode =
+                                    context.selectedNode->GetParent();
+                            }
+                        }
                         hitSomething = true;
                     }
                 }

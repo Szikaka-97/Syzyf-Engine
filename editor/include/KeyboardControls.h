@@ -13,13 +13,15 @@ namespace Editor {
 class Context;
 
 class KeyboardControls {
-  private:
+  public:
     enum class Mode {
         None,
         Translation,
         Rotation,
         Scale,
     };
+
+  private:
     // Add none, and maybe change it so it supports two at the same time
     enum class Axis {
         None,
@@ -43,6 +45,8 @@ class KeyboardControls {
     void HandleScaleInput(Context& context);
     void SwitchInputMode(Context& context);
     void SwitchAxis();
+
+    Mode GetCurrentMode() const { return this->currentMode; }
 
     bool IsActive();
 };
