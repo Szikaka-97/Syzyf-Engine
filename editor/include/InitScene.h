@@ -29,6 +29,8 @@
 #include <physics/System.h>
 #include <physics/Water.h>
 
+#include <Jolt/Jolt.h>
+#include <Jolt/Physics/Body/MotionType.h>
 #include <imgui.h>
 
 class EditorCameraTag : public GameObject {};
@@ -212,7 +214,7 @@ inline void InitScene(Scene& mainScene, Camera*& mainCamera) {
     playerNode->AddObject<Bloom>();
     playerNode->AddObject<Tonemapper>()->SetOperator(
         Tonemapper::TonemapperOperator::GranTurismo);
-    auto* colorGrading = playerNode->AddObject<ColorGrading>();
+    playerNode->AddObject<ColorGrading>();
 
     auto floorNode =
         GltfImporter::LoadScene(&mainScene, "./res/models/floor.glb");
@@ -287,4 +289,9 @@ inline void InitScene(Scene& mainScene, Camera*& mainCamera) {
                                                 .relaxSettings = {
                                                     .enabled = true,
                                                 }});
+    JPH::ShapeRefC bimbermanShape = Physics::CreateCompoundShapeFromNode(
+        bimberman, true, JPH::EMotionType::Dynamic, Physics::Layers::MOVING);
+    bimberman->AddObject<Physics::Body>(JPH::BodyCreationSettings{
+        bimbermanShape, JPH::Vec3::sZero(), JPH::Quat::sIdentity(),
+        JPH::EMotionType::Dynamic, Physics::Layers::MOVING});
 }

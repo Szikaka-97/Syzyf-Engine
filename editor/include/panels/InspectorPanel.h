@@ -1,5 +1,8 @@
 #pragma once
 
+#include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
+
 class SceneNode;
 
 namespace Editor {
@@ -10,6 +13,10 @@ class InspectorPanel {
     void Draw(Context& context);
 
   private:
+    glm::vec3 initialPosition;
+    glm::quat initialRotation;
+    glm::vec3 initialScale;
+
     bool showAddComponentWindow = false;
 };
 } // namespace Editor

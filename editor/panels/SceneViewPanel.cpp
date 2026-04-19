@@ -1,6 +1,9 @@
 #include "panels/SceneViewPanel.h"
 #include "Application.h"
+#include "Commands.h"
+#include "SDL3/SDL_mouse.h"
 
+#include <SDL3/SDL.h>
 #include <imgui.h>
 #define IMVIEWGUIZMO_IMPLEMENTATION
 #include "thirdparty/ImViewGuizmo.h"
@@ -18,23 +21,7 @@ void SceneViewPanel::Draw(Context& context) {
     ImGui::SetNextWindowSize(ImVec2(1024, 576), ImGuiCond_FirstUseEver);
     ImGui::Begin("Scene View", nullptr, ImGuiWindowFlags_MenuBar);
 
-    if (ImGui::BeginMenuBar()) {
-        if (ImGui::RadioButton("Translate", context.currentGizmoOperation ==
-                                                ImGuizmo::TRANSLATE)) {
-            context.currentGizmoOperation = ImGuizmo::TRANSLATE;
-        }
-        ImGui::SameLine();
-        if (ImGui::RadioButton("Rotate", context.currentGizmoOperation ==
-                                             ImGuizmo::ROTATE)) {
-            context.currentGizmoOperation = ImGuizmo::ROTATE;
-        }
-        ImGui::SameLine();
-        if (ImGui::RadioButton("Scale", context.currentGizmoOperation ==
-                                            ImGuizmo::SCALE)) {
-            context.currentGizmoOperation = ImGuizmo::SCALE;
-        }
-        ImGui::EndMenuBar();
-    }
+    this->DrawMenuBar(context);
 
     ImVec2 viewportSize = ImGui::GetContentRegionAvail();
     float resX = std::max(1.0f, viewportSize.x);
@@ -65,6 +52,28 @@ void SceneViewPanel::Draw(Context& context) {
 
     if (context.mainCamera != nullptr) {
         if (context.selectedNode != nullptr) {
+            // Having this commented out might cause problems later
+            if ((ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows) ||
+                 this->keyboardControls.IsActive()) &&
+                !SDL_GetWindowRelativeMouseMode(context.window)) {
+                // Keyboard Controls
+                this->keyboardControls.Run(context);
+
+                // Switching ImGuizmo mode
+                // DOTA :frog:
+                if (ImGui::Shortcut(ImGuiKey_Z)) {
+                    context.currentGizmoOperation = ImGuizmo::TRANSLATE;
+                }
+                if (ImGui::Shortcut(ImGuiKey_X)) {
+                    context.currentGizmoOperation = ImGuizmo::ROTATE;
+                }
+                if (ImGui::Shortcut(ImGuiKey_C)) {
+                    context.currentGizmoOperation = ImGuizmo::SCALE;
+                }
+            }
+            // Should let the user know in some way that this is running
+            //  also perhaps move it out of the class into here
+
             ImGuizmo::SetDrawlist();
             ImGuizmo::SetRect(cursorScreenPosition.x, cursorScreenPosition.y,
                               resX, resY);
@@ -80,6 +89,12 @@ void SceneViewPanel::Draw(Context& context) {
                                  glm::value_ptr(nodeTransform));
 
             if (ImGuizmo::IsUsing()) {
+                if (this->wasViewGuizmoUsed == false) {
+                    this->wasViewGuizmoUsed = true;
+                    this->initialLocalTransform =
+                        context.selectedNode->LocalTransform().Value();
+                }
+
                 context.selectedNode->GlobalTransform() = nodeTransform;
 
                 if (SceneNode* parent = context.selectedNode->GetParent()) {
@@ -90,6 +105,13 @@ void SceneViewPanel::Draw(Context& context) {
                 } else {
                     context.selectedNode->LocalTransform() = nodeTransform;
                 }
+            } else if (this->wasViewGuizmoUsed) {
+                this->wasViewGuizmoUsed = false;
+
+                context.commandHistory.ExecuteCommand(
+                    std::make_unique<TransformCommand>(
+                        context.selectedNode, this->initialLocalTransform,
+                        context.selectedNode->LocalTransform().Value()));
             }
         }
 
@@ -188,6 +210,15 @@ void SceneViewPanel::HandleMousePicking(Context& context, float resX,
                         this->filter);
                     if (hitNode != nullptr) {
                         context.selectedNode = hitNode;
+                        if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl)) {
+                            while (context.selectedNode->GetParent() !=
+                                       context.selectedScene->GetRootNode() ||
+                                   context.selectedNode->GetParent() ==
+                                       nullptr) {
+                                context.selectedNode =
+                                    context.selectedNode->GetParent();
+                            }
+                        }
                         hitSomething = true;
                     }
                 }
@@ -197,6 +228,57 @@ void SceneViewPanel::HandleMousePicking(Context& context, float resX,
                 }
             }
         }
+    }
+}
+
+void SceneViewPanel::DrawMenuBar(Context& context) {
+    if (ImGui::BeginMenuBar()) {
+        if (ImGui::RadioButton("Translate", context.currentGizmoOperation ==
+                                                ImGuizmo::TRANSLATE)) {
+            context.currentGizmoOperation = ImGuizmo::TRANSLATE;
+        }
+        ImGui::SameLine();
+        if (ImGui::RadioButton("Rotate", context.currentGizmoOperation ==
+                                             ImGuizmo::ROTATE)) {
+            context.currentGizmoOperation = ImGuizmo::ROTATE;
+        }
+        ImGui::SameLine();
+        if (ImGui::RadioButton("Scale", context.currentGizmoOperation ==
+                                            ImGuizmo::SCALE)) {
+            context.currentGizmoOperation = ImGuizmo::SCALE;
+        }
+
+        // Undo / Redo
+        ImGuiStyle& style = ImGui::GetStyle();
+        float buttonWidth =
+            ImGui::CalcTextSize("<").x + style.FramePadding.x * 2.0f;
+
+        float rightPadding = 10.0f;
+        float totalWidth =
+            buttonWidth * 2.0f + style.ItemSpacing.x + rightPadding;
+
+        ImGui::SameLine(ImGui::GetWindowWidth() - totalWidth);
+
+        if (context.commandHistory.CanUndo()) {
+            if (ImGui::Button("<")) {
+                context.commandHistory.Undo();
+            }
+        } else {
+            ImGui::BeginDisabled();
+            ImGui::Button("<");
+            ImGui::EndDisabled();
+        }
+        ImGui::SameLine();
+        if (context.commandHistory.CanRedo()) {
+            if (ImGui::Button(">")) {
+                context.commandHistory.Redo();
+            }
+        } else {
+            ImGui::BeginDisabled();
+            ImGui::Button(">");
+            ImGui::EndDisabled();
+        }
+        ImGui::EndMenuBar();
     }
 }
 

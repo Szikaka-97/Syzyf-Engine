@@ -1,5 +1,6 @@
 #pragma once
 
+#include "CommandHistory.h"
 #include "Settings.h"
 #include "panels/ConsolePanel.h"
 #include "panels/FilesPanel.h"
@@ -8,6 +9,7 @@
 #include "panels/MainMenuBar.h"
 #include "panels/SceneViewPanel.h"
 
+#include "panels/StatusBar.h"
 #include "panels/SystemsDebugPanel.h"
 #include "thirdparty/ImGuizmo.h"
 #include <SDL3/SDL_video.h>
@@ -18,6 +20,10 @@ class Camera;
 namespace Editor {
 
 struct Context {
+    SDL_Window* window = nullptr;
+    SDL_GLContext glContext = nullptr;
+
+    CommandHistory commandHistory;
     Scene* selectedScene = nullptr;
     SceneNode* selectedNode = nullptr;
     Camera* mainCamera = nullptr;
@@ -30,9 +36,6 @@ class Application {
     const int32_t GL_VERSION_MAJOR = 4;
     const int32_t GL_VERSION_MINOR = 6;
 
-    SDL_Window* window = nullptr;
-    SDL_GLContext glContext = nullptr;
-
     Settings settings;
     Context context;
 
@@ -43,6 +46,7 @@ class Application {
     GraphPanel graphPanel;
     SceneViewPanel sceneViewPanel;
     SystemsDebugPanel systemsDebugPanel; // Rename
+    StatusBar statusBar;
 
   public:
     bool Setup();
@@ -53,5 +57,8 @@ class Application {
     void InitSpdlog();
     bool InitProgram();
     bool InitImGui();
+
+    void Input();
+    void DrawPanels(bool& shouldClose);
 };
 } // namespace Editor

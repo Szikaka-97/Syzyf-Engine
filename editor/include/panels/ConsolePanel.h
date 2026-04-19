@@ -11,7 +11,7 @@ class ImGuiConsoleSink : public spdlog::sinks::base_sink<Mutex> {
   public:
     inline static std::deque<std::string> logs;
     inline static const std::size_t MAX_LOGS = 500;
-    inline static bool autoScroll;
+    inline static bool autoScroll = true;
 
   protected:
     void sink_it_(const spdlog::details::log_msg& msg) override {

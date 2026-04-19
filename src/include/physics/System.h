@@ -116,4 +116,6 @@ public:
 
   JPH::GroupFilter* GetLayerGroupFilter() const;
 };
+
+JPH::ShapeRefC CreateCompoundShapeFromNode(SceneNode* rootNode, bool useConvex, JPH::EMotionType motionType, JPH::ObjectLayer layer);
 }

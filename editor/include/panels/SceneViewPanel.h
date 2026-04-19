@@ -1,7 +1,10 @@
 #pragma once
 
+#include "KeyboardControls.h"
+
 #include <Jolt/Jolt.h>
 #include <Jolt/Physics/Collision/ObjectLayer.h>
+#include <glm/glm.hpp>
 #include <physics/System.h>
 
 class Scene;
@@ -19,12 +22,20 @@ class SceneViewPanel {
         }
     };
 
+    bool wasViewGuizmoUsed = false;
+    glm::mat4 initialGlobalTransform;
+    glm::mat4 initialLocalTransform;
+
     EditorLayerFilter filter;
+
+    KeyboardControls keyboardControls;
 
   public:
     void Draw(Context& context);
 
   private:
     void HandleMousePicking(Context& context, float resX, float resY);
+
+    void DrawMenuBar(Context& context);
 };
 } // namespace Editor
