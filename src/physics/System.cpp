@@ -1,6 +1,7 @@
 #include "physics/System.h"
 #include "Jolt/Physics/Collision/BroadPhase/BroadPhase.h"
 #include "Jolt/Physics/Collision/TransformedShape.h"
+#include "MeshRenderer.h"
 #include "physics/CharacterController.h"
 #include "physics/ICollisionReceiver.h"
 #include "physics/DebugRenderer.h"
@@ -13,6 +14,7 @@
 #include "physics/ICollisionReceiver.h"
 
 #include <Jolt/Core/Core.h>
+#include <Jolt/Physics/Collision/Shape/StaticCompoundShape.h>
 #include <Jolt/Physics/Body/BodyID.h>
 #include <Jolt/Physics/Body/BodyManager.h>
 #include <Jolt/RegisterTypes.h>
@@ -375,5 +377,46 @@ void System::DrawImGui() {
     ImGui::Checkbox("Draw collision meshes", &drawDebug);   
 	  ImGui::TreePop();
   }
+}
+
+JPH::ShapeRefC CreateCompoundShapeFromNode(SceneNode* rootNode, bool useConvex, JPH::EMotionType motionType, JPH::ObjectLayer layer) {
+    JPH::StaticCompoundShapeSettings compoundSettings;
+
+    auto traverse = [&](auto& self, SceneNode* node) -> void {
+        if (MeshRenderer* renderer = node->GetObject<MeshRenderer>()) {
+            if (Mesh* mesh = renderer->GetMesh()) {
+                JPH::BodyCreationSettings tempSettings;
+
+                if (useConvex) {
+                    tempSettings = Body::ConvexHullMesh(mesh, motionType, layer);
+                } else {
+                    tempSettings = Body::Mesh(mesh, motionType, layer);
+                }
+
+                glm::mat4 rootGlobal = rootNode->GetTransform().GlobalTransform().Value();
+                glm::mat4 nodeGlobal = node->GetTransform().GlobalTransform().Value();
+                glm::mat4 relativeMatrix = glm::inverse(rootGlobal) * nodeGlobal;
+
+                glm::vec3 position = relativeMatrix[3];
+                glm::quat rotation = glm::quat_cast(relativeMatrix);
+
+                JPH::Vec3 jphPosition(position.x, position.y, position.z);
+                JPH::Quat jphRotation(rotation.x, rotation.y, rotation.z, rotation.w);
+
+                compoundSettings.AddShape(jphPosition, jphRotation, tempSettings.GetShapeSettings());
+            }
+        }
+        for (SceneNode* child : node->GetChildren()) {
+            self(self, child);
+        }
+    };
+    traverse(traverse, rootNode);
+
+    JPH::ShapeSettings::ShapeResult result = compoundSettings.Create();
+    if (result.IsValid()) {
+        return result.Get();
+    }
+
+    return nullptr;
 }
 };

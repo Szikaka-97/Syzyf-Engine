@@ -27,6 +27,8 @@
 #include <physics/System.h>
 #include <physics/Water.h>
 
+#include <Jolt/Jolt.h>
+#include <Jolt/Physics/Body/MotionType.h>
 #include <imgui.h>
 
 class EditorCameraTag : public GameObject {};
@@ -254,4 +256,10 @@ inline void InitScene(Scene& mainScene, Camera*& mainCamera) {
     SceneNode* bimberman = GltfImporter::LoadScene(
         &mainScene, "./res/models/bimbermann.glb", "Bimberman");
     bimberman->GlobalTransform().Position() = {0.0f, 0.0f, 10.0f};
+
+    JPH::ShapeRefC bimbermanShape = Physics::CreateCompoundShapeFromNode(
+        bimberman, true, JPH::EMotionType::Dynamic, Physics::Layers::MOVING);
+    bimberman->AddObject<Physics::Body>(JPH::BodyCreationSettings{
+        bimbermanShape, JPH::Vec3::sZero(), JPH::Quat::sIdentity(),
+        JPH::EMotionType::Dynamic, Physics::Layers::MOVING});
 }
