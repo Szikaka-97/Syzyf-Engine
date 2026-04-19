@@ -50,6 +50,21 @@ void SceneViewPanel::Draw(Context& context) {
     ImGui::Image((ImTextureID)(intptr_t)textureID, ImVec2(resX, resY),
                  ImVec2(0, 1), ImVec2(1, 0));
 
+    if (ImGui::BeginDragDropTarget()) {
+        if (const ImGuiPayload* payload =
+                ImGui::AcceptDragDropPayload("DND_FILE_PATH")) {
+            const char* droppedFilePath = (const char*)payload->Data;
+            std::string filePathStr(droppedFilePath);
+            std::filesystem::path droppedPath(filePathStr);
+
+            if (droppedPath.extension() == ".glb" ||
+                droppedPath.extension() == ".gltf") {
+                GltfImporter::LoadScene(context.selectedScene, droppedFilePath);
+            }
+        }
+        ImGui::EndDragDropTarget();
+    }
+
     if (context.mainCamera != nullptr) {
         if (context.selectedNode != nullptr) {
             // Having this commented out might cause problems later
