@@ -5,7 +5,6 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 layout(binding = 0) uniform sampler2D inputTex;
 layout(rgba16f, binding = 0) uniform writeonly image2D outputImg;
 
-uniform float enabled;
 uniform float debugEdges;
 
 uniform float edgeThreshold;
@@ -179,12 +178,6 @@ void main()
     return;
 
     vec4 src = texelFetch(inputTex, texCoord, 0);
-
-    if (enabled < 0.5)
-    {
-        imageStore(outputImg, texCoord, src);
-        return;
-    }
 
     vec2 uv = (vec2(texCoord) + vec2(0.5)) / vec2(size);
     vec2 rcpFrame = 1.0 / vec2(size);

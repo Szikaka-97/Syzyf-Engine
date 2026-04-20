@@ -85,3 +85,5 @@ bool GameObject::TryGetObject(T_GO*& target) const {
 // template <class T_Required>
 // 	requires std::derived_from<T_Required, GameObject>
 // class Requires { };
+
+std::string DemangleTypeName(const char* mangledName);

@@ -19,8 +19,6 @@ private:
   float searchSteps = 32.0f;
 
 public:
-
-  bool enabled = true;
   bool debugEdges = false;
 
   Fxaa();

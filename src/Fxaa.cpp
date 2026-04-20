@@ -31,7 +31,6 @@ void Fxaa::OnPostProcess(const PostProcessParams* params)
     data->SetValue("inputTex", params->inputTexture);
     data->SetValue("outputImg", params->outputTexture);
 
-    data->SetValue("enabled", this->enabled ? 1.0f : 0.0f);
     data->SetValue("debugEdges", this->debugEdges ? 1.0f : 0.0f);
 
     data->SetValue("edgeThreshold", this->edgeThreshold);
@@ -54,7 +53,6 @@ void Fxaa::DrawImGui()
     ImGui::Text("FXAA");
     ImGui::Spacing();
 
-    ImGui::Checkbox("enabled##FXAA", &this->enabled);
     ImGui::Checkbox("debugEdges##FXAA", &this->debugEdges);
 
     ImGui::Separator();
@@ -118,7 +116,6 @@ void Fxaa::DrawImGui()
 
     if (ImGui::Button("Reset FXAA##FXAA"))
     {
-        this->enabled = true;
         this->debugEdges = false;
 
         this->edgeThreshold = 1.0f / 8.0f;
