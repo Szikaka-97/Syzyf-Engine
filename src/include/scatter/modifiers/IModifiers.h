@@ -9,15 +9,21 @@ struct InstanceData;
 using PointStream = std::vector<glm::vec3>;
 using InstanceStream = std::vector<InstanceData>;
 
-class IPointFilter {
+class IPointModifier {
 public:
-    virtual ~IPointFilter() = default;
+    virtual ~IPointModifier() = default;
     virtual PointStream Process(const PointStream& input) = 0;
 };
 
-class IInstanceFilter {
+class IInstanceModifier {
 public:
-    virtual ~IInstanceFilter() = default;
+    virtual ~IInstanceModifier() = default;
     virtual InstanceStream Process(const InstanceStream& input) = 0;
+};
+
+class IPointToInstanceModifier {
+public:
+    virtual ~IPointToInstanceModifier() = default;
+    virtual InstanceStream Process(const PointStream& input) = 0;
 };
 }

@@ -4,9 +4,11 @@
 #include "GameObject.h"
 #include "Mesh.h"
 #include "Material.h"
-#include "scatter/filters/ArrayFilter.h"
-#include "scatter/filters/ProjectionFilter.h"
-#include "scatter/filters/RelaxFilter.h"
+#include "scatter/modifiers/ArrayModifier.h"
+#include "scatter/modifiers/IModifiers.h"
+#include "scatter/modifiers/ProjectionModifier.h"
+#include "scatter/modifiers/RelaxModifier.h"
+#include "scatter/modifiers/TransformModifier.h"
 
 #include <future>
 
@@ -18,20 +20,37 @@ struct InstanceData {
     glm::mat4 transform;
 };
 
+using ModifierSettings = std::variant<ProjectionSettings, RelaxSettings, ArraySettings, TransformSettings>;
+
 struct Settings {
     int instanceCount = 1000;
-
     glm::vec3 areaExtents = glm::vec3(50.0f, 0.0f, 50.0f);
 
     float minScale = 1.0f;
     float maxScale = 1.0f;
-
     glm::vec3 minRotation = { 0.0f, 0.0f, 0.0f };
     glm::vec3 maxRotation = { 0.0f, 0.0f, 0.0f };
 
-    std::optional<ProjectionSettings> projectionSettings;
-    std::optional<RelaxSettings> relaxSettings;
-    std::optional<ArraySettings> arraySettings;
+    std::vector<ModifierSettings> modifiers;
+};
+
+class SettingsBuilder {
+private:
+    Settings settings;
+
+public:
+    SettingsBuilder() = default;
+
+    SettingsBuilder& WithInstanceCount(int count);
+    SettingsBuilder& WithAreaExtents(glm::vec3 extents);
+
+    SettingsBuilder& AddProjection(const ProjectionSettings& config);
+    SettingsBuilder& AddRelax(const RelaxSettings& config);
+    SettingsBuilder& AddTransform(const TransformSettings& config);
+    SettingsBuilder& AddArray(const ArraySettings& config);
+    SettingsBuilder& AddModifier(const ModifierSettings& modifier);
+
+    Settings Build();
 };
 
 class Spawner : public GameObject, public ImGuiDrawable {
@@ -57,6 +76,5 @@ public:
     void DrawImGui();
 private:
     void UploadToGPU();
-    static InstanceStream PointsToInstance(const PointStream& input, Settings settings);
 };
 }

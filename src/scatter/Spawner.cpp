@@ -1,10 +1,9 @@
 #include "scatter/Spawner.h"
 #include "Layer.h"
 #include "Graphics.h"
-#include "fastgltf/core.hpp"
 #include "physics/System.h"
-#include "scatter/filters/ArrayFilter.h"
-#include "scatter/filters/IFilters.h"
+#include "scatter/modifiers/ArrayModifier.h"
+#include "scatter/modifiers/IModifiers.h"
 
 #include <glm/ext/matrix_transform.hpp>
 #include <imgui.h>
@@ -15,6 +14,45 @@
 #include <Jolt/Physics/Collision/CastResult.h>
 
 namespace Scatter {
+
+SettingsBuilder& SettingsBuilder::WithInstanceCount(int count) {
+    settings.instanceCount = count;
+    return *this;
+}
+
+SettingsBuilder& SettingsBuilder::WithAreaExtents(glm::vec3 extents) {
+    settings.areaExtents = extents;
+    return *this;
+}
+
+SettingsBuilder& SettingsBuilder::AddProjection(const ProjectionSettings& config) {
+    settings.modifiers.push_back(config);
+    return *this;
+}
+
+SettingsBuilder& SettingsBuilder::AddRelax(const RelaxSettings& config) {
+    settings.modifiers.push_back(config);
+    return *this;
+}
+
+SettingsBuilder& SettingsBuilder::AddTransform(const TransformSettings& config) {
+    settings.modifiers.push_back(config);
+    return *this;
+}
+
+SettingsBuilder& SettingsBuilder::AddArray(const ArraySettings& config) {
+    settings.modifiers.push_back(config);
+    return *this;
+}
+
+SettingsBuilder& SettingsBuilder::AddModifier(const ModifierSettings& modifier) {
+    settings.modifiers.push_back(modifier);
+    return *this;
+}
+
+Settings SettingsBuilder::Build() {
+    return std::move(settings); 
+}
 
 Spawner::Spawner(Mesh* mesh, std::unique_ptr<Material> material, Settings settings) : mesh(mesh), material(std::move(material)), settings(settings) {
     Generate();
@@ -38,19 +76,14 @@ void Spawner::Generate() {
     glm::mat4 scatterTransform = glm::mat4(1.0f);
     glm::mat4 inverseScatterTransform = glm::mat4(1.0f);
 
-    if (this->settings.projectionSettings.has_value()) {
-        if (auto* physicsSystem = GetScene()->GetComponent<Physics::System>()) {
-            joltSystem = physicsSystem->GetJoltSystem();
-            scatterTransform = this->GlobalTransform().Value();
-            inverseScatterTransform = glm::inverse(scatterTransform);
-        } else {
-            spdlog::error("Scatter::Spawner::Generate: Tried applying a projection modifier without a physics system, disabling the modifier");
-        }
+    if (auto* physicsSystem = GetScene()->GetComponent<Physics::System>()) {
+        joltSystem = physicsSystem->GetJoltSystem();
     }
 
     this->generationFuture = std::async(std::launch::async, [settingsCopy, joltSystem, scatterTransform, inverseScatterTransform]() {
         PointStream currentPoints;
         currentPoints.reserve(settingsCopy.instanceCount * 2);
+
         glm::vec3 min = -settingsCopy.areaExtents;
         glm::vec3 max = settingsCopy.areaExtents;
 
@@ -58,33 +91,56 @@ void Spawner::Generate() {
             currentPoints.push_back(glm::linearRand(min, max));
         }
 
-        std::vector<std::unique_ptr<IPointFilter>> pointPipeline;
+        InstanceStream instances;
+        bool hasTransformed = false;
 
-        if (settingsCopy.projectionSettings.has_value() && joltSystem) {
-            pointPipeline.push_back(std::make_unique<ProjectionFilter>(settingsCopy.projectionSettings.value(), joltSystem, scatterTransform, inverseScatterTransform)); 
-        }
-        if (settingsCopy.relaxSettings.has_value()) {
-            pointPipeline.push_back(std::make_unique<RelaxFilter>(settingsCopy.relaxSettings.value()));
+        for (const auto& modifierSettings : settingsCopy.modifiers) {
+            std::visit([&](auto&& arg) {
+                using T = std::decay_t<decltype(arg)>;
+
+                // Point Modifier 
+                if constexpr (std::is_same_v<T, ProjectionSettings>) {
+                    if (!hasTransformed && joltSystem) {
+                        ProjectionModifier modifier(arg, joltSystem, scatterTransform, inverseScatterTransform);
+                        currentPoints = modifier.Process(currentPoints);
+                    }
+                } else if constexpr (std::is_same_v<T, RelaxSettings>) {
+                    if (!hasTransformed) {
+                        RelaxModifier modifier(arg);
+                        currentPoints = modifier.Process(currentPoints);
+                    }
+                }
+                // PointToInstance Bridge Modifier 
+                else if constexpr (std::is_same_v<T, TransformSettings>) {
+                if (!hasTransformed) {
+                    if (currentPoints.size() > settingsCopy.instanceCount) {
+                        currentPoints.resize(settingsCopy.instanceCount);
+                    }
+
+                    TransformModifier modifier(arg);
+                    instances = modifier.Process(currentPoints);
+                    hasTransformed = true;
+                }
+                }
+                // Instance Modifier 
+                else if constexpr (std::is_same_v<T, ArraySettings>) {
+                    if (hasTransformed) {
+                        ArrayModifier modifier(arg);
+                        instances = modifier.Process(instances);
+                    }
+                }
+            }, modifierSettings);
         }
 
-        for (const auto& filter : pointPipeline) {
-            currentPoints = filter->Process(currentPoints);
+        if (!hasTransformed) {
+            if (currentPoints.size() > settingsCopy.instanceCount) {
+                currentPoints.resize(settingsCopy.instanceCount);
+            }
+            TransformSettings defaultSettings;
+            TransformModifier modifier(defaultSettings);
+            instances = modifier.Process(currentPoints);
         }
 
-        if (currentPoints.size() > settingsCopy.instanceCount) {
-            currentPoints.resize(settingsCopy.instanceCount);
-        }
-
-        InstanceStream instances = Spawner::PointsToInstance(currentPoints, settingsCopy);
-
-        std::vector<std::unique_ptr<IInstanceFilter>> instancePipeline;
-        if (settingsCopy.arraySettings.has_value()) {
-            instancePipeline.push_back(std::make_unique<ArrayFilter>(settingsCopy.arraySettings.value()));
-        }
-        for (const auto& filter : instancePipeline) {
-            instances = filter->Process(instances);
-        }
-        
         return instances;
     });
 }
@@ -133,80 +189,19 @@ void Spawner::UploadToGPU() {
     }
 }
 
-InstanceStream Spawner::PointsToInstance(const PointStream& input, Settings settings) {
-    InstanceStream output;
-    output.reserve(input.size());
-
-    for (const glm::vec3& position : input) {
-        glm::mat4 transform = glm::translate(glm::mat4(1.0f), position);
-        glm::vec3 randomRotation = glm::linearRand(settings.minRotation, settings.maxRotation);
-
-        transform = glm::rotate(transform, randomRotation.x, glm::vec3(1.0f, 0.0f, 0.0f));
-        transform = glm::rotate(transform, randomRotation.y, glm::vec3(0.0f, 1.0f, 0.0f));
-        transform = glm::rotate(transform, randomRotation.z, glm::vec3(0.0f, 0.0f, 1.0f));
-
-        float randomScale = glm::linearRand(settings.minScale, settings.maxScale);
-        transform = glm::scale(transform, glm::vec3(randomScale));
-
-        output.push_back({ transform });
-    }
-    return output;
-}
-
 void Spawner::DrawImGui() {
     // add missing stuff
     //  also add something similar to the particle spawner
     ImGui::InputInt("Instance Count", &this->settings.instanceCount);
     ImGui::InputFloat3("Area Extents", &this->settings.areaExtents.x);
 
-    ImGui::InputFloat("Min Scale", &this->settings.minScale);
-    ImGui::InputFloat("Max Scale", &this->settings.maxScale);
-    ImGui::InputFloat3("Min Rotation", &this->settings.minRotation.x);
-    ImGui::InputFloat3("Max Rotation", &this->settings.maxRotation.x);
-
     ImGui::Separator();
 
-    bool relaxEnabled = this->settings.relaxSettings.has_value();
-    if (ImGui::Checkbox("Relax Positions", &relaxEnabled)) {
-        if (relaxEnabled) {
-            this->settings.relaxSettings.emplace();
-        } else {
-            this->settings.relaxSettings.reset();
-        }
-    }
-    if (relaxEnabled) {
-        ImGui::InputFloat("Min Distance", &this->settings.relaxSettings.value().minDistance);
-        ImGui::InputInt("Max Attempts", &this->settings.relaxSettings.value().maxAttempts);
-    }
-
-    ImGui::Separator();
-
-    bool projectionEnabled = this->settings.projectionSettings.has_value();
-    if (ImGui::Checkbox("Project On Colliders", &projectionEnabled)) {
-        if (projectionEnabled) {
-            this->settings.projectionSettings.emplace();
-        } else {
-            this->settings.projectionSettings.reset();
-        }
-    }
-    if (projectionEnabled) {
-        ImGui::InputFloat3("Ray Direction", &this->settings.projectionSettings.value().raycastDirection.x);
-        ImGui::InputFloat("Ray Length", &this->settings.projectionSettings.value().raycastLength);
-        ImGui::InputFloat("Ray Offset", &this->settings.projectionSettings.value().raycastOffset);
-    }
-
-    ImGui::Separator();
-    bool arrayEnabled = this->settings.arraySettings.has_value();
-    if (ImGui::Checkbox("Array", &arrayEnabled)) {
-        if (arrayEnabled) {
-            this->settings.arraySettings.emplace();
-        } else {
-            this->settings.arraySettings.reset();
-        }
-    }
-    if (arrayEnabled) {
-        ImGui::InputInt("Array Size", &this->settings.arraySettings.value().arraySize);
-        ImGui::InputFloat3("Array Offset", &this->settings.arraySettings.value().arrayOffset.x);
+    for (auto& modifier : this->settings.modifiers) {
+        std::visit([](auto& modifier) {
+            modifier.DrawImGui();
+            ImGui::Separator();
+        }, modifier);
     }
 
     if (this->isGenerating) {

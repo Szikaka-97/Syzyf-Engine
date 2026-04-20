@@ -1,10 +1,12 @@
-#include "scatter/filters/RelaxFilter.h"
+#include "scatter/modifiers/RelaxModifier.h"
+
+#include <imgui.h>
 
 namespace Scatter {
 
-RelaxFilter::RelaxFilter(RelaxSettings settings) : settings(settings) {}
+RelaxModifier::RelaxModifier(RelaxSettings settings) : settings(settings) {}
 
-PointStream RelaxFilter::Process(const PointStream& input) {
+PointStream RelaxModifier::Process(const PointStream& input) {
     PointStream validPositions;
     validPositions.reserve(input.size());
 
@@ -22,5 +24,16 @@ PointStream RelaxFilter::Process(const PointStream& input) {
         }
     }
     return validPositions;
+}
+
+void RelaxSettings::DrawImGui() {
+    ImGui::PushID(this);
+
+    if (ImGui::CollapsingHeader("Relax Modifier", ImGuiTreeNodeFlags_DefaultOpen)) {
+        ImGui::InputFloat("Min Distance", &this->minDistance);
+        ImGui::InputInt("Max Attempts", &this->maxAttempts);
+    }
+
+    ImGui::PopID();
 }
 };
