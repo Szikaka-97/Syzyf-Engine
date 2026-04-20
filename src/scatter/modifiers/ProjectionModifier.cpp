@@ -32,15 +32,9 @@ PointStream ProjectionModifier::Process(const PointStream& input) {
     return output;
 }
 
-void ProjectionModifier::DrawImGui() {
-    ImGui::PushID(this);
-
-    if (ImGui::CollapsingHeader("Projection Modifier", ImGuiTreeNodeFlags_DefaultOpen)) {
-        ImGui::InputFloat("Raycast Length", &this->settings.raycastLength);
-        ImGui::InputFloat("Raycast Offset", &this->settings.raycastOffset);
-        ImGui::InputFloat3("Ray Direction", &this->settings.raycastDirection.x);
-    }
-
-    ImGui::PopID();
+void ProjectionSettings::DrawImGui() {
+    ImGui::InputFloat3("Ray Direction", &this->raycastDirection.x);
+    ImGui::InputFloat("Ray Length", &this->raycastLength);
+    ImGui::InputFloat("Ray Offset", &this->raycastOffset);
 }
 }

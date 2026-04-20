@@ -190,19 +190,7 @@ void Spawner::UploadToGPU() {
 }
 
 void Spawner::DrawImGui() {
-    // add missing stuff
-    //  also add something similar to the particle spawner
-    ImGui::InputInt("Instance Count", &this->settings.instanceCount);
-    ImGui::InputFloat3("Area Extents", &this->settings.areaExtents.x);
-
-    ImGui::Separator();
-
-    for (auto& modifier : this->settings.modifiers) {
-        std::visit([](auto& modifier) {
-            modifier.DrawImGui();
-            ImGui::Separator();
-        }, modifier);
-    }
+    const auto ERROR_COLOR = ImVec4(1.0f, 0.0f, 0.2f, 1.0f);
 
     if (this->isGenerating) {
         ImGui::BeginDisabled();
@@ -215,5 +203,112 @@ void Spawner::DrawImGui() {
     }
 
     ImGui::Text("Instance count: %zu", this->instanceData.size());
+
+    ImGui::InputInt("Instance Count", &this->settings.instanceCount);
+    ImGui::InputFloat3("Area Extents", &this->settings.areaExtents.x);
+
+    ImGui::Separator();
+
+    std::optional<std::size_t> modifierToDelete;
+    std::optional<std::pair<std::size_t, std::size_t>> modifierToMove;
+
+    bool transformModifierUsed = false;
+    for (std::size_t i = 0; i < this->settings.modifiers.size(); ++i) {
+        ImGui::PushID(static_cast<int>(i));
+
+        bool keepOpen = true;
+        const auto& currentModifier = this->settings.modifiers[i];
+
+        bool isPointModifier = std::holds_alternative<ProjectionSettings>(currentModifier) || 
+                               std::holds_alternative<RelaxSettings>(currentModifier);
+        bool isTransformModifier = std::holds_alternative<TransformSettings>(currentModifier);
+        bool isInstanceModifier = std::holds_alternative<ArraySettings>(currentModifier);
+
+        if (isTransformModifier) transformModifierUsed = true;
+        bool isWrongOrder = false;
+        std::string errorMessage = "";
+        
+        if (isInstanceModifier && !transformModifierUsed) {
+            isWrongOrder = true;
+            errorMessage = "Warning: Array must be placed AFTER a Transform modifier.";
+        } else if (isPointModifier && transformModifierUsed) {
+            isWrongOrder = true;
+            errorMessage = "Warning: Point modifiers must be placed BEFORE Transform.";
+        }
+
+        std::string header = GetModifierName(currentModifier);
+        if (isWrongOrder) {
+            ImGui::PushStyleColor(ImGuiCol_Text, ERROR_COLOR);
+        }
+
+        bool isOpen = ImGui::CollapsingHeader(header.c_str(), &keepOpen, ImGuiTreeNodeFlags_DefaultOpen);
+        if (ImGui::IsItemHovered() && isWrongOrder) {
+            ImGui::BeginTooltip();
+            ImGui::TextColored(ERROR_COLOR, "%s", errorMessage.c_str());
+            ImGui::EndTooltip();
+        }
+
+        if (isWrongOrder) {
+            ImGui::PopStyleColor();
+        }
+
+        if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID)) {
+            ImGui::SetDragDropPayload("MODIFIER_INDEX", &i, sizeof(size_t));
+            ImGui::Text("Move %s", header.c_str());
+            ImGui::EndDragDropSource();
+        }
+        if (ImGui::BeginDragDropTarget()) {
+            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("MODIFIER_INDEX")) {
+                std::size_t sourceIndex = *(const std::size_t*)payload->Data;
+                modifierToMove = { sourceIndex, i };
+            }
+            ImGui::EndDragDropTarget();
+        }
+
+        if (isOpen) {
+            std::visit([](auto& modifier) {
+                modifier.DrawImGui();
+            }, this->settings.modifiers[i]);
+        }
+
+        if (!keepOpen) {
+            modifierToDelete = i;
+        }
+
+        ImGui::PopID();
+    }
+
+    if (modifierToDelete.has_value()) {
+        this->settings.modifiers.erase(this->settings.modifiers.begin() + modifierToDelete.value());
+    }
+
+    if (modifierToMove.has_value()) {
+        auto [src, dst] = modifierToMove.value();
+        auto item = this->settings.modifiers[src];
+        this->settings.modifiers.erase(this->settings.modifiers.begin() + src);
+        this->settings.modifiers.insert(this->settings.modifiers.begin() + dst, item);
+    }
+
+    ImGui::Separator();
+
+    if (ImGui::Button("Add Modifier")) {
+        ImGui::OpenPopup("AddModifierPopup");
+    }
+
+    if (ImGui::BeginPopup("AddModifierPopup")) {
+        if (ImGui::Selectable("Projection Modifier")) { this->settings.modifiers.push_back(ProjectionSettings{}); }
+        if (ImGui::Selectable("Relax Modifier")) { this->settings.modifiers.push_back(RelaxSettings{}); }
+        if (ImGui::Selectable("Transform Modifier")) { this->settings.modifiers.push_back(TransformSettings{}); }
+        if (ImGui::Selectable("Array Modifier")) { this->settings.modifiers.push_back(ArraySettings{}); }
+        ImGui::EndPopup();    
+    }
+}
+
+const char* Spawner::GetModifierName(const ModifierSettings& modifier) {
+    if (std::holds_alternative<ProjectionSettings>(modifier)) return "Projection Modifier";
+    if (std::holds_alternative<RelaxSettings>(modifier)) return "Relax Modifier";
+    if (std::holds_alternative<TransformSettings>(modifier)) return "Transform Modifier";
+    if (std::holds_alternative<ArraySettings>(modifier)) return "Array Modifier";
+    return "Unknown Modifier";
 }
 }

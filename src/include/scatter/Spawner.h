@@ -76,5 +76,6 @@ public:
     void DrawImGui();
 private:
     void UploadToGPU();
+    const char* GetModifierName(const ModifierSettings& modifier);
 };
 }

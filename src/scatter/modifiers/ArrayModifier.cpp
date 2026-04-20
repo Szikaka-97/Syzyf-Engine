@@ -21,14 +21,7 @@ InstanceStream ArrayModifier::Process(const InstanceStream& input) {
 }
 
 void ArraySettings::DrawImGui() {
-    ImGui::PushID(this);
-
-    if (ImGui::CollapsingHeader("Array Modifier", ImGuiTreeNodeFlags_DefaultOpen)) {
-        ImGui::InputInt("Array Size", &this->arraySize);
-        ImGui::InputFloat3("Array Offset", &this->arrayOffset.x);
-    }
-
-    ImGui::PopID();
-}
+    ImGui::InputInt("Array Size", &this->arraySize);
+    ImGui::InputFloat3("Array Offset", &this->arrayOffset.x);
 };
-
+}

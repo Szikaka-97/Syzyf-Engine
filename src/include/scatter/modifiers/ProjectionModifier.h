@@ -14,11 +14,7 @@ public:
     float raycastOffset = 5.0f;
     glm::vec3 raycastDirection = { 0.0f, -1.0f, 0.0f };
 public:
-    void DrawImGui() {
-        ImGui::InputFloat3("Ray Direction", &this->raycastDirection.x);
-        ImGui::InputFloat("Ray Length", &this->raycastLength);
-        ImGui::InputFloat("Ray Offset", &this->raycastOffset);
-    }
+    void DrawImGui();
 };
 
 class ProjectionModifier : public IPointModifier {

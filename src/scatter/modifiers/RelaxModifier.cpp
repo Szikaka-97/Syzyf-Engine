@@ -27,13 +27,7 @@ PointStream RelaxModifier::Process(const PointStream& input) {
 }
 
 void RelaxSettings::DrawImGui() {
-    ImGui::PushID(this);
-
-    if (ImGui::CollapsingHeader("Relax Modifier", ImGuiTreeNodeFlags_DefaultOpen)) {
-        ImGui::InputFloat("Min Distance", &this->minDistance);
-        ImGui::InputInt("Max Attempts", &this->maxAttempts);
-    }
-
-    ImGui::PopID();
-}
+    ImGui::InputFloat("Min Distance", &this->minDistance);
+    ImGui::InputInt("Max Attempts", &this->maxAttempts);
 };
+}

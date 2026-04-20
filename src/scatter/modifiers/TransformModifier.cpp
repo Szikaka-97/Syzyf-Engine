@@ -28,15 +28,9 @@ InstanceStream TransformModifier::Process(const PointStream& input) {
 }
 
 void TransformSettings::DrawImGui() {
-    ImGui::PushID(this);
-
-    if (ImGui::CollapsingHeader("Transform Modifier", ImGuiTreeNodeFlags_DefaultOpen)) {
-        ImGui::InputFloat("Min Scale", &this->minScale);
-        ImGui::InputFloat("Max Scale", &this->maxScale);
-        ImGui::InputFloat3("Min Rotation", &this->minRotation.x);
-        ImGui::InputFloat3("Max Rotation", &this->maxRotation.x);
-    }
-
-    ImGui::PopID();
+    ImGui::InputFloat("Min Scale", &this->minScale);
+    ImGui::InputFloat("Max Scale", &this->maxScale);
+    ImGui::InputFloat3("Min Rotation", &this->minRotation.x);
+    ImGui::InputFloat3("Max Rotation", &this->maxRotation.x);
 }
 }
