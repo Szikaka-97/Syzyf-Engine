@@ -629,7 +629,7 @@ std::vector<Material*> GltfImporter::LoadMaterials(Scene* scene, fastgltf::Asset
 
     switch (gltfMaterial.alphaMode){
       case fastgltf::AlphaMode::Blend:
-//#warning GltfImporter: Add blending once engine supports semi-transparent materials 
+//#warning GltfImporter: Add blending once engine supports semi-transparent materials
         material = new Material(maskProg);
         material->SetValue("alphaCutoff", gltfMaterial.alphaCutoff);
         break;
