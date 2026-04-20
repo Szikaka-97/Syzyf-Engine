@@ -107,6 +107,7 @@ void ParticleSpawner::Update() {
     computeDispatchData->SetValue("uAreaExtents", this->settings.areaExtents);
     computeDispatchData->SetValue("uDeltaTime", Time::Delta());
     computeDispatchData->SetValue("uWrapAround", static_cast<unsigned int>(this->settings.wrapAround));
+    computeDispatchData->SetValue("uEnableLifetime", static_cast<unsigned int>(this->settings.enableLifetime));
 
 
     GLuint workGroups = (this->settings.maxParticles + 63) / 64;

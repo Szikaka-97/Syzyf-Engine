@@ -20,7 +20,6 @@
 #include "physics/System.h"
 #include "physics/DebugRenderer.h"
 #include "physics/Body.h"
-#include "physics/Water.h"
 
 
 AiNode::AiNode()
@@ -221,7 +220,7 @@ void AiNode::SearchWalkPoint() {
         if (physics) {
             JPH::RRayCast ray(JPH::RVec3(candidate.x, candidate.y, candidate.z), JPH::Vec3(0, -1, 0));
             JPH::RayCastResult result;
-            if (physics->GetSystem().GetNarrowPhaseQuery().CastRay(ray, result)) {
+            if (physics->GetJoltSystem()->GetNarrowPhaseQuery().CastRay(ray, result)) {
                 JPH::RVec3 hit = ray.GetPointOnRay(result.mFraction);
                 walkPoint = glm::vec3(hit.GetX(), hit.GetY(), hit.GetZ());
                 walkPointSet = true;

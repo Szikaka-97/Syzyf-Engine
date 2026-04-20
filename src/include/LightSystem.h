@@ -1,3 +1,4 @@
+
 #pragma once
 
 #include <glad/glad.h>
@@ -41,3 +42,4 @@ public:
 
 	virtual void DrawImGui();
 };
+

@@ -111,7 +111,7 @@ public:
   void SetGravity(const glm::vec3 gravity);
 
   JPH::BodyInterface& GetBodyInterface();
-  JPH::PhysicsSystem& GetSystem();
+  JPH::PhysicsSystem* GetJoltSystem();
   JPH::TempAllocatorImpl& GetTempAllocator();
 
   JPH::GroupFilter* GetLayerGroupFilter() const;

@@ -20,6 +20,7 @@ in VS_OUT {
 #include "shared/light.h"
 
 uniform sampler2D colorTex;
+uniform vec4 color = vec4(1.0f, 1.0f, 1.0f, 1.0f);
 uniform sampler2D colorRamp;
 uniform sampler2D depthTex;
 uniform float depthFadeDistance;
@@ -47,7 +48,7 @@ float calcWeight(float alpha) {
 }
 
 void main() {
-	vec4 color = texture(colorTex, ps_in.texcoords);
+	vec4 color = texture(colorTex, ps_in.texcoords) * color;
     if (useColorRamp > 0) {
         vec4 colorRamp = texture(colorRamp, vec2(ps_in.lifetime, 0.0));
         color.rgb *= colorRamp.rgb * 5.0;

@@ -16,7 +16,8 @@ uniform float uDeltaTime;
 uniform vec3 uAreaCenter;
 uniform vec3 uAreaExtents;
 uniform vec3 uEmissionShapeExtents;
-uniform bool uWrapAround; // change to bool
+uniform uint uWrapAround; // change to bool
+uniform uint uEnableLifetime;
 
 layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 
@@ -47,7 +48,7 @@ void main() {
 
     particles[index].lifetime.x += uDeltaTime;
 
-    if (particles[index].lifetime.x >= particles[index].lifetime.y || justSpawned) {
+    if ((uEnableLifetime == 1 && particles[index].lifetime.x >= particles[index].lifetime.y) || justSpawned) {
         if (!justSpawned) {
             particles[index].lifetime.x = 0.0;
         }
@@ -67,7 +68,7 @@ void main() {
         // angle
         particles[index].lifetime.z += particles[index].lifetime.w * uDeltaTime;
 
-        if (uWrapAround) {
+        if (uWrapAround == 1) {
             vec3 localPosition = particles[index].position.xyz - uAreaCenter;
             vec3 size = uAreaExtents * 2.0;
 

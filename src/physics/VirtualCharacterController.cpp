@@ -19,9 +19,9 @@ void VirtualCharacterController::Move(const glm::vec3& velocity, float deltaTime
 
   this->character->Update(
     deltaTime,
-    physics->GetSystem().GetGravity() * this->gravityFactor,
-    physics->GetSystem().GetDefaultBroadPhaseLayerFilter(collisionLayer),
-    physics->GetSystem().GetDefaultLayerFilter(collisionLayer),
+    physics->GetJoltSystem()->GetGravity() * this->gravityFactor,
+    physics->GetJoltSystem()->GetDefaultBroadPhaseLayerFilter(collisionLayer),
+    physics->GetJoltSystem()->GetDefaultLayerFilter(collisionLayer),
     { },
     { },
     physics->GetTempAllocator()
@@ -148,7 +148,7 @@ void VirtualCharacterController::Awake() {
   JPH::RVec3 position(nodePosition.x, nodePosition.y, nodePosition.z);
   JPH::Quat rotation(nodeRotation.x, nodeRotation.y, nodeRotation.z, nodeRotation.w);
 
-  this->character = new JPH::CharacterVirtual(this->characterSettings, position, rotation, &physics->GetSystem());
+  this->character = new JPH::CharacterVirtual(this->characterSettings, position, rotation, physics->GetJoltSystem());
 }
 
 // Make consistent with body

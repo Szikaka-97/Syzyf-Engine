@@ -121,6 +121,7 @@ namespace Physics {
     layerGroupFilter = new GroupFilterLayerMask();
     
     tempAllocator = new JPH::TempAllocatorImpl(settings.tempAllocatorSize);
+    // remember to change if any issues appear after adding sound/async file loading or anything else related to threads
     jobSystem = new JPH::JobSystemThreadPool(JPH::cMaxPhysicsJobs, JPH::cMaxPhysicsBarriers, JPH::thread::hardware_concurrency() - 1);
     bpLayerInterface = new BPLayerInterfaceImpl();
     objVsBPFilter = new ObjectVsBroadPhaseLayerFilterImpl();
@@ -230,8 +231,8 @@ namespace Physics {
     return *bodyInterface;
   }
 
-  JPH::PhysicsSystem& System::GetSystem() {
-    return *physicsSystem;
+  JPH::PhysicsSystem* System::GetJoltSystem() {
+    return physicsSystem;
   }
 
   JPH::TempAllocatorImpl& System::GetTempAllocator() {
