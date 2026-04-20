@@ -340,10 +340,9 @@ Mesh* GltfImporter::LoadMesh(fastgltf::Mesh& gltfMesh, fastgltf::Asset& asset, s
     auto& primitive = mesh->subMeshes[index];
 
     if (it->materialIndex.has_value()) {
-//#warning GltfImporter: Add a defualt material and offset this by one
       primitive.materialIndex = it->materialIndex.value();
     } else {
-      primitive.materialIndex = 0;
+      primitive.materialIndex = materials.size() - 1;
     }
 
     primitive.indexData = new unsigned int[primitive.faceCount * (unsigned int) primitive.type];
@@ -610,28 +609,34 @@ std::vector<Material*> GltfImporter::LoadMaterials(Scene* scene, fastgltf::Asset
   materials.reserve(asset.materials.size());
   ResourceDatabase* resources = scene->Resources();
 
-  const char* vertexShaderPath = isSkinned ? "./res/shaders/lit_gltf_animation.vert" : "./res/shaders/lit_gltf.vert";
+  const char* vertexShaderPath = isSkinned ? "./res/shaders/gltf/lit_animation.vert" : "./res/shaders/gltf/lit.vert";
 
 	auto* opaqueProg = ShaderProgram::Build().WithVertexShader(
 		resources->Get<VertexShader>(vertexShaderPath)
 	).WithPixelShader(
-		resources->Get<PixelShader>("./res/shaders/pbr_gltf.frag")
+		resources->Get<PixelShader>("./res/shaders/gltf/pbr.frag")
 	).Link();
 
   auto* maskProg = ShaderProgram::Build().WithVertexShader(
-    resources->Get<VertexShader>("./res/shaders/lit_gltf_animation.vert")
+    resources->Get<VertexShader>(vertexShaderPath)
   ).WithPixelShader(
-    resources->Get<PixelShader>("./res/shaders/pbr_gltf_mask.frag")
+    resources->Get<PixelShader>("./res/shaders/gltf/pbr_mask.frag")
   ).Link();
+
+  auto* blendProg = ShaderProgram::Build().WithVertexShader(
+    resources->Get<VertexShader>(vertexShaderPath)
+    ).WithPixelShader(
+    resources->Get<PixelShader>("./res/shaders/gltf/pbr_blend.frag")
+    ).Link();
+  blendProg->SetTransparent(true);
 
   for (auto& gltfMaterial : asset.materials) {
     Material* material = nullptr;
 
     switch (gltfMaterial.alphaMode){
       case fastgltf::AlphaMode::Blend:
-//#warning GltfImporter: Add blending once engine supports semi-transparent materials
-        material = new Material(maskProg);
-        material->SetValue("alphaCutoff", gltfMaterial.alphaCutoff);
+        spdlog::info("{} is using a blend program", gltfMaterial.name);
+        material = new Material(blendProg);
         break;
       case fastgltf::AlphaMode::Opaque:
         material = new Material(opaqueProg);
@@ -750,6 +755,23 @@ std::vector<Material*> GltfImporter::LoadMaterials(Scene* scene, fastgltf::Asset
     // Add other stuff:
     //  clearcoat, culling, alpha blending
   }
-  
+ 
+    Material* defaultMaterial = new Material(opaqueProg);
+    defaultMaterial->name = "Default Material";
+    defaultMaterial->SetValue("baseColorFactor", glm::vec4(0.8f));
+    defaultMaterial->SetValue("roughnessFactor", 1.0f);
+    defaultMaterial->SetValue("metallicFactor", 0.0f);
+
+    Texture2D* defaultAlbedo = resources->Get<Texture2D>("./res/textures/default_color.png", Texture::ColorTextureRGBA);
+    defaultMaterial->SetValue("albedoMap", defaultAlbedo);
+    Texture2D* defaultArm = resources->Get<Texture2D>("./res/textures/default_arm.png", Texture::TechnicalMapXYZ);
+    defaultMaterial->SetValue("armMap", defaultArm);
+    Texture2D* defaultNormal = resources->Get<Texture2D>("./res/textures/default_norm.png", Texture::TechnicalMapXYZ);
+    defaultMaterial->SetValue("normalMap", defaultNormal);
+    Texture2D* defaultEmissive = resources->Get<Texture2D>("./res/textures/default_emissive.png", Texture::ColorTextureRGBA);
+    defaultMaterial->SetValue("emissiveMap", defaultEmissive);
+
+    materials.push_back(defaultMaterial);
+
   return materials;
 }

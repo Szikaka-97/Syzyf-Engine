@@ -261,7 +261,7 @@ void SceneGraphics::RenderObjects(const ShaderGlobalUniforms &globalUniforms,
       }
     }
 
-    if (params.pass == RenderPassType::Color) {
+    if (params.pass == RenderPassType::Color || params.pass == RenderPassType::Transparent) {
       int shadowmaskUniformLocation =
           glGetUniformLocation(mat->GetShader()->handle, "Builtin_ShadowMask");
 
