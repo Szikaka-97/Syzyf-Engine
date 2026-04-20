@@ -340,7 +340,7 @@ Mesh* GltfImporter::LoadMesh(fastgltf::Mesh& gltfMesh, fastgltf::Asset& asset, s
     auto& primitive = mesh->subMeshes[index];
 
     if (it->materialIndex.has_value()) {
-#warning GltfImporter: Add a defualt material and offset this by one
+//#warning GltfImporter: Add a defualt material and offset this by one
       primitive.materialIndex = it->materialIndex.value();
     } else {
       primitive.materialIndex = 0;
@@ -629,7 +629,7 @@ std::vector<Material*> GltfImporter::LoadMaterials(Scene* scene, fastgltf::Asset
 
     switch (gltfMaterial.alphaMode){
       case fastgltf::AlphaMode::Blend:
-#warning GltfImporter: Add blending once engine supports semi-transparent materials 
+//#warning GltfImporter: Add blending once engine supports semi-transparent materials
         material = new Material(maskProg);
         material->SetValue("alphaCutoff", gltfMaterial.alphaCutoff);
         break;

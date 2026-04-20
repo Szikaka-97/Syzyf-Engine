@@ -5,6 +5,7 @@
 #include <Bloom.h>
 #include <Camera.h>
 #include <ColorGrading.h>
+#include <Fxaa.h>
 #include <Framebuffer.h>
 #include <InputSystem.h>
 #include <Light.h>
@@ -213,6 +214,7 @@ inline void InitScene(Scene& mainScene, Camera*& mainCamera) {
     playerNode->AddObject<Tonemapper>()->SetOperator(
         Tonemapper::TonemapperOperator::GranTurismo);
     playerNode->AddObject<ColorGrading>();
+    playerNode->AddObject<Fxaa>();
 
     auto floorNode =
         GltfImporter::LoadScene(&mainScene, "./res/models/floor.glb");
