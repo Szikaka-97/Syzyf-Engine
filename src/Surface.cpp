@@ -92,3 +92,16 @@ bool Surface::IsOnSurface(const glm::vec3& point) const {
     }
     return false;
 }
+
+void Surface::DrawDebugSurface(Physics::DebugRenderer* debugRenderer, float pointSize, int step) const {
+    if (!debugRenderer || walkablePoints.empty()) return;
+
+    JPH::Color color = JPH::Color::sCyan;
+    for (size_t i = 0; i < walkablePoints.size(); i += step) {
+        const glm::vec3& p = walkablePoints[i];
+        JPH::Vec3 pos(p.x, p.y, p.z);
+        debugRenderer->DrawLine(pos + JPH::Vec3(-pointSize, 0, 0), pos + JPH::Vec3(pointSize, 0, 0), color);
+        debugRenderer->DrawLine(pos + JPH::Vec3(0, -pointSize, 0), pos + JPH::Vec3(0, pointSize, 0), color);
+        debugRenderer->DrawLine(pos + JPH::Vec3(0, 0, -pointSize), pos + JPH::Vec3(0, 0, pointSize), color);
+    }
+}
