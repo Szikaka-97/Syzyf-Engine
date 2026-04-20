@@ -35,6 +35,7 @@ class SceneViewPanel {
 
   private:
     void HandleMousePicking(Context& context, float resX, float resY);
+    void HandleDrop(Context& context);
 
     void DrawMenuBar(Context& context);
 };

@@ -9,6 +9,7 @@
 #include "thirdparty/ImViewGuizmo.h"
 
 #include <Graphics.h>
+#include <MeshRenderer.h>
 #include <Scene.h>
 #include <TimeSystem.h>
 #include <physics/System.h>
@@ -51,22 +52,8 @@ void SceneViewPanel::Draw(Context& context) {
                  ImVec2(0, 1), ImVec2(1, 0));
 
     if (ImGui::BeginDragDropTarget()) {
-            if (const ImGuiPayload* payload =
-                    ImGui::AcceptDragDropPayload("DND_FILE_PATH")) {
-                const char* droppedFilePath = (const char*)payload->Data;
-                std::string filePathStr(droppedFilePath);
-                std::filesystem::path droppedPath(filePathStr);
-
-                if (droppedPath.extension() == ".glb" ||
-                    droppedPath.extension() == ".gltf") {
-
-                    std::string normalizedPath = droppedPath.generic_string();
-
-                    GltfImporter::LoadScene(context.selectedScene, normalizedPath.c_str());
-                }
-            }
-            ImGui::EndDragDropTarget();
-        }
+        this->HandleDrop(context);
+    }
 
     if (context.mainCamera != nullptr) {
         if (context.selectedNode != nullptr) {
@@ -247,6 +234,53 @@ void SceneViewPanel::HandleMousePicking(Context& context, float resX,
             }
         }
     }
+}
+
+void SceneViewPanel::HandleDrop(Context& context) {
+    if (const ImGuiPayload* payload =
+            ImGui::AcceptDragDropPayload("DND_FILE_PATH")) {
+        const char* droppedFilePath = (const char*)payload->Data;
+        std::string filePathStr(droppedFilePath);
+        std::filesystem::path droppedPath(filePathStr);
+        std::string normalizedPath = droppedPath.generic_string();
+
+        if (droppedPath.extension() == ".glb" ||
+            droppedPath.extension() == ".gltf") {
+            GltfImporter::LoadScene(context.selectedScene,
+                                    normalizedPath.c_str());
+        }
+        if (droppedPath.extension() == ".obj" ||
+            droppedPath.extension() == ".fbx") {
+            if (Mesh* mesh = context.selectedScene->Resources()->Get<Mesh>(
+                    normalizedPath, true)) {
+                SceneNode* modelNode = context.selectedScene->CreateNode();
+
+                if (mesh->GetDefaultMaterials().empty()) {
+                    ShaderProgram* defaultProg =
+                        ShaderProgram::Build()
+                            .WithVertexShader(context.selectedScene->Resources()
+                                                  ->Get<VertexShader>(
+                                                      "./res/shaders/lit.vert"))
+                            .WithPixelShader(
+                                context.selectedScene->Resources()
+                                    ->Get<PixelShader>(
+                                        "./res/shaders/lambert color.frag"))
+                            .Link();
+
+                    auto* defaultMaterial = new Material(defaultProg);
+                    defaultMaterial->SetValue("uColor", glm::vec3(0.8));
+                    modelNode->AddObject<MeshRenderer>(mesh, defaultMaterial);
+                } else {
+                    modelNode->AddObject<MeshRenderer>(
+                        mesh, mesh->GetDefaultMaterials());
+                }
+            } else {
+                spdlog::error("Editor::SceneViewPanel::HandleDrop: Failed to "
+                              "load an .obj or .fbx file");
+            }
+        }
+    }
+    ImGui::EndDragDropTarget();
 }
 
 void SceneViewPanel::DrawMenuBar(Context& context) {
