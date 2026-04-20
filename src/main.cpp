@@ -428,51 +428,50 @@ void SingleWall(SceneNode* node, glm::vec3 pos, glm::vec3 wallSize,Mesh* cubeMes
 	wallNode->SetParent(node);
 }
 
-void MakeWalls(Mesh* cubeMesh, Material* roomMat, SceneNode* node, bool south, bool north, bool east, bool west) {
-    glm::vec3 pos = node->GlobalTransform().Position(); // środek podłogi
-    glm::vec3 size = node->GlobalTransform().Scale();   // wymiary podłogi (x, y, z)
+/// <summary>
+/// got confused with directions, actual set of params is WEST EAST NORT SOUTH 
+/// </summary>
+void MakeWalls(Mesh* cubeMesh, Material* roomMat, SceneNode* node, bool a, bool b, bool c, bool d) {
+    glm::vec3 pos = node->GlobalTransform().Position();
+    glm::vec3 size = node->GlobalTransform().Scale();   
     float wallThick = 0.2f;
-    float wallHeight = size.y + 4.0f; // wysokość ściany (od podłogi w górę)
+    float wallHeight = size.y + 4.0f;
     
-    // Ściana zachodnia (ujemny X)
-    if (west) {
+    if (d) {
         glm::vec3 wallSize = glm::vec3(wallThick, wallHeight, size.z);
         glm::vec3 wallPos = glm::vec3(
             pos.x - size.x/2.0f - wallThick/2.0f,
             pos.y + size.y/2.0f + wallHeight/2.0f,
             pos.z
         );
-        SingleWall(node, wallPos, wallSize, cubeMesh, roomMat, "West");
+        SingleWall(node, wallPos, wallSize, cubeMesh, roomMat, "d");
     }
-    // Ściana wschodnia (dodatni X)
-    if (east) {
+    if (c) {
         glm::vec3 wallSize = glm::vec3(wallThick, wallHeight, size.z);
         glm::vec3 wallPos = glm::vec3(
             pos.x + size.x/2.0f + wallThick/2.0f,
             pos.y + size.y/2.0f + wallHeight/2.0f,
             pos.z
         );
-        SingleWall(node, wallPos, wallSize, cubeMesh, roomMat, "East");
+        SingleWall(node, wallPos, wallSize, cubeMesh, roomMat, "c");
     }
-    // Ściana północna (dodatni Z)
-    if (north) {
+    if (b) {
         glm::vec3 wallSize = glm::vec3(size.x, wallHeight, wallThick);
         glm::vec3 wallPos = glm::vec3(
             pos.x,
             pos.y + size.y/2.0f + wallHeight/2.0f,
             pos.z + size.z/2.0f + wallThick/2.0f
         );
-        SingleWall(node, wallPos, wallSize, cubeMesh, roomMat, "North");
+        SingleWall(node, wallPos, wallSize, cubeMesh, roomMat, "b");
     }
-    // Ściana południowa (ujemny Z)
-    if (south) {
+    if (a) {
         glm::vec3 wallSize = glm::vec3(size.x, wallHeight, wallThick);
         glm::vec3 wallPos = glm::vec3(
             pos.x,
             pos.y + size.y/2.0f + wallHeight/2.0f,
             pos.z - size.z/2.0f - wallThick/2.0f
         );
-        SingleWall(node, wallPos, wallSize, cubeMesh, roomMat, "South");
+        SingleWall(node, wallPos, wallSize, cubeMesh, roomMat, "a");
     }
 }
 
