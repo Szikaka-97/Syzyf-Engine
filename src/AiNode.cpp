@@ -632,6 +632,10 @@ void AiNode::SearchWalkPoint() {
 			return;
 		}
 
+		if (m_Surface && debugRenderer) {
+        m_Surface->DrawDebugSurface(debugRenderer, 0.1f, 5);
+    }
+
 		int segments = 24;
 
 		glm::quat rotation = myNode->GlobalTransform().Rotation();

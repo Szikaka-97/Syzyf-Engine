@@ -3,6 +3,7 @@
 #include <GameObject.h>
 #include <vector>
 #include <glm/glm.hpp>
+#include "physics/DebugRenderer.h"
 
 class Mesh;
 
@@ -26,5 +27,7 @@ public:
 
     float GetGroundHeight(float x, float z) const;
     const std::vector<glm::vec3>& GetWalkablePoints() const { return walkablePoints; }
+
+    void DrawDebugSurface(Physics::DebugRenderer* debugRenderer, float pointSize = 0.1f, int step = 5) const;
 
 };
