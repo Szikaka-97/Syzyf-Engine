@@ -1,4 +1,6 @@
 #include "panels/ConsolePanel.h"
+#include <mutex>
+
 
 namespace Editor {
 
