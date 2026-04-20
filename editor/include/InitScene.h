@@ -14,7 +14,6 @@
 #include <MeshRenderer.h>
 #include <ParticleSpawner.h>
 #include <ReflectionProbe.h>
-#include <Scatter.h>
 #include <Scene.h>
 #include <Shader.h>
 #include <Skybox.h>
@@ -30,6 +29,7 @@
 #include <physics/DebugRenderer.h>
 #include <physics/System.h>
 #include <physics/Water.h>
+#include <scatter/Spawner.h>
 
 #include <Jolt/Jolt.h>
 #include <Jolt/Physics/Body/MotionType.h>
@@ -295,27 +295,28 @@ inline void InitScene(Scene& mainScene, Camera*& mainCamera) {
     auto scatterMaterial = std::make_unique<Material>(scatterProgram);
     scatterMaterial->SetValue("uColor", glm::vec3(0.2, 0.6, 0.9));
     SceneNode* scatter = mainScene.CreateNode("Scatter");
-    scatter->AddObject<Scatter>(cubeMesh, std::move(scatterMaterial),
-                                ScatterSettings{.instanceCount = 5000,
-                                                .minRotation =
-                                                    {
-                                                        glm::radians(-15.0f),
-                                                        glm::radians(0.0f),
-                                                        glm::radians(-15.0f),
-                                                    },
-                                                .maxRotation =
-                                                    {
-                                                        glm::radians(15.0f),
-                                                        glm::radians(360.0f),
-                                                        glm::radians(15.0f),
-                                                    },
-                                                .projectionSettings{
-                                                    .enabled = true,
-                                                    .raycastLength = 20.0f,
-                                                    .raycastOffset = 20.0f,
-                                                }
+    scatter->AddObject<Scatter::Spawner>(
+        cubeMesh, std::move(scatterMaterial),
+        Scatter::Settings{.instanceCount = 5000,
+                          .minRotation =
+                              {
+                                  glm::radians(-15.0f),
+                                  glm::radians(0.0f),
+                                  glm::radians(-15.0f),
+                              },
+                          .maxRotation =
+                              {
+                                  glm::radians(15.0f),
+                                  glm::radians(360.0f),
+                                  glm::radians(15.0f),
+                              },
+                          .projectionSettings =
+                              Scatter::ProjectionSettings{
+                                  .raycastLength = 20.0f,
+                                  .raycastOffset = 20.0f,
+                              }
 
-                                });
+        });
 
     ShaderProgram* dustProgram =
         ShaderProgram::Build()
