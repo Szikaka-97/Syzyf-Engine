@@ -32,6 +32,7 @@ private:
   bool bodyCreated = false;
   bool addedToWorld = false;
 public:
+  Body();
   Body(const JPH::BodyCreationSettings& settings);
 
   static JPH::BodyCreationSettings Sphere(float radius, const JPH::EMotionType type, const JPH::ObjectLayer layer);
@@ -96,8 +97,5 @@ public:
   void OnDisable();
 
   void DrawImGui();
-
-  private:
-  Body();
 };
 }
