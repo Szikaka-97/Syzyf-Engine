@@ -1,10 +1,11 @@
-
 #include <GameObject.h>
 
 #include <Scene.h>
 #include <Light.h>
 
+#if defined(__GNUG__) || defined(__clang__)
 #include <cxxabi.h>
+#endif
 
 GameObject::~GameObject() {
 	this->node->DeleteObject(this);
