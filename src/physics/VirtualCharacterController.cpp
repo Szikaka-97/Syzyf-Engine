@@ -147,7 +147,8 @@ void VirtualCharacterController::SyncToNode() {
         this->SetRotation(rotation);
 
         if (!glm::all(glm::epsilonEqual(scale, glm::vec3(1.0f), glm::epsilon<float>()))) {
-            spdlog::warn("Physics::VirtualCharacterController::SyncToNode: Scaling virtual character controllers isn't supported");
+            //commented out because of spam
+            // spdlog::warn("Physics::VirtualCharacterController::SyncToNode: Scaling virtual character controllers isn't supported");
         }
     }
 }

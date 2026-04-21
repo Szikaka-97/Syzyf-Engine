@@ -2,6 +2,7 @@
 
 #include "GltfImporter.h"
 #include "LightSystem.h"
+#include "game_scripts/ThrowBottle.h"
 
 #include <AiNode.h>
 #include <Bloom.h>
@@ -24,6 +25,9 @@
 #include <Viewport.h>
 #include <animation/AnimationSystem.h>
 #include <fog/FogVolume.h>
+#include <game_scripts/CameraSettings.h>
+#include <game_scripts/PlayerController.h>
+#include <game_scripts/ThrowBottle.h>
 #include <glm/fwd.hpp>
 #include <glm/geometric.hpp>
 #include <glm/trigonometric.hpp>
@@ -214,10 +218,11 @@ inline void InitScene(Scene& mainScene) {
 
     // ---- PLAYER ----
     SceneNode* playerNode = mainScene.CreateNode("Player");
-    playerNode->GlobalTransform().Position() = glm::vec3(0.0f, 1.5f, 0.0f);
-    playerNode->AddObject<Mover>();
-    playerNode->AddObject<Camera>(
-        Camera::Perspective(40.0f, 16.0f / 9.0f, 0.5f, 200.0f));
+    SceneNode* cameraNode = mainScene.CreateNode("Camera Node");
+    playerNode->GlobalTransform().Position() = glm::vec3(0.0f, 5.0f, 0.0f);
+    cameraNode->AddObject<Camera>(
+        Camera::Perspective(25.0f, 16.0f / 9.0f, 0.1f, 200.0f));
+    cameraNode->AddObject<CameraSettings>(playerNode);
     playerNode->AddObject<Bloom>();
     playerNode->AddObject<Tonemapper>()->SetOperator(
         Tonemapper::TonemapperOperator::GranTurismo);
@@ -229,23 +234,46 @@ inline void InitScene(Scene& mainScene) {
     characterSettings->mShape = new JPH::CapsuleShape(1.0f, 0.5f);
     characterSettings->mMaxSlopeAngle = JPH::DegreesToRadians(45.0f);
 
-    // auto* virtualCharacter =
-    //     playerNode->AddObject<Physics::VirtualCharacterController>(
-    //         characterSettings);
-    // virtualCharacter->SetPosition(
-    //     playerNode->GlobalTransform().Position().Value());
-    // virtualCharacter->Awake();
-    //
-    // auto mouseMarkerNode = mainScene.CreateNode("Mouse Marker");
-    // mouseMarkerNode->GlobalTransform().Scale() = glm::vec3(0.15f, 0.02f,
-    // 0.15f);
-    //
-    // auto* bottleThrower = playerNode->AddObject<ThrowBottle>();
-    // bottleThrower->SetPoolSize(1);
-    // auto* controller =
-    // playerNode->AddObject<PlayerController>(mouseMarkerNode);
-    // controller->SetBottleThrower(bottleThrower);
-    //
+    auto* virtualCharacter =
+        playerNode->AddObject<Physics::VirtualCharacterController>(
+            characterSettings);
+    virtualCharacter->SetPosition(
+        playerNode->GlobalTransform().Position().Value());
+    virtualCharacter->Awake();
+
+    auto mouseMarkerNode = mainScene.CreateNode("Mouse Marker");
+    mouseMarkerNode->GlobalTransform().Scale() = glm::vec3(0.15f, 0.02f, 0.15f);
+
+    auto* bottleThrower = playerNode->AddObject<ThrowBottle>();
+    bottleThrower->SetPoolSize(10);
+    auto* controller = playerNode->AddObject<PlayerController>(mouseMarkerNode);
+    controller->SetBottleThrower(bottleThrower);
+
+    Mesh* schnozMesh =
+        mainScene.Resources()->Get<Mesh>("./res/models/schnoz/schnoz.obj");
+    Texture2D* reflectiveDiffuse = mainScene.Resources()->Get<Texture2D>(
+        "./res/textures/material_preview/worn-shiny-metal-albedo.png",
+        Texture::ColorTextureRGB);
+    Texture2D* reflectiveNormal = mainScene.Resources()->Get<Texture2D>(
+        "./res/textures/material_preview/worn-shiny-metal-Normal-ogl.png",
+        Texture::TechnicalMapXYZ);
+    Texture2D* reflectiveARM = mainScene.Resources()->Get<Texture2D>(
+        "./res/textures/material_preview/worn-shiny-metal-arm.png",
+        Texture::TechnicalMapXYZ);
+
+    Material* reflectiveMat = new Material(pbrProg);
+    reflectiveMat->SetValue("albedoMap", reflectiveDiffuse);
+    reflectiveMat->SetValue("normalMap", reflectiveNormal);
+    reflectiveMat->SetValue("armMap", reflectiveARM);
+
+    SceneNode* playerMeshNode = mainScene.CreateNode(playerNode);
+    playerMeshNode->AddObject<MeshRenderer>(schnozMesh, reflectiveMat);
+    playerMeshNode->GlobalTransform().Position() = glm::vec3(0.0f, 2.5f, 0.0f);
+    playerMeshNode->GlobalTransform().Scale() = glm::vec3(0.5f, 0.5f, 0.5f);
+    Mesh* cubeMesh =
+        mainScene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
+    bottleThrower->SetResources(cubeMesh, reflectiveMat);
+
     auto floorNode =
         GltfImporter::LoadScene(&mainScene, "./res/models/floor.glb", "Floor");
     floorNode->AddObject<Skybox>(skyMat);
@@ -308,8 +336,6 @@ inline void InitScene(Scene& mainScene) {
         bimbermanShape, JPH::Vec3::sZero(), JPH::Quat::sIdentity(),
         JPH::EMotionType::Dynamic, Physics::Layers::MOVING});
 
-    Mesh* cubeMesh =
-        mainScene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
     ShaderProgram* scatterProgram =
         ShaderProgram::Build()
             .WithVertexShader(mainScene.Resources()->Get<VertexShader>(
@@ -387,4 +413,51 @@ inline void InitScene(Scene& mainScene) {
                                 .wrapAround = true,
                                 .continuous = false,
                                 .useColorRamp = false});
+
+    floorNode->AddObject<Surface>(floorMeshRenderer->GetMesh(), 10.0f);
+    // AStarManager::Instance().BuildGraph(floorNode->GetObject<Surface>(), 10.0f);
+    auto* navGrid = floorNode->AddObject<NavigationGrid>();
+    navGrid->Build(floorNode->GetObject<Surface>(), 2.0f, 45.0f);
+
+    SceneNode* w_schnozNode = mainScene.CreateNode("w_schnozNode");
+    w_schnozNode->LocalTransform().Position() = glm::vec3(-20, 0, -20);
+    // schnozNode->LocalTransform().Scale() = glm::vec3(1, 1, 1);
+    w_schnozNode->AddObject<MeshRenderer>(schnozMesh, reflectiveMat);
+
+    JPH::BodyCreationSettings w_schnozShapeSettings =
+        Physics::Body::ConvexHullMesh(schnozMesh, JPH::EMotionType::Dynamic,
+                                      Physics::Layers::MOVING);
+    auto* w_schnozBody =
+        w_schnozNode->AddObject<Physics::Body>(w_schnozShapeSettings);
+    w_schnozBody->SetRestitution(0.0f);
+    w_schnozBody->SetFriction(0.5f);
+    w_schnozBody->SetLinearDamping(0.1f);
+    // w_schnozBody->Awake();
+    // w_schnozBody->SetCollisionLayerAndMask({ 0 });
+    w_schnozBody->SetCollisionLayerAndMask(
+        {Physics::Layers::MOVING, Physics::Layers::NON_MOVING});
+
+    auto enemyAI = w_schnozNode->AddObject<AiNode>();
+    if (enemyAI) {
+        enemyAI->SetTarget(playerNode);
+        enemyAI->SetProjectileResources(
+            cubeMesh, reflectiveMat); // u�yj istniej�cych zasob�w
+        enemyAI->SetAttackCooldown(1.2f);
+    }
+
+    glm::vec2 patrolPoints[] = {glm::vec2(-20, 0), glm::vec2(-40, 0)};
+
+    /*auto aiNode = w_schnozNode->GetObject<AiNode>();
+    if (aiNode) {
+            aiNode->SetPatrolPoints(patrolPointsVec);
+    }*/
+
+    std::vector<glm::vec2> patrolPointsVec(std::begin(patrolPoints),
+                                           std::end(patrolPoints));
+    w_schnozNode->GetObject<AiNode>()->SetPatrolPoints(patrolPointsVec);
+
+    SceneNode* schnozLightNode = mainScene.CreateNode("Schnoz Light");
+    schnozLightNode->LocalTransform().Position() = glm::vec3(-55.5, 3.0, -2.0);
+    schnozLightNode->AddObject<Light>(
+        Light::PointLight(glm::vec3(1, 1, 1), 5, 5));
 }

@@ -378,26 +378,31 @@ void SceneViewPanel::DrawMenuBar(Context& context) {
         ImGui::SameLine(ImGui::GetWindowWidth() - totalWidth);
 
         if (ImGui::RadioButton("Editor", context.state == State::Editor)) {
-            context.state = State::Editor;
-            context.mainCamera =
-                context.selectedScene->FindObjectsOfType<CameraController>()
-                    .front()
-                    ->GetObject<Camera>();
-            context.mainCamera->SetAsMainCamera();
+            if (context.state != State::Editor) {
+                context.state = State::Editor;
+                context.mainCamera =
+                    context.selectedScene->FindObjectsOfType<CameraController>()
+                        .front()
+                        ->GetObject<Camera>();
+                context.mainCamera->SetAsMainCamera();
+            }
         }
         ImGui::SameLine();
         if (ImGui::RadioButton("Game", context.state == State::Game)) {
-            context.state = State::Game;
+            if (context.state != State::Game) {
+                context.state = State::Game;
 
-            bool changedCamera = false;
-            for (auto* camera :
-                 context.selectedScene->FindObjectsOfType<Camera>()) {
-                if (camera != context.mainCamera) {
-                    context.mainCamera = camera;
-                    context.mainCamera->SetAsMainCamera();
-                    break;
-                } else {
-                    spdlog::error("Editor: No camera was added to the scene");
+                bool changedCamera = false;
+                for (auto* camera :
+                     context.selectedScene->FindObjectsOfType<Camera>()) {
+                    if (camera != context.mainCamera) {
+                        context.mainCamera = camera;
+                        context.mainCamera->SetAsMainCamera();
+                        break;
+                    } else {
+                        spdlog::error(
+                            "Editor: No camera was added to the scene");
+                    }
                 }
             }
         }

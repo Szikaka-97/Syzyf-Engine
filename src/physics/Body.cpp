@@ -637,8 +637,8 @@ if (bodyCreationSettings.GetShapeSettings() != nullptr) {
 }
 
 void Body::OnEnable() {
-  if (!bodyCreated) {
-    spdlog::warn("Tried enabling a body that hasn't been created yet");
+  if (!bodyCreated || addedToWorld) {
+    spdlog::warn("Tried enabling a body that hasn't been created yet, or one which has already been added");
     return;
   }
 
@@ -648,8 +648,8 @@ void Body::OnEnable() {
 }
 
 void Body::OnDisable() {
-  if (!bodyCreated) {
-    spdlog::warn("Tried disabling a body that hasn't been created yet");
+  if (!bodyCreated || !addedToWorld) {
+    spdlog::warn("Tried disabling a body that hasn't been created yet or one that hasn't been added yet");
     return;
   }
 

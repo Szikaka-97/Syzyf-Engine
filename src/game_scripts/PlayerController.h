@@ -5,7 +5,7 @@
 #include <InputSystem.h>
 #include <Graphics.h>
 #include <Camera.h>
-#include <Game_Scripts/ThrowBottle.h>
+#include <game_scripts/ThrowBottle.h>
 #include <physics/VirtualCharacterController.h>
 
 #include <Jolt/Jolt.h>

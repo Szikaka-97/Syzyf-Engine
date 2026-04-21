@@ -1,5 +1,7 @@
 #pragma once
 
+#include <physics/System.h>
+#include <physics/ICollisionReceiver.h>
 #include <GameObject.h>
 #include <Scene.h>
 #include <Mesh.h>
@@ -7,6 +9,7 @@
 #include <MeshRenderer.h>
 #include <AiNode.h>
 
+#include <Jolt/Physics/Collision/Shape/SphereShape.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <algorithm>
@@ -72,7 +75,7 @@ private:
 
     void DisableBottle(BottleInstance& bottle) {
         if (bottle.body) {
-            bottle.node->DeleteObject(bottle.body);
+            // bottle.node->DeleteObject(bottle.body);
             bottle.body = nullptr;
         }
         bottle.active = false;
