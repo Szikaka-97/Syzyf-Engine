@@ -11,11 +11,10 @@ MousePickingBody* MousePickingBody::CreateFromMesh(SceneNode* node,
                       "a valid mesh");
         return nullptr;
     }
-    auto settings = Physics::Body::Mesh(mesh, JPH::EMotionType::Kinematic,
+    auto settings = Physics::Body::Mesh(mesh, JPH::EMotionType::Static,
                                         Physics::Layers::EDITOR);
     settings.mOverrideMassProperties =
         JPH::EOverrideMassProperties::MassAndInertiaProvided;
-    settings.mMassPropertiesOverride.mMass = 1.0f;
     settings.mIsSensor = true;
 
     MousePickingBody* body = node->AddObject<MousePickingBody>(settings);
@@ -23,7 +22,7 @@ MousePickingBody* MousePickingBody::CreateFromMesh(SceneNode* node,
 }
 
 MousePickingBody* MousePickingBody::CreateSphere(SceneNode* node) {
-    auto settings = Physics::Body::Sphere(0.3f, JPH::EMotionType::Kinematic,
+    auto settings = Physics::Body::Sphere(0.3f, JPH::EMotionType::Static,
                                           Physics::Layers::EDITOR);
     settings.mIsSensor = true;
 
@@ -36,19 +35,22 @@ void MousePickingBody::SyncToNode() {
         return;
 
     if (auto* physics = GetScene()->GetComponent<Physics::System>()) {
-        glm::vec3 pos = GetNode()->GlobalTransform().Position().Value();
+        glm::vec3 position = GetNode()->GlobalTransform().Position().Value();
+        glm::quat rotation = GetNode()->GlobalTransform().Rotation().Value();
+        glm::vec3 scale = GetNode()->GlobalTransform().Scale().Value();
 
         const float MAX_VALID_POSITION = 1000000.0f;
 
-        if (glm::any(glm::isnan(pos)) || glm::any(glm::isinf(pos)) ||
-            glm::any(glm::greaterThan(glm::abs(pos),
+        if (glm::any(glm::isnan(position)) || glm::any(glm::isinf(position)) ||
+            glm::any(glm::greaterThan(glm::abs(position),
                                       glm::vec3(MAX_VALID_POSITION)))) {
             return;
         }
 
-        physics->GetBodyInterface().SetPosition(GetBodyID(),
-                                                JPH::RVec3(pos.x, pos.y, pos.z),
-                                                JPH::EActivation::DontActivate);
+        physics->GetBodyInterface().SetPositionAndRotation(
+            GetBodyID(), JPH::RVec3(position.x, position.y, position.z),
+            JPH::Quat(rotation.x, rotation.y, rotation.z, rotation.w),
+            JPH::EActivation::DontActivate);
     }
 }
 

@@ -1,6 +1,8 @@
 #include "physics/VirtualCharacterController.h"
 #include "physics/System.h"
 
+#include <glm/ext/scalar_constants.hpp>
+#include <glm/gtc/epsilon.hpp>
 #include <imgui.h>
 
 namespace Physics {
@@ -133,6 +135,21 @@ void VirtualCharacterController::SetRotation(const glm::quat& rotation) {
 
 void VirtualCharacterController::SetGravityFactor(float factor) {
   this->gravityFactor = factor;
+}
+
+void VirtualCharacterController::SyncToNode() {
+    if (this->character) {
+        glm::vec3 position = this->GetTransform().GlobalTransform().Position().Value();
+        glm::quat rotation = this->GetTransform().GlobalTransform().Rotation().Value();
+        glm::vec3 scale = this->GetTransform().GlobalTransform().Scale().Value();
+
+        this->SetPosition(position);
+        this->SetRotation(rotation);
+
+        if (!glm::all(glm::epsilonEqual(scale, glm::vec3(1.0f), glm::epsilon<float>()))) {
+            spdlog::warn("Physics::VirtualCharacterController::SyncToNode: Scaling virtual character controllers isn't supported");
+        }
+    }
 }
 
 void VirtualCharacterController::Awake() {

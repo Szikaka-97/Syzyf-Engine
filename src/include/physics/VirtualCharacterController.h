@@ -8,6 +8,7 @@
 
 #include <glm/fwd.hpp>
 namespace Physics {
+// Consider adding some way of changing the size of the shape, (or the shape)
 class VirtualCharacterController : public GameObject, public ImGuiDrawable {
 private:
   uint32_t collisionLayer = 1;
@@ -41,6 +42,8 @@ public:
   void SetPosition(const glm::vec3& position);
   void SetRotation(const glm::quat& rotation);
   void SetGravityFactor(float factor);
+
+  void SyncToNode();
 
   void Awake();
 

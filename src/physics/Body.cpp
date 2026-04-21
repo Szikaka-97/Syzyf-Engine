@@ -540,6 +540,46 @@ void Body::ApplyAngularImpulse(const glm::vec3& impulse) {
   }
 }
 
+// Syncs the node when moving it in the editor
+void Body::SyncToNode() {
+    if (!bodyCreated) {
+        spdlog::warn("Tried syncing a body that hasn't been created yet");
+        return;
+    }
+    glm::vec3 position = GetNode()->GlobalTransform().Position().Value();
+    glm::quat rotation = GetNode()->GlobalTransform().Rotation().Value();
+    glm::vec3 scale = GetNode()->GlobalTransform().Scale().Value();
+
+    this->SetPosition(position);
+    this->SetRotation(rotation);
+
+    if (scale != this->lastScale && this->originalShape != nullptr) {
+        JPH::ShapeRefC newShape;
+            
+        if (scale == glm::vec3(1.0f)) {
+            newShape = this->originalShape;
+        } else {
+            newShape = new JPH::ScaledShape(
+                this->originalShape, 
+                JPH::Vec3(scale.x, scale.y, scale.z)
+            );
+        }
+
+        if (Physics::System* system = this->GetScene()->GetComponent<Physics::System>()) {
+            system->GetBodyInterface().SetShape(
+                GetBodyID(), 
+                newShape, 
+                false,
+                JPH::EActivation::DontActivate
+            );
+            this->lastScale = scale;
+            }
+        }
+    // This activates the body after it's been moved
+    //  not sure if having this happen while editing won't cause issues
+    // the same is true for character controllers
+}
+
 void Body::Awake() {
   System* physics = GetScene()->GetComponent<System>();
   if (!physics) {
@@ -552,33 +592,32 @@ void Body::Awake() {
 
   SceneNode* node = GetNode();
 
-  SceneTransform::PositionAccess nodePosition = node->GetTransform().GlobalTransform().Position();
-  SceneTransform::RotationAccess nodeRotation = node->GetTransform().GlobalTransform().Rotation();
-  SceneTransform::ScaleAccess nodeScale = node->GetTransform().GlobalTransform().Scale();
+  glm::vec3 nodePosition = node->GetTransform().GlobalTransform().Position();
+  glm::quat nodeRotation = node->GetTransform().GlobalTransform().Rotation();
+  glm::vec3 nodeScale = node->GetTransform().GlobalTransform().Scale();
 
   position = JPH::RVec3(nodePosition.x, nodePosition.y, nodePosition.z);
   rotation = JPH::Quat(nodeRotation.x, nodeRotation.y, nodeRotation.z, nodeRotation.w);
 
-  const float epsilon = 1.0e-4f;
-  bool isScaled = glm::abs(nodeScale.x - 1.0f) > epsilon || 
-    glm::abs(nodeScale.y - 1.0f) > epsilon || 
-    glm::abs(nodeScale.z - 1.0f) > epsilon;
+if (bodyCreationSettings.GetShapeSettings() != nullptr) {
+      JPH::Shape::ShapeResult result = bodyCreationSettings.GetShapeSettings()->Create();
+      if (result.IsValid()) {
+          this->originalShape = result.Get();
+      }
+  } else if (bodyCreationSettings.GetShape() != nullptr) {
+      this->originalShape = bodyCreationSettings.GetShape();
+  }
 
-  if (nodeScale.value != glm::vec3(1.0f)) {
-    if (glm::abs(nodeScale.x - nodeScale.y) > epsilon || glm::abs(nodeScale.y - nodeScale.z) > epsilon) {
-      spdlog::warn("PhysicsObject: Non-uniform scaling, will fail if applied to a Capsule/Sphere shapes");
-    }
+  JPH::ShapeRefC activeShape = this->originalShape;
+  if (nodeScale != glm::vec3(1.0f)) {
+      if (glm::abs(nodeScale.x - nodeScale.y) > glm::epsilon<float>() || glm::abs(nodeScale.y - nodeScale.z) > glm::epsilon<float>()) {
+        spdlog::warn("PhysicsObject::Awake: Non-uniform scaling may not work on Sphere/Capsule shapes");
+      }
+      activeShape = new JPH::ScaledShape(this->originalShape, JPH::Vec3(nodeScale.x, nodeScale.y, nodeScale.z));
+  }
 
-    const JPH::ShapeSettings* baseSettings = bodyCreationSettings.GetShapeSettings();
-
-    if (baseSettings != nullptr) {
-      // ! Doesn't check whether the scale is valid for the shape !
-      JPH::ScaledShapeSettings* scaledSettings = new JPH::ScaledShapeSettings(
-        baseSettings,
-        JPH::Vec3Arg(nodeScale.x, nodeScale.y, nodeScale.z));
-      bodyCreationSettings.SetShapeSettings(scaledSettings);
-      };
-    }
+  bodyCreationSettings.SetShape(activeShape);
+  this->lastScale = nodeScale;
 
   bodyCreationSettings.mPosition = position;
   bodyCreationSettings.mRotation = rotation;

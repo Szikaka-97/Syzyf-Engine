@@ -1,9 +1,7 @@
 #include "physics/CharacterController.h"
-#include "Jolt/Math/Math.h"
-#include "Jolt/Physics/Body/Body.h"
 #include "Jolt/Physics/Body/BodyID.h"
 #include "Jolt/Physics/Character/Character.h"
-#include "Jolt/Physics/Collision/Shape/SphereShape.h"
+#include "Jolt/Physics/Collision/Shape/ScaledShape.h"
 #include "Jolt/Physics/EActivation.h"
 #include "physics/System.h"
 #include <spdlog/spdlog.h>
@@ -213,6 +211,34 @@ bool CharacterController::SetShape(const JPH::RefConst<JPH::Shape>& shape, float
   return false;
 }
 
+// Syncs the node when moving it in the editor
+void CharacterController::SyncToNode() {
+    glm::vec3 position = this->GetTransform().GlobalTransform().Position().Value();
+    glm::quat rotation = this->GetTransform().GlobalTransform().Rotation().Value();
+    glm::vec3 scale = this->GetTransform().GlobalTransform().Scale().Value();
+
+    this->SetPosition(position);
+    this->SetRotation(rotation);
+
+    if (scale != this->lastScale && this->originalShape != nullptr) {
+        JPH::ShapeRefC newShape;
+
+        if (scale == glm::vec3(1.0f)) {
+            newShape = this->originalShape;
+        } else {
+            if (glm::abs(scale.x - scale.y) > glm::epsilon<float>() || glm::abs(scale.y - scale.z) > glm::epsilon<float>()) {
+                spdlog::warn("Physics::CharacterController::SyncToNode: Non-uniform scaling may not work on Sphere/Capsule shapes");
+            }
+            newShape = new JPH::ScaledShape(this->originalShape, JPH::Vec3(scale.x, scale.y, scale.z));
+        }
+
+        if (this->character) {
+            this->character->SetShape(newShape, 1.0e-4f);
+        }
+        this->lastScale = scale;
+    }
+}
+
 void CharacterController::Awake() {
   System* physics = this->GetScene()->GetComponent<System>();
   if (physics == nullptr) {
@@ -220,11 +246,27 @@ void CharacterController::Awake() {
     return;
   }
 
-  glm::vec3 nodePosition = this->GetTransform().GlobalTransform().Position();
-  glm::quat nodeRotation = this->GetTransform().GlobalTransform().Rotation();
+  glm::vec3 nodePosition = this->GetTransform().GlobalTransform().Position().Value();
+  glm::quat nodeRotation = this->GetTransform().GlobalTransform().Rotation().Value();
+  glm::vec3 nodeScale = this->GetTransform().GlobalTransform().Scale().Value();
 
   JPH::RVec3 position = JPH::RVec3(nodePosition.x, nodePosition.y, nodePosition.z);
   JPH::Quat rotation = JPH::Quat(nodeRotation.x, nodeRotation.y, nodeRotation.z, nodeRotation.w);
+
+  if (this->originalShape == nullptr) {
+      this->originalShape = this->characterSettings->mShape;
+  }
+
+  JPH::ShapeRefC activeShape = this->originalShape;
+  if (nodeScale != glm::vec3(1.0f)) {
+      if (glm::abs(nodeScale.x - nodeScale.y) > glm::epsilon<float>() || glm::abs(nodeScale.y - nodeScale.z) > glm::epsilon<float>()) {
+          spdlog::warn("Physics::CharacterController::Awake: Non-uniform scaling may not work on Sphere/Capsule shapes");
+      }
+      activeShape = new JPH::ScaledShape(this->originalShape, JPH::Vec3(nodeScale.x, nodeScale.y, nodeScale.z));
+  }
+
+  this->characterSettings->mShape = activeShape;
+  this->lastScale = nodeScale;
 
   this->character = new JPH::Character(this->characterSettings, position, rotation, 0, physics->GetJoltSystem());
 

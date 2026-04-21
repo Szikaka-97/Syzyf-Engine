@@ -14,12 +14,17 @@
 #include <spdlog/spdlog.h>
 
 namespace Physics {
+// Consider adding a scale function
+//  remember not to use it continuously
 class Body : public GameObject, public ImGuiDrawable {
 private:
   static constexpr float defaultConvexRadius = 0.05f;
 
   JPH::BodyID bodyID;
   JPH::BodyCreationSettings bodyCreationSettings;
+  
+  JPH::ShapeRefC originalShape = nullptr;
+  glm::vec3 lastScale = glm::vec3(1.0f);
 
   uint32_t collisionLayer = 1;
   uint32_t collisionMask = 1;
@@ -83,6 +88,8 @@ public:
   void ApplyImpulse(const glm::vec3& impulse);
   void ApplyTorque(const glm::vec3& torque);
   void ApplyAngularImpulse(const glm::vec3& impulse);
+
+  void SyncToNode();
 
   void Awake();
   void OnEnable();

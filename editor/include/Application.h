@@ -19,6 +19,11 @@ class Camera;
 
 namespace Editor {
 
+enum class State {
+    Editor,
+    Game,
+};
+
 struct Context {
     SDL_Window* window = nullptr;
     SDL_GLContext glContext = nullptr;
@@ -28,6 +33,8 @@ struct Context {
     SceneNode* selectedNode = nullptr;
     Camera* mainCamera = nullptr;
     ImGuizmo::OPERATION currentGizmoOperation = ImGuizmo::TRANSLATE;
+
+    State state = State::Editor;
 };
 
 class Application {

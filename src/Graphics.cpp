@@ -585,6 +585,8 @@ void SceneGraphics::Render() {
   glViewport(0, 0, this->mainViewport->GetSize().x,
              this->mainViewport->GetSize().y);
 
+  glBindFramebuffer(GL_FRAMEBUFFER, this->mainViewport->GetFramebuffer()->GetHandle());
+
   if (Physics::DebugRenderer* debugRenderer = this->GetScene()->GetComponent<Physics::DebugRenderer>()) {
     debugRenderer->Render();
   }

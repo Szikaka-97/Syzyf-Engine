@@ -1,7 +1,13 @@
 #include "panels/SceneViewPanel.h"
 #include "Application.h"
 #include "Commands.h"
+#include "InitScene.h"
+#include "MousePickingBodySystem.h"
+
 #include "SDL3/SDL_mouse.h"
+#include "physics/CharacterController.h"
+#include "physics/VirtualCharacterController.h"
+#include "scatter/Spawner.h"
 
 #include <SDL3/SDL.h>
 #include <imgui.h>
@@ -38,8 +44,49 @@ void SceneViewPanel::Draw(Context& context) {
     // ImGui::ShowDemoWindow();
 
     Time::Update();
-    context.selectedScene->Update();
+
+    if (context.state == State::Game) {
+        context.selectedScene->Update();
+    } else {
+        context.selectedScene->GetComponent<InputSystem>()->OnPreUpdate();
+
+        // Move this into a function
+        // maybe adding a helper in each respective System would be faster
+        //  but ideally scene would have UpdateEditor or sth instead of this
+        for (auto* body :
+             context.selectedScene->FindObjectsOfType<Physics::Body>()) {
+            body->SyncToNode();
+        }
+        for (auto* controller :
+             context.selectedScene
+                 ->FindObjectsOfType<Physics::CharacterController>()) {
+            controller->SyncToNode();
+        }
+        for (auto* controller :
+             context.selectedScene
+                 ->FindObjectsOfType<Physics::VirtualCharacterController>()) {
+            controller->SyncToNode();
+        }
+
+        for (auto* spawner :
+             context.selectedScene->FindObjectsOfType<ParticleSpawner>()) {
+            spawner->Update();
+        }
+
+        for (auto* spawner :
+             context.selectedScene->FindObjectsOfType<Scatter::Spawner>()) {
+            spawner->Update();
+        }
+
+        context.selectedScene->GetComponent<MousePickingBodySystem>()
+            ->OnPreUpdate();
+        context.selectedScene->FindObjectsOfType<Mover>().front()->Update();
+        context.selectedScene->GetComponent<InputSystem>()->OnPostUpdate();
+    }
     context.selectedScene->Render();
+    if (context.state != State::Game) {
+        context.selectedScene->GetComponent<Physics::System>()->OnPostRender();
+    }
 
     GLuint textureID = context.selectedScene->GetGraphics()
                            ->GetMainFramebuffer()
@@ -55,7 +102,7 @@ void SceneViewPanel::Draw(Context& context) {
         this->HandleDrop(context);
     }
 
-    if (context.mainCamera != nullptr) {
+    if (context.state != State::Game && context.mainCamera != nullptr) {
         if (context.selectedNode != nullptr) {
             // Having this commented out might cause problems later
             if ((ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows) ||
@@ -171,7 +218,9 @@ void SceneViewPanel::Draw(Context& context) {
 
 void SceneViewPanel::HandleMousePicking(Context& context, float resX,
                                         float resY) {
-    if (context.mainCamera != nullptr && ImGui::IsWindowHovered() &&
+    // Could allow for mousepicking in game later
+    if (context.state == State::Editor && context.mainCamera != nullptr &&
+        ImGui::IsWindowHovered() &&
         ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
         if (!ImGuizmo::IsOver() && !ImViewGuizmo::IsOver()) {
             ImVec2 mousePosition = ImGui::GetMousePos();
@@ -298,6 +347,17 @@ void SceneViewPanel::DrawMenuBar(Context& context) {
         if (ImGui::RadioButton("Scale", context.currentGizmoOperation ==
                                             ImGuizmo::SCALE)) {
             context.currentGizmoOperation = ImGuizmo::SCALE;
+        }
+
+        ImGui::SameLine();
+        ImGui::Separator();
+        ImGui::SameLine();
+        if (ImGui::RadioButton("Editor", context.state == State::Editor)) {
+            context.state = State::Editor;
+        }
+        ImGui::SameLine();
+        if (ImGui::RadioButton("Game", context.state == State::Game)) {
+            context.state = State::Game;
         }
 
         // Undo / Redo
