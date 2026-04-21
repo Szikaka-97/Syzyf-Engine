@@ -48,7 +48,7 @@ AiNode::AiNode()
 	, walkPointSet(false)
 	, m_Body(nullptr)
 	, fov(glm::radians(180.0f))
-	 , m_AttackCooldown(1.5f)        
+	, m_AttackCooldown(1.5f)        
     , m_AttackTimer(0.0f)
     , m_ProjectileSpeed(15.0f)
     , m_ProjectileMesh(nullptr)
@@ -507,7 +507,7 @@ void AiNode::SearchWalkPoint() {
 					walkPointSet = true;
 				}
 				else {
-					 float radius = glm::length(m_Surface->GetSize()) * 0.5f; // promień jako połowa przekątnej
+					 float radius = glm::length(m_Surface->GetSize()) * 0.5f;
                 walkPoint = m_Surface->GetRandomWalkPoint(m_Surface->GetCenter(), radius);
                 walkPointSet = true;
 					//std::random_device rd;

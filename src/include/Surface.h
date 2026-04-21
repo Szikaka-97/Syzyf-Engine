@@ -13,7 +13,7 @@ private:
     std::vector<glm::vec3> walkablePoints;
     float cellSize;
     glm::vec3 m_center;  
-    glm::vec3 m_size;     
+    glm::vec3 m_size;
 
     void CollectVertices();
     void CalculateBounds();   

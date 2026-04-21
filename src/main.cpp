@@ -43,6 +43,7 @@
 #include <Debug.h>
 #include <InputSystem.h>
 #include <Engine.h>
+#include "Player.h"
 
 #include <glm/trigonometric.hpp>
 #include <spdlog/spdlog.h>
@@ -493,6 +494,7 @@ void MakeRooms(Mesh* cubeMesh,Material* roomMat, Scene* mainScene, Material* sky
 	enemyRoomNode->AddObject<MeshRenderer>(cubeMesh, roomMat);
 	///
 	enemyRoomNode->AddObject<Surface>(cubeMesh);
+	//enemyRoomNode->GetObject<Surface>()->SetRoomID(1);
 	//auto* navGrid = enemyRoomNode->AddObject<NavigationGrid>();
 	//navGrid->Build(enemyRoomNode->GetObject<Surface>(), 2.0f, 45.0f);
 	///
@@ -510,6 +512,9 @@ void MakeRooms(Mesh* cubeMesh,Material* roomMat, Scene* mainScene, Material* sky
 
 void AddEnemies(Mesh* enemyMesh, Material* enemyMat, Scene* mainScene, SceneNode* target, Mesh* cubeMesh, Material* reflectiveMat) {
     JPH::BodyCreationSettings enemyShapeSettings = Physics::Body::ConvexHullMesh(enemyMesh, JPH::EMotionType::Dynamic, Physics::Layers::MOVING);
+
+	target->AddObject<Player>();
+	//target->GetObjectA<Player>()->SetRoomID(0);
 
     SceneNode* enemy1 = mainScene->CreateNode("Enemy 1");
     enemy1->AddObject<MeshRenderer>(enemyMesh, enemyMat);
