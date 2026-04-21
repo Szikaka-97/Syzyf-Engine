@@ -19,7 +19,7 @@
 
 class PlayerController : public GameObject, public ImGuiDrawable {
 private:
-    float moveSpeed = 6.0f;
+    float moveSpeed = 12.0f;
     float jumpSpeed = 8.0f;
 
     SceneNode* markerNode = nullptr;

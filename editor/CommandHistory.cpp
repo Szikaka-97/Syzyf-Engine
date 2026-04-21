@@ -4,7 +4,8 @@
 namespace Editor {
 void CommandHistory::ExecuteCommand(std::unique_ptr<ICommand> command) {
     if (currentIndex < static_cast<int>(history.size() - 1)) {
-        history.erase(history.begin() + currentIndex + 1, history.end());
+        history.erase(std::next(history.begin(), currentIndex + 1),
+                      history.end());
     }
 
     command->Execute();

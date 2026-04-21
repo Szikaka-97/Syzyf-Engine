@@ -1,5 +1,6 @@
 #include "panels/GraphPanel.h"
 #include "Application.h"
+#include "CameraController.h"
 #include "imgui.h"
 
 #include <Scene.h>
@@ -42,6 +43,11 @@ void GraphPanel::Draw(Context& context) {
 }
 
 void GraphPanel::DrawGraphNode(Context& context, SceneNode& node) {
+    // Ignore editor camera
+    if (node.GetObject<CameraController>()) {
+        return;
+    }
+
     ImGui::PushID(node.GetID());
 
     ImGui::TableNextRow();
