@@ -1,4 +1,5 @@
 #include "include/Application.h"
+#include "CameraController.h"
 #include "ComponentRegistry.h"
 #include "InitScene.h"
 #include "MousePickingBodySystem.h"
@@ -151,10 +152,14 @@ void Application::Terminate() {
 void Application::MainLoop() {
     // temporary
     this->context.selectedScene = Scene::CreateStandaloneScene();
-    InitScene(*this->context.selectedScene, this->context.mainCamera);
+    InitScene(*this->context.selectedScene);
     this->context.selectedScene->GetGraphics()->UpdateScreenResolution(
         glm::vec2(1024.0f, 576.0f));
     this->context.selectedScene->AddComponent<MousePickingBodySystem>();
+    SceneNode* cameraNode = this->context.selectedScene->CreateNode();
+    cameraNode->AddObject<CameraController>();
+    this->context.mainCamera = cameraNode->GetObject<Camera>();
+    this->context.mainCamera->SetAsMainCamera();
 
     bool shouldClose = false;
     while (!shouldClose) {

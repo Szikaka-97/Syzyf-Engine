@@ -1,5 +1,6 @@
 #include "panels/SceneViewPanel.h"
 #include "Application.h"
+#include "CameraController.h"
 #include "Commands.h"
 #include "InitScene.h"
 #include "MousePickingBodySystem.h"
@@ -25,8 +26,14 @@
 
 namespace Editor {
 void SceneViewPanel::Draw(Context& context) {
+    // not sure if i need to set the size anymore
     ImGui::SetNextWindowSize(ImVec2(1024, 576), ImGuiCond_FirstUseEver);
     ImGui::Begin("Scene View", nullptr, ImGuiWindowFlags_MenuBar);
+
+    if (context.selectedScene == nullptr) {
+        ImGui::End();
+        return;
+    }
 
     this->DrawMenuBar(context);
 
@@ -45,6 +52,7 @@ void SceneViewPanel::Draw(Context& context) {
 
     Time::Update();
 
+    // Clean this up
     if (context.state == State::Game) {
         context.selectedScene->Update();
     } else {
@@ -80,7 +88,9 @@ void SceneViewPanel::Draw(Context& context) {
 
         context.selectedScene->GetComponent<MousePickingBodySystem>()
             ->OnPreUpdate();
-        context.selectedScene->FindObjectsOfType<Mover>().front()->Update();
+        context.selectedScene->FindObjectsOfType<CameraController>()
+            .front()
+            ->Update();
         context.selectedScene->GetComponent<InputSystem>()->OnPostUpdate();
     }
     context.selectedScene->Render();
@@ -349,28 +359,50 @@ void SceneViewPanel::DrawMenuBar(Context& context) {
             context.currentGizmoOperation = ImGuizmo::SCALE;
         }
 
-        ImGui::SameLine();
-        ImGui::Separator();
-        ImGui::SameLine();
+        ImGuiStyle& style = ImGui::GetStyle();
+
+        float buttonWidth =
+            ImGui::CalcTextSize("<").x + style.FramePadding.x * 2.0f;
+
+        float editorWidth = ImGui::GetFrameHeight() + style.ItemInnerSpacing.x +
+                            ImGui::CalcTextSize("Editor").x;
+        float gameWidth = ImGui::GetFrameHeight() + style.ItemInnerSpacing.x +
+                          ImGui::CalcTextSize("Game").x;
+
+        float rightPadding = 10.0f;
+
+        float totalWidth = editorWidth + style.ItemSpacing.x + gameWidth +
+                           style.ItemSpacing.x + buttonWidth +
+                           style.ItemSpacing.x + buttonWidth + rightPadding;
+
+        ImGui::SameLine(ImGui::GetWindowWidth() - totalWidth);
+
         if (ImGui::RadioButton("Editor", context.state == State::Editor)) {
             context.state = State::Editor;
+            context.mainCamera =
+                context.selectedScene->FindObjectsOfType<CameraController>()
+                    .front()
+                    ->GetObject<Camera>();
+            context.mainCamera->SetAsMainCamera();
         }
         ImGui::SameLine();
         if (ImGui::RadioButton("Game", context.state == State::Game)) {
             context.state = State::Game;
+
+            bool changedCamera = false;
+            for (auto* camera :
+                 context.selectedScene->FindObjectsOfType<Camera>()) {
+                if (camera != context.mainCamera) {
+                    context.mainCamera = camera;
+                    context.mainCamera->SetAsMainCamera();
+                    break;
+                } else {
+                    spdlog::error("Editor: No camera was added to the scene");
+                }
+            }
         }
 
-        // Undo / Redo
-        ImGuiStyle& style = ImGui::GetStyle();
-        float buttonWidth =
-            ImGui::CalcTextSize("<").x + style.FramePadding.x * 2.0f;
-
-        float rightPadding = 10.0f;
-        float totalWidth =
-            buttonWidth * 2.0f + style.ItemSpacing.x + rightPadding;
-
-        ImGui::SameLine(ImGui::GetWindowWidth() - totalWidth);
-
+        ImGui::SameLine();
         if (context.commandHistory.CanUndo()) {
             if (ImGui::Button("<")) {
                 context.commandHistory.Undo();
@@ -380,6 +412,7 @@ void SceneViewPanel::DrawMenuBar(Context& context) {
             ImGui::Button("<");
             ImGui::EndDisabled();
         }
+
         ImGui::SameLine();
         if (context.commandHistory.CanRedo()) {
             if (ImGui::Button(">")) {
@@ -390,6 +423,7 @@ void SceneViewPanel::DrawMenuBar(Context& context) {
             ImGui::Button(">");
             ImGui::EndDisabled();
         }
+
         ImGui::EndMenuBar();
     }
 }

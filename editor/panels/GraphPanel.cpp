@@ -8,8 +8,10 @@ namespace Editor {
 void GraphPanel::Draw(Context& context) {
     ImGui::Begin("Graph");
 
-    if (context.selectedScene == nullptr)
+    if (context.selectedScene == nullptr) {
+        ImGui::End();
         return;
+    }
 
     SceneNode* root = context.selectedScene->GetRootNode();
 

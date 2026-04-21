@@ -2,6 +2,7 @@
 
 #include "GltfImporter.h"
 #include "LightSystem.h"
+
 #include <AiNode.h>
 #include <Bloom.h>
 #include <Camera.h>
@@ -34,8 +35,11 @@
 
 #include <Jolt/Jolt.h>
 #include <Jolt/Physics/Body/MotionType.h>
+#include <Jolt/Physics/Character/CharacterVirtual.h>
+#include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
 #include <Jolt/Physics/Collision/Shape/Shape.h>
 #include <imgui.h>
+#include <physics/VirtualCharacterController.h>
 
 class EditorCameraTag : public GameObject {};
 
@@ -143,7 +147,7 @@ class Mover : public GameObject, public ImGuiDrawable {
     }
 };
 
-inline void InitScene(Scene& mainScene, Camera*& mainCamera) {
+inline void InitScene(Scene& mainScene) {
     mainScene.AddComponent<Physics::System>();
     mainScene.AddComponent<Physics::DebugRenderer>();
     mainScene.AddComponent<DebugInspector>();
@@ -208,19 +212,40 @@ inline void InitScene(Scene& mainScene, Camera*& mainCamera) {
     Material* skyMat = new Material(skyProg);
     skyMat->SetValue("skyboxTexture", skyCubemap);
 
+    // ---- PLAYER ----
     SceneNode* playerNode = mainScene.CreateNode("Player");
     playerNode->GlobalTransform().Position() = glm::vec3(0.0f, 1.5f, 0.0f);
     playerNode->AddObject<Mover>();
-    // MOVE OUTSIDE OF HERE
-    mainCamera = playerNode->AddObject<Camera>(
+    playerNode->AddObject<Camera>(
         Camera::Perspective(40.0f, 16.0f / 9.0f, 0.5f, 200.0f));
-    mainCamera->AddObject<EditorCameraTag>();
     playerNode->AddObject<Bloom>();
     playerNode->AddObject<Tonemapper>()->SetOperator(
         Tonemapper::TonemapperOperator::GranTurismo);
     playerNode->AddObject<ColorGrading>();
     playerNode->AddObject<Fxaa>();
 
+    JPH::Ref<JPH::CharacterVirtualSettings> characterSettings =
+        new JPH::CharacterVirtualSettings();
+    characterSettings->mShape = new JPH::CapsuleShape(1.0f, 0.5f);
+    characterSettings->mMaxSlopeAngle = JPH::DegreesToRadians(45.0f);
+
+    // auto* virtualCharacter =
+    //     playerNode->AddObject<Physics::VirtualCharacterController>(
+    //         characterSettings);
+    // virtualCharacter->SetPosition(
+    //     playerNode->GlobalTransform().Position().Value());
+    // virtualCharacter->Awake();
+    //
+    // auto mouseMarkerNode = mainScene.CreateNode("Mouse Marker");
+    // mouseMarkerNode->GlobalTransform().Scale() = glm::vec3(0.15f, 0.02f,
+    // 0.15f);
+    //
+    // auto* bottleThrower = playerNode->AddObject<ThrowBottle>();
+    // bottleThrower->SetPoolSize(1);
+    // auto* controller =
+    // playerNode->AddObject<PlayerController>(mouseMarkerNode);
+    // controller->SetBottleThrower(bottleThrower);
+    //
     auto floorNode =
         GltfImporter::LoadScene(&mainScene, "./res/models/floor.glb", "Floor");
     floorNode->AddObject<Skybox>(skyMat);

@@ -2,8 +2,10 @@
 
 #include <imgui.h>
 
+#include <Camera.h>
 #include <Debug.h>
 #include <GameObject.h>
+#include <Graphics.h>
 #include <InputSystem.h>
 #include <TimeSystem.h>
 
@@ -17,14 +19,23 @@ class CameraController : public GameObject, public ImGuiDrawable {
     float movementSpeed = 10.0f;
     float mouseSensitivity = 1.0f;
 
+    Camera* camera = nullptr;
+
   public:
     CameraController() {
         this->pitch = 0;
         this->rotation = 0;
         this->mode = 0;
+
+        this->camera = this->AddObject<Camera>(
+            Camera::Perspective(40.0f, 16.0f / 9.0f, 0.5f, 200.0f));
     }
 
     void Update() {
+        if (this->camera != this->GetScene()->GetGraphics()->GetMainCamera()) {
+            return;
+        }
+
         if (movementEnabled) {
             glm::vec3 movement = glm::zero<glm::vec3>();
             glm::quat rotation = glm::identity<glm::quat>();
