@@ -359,71 +359,6 @@ void AiNode::Update() {
 		return neighbors;
 	}
 
-	//void AiNode::AstarChase() {
-	//	if (!m_Surface || !m_TargetNode) return;
-
-	//	// Upewnij siê, ¿e pozycja AI jest aktualna
-	//	transform = m_Body->GetPosition();
-	//	glm::vec3 targetPos = m_TargetNode->GlobalTransform().Position();
-
-	//	// Aktualizuj œcie¿kê co 0.5 s lub gdy jest pusta
-	//	m_ChasePathUpdateTimer += Time::Delta();
-	//	if (m_ChasePathUpdateTimer > 0.5f || m_Path.empty()) {
-	//		m_Path = FindPath(transform, targetPos);
-	//		if (m_Path.empty()) {
-	//			spdlog::warn("Chase: Path is empty!");
-	//		}
-	//		else {
-	//			spdlog::info("Chase: Path found with {} points", m_Path.size());
-	//		}
-	//		m_CurrentPathIndex = 0;
-	//		m_ChasePathUpdateTimer = 0.0f;
-	//	}
-
-	//	// Wykonaj ruch po œcie¿ce
-	//	if (!m_Path.empty() && m_CurrentPathIndex < m_Path.size()) {
-	//		glm::vec3 nextPoint = m_Path[m_CurrentPathIndex];
-	//		float distToNext = glm::distance(transform, nextPoint);
-
-	//		if (distToNext < 0.5f) {
-	//			m_CurrentPathIndex++;
-	//			// Jeœli dotarliœmy do koñca œcie¿ki (blisko gracza), wyczyœæ œcie¿kê
-	//			if (m_CurrentPathIndex >= m_Path.size()) {
-	//				// Opcjonalnie: sprawdŸ, czy gracz jest w zasiêgu ataku
-	//				m_Path.clear();
-	//				m_CurrentPathIndex = 0;
-	//			}
-	//		}
-	//		else {
-	//			MoveInDirection(nextPoint - transform);
-	//		}
-	//	}
-	//	else {
-	//		// Œcie¿ka pusta – zatrzymaj AI
-	//		glm::vec3 currentVel = m_Body->GetLinearVelocity();
-	//		m_Body->SetLinearVelocity(glm::vec3(0, currentVel.y, 0));
-	//	}
-	//}
-	//void AiNode::AstarChase() {
-	//if (!m_Surface || !m_TargetNode) return;if (!m_TargetNode) return;
- //   glm::vec3 targetPos = m_TargetNode->GlobalTransform().Position();
-
- //   m_ChasePathUpdateTimer += Time::Delta();
- //   if (m_ChasePathUpdateTimer > 0.5f || m_Path.empty()) {
- //       m_Path = AStarManager::Instance().FindPath(transform, targetPos);
- //       m_CurrentPathIndex = 0;
- //       m_ChasePathUpdateTimer = 0.0f;
- //   }
-
- //   if (!m_Path.empty() && m_CurrentPathIndex < m_Path.size()) {
- //       glm::vec3 next = m_Path[m_CurrentPathIndex];
- //       if (glm::distance(transform, next) < 0.5f) {
- //           m_CurrentPathIndex++;
- //       } else {
- //           MoveInDirection(next - transform);
- //       }
- //   }
-	//}
 	void AiNode::AstarChase() {
     if (!m_NavGrid || !m_TargetNode) return;
     
@@ -568,50 +503,52 @@ void AiNode::SearchWalkPoint() {
 			else {
 				if (m_NavGrid && m_NavGrid->IsBuilt()) {
     //walkPoint = m_NavGrid->GetRandomWalkablePosition(transform, walkPointRange);
-			walkPoint = m_NavGrid->GetRandomWalkablePosition(transform, 1000.0f);
-    walkPointSet = true;
-}
-		else {
-
-			std::random_device rd;
-			std::mt19937 gen(rd());
-			std::uniform_real_distribution<float> dist(-walkPointRange, walkPointRange);
-
-			float randomZ = dist(gen);
-			float randomX = dist(gen);
-
-			glm::vec3 candidate(transform.x + randomX, transform.y + 10.0f, transform.z + randomZ);
-
-			//ground check
-			///unused
-			auto* physics = GetScene()->GetComponent<Physics::System>();
-			if (physics) {
-				JPH::RRayCast ray(JPH::RVec3(candidate.x, candidate.y, candidate.z), JPH::Vec3(0, -1, 0));
-				JPH::RayCastResult result;
-				if (physics->GetSystem().GetNarrowPhaseQuery().CastRay(ray, result)) {
-					JPH::RVec3 hit = ray.GetPointOnRay(result.mFraction);
-					walkPoint = glm::vec3(hit.GetX(), hit.GetY(), hit.GetZ());
+					walkPoint = m_NavGrid->GetRandomWalkablePosition(transform, 1000.0f);
 					walkPointSet = true;
-					spdlog::error("XXXXGenerated walk point: ({}, {}, {})", walkPoint.x, walkPoint.y, walkPoint.z);
 				}
 				else {
-					walkPointSet = false;
-					spdlog::error("XXXXfailed");
+					 float radius = glm::length(m_Surface->GetSize()) * 0.5f; // promień jako połowa przekątnej
+                walkPoint = m_Surface->GetRandomWalkPoint(m_Surface->GetCenter(), radius);
+                walkPointSet = true;
+					//std::random_device rd;
+					//std::mt19937 gen(rd());
+					//std::uniform_real_distribution<float> dist(-walkPointRange, walkPointRange);
+
+					//float randomZ = dist(gen);
+					//float randomX = dist(gen);
+
+					//glm::vec3 candidate(transform.x + randomX, transform.y + 10.0f, transform.z + randomZ);
+
+					////ground check
+					/////unused
+					//auto* physics = GetScene()->GetComponent<Physics::System>();
+					//if (physics) {
+					//	JPH::RRayCast ray(JPH::RVec3(candidate.x, candidate.y, candidate.z), JPH::Vec3(0, -1, 0));
+					//	JPH::RayCastResult result;
+					//	if (physics->GetSystem().GetNarrowPhaseQuery().CastRay(ray, result)) {
+					//		JPH::RVec3 hit = ray.GetPointOnRay(result.mFraction);
+					//		walkPoint = glm::vec3(hit.GetX(), hit.GetY(), hit.GetZ());
+					//		walkPointSet = true;
+					//		spdlog::error("XXXXGenerated walk point: ({}, {}, {})", walkPoint.x, walkPoint.y, walkPoint.z);
+					//	}
+					//	else {
+					//		walkPointSet = false;
+					//		spdlog::error("XXXXfailed");
+					//	}
+
+					//}
+					//else {
+					//	// fallback – no physics
+					//	walkPoint = candidate;
+					//	walkPoint.y = transform.y;
+					//	walkPointSet = true;
+					//}
 				}
-
 			}
-			else {
-				// fallback – no physics
-				walkPoint = candidate;
-				walkPoint.y = transform.y;
-				walkPointSet = true;
-			}
-			///
 		}
-			}
-
+		else {
+			spdlog::error("AiNode: Cannot search walk point - no Surface reference");
 		}
-		
 	}
 
 
@@ -633,7 +570,7 @@ void AiNode::SearchWalkPoint() {
 		}
 
 		if (m_Surface && debugRenderer) {
-        m_Surface->DrawDebugSurface(debugRenderer, 0.1f, 5);
+        m_Surface->DrawDebugSurface(debugRenderer, 0.5f, 1);
     }
 
 		int segments = 24;

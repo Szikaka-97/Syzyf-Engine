@@ -45,6 +45,24 @@ void Surface::CollectVertices() {
         glm::vec3 worldPos = world * glm::vec4(localPos, 1.0f);
         walkablePoints.push_back(worldPos);
     }
+
+    CalculateBounds();
+}
+
+void Surface::CalculateBounds() {
+    if (walkablePoints.empty()) {
+        m_center = glm::vec3(0.0f);
+        m_size = glm::vec3(0.0f);
+        return;
+    }
+    glm::vec3 minP = walkablePoints[0];
+    glm::vec3 maxP = walkablePoints[0];
+    for (const auto& p : walkablePoints) {
+        minP = glm::min(minP, p);
+        maxP = glm::max(maxP, p);
+    }
+    m_center = (minP + maxP) * 0.5f;
+    m_size = maxP - minP;
 }
 
 glm::vec3 Surface::GetRandomWalkPoint(const glm::vec3& center, float radius) const {
@@ -94,14 +112,67 @@ bool Surface::IsOnSurface(const glm::vec3& point) const {
 }
 
 void Surface::DrawDebugSurface(Physics::DebugRenderer* debugRenderer, float pointSize, int step) const {
-    if (!debugRenderer || walkablePoints.empty()) return;
+    if (!debugRenderer) return;
 
-    JPH::Color color = JPH::Color::sCyan;
-    for (size_t i = 0; i < walkablePoints.size(); i += step) {
-        const glm::vec3& p = walkablePoints[i];
-        JPH::Vec3 pos(p.x, p.y, p.z);
-        debugRenderer->DrawLine(pos + JPH::Vec3(-pointSize, 0, 0), pos + JPH::Vec3(pointSize, 0, 0), color);
-        debugRenderer->DrawLine(pos + JPH::Vec3(0, -pointSize, 0), pos + JPH::Vec3(0, pointSize, 0), color);
-        debugRenderer->DrawLine(pos + JPH::Vec3(0, 0, -pointSize), pos + JPH::Vec3(0, 0, pointSize), color);
+    // Rysowanie punktów walkable (istniej¹ce)
+    if (!walkablePoints.empty()) {
+        JPH::Color pointColor = JPH::Color::sCyan;
+        for (size_t i = 0; i < walkablePoints.size(); i += step) {
+            const glm::vec3& p = walkablePoints[i];
+            JPH::Vec3 pos(p.x, p.y, p.z);
+            debugRenderer->DrawLine(pos + JPH::Vec3(-pointSize, 0, 0), pos + JPH::Vec3(pointSize, 0, 0), pointColor);
+            debugRenderer->DrawLine(pos + JPH::Vec3(0, -pointSize, 0), pos + JPH::Vec3(0, pointSize, 0), pointColor);
+            debugRenderer->DrawLine(pos + JPH::Vec3(0, 0, -pointSize), pos + JPH::Vec3(0, 0, pointSize), pointColor);
+        }
+    }
+
+    // Rêczne rysowanie bounding boxa
+    if (!walkablePoints.empty()) {
+        glm::vec3 half = m_size * 0.5f;
+        glm::vec3 corners[8] = {
+            m_center + glm::vec3(-half.x, -half.y, -half.z),
+            m_center + glm::vec3( half.x, -half.y, -half.z),
+            m_center + glm::vec3( half.x,  half.y, -half.z),
+            m_center + glm::vec3(-half.x,  half.y, -half.z),
+            m_center + glm::vec3(-half.x, -half.y,  half.z),
+            m_center + glm::vec3( half.x, -half.y,  half.z),
+            m_center + glm::vec3( half.x,  half.y,  half.z),
+            m_center + glm::vec3(-half.x,  half.y,  half.z)
+        };
+
+        JPH::Color boxColor = JPH::Color::sGreen;
+        // Dolna podstawa
+        debugRenderer->DrawLine(JPH::Vec3(corners[0].x, corners[0].y, corners[0].z),
+                                JPH::Vec3(corners[1].x, corners[1].y, corners[1].z), boxColor);
+        debugRenderer->DrawLine(JPH::Vec3(corners[1].x, corners[1].y, corners[1].z),
+                                JPH::Vec3(corners[2].x, corners[2].y, corners[2].z), boxColor);
+        debugRenderer->DrawLine(JPH::Vec3(corners[2].x, corners[2].y, corners[2].z),
+                                JPH::Vec3(corners[3].x, corners[3].y, corners[3].z), boxColor);
+        debugRenderer->DrawLine(JPH::Vec3(corners[3].x, corners[3].y, corners[3].z),
+                                JPH::Vec3(corners[0].x, corners[0].y, corners[0].z), boxColor);
+        // Górna podstawa
+        debugRenderer->DrawLine(JPH::Vec3(corners[4].x, corners[4].y, corners[4].z),
+                                JPH::Vec3(corners[5].x, corners[5].y, corners[5].z), boxColor);
+        debugRenderer->DrawLine(JPH::Vec3(corners[5].x, corners[5].y, corners[5].z),
+                                JPH::Vec3(corners[6].x, corners[6].y, corners[6].z), boxColor);
+        debugRenderer->DrawLine(JPH::Vec3(corners[6].x, corners[6].y, corners[6].z),
+                                JPH::Vec3(corners[7].x, corners[7].y, corners[7].z), boxColor);
+        debugRenderer->DrawLine(JPH::Vec3(corners[7].x, corners[7].y, corners[7].z),
+                                JPH::Vec3(corners[4].x, corners[4].y, corners[4].z), boxColor);
+        // Krawêdzie pionowe
+        debugRenderer->DrawLine(JPH::Vec3(corners[0].x, corners[0].y, corners[0].z),
+                                JPH::Vec3(corners[4].x, corners[4].y, corners[4].z), boxColor);
+        debugRenderer->DrawLine(JPH::Vec3(corners[1].x, corners[1].y, corners[1].z),
+                                JPH::Vec3(corners[5].x, corners[5].y, corners[5].z), boxColor);
+        debugRenderer->DrawLine(JPH::Vec3(corners[2].x, corners[2].y, corners[2].z),
+                                JPH::Vec3(corners[6].x, corners[6].y, corners[6].z), boxColor);
+        debugRenderer->DrawLine(JPH::Vec3(corners[3].x, corners[3].y, corners[3].z),
+                                JPH::Vec3(corners[7].x, corners[7].y, corners[7].z), boxColor);
+    }
+
+    // Rysowanie œrodka (czerwona kula)
+    if (!walkablePoints.empty()) {
+        JPH::Vec3 center(m_center.x, m_center.y, m_center.z);
+        debugRenderer->DrawSphere(center, 0.2f, JPH::Color::sRed);
     }
 }

@@ -484,19 +484,20 @@ void MakeRooms(Mesh* cubeMesh,Material* roomMat, Scene* mainScene, Material* sky
     playerRoomNode->GlobalTransform().Scale() = glm::vec3(10.0f, 0.2f, 10.0f);
     playerRoomNode->GlobalTransform().Position() = glm::vec3(0.0f, -0.5f, 0.0f);
     auto* playerRoomBody = playerRoomNode->AddObject<Physics::Body>(playerRoomSettings);
-	MakeWalls(cubeMesh, roomMat, playerRoomNode,true,true,false, true);
+	//MakeWalls(cubeMesh, roomMat, playerRoomNode,true,true,false, true);
 
 	auto enemyRoomNode = mainScene->CreateNode("Enemy Room");
+	
+	enemyRoomNode->GlobalTransform().Scale() = glm::vec3(10.0f, 0.2f, 10.0f);
+	enemyRoomNode->GlobalTransform().Position() = glm::vec3(10.5f, -0.5f, 0.0f);
 	enemyRoomNode->AddObject<MeshRenderer>(cubeMesh, roomMat);
 	///
 	enemyRoomNode->AddObject<Surface>(cubeMesh);
-	auto* navGrid = enemyRoomNode->AddObject<NavigationGrid>();
-	navGrid->Build(enemyRoomNode->GetObject<Surface>(), 2.0f, 45.0f);
+	//auto* navGrid = enemyRoomNode->AddObject<NavigationGrid>();
+	//navGrid->Build(enemyRoomNode->GetObject<Surface>(), 2.0f, 45.0f);
 	///
-	enemyRoomNode->GlobalTransform().Scale() = glm::vec3(10.0f, 0.2f, 10.0f);
-	enemyRoomNode->GlobalTransform().Position() = glm::vec3(10.5f, -0.5f, 0.0f);
 	auto* enemyRoomBody = enemyRoomNode->AddObject<Physics::Body>(playerRoomSettings);
-	MakeWalls(cubeMesh, roomMat, enemyRoomNode,true,false,true, false);
+	//MakeWalls(cubeMesh, roomMat, enemyRoomNode,true,false,true, false);
 
 	auto enemyRoomNode2 = mainScene->CreateNode("Enemy Room 2");
 	enemyRoomNode2->AddObject<MeshRenderer>(cubeMesh, roomMat);
@@ -508,28 +509,42 @@ void MakeRooms(Mesh* cubeMesh,Material* roomMat, Scene* mainScene, Material* sky
 
 
 void AddEnemies(Mesh* enemyMesh, Material* enemyMat, Scene* mainScene, SceneNode* target, Mesh* cubeMesh, Material* reflectiveMat) {
+    JPH::BodyCreationSettings enemyShapeSettings = Physics::Body::ConvexHullMesh(enemyMesh, JPH::EMotionType::Dynamic, Physics::Layers::MOVING);
 
-	JPH::BodyCreationSettings enemyhapeSettings = Physics::Body::ConvexHullMesh(enemyMesh, JPH::EMotionType::Dynamic, Physics::Layers::MOVING);
+    SceneNode* enemy1 = mainScene->CreateNode("Enemy 1");
+    enemy1->AddObject<MeshRenderer>(enemyMesh, enemyMat);
+    enemy1->GlobalTransform().Position() = glm::vec3(10.5f, 0.0f, 2.0f);
+    enemy1->GlobalTransform().Scale() = glm::vec3(0.5f, 0.5f, 0.5f);
 
-	SceneNode* enemy1 = mainScene->CreateNode("Enemy 1");
-	enemy1->AddObject<MeshRenderer>(enemyMesh, enemyMat);
-	enemy1->GlobalTransform().Position() = glm::vec3(10.5f, 0.0f, 2.0f);
-	enemy1->GlobalTransform().Scale() = glm::vec3(0.5f, 0.5f, 0.5f);
-	auto * enemyBody1 = enemy1->AddObject<Physics::Body>(enemyhapeSettings);
-	enemyBody1->SetRestitution(0.0f);
-	enemyBody1->SetFriction(0.5f);
-	enemyBody1->SetLinearDamping(0.1f);
-	enemyBody1->SetCollisionLayerAndMask({ Physics::Layers::MOVING, Physics::Layers::NON_MOVING });
-	auto enemyAi1= enemy1->AddObject<AiNode>();
-	enemyAi1->SetTarget(target);
-		enemyAi1->SetProjectileResources(cubeMesh, reflectiveMat);
-		enemyAi1->SetAttackCooldown(1.2f);
-	glm::vec2 patrolPoints[] = {
-		glm::vec2(10.5,0),
-		glm::vec2(1,0)
-	};
-	std::vector<glm::vec2> patrolPointsVec(std::begin(patrolPoints), std::end(patrolPoints));
-	enemy1->GetObject<AiNode>()->SetPatrolPoints(patrolPointsVec);
+    auto* enemyBody1 = enemy1->AddObject<Physics::Body>(enemyShapeSettings);
+    enemyBody1->SetRestitution(0.0f);
+    enemyBody1->SetFriction(0.5f);
+    enemyBody1->SetLinearDamping(0.1f);
+    enemyBody1->SetCollisionLayerAndMask({ Physics::Layers::MOVING, Physics::Layers::NON_MOVING });
+
+    auto* enemyAi1 = enemy1->AddObject<AiNode>();
+    auto enemyRoom = mainScene->FindNode("Enemy Room");
+    if (enemyRoom) {
+        auto* surface = enemyRoom->GetObject<Surface>();
+        if (surface) {
+            enemyAi1->SetSurface(surface);
+        } else {
+            spdlog::error("Enemy Room has no Surface component!");
+        }
+    } else {
+        spdlog::error("Enemy Room not found!");
+    }
+
+    enemyAi1->SetTarget(target);
+    enemyAi1->SetProjectileResources(cubeMesh, reflectiveMat);
+    enemyAi1->SetAttackCooldown(1.2f);
+
+    glm::vec2 patrolPoints[] = {
+        glm::vec2(10.5f, 0.0f),
+        glm::vec2(1.0f, 0.0f)
+    };
+    std::vector<glm::vec2> patrolPointsVec(std::begin(patrolPoints), std::end(patrolPoints));
+    //enemyAi1->SetPatrolPoints(patrolPointsVec);
 }
 
 void InitScene(Scene* mainScene) {
@@ -561,6 +576,7 @@ void InitScene(Scene* mainScene) {
 	).Link();
 
 	Mesh* cubeMesh = mainScene->Resources()->Get<Mesh>("./res/models/not_cube.obj");
+	Mesh* cubeMesh2 = mainScene->Resources()->Get<Mesh>("./res/models/not_cube2.obj");
 	Mesh* schnozMesh = mainScene->Resources()->Get<Mesh>("./res/models/schnoz/schnoz.obj");
 
 	Cubemap* skyCubemap = mainScene->Resources()->Get<Cubemap>("./res/textures/citrus_orchard_road_puresky.hdr", Texture::HDRColorBuffer);
@@ -600,8 +616,8 @@ void InitScene(Scene* mainScene) {
 	playerNode->AddObject<MeshRenderer>(schnozMesh, reflectiveMat);
 
 
-	MakeRooms(cubeMesh, roomMat, mainScene, skyMat);
-	//AddEnemies(schnozMesh, schnozMat, mainScene, playerNode, cubeMesh, reflectiveMat);
+	MakeRooms(cubeMesh2, roomMat, mainScene, skyMat);
+	AddEnemies(schnozMesh, schnozMat, mainScene, playerNode, cubeMesh2, reflectiveMat);
 
 	
 
