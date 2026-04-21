@@ -73,8 +73,8 @@ void Spawner::Generate() {
     Settings settingsCopy = this->settings;
 
     JPH::PhysicsSystem* joltSystem = nullptr;
-    glm::mat4 scatterTransform = glm::mat4(1.0f);
-    glm::mat4 inverseScatterTransform = glm::mat4(1.0f);
+    glm::mat4 scatterTransform = this->GlobalTransform().Value();
+    glm::mat4 inverseScatterTransform = glm::inverse(scatterTransform);
 
     if (auto* physicsSystem = GetScene()->GetComponent<Physics::System>()) {
         joltSystem = physicsSystem->GetJoltSystem();
