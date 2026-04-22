@@ -9,7 +9,8 @@
 #include <glm/gtc/random.hpp>
 
 ParticleSpawner::ParticleSpawner(Mesh* mesh, std::unique_ptr<Material> material, ParticleSpawnerSettings settings) : mesh(mesh), material(std::move(material)), settings(settings) {
-    ComputeShader* shader = this->GetScene()->Resources()->Get<ComputeShader>("res/shaders/particles/particles.comp");
+    this->ditherTexture = this->GetScene()->Resources()->Get<Texture2D>(DITHER_TEXTURE_PATH, Texture::TechnicalMapXYZ);
+    ComputeShader* shader = this->GetScene()->Resources()->Get<ComputeShader>(COMPUTE_SHADER_PATH);
     this->computeDispatch.reset(new ComputeShaderDispatch(shader));
 
     this->initialParticleData.reserve(settings.maxParticles);
@@ -69,28 +70,35 @@ void ParticleSpawner::Update() {
     // change later
     this->material->SetValue("billboardMode", static_cast<unsigned int>(this->settings.billboardMode));
 
-    this->material->SetValue("proximityFadeMode", static_cast<unsigned int>(this->settings.proximityFadeMode));
-    if (this->settings.proximityFadeMode != FadeMode::Disabled) {
-        this->material->SetValue("proximityFadeMin", this->settings.proximityFadeMin);
-        this->material->SetValue("proximityFadeMax", this->settings.proximityFadeMax);
+    this->material->SetValue("alphaMode", static_cast<unsigned int>(this->settings.alphaMode));
+    if (this->settings.alphaMode == AlphaMode::Dither) {
+        this->material->SetValue("ditherTex", this->ditherTexture);
     }
 
-    this->material->SetValue("distanceFadeMode", static_cast<unsigned int>(this->settings.distanceFadeMode));
-    if (this->settings.distanceFadeMode != FadeMode::Disabled) {
-        this->material->SetValue("distanceFadeMin", this->settings.distanceFadeMin);
-        this->material->SetValue("distanceFadeMax", this->settings.distanceFadeMax);
-    }
+    if (this->settings.alphaMode != AlphaMode::Disabled) {
+        this->material->SetValue("proximityFadeMode", static_cast<unsigned int>(this->settings.enableProximityFade ? 1 : 0));
+        if (this->settings.enableProximityFade) {
+            this->material->SetValue("proximityFadeMin", this->settings.proximityFadeMin);
+            this->material->SetValue("proximityFadeMax", this->settings.proximityFadeMax);
+        }
 
-    this->material->SetValue("lifetimeFadeMode", static_cast<unsigned int>(this->settings.lifetimeFadeMode));
-    if (this->settings.lifetimeFadeMode != FadeMode::Disabled) {
-        this->material->SetValue("lifetimeFadeIn", this->settings.lifetimeFadeIn);
-        this->material->SetValue("lifetimeFadeOut", this->settings.lifetimeFadeOut);
-    }
+        this->material->SetValue("distanceFadeMode", static_cast<unsigned int>(this->settings.enableDistanceFade ? 1 : 0));
+        if (this->settings.enableDistanceFade) {
+            this->material->SetValue("distanceFadeMin", this->settings.distanceFadeMin);
+            this->material->SetValue("distanceFadeMax", this->settings.distanceFadeMax);
+        }
 
-    this->material->SetValue("enableDepthFade", static_cast<unsigned int>(this->settings.enableDepthFade ? 1 : 0)); // XD
-    if (this->settings.enableDepthFade == true) {
-        this->material->SetValue("depthTex", static_cast<Texture2D*>(this->GetScene()->GetGraphics()->GetMainFramebuffer()->GetDepthTexture()));
-        this->material->SetValue("depthFadeDistance", this->settings.depthFadeDistance);
+        this->material->SetValue("lifetimeFadeMode", static_cast<unsigned int>(this->settings.enableLifetimeFade ? 1 : 0));
+        if (this->settings.enableLifetimeFade) {
+            this->material->SetValue("lifetimeFadeIn", this->settings.lifetimeFadeIn);
+            this->material->SetValue("lifetimeFadeOut", this->settings.lifetimeFadeOut);
+        }
+
+        this->material->SetValue("enableDepthFade", static_cast<unsigned int>(this->settings.enableDepthFade ? 1 : 0)); // XD
+        if (this->settings.enableDepthFade == true) {
+            this->material->SetValue("depthTex", static_cast<Texture2D*>(this->GetScene()->GetGraphics()->GetMainFramebuffer()->GetDepthTexture()));
+            this->material->SetValue("depthFadeDistance", this->settings.depthFadeDistance);
+        }
     }
 
     this->material->SetValue("useColorRamp", static_cast<unsigned int>(this->settings.useColorRamp ? 1 : 0));
@@ -139,38 +147,26 @@ void ParticleSpawner::DrawImGui() {
         this->settings.billboardMode = static_cast<BillboardMode>(currentBillboardMode);
     }
 
-    const char* fadeModes[] = { "Disabled", "Alpha", "Dither" };
+    if (this->settings.alphaMode != AlphaMode::Disabled) {
+        if (this->settings.enableProximityFade) {
+            ImGui::InputFloat("Proximity Fade Min", &this->settings.proximityFadeMin);
+            ImGui::InputFloat("Proximity Fade Max", &this->settings.proximityFadeMax);
+        }
 
-    int currentProximityFadeMode = static_cast<int>(this->settings.proximityFadeMode);
-    if (ImGui::Combo("Proximity Fade Mode", &currentProximityFadeMode, fadeModes, IM_ARRAYSIZE(fadeModes))) {
-        this->settings.proximityFadeMode= static_cast<FadeMode>(currentProximityFadeMode);
-    }
-    if (this->settings.proximityFadeMode != FadeMode::Disabled) {
-        ImGui::InputFloat("Proximity Fade Min", &this->settings.proximityFadeMin);
-        ImGui::InputFloat("Proximity Fade Max", &this->settings.proximityFadeMax);
-    }
+        if (this->settings.enableDistanceFade) {
+            ImGui::InputFloat("Distance Fade Min", &this->settings.distanceFadeMin);
+            ImGui::InputFloat("Distance Fade Max", &this->settings.distanceFadeMax);
+        }
 
-    int currentDistanceFadeMode = static_cast<int>(this->settings.distanceFadeMode);
-    if (ImGui::Combo("Distance Fade Mode", &currentDistanceFadeMode, fadeModes, IM_ARRAYSIZE(fadeModes))) {
-        this->settings.distanceFadeMode = static_cast<FadeMode>(currentDistanceFadeMode);
-    }
-    if (this->settings.distanceFadeMode != FadeMode::Disabled) {
-        ImGui::InputFloat("Distance Fade Min", &this->settings.distanceFadeMin);
-        ImGui::InputFloat("Distance Fade Max", &this->settings.distanceFadeMax);
-    }
+        if (this->settings.enableLifetimeFade) {
+            ImGui::InputFloat2("Lifetime Fade Min", &this->settings.lifetimeFadeIn[0]);
+            ImGui::InputFloat2("Lifetime Fade Max", &this->settings.lifetimeFadeOut[0]);
+        }
 
-    int currentLifetimeFadeMode = static_cast<int>(this->settings.lifetimeFadeMode);
-    if (ImGui::Combo("Lifetime Fade Mode", &currentLifetimeFadeMode, fadeModes, IM_ARRAYSIZE(fadeModes))) {
-        this->settings.lifetimeFadeMode= static_cast<FadeMode>(currentLifetimeFadeMode);
-    }
-    if (this->settings.lifetimeFadeMode != FadeMode::Disabled) {
-        ImGui::InputFloat2("Lifetime Fade Min", &this->settings.lifetimeFadeIn[0]);
-        ImGui::InputFloat2("Lifetime Fade Max", &this->settings.lifetimeFadeOut[0]);
-    }
-
-    ImGui::Checkbox("Enable Depth Fade", &this->settings.enableDepthFade);
-    if (this->settings.enableDepthFade == true) {
-        ImGui::InputFloat("Depth Fade Distance", &this->settings.depthFadeDistance);
+        ImGui::Checkbox("Enable Depth Fade", &this->settings.enableDepthFade);
+        if (this->settings.enableDepthFade == true) {
+            ImGui::InputFloat("Depth Fade Distance", &this->settings.depthFadeDistance);
+        }
     }
 
     ImGui::Checkbox("Rotate Y", &this->settings.rotateY);

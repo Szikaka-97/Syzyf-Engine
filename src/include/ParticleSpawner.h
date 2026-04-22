@@ -21,7 +21,7 @@ enum class BillboardMode {
     Z = 2,
 };
 
-enum class FadeMode {
+enum class AlphaMode {
     Disabled = 0,
     Alpha = 1,
     Dither = 2,
@@ -59,17 +59,20 @@ struct ParticleSpawnerSettings {
     float minScale = 1.5f;
     float maxScale = 1.5f;
 
+    // This is a bit silly because since you set the frag shader manually this setting doesn't really change much
+    //  besides hiding the imgui options
+    AlphaMode alphaMode = AlphaMode::Disabled;
     // Changes whether the particles should fade out as they get closer to the camera
-    FadeMode proximityFadeMode = FadeMode::Disabled;
+    bool enableProximityFade = false;
     float proximityFadeMin = 0.0f;
     float proximityFadeMax = 10.0f;
 
     // Changes whether the particles should fade as they get closer to the particle spawner area extents
-    FadeMode distanceFadeMode = FadeMode::Disabled;
+    bool enableDistanceFade = false;
     float distanceFadeMin = 30.0f;
     float distanceFadeMax = 40.0f;
 
-    FadeMode lifetimeFadeMode = FadeMode::Disabled;
+    bool enableLifetimeFade = false;
     glm::vec2 lifetimeFadeIn = { 0.0f, 0.2f };
     glm::vec2 lifetimeFadeOut = { 0.8f, 1.0f };
 
@@ -90,7 +93,11 @@ struct ParticleSpawnerSettings {
 
 class ParticleSpawner : public GameObject, public ImGuiDrawable {
 private:
+    const std::filesystem::path COMPUTE_SHADER_PATH = "res/shaders/particles/particles.comp";
+    const std::filesystem::path DITHER_TEXTURE_PATH = "./res/textures/bayer/bayer16.png";
+
     Mesh* mesh = nullptr;
+    Texture2D* ditherTexture = nullptr;
     std::unique_ptr<Material> material = nullptr;
     std::unique_ptr<ComputeShaderDispatch> computeDispatch;
 

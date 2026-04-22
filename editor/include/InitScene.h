@@ -370,16 +370,16 @@ inline void InitScene(Scene& mainScene) {
             .WithVertexShader(mainScene.Resources()->Get<VertexShader>(
                 "./res/shaders/particles/particles.vert"))
             .WithPixelShader(mainScene.Resources()->Get<PixelShader>(
-                "./res/shaders/particles/particles.frag"))
+                "./res/shaders/particles/particles_dither.frag"))
             .Link();
-    dustProgram->SetTransparent(true);
+    dustProgram->SetTransparent(false);
     dustProgram->SetCastsShadows(false);
 
     auto dustMaterial = std::make_unique<Material>(dustProgram);
     dustMaterial->SetValue("colorTex", mainScene.Resources()->Get<Texture2D>(
                                            "./res/textures/dust.png",
                                            Texture2D::ColorTextureRGBA));
-    dustMaterial->SetValue("color", glm::vec4(500.0f, 500.0f, 500.0f, 1.0f));
+    dustMaterial->SetValue("color", glm::vec4(200.0f, 200.0f, 200.0f, 1.0f));
 
     playerNode->AddObject<ParticleSpawner>(
         mainScene.Resources()->Get<Mesh>("./res/models/fullscreenquad.obj"),
@@ -398,15 +398,16 @@ inline void InitScene(Scene& mainScene) {
                                 .enableLifetime = false,
                                 .minLifetime = 1.0f,
                                 .maxLifetime = 10000.0f,
-                                .minScale = 0.01f,
-                                .maxScale = 0.02f,
-                                .proximityFadeMode = FadeMode::Alpha,
+                                .minScale = 0.02f,
+                                .maxScale = 0.03f,
+                                .alphaMode = AlphaMode::Dither,
+                                .enableProximityFade = true,
                                 .proximityFadeMin = 0.2f,
                                 .proximityFadeMax = 1.5f,
-                                .distanceFadeMode = FadeMode::Alpha,
+                                .enableDistanceFade = true,
                                 .distanceFadeMin = 9.0f,
                                 .distanceFadeMax = 12.0f,
-                                .lifetimeFadeMode = FadeMode::Alpha,
+                                .enableLifetimeFade = true,
                                 .enableDepthFade = true,
                                 .depthFadeDistance = 0.3f,
                                 .billboardMode = BillboardMode::Enabled,

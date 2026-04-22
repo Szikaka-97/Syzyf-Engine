@@ -34,7 +34,7 @@ public:
   virtual void DrawTriangle(JPH::RVec3Arg inV1, JPH::RVec3Arg inV2, JPH::RVec3Arg inV3, JPH::ColorArg inColor, ECastShadow inCastShadow) override;
   virtual void DrawText3D(JPH::RVec3Arg inPosition, const std::string_view &inString, JPH::ColorArg inColor, float inHeight) override;
 
-  void DrawBoundingBox(const BoundingBox& box, JPH::ColorArg color); 
+  void DrawBoundingBox(const BoundingBox& box, JPH::ColorArg color, glm::mat4 transform); 
   void DrawFrustum(glm::mat4 viewProjection, JPH::ColorArg color);
 
   void Render();
