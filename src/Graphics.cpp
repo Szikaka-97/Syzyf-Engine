@@ -648,6 +648,7 @@ void SceneGraphics::RenderCamera(Camera *camera, Viewport *renderTarget,
   globalUniforms.Global_CameraWorldPos =
       glm::vec4(camera->GlobalTransform().Position().Value(), 0.0);
   globalUniforms.Global_Time = Time::Current();
+  globalUniforms.Global_Resolution = glm::vec4(GetScreenResolution(), 1.0f / GetScreenResolution());
   globalUniforms.Global_CameraFarPlane = camera->GetFarPlane();
   globalUniforms.Global_CameraNearPlane = camera->GetNearPlane();
   globalUniforms.Global_CameraFov = camera->GetFovRad();
@@ -904,6 +905,7 @@ void SceneGraphics::RenderScene(const CameraData &camera,
       globalUniforms.Global_ProjectionMatrix * globalUniforms.Global_ViewMatrix;
   globalUniforms.Global_CameraWorldPos =
       glm::vec4((glm::vec3)camera.cameraTransform[3], 0.0);
+  globalUniforms.Global_Resolution = glm::vec4(GetScreenResolution(), 1.0f / GetScreenResolution());
   globalUniforms.Global_Time = Time::Current();
   globalUniforms.Global_CameraFarPlane = camera.GetFarPlane();
   globalUniforms.Global_CameraNearPlane = camera.GetNearPlane();
