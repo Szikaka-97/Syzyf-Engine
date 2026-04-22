@@ -25,7 +25,7 @@ class CameraController : public GameObject, public ImGuiDrawable {
     CameraController() {
         this->pitch = 0;
         this->rotation = 0;
-        this->mode = 0;
+        this->mode = 1;
 
         this->camera = this->AddObject<Camera>(
             Camera::Perspective(40.0f, 16.0f / 9.0f, 0.5f, 200.0f));
