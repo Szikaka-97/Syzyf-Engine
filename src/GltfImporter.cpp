@@ -395,7 +395,6 @@ Mesh* GltfImporter::LoadMesh(fastgltf::Mesh& gltfMesh, fastgltf::Asset& asset, s
         target[0] = tangent.x();
         target[1] = tangent.y();
         target[2] = tangent.z();
-        target[3] = tangent.w();
       });
     }
 
@@ -510,9 +509,8 @@ Mesh* GltfImporter::LoadMesh(fastgltf::Mesh& gltfMesh, fastgltf::Asset& asset, s
                 v[tangentOffset] = t.x;
                 v[tangentOffset + 1] = t.y;
                 v[tangentOffset + 2] = t.z;
-                v[tangentOffset + 3] = 1.0f;
             } else {
-                v[tangentOffset] = 1.0f; v[tangentOffset + 1] = 0.0f; v[tangentOffset + 2] = 0.0f; v[tangentOffset + 3] = 1.0f;
+                v[tangentOffset] = 1.0f; v[tangentOffset + 1] = 0.0f; v[tangentOffset + 2] = 0.0f;
             }
         }
     }
