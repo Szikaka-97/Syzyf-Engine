@@ -22,6 +22,7 @@
 #include <Skybox.h>
 #include <TimeSystem.h>
 #include <Tonemapper.h>
+#include <TweenSystem.h>
 #include <Viewport.h>
 #include <animation/AnimationSystem.h>
 #include <fog/FogVolume.h>
@@ -156,6 +157,7 @@ inline void InitScene(Scene& mainScene) {
     mainScene.AddComponent<Physics::DebugRenderer>();
     mainScene.AddComponent<DebugInspector>();
     mainScene.AddComponent<AnimationSystem>();
+    auto* tweenSystem = mainScene.AddComponent<TweenSystem>();
 
     ShaderProgram* skyProg =
         ShaderProgram::Build()
@@ -442,7 +444,8 @@ inline void InitScene(Scene& mainScene) {
     if (enemyAI) {
         enemyAI->SetTarget(playerNode);
         enemyAI->SetProjectileResources(
-            cubeMesh, reflectiveMat); // u�yj istniej�cych zasob�w
+            cubeMesh,
+            reflectiveMat); // u�yj istniej�cych zasob�w <-- :raised_eyebrow:?
         enemyAI->SetAttackCooldown(1.2f);
     }
 
