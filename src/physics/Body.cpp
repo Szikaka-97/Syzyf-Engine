@@ -2,17 +2,10 @@
 #include "physics/System.h"
 
 #include "GameObject.h"
-#include "Jolt/Core/Core.h"
-#include "Jolt/Geometry/Triangle.h"
+#include <Jolt/Jolt.h>
 #include "Jolt/Math/Real.h"
 #include "Jolt/Physics/Body/MotionType.h"
-#include "Jolt/Physics/Collision/ObjectLayer.h"
-#include "Jolt/Physics/Collision/Shape/BoxShape.h"
-#include "Jolt/Physics/Collision/Shape/CapsuleShape.h"
 #include "Jolt/Physics/Collision/Shape/Shape.h"
-#include "Jolt/Physics/Collision/Shape/PlaneShape.h"
-#include "Jolt/Physics/Collision/Shape/MeshShape.h"
-#include "Jolt/Physics/EActivation.h"
 #include <spdlog/spdlog.h>
 #include <imgui.h>
 
@@ -28,147 +21,6 @@ using namespace JPH::literals;
 Body::Body() {};
 
 Body::Body(const JPH::BodyCreationSettings& settings): bodyCreationSettings(settings) {}
-
-JPH::BodyCreationSettings Body::Sphere(float radius, const JPH::EMotionType type, const JPH::ObjectLayer layer) {
-  // If the radius is to small it complains about not being able to calculate the mass and does a SIGTRAP
-  if (radius < 0.001f) {
-    spdlog::warn("Trying to create a `PhysicsObjet::Sphere` with too small of a radius, setting it to 0.001");
-    radius = 0.001f; 
-  }
-
-  return JPH::BodyCreationSettings(
-  new JPH::SphereShape(radius),
-    JPH::RVec3::sZero(),
-    JPH::QuatArg::sIdentity(),
-    type,
-    layer
-  );
-}
-
-JPH::BodyCreationSettings Body::Box(glm::vec3 halfExtent, const JPH::EMotionType type, const JPH::ObjectLayer layer) {
-  if (halfExtent.x < defaultConvexRadius || halfExtent.y < defaultConvexRadius || halfExtent.z < defaultConvexRadius) {
-    spdlog::warn("Trying to create a `PhysicsObject::Box` with extents smaller than Jolt's default convex radius. Clamping to 0.05f");
-    halfExtent.x = std::max(halfExtent.x, defaultConvexRadius);
-    halfExtent.y = std::max(halfExtent.y, defaultConvexRadius);
-    halfExtent.z = std::max(halfExtent.z, defaultConvexRadius);
-  }
-  
-  return JPH::BodyCreationSettings(
-      new JPH::BoxShape(JPH::Vec3Arg(halfExtent.x, halfExtent.y, halfExtent.z)),
-      JPH::RVec3Arg::sZero(),
-      JPH::QuatArg::sIdentity(),
-      type,
-      layer
-  );
-}
-
-JPH::BodyCreationSettings Body::Capsule(float halfHeight, float radius, const JPH::EMotionType type, const JPH::ObjectLayer layer) {
-  if (halfHeight < defaultConvexRadius || radius < defaultConvexRadius) {
-    spdlog::warn("Trying to create a `PhysicsObject::Capsule` with dimensions smaller than Jolt's convex radius. Clamping to 0.05f");
-    halfHeight = std::max(halfHeight, defaultConvexRadius);
-    radius = std::max(halfHeight, defaultConvexRadius);
-  }
-
-  return JPH::BodyCreationSettings(
-      new JPH::CapsuleShape(halfHeight, radius),
-      JPH::RVec3Arg::sZero(),
-      JPH::QuatArg::sIdentity(),
-      type,
-      layer
-  );    
-}
-
-JPH::BodyCreationSettings Body::Plane(glm::vec3 normal, const JPH::EMotionType type, const JPH::ObjectLayer layer) {
-  JPH::Vec3 joltNormal(normal.x, normal.y, normal.z);
-  joltNormal = joltNormal.Normalized();
-
-  return JPH::BodyCreationSettings (
-    new JPH::PlaneShape(JPH::Plane(joltNormal, 0.0f)),
-    JPH::RVec3Arg::sZero(),
-    JPH::QuatArg::sIdentity(),
-    type,
-    layer
-  );
-}
-
-JPH::BodyCreationSettings Body::ConvexHullMesh(const class Mesh* mesh, const JPH::EMotionType type, const JPH::ObjectLayer layer) {
-  const uint8_t* vertexDataPointer = reinterpret_cast<const uint8_t*>(mesh->GetVertexData());
-  const unsigned int vertexStride = mesh->GetVertexStride() * sizeof(float);
-  const unsigned int vertexCount = mesh->GetVertexCount();
-
-  std::vector<JPH::Vec3> joltVertices;
-  joltVertices.reserve(vertexCount);
-
-  for (unsigned int i = 0; i < mesh->GetVertexCount(); i++) {
-    const float* pointer = reinterpret_cast<const float*>(vertexDataPointer);
-
-    joltVertices.emplace_back(
-      pointer[0],
-      pointer[1],
-      pointer[2]
-    );
-
-    vertexDataPointer += vertexStride;
-  }
-
-  JPH::ConvexHullShapeSettings* shapeSettings = new JPH::ConvexHullShapeSettings(
-    joltVertices.data(),
-    joltVertices.size()
-  );
-
-  return JPH::BodyCreationSettings(
-    shapeSettings,
-    JPH::RVec3Arg::sZero(),
-    JPH::QuatArg::sIdentity(),
-    type,
-    layer
-  );
-}
-
-JPH::BodyCreationSettings Body::Mesh(const class Mesh* mesh, const JPH::EMotionType type, const JPH::ObjectLayer layer) {
-  const uint8_t* vertexDataPointer = reinterpret_cast<const uint8_t*>(mesh->GetVertexData());
-  const unsigned int vertexStride = mesh->GetVertexStride() * sizeof(float);
-
-  JPH::TriangleList triangles;
-
-  for (const auto& subMesh : mesh->GetSubMeshes()) {
-    if (subMesh.GetType() != Mesh::MeshType::Triangles) {
-      continue;
-    }
-
-    const unsigned int* indices = subMesh.GetIndexData();
-    unsigned int faceCount = subMesh.GetFaceCount();
-
-    for (unsigned int i = 0; i < faceCount * 3; i += 3) {
-      const float* p1 = reinterpret_cast<const float*>(vertexDataPointer + indices[i] * vertexStride);
-      JPH::Vec3 v1(p1[0], p1[1], p1[2]);
-
-      const float* p2 = reinterpret_cast<const float*>(vertexDataPointer + indices[i + 1] * vertexStride);
-      JPH::Vec3 v2(p2[0], p2[1], p2[2]);
-
-      const float* p3 = reinterpret_cast<const float*>(vertexDataPointer + indices[i + 2] * vertexStride);
-      JPH::Vec3 v3(p3[0], p3[1], p3[2]);
-
-      triangles.emplace_back(v1, v2, v3);
-    }
-  }
-
-  if (triangles.empty()) {
-    spdlog::warn("Physics::Body::Mesh: Mesh has no valid triangles. Falling back to a minimal sphere.");
-    return Body::Sphere(0.1f, type, layer);
-  }
-
-  JPH::MeshShapeSettings* shapeSettings = new JPH::MeshShapeSettings(triangles);
-  shapeSettings->Sanitize();
-
-  return JPH::BodyCreationSettings(
-    shapeSettings,
-    JPH::RVec3Arg::sZero(),
-    JPH::QuatArg::sIdentity(),
-    type,
-    layer
-  );
-}
 
 Body::~Body() {
   if (bodyCreated) {
@@ -391,7 +243,7 @@ void Body::SetRotation(const glm::quat& rotation) {
     return;
   }
   if (System* physics = GetScene()->GetComponent<System>()) {
-    physics->GetBodyInterface().SetRotation(bodyID, JPH::Quat(rotation.x, rotation.y, rotation.z, rotation.w), JPH::EActivation::Activate);
+    physics->GetBodyInterface().SetRotation(bodyID, JPH::Quat(rotation.x, rotation.y, rotation.z, rotation.w).Normalized(), JPH::EActivation::Activate);
   }
 }
 
@@ -418,6 +270,7 @@ void Body::SetAngularVelocity(const glm::vec3& velocity) {
 void Body::SetFriction(const float friction) {
   if (!bodyCreated) {
     spdlog::warn("Tried setting friction on a body that hasn't been created yet");
+    return;
   }
   if (System* physics = GetScene()->GetComponent<System>()) {
     physics->GetBodyInterface().SetFriction(bodyID, friction);
@@ -427,6 +280,7 @@ void Body::SetFriction(const float friction) {
 void Body::SetRestitution(const float restitution) {
   if (!bodyCreated) {
     spdlog::warn("Tried setting restitution on a body that hasn't been created yet");
+    return;
   }
   if (System* physics = GetScene()->GetComponent<System>()) {
     physics->GetBodyInterface().SetRestitution(bodyID, restitution);
@@ -436,6 +290,7 @@ void Body::SetRestitution(const float restitution) {
 void Body::SetGravityFactor(const float factor) {
   if (!bodyCreated) {
     spdlog::warn("Tried setting gravity factor on a body that hasn't been created yet");
+    return;
   }
   if (System* physics = GetScene()->GetComponent<System>()) {
     physics->GetBodyInterface().SetGravityFactor(bodyID, factor);
@@ -443,7 +298,7 @@ void Body::SetGravityFactor(const float factor) {
 }
 
 void Body::SetLinearDamping(float damping) {
-  bodyCreationSettings.mAngularDamping = damping;
+  bodyCreationSettings.mLinearDamping = damping;
   if (!bodyCreated) return;
   if (System* physics = GetScene()->GetComponent<System>()) {
     JPH::BodyLockWrite lock(physics->GetJoltSystem()->GetBodyLockInterface(), bodyID);
@@ -597,7 +452,7 @@ void Body::Awake() {
   glm::vec3 nodeScale = node->GetTransform().GlobalTransform().Scale();
 
   position = JPH::RVec3(nodePosition.x, nodePosition.y, nodePosition.z);
-  rotation = JPH::Quat(nodeRotation.x, nodeRotation.y, nodeRotation.z, nodeRotation.w);
+  rotation = JPH::Quat(nodeRotation.x, nodeRotation.y, nodeRotation.z, nodeRotation.w).Normalized();
 
 if (bodyCreationSettings.GetShapeSettings() != nullptr) {
       JPH::Shape::ShapeResult result = bodyCreationSettings.GetShapeSettings()->Create();

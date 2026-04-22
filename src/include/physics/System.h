@@ -26,11 +26,11 @@ namespace JPH {
 namespace Physics {
 
 struct SystemSettings {
-  JPH::uint maxBodies = 1024;
+  JPH::uint maxBodies = 9024;
   JPH::uint numBodyMutexes = 0;
-  JPH::uint maxBodyPairs = 1024;
-  JPH::uint maxContactConstraints = 1024;
-  JPH::uint tempAllocatorSize = 10 * 1024 * 1024;
+  JPH::uint maxBodyPairs = 9024;
+  JPH::uint maxContactConstraints = 9024;
+  JPH::uint tempAllocatorSize = 10 * 9024 * 8024;
 };
 
 struct CollisionData {
@@ -116,6 +116,4 @@ public:
 
   JPH::GroupFilter* GetLayerGroupFilter() const;
 };
-
-JPH::ShapeRefC CreateCompoundShapeFromNode(SceneNode* rootNode, bool useConvex, JPH::EMotionType motionType, JPH::ObjectLayer layer);
 }

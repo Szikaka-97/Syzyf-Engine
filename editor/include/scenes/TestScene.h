@@ -35,6 +35,7 @@
 #include <glm/trigonometric.hpp>
 #include <physics/Body.h>
 #include <physics/DebugRenderer.h>
+#include <physics/Helpers.h>
 #include <physics/System.h>
 #include <physics/Water.h>
 #include <scatter/Spawner.h>
@@ -242,7 +243,6 @@ inline void InitScene(Scene& mainScene) {
             characterSettings);
     virtualCharacter->SetPosition(
         playerNode->GlobalTransform().Position().Value());
-    virtualCharacter->Awake();
 
     auto mouseMarkerNode = mainScene.CreateNode("Mouse Marker");
     mouseMarkerNode->GlobalTransform().Scale() = glm::vec3(0.15f, 0.02f, 0.15f);
@@ -282,9 +282,11 @@ inline void InitScene(Scene& mainScene) {
     floorNode->AddObject<Skybox>(skyMat);
     MeshRenderer* floorMeshRenderer =
         floorNode->GetObjectInChildren<MeshRenderer>();
-    floorMeshRenderer->GetNode()->AddObject<Physics::Body>(Physics::Body::Mesh(
-        floorMeshRenderer->GetMesh(), JPH::EMotionType::Static,
-        Physics::Layers::NON_MOVING));
+    floorMeshRenderer->GetNode()->AddObject<Physics::Body>(
+        JPH::BodyCreationSettings{
+            Physics::MeshShape(floorMeshRenderer->GetMesh()),
+            JPH::RVec3::sZero(), JPH::Quat::sZero(), JPH::EMotionType::Static,
+            Physics::Layers::NON_MOVING});
     floorNode->AddObject<Surface>(floorMeshRenderer->GetMesh(), 1.0f);
 
     SceneNode* monkey = GltfImporter::LoadScene(
@@ -423,9 +425,10 @@ inline void InitScene(Scene& mainScene) {
     // schnozNode->LocalTransform().Scale() = glm::vec3(1, 1, 1);
     w_schnozNode->AddObject<MeshRenderer>(schnozMesh, reflectiveMat);
 
-    JPH::BodyCreationSettings w_schnozShapeSettings =
-        Physics::Body::ConvexHullMesh(schnozMesh, JPH::EMotionType::Dynamic,
-                                      Physics::Layers::MOVING);
+    JPH::ShapeRefC w_schnozShape = Physics::ConvexHullMeshShape(schnozMesh);
+    JPH::BodyCreationSettings w_schnozShapeSettings = {
+        w_schnozShape, JPH::RVec3::sZero(), JPH::Quat::sIdentity(),
+        JPH::EMotionType::Dynamic, Physics::Layers::MOVING};
     auto* w_schnozBody =
         w_schnozNode->AddObject<Physics::Body>(w_schnozShapeSettings);
     w_schnozBody->SetRestitution(0.0f);
@@ -441,7 +444,8 @@ inline void InitScene(Scene& mainScene) {
         enemyAI->SetTarget(playerNode);
         enemyAI->SetProjectileResources(
             cubeMesh,
-            reflectiveMat); // u�yj istniej�cych zasob�w <-- :raised_eyebrow:?
+            reflectiveMat); // u�yj istniej�cych zasob�w <--
+                            // :raised_eyebrow:?
         enemyAI->SetAttackCooldown(1.2f);
     }
 

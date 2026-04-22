@@ -7,11 +7,11 @@
 #include "fog/FogVolume.h"
 #include "fog/VolumetricFog.h"
 #include "physics/Body.h"
+#include "physics/Helpers.h"
 #include "physics/System.h"
 
 #include "Jolt/Physics/Body/BodyCreationSettings.h"
 #include "Jolt/Physics/Body/MotionType.h"
-#include "Jolt/Physics/Collision/Shape/Shape.h"
 #include <functional>
 #include <map>
 #include <string>

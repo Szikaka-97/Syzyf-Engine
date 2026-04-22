@@ -1,20 +1,29 @@
 #include "MousePickingBody.h"
 
+#include <physics/Helpers.h>
+
 namespace Editor {
 MousePickingBody::MousePickingBody(JPH::BodyCreationSettings settings)
     : Physics::Body(settings) {}
 
 MousePickingBody* MousePickingBody::CreateFromMesh(SceneNode* node,
-                                                   const class Mesh* mesh) {
+                                                   const Mesh* mesh) {
     if (mesh == nullptr) {
         spdlog::error("EditorBody: Tried creating an editor body without "
                       "a valid mesh");
         return nullptr;
     }
-    auto settings = Physics::Body::Mesh(mesh, JPH::EMotionType::Static,
-                                        Physics::Layers::EDITOR);
+    JPH::ShapeRefC shape = Physics::ConvexHullMeshShape(mesh);
+    if (!shape)
+        return nullptr;
+
+    JPH::BodyCreationSettings settings(
+        shape, JPH::RVec3::sZero(), JPH::Quat::sIdentity(),
+        JPH::EMotionType::Static, Physics::Layers::EDITOR);
+
     settings.mOverrideMassProperties =
         JPH::EOverrideMassProperties::MassAndInertiaProvided;
+    settings.mMassPropertiesOverride.mMass = 1.0f;
     settings.mIsSensor = true;
 
     MousePickingBody* body = node->AddObject<MousePickingBody>(settings);
@@ -22,8 +31,10 @@ MousePickingBody* MousePickingBody::CreateFromMesh(SceneNode* node,
 }
 
 MousePickingBody* MousePickingBody::CreateSphere(SceneNode* node) {
-    auto settings = Physics::Body::Sphere(0.3f, JPH::EMotionType::Static,
-                                          Physics::Layers::EDITOR);
+    JPH::ShapeRefC shape = Physics::SphereShape(0.3f);
+    JPH::BodyCreationSettings settings(
+        shape, JPH::RVec3::sZero(), JPH::Quat::sIdentity(),
+        JPH::EMotionType::Static, Physics::Layers::EDITOR);
     settings.mIsSensor = true;
 
     MousePickingBody* body = node->AddObject<MousePickingBody>(settings);

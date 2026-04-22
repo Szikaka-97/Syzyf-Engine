@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Debug.h"
-#include "Mesh.h"
 #include "GameObject.h"
 
 #include <Jolt/Jolt.h>
@@ -18,8 +17,6 @@ namespace Physics {
 //  remember not to use it continuously
 class Body : public GameObject, public ImGuiDrawable {
 private:
-  static constexpr float defaultConvexRadius = 0.05f;
-
   JPH::BodyID bodyID;
   JPH::BodyCreationSettings bodyCreationSettings;
   
@@ -34,13 +31,6 @@ private:
 public:
   Body();
   Body(const JPH::BodyCreationSettings& settings);
-
-  static JPH::BodyCreationSettings Sphere(float radius, const JPH::EMotionType type, const JPH::ObjectLayer layer);
-  static JPH::BodyCreationSettings Box(glm::vec3 halfExtent, const JPH::EMotionType type, const JPH::ObjectLayer layer);
-  static JPH::BodyCreationSettings Capsule(float halfHeight, float radius, const JPH::EMotionType type, const JPH::ObjectLayer layer);
-  static JPH::BodyCreationSettings Plane(glm::vec3 normal, const JPH::EMotionType type, const JPH::ObjectLayer layer);
-  static JPH::BodyCreationSettings ConvexHullMesh(const Mesh* mesh, const JPH::EMotionType type, const JPH::ObjectLayer layer);
-  static JPH::BodyCreationSettings Mesh(const Mesh* mesh, const JPH::EMotionType type, const JPH::ObjectLayer layer);
 
   virtual ~Body();
 

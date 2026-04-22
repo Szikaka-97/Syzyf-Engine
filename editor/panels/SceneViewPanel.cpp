@@ -303,20 +303,17 @@ void SceneViewPanel::HandleMousePicking(Context& context, float resX,
                     if (hitNode != nullptr) {
                         context.selectedNode = hitNode;
                         if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl)) {
-                            while (context.selectedNode->GetParent() !=
-                                       context.selectedScene->GetRootNode() ||
-                                   context.selectedNode->GetParent() ==
-                                       nullptr) {
+                            while (context.selectedNode != nullptr &&
+                                   context.selectedNode->GetParent() !=
+                                       nullptr &&
+                                   context.selectedNode->GetParent() !=
+                                       context.selectedScene->GetRootNode()) {
+
                                 context.selectedNode =
                                     context.selectedNode->GetParent();
                             }
                         }
-                        hitSomething = true;
                     }
-                }
-
-                if (!hitSomething) {
-                    context.selectedNode = nullptr;
                 }
             }
         }

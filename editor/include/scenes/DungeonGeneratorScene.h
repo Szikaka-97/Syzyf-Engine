@@ -1,14 +1,13 @@
 #pragma once
 
-#include "EasingFunctions.h"
 #include "GltfImporter.h"
-#include "LightSystem.h"
-#include "game_scripts/ThrowBottle.h"
+#include "game_scripts/DungeonGenerator.h"
 
 #include <AiNode.h>
 #include <Bloom.h>
 #include <Camera.h>
 #include <ColorGrading.h>
+#include <Formatters.h>
 #include <Framebuffer.h>
 #include <Fxaa.h>
 #include <InputSystem.h>
@@ -18,6 +17,8 @@
 #include <MeshRenderer.h>
 #include <ParticleSpawner.h>
 #include <ReflectionProbe.h>
+#include <ReflectionProbeSystem.h>
+#include <Resources.h>
 #include <Scene.h>
 #include <Shader.h>
 #include <Skybox.h>
@@ -26,7 +27,9 @@
 #include <TweenSystem.h>
 #include <Viewport.h>
 #include <animation/AnimationSystem.h>
+#include <fog/Fog.h>
 #include <fog/FogVolume.h>
+#include <fog/VolumetricFog.h>
 #include <game_scripts/CameraSettings.h>
 #include <game_scripts/PlayerController.h>
 #include <game_scripts/ThrowBottle.h>
@@ -34,20 +37,30 @@
 #include <glm/geometric.hpp>
 #include <glm/trigonometric.hpp>
 #include <physics/Body.h>
+#include <physics/CharacterController.h>
 #include <physics/DebugRenderer.h>
+#include <physics/ICollisionReceiver.h>
+#include <physics/LayerMaskFilter.h>
 #include <physics/System.h>
+#include <physics/VirtualCharacterController.h>
 #include <physics/Water.h>
 #include <scatter/Spawner.h>
 
 #include <Jolt/Jolt.h>
+#include <Jolt/Physics/Body/BodyFilter.h>
+#include <Jolt/Physics/Body/BodyID.h>
 #include <Jolt/Physics/Body/MotionType.h>
+#include <Jolt/Physics/Character/Character.h>
 #include <Jolt/Physics/Character/CharacterVirtual.h>
+#include <Jolt/Physics/Collision/CastResult.h>
+#include <Jolt/Physics/Collision/RayCast.h>
 #include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
 #include <Jolt/Physics/Collision/Shape/Shape.h>
+#include <Jolt/Physics/Collision/Shape/SphereShape.h>
 #include <imgui.h>
-#include <physics/VirtualCharacterController.h>
 
 namespace DungeonGeneratorScene {
+
 class EditorCameraTag : public GameObject {};
 
 class Mover : public GameObject, public ImGuiDrawable {
@@ -154,11 +167,244 @@ class Mover : public GameObject, public ImGuiDrawable {
     }
 };
 
+class PhysicsMover : public GameObject,
+                     public Physics::ICollisionReceiver,
+                     public ImGuiDrawable {
+  private:
+    float pitch;
+    float rotation;
+    bool movementEnabled;
+    int mode;
+    float movementSpeed = 10.0f;
+    float mouseSensitivity = 1.0f;
+
+    JPH::Character* character = nullptr;
+    SceneNode* heldItem = nullptr;
+    JPH::BodyID floorId;
+    SceneNode* cameraNode = nullptr;
+
+  public:
+    PhysicsMover() {
+        this->pitch = 0;
+        this->rotation = 0;
+        this->mode = 0;
+
+        this->character =
+            this->GetObject<Physics::CharacterController>()->GetCharacter();
+    }
+
+    void Update() {
+        if (cameraNode == nullptr) {
+            this->cameraNode =
+                this->GetNode()->GetObjectInChildren<Camera>()->GetNode();
+            if (cameraNode == nullptr)
+                return;
+        }
+        if (this->floorId.IsInvalid()) {
+            this->floorId = this->GetScene()
+                                ->FindObjectsOfType<Skybox>()
+                                .front()
+                                ->GetNode()
+                                ->GetObject<Physics::Body>()
+                                ->GetBodyID();
+            if (this->floorId.IsInvalid())
+                return;
+        }
+
+        JPH::Vec3 position = this->character->GetPosition();
+        this->GlobalTransform().Position() = {position.GetX(), position.GetY(),
+                                              position.GetZ()};
+
+        if (movementEnabled) {
+            glm::vec3 movement = glm::zero<glm::vec3>();
+            glm::quat rotation = glm::identity<glm::quat>();
+
+            glm::vec3 right = this->cameraNode->GlobalTransform().Right();
+            glm::vec3 up = glm::vec3(0, 1, 0);
+            glm::vec3 forward =
+                mode == 0 ? glm::cross(right, up)
+                          : this->cameraNode->GlobalTransform().Forward();
+            bool jump = false;
+
+            if (GetScene()->Input()->KeyPressed(Key::A)) {
+                movement += right;
+            }
+            if (GetScene()->Input()->KeyPressed(Key::D)) {
+                movement -= right;
+            }
+            if (GetScene()->Input()->KeyPressed(Key::W)) {
+                movement += forward;
+            }
+            if (GetScene()->Input()->KeyPressed(Key::S)) {
+                movement -= forward;
+            }
+            if (GetScene()->Input()->KeyPressed(Key::Space)) {
+                jump = true;
+            }
+
+            glm::vec2 deltaMovement = GetScene()->Input()->GetMouseMovement();
+
+            this->rotation -= (deltaMovement.x / 20) * this->mouseSensitivity;
+            this->pitch -= (deltaMovement.y / 20) * this->mouseSensitivity;
+
+            if (this->rotation < -180) {
+                this->rotation += 360;
+            } else if (this->rotation > 180) {
+                this->rotation -= 360;
+            }
+
+            this->pitch = glm::clamp(this->pitch, -89.0f, 89.0f);
+            this->cameraNode->LocalTransform().Rotation() =
+                glm::angleAxis(glm::radians(this->rotation),
+                               glm::vec3(0, 1, 0)) *
+                glm::angleAxis(glm::radians(this->pitch), glm::vec3(1, 0, 0));
+
+            JPH::Vec3 jphMovement = JPH::Vec3(movement.x, 0.0f, movement.z);
+
+            JPH::Character::EGroundState groundState =
+                this->character->GetGroundState();
+            if (groundState == JPH::Character::EGroundState::OnSteepGround ||
+                groundState == JPH::Character::EGroundState::NotSupported) {
+                JPH::Vec3 normal = this->character->GetGroundNormal();
+                normal.SetY(0.0f);
+                float dot = normal.Dot(jphMovement);
+                if (dot < 0.0f) {
+                    jphMovement -= (dot * normal) / normal.LengthSq();
+                }
+            }
+
+            if (this->character->IsSupported()) {
+                JPH::Vec3 currentVelocity =
+                    this->character->GetLinearVelocity();
+                JPH::Vec3 desiredVelocity = this->movementSpeed * jphMovement;
+
+                if (!desiredVelocity.IsNearZero() ||
+                    currentVelocity.GetY() < 0.0f ||
+                    !this->character->IsSupported()) {
+                    desiredVelocity.SetY(currentVelocity.GetY());
+                }
+                JPH::Vec3 newVelocity =
+                    0.75f * currentVelocity + 0.25f * desiredVelocity;
+
+                if (jump &&
+                    groundState == JPH::Character::EGroundState::OnGround) {
+                    newVelocity += JPH::Vec3(0, this->movementSpeed * 0.25, 0);
+                }
+
+                this->character->SetLinearVelocity(newVelocity);
+            }
+        }
+
+        if (GetScene()->Input()->ButtonUp(MouseButton::Left)) {
+            if (heldItem) {
+                if (auto* body = heldItem->GetObject<Physics::Body>()) {
+                    body->SetPosition(heldItem->GlobalTransform().Position());
+                    body->OnEnable();
+                    this->heldItem = nullptr;
+                }
+            }
+        }
+
+        if (GetScene()->Input()->ButtonDown(MouseButton::Left)) {
+            auto* physics = this->GetScene()->GetComponent<Physics::System>();
+
+            JPH::RVec3 origin = {
+                this->cameraNode->GlobalTransform().Position().x,
+                this->cameraNode->GlobalTransform().Position().y,
+                this->cameraNode->GlobalTransform().Position().z};
+
+            JPH::Vec3 direction =
+                JPH::Vec3(this->cameraNode->GlobalTransform().Forward().x,
+                          this->cameraNode->GlobalTransform().Forward().y,
+                          this->cameraNode->GlobalTransform().Forward().z) *
+                100.0f;
+
+            Physics::LayerMaskFilter bodyFilter({1}, false);
+
+            bodyFilter.IgnoreBody(this->character->GetBodyID());
+            bodyFilter.IgnoreBody(this->floorId);
+
+            SceneNode* result = physics->CastRay(
+                this->cameraNode->GlobalTransform().Position(),
+                this->cameraNode->GlobalTransform().Forward() * 100.0f, {}, {},
+                bodyFilter);
+
+            if (result) {
+                if (auto* object = result->GetObject<Physics::Body>()) {
+                    object->ApplyImpulse(
+                        this->cameraNode->GlobalTransform().Forward() * 100.0f);
+                    if (result->GetName() == "Physics Schnoz") {
+                        heldItem = result;
+                        object->OnDisable();
+                    }
+                }
+            }
+        }
+
+        if (heldItem) {
+            heldItem->GlobalTransform().Position() =
+                this->cameraNode->GlobalTransform().Position() +
+                this->cameraNode->GlobalTransform().Forward() * 2.0f;
+        }
+
+        if (GetScene()->Input()->ButtonDown(MouseButton::Right)) {
+            auto* physics = this->GetScene()->GetComponent<Physics::System>();
+
+            JPH::Vec3 direction =
+                JPH::Vec3(this->cameraNode->GlobalTransform().Forward().x,
+                          this->cameraNode->GlobalTransform().Forward().y,
+                          this->cameraNode->GlobalTransform().Forward().z) *
+                100.0f;
+
+            JPH::ShapeRefC shape = new JPH::SphereShape(0.5f);
+
+            std::vector<SceneNode*> results = physics->CastShape(
+                this->cameraNode->GlobalTransform().Position(),
+                this->cameraNode->GlobalTransform().Forward() * 100.0f, shape,
+                {}, {},
+                JPH::IgnoreSingleBodyFilter(this->character->GetBodyID()));
+        }
+
+        if (GetScene()->Input()->KeyDown(Key::Escape)) {
+            this->movementEnabled = !this->movementEnabled;
+            GetScene()->Input()->SetMouseLocked(this->movementEnabled);
+        }
+    }
+
+    virtual void OnCollisionEnter(SceneNode* node) {}
+
+    virtual void DrawImGui() {
+        const char* modes[]{
+            "Walking",
+            "Freecam",
+        };
+
+        ImGui::Combo("Movement type", &this->mode, modes, 2);
+
+        ImGui::InputFloat("Movement speed", &this->movementSpeed);
+        ImGui::InputFloat("Mouse sensitivity", &this->mouseSensitivity);
+    }
+
+    virtual void OnCollisionExit(SceneNode* node) {}
+};
+
+class AutoRotator : public GameObject {
+  private:
+    float speed;
+
+  public:
+    AutoRotator(float speed) { this->speed = speed; }
+
+    void Update() {
+        glm::quat rotation = glm::angleAxis(glm::radians(this->speed),
+                                            glm::vec3(0.0f, 1.0f, 0.0f));
+        this->LocalTransform().Rotation() *= rotation;
+    }
+};
+
 inline void InitScene(Scene& mainScene) {
     mainScene.AddComponent<Physics::System>();
-    mainScene.AddComponent<DebugInspector>();
-    mainScene.AddComponent<AnimationSystem>();
-    auto* tweenSystem = mainScene.AddComponent<TweenSystem>();
+    mainScene.AddComponent<Physics::DebugRenderer>();
 
     ShaderProgram* skyProg =
         ShaderProgram::Build()
@@ -209,6 +455,15 @@ inline void InitScene(Scene& mainScene) {
             .Link();
     transparentProg->SetTransparent(true);
 
+    Mesh* cannonMesh =
+        mainScene.Resources()->Get<Mesh>("./res/models/cannon/cannon.obj");
+    Mesh* cubeMesh =
+        mainScene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
+    Mesh* tvMesh =
+        mainScene.Resources()->Get<Mesh>("./res/models/tv_stand.fbx");
+    Mesh* schnozMesh =
+        mainScene.Resources()->Get<Mesh>("./res/models/schnoz/schnoz.obj");
+
     Cubemap* skyCubemap = mainScene.Resources()->Get<Cubemap>(
         "./res/textures/citrus_orchard_road_puresky.hdr",
         Texture::HDRColorBuffer);
@@ -216,44 +471,16 @@ inline void InitScene(Scene& mainScene) {
     skyCubemap->SetWrapModeV(TextureWrap::Clamp);
     skyCubemap->SetWrapModeW(TextureWrap::Clamp);
 
-    Material* skyMat = new Material(skyProg);
-    skyMat->SetValue("skyboxTexture", skyCubemap);
+    Texture2D* cannonDiffuse = mainScene.Resources()->Get<Texture2D>(
+        "./res/models/cannon/textures/cannon_01_diff_1k.png",
+        Texture::ColorTextureRGB);
+    Texture2D* cannonNormal = mainScene.Resources()->Get<Texture2D>(
+        "./res/models/cannon/textures/cannon_01_nor_gl_1k.png",
+        Texture::TechnicalMapXYZ);
+    Texture2D* cannonARM = mainScene.Resources()->Get<Texture2D>(
+        "./res/models/cannon/textures/cannon_01_arm_1k.png",
+        Texture::TechnicalMapXYZ);
 
-    // ---- PLAYER ----
-    SceneNode* playerNode = mainScene.CreateNode("Player");
-    SceneNode* cameraNode = mainScene.CreateNode("Camera Node");
-    playerNode->GlobalTransform().Position() = glm::vec3(0.0f, 5.0f, 0.0f);
-    cameraNode->AddObject<Camera>(
-        Camera::Perspective(25.0f, 16.0f / 9.0f, 0.1f, 200.0f));
-    cameraNode->AddObject<CameraSettings>(playerNode);
-    playerNode->AddObject<Bloom>();
-    playerNode->AddObject<Tonemapper>()->SetOperator(
-        Tonemapper::TonemapperOperator::GranTurismo);
-    playerNode->AddObject<ColorGrading>();
-    playerNode->AddObject<Fxaa>();
-
-    JPH::Ref<JPH::CharacterVirtualSettings> characterSettings =
-        new JPH::CharacterVirtualSettings();
-    characterSettings->mShape = new JPH::CapsuleShape(1.0f, 0.5f);
-    characterSettings->mMaxSlopeAngle = JPH::DegreesToRadians(45.0f);
-
-    auto* virtualCharacter =
-        playerNode->AddObject<Physics::VirtualCharacterController>(
-            characterSettings);
-    virtualCharacter->SetPosition(
-        playerNode->GlobalTransform().Position().Value());
-    virtualCharacter->Awake();
-
-    auto mouseMarkerNode = mainScene.CreateNode("Mouse Marker");
-    mouseMarkerNode->GlobalTransform().Scale() = glm::vec3(0.15f, 0.02f, 0.15f);
-
-    auto* bottleThrower = playerNode->AddObject<ThrowBottle>();
-    bottleThrower->SetPoolSize(10);
-    auto* controller = playerNode->AddObject<PlayerController>(mouseMarkerNode);
-    controller->SetBottleThrower(bottleThrower);
-
-    Mesh* schnozMesh =
-        mainScene.Resources()->Get<Mesh>("./res/models/schnoz/schnoz.obj");
     Texture2D* reflectiveDiffuse = mainScene.Resources()->Get<Texture2D>(
         "./res/textures/material_preview/worn-shiny-metal-albedo.png",
         Texture::ColorTextureRGB);
@@ -263,212 +490,164 @@ inline void InitScene(Scene& mainScene) {
     Texture2D* reflectiveARM = mainScene.Resources()->Get<Texture2D>(
         "./res/textures/material_preview/worn-shiny-metal-arm.png",
         Texture::TechnicalMapXYZ);
+    Texture2D* roughARM = mainScene.Resources()->Get<Texture2D>(
+        "./res/textures/material_preview/worn-rough-metal-arm.png",
+        Texture::TechnicalMapXYZ);
+    Texture2D* shinyNonMetalARM = mainScene.Resources()->Get<Texture2D>(
+        "./res/textures/material_preview/worn-shiny-nonmetal-arm.png",
+        Texture::TechnicalMapXYZ);
+
+    Texture2D* schnozTexture = mainScene.Resources()->Get<Texture2D>(
+        "./res/models/schnoz/Diffuse.png", Texture::ColorTextureRGB);
+
+    Viewport* schnozPreview = new Viewport();
+    schnozPreview->GetFramebuffer()->CreateColorAttachment(true, false);
+    schnozPreview->GetFramebuffer()->CreateDepthAttachment(false, false);
+    schnozPreview->SetSize(glm::uvec2(1024, 512));
+
+    Material* cannonMat = new Material(pbrProg);
+    cannonMat->SetValue("albedoMap", cannonDiffuse);
+    cannonMat->SetValue("normalMap", cannonNormal);
+    cannonMat->SetValue("armMap", cannonARM);
 
     Material* reflectiveMat = new Material(pbrProg);
     reflectiveMat->SetValue("albedoMap", reflectiveDiffuse);
     reflectiveMat->SetValue("normalMap", reflectiveNormal);
     reflectiveMat->SetValue("armMap", reflectiveARM);
 
-    SceneNode* playerMeshNode = mainScene.CreateNode(playerNode);
-    playerMeshNode->AddObject<MeshRenderer>(schnozMesh, reflectiveMat);
-    playerMeshNode->GlobalTransform().Position() = glm::vec3(0.0f, 2.5f, 0.0f);
-    playerMeshNode->GlobalTransform().Scale() = glm::vec3(0.5f, 0.5f, 0.5f);
-    Mesh* cubeMesh =
-        mainScene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
-    bottleThrower->SetResources(cubeMesh, reflectiveMat);
+    Material* roughMat = new Material(pbrProg);
+    roughMat->SetValue("albedoMap", reflectiveDiffuse);
+    roughMat->SetValue("normalMap", reflectiveNormal);
+    roughMat->SetValue("armMap", roughARM);
 
-    auto floorNode =
-        GltfImporter::LoadScene(&mainScene, "./res/models/floor.glb", "Floor");
+    Material* shinyMat = new Material(pbrRefractProg);
+    shinyMat->SetValue("albedoMap", reflectiveDiffuse);
+    shinyMat->SetValue("normalMap", reflectiveNormal);
+    shinyMat->SetValue("armMap", reflectiveARM);
+
+    Material* skyMat = new Material(skyProg);
+    skyMat->SetValue("skyboxTexture", skyCubemap);
+
+    Material* tvMatStand = new Material(coloredProg);
+    tvMatStand->SetValue("uColor", glm::vec3(0.8, 0.8, 0.8));
+
+    Material* screenMat = new Material(diffuseTexProg);
+    screenMat->SetValue("uColor", glm::vec3(1, 1, 1));
+    screenMat->SetValue(
+        "colorTex",
+        (Texture2D*)schnozPreview->GetFramebuffer()->GetColorTexture());
+
+    Material* schnozMat = new Material(diffuseTexProg);
+    schnozMat->SetValue("uColor", glm::vec3(1, 1, 1));
+    schnozMat->SetValue("colorTex", schnozTexture);
+
+    Material* blueTransparentMat = new Material(transparentProg);
+    blueTransparentMat->SetValue("uColor", glm::vec4(0.5, 0.5, 1.0, 0.6));
+
+    SceneNode* playerNode = mainScene.CreateNode("Player");
+    playerNode->GlobalTransform().Position() = glm::vec3(0.0f, 5.0f, -10.0f);
+    JPH::Ref<JPH::CharacterSettings> characterSettings =
+        new JPH::CharacterSettings();
+    characterSettings->mShape = new JPH::CapsuleShape(1.0f, 0.5f);
+    characterSettings->mMaxSlopeAngle = JPH::DegreesToRadians(45.0f);
+    characterSettings->mFriction = 0.5f;
+    characterSettings->mLayer = Physics::Layers::MOVING;
+    playerNode->AddObject<Physics::CharacterController>(characterSettings);
+    playerNode->AddObject<PhysicsMover>();
+
+    auto cameraNode = mainScene.CreateNode(playerNode, "Camera");
+    Camera* camera = cameraNode->AddObject<Camera>(
+        Camera::Perspective(40.0f, 16.0f / 9.0f, 0.5f, 200.0f));
+    camera->GlobalTransform().Position() = glm::vec3(0.0f, 5.0f, -10.0f);
+
+    auto floorNode = mainScene.CreateNode("Floor");
+    floorNode->GlobalTransform().Position() -= glm::vec3(0.0f, 0.5f, 0.0f);
     floorNode->AddObject<Skybox>(skyMat);
-    MeshRenderer* floorMeshRenderer =
-        floorNode->GetObjectInChildren<MeshRenderer>();
-    floorMeshRenderer->GetNode()->AddObject<Physics::Body>(Physics::Body::Mesh(
-        floorMeshRenderer->GetMesh(), JPH::EMotionType::Static,
+    floorNode->AddObject<Physics::Body>(JPH::BodyCreationSettings(
+        Physics::BoxShape({50.0f, 0.5f, 50.0f}), JPH::RVec3::sZero(),
+        JPH::Quat::sIdentity(), JPH::EMotionType::Static,
         Physics::Layers::NON_MOVING));
-    floorNode->AddObject<Surface>(floorMeshRenderer->GetMesh(), 1.0f);
-
-    SceneNode* monkey = GltfImporter::LoadScene(
-        &mainScene, "./res/models/big_monkey.glb", "Monkey", floorNode);
-    JPH::ShapeRefC monkeyShape = Physics::CreateCompoundShapeFromNode(
-        monkey, false, JPH::EMotionType::Static, Physics::Layers::NON_MOVING);
-    monkey->AddObject<Physics::Body>(JPH::BodyCreationSettings{
-        monkeyShape, JPH::Vec3::sZero(), JPH::Quat::sIdentity(),
-        JPH::EMotionType::Static, Physics::Layers::MOVING});
-
-    mainScene.GetComponent<LightSystem>()->SetAmbientLight(
-        {1.0f, 1.0f, 1.0f, 0.8f});
 
     auto lightNode = mainScene.CreateNode("Point Light");
-    lightNode->AddObject<Light>(Light::PointLight({1, 1, 1}, 10, 1))
-        ->SetShadowCasting(true);
+    lightNode->AddObject<Light>(Light::PointLight({1, 1, 1}, 10, 2))
+        ->SetShadowCasting(false);
     lightNode->GlobalTransform().Position() = {-1, 2.2f, 0};
 
     auto lightNode2 = mainScene.CreateNode("Directional Light");
-    lightNode2->AddObject<Light>(Light::DirectionalLight({1, 1, 1}, 1))
+    lightNode2->AddObject<Light>(Light::DirectionalLight({1, 1, 1}, 4))
         ->SetShadowCasting(true);
     lightNode2->GlobalTransform().Position() = {1, 2.2f, 0};
     lightNode2->GlobalTransform().Rotation() =
         glm::quat(glm::radians(glm::vec3(64.0f, 0.0f, 0.0f)));
 
-    auto envProbe2 = mainScene.CreateNode("Reflection Probe");
-    envProbe2->AddObject<ReflectionProbe>();
-    envProbe2->GlobalTransform().Position() = {-10.0f, 1.5f, 0.6f};
+    SceneNode* schnozCameraNode = mainScene.CreateNode("Schnoz Camera");
+    schnozCameraNode->LocalTransform().Position() = glm::vec3(-56.5, 2.0, -2.0);
+    schnozCameraNode->LocalTransform().Rotation() =
+        glm::quat(glm::radians(glm::vec3(5.0f, 85.0f, 0.0f)));
 
-    auto envProbe3 = mainScene.CreateNode("Reflection Probe");
-    envProbe3->AddObject<ReflectionProbe>();
-    envProbe3->GlobalTransform().Position() = {-29.0f, 1.5f, 0.6f};
+    auto schnozCamera = schnozCameraNode->AddObject<Camera>(
+        Camera::Perspective(40.0f, 16.0f / 9.0f, 0.5f, 200.0f));
+    schnozCamera->SetAspectRatio(2);
+    schnozCamera->SetRenderTarget(schnozPreview);
+    schnozCamera->SetLayerMask(uint8_t(5));
 
-    SceneNode* skeletonNode = GltfImporter::LoadScene(
-        &mainScene, "./res/models/szkielet6.glb", "Szkielet");
-    skeletonNode->GlobalTransform().Scale() = glm::vec3(0.2f);
-
-    SceneNode* skeleton2Node = GltfImporter::LoadScene(
-        &mainScene, "./res/models/szkielet6.glb", "Szkielet2");
-    skeleton2Node->GlobalTransform().Position() = {0.0f, 0.0f, 5.0f};
-    skeleton2Node->GlobalTransform().Scale() = glm::vec3(0.2f);
-
-    SceneNode* bimberman = GltfImporter::LoadScene(
-        &mainScene, "./res/models/bimbermann.glb", "Bimberman");
-    bimberman->GlobalTransform().Scale() = glm::vec3(5.0f);
-    bimberman->GlobalTransform().Rotation() =
-        glm::quat(glm::radians(glm::vec3(0.0f, 90.0f, 0.0f)));
-    bimberman->GlobalTransform().Position() = {0.0f, 0.0f, 10.0f};
-
-    ShaderProgram* scatterProgram =
-        ShaderProgram::Build()
-            .WithVertexShader(mainScene.Resources()->Get<VertexShader>(
-                "./res/shaders/scatter.vert"))
-            .WithPixelShader(mainScene.Resources()->Get<PixelShader>(
-                "./res/shaders/lambert color.frag"))
-            .Link();
-    scatterProgram->SetCastsShadows(false);
-    scatterProgram->SetIgnoresDepthPrepass(true);
-    auto scatterMaterial = std::make_unique<Material>(scatterProgram);
-    scatterMaterial->SetValue("uColor", glm::vec3(0.2, 0.6, 0.9));
-    SceneNode* scatter = mainScene.CreateNode("Scatter");
-    Scatter::Settings scatterSettings =
-        Scatter::SettingsBuilder()
-            .WithInstanceCount(5000)
-            .WithAreaExtents(glm::vec3(50.0f, 0.0f, 50.0f))
-            .AddProjection({.raycastLength = 20.0f, .raycastOffset = 20.0f})
-            .AddRelax({.minDistance = 2.0f, .maxAttempts = 30})
-            .AddTransform(
-                {.minRotation = {glm::radians(-15.0f), 0.0f,
-                                 glm::radians(-15.0f)},
-                 .maxRotation = {glm::radians(15.0f), glm::radians(360.0f),
-                                 glm::radians(15.0f)}})
-            .AddArray({.arraySize = 0})
-            .AddArray({.arraySize = 1})
-            .Build();
-    Scatter::Spawner* scatterSpawner = scatter->AddObject<Scatter::Spawner>(
-        cubeMesh, std::move(scatterMaterial), scatterSettings);
-
-    ShaderProgram* dustProgram =
-        ShaderProgram::Build()
-            .WithVertexShader(mainScene.Resources()->Get<VertexShader>(
-                "./res/shaders/particles/particles.vert"))
-            .WithPixelShader(mainScene.Resources()->Get<PixelShader>(
-                "./res/shaders/particles/particles_dither.frag"))
-            .Link();
-    dustProgram->SetTransparent(false);
-    dustProgram->SetCastsShadows(false);
-
-    auto dustMaterial = std::make_unique<Material>(dustProgram);
-    dustMaterial->SetValue("colorTex", mainScene.Resources()->Get<Texture2D>(
-                                           "./res/textures/dust.png",
-                                           Texture2D::ColorTextureRGBA));
-    dustMaterial->SetValue("color", glm::vec4(200.0f, 200.0f, 200.0f, 1.0f));
-
-    playerNode->AddObject<ParticleSpawner>(
-        mainScene.Resources()->Get<Mesh>("./res/models/fullscreenquad.obj"),
-        std::move(dustMaterial),
-        ParticleSpawnerSettings{.maxParticles = 8192,
-                                .areaExtents = glm::vec3(15.0f),
-                                .emissionShapeExtents = glm::vec3(15.0f),
-                                .minVelocity =
-                                    glm::vec3(-0.08f, -0.05f, -0.08f),
-                                .maxVelocity = glm::vec3(0.08f, 0.05f, 0.08f),
-                                .minInitialAngle = 0.0f,
-                                .maxInitialAngle = 6.28318f,
-                                .minAngularVelocity = -0.2f,
-                                .maxAngularVelocity = 0.2f,
-                                .rotateY = false,
-                                .enableLifetime = false,
-                                .minLifetime = 1.0f,
-                                .maxLifetime = 10000.0f,
-                                .minScale = 0.02f,
-                                .maxScale = 0.03f,
-                                .alphaMode = AlphaMode::Dither,
-                                .enableProximityFade = true,
-                                .proximityFadeMin = 0.2f,
-                                .proximityFadeMax = 1.5f,
-                                .enableDistanceFade = true,
-                                .distanceFadeMin = 9.0f,
-                                .distanceFadeMax = 12.0f,
-                                .enableLifetimeFade = true,
-                                .enableDepthFade = true,
-                                .depthFadeDistance = 0.3f,
-                                .billboardMode = BillboardMode::Enabled,
-                                .wrapAround = true,
-                                .continuous = false,
-                                .useColorRamp = false});
-
-    floorNode->AddObject<Surface>(floorMeshRenderer->GetMesh(), 10.0f);
-    // AStarManager::Instance().BuildGraph(floorNode->GetObject<Surface>(), 10.0f);
-    auto* navGrid = floorNode->AddObject<NavigationGrid>();
-    navGrid->Build(floorNode->GetObject<Surface>(), 2.0f, 45.0f);
+    SceneNode* schnozNode = mainScene.CreateNode("Schnoz");
+    schnozNode->LocalTransform().Position() = glm::vec3(-53.5, 1.75, -2.4);
+    schnozNode->LocalTransform().Scale() = glm::vec3(0.15, 0.15, 0.15);
+    schnozNode->AddObject<MeshRenderer>(schnozMesh, schnozMat);
+    schnozNode->AddObject<AutoRotator>(1);
+    schnozNode->SetLayer(5);
 
     SceneNode* w_schnozNode = mainScene.CreateNode("w_schnozNode");
     w_schnozNode->LocalTransform().Position() = glm::vec3(-20, 0, -20);
-    // schnozNode->LocalTransform().Scale() = glm::vec3(1, 1, 1);
-    w_schnozNode->AddObject<MeshRenderer>(schnozMesh, reflectiveMat);
+    schnozNode->LocalTransform().Scale() = glm::vec3(1, 1, 1);
+    w_schnozNode->AddObject<MeshRenderer>(schnozMesh, schnozMat);
 
-    JPH::BodyCreationSettings w_schnozShapeSettings =
-        Physics::Body::ConvexHullMesh(schnozMesh, JPH::EMotionType::Dynamic,
-                                      Physics::Layers::MOVING);
+    JPH::ShapeRefC w_schnozShape = Physics::ConvexHullMeshShape(schnozMesh);
+    JPH::BodyCreationSettings w_schnozShapeSettings = {
+        w_schnozShape, JPH::RVec3::sZero(), JPH::Quat::sIdentity(),
+        JPH::EMotionType::Dynamic, Physics::Layers::MOVING};
+
     auto* w_schnozBody =
         w_schnozNode->AddObject<Physics::Body>(w_schnozShapeSettings);
     w_schnozBody->SetRestitution(0.0f);
     w_schnozBody->SetFriction(0.5f);
     w_schnozBody->SetLinearDamping(0.1f);
-    // w_schnozBody->Awake();
-    // w_schnozBody->SetCollisionLayerAndMask({ 0 });
-    w_schnozBody->SetCollisionLayerAndMask(
-        {Physics::Layers::MOVING, Physics::Layers::NON_MOVING});
-
-    auto enemyAI = w_schnozNode->AddObject<AiNode>();
-    if (enemyAI) {
-        enemyAI->SetTarget(playerNode);
-        enemyAI->SetProjectileResources(
-            cubeMesh,
-            reflectiveMat); // u�yj istniej�cych zasob�w <-- :raised_eyebrow:?
-        enemyAI->SetAttackCooldown(1.2f);
-    }
-
-    glm::vec2 patrolPoints[] = {glm::vec2(-20, 0), glm::vec2(-40, 0)};
-
-    /*auto aiNode = w_schnozNode->GetObject<AiNode>();
-    if (aiNode) {
-            aiNode->SetPatrolPoints(patrolPointsVec);
-    }*/
-
-    std::vector<glm::vec2> patrolPointsVec(std::begin(patrolPoints),
-                                           std::end(patrolPoints));
-    w_schnozNode->GetObject<AiNode>()->SetPatrolPoints(patrolPointsVec);
+    w_schnozBody->SetCollisionLayerAndMask({0});
 
     SceneNode* schnozLightNode = mainScene.CreateNode("Schnoz Light");
     schnozLightNode->LocalTransform().Position() = glm::vec3(-55.5, 3.0, -2.0);
     schnozLightNode->AddObject<Light>(
         Light::PointLight(glm::vec3(1, 1, 1), 5, 5));
 
-    tweenSystem->CreateTween({0.0f, 1.0f, 15.0f, Easing::outBounce})
-        .Bind([bimberman](float value) {
-            bimberman->LocalTransform().Scale() =
-                glm::vec3(value) * 10.0f + value * 10.0f;
-            bimberman->LocalTransform().Rotation() =
-                glm::quat(glm::radians(glm::vec3(0.0f, 360.0f * value, 0.0f)));
-        })
-        .Detach();
-    ;
+    JPH::ShapeRefC schnozShape = Physics::ConvexHullMeshShape(schnozMesh);
+    SceneNode* schnozRootNode = mainScene.CreateNode("Schnoz Root");
+    for (int i = 0; i < 50; ++i) {
+        SceneNode* physicsSchnozNode =
+            mainScene.CreateNode(schnozRootNode, "Physics Schnoz");
+        physicsSchnozNode->AddObject<MeshRenderer>(schnozMesh, schnozMat);
+        physicsSchnozNode->GlobalTransform().Position() = {
+            2.0f + i, 10.0f + i * 2.0f, 0.0f - i};
+        physicsSchnozNode->GlobalTransform().Scale() = glm::vec3(0.25f);
+        JPH::BodyCreationSettings schnozShapeSettings = {
+            schnozShape, JPH::RVec3::sZero(), JPH::Quat::sIdentity(),
+            JPH::EMotionType::Dynamic, Physics::Layers::MOVING};
+        auto* schnozBody =
+            physicsSchnozNode->AddObject<Physics::Body>(schnozShapeSettings);
+
+        schnozBody->SetCollisionLayerAndMask({0});
+    }
+
+    cameraNode->AddObject<Bloom>();
+    cameraNode->AddObject<Tonemapper>()->SetOperator(
+        Tonemapper::TonemapperOperator::GranTurismo);
+
+    SceneNode* dungeon = mainScene.CreateNode("Dungeon");
+    dungeon->AddObject<DungeonGenerator>(DungeonGeneratorSettings{
+        .numberOf2x2Rooms = 1,
+    });
+
+    mainScene.AddComponent<DebugInspector>();
+    mainScene.AddComponent<AnimationSystem>();
 }
 } // namespace DungeonGeneratorScene

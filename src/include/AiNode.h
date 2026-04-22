@@ -8,6 +8,7 @@
 #include <glm/vec3.hpp>
 #include "astar/NavigationGrid.h"
 
+class Material;
 class NavigationGrid;
 
 
