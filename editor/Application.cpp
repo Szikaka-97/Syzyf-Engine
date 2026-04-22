@@ -1,11 +1,14 @@
 #include "include/Application.h"
 #include "CameraController.h"
 #include "ComponentRegistry.h"
-#include "InitScene.h"
 #include "MousePickingBodySystem.h"
 #include "Themes.h"
 #include "panels/ConsolePanel.h"
+#include "scenes/DungeonGeneratorScene.h"
+#include "scenes/TestScene.h"
 
+#include "scenes/DungeonGeneratorScene.h"
+#include "scenes/TestScene.h"
 #include "thirdparty/ImGuizmo.h"
 #include "thirdparty/ImViewGuizmo.h"
 #include <imgui.h>
@@ -152,14 +155,24 @@ void Application::Terminate() {
 void Application::MainLoop() {
     // temporary
     this->context.selectedScene = Scene::CreateStandaloneScene();
-    InitScene(*this->context.selectedScene);
-    this->context.selectedScene->GetGraphics()->UpdateScreenResolution(
-        glm::vec2(1024.0f, 576.0f));
-    this->context.selectedScene->AddComponent<MousePickingBodySystem>();
-    SceneNode* cameraNode = this->context.selectedScene->CreateNode();
-    cameraNode->AddObject<CameraController>();
-    this->context.mainCamera = cameraNode->GetObject<Camera>();
-    this->context.mainCamera->SetAsMainCamera();
+    this->context.loadedScenes.push_back(this->context.selectedScene);
+    TestScene::InitScene(*this->context.selectedScene);
+    Scene* dungeonScene = Scene::CreateStandaloneScene();
+    DungeonGeneratorScene::InitScene(*dungeonScene);
+    this->context.loadedScenes.push_back(dungeonScene);
+
+    for (auto* scene : this->context.loadedScenes) {
+        scene->GetGraphics()->UpdateScreenResolution(
+            glm::vec2(1024.0f, 576.0f)); // this doesnt do anything anymore ?
+        scene->AddComponent<MousePickingBodySystem>();
+        SceneNode* cameraNode = scene->CreateNode();
+        cameraNode->AddObject<CameraController>();
+
+        if (scene == this->context.selectedScene) {
+            this->context.mainCamera = cameraNode->GetObject<Camera>();
+            this->context.mainCamera->SetAsMainCamera();
+        }
+    }
 
     bool shouldClose = false;
     while (!shouldClose) {

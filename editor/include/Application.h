@@ -29,7 +29,9 @@ struct Context {
     SDL_GLContext glContext = nullptr;
 
     CommandHistory commandHistory;
-    Scene* selectedScene = nullptr;
+
+    std::vector<Scene*> loadedScenes;
+    Scene* selectedScene = nullptr; // change to index?
     SceneNode* selectedNode = nullptr;
     Camera* mainCamera = nullptr;
     ImGuizmo::OPERATION currentGizmoOperation = ImGuizmo::TRANSLATE;

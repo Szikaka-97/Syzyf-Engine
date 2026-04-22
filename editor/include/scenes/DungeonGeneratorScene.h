@@ -47,6 +47,7 @@
 #include <imgui.h>
 #include <physics/VirtualCharacterController.h>
 
+namespace DungeonGeneratorScene {
 class EditorCameraTag : public GameObject {};
 
 class Mover : public GameObject, public ImGuiDrawable {
@@ -155,7 +156,6 @@ class Mover : public GameObject, public ImGuiDrawable {
 
 inline void InitScene(Scene& mainScene) {
     mainScene.AddComponent<Physics::System>();
-    mainScene.AddComponent<Physics::DebugRenderer>();
     mainScene.AddComponent<DebugInspector>();
     mainScene.AddComponent<AnimationSystem>();
     auto* tweenSystem = mainScene.AddComponent<TweenSystem>();
@@ -471,3 +471,4 @@ inline void InitScene(Scene& mainScene) {
         .Detach();
     ;
 }
+} // namespace DungeonGeneratorScene

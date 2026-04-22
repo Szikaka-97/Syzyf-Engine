@@ -2,8 +2,8 @@
 #include "Application.h"
 #include "CameraController.h"
 #include "Commands.h"
-#include "InitScene.h"
 #include "MousePickingBodySystem.h"
+#include "scenes/TestScene.h"
 
 #include "SDL3/SDL_mouse.h"
 #include "physics/CharacterController.h"
@@ -28,7 +28,35 @@ namespace Editor {
 void SceneViewPanel::Draw(Context& context) {
     // not sure if i need to set the size anymore
     ImGui::SetNextWindowSize(ImVec2(1024, 576), ImGuiCond_FirstUseEver);
-    ImGui::Begin("Scene View", nullptr, ImGuiWindowFlags_MenuBar);
+    ImGui::Begin("Scene View", nullptr);
+
+    if (context.loadedScenes.empty()) {
+        ImGui::End();
+        return;
+    }
+
+    if (ImGui::BeginTabBar("SceneTabBar", ImGuiTabBarFlags_None)) {
+        for (std::size_t i = 0; i < context.loadedScenes.size(); ++i) {
+            Scene* scene = context.loadedScenes[i];
+
+            std::string tabName = "Scene " + std::to_string(i + 1);
+
+            if (ImGui::BeginTabItem(tabName.c_str())) {
+                if (context.selectedScene != scene) {
+                    context.selectedScene = scene;
+
+                    context.selectedNode = nullptr;
+                    context.mainCamera =
+                        scene->FindObjectsOfType<CameraController>()
+                            .front()
+                            ->GetObject<Camera>();
+                    context.mainCamera->SetAsMainCamera();
+                }
+                ImGui::EndTabItem();
+            }
+        }
+        ImGui::EndTabBar();
+    }
 
     if (context.selectedScene == nullptr) {
         ImGui::End();
@@ -343,93 +371,88 @@ void SceneViewPanel::HandleDrop(Context& context) {
 }
 
 void SceneViewPanel::DrawMenuBar(Context& context) {
-    if (ImGui::BeginMenuBar()) {
-        if (ImGui::RadioButton("Translate", context.currentGizmoOperation ==
-                                                ImGuizmo::TRANSLATE)) {
-            context.currentGizmoOperation = ImGuizmo::TRANSLATE;
+    if (ImGui::RadioButton("Translate", context.currentGizmoOperation ==
+                                            ImGuizmo::TRANSLATE)) {
+        context.currentGizmoOperation = ImGuizmo::TRANSLATE;
+    }
+    ImGui::SameLine();
+    if (ImGui::RadioButton("Rotate",
+                           context.currentGizmoOperation == ImGuizmo::ROTATE)) {
+        context.currentGizmoOperation = ImGuizmo::ROTATE;
+    }
+    ImGui::SameLine();
+    if (ImGui::RadioButton("Scale",
+                           context.currentGizmoOperation == ImGuizmo::SCALE)) {
+        context.currentGizmoOperation = ImGuizmo::SCALE;
+    }
+
+    ImGuiStyle& style = ImGui::GetStyle();
+
+    float buttonWidth =
+        ImGui::CalcTextSize("<").x + style.FramePadding.x * 2.0f;
+
+    float editorWidth = ImGui::GetFrameHeight() + style.ItemInnerSpacing.x +
+                        ImGui::CalcTextSize("Editor").x;
+    float gameWidth = ImGui::GetFrameHeight() + style.ItemInnerSpacing.x +
+                      ImGui::CalcTextSize("Game").x;
+
+    float rightPadding = 10.0f;
+
+    float totalWidth = editorWidth + style.ItemSpacing.x + gameWidth +
+                       style.ItemSpacing.x + buttonWidth + style.ItemSpacing.x +
+                       buttonWidth + rightPadding;
+
+    ImGui::SameLine(ImGui::GetWindowWidth() - totalWidth);
+
+    if (ImGui::RadioButton("Editor", context.state == State::Editor)) {
+        if (context.state != State::Editor) {
+            context.state = State::Editor;
+            context.mainCamera =
+                context.selectedScene->FindObjectsOfType<CameraController>()
+                    .front()
+                    ->GetObject<Camera>();
+            context.mainCamera->SetAsMainCamera();
         }
-        ImGui::SameLine();
-        if (ImGui::RadioButton("Rotate", context.currentGizmoOperation ==
-                                             ImGuizmo::ROTATE)) {
-            context.currentGizmoOperation = ImGuizmo::ROTATE;
-        }
-        ImGui::SameLine();
-        if (ImGui::RadioButton("Scale", context.currentGizmoOperation ==
-                                            ImGuizmo::SCALE)) {
-            context.currentGizmoOperation = ImGuizmo::SCALE;
-        }
+    }
+    ImGui::SameLine();
+    if (ImGui::RadioButton("Game", context.state == State::Game)) {
+        if (context.state != State::Game) {
+            context.state = State::Game;
 
-        ImGuiStyle& style = ImGui::GetStyle();
-
-        float buttonWidth =
-            ImGui::CalcTextSize("<").x + style.FramePadding.x * 2.0f;
-
-        float editorWidth = ImGui::GetFrameHeight() + style.ItemInnerSpacing.x +
-                            ImGui::CalcTextSize("Editor").x;
-        float gameWidth = ImGui::GetFrameHeight() + style.ItemInnerSpacing.x +
-                          ImGui::CalcTextSize("Game").x;
-
-        float rightPadding = 10.0f;
-
-        float totalWidth = editorWidth + style.ItemSpacing.x + gameWidth +
-                           style.ItemSpacing.x + buttonWidth +
-                           style.ItemSpacing.x + buttonWidth + rightPadding;
-
-        ImGui::SameLine(ImGui::GetWindowWidth() - totalWidth);
-
-        if (ImGui::RadioButton("Editor", context.state == State::Editor)) {
-            if (context.state != State::Editor) {
-                context.state = State::Editor;
-                context.mainCamera =
-                    context.selectedScene->FindObjectsOfType<CameraController>()
-                        .front()
-                        ->GetObject<Camera>();
-                context.mainCamera->SetAsMainCamera();
-            }
-        }
-        ImGui::SameLine();
-        if (ImGui::RadioButton("Game", context.state == State::Game)) {
-            if (context.state != State::Game) {
-                context.state = State::Game;
-
-                bool changedCamera = false;
-                for (auto* camera :
-                     context.selectedScene->FindObjectsOfType<Camera>()) {
-                    if (camera != context.mainCamera) {
-                        context.mainCamera = camera;
-                        context.mainCamera->SetAsMainCamera();
-                        break;
-                    } else {
-                        spdlog::error(
-                            "Editor: No camera was added to the scene");
-                    }
+            bool changedCamera = false;
+            for (auto* camera :
+                 context.selectedScene->FindObjectsOfType<Camera>()) {
+                if (camera != context.mainCamera) {
+                    context.mainCamera = camera;
+                    context.mainCamera->SetAsMainCamera();
+                    break;
+                } else {
+                    spdlog::error("Editor: No camera was added to the scene");
                 }
             }
         }
+    }
 
-        ImGui::SameLine();
-        if (context.commandHistory.CanUndo()) {
-            if (ImGui::Button("<")) {
-                context.commandHistory.Undo();
-            }
-        } else {
-            ImGui::BeginDisabled();
-            ImGui::Button("<");
-            ImGui::EndDisabled();
+    ImGui::SameLine();
+    if (context.commandHistory.CanUndo()) {
+        if (ImGui::Button("<")) {
+            context.commandHistory.Undo();
         }
+    } else {
+        ImGui::BeginDisabled();
+        ImGui::Button("<");
+        ImGui::EndDisabled();
+    }
 
-        ImGui::SameLine();
-        if (context.commandHistory.CanRedo()) {
-            if (ImGui::Button(">")) {
-                context.commandHistory.Redo();
-            }
-        } else {
-            ImGui::BeginDisabled();
-            ImGui::Button(">");
-            ImGui::EndDisabled();
+    ImGui::SameLine();
+    if (context.commandHistory.CanRedo()) {
+        if (ImGui::Button(">")) {
+            context.commandHistory.Redo();
         }
-
-        ImGui::EndMenuBar();
+    } else {
+        ImGui::BeginDisabled();
+        ImGui::Button(">");
+        ImGui::EndDisabled();
     }
 }
 
