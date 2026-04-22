@@ -1,5 +1,6 @@
 #pragma once
 
+#include "EasingFunctions.h"
 #include "GltfImporter.h"
 #include "LightSystem.h"
 #include "game_scripts/ThrowBottle.h"
@@ -332,11 +333,6 @@ inline void InitScene(Scene& mainScene) {
     bimberman->GlobalTransform().Rotation() =
         glm::quat(glm::radians(glm::vec3(0.0f, 90.0f, 0.0f)));
     bimberman->GlobalTransform().Position() = {0.0f, 0.0f, 10.0f};
-    JPH::ShapeRefC bimbermanShape = Physics::CreateCompoundShapeFromNode(
-        bimberman, true, JPH::EMotionType::Dynamic, Physics::Layers::MOVING);
-    bimberman->AddObject<Physics::Body>(JPH::BodyCreationSettings{
-        bimbermanShape, JPH::Vec3::sZero(), JPH::Quat::sIdentity(),
-        JPH::EMotionType::Dynamic, Physics::Layers::MOVING});
 
     ShaderProgram* scatterProgram =
         ShaderProgram::Build()
@@ -464,4 +460,14 @@ inline void InitScene(Scene& mainScene) {
     schnozLightNode->LocalTransform().Position() = glm::vec3(-55.5, 3.0, -2.0);
     schnozLightNode->AddObject<Light>(
         Light::PointLight(glm::vec3(1, 1, 1), 5, 5));
+
+    tweenSystem->CreateTween({0.0f, 1.0f, 15.0f, Easing::outBounce})
+        .Bind([bimberman](float value) {
+            bimberman->LocalTransform().Scale() =
+                glm::vec3(value) * 10.0f + value * 10.0f;
+            bimberman->LocalTransform().Rotation() =
+                glm::quat(glm::radians(glm::vec3(0.0f, 360.0f * value, 0.0f)));
+        })
+        .Detach();
+    ;
 }

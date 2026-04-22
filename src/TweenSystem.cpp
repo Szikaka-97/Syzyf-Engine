@@ -22,8 +22,8 @@ void TweenSystem::OnPreUpdate() {
     tween.timeActive += deltaTime;
 
     if (tween.timeActive >= tween.tweenConfig.duration) {
-      for (auto& value : tween.values) {
-        *value = tween.tweenConfig.targetValue;
+      for (auto& setter : tween.setters) {
+          setter(tween.tweenConfig.targetValue);
       }
 
       std::vector<std::function<void()>> cachedCallbacks = std::move(tween.onComplete);
@@ -38,20 +38,21 @@ void TweenSystem::OnPreUpdate() {
       continue;
     }
 
-    for (auto& value : tween.values) {
       float difference = tween.tweenConfig.targetValue - tween.tweenConfig.initialValue;
       float progress = tween.timeActive / tween.tweenConfig.duration;
       float easingValue = tween.tweenConfig.easingFunction(progress); 
       float step = difference * easingValue;
       float newValue = tween.tweenConfig.initialValue + step;
-      *value = newValue;
+
+    for (auto& setter : tween.setters) {
+      setter(newValue);
     }
   }
 }
 
 void TweenSystem::DrawImGui() {}
 
-TweenId TweenSystem::CreateTween(const TweenConfig config) {
+TweenHandle TweenSystem::CreateTween(const TweenConfig config) {
   TweenId id = this->allocator.Allocate();
   
   if (this->tweens.size() <= id.id)
@@ -59,7 +60,7 @@ TweenId TweenSystem::CreateTween(const TweenConfig config) {
 
   this->tweens[id.id].emplace(config);
   
-  return id;
+  return TweenHandle(this, id);
 }
 
 void TweenSystem::RemoveTween(const TweenId id) {
@@ -91,13 +92,16 @@ void TweenSystem::SetOnComplete(const TweenId id, const std::function<void()> on
   this->tweens[id.id]->onComplete.push_back(onComplete);
 }
 
-void TweenSystem::BindValue(const TweenId id, float* value) {
+void TweenSystem::BindSetter(const TweenId id, std::function<void(float)> setter) {
   if (!this->IsValid(id)) {
-    spdlog::warn("TweenSystem: Tried binding a value on an invalid tween handle");
+    spdlog::warn("TweenSystem: Tried binding a setter on an invalid tween handle");
     return;
   }
+  if (setter == nullptr) {
+    spdlog::warn("TweenSystem::BindSeter: Tried binding an invalid function as a setter"); 
+  }
 
-  this->tweens[id.id]->values.push_back(value);
+  this->tweens[id.id]->setters.push_back(setter);
 }
 
 void TweenSystem::SetPlaying(const TweenId id, const bool playing) {
@@ -117,3 +121,49 @@ TweenSystem::Tween* TweenSystem::GetTween(const TweenId id) {
   return nullptr;
 }
 
+TweenHandle::TweenHandle(TweenSystem* system, TweenId id) : system(system), id(id) {}
+
+TweenHandle::TweenHandle(TweenHandle&& other) noexcept : system(other.system), id(other.id) {
+    other.system = nullptr;
+}
+
+TweenHandle& TweenHandle::operator=(TweenHandle&& other) noexcept {
+    if (this != &other) {
+        if (system && system->IsValid(id)) {
+            system->RemoveTween(id);
+        }
+        system = other.system;
+        id = other.id;
+        other.system = nullptr;
+    }
+    return *this;
+}
+
+TweenHandle::~TweenHandle() {
+    if (system && system->IsValid(id)) {
+        system->RemoveTween(id);
+    }
+}
+
+TweenHandle& TweenHandle::Bind(std::function<void(float)> setter) {
+    if (system) system->BindSetter(id, std::move(setter));
+    return *this;
+}
+
+TweenHandle& TweenHandle::OnComplete(std::function<void()> callback) {
+    if (system) system->SetOnComplete(id, std::move(callback));
+    return *this;
+}
+
+TweenHandle& TweenHandle::SetPlaying(bool playing) {
+    if (system) system->SetPlaying(id, playing);
+    return *this;
+}
+
+void TweenHandle::Detach() {
+    this->system = nullptr;
+}
+
+TweenHandle::operator TweenId() const {
+    return id;
+}
