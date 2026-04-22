@@ -130,7 +130,8 @@ public:
 	const ShaderProgram* GetShader() const;
 	const UniformSpec* GetUniforms() const;
 
-	virtual fs::path GetName() const;
+	virtual fs::path GetPath() const;
+	virtual uint64_t GetHash() const;
 
 	void Deserialize(const nlohmann::json& json_node);
 	nlohmann::json Serialize();

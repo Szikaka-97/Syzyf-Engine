@@ -304,8 +304,12 @@ void Texture::Update() {
 	glBindTexture(type, 0);
 }
 
-fs::path Texture::GetName() const {
+fs::path Texture::GetPath() const {
 	return this->path;
+}
+
+uint64_t Texture::GetHash() const {
+	return std::hash<fs::path>{}(this->path);
 }
 
 template<> Texture2D* Texture::Load<Texture2D>(const fs::path& texturePath, const TextureParams& loadParams) {

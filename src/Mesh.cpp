@@ -454,6 +454,10 @@ Mesh* Mesh::Load(fs::path modelPath, bool loadMaterials) {
 	return loadedMesh;
 }
 
-fs::path Mesh::GetName() const {
+fs::path Mesh::GetPath() const {
 	return this->path;
+}
+
+uint64_t Mesh::GetHash() const {
+	return std::hash<fs::path>{}(this->path);
 }

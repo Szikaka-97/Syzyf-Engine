@@ -1,6 +1,21 @@
 #include <Serialized.h>
+#include <Resources.h>
 
 #include <nlohmann/json.hpp>
+
+std::vector<const Resource*> serializedResources;
+
+void Serialization::QueueSerializeNamedResource(const Resource* res, std::string typeName) {
+	spdlog::info("Serializing resource: {} of type {}", res->GetPath().string(), typeName);
+
+	serializedResources.push_back(res);
+}
+
+std::vector<const Resource*> Serialization::GetSerializedResources() {
+	return serializedResources;
+
+	serializedResources.clear();
+}
 
 template<>
 glm::vec2 Serialization::Deserialize(const json& json_node) {

@@ -5,177 +5,177 @@
 class Texture2D;
 
 template<>
-void DeserializeOn<Texture2D>(volatile Texture2D* ptr, const json& json_node);
+void Serialization::DeserializeOn<Texture2D>(volatile Texture2D* ptr, const json& json_node);
 
 template<>
-json Serialize<Texture2D>(const Texture2D* ptr);
+json Serialization::Serialize<Texture2D>(const Texture2D* ptr);
 
 
 class Cubemap;
 
 template<>
-void DeserializeOn<Cubemap>(volatile Cubemap* ptr, const json& json_node);
+void Serialization::DeserializeOn<Cubemap>(volatile Cubemap* ptr, const json& json_node);
 
 template<>
-json Serialize<Cubemap>(const Cubemap* ptr);
+json Serialization::Serialize<Cubemap>(const Cubemap* ptr);
 
 
 #include <Shader.h>
 
 template<>
-void DeserializeOn<ShaderProgram>(volatile ShaderProgram* ptr, const json& json_node);
+void Serialization::DeserializeOn<ShaderProgram>(volatile ShaderProgram* ptr, const json& json_node);
 
 template<>
-json Serialize<ShaderProgram>(const ShaderProgram* ptr);
+json Serialization::Serialize<ShaderProgram>(const ShaderProgram* ptr);
 
 
 class Plane;
 
 template<>
-void DeserializeOn<Plane>(volatile Plane* ptr, const json& json_node);
+void Serialization::DeserializeOn<Plane>(volatile Plane* ptr, const json& json_node);
 
 template<>
-json Serialize<Plane>(const Plane* ptr);
+json Serialization::Serialize<Plane>(const Plane* ptr);
 
 
 class Frustum;
 
 template<>
-void DeserializeOn<Frustum>(volatile Frustum* ptr, const json& json_node);
+void Serialization::DeserializeOn<Frustum>(volatile Frustum* ptr, const json& json_node);
 
 template<>
-json Serialize<Frustum>(const Frustum* ptr);
+json Serialization::Serialize<Frustum>(const Frustum* ptr);
 
 
 class Scene;
 
 template<>
-void DeserializeOn<Scene>(volatile Scene* ptr, const json& json_node);
+void Serialization::DeserializeOn<Scene>(volatile Scene* ptr, const json& json_node);
 
 template<>
-json Serialize<Scene>(const Scene* ptr);
+json Serialization::Serialize<Scene>(const Scene* ptr);
 
 
 class GameObject;
 
 template<>
-void DeserializeOn<GameObject>(volatile GameObject* ptr, const json& json_node);
+void Serialization::DeserializeOn<GameObject>(volatile GameObject* ptr, const json& json_node);
 
 template<>
-json Serialize<GameObject>(const GameObject* ptr);
+json Serialization::Serialize<GameObject>(const GameObject* ptr);
 
 
 class LayerMask;
 
 template<>
-void DeserializeOn<LayerMask>(volatile LayerMask* ptr, const json& json_node);
+void Serialization::DeserializeOn<LayerMask>(volatile LayerMask* ptr, const json& json_node);
 
 template<>
-json Serialize<LayerMask>(const LayerMask* ptr);
+json Serialization::Serialize<LayerMask>(const LayerMask* ptr);
 
 
 class Material;
 
 template<>
-void DeserializeOn<Material>(volatile Material* ptr, const json& json_node);
+void Serialization::DeserializeOn<Material>(volatile Material* ptr, const json& json_node);
 
 template<>
-json Serialize<Material>(const Material* ptr);
+json Serialization::Serialize<Material>(const Material* ptr);
 
 
 #include <Light.h>
 
 template<>
-void DeserializeOn<Light>(volatile Light* ptr, const json& json_node);
+void Serialization::DeserializeOn<Light>(volatile Light* ptr, const json& json_node);
 
 template<>
-json Serialize<Light>(const Light* ptr);
+json Serialization::Serialize<Light>(const Light* ptr);
 
 
 class BoundingBox;
 
 template<>
-void DeserializeOn<BoundingBox>(volatile BoundingBox* ptr, const json& json_node);
+void Serialization::DeserializeOn<BoundingBox>(volatile BoundingBox* ptr, const json& json_node);
 
 template<>
-json Serialize<BoundingBox>(const BoundingBox* ptr);
+json Serialization::Serialize<BoundingBox>(const BoundingBox* ptr);
 
 
 #include <Mesh.h>
 
 template<>
-void DeserializeOn<Mesh>(volatile Mesh* ptr, const json& json_node);
+void Serialization::DeserializeOn<Mesh>(volatile Mesh* ptr, const json& json_node);
 
 template<>
-json Serialize<Mesh>(const Mesh* ptr);
+json Serialization::Serialize<Mesh>(const Mesh* ptr);
 
 
 #include <Camera.h>
 
 template<>
-void DeserializeOn<Camera>(volatile Camera* ptr, const json& json_node);
+void Serialization::DeserializeOn<Camera>(volatile Camera* ptr, const json& json_node);
 
 template<>
-json Serialize<Camera>(const Camera* ptr);
-
-
-
-template<>
-void DeserializeOn<Camera::Perspective>(volatile Camera::Perspective* ptr, const json& json_node);
-
-template<>
-json Serialize<Camera::Perspective>(const Camera::Perspective* ptr);
+json Serialization::Serialize<Camera>(const Camera* ptr);
 
 
 
 template<>
-void DeserializeOn<Camera::Orthographic>(volatile Camera::Orthographic* ptr, const json& json_node);
+void Serialization::DeserializeOn<Camera::Perspective>(volatile Camera::Perspective* ptr, const json& json_node);
 
 template<>
-json Serialize<Camera::Orthographic>(const Camera::Orthographic* ptr);
+json Serialization::Serialize<Camera::Perspective>(const Camera::Perspective* ptr);
+
+
+
+template<>
+void Serialization::DeserializeOn<Camera::Orthographic>(volatile Camera::Orthographic* ptr, const json& json_node);
+
+template<>
+json Serialization::Serialize<Camera::Orthographic>(const Camera::Orthographic* ptr);
 
 
 class Tonemapper;
 
 template<>
-void DeserializeOn<Tonemapper>(volatile Tonemapper* ptr, const json& json_node);
+void Serialization::DeserializeOn<Tonemapper>(volatile Tonemapper* ptr, const json& json_node);
 
 template<>
-json Serialize<Tonemapper>(const Tonemapper* ptr);
+json Serialization::Serialize<Tonemapper>(const Tonemapper* ptr);
 
 
 class ReflectionProbe;
 
 template<>
-void DeserializeOn<ReflectionProbe>(volatile ReflectionProbe* ptr, const json& json_node);
+void Serialization::DeserializeOn<ReflectionProbe>(volatile ReflectionProbe* ptr, const json& json_node);
 
 template<>
-json Serialize<ReflectionProbe>(const ReflectionProbe* ptr);
+json Serialization::Serialize<ReflectionProbe>(const ReflectionProbe* ptr);
 
 
 class MeshRenderer;
 
 template<>
-void DeserializeOn<MeshRenderer>(volatile MeshRenderer* ptr, const json& json_node);
+void Serialization::DeserializeOn<MeshRenderer>(volatile MeshRenderer* ptr, const json& json_node);
 
 template<>
-json Serialize<MeshRenderer>(const MeshRenderer* ptr);
+json Serialization::Serialize<MeshRenderer>(const MeshRenderer* ptr);
 
 
 class Bloom;
 
 template<>
-void DeserializeOn<Bloom>(volatile Bloom* ptr, const json& json_node);
+void Serialization::DeserializeOn<Bloom>(volatile Bloom* ptr, const json& json_node);
 
 template<>
-json Serialize<Bloom>(const Bloom* ptr);
+json Serialization::Serialize<Bloom>(const Bloom* ptr);
 
 
 class Skybox;
 
 template<>
-void DeserializeOn<Skybox>(volatile Skybox* ptr, const json& json_node);
+void Serialization::DeserializeOn<Skybox>(volatile Skybox* ptr, const json& json_node);
 
 template<>
-json Serialize<Skybox>(const Skybox* ptr);
+json Serialization::Serialize<Skybox>(const Skybox* ptr);
 

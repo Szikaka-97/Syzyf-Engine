@@ -339,7 +339,7 @@ void InitScene(Scene* mainScene) {
 
 	std::ofstream destJson("sceneDump.json");
 
-	nlohmann::json sceneDump = Serialize(mainScene);
+	nlohmann::json sceneDump = Serialization::Serialize(mainScene);
 
 	destJson << sceneDump.dump(4) << "\n";
 
@@ -349,14 +349,14 @@ void InitScene(Scene* mainScene) {
 }
 
 void LoadScene(Scene* mainScene) {
-	std::ifstream srcJson("kurwa.json");
+	std::ifstream srcJson("sceneDump.json");
 	Scene* desedScene = new Scene();
 
 	nlohmann::json sceneDump = json::parse(srcJson);
 
 	mainScene->GetRootNode()->AttachScene(desedScene);
 
-	DeserializeOn(desedScene, sceneDump);
+	Serialization::DeserializeOn(desedScene, sceneDump);
 
 	mainScene->AddComponent<DebugInspector>();
 }

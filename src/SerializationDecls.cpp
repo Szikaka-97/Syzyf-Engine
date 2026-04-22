@@ -30,11 +30,11 @@
 using json = nlohmann::json;
 
 template<>
-void DeserializeOn<Texture2D>(volatile Texture2D* ptr, const json& json_node) {
+void Serialization::DeserializeOn<Texture2D>(volatile Texture2D* ptr, const json& json_node) {
 	volatile uint8_t* data = reinterpret_cast<volatile uint8_t*>(ptr);
 }
 template<>
-json Serialize<Texture2D>(const Texture2D* ptr) {
+json Serialization::Serialize<Texture2D>(const Texture2D* ptr) {
 	const uint8_t* data = reinterpret_cast<const uint8_t*>(ptr);
 	json result;
 	
@@ -51,11 +51,11 @@ json Serialize<Texture2D>(const Texture2D* ptr) {
 }
 
 template<>
-void DeserializeOn<Cubemap>(volatile Cubemap* ptr, const json& json_node) {
+void Serialization::DeserializeOn<Cubemap>(volatile Cubemap* ptr, const json& json_node) {
 	volatile uint8_t* data = reinterpret_cast<volatile uint8_t*>(ptr);
 }
 template<>
-json Serialize<Cubemap>(const Cubemap* ptr) {
+json Serialization::Serialize<Cubemap>(const Cubemap* ptr) {
 	const uint8_t* data = reinterpret_cast<const uint8_t*>(ptr);
 	json result;
 	
@@ -72,11 +72,11 @@ json Serialize<Cubemap>(const Cubemap* ptr) {
 }
 
 template<>
-void DeserializeOn<ShaderProgram>(volatile ShaderProgram* ptr, const json& json_node) {
+void Serialization::DeserializeOn<ShaderProgram>(volatile ShaderProgram* ptr, const json& json_node) {
 	volatile uint8_t* data = reinterpret_cast<volatile uint8_t*>(ptr);
 }
 template<>
-json Serialize<ShaderProgram>(const ShaderProgram* ptr) {
+json Serialization::Serialize<ShaderProgram>(const ShaderProgram* ptr) {
 	const uint8_t* data = reinterpret_cast<const uint8_t*>(ptr);
 	json result;
 	
@@ -91,7 +91,7 @@ json Serialize<ShaderProgram>(const ShaderProgram* ptr) {
 }
 
 template<>
-void DeserializeOn<Plane>(volatile Plane* ptr, const json& json_node) {
+void Serialization::DeserializeOn<Plane>(volatile Plane* ptr, const json& json_node) {
 	volatile uint8_t* data = reinterpret_cast<volatile uint8_t*>(ptr);
 	
 	// Plane
@@ -99,7 +99,7 @@ void DeserializeOn<Plane>(volatile Plane* ptr, const json& json_node) {
 	new((float*) (data + 12)) float{json_node["distance"].get<float>()};
 }
 template<>
-json Serialize<Plane>(const Plane* ptr) {
+json Serialization::Serialize<Plane>(const Plane* ptr) {
 	const uint8_t* data = reinterpret_cast<const uint8_t*>(ptr);
 	json result;
 	
@@ -114,7 +114,7 @@ json Serialize<Plane>(const Plane* ptr) {
 }
 
 template<>
-void DeserializeOn<Frustum>(volatile Frustum* ptr, const json& json_node) {
+void Serialization::DeserializeOn<Frustum>(volatile Frustum* ptr, const json& json_node) {
 	volatile uint8_t* data = reinterpret_cast<volatile uint8_t*>(ptr);
 	
 	// Frustum
@@ -126,7 +126,7 @@ void DeserializeOn<Frustum>(volatile Frustum* ptr, const json& json_node) {
 	DeserializeOn<Plane>((Plane*) (data + 80), json_node["farPlane"]["_data"]);
 }
 template<>
-json Serialize<Frustum>(const Frustum* ptr) {
+json Serialization::Serialize<Frustum>(const Frustum* ptr) {
 	const uint8_t* data = reinterpret_cast<const uint8_t*>(ptr);
 	json result;
 	
@@ -134,25 +134,25 @@ json Serialize<Frustum>(const Frustum* ptr) {
 	json& dataNode = (result["_data"] = json{});
 	
 	// Frustum
-	dataNode["top"] = Serialize<Plane>((const Plane *) (data + 0));
-	dataNode["bottom"] = Serialize<Plane>((const Plane *) (data + 16));
-	dataNode["left"] = Serialize<Plane>((const Plane *) (data + 32));
-	dataNode["right"] = Serialize<Plane>((const Plane *) (data + 48));
-	dataNode["nearPlane"] = Serialize<Plane>((const Plane *) (data + 64));
-	dataNode["farPlane"] = Serialize<Plane>((const Plane *) (data + 80));
+	dataNode["top"] = Serialization::Serialize<Plane>((const Plane *) (data + 0));
+	dataNode["bottom"] = Serialization::Serialize<Plane>((const Plane *) (data + 16));
+	dataNode["left"] = Serialization::Serialize<Plane>((const Plane *) (data + 32));
+	dataNode["right"] = Serialization::Serialize<Plane>((const Plane *) (data + 48));
+	dataNode["nearPlane"] = Serialization::Serialize<Plane>((const Plane *) (data + 64));
+	dataNode["farPlane"] = Serialization::Serialize<Plane>((const Plane *) (data + 80));
 	
 	return result;
 }
 
 template<>
-void DeserializeOn<Scene>(volatile Scene* ptr, const json& json_node) {
+void Serialization::DeserializeOn<Scene>(volatile Scene* ptr, const json& json_node) {
 	volatile uint8_t* data = reinterpret_cast<volatile uint8_t*>(ptr);
 	
 	// Scene
 	const_cast<Scene *>(ptr)->Deserialize(json_node["_data"]);
 }
 template<>
-json Serialize<Scene>(const Scene* ptr) {
+json Serialization::Serialize<Scene>(const Scene* ptr) {
 	const uint8_t* data = reinterpret_cast<const uint8_t*>(ptr);
 	json result;
 	
@@ -168,14 +168,14 @@ json Serialize<Scene>(const Scene* ptr) {
 }
 
 template<>
-void DeserializeOn<GameObject>(volatile GameObject* ptr, const json& json_node) {
+void Serialization::DeserializeOn<GameObject>(volatile GameObject* ptr, const json& json_node) {
 	volatile uint8_t* data = reinterpret_cast<volatile uint8_t*>(ptr);
 	
 	// GameObject
 	new((int*) (data + 8)) int{json_node["id"].get<int>()};
 }
 template<>
-json Serialize<GameObject>(const GameObject* ptr) {
+json Serialization::Serialize<GameObject>(const GameObject* ptr) {
 	const uint8_t* data = reinterpret_cast<const uint8_t*>(ptr);
 	json result;
 	
@@ -191,14 +191,14 @@ json Serialize<GameObject>(const GameObject* ptr) {
 }
 
 template<>
-void DeserializeOn<LayerMask>(volatile LayerMask* ptr, const json& json_node) {
+void Serialization::DeserializeOn<LayerMask>(volatile LayerMask* ptr, const json& json_node) {
 	volatile uint8_t* data = reinterpret_cast<volatile uint8_t*>(ptr);
 	
 	// LayerMask
 	new((uint32_t*) (data + 0)) uint32_t{json_node["value"].get<uint32_t>()};
 }
 template<>
-json Serialize<LayerMask>(const LayerMask* ptr) {
+json Serialization::Serialize<LayerMask>(const LayerMask* ptr) {
 	const uint8_t* data = reinterpret_cast<const uint8_t*>(ptr);
 	json result;
 	
@@ -212,14 +212,14 @@ json Serialize<LayerMask>(const LayerMask* ptr) {
 }
 
 template<>
-void DeserializeOn<Material>(volatile Material* ptr, const json& json_node) {
+void Serialization::DeserializeOn<Material>(volatile Material* ptr, const json& json_node) {
 	volatile uint8_t* data = reinterpret_cast<volatile uint8_t*>(ptr);
 	
 	// Material
 	const_cast<Material *>(ptr)->Deserialize(json_node["_data"]);
 }
 template<>
-json Serialize<Material>(const Material* ptr) {
+json Serialization::Serialize<Material>(const Material* ptr) {
 	const uint8_t* data = reinterpret_cast<const uint8_t*>(ptr);
 	json result;
 	
@@ -235,7 +235,7 @@ json Serialize<Material>(const Material* ptr) {
 }
 
 template<>
-void DeserializeOn<Light>(volatile Light* ptr, const json& json_node) {
+void Serialization::DeserializeOn<Light>(volatile Light* ptr, const json& json_node) {
 	volatile uint8_t* data = reinterpret_cast<volatile uint8_t*>(ptr);
 	
 	// GameObject
@@ -252,7 +252,7 @@ void DeserializeOn<Light>(volatile Light* ptr, const json& json_node) {
 	new((bool*) (data + 88)) bool{json_node["shadowCasting"].get<bool>()};
 }
 template<>
-json Serialize<Light>(const Light* ptr) {
+json Serialization::Serialize<Light>(const Light* ptr) {
 	const uint8_t* data = reinterpret_cast<const uint8_t*>(ptr);
 	json result;
 	
@@ -280,7 +280,7 @@ json Serialize<Light>(const Light* ptr) {
 }
 
 template<>
-void DeserializeOn<BoundingBox>(volatile BoundingBox* ptr, const json& json_node) {
+void Serialization::DeserializeOn<BoundingBox>(volatile BoundingBox* ptr, const json& json_node) {
 	volatile uint8_t* data = reinterpret_cast<volatile uint8_t*>(ptr);
 	
 	// BoundingBox
@@ -290,7 +290,7 @@ void DeserializeOn<BoundingBox>(volatile BoundingBox* ptr, const json& json_node
 	new((glm::vec4*) (data + 44)) glm::vec4{Serialization::Deserialize<glm::vec4>(json_node["axisW"])};
 }
 template<>
-json Serialize<BoundingBox>(const BoundingBox* ptr) {
+json Serialization::Serialize<BoundingBox>(const BoundingBox* ptr) {
 	const uint8_t* data = reinterpret_cast<const uint8_t*>(ptr);
 	json result;
 	
@@ -307,11 +307,11 @@ json Serialize<BoundingBox>(const BoundingBox* ptr) {
 }
 
 template<>
-void DeserializeOn<Mesh>(volatile Mesh* ptr, const json& json_node) {
+void Serialization::DeserializeOn<Mesh>(volatile Mesh* ptr, const json& json_node) {
 	volatile uint8_t* data = reinterpret_cast<volatile uint8_t*>(ptr);
 }
 template<>
-json Serialize<Mesh>(const Mesh* ptr) {
+json Serialization::Serialize<Mesh>(const Mesh* ptr) {
 	const uint8_t* data = reinterpret_cast<const uint8_t*>(ptr);
 	json result;
 	
@@ -326,7 +326,7 @@ json Serialize<Mesh>(const Mesh* ptr) {
 }
 
 template<>
-void DeserializeOn<Camera>(volatile Camera* ptr, const json& json_node) {
+void Serialization::DeserializeOn<Camera>(volatile Camera* ptr, const json& json_node) {
 	volatile uint8_t* data = reinterpret_cast<volatile uint8_t*>(ptr);
 	
 	// GameObject
@@ -340,7 +340,7 @@ void DeserializeOn<Camera>(volatile Camera* ptr, const json& json_node) {
 	new((int*) (data + 100)) int{json_node["priority"].get<int>()};
 }
 template<>
-json Serialize<Camera>(const Camera* ptr) {
+json Serialization::Serialize<Camera>(const Camera* ptr) {
 	const uint8_t* data = reinterpret_cast<const uint8_t*>(ptr);
 	json result;
 	
@@ -356,16 +356,16 @@ json Serialize<Camera>(const Camera* ptr) {
 	
 	// Camera
 	dataNode["type"] = *(const uint32_t *) (data + 48);
-	dataNode["perspectiveData"] = Serialize<Camera::Perspective>((const Camera::Perspective *) (data + 52));
-	dataNode["orthoData"] = Serialize<Camera::Orthographic>((const Camera::Orthographic *) (data + 68));
-	dataNode["layerMask"] = Serialize<LayerMask>((const LayerMask *) (data + 96));
+	dataNode["perspectiveData"] = Serialization::Serialize<Camera::Perspective>((const Camera::Perspective *) (data + 52));
+	dataNode["orthoData"] = Serialization::Serialize<Camera::Orthographic>((const Camera::Orthographic *) (data + 68));
+	dataNode["layerMask"] = Serialization::Serialize<LayerMask>((const LayerMask *) (data + 96));
 	dataNode["priority"] = *(const int *) (data + 100);
 	
 	return result;
 }
 
 template<>
-void DeserializeOn<Camera::Perspective>(volatile Camera::Perspective* ptr, const json& json_node) {
+void Serialization::DeserializeOn<Camera::Perspective>(volatile Camera::Perspective* ptr, const json& json_node) {
 	volatile uint8_t* data = reinterpret_cast<volatile uint8_t*>(ptr);
 	
 	// Camera::Perspective
@@ -375,7 +375,7 @@ void DeserializeOn<Camera::Perspective>(volatile Camera::Perspective* ptr, const
 	new((float*) (data + 12)) float{json_node["farPlane"].get<float>()};
 }
 template<>
-json Serialize<Camera::Perspective>(const Camera::Perspective* ptr) {
+json Serialization::Serialize<Camera::Perspective>(const Camera::Perspective* ptr) {
 	const uint8_t* data = reinterpret_cast<const uint8_t*>(ptr);
 	json result;
 	
@@ -392,7 +392,7 @@ json Serialize<Camera::Perspective>(const Camera::Perspective* ptr) {
 }
 
 template<>
-void DeserializeOn<Camera::Orthographic>(volatile Camera::Orthographic* ptr, const json& json_node) {
+void Serialization::DeserializeOn<Camera::Orthographic>(volatile Camera::Orthographic* ptr, const json& json_node) {
 	volatile uint8_t* data = reinterpret_cast<volatile uint8_t*>(ptr);
 	
 	// Camera::Orthographic
@@ -402,7 +402,7 @@ void DeserializeOn<Camera::Orthographic>(volatile Camera::Orthographic* ptr, con
 	new((float*) (data + 12)) float{json_node["bottom"].get<float>()};
 }
 template<>
-json Serialize<Camera::Orthographic>(const Camera::Orthographic* ptr) {
+json Serialization::Serialize<Camera::Orthographic>(const Camera::Orthographic* ptr) {
 	const uint8_t* data = reinterpret_cast<const uint8_t*>(ptr);
 	json result;
 	
@@ -419,7 +419,7 @@ json Serialize<Camera::Orthographic>(const Camera::Orthographic* ptr) {
 }
 
 template<>
-void DeserializeOn<Tonemapper>(volatile Tonemapper* ptr, const json& json_node) {
+void Serialization::DeserializeOn<Tonemapper>(volatile Tonemapper* ptr, const json& json_node) {
 	volatile uint8_t* data = reinterpret_cast<volatile uint8_t*>(ptr);
 	
 	// GameObject
@@ -429,7 +429,7 @@ void DeserializeOn<Tonemapper>(volatile Tonemapper* ptr, const json& json_node) 
 	new((uint32_t*) (data + 48)) uint32_t{json_node["toneOperator"].get<uint32_t>()};
 }
 template<>
-json Serialize<Tonemapper>(const Tonemapper* ptr) {
+json Serialization::Serialize<Tonemapper>(const Tonemapper* ptr) {
 	const uint8_t* data = reinterpret_cast<const uint8_t*>(ptr);
 	json result;
 	
@@ -452,14 +452,14 @@ json Serialize<Tonemapper>(const Tonemapper* ptr) {
 }
 
 template<>
-void DeserializeOn<ReflectionProbe>(volatile ReflectionProbe* ptr, const json& json_node) {
+void Serialization::DeserializeOn<ReflectionProbe>(volatile ReflectionProbe* ptr, const json& json_node) {
 	volatile uint8_t* data = reinterpret_cast<volatile uint8_t*>(ptr);
 	
 	// GameObject
 	new((int*) (data + 8)) int{json_node["id"].get<int>()};
 }
 template<>
-json Serialize<ReflectionProbe>(const ReflectionProbe* ptr) {
+json Serialization::Serialize<ReflectionProbe>(const ReflectionProbe* ptr) {
 	const uint8_t* data = reinterpret_cast<const uint8_t*>(ptr);
 	json result;
 	
@@ -479,7 +479,7 @@ json Serialize<ReflectionProbe>(const ReflectionProbe* ptr) {
 }
 
 template<>
-void DeserializeOn<MeshRenderer>(volatile MeshRenderer* ptr, const json& json_node) {
+void Serialization::DeserializeOn<MeshRenderer>(volatile MeshRenderer* ptr, const json& json_node) {
 	volatile uint8_t* data = reinterpret_cast<volatile uint8_t*>(ptr);
 	
 	// GameObject
@@ -489,7 +489,7 @@ void DeserializeOn<MeshRenderer>(volatile MeshRenderer* ptr, const json& json_no
 	*((Mesh **) (data + 48)) = ResourceDatabase::Global->Get<Mesh>({json_node["mesh"].get<std::string>()});
 }
 template<>
-json Serialize<MeshRenderer>(const MeshRenderer* ptr) {
+json Serialization::Serialize<MeshRenderer>(const MeshRenderer* ptr) {
 	const uint8_t* data = reinterpret_cast<const uint8_t*>(ptr);
 	json result;
 	
@@ -504,11 +504,13 @@ json Serialize<MeshRenderer>(const MeshRenderer* ptr) {
 	// ImGuiDrawable
 	
 	// MeshRenderer
-	dataNode["mesh"] = (*(const Mesh **) (data + 48))->GetName();
+	dataNode["mesh"] = (intptr_t) (data + 48);
+	Serialization::QueueSerializeResource<Mesh>(*(const Mesh **) (data + 48));
 	{
 		std::vector<json> values;
 		for (const auto val : *((const std::vector<Material *> *) (data + 56))) {
-			values.push_back(val->GetName());
+			values.push_back((intptr_t) val);
+			Serialization::QueueSerializeResource<Material>(val);
 		}
 		
 		dataNode["materials"] = values;
@@ -518,7 +520,7 @@ json Serialize<MeshRenderer>(const MeshRenderer* ptr) {
 }
 
 template<>
-void DeserializeOn<Bloom>(volatile Bloom* ptr, const json& json_node) {
+void Serialization::DeserializeOn<Bloom>(volatile Bloom* ptr, const json& json_node) {
 	volatile uint8_t* data = reinterpret_cast<volatile uint8_t*>(ptr);
 	
 	// GameObject
@@ -530,7 +532,7 @@ void DeserializeOn<Bloom>(volatile Bloom* ptr, const json& json_node) {
 	new((float*) (data + 96)) float{json_node["intensity"].get<float>()};
 }
 template<>
-json Serialize<Bloom>(const Bloom* ptr) {
+json Serialization::Serialize<Bloom>(const Bloom* ptr) {
 	const uint8_t* data = reinterpret_cast<const uint8_t*>(ptr);
 	json result;
 	
@@ -555,7 +557,7 @@ json Serialize<Bloom>(const Bloom* ptr) {
 }
 
 template<>
-void DeserializeOn<Skybox>(volatile Skybox* ptr, const json& json_node) {
+void Serialization::DeserializeOn<Skybox>(volatile Skybox* ptr, const json& json_node) {
 	volatile uint8_t* data = reinterpret_cast<volatile uint8_t*>(ptr);
 	
 	// GameObject
@@ -565,7 +567,7 @@ void DeserializeOn<Skybox>(volatile Skybox* ptr, const json& json_node) {
 	*((Material **) (data + 40)) = ResourceDatabase::Global->Get<Material>({json_node["skyMaterial"].get<std::string>()});
 }
 template<>
-json Serialize<Skybox>(const Skybox* ptr) {
+json Serialization::Serialize<Skybox>(const Skybox* ptr) {
 	const uint8_t* data = reinterpret_cast<const uint8_t*>(ptr);
 	json result;
 	
@@ -578,7 +580,8 @@ json Serialize<Skybox>(const Skybox* ptr) {
 	dataNode["id"] = *(const int *) (data + 8);
 	
 	// Skybox
-	dataNode["skyMaterial"] = (*(const Material **) (data + 40))->GetName();
+	dataNode["skyMaterial"] = (intptr_t) (data + 40);
+	Serialization::QueueSerializeResource<Material>(*(const Material **) (data + 40));
 	
 	return result;
 }
@@ -586,28 +589,28 @@ json Serialize<Skybox>(const Skybox* ptr) {
 
 typedef void (*DeserializeOnSpecialization)(volatile void* ptr, const json& json_node);
 
-void Deserialize(volatile void* ptr, const json& json_node) {
+void Serialization::Deserialize(volatile void* ptr, const json& json_node) {
 	static const std::unordered_map<std::string, DeserializeOnSpecialization> typeBindings = {
-		{ "Texture2D", (DeserializeOnSpecialization) DeserializeOn<Texture2D> },
-		{ "Cubemap", (DeserializeOnSpecialization) DeserializeOn<Cubemap> },
-		{ "ShaderProgram", (DeserializeOnSpecialization) DeserializeOn<ShaderProgram> },
-		{ "Plane", (DeserializeOnSpecialization) DeserializeOn<Plane> },
-		{ "Frustum", (DeserializeOnSpecialization) DeserializeOn<Frustum> },
-		{ "Scene", (DeserializeOnSpecialization) DeserializeOn<Scene> },
-		{ "GameObject", (DeserializeOnSpecialization) DeserializeOn<GameObject> },
-		{ "LayerMask", (DeserializeOnSpecialization) DeserializeOn<LayerMask> },
-		{ "Material", (DeserializeOnSpecialization) DeserializeOn<Material> },
-		{ "Light", (DeserializeOnSpecialization) DeserializeOn<Light> },
-		{ "BoundingBox", (DeserializeOnSpecialization) DeserializeOn<BoundingBox> },
-		{ "Mesh", (DeserializeOnSpecialization) DeserializeOn<Mesh> },
-		{ "Camera", (DeserializeOnSpecialization) DeserializeOn<Camera> },
-		{ "Camera::Perspective", (DeserializeOnSpecialization) DeserializeOn<Camera::Perspective> },
-		{ "Camera::Orthographic", (DeserializeOnSpecialization) DeserializeOn<Camera::Orthographic> },
-		{ "Tonemapper", (DeserializeOnSpecialization) DeserializeOn<Tonemapper> },
-		{ "ReflectionProbe", (DeserializeOnSpecialization) DeserializeOn<ReflectionProbe> },
-		{ "MeshRenderer", (DeserializeOnSpecialization) DeserializeOn<MeshRenderer> },
-		{ "Bloom", (DeserializeOnSpecialization) DeserializeOn<Bloom> },
-		{ "Skybox", (DeserializeOnSpecialization) DeserializeOn<Skybox> },
+		{ "Texture2D", (DeserializeOnSpecialization) Serialization::DeserializeOn<Texture2D> },
+		{ "Cubemap", (DeserializeOnSpecialization) Serialization::DeserializeOn<Cubemap> },
+		{ "ShaderProgram", (DeserializeOnSpecialization) Serialization::DeserializeOn<ShaderProgram> },
+		{ "Plane", (DeserializeOnSpecialization) Serialization::DeserializeOn<Plane> },
+		{ "Frustum", (DeserializeOnSpecialization) Serialization::DeserializeOn<Frustum> },
+		{ "Scene", (DeserializeOnSpecialization) Serialization::DeserializeOn<Scene> },
+		{ "GameObject", (DeserializeOnSpecialization) Serialization::DeserializeOn<GameObject> },
+		{ "LayerMask", (DeserializeOnSpecialization) Serialization::DeserializeOn<LayerMask> },
+		{ "Material", (DeserializeOnSpecialization) Serialization::DeserializeOn<Material> },
+		{ "Light", (DeserializeOnSpecialization) Serialization::DeserializeOn<Light> },
+		{ "BoundingBox", (DeserializeOnSpecialization) Serialization::DeserializeOn<BoundingBox> },
+		{ "Mesh", (DeserializeOnSpecialization) Serialization::DeserializeOn<Mesh> },
+		{ "Camera", (DeserializeOnSpecialization) Serialization::DeserializeOn<Camera> },
+		{ "Camera::Perspective", (DeserializeOnSpecialization) Serialization::DeserializeOn<Camera::Perspective> },
+		{ "Camera::Orthographic", (DeserializeOnSpecialization) Serialization::DeserializeOn<Camera::Orthographic> },
+		{ "Tonemapper", (DeserializeOnSpecialization) Serialization::DeserializeOn<Tonemapper> },
+		{ "ReflectionProbe", (DeserializeOnSpecialization) Serialization::DeserializeOn<ReflectionProbe> },
+		{ "MeshRenderer", (DeserializeOnSpecialization) Serialization::DeserializeOn<MeshRenderer> },
+		{ "Bloom", (DeserializeOnSpecialization) Serialization::DeserializeOn<Bloom> },
+		{ "Skybox", (DeserializeOnSpecialization) Serialization::DeserializeOn<Skybox> },
 	};
 	
 	auto deserializerIterator = typeBindings.find(json_node["_type_name"].get<std::string>());
@@ -647,34 +650,34 @@ GameObject* DeserializeGameObject(SceneNode* node, nlohmann::json json_node) {
 		addedObj = node->AddObject<Skybox>();
 	}
 	
-	Deserialize(addedObj, json_node);
+	Serialization::Deserialize(addedObj, json_node);
 	
 	return addedObj;
 }
 
 typedef nlohmann::json (*SerializationFunc)(GameObject*);
-nlohmann::json SerializeGameObject(GameObject* obj) {
+nlohmann::json Serialization::SerializeGameObject(GameObject* obj) {
 	static const std::unordered_map<std::string, SerializationFunc> typeBindings = {
-		{ "Texture2D", (SerializationFunc) Serialize<Texture2D> },
-		{ "Cubemap", (SerializationFunc) Serialize<Cubemap> },
-		{ "ShaderProgram", (SerializationFunc) Serialize<ShaderProgram> },
-		{ "Plane", (SerializationFunc) Serialize<Plane> },
-		{ "Frustum", (SerializationFunc) Serialize<Frustum> },
-		{ "Scene", (SerializationFunc) Serialize<Scene> },
-		{ "GameObject", (SerializationFunc) Serialize<GameObject> },
-		{ "LayerMask", (SerializationFunc) Serialize<LayerMask> },
-		{ "Material", (SerializationFunc) Serialize<Material> },
-		{ "Light", (SerializationFunc) Serialize<Light> },
-		{ "BoundingBox", (SerializationFunc) Serialize<BoundingBox> },
-		{ "Mesh", (SerializationFunc) Serialize<Mesh> },
-		{ "Camera", (SerializationFunc) Serialize<Camera> },
-		{ "Camera::Perspective", (SerializationFunc) Serialize<Camera::Perspective> },
-		{ "Camera::Orthographic", (SerializationFunc) Serialize<Camera::Orthographic> },
-		{ "Tonemapper", (SerializationFunc) Serialize<Tonemapper> },
-		{ "ReflectionProbe", (SerializationFunc) Serialize<ReflectionProbe> },
-		{ "MeshRenderer", (SerializationFunc) Serialize<MeshRenderer> },
-		{ "Bloom", (SerializationFunc) Serialize<Bloom> },
-		{ "Skybox", (SerializationFunc) Serialize<Skybox> },
+		{ "Texture2D", (SerializationFunc) Serialization::Serialize<Texture2D> },
+		{ "Cubemap", (SerializationFunc) Serialization::Serialize<Cubemap> },
+		{ "ShaderProgram", (SerializationFunc) Serialization::Serialize<ShaderProgram> },
+		{ "Plane", (SerializationFunc) Serialization::Serialize<Plane> },
+		{ "Frustum", (SerializationFunc) Serialization::Serialize<Frustum> },
+		{ "Scene", (SerializationFunc) Serialization::Serialize<Scene> },
+		{ "GameObject", (SerializationFunc) Serialization::Serialize<GameObject> },
+		{ "LayerMask", (SerializationFunc) Serialization::Serialize<LayerMask> },
+		{ "Material", (SerializationFunc) Serialization::Serialize<Material> },
+		{ "Light", (SerializationFunc) Serialization::Serialize<Light> },
+		{ "BoundingBox", (SerializationFunc) Serialization::Serialize<BoundingBox> },
+		{ "Mesh", (SerializationFunc) Serialization::Serialize<Mesh> },
+		{ "Camera", (SerializationFunc) Serialization::Serialize<Camera> },
+		{ "Camera::Perspective", (SerializationFunc) Serialization::Serialize<Camera::Perspective> },
+		{ "Camera::Orthographic", (SerializationFunc) Serialization::Serialize<Camera::Orthographic> },
+		{ "Tonemapper", (SerializationFunc) Serialization::Serialize<Tonemapper> },
+		{ "ReflectionProbe", (SerializationFunc) Serialization::Serialize<ReflectionProbe> },
+		{ "MeshRenderer", (SerializationFunc) Serialization::Serialize<MeshRenderer> },
+		{ "Bloom", (SerializationFunc) Serialization::Serialize<Bloom> },
+		{ "Skybox", (SerializationFunc) Serialization::Serialize<Skybox> },
 	};
 	
 	std::string className = obj->GetName();
@@ -688,7 +691,7 @@ nlohmann::json SerializeGameObject(GameObject* obj) {
 	return serializerIterator->second(obj);
 }
 
-size_t GetObjectSize(const std::string& className) {
+size_t Serialization::GetObjectSize(const std::string& className) {
 	static const std::unordered_map<std::string, size_t> typeBindings = {
 		{ "Texture2D", 112 },
 		{ "Cubemap", 120 },

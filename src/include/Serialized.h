@@ -1,5 +1,6 @@
 #pragma once
 
+#include <concepts>
 #ifdef __SERIALIZER_RUNNING__
 #define serialized __attribute__((annotate("__serialized__")))
 #define not_serialized __attribute__((annotate("__not_serialized__")))
@@ -10,6 +11,7 @@
 
 #include <nlohmann/json_fwd.hpp>
 #include <glm/glm.hpp>
+#include <Resources.h>
 
 using json = nlohmann::json;
 
@@ -20,21 +22,32 @@ class Mesh;
 
 class DoNotSerialize { };
 
-template<typename T>
-void DeserializeOn(volatile T* ptr, const json& json_node) = delete;
-
-template<typename T>
-json Serialize(const T* ptr);
-
-void DeserializeInPlace(volatile void* ptr, const json& json_node);
-
-GameObject* DeserializeGameObject(SceneNode* node, nlohmann::json json_node);
-nlohmann::json SerializeGameObject(GameObject* obj);
-size_t GetObjectSize(const std::string& className);
-
 namespace Serialization {
+	template<typename T>
+	void DeserializeOn(volatile T* ptr, const json& json_node) = delete;
+
+	template<typename T>
+	json Serialize(const T* ptr);
+
+	void DeserializeInPlace(volatile void* ptr, const json& json_node);
+
+	GameObject* DeserializeGameObject(SceneNode* node, nlohmann::json json_node);
+	nlohmann::json SerializeGameObject(GameObject* obj);
+	size_t GetObjectSize(const std::string& className);
+	
+	void QueueSerializeNamedResource(const Resource* res, std::string typeName);
+	template<typename T>
+		requires(std::derived_from<T, Resource>)
+	void QueueSerializeResource(const T* res) {
+		QueueSerializeNamedResource(res, typeid(res).name());
+	}
+
+	std::vector<const Resource*> GetSerializedResources();
+
 	template<class T>
 	T Deserialize(const json& json_node) = delete;
+
+	void Deserialize(volatile void* ptr, const json& json_node);
 
 	template<>
 	glm::vec2 Deserialize(const json& json_node);

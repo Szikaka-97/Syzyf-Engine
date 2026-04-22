@@ -175,7 +175,8 @@ public:
 
 	bool HasPragma(const std::string& pragma) const;
 
-	virtual fs::path GetName() const;
+	virtual fs::path GetPath() const;
+	virtual uint64_t GetHash() const;
 
 	void Reload();
 

@@ -13,7 +13,8 @@ class Resource {
 public:
 	virtual ~Resource() = default;
 
-	virtual fs::path GetName() const = 0;
+	virtual fs::path GetPath() const = 0;
+	virtual uint64_t GetHash() const = 0;
 };
 
 template<class T, typename... T_Params>

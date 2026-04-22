@@ -157,7 +157,8 @@ public:
 	bool IsDirty() const;
 	void Update();
 
-	virtual fs::path GetName() const;
+	virtual fs::path GetPath() const;
+	virtual uint64_t GetHash() const;
 };
 
 class Texture2D : public Texture {

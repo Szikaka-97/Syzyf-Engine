@@ -1,5 +1,6 @@
 #include <Material.h>
 
+#include <filesystem>
 #include <fstream>
 #include <malloc.h>
 
@@ -260,13 +261,15 @@ void ShaderVariableStorage::RefreshVariables() {
 
 Material::Material():
 shader(nullptr),
-shaderVariables() {
+shaderVariables(),
+path() {
 	allMaterials.push_back(this);
 }
 
 Material::Material(const ShaderProgram* shader):
 shader(shader),
-shaderVariables(shader->GetUniforms()) {
+shaderVariables(shader->GetUniforms()),
+path() {
 	allMaterials.push_back(this);
 }
 
@@ -277,7 +280,9 @@ Material* Material::Load(fs::path materialPath) {
 
 	volatile Material* result = new Material();
 
-	DeserializeOn(result, materialData);
+	Serialization::DeserializeOn(result, materialData);
+
+	const_cast<Material *>(result)->path = materialPath;
 
 	return const_cast<Material*>(result);
 }
@@ -310,8 +315,12 @@ void Material::BindStorageBuffer(int storageBufferIndex, GLuint bufferHandle) {
 	this->shaderVariables.BindStorageBuffer(storageBufferIndex, bufferHandle);
 }
 
-fs::path Material::GetName() const {
+fs::path Material::GetPath() const {
 	return this->path;
+}
+
+uint64_t Material::GetHash() const {
+	return std::hash<fs::path>{}(this->path);
 }
 
 void Material::Deserialize(const nlohmann::json& json_node) {

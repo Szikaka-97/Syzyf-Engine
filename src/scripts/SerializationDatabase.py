@@ -420,7 +420,7 @@ def generate_serializer_for_field(writer: CodeWriter, field: SerializedField) ->
 	if field.type.strategy == DeserializationStrategy.SIMPLE:
 		writer.line(f"dataNode[\"{field.name}\"] = *(const {field.type.c_name} *) (data + {field.offset:.0f});")
 	elif field.type.strategy == DeserializationStrategy.CHAIN:
-		writer.line(f"dataNode[\"{field.name}\"] = Serialize<{field.type.c_name}>((const {field.type.c_name} *) (data + {field.offset:.0f}));")
+		writer.line(f"dataNode[\"{field.name}\"] = Serialization::Serialize<{field.type.c_name}>((const {field.type.c_name} *) (data + {field.offset:.0f}));")
 
 	elif field.type.strategy == DeserializationStrategy.SPECIAL:
 		if isinstance(field.type, SerializedVector):
@@ -435,7 +435,9 @@ def generate_serializer_for_field(writer: CodeWriter, field: SerializedField) ->
 			writer.more_indent()
 
 			if field_class.is_resource():
-				writer.line("values.push_back(val->GetName());")
+				writer.line("values.push_back((intptr_t) val);")
+
+				writer.line(f"Serialization::QueueSerializeResource<{field.type.element_type.name}>(val);")
 			else:
 				writer.line("values.push_back(Serialize(val));")
 
@@ -451,7 +453,9 @@ def generate_serializer_for_field(writer: CodeWriter, field: SerializedField) ->
 			field_class = SerializedClass.all_classes[field.type.name]
 
 			if field_class.is_resource():
-				writer.line(f"dataNode[\"{field.name}\"] = (*(const {field.type.c_name}*) (data + {field.offset:.0f}))->GetName();")
+				writer.line(f"dataNode[\"{field.name}\"] = (intptr_t) (data + {field.offset:.0f});")
+				
+				writer.line(f"Serialization::QueueSerializeResource<{field.type.name}>(*(const {field.type.c_name}*) (data + {field.offset:.0f}));")
 	elif field.type.strategy == DeserializationStrategy.INTRINSIC:
 		writer.line(f"dataNode[\"{field.name}\"] = Serialization::Serialize(*(const {field.type.c_name} *) (data + {field.offset:.0f}));")
 
@@ -573,10 +577,10 @@ def main():
 
 				dest_header.line()
 				dest_header.line("template<>")
-				dest_header.line(f"void DeserializeOn<{cls.name}>(volatile {cls.name}* ptr, const json& json_node);")
+				dest_header.line(f"void Serialization::DeserializeOn<{cls.name}>(volatile {cls.name}* ptr, const json& json_node);")
 				dest_header.line()
 				dest_header.line("template<>")
-				dest_header.line(f"json Serialize<{cls.name}>(const {cls.name}* ptr);")
+				dest_header.line(f"json Serialization::Serialize<{cls.name}>(const {cls.name}* ptr);")
 				dest_header.line()
 
 
@@ -597,7 +601,7 @@ def main():
 		for cls in classes:
 			if cls.serialized() and not cls.is_abstract:
 				dest_impl.line("template<>")
-				dest_impl.line(f"void DeserializeOn<{cls.name}>(volatile {cls.name}* ptr, const json& json_node) {{")
+				dest_impl.line(f"void Serialization::DeserializeOn<{cls.name}>(volatile {cls.name}* ptr, const json& json_node) {{")
 				dest_impl.more_indent()
 
 				dest_impl.line("volatile uint8_t* data = reinterpret_cast<volatile uint8_t*>(ptr);")
@@ -608,7 +612,7 @@ def main():
 				dest_impl.line("}")
 
 				dest_impl.line("template<>")
-				dest_impl.line(f"json Serialize<{cls.name}>(const {cls.name}* ptr) {{")
+				dest_impl.line(f"json Serialization::Serialize<{cls.name}>(const {cls.name}* ptr) {{")
 				dest_impl.more_indent()
 				
 				dest_impl.line("const uint8_t* data = reinterpret_cast<const uint8_t*>(ptr);")
@@ -631,7 +635,7 @@ def main():
 		dest_impl.line()
 		dest_impl.line("typedef void (*DeserializeOnSpecialization)(volatile void* ptr, const json& json_node);")
 		dest_impl.line()
-		dest_impl.line("void Deserialize(volatile void* ptr, const json& json_node) {")
+		dest_impl.line("void Serialization::Deserialize(volatile void* ptr, const json& json_node) {")
 
 		dest_impl.more_indent()
 
@@ -641,7 +645,7 @@ def main():
 
 		for name, cls in SerializedClass.all_classes.items():
 			if cls.serialized() and not cls.is_abstract:
-				dest_impl.line(f"{{ \"{cls.name}\", (DeserializeOnSpecialization) DeserializeOn<{cls.name}> }},")
+				dest_impl.line(f"{{ \"{cls.name}\", (DeserializeOnSpecialization) Serialization::DeserializeOn<{cls.name}> }},")
 
 		dest_impl.less_indent()
 
@@ -681,7 +685,7 @@ def main():
 				dest_impl.line("}")
 
 		dest_impl.line()
-		dest_impl.line("Deserialize(addedObj, json_node);")
+		dest_impl.line("Serialization::Deserialize(addedObj, json_node);")
 		dest_impl.line()
 		dest_impl.line("return addedObj;")
 
@@ -691,7 +695,7 @@ def main():
 		dest_impl.line()
 
 		dest_impl.line("typedef nlohmann::json (*SerializationFunc)(GameObject*);")
-		dest_impl.line("nlohmann::json SerializeGameObject(GameObject* obj) {")
+		dest_impl.line("nlohmann::json Serialization::SerializeGameObject(GameObject* obj) {")
 		dest_impl.more_indent()
 		
 		dest_impl.line("static const std::unordered_map<std::string, SerializationFunc> typeBindings = {")
@@ -699,7 +703,7 @@ def main():
 
 		for name, cls in SerializedClass.all_classes.items():
 			if cls.serialized() and not cls.is_abstract:
-				dest_impl.line(f"{{ \"{cls.name}\", (SerializationFunc) Serialize<{cls.name}> }},")
+				dest_impl.line(f"{{ \"{cls.name}\", (SerializationFunc) Serialization::Serialize<{cls.name}> }},")
 
 		dest_impl.less_indent()
 		dest_impl.line("};")
@@ -719,7 +723,7 @@ def main():
 
 		dest_impl.line()
 
-		dest_impl.line("size_t GetObjectSize(const std::string& className) {")
+		dest_impl.line("size_t Serialization::GetObjectSize(const std::string& className) {")
 
 		dest_impl.more_indent()
 

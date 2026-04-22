@@ -583,8 +583,12 @@ bool ShaderProgram::HasPragma(const std::string& pragma) const {
 	return this->pragmas.contains(pragma);
 }
 
-fs::path ShaderProgram::GetName() const {
+fs::path ShaderProgram::GetPath() const {
 	return this->path;
+}
+
+uint64_t ShaderProgram::GetHash() const {
+	return std::hash<fs::path>{}(this->path);
 }
 
 void ShaderProgram::Reload() {
