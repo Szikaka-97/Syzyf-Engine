@@ -16,26 +16,6 @@ COMMAND_FILE = path.abspath(sys.argv[3]) + "/../compile_commands.json"
 # DEST_INCLUDE_FILE_PATH = sys.argv[2] + "/" + sys.argv[3] + ".h"
 
 class CppType:
-	BUILTIN_SIMPLE_TYPES = {
-		"int": "int",
-		"unsigned int": "unsigned int",
-		"short": "short",
-		"unsigned short": "unsigned short",
-		"int8_t": "int8_t",
-		"int16_t": "int16_t",
-		"int32_t": "int32_t",
-		"int64_t": "int64_t",
-		"uint8_t": "uint8_t",
-		"uint16_t": "uint16_t",
-		"uint32_t": "uint32_t",
-		"uint64_t": "uint64_t",
-		"float": "float",
-		"double": "double",
-		"bool": "bool",
-		"std::string": "std::string",
-		"string": "std::string",
-	}
-
 	def __init__(self, clang_type: clang.Type):
 		self.clang_type: clang.Type = clang_type
 		self.is_const: bool = clang_type.is_const_qualified()
@@ -45,7 +25,7 @@ class CppType:
 
 		full_name_cursor = clang_type.get_declaration().semantic_parent
 
-		while full_name_cursor and full_name_cursor.kind.is_declaration():
+		while full_name_cursor and full_name_cursor.kind.is_declaration() and full_name_cursor.kind != clang.CursorKind.LINKAGE_SPEC:
 			self.full_name = full_name_cursor.spelling + "::" + self.full_name
 
 			full_name_cursor = full_name_cursor.semantic_parent
@@ -143,6 +123,8 @@ class CppClass:
 
 			CppClass.all_classes[gened_class.get_full_name()] = CppClass(class_def)
 		
+		CppClass.all_classes = {key: value for key, value in CppClass.all_classes.items() if HEADER_FILES_DIRECTORY in value.cursor.location.file.name}
+
 		for cpp_cls in CppClass.all_classes:
 			CppClass.all_classes[cpp_cls].populate()
 			
