@@ -494,6 +494,7 @@ void MakeRooms(Mesh* cubeMesh,Material* roomMat, Scene* mainScene, Material* sky
 	enemyRoomNode->AddObject<MeshRenderer>(cubeMesh, roomMat);
 	///
 	enemyRoomNode->AddObject<Surface>(cubeMesh);
+	enemyRoomNode->GetObject<Surface>()->SetID(1);
 	//enemyRoomNode->GetObject<Surface>()->SetRoomID(1);
 	//auto* navGrid = enemyRoomNode->AddObject<NavigationGrid>();
 	//navGrid->Build(enemyRoomNode->GetObject<Surface>(), 2.0f, 45.0f);
@@ -620,7 +621,7 @@ void InitScene(Scene* mainScene) {
 	playerNode->GlobalTransform().Scale() = glm::vec3(0.5f, 0.5f, 0.5f);
 	playerNode->AddObject<MeshRenderer>(schnozMesh, reflectiveMat);
 
-
+	playerNode->AddObject<Player>();
 	MakeRooms(cubeMesh2, roomMat, mainScene, skyMat);
 	AddEnemies(schnozMesh, schnozMat, mainScene, playerNode, cubeMesh2, reflectiveMat);
 

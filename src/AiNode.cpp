@@ -119,7 +119,7 @@ void AiNode::Update() {
 
 	bool playerInAttackRange = canSeePlayer && dist < attackRange;
 
-	if (!canSeePlayer && !playerInAttackRange) {
+	/*if (!canSeePlayer && !playerInAttackRange) {
 		Patrol();
 	}
 		else if (canSeePlayer && !playerInAttackRange) {
@@ -127,7 +127,13 @@ void AiNode::Update() {
 		}
 		else if (canSeePlayer && playerInAttackRange) {
 			 Attack();
-		}
+		}*/
+	if(isPlayerInRoom) {
+		Chase();
+	}
+	else{
+		Patrol();
+	}
 
 		DrawDebugView();
 	}
@@ -493,6 +499,14 @@ void AiNode::StopMoving() {
 			myNode->GlobalTransform().Rotation() = newRot;
 			m_Body->SetAngularVelocity(glm::vec3(0, 0, 0));
 		}
+	}
+
+void AiNode::OnPlayerEnteredRoom() {
+		isPlayerInRoom=true;
+}
+
+void AiNode::OnPlayerExitedRoom() {
+		isPlayerInRoom=false;
 	}
 
 void AiNode::SearchWalkPoint() {

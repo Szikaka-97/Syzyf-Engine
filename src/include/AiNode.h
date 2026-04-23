@@ -65,6 +65,7 @@ private:
      bool playerInSightRange, playerInAttackRange;
      std::vector<glm::vec3> m_Path;           //current
      int m_CurrentPathIndex = 0;
+     bool isPlayerInRoom = false;   
 
      std::vector<glm::vec3> FindPath(const glm::vec3& start, const glm::vec3& target);
      std::vector<glm::vec3> GetNeighbors(const glm::vec3& node);
@@ -84,6 +85,9 @@ public:
     void SetPatrolPoints(const std::vector<glm::vec2>& points);
     void SetProjectileResources(Mesh* mesh, Material* material);
     void SetAttackCooldown(float cooldown);
+
+    void OnPlayerEnteredRoom();
+    void OnPlayerExitedRoom();
 
     void TakeDamage(int damage);
 };

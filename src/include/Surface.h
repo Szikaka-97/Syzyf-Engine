@@ -4,8 +4,10 @@
 #include <vector>
 #include <glm/glm.hpp>
 #include "physics/DebugRenderer.h"
+#include <AiNode.h>
 
 class Mesh;
+class AiNode;
 
 class Surface : public GameObject {
 private:
@@ -14,6 +16,8 @@ private:
     float cellSize;
     glm::vec3 m_center;  
     glm::vec3 m_size;
+    int m_RoomID;
+    std::vector<AiNode*> myEnemies;
 
     void CollectVertices();
     void CalculateBounds();   
@@ -33,7 +37,11 @@ public:
     const std::vector<glm::vec3>& GetWalkablePoints() const { return walkablePoints; }
     glm::vec3 GetCenter() const { return m_center; }
     glm::vec3 GetSize()   const { return m_size; }
-
+    int GetID() const { return m_RoomID; }
+    std::vector<AiNode*> GetEnemies() const {return myEnemies;};
+    void InformEnter() ; 
+    void InformExit() ;
+    void SetID(int id) { m_RoomID = id; }
     void DrawDebugSurface(Physics::DebugRenderer* debugRenderer, float pointSize = 0.1f, int step = 5) const;
 
 };

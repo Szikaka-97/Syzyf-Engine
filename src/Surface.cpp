@@ -5,6 +5,7 @@
 #include <random>
 #include <limits>
 #include <spdlog/spdlog.h>
+//#include "AiNode.h"
 
 #include <Jolt/Physics/Collision/RayCast.h>
 #include <Jolt/Physics/Collision/CastResult.h>
@@ -20,6 +21,13 @@ Surface::Surface(Mesh* floorMesh, float cellSize)
     if (!node) {
        // spdlog::error("Surface: Node not found");
         return;
+    }
+
+    std::vector<AiNode*> enemies = GetScene()->FindObjectsOfType<AiNode>();
+    for (const auto& enemy : enemies) {
+       if(enemy->GetID()== m_RoomID) {
+           myEnemies.push_back(enemy);
+       }
     }
 
     CollectVertices();
@@ -109,6 +117,24 @@ bool Surface::IsOnSurface(const glm::vec3& point) const {
         return true;
     }
     return false;
+}
+
+void Surface::InformEnter() {
+    spdlog::warn("Player entered surface {}, informing {} enemies", GetID(), myEnemies.size());
+    for (auto* enemy : myEnemies) {
+        if (enemy) {
+            enemy->OnPlayerEnteredRoom();
+        }
+    }
+}
+
+void Surface::InformExit() {
+    spdlog::warn("Player exited surface {}, informing {} enemies", GetID(), myEnemies.size());
+    for (auto* enemy : myEnemies) {
+        if (enemy) {
+            enemy->OnPlayerExitedRoom();
+        }
+    }
 }
 
 void Surface::DrawDebugSurface(Physics::DebugRenderer* debugRenderer, float pointSize, int step) const {
