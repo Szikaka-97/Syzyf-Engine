@@ -87,12 +87,13 @@ void MessageTree::AddMessageReceiverInternal(MessageNode* node, Messenger msg, i
 
 void MessageTree::RemoveNode(MessageNode* node) {
 	for (auto child : node->children) {
-		// if (child->type == 0) {
-		// 	RemoveNode(child);
-		// }
-
-		delete child;
+		if (child->type != 0) {
+            delete child;
+		} else {
+            child->parent = nullptr;
+        }
 	}
+    node->children.clear();
 }
 
 MessageTree::MessageTree():
@@ -143,6 +144,9 @@ void MessageTree::RemoveNode(SceneNode* node) {
 	if (removed->parent) {
 		std::erase(removed->parent->children, removed);
 	}
+
+    this->quickLookup.erase(node->GetID());
+    delete removed;
 }
 
 void MessageTree::MoveNode(SceneNode* node, SceneNode* newParent) {
@@ -157,10 +161,12 @@ void MessageTree::MoveNode(SceneNode* node, SceneNode* newParent) {
 		return;
 	}
 
-	if (!TryFindNode(newParent, &newParentNode)) {
-		spdlog::warn("MoveNode: New node parent not found");
-		return;
-	}
+    if (newParent != nullptr) {
+        if (!TryFindNode(newParent, &newParentNode)) {
+            spdlog::warn("MoveNode: New node parent not found");
+            return;
+        }
+    }
 
 	if (movedNode->parent) {
 		std::erase(movedNode->parent->children, movedNode);
@@ -168,7 +174,9 @@ void MessageTree::MoveNode(SceneNode* node, SceneNode* newParent) {
 
 	movedNode->parent = newParentNode;
 
-	newParentNode->children.push_back(movedNode);
+    if (newParentNode != nullptr) {
+	    newParentNode->children.push_back(movedNode);
+    }
 }
 
 void MessageTree::RemoveMessageReceiver(MessageReceiver* obj, SceneNode* owner) {

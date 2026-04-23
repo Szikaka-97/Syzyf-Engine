@@ -580,63 +580,63 @@ inline void InitScene(Scene& mainScene) {
     lightNode2->GlobalTransform().Rotation() =
         glm::quat(glm::radians(glm::vec3(64.0f, 0.0f, 0.0f)));
 
-    SceneNode* schnozCameraNode = mainScene.CreateNode("Schnoz Camera");
-    schnozCameraNode->LocalTransform().Position() = glm::vec3(-56.5, 2.0, -2.0);
-    schnozCameraNode->LocalTransform().Rotation() =
-        glm::quat(glm::radians(glm::vec3(5.0f, 85.0f, 0.0f)));
+    // SceneNode* schnozCameraNode = mainScene.CreateNode("Schnoz Camera");
+    // schnozCameraNode->LocalTransform().Position() = glm::vec3(-56.5, 2.0,
+    // -2.0); schnozCameraNode->LocalTransform().Rotation() =
+    //     glm::quat(glm::radians(glm::vec3(5.0f, 85.0f, 0.0f)));
+    //
+    // auto schnozCamera = schnozCameraNode->AddObject<Camera>(
+    //     Camera::Perspective(40.0f, 16.0f / 9.0f, 0.5f, 200.0f));
+    // schnozCamera->SetAspectRatio(2);
+    // schnozCamera->SetRenderTarget(schnozPreview);
+    // schnozCamera->SetLayerMask(uint8_t(5));
 
-    auto schnozCamera = schnozCameraNode->AddObject<Camera>(
-        Camera::Perspective(40.0f, 16.0f / 9.0f, 0.5f, 200.0f));
-    schnozCamera->SetAspectRatio(2);
-    schnozCamera->SetRenderTarget(schnozPreview);
-    schnozCamera->SetLayerMask(uint8_t(5));
+    // SceneNode* schnozNode = mainScene.CreateNode("Schnoz");
+    // schnozNode->LocalTransform().Position() = glm::vec3(-53.5, 1.75, -2.4);
+    // schnozNode->LocalTransform().Scale() = glm::vec3(0.15, 0.15, 0.15);
+    // schnozNode->AddObject<MeshRenderer>(schnozMesh, schnozMat);
+    // schnozNode->AddObject<AutoRotator>(1);
+    // schnozNode->SetLayer(5);
+    //
+    // SceneNode* w_schnozNode = mainScene.CreateNode("w_schnozNode");
+    // w_schnozNode->LocalTransform().Position() = glm::vec3(-20, 0, -20);
+    // schnozNode->LocalTransform().Scale() = glm::vec3(1, 1, 1);
+    // w_schnozNode->AddObject<MeshRenderer>(schnozMesh, schnozMat);
+    //
+    // JPH::ShapeRefC w_schnozShape = Physics::ConvexHullMeshShape(schnozMesh);
+    // JPH::BodyCreationSettings w_schnozShapeSettings = {
+    //     w_schnozShape, JPH::RVec3::sZero(), JPH::Quat::sIdentity(),
+    //     JPH::EMotionType::Dynamic, Physics::Layers::MOVING};
 
-    SceneNode* schnozNode = mainScene.CreateNode("Schnoz");
-    schnozNode->LocalTransform().Position() = glm::vec3(-53.5, 1.75, -2.4);
-    schnozNode->LocalTransform().Scale() = glm::vec3(0.15, 0.15, 0.15);
-    schnozNode->AddObject<MeshRenderer>(schnozMesh, schnozMat);
-    schnozNode->AddObject<AutoRotator>(1);
-    schnozNode->SetLayer(5);
+    // auto* w_schnozBody =
+    //     w_schnozNode->AddObject<Physics::Body>(w_schnozShapeSettings);
+    // w_schnozBody->SetRestitution(0.0f);
+    // w_schnozBody->SetFriction(0.5f);
+    // w_schnozBody->SetLinearDamping(0.1f);
+    // w_schnozBody->SetCollisionLayerAndMask({0});
+    //
+    // SceneNode* schnozLightNode = mainScene.CreateNode("Schnoz Light");
+    // schnozLightNode->LocalTransform().Position() = glm::vec3(-55.5, 3.0,
+    // -2.0); schnozLightNode->AddObject<Light>(
+    //     Light::PointLight(glm::vec3(1, 1, 1), 5, 5));
 
-    SceneNode* w_schnozNode = mainScene.CreateNode("w_schnozNode");
-    w_schnozNode->LocalTransform().Position() = glm::vec3(-20, 0, -20);
-    schnozNode->LocalTransform().Scale() = glm::vec3(1, 1, 1);
-    w_schnozNode->AddObject<MeshRenderer>(schnozMesh, schnozMat);
-
-    JPH::ShapeRefC w_schnozShape = Physics::ConvexHullMeshShape(schnozMesh);
-    JPH::BodyCreationSettings w_schnozShapeSettings = {
-        w_schnozShape, JPH::RVec3::sZero(), JPH::Quat::sIdentity(),
-        JPH::EMotionType::Dynamic, Physics::Layers::MOVING};
-
-    auto* w_schnozBody =
-        w_schnozNode->AddObject<Physics::Body>(w_schnozShapeSettings);
-    w_schnozBody->SetRestitution(0.0f);
-    w_schnozBody->SetFriction(0.5f);
-    w_schnozBody->SetLinearDamping(0.1f);
-    w_schnozBody->SetCollisionLayerAndMask({0});
-
-    SceneNode* schnozLightNode = mainScene.CreateNode("Schnoz Light");
-    schnozLightNode->LocalTransform().Position() = glm::vec3(-55.5, 3.0, -2.0);
-    schnozLightNode->AddObject<Light>(
-        Light::PointLight(glm::vec3(1, 1, 1), 5, 5));
-
-    JPH::ShapeRefC schnozShape = Physics::ConvexHullMeshShape(schnozMesh);
-    SceneNode* schnozRootNode = mainScene.CreateNode("Schnoz Root");
-    for (int i = 0; i < 50; ++i) {
-        SceneNode* physicsSchnozNode =
-            mainScene.CreateNode(schnozRootNode, "Physics Schnoz");
-        physicsSchnozNode->AddObject<MeshRenderer>(schnozMesh, schnozMat);
-        physicsSchnozNode->GlobalTransform().Position() = {
-            2.0f + i, 10.0f + i * 2.0f, 0.0f - i};
-        physicsSchnozNode->GlobalTransform().Scale() = glm::vec3(0.25f);
-        JPH::BodyCreationSettings schnozShapeSettings = {
-            schnozShape, JPH::RVec3::sZero(), JPH::Quat::sIdentity(),
-            JPH::EMotionType::Dynamic, Physics::Layers::MOVING};
-        auto* schnozBody =
-            physicsSchnozNode->AddObject<Physics::Body>(schnozShapeSettings);
-
-        schnozBody->SetCollisionLayerAndMask({0});
-    }
+    // JPH::ShapeRefC schnozShape = Physics::ConvexHullMeshShape(schnozMesh);
+    // SceneNode* schnozRootNode = mainScene.CreateNode("Schnoz Root");
+    // for (int i = 0; i < 50; ++i) {
+    //     SceneNode* physicsSchnozNode =
+    //         mainScene.CreateNode(schnozRootNode, "Physics Schnoz");
+    //     physicsSchnozNode->AddObject<MeshRenderer>(schnozMesh, schnozMat);
+    //     physicsSchnozNode->GlobalTransform().Position() = {
+    //         2.0f + i, 10.0f + i * 2.0f, 0.0f - i};
+    //     physicsSchnozNode->GlobalTransform().Scale() = glm::vec3(0.25f);
+    //     JPH::BodyCreationSettings schnozShapeSettings = {
+    //         schnozShape, JPH::RVec3::sZero(), JPH::Quat::sIdentity(),
+    //         JPH::EMotionType::Dynamic, Physics::Layers::MOVING};
+    //     auto* schnozBody =
+    //         physicsSchnozNode->AddObject<Physics::Body>(schnozShapeSettings);
+    //
+    //     schnozBody->SetCollisionLayerAndMask({0});
+    // }
 
     cameraNode->AddObject<Bloom>();
     cameraNode->AddObject<Tonemapper>()->SetOperator(

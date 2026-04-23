@@ -124,6 +124,7 @@ void SceneViewPanel::Draw(Context& context) {
     context.selectedScene->Render();
     if (context.state != State::Game) {
         context.selectedScene->GetComponent<Physics::System>()->OnPostRender();
+        context.selectedScene->FlushQueues();
     }
 
     GLuint textureID = context.selectedScene->GetGraphics()
