@@ -665,7 +665,7 @@ def main():
 
 		dest_impl.line()
 
-		dest_impl.line("GameObject* DeserializeGameObject(SceneNode* node, nlohmann::json json_node) {")
+		dest_impl.line("GameObject* Serialization::DeserializeGameObject(SceneNode* node, nlohmann::json json_node) {")
 		dest_impl.more_indent()
 
 		dest_impl.line("std::string className = json_node[\"_type_name\"];")
