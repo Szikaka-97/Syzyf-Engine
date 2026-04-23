@@ -46,7 +46,9 @@ float luma(vec3 c) {
 
 // [Karis2013] proposed reducing the dynamic range before averaging
 vec4 karisAvg(vec4 c) {
-	return c / (1.0 + luma(c.rgb));
+    if (useTreshold) {
+	    return c / (1.0 + luma(c.rgb));
+    }
 }
 
 void storeSharedColor(int idx, vec4 c) {

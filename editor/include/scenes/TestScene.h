@@ -9,6 +9,7 @@
 #include <Bloom.h>
 #include <Camera.h>
 #include <ColorGrading.h>
+#include <DepthOfField.h>
 #include <Framebuffer.h>
 #include <Fxaa.h>
 #include <InputSystem.h>
@@ -227,6 +228,8 @@ inline void InitScene(Scene& mainScene) {
     cameraNode->AddObject<Camera>(
         Camera::Perspective(25.0f, 16.0f / 9.0f, 0.1f, 200.0f));
     cameraNode->AddObject<CameraSettings>(playerNode);
+    auto* dof = playerNode->AddObject<DepthOfField>();
+    dof->SetEnabled(false);
     playerNode->AddObject<Bloom>();
     playerNode->AddObject<Tonemapper>()->SetOperator(
         Tonemapper::TonemapperOperator::GranTurismo);
@@ -381,7 +384,7 @@ inline void InitScene(Scene& mainScene) {
                                            Texture2D::ColorTextureRGBA));
     dustMaterial->SetValue("color", glm::vec4(200.0f, 200.0f, 200.0f, 1.0f));
 
-    playerNode->AddObject<ParticleSpawner>(
+    cameraNode->AddObject<ParticleSpawner>(
         mainScene.Resources()->Get<Mesh>("./res/models/fullscreenquad.obj"),
         std::move(dustMaterial),
         ParticleSpawnerSettings{.maxParticles = 8192,
