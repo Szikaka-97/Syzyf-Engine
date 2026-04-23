@@ -5,12 +5,13 @@
 #include "MousePickingBodySystem.h"
 #include "scenes/TestScene.h"
 
-#include "SDL3/SDL_mouse.h"
 #include "physics/CharacterController.h"
 #include "physics/VirtualCharacterController.h"
 #include "scatter/Spawner.h"
 
 #include <SDL3/SDL.h>
+#include <SDL3/SDL_mouse.h>
+#include <glm/glm.hpp>
 #include <imgui.h>
 #define IMVIEWGUIZMO_IMPLEMENTATION
 #include "thirdparty/ImViewGuizmo.h"
@@ -64,6 +65,14 @@ void SceneViewPanel::Draw(Context& context) {
     }
 
     this->DrawMenuBar(context);
+
+    ImVec2 cursorScreenPosition = ImGui::GetCursorScreenPos();
+
+    if (auto* inputSystem =
+            context.selectedScene->GetComponent<InputSystem>()) {
+        inputSystem->SetViewportOffset(
+            glm::vec2(cursorScreenPosition.x, cursorScreenPosition.y));
+    }
 
     ImVec2 viewportSize = ImGui::GetContentRegionAvail();
     float resX = std::max(1.0f, viewportSize.x);
@@ -131,7 +140,7 @@ void SceneViewPanel::Draw(Context& context) {
                            ->GetColorTexture()
                            ->GetHandle();
 
-    ImVec2 cursorScreenPosition = ImGui::GetCursorScreenPos();
+    cursorScreenPosition = ImGui::GetCursorScreenPos();
 
     ImGui::Image((ImTextureID)(intptr_t)textureID, ImVec2(resX, resY),
                  ImVec2(0, 1), ImVec2(1, 0));
