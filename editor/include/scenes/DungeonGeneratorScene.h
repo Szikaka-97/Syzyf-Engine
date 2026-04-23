@@ -642,55 +642,55 @@ inline void InitScene(Scene& mainScene) {
     // cameraNode->AddObject<Tonemapper>()->SetOperator(
     //     Tonemapper::TonemapperOperator::GranTurismo);
 
-    SceneNode* dungeon = mainScene.CreateNode("Dungeon");
-    dungeon->AddObject<DungeonGenerator>(
-        DungeonGeneratorSettings{.steps = 50,
-                                 .numberOf2x2Rooms = 1,
-                                 .numberOf3x3Rooms = 1,
-                                 .margin = 0.0f});
-    dungeon->GlobalTransform().Scale() = glm::vec3(25.0f);
+    // SceneNode* dungeon = mainScene.CreateNode("Dungeon");
+    // dungeon->AddObject<DungeonGenerator>(
+    //     DungeonGeneratorSettings{.steps = 50,
+    //                              .numberOf2x2Rooms = 1,
+    //                              .numberOf3x3Rooms = 1,
+    //                              .margin = 0.0f});
+    // dungeon->GlobalTransform().Scale() = glm::vec3(25.0f);
 
-    mainScene.AddComponent<DebugInspector>();
-    mainScene.AddComponent<AnimationSystem>();
+    // mainScene.AddComponent<DebugInspector>();
+    // mainScene.AddComponent<AnimationSystem>();
 
-    // ---- PLAYER ----
-    SceneNode* playerNode = mainScene.CreateNode("Player");
-    SceneNode* cameraNode = mainScene.CreateNode("Camera Node");
-    playerNode->GlobalTransform().Position() = glm::vec3(0.0f, 10.0f, 0.0f);
-    cameraNode->AddObject<Camera>(
-        Camera::Perspective(25.0f, 16.0f / 9.0f, 0.1f, 200.0f));
-    cameraNode->AddObject<CameraSettings>(playerNode);
-    playerNode->AddObject<Bloom>();
-    playerNode->AddObject<Tonemapper>()->SetOperator(
-        Tonemapper::TonemapperOperator::GranTurismo);
-    playerNode->AddObject<ColorGrading>();
-    playerNode->AddObject<Fxaa>();
+    // // ---- PLAYER ----
+    // SceneNode* playerNode = mainScene.CreateNode("Player");
+    // SceneNode* cameraNode = mainScene.CreateNode("Camera Node");
+    // playerNode->GlobalTransform().Position() = glm::vec3(0.0f, 10.0f, 0.0f);
+    // cameraNode->AddObject<Camera>(
+    //     Camera::Perspective(25.0f, 16.0f / 9.0f, 0.1f, 200.0f));
+    // cameraNode->AddObject<CameraSettings>(playerNode);
+    // playerNode->AddObject<Bloom>();
+    // playerNode->AddObject<Tonemapper>()->SetOperator(
+    //     Tonemapper::TonemapperOperator::GranTurismo);
+    // playerNode->AddObject<ColorGrading>();
+    // playerNode->AddObject<Fxaa>();
 
-    JPH::Ref<JPH::CharacterVirtualSettings> characterSettings =
-        new JPH::CharacterVirtualSettings();
-    characterSettings->mShape = new JPH::CapsuleShape(0.2f, 0.7f);
-    characterSettings->mMaxSlopeAngle = JPH::DegreesToRadians(45.0f);
+    // JPH::Ref<JPH::CharacterVirtualSettings> characterSettings =
+    //     new JPH::CharacterVirtualSettings();
+    // characterSettings->mShape = new JPH::CapsuleShape(0.2f, 0.7f);
+    // characterSettings->mMaxSlopeAngle = JPH::DegreesToRadians(45.0f);
 
-    auto* virtualCharacter =
-        playerNode->AddObject<Physics::VirtualCharacterController>(
-            characterSettings);
-    virtualCharacter->SetPosition(
-        playerNode->GlobalTransform().Position().Value());
+    // auto* virtualCharacter =
+    //     playerNode->AddObject<Physics::VirtualCharacterController>(
+    //         characterSettings);
+    // virtualCharacter->SetPosition(
+    //     playerNode->GlobalTransform().Position().Value());
 
-    auto mouseMarkerNode = mainScene.CreateNode("Mouse Marker");
-    mouseMarkerNode->GlobalTransform().Scale() = glm::vec3(0.15f, 0.02f, 0.15f);
+    // auto mouseMarkerNode = mainScene.CreateNode("Mouse Marker");
+    // mouseMarkerNode->GlobalTransform().Scale() = glm::vec3(0.15f, 0.02f, 0.15f);
 
-    auto* bottleThrower = playerNode->AddObject<ThrowBottle>();
-    bottleThrower->SetPoolSize(10);
-    auto* controller = playerNode->AddObject<PlayerController>(mouseMarkerNode);
-    controller->SetBottleThrower(bottleThrower);
+    // auto* bottleThrower = playerNode->AddObject<ThrowBottle>();
+    // bottleThrower->SetPoolSize(10);
+    // auto* controller = playerNode->AddObject<PlayerController>(mouseMarkerNode);
+    // controller->SetBottleThrower(bottleThrower);
 
-    SceneNode* playerMeshNode = mainScene.CreateNode(playerNode);
-    playerMeshNode->AddObject<MeshRenderer>(schnozMesh, reflectiveMat);
-    playerMeshNode->GlobalTransform().Position() = glm::vec3(0.0f, 5.0f, 0.0f);
-    playerMeshNode->GlobalTransform().Scale() = glm::vec3(0.5f, 0.5f, 0.5f);
-    Mesh* cubeMesh =
-        mainScene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
-    bottleThrower->SetResources(cubeMesh, reflectiveMat);
+    // SceneNode* playerMeshNode = mainScene.CreateNode(playerNode);
+    // playerMeshNode->AddObject<MeshRenderer>(schnozMesh, reflectiveMat);
+    // playerMeshNode->GlobalTransform().Position() = glm::vec3(0.0f, 5.0f, 0.0f);
+    // playerMeshNode->GlobalTransform().Scale() = glm::vec3(0.5f, 0.5f, 0.5f);
+    // Mesh* cubeMesh =
+    //     mainScene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
+    // bottleThrower->SetResources(cubeMesh, reflectiveMat);
 }
 } // namespace DungeonGeneratorScene
