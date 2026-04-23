@@ -10,7 +10,7 @@
 #include <cmath>
 
 class CameraSettings : public GameObject, public ImGuiDrawable {
-private:
+public:
 	glm::vec3 target;
 	float height = 5;
 	float angleY = 0;
@@ -40,7 +40,11 @@ public:
 	void Update() {
 		// asm("INT3");
 
-		glm::vec3 playerPos = GetScene()->FindObjectsOfType<PlayerController>()[0]->GlobalTransform().Position();
+		PlayerController* player = GetScene()->FindObjectsOfType<PlayerController>()[0];
+
+		this->target = player->GlobalTransform().Position() + glm::normalize(player->targetOffset);
+
+		glm::vec3 playerPos = player->GlobalTransform().Position();
 		glm::vec3 dir = glm::angleAxis(glm::radians(angleY), glm::vec3(0, 1, 0)) * (glm::angleAxis(-glm::radians(angleX), glm::vec3(1, 0, 0)) * glm::vec3(0, 0, 1));
 
 		float rayDist = RayPlaneIntersection(this->height, this->target, dir);
@@ -52,7 +56,7 @@ public:
 
 		GlobalTransform().Position() = pos;
 
-		GlobalTransform().Rotation() = glm::quatLookAt(glm::normalize(pos - target), glm::vec3(0, 1, 0));
+		GlobalTransform().Rotation() = glm::quatLookAt(glm::normalize(pos - playerPos), glm::vec3(0, 1, 0));
 	}
 
 	void DrawImGui() override {
