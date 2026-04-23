@@ -12,6 +12,8 @@ namespace Physics {
 class VirtualCharacterController : public GameObject, public ImGuiDrawable {
 private:
   uint32_t collisionLayer = 1;
+  uint32_t collisionMask = 0xFFFFFFFF;
+
   float gravityFactor = 1.0f;
 
   JPH::Ref<JPH::CharacterVirtual> character;
@@ -36,8 +38,9 @@ public:
   JPH::CharacterBase::EGroundState GetGroundState() const;
   bool IsSupported() const;
 
-  void SetCollisionLayer(uint32_t layer);
-  void SetCollisionLayer(std::initializer_list<uint32_t> layers);
+  void SetCollisionLayerAndMask(uint32_t layer, uint32_t mask);
+  void SetCollisionLayerAndMask(std::initializer_list<uint32_t> layers, uint32_t mask = 0xFFFFFFFF);
+  void SetCollisionLayerAndMask(std::initializer_list<uint32_t> layers, std::initializer_list<uint32_t> collideWithLayers);
 
   void SetPosition(const glm::vec3& position);
   void SetRotation(const glm::quat& rotation);

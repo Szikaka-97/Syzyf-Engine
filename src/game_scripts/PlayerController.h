@@ -64,6 +64,7 @@ private:
     void TryInitController() {
         if (!virtualController) {
             virtualController = GetObject<Physics::VirtualCharacterController>();
+            virtualController->SetCollisionLayerAndMask({1}, {0});
         }
     }
 
