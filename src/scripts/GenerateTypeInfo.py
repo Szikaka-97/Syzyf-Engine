@@ -12,8 +12,6 @@ clang.TemplateArgumentKind.STRUCTURAL_VALUE = clang.TemplateArgumentKind(5)
 SOURCE_FILES_DIRECTORY = sys.argv[1]
 HEADER_FILES_DIRECTORY = sys.argv[2]
 COMMAND_FILE = path.abspath(sys.argv[3]) + "/../compile_commands.json"
-# DEST_SOURCE_FILE_PATH = sys.argv[1] + "/" + sys.argv[3] + ".cpp"
-# DEST_INCLUDE_FILE_PATH = sys.argv[2] + "/" + sys.argv[3] + ".h"
 
 class CppType:
 	def __init__(self, clang_type: clang.Type):
@@ -36,7 +34,8 @@ class CppType:
 		self.is_anonymous: str = clang_type.get_declaration().is_anonymous()
 		self.is_union = clang_type.get_declaration().kind == clang.CursorKind.UNION_DECL
 		self.is_pointer = clang_type.kind == clang.TypeKind.POINTER
-		
+		self.is_reference = clang_type.kind == clang.TypeKind.LVALUEREFERENCE
+
 		self.template_args = []
 
 		for i in range(clang_type.get_declaration().get_num_template_arguments()):
@@ -48,14 +47,14 @@ class CppType:
 		if self.is_anonymous and not self.is_union:
 			self.type_def = CppClass(clang_type.get_declaration())
 		
-		if self.is_pointer:
+		if self.is_pointer or self.is_reference:
 			self.pointed_type = CppType(clang_type.get_pointee())
 		else:
 			self.pointed_type = None
 	
 
 	def __json__(self):
-		rep = { "const": self.is_const, "union": self.is_union, "pointer": self.is_pointer }
+		rep = { "const": self.is_const, "union": self.is_union, "pointer": self.is_pointer, "reference": self.is_reference }
 
 		if len(self.template_args) > 0:
 			rep["template_args"] = self.template_args
@@ -64,11 +63,11 @@ class CppType:
 			rep["name"] = self.name
 			rep["full_name"] = self.full_name
 
-		if self.is_pointer:
-			rep["pointed_type"] = self.pointed_type.__json__()
+		if self.is_pointer or self.is_reference:
+			rep["pointed_type"] = self.pointed_type
 		
 		if self.is_anonymous and not self.is_union:
-			rep["type_def"] = self.type_def.__json__()
+			rep["type_def"] = self.type_def
 
 		return rep
 
@@ -87,7 +86,7 @@ class CppField:
 
 	
 	def __json__(self):
-		return { "name": self.name, "type": self.type.__json__(), "attributes": self.attributes }
+		return { "name": self.name, "type": self.type, "attributes": self.attributes }
 
 
 class CppMethod:
@@ -181,8 +180,8 @@ class CppClass:
 		rep["name"] = self.name
 		rep["base_classes"] = [base.get_full_name() for base in self.parent_classes]
 		rep["enclosing_class"] = self.enclosing_class.get_full_name() if self.enclosing_class else ""
-		rep["fields"] = [field.__json__() for field in self.fields]
-		rep["methods"] = [method.__json__() for method in self.methods]
+		rep["fields"] = self.fields
+		rep["methods"] = self.methods
 
 		return rep
 
