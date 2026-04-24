@@ -16,9 +16,6 @@ ColorGrading::ColorGrading() {
     this->contrast = 1.0f;
     this->saturation = 1.0f;
     this->curveTexture = nullptr;
-
-    this->gamma = 2.2f;
-    this->enableGammaCorrection = true;
 }
 
 void ColorGrading::OnPostProcess(const PostProcessParams* params) {
@@ -31,11 +28,6 @@ void ColorGrading::OnPostProcess(const PostProcessParams* params) {
         data->SetValue("brightness", this->brightness);
         data->SetValue("contrast", this->contrast);
         data->SetValue("saturation", this->saturation);
-
-        data->SetValue("gamma", this->gamma);
-
-
-        data->SetValue("enableGammaCorrection", this->enableGammaCorrection ? 1.0f : 0.0f); // wtf
 
         if (this->curveTexture != nullptr) {
             data->SetValue("useCurve", 1.0f); // wtf
@@ -65,10 +57,6 @@ void ColorGrading::SetCurveTexture(Texture2D* texture) {
     this->curveTexture = texture;
 };
 
-void ColorGrading::SetEnableGammaCorrection(bool enableGammaCorrection) {
-    this->enableGammaCorrection = enableGammaCorrection;
-}
-
 void ColorGrading::DrawImGui() {
     ImGui::Text("Color Grading");
     ImGui::Spacing();
@@ -77,16 +65,10 @@ void ColorGrading::DrawImGui() {
     ImGui::SliderFloat("Contrast", &this->contrast, 0.0f, 3.0f);
     ImGui::SliderFloat("Saturation", &this->saturation, 0.0f, 3.0f);
 
-    ImGui::Checkbox("Gamma Correction", &this->enableGammaCorrection);
-    if (this->enableGammaCorrection) {
-        ImGui::SliderFloat("Gamma", &this->gamma, 0.0f, 3.0f);
-    }
-
     if (ImGui::Button("Reset")) {
         this->brightness = 1.0f;
         this->contrast = 1.0f;
         this->saturation = 1.0f;
-        this->gamma = 2.2f;
     }
 
     if (this->curveTexture != nullptr) {

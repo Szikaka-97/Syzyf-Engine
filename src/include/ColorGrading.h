@@ -14,9 +14,6 @@ private:
     float contrast;
     float saturation;
 
-    float gamma;
-    bool enableGammaCorrection;
-
     Texture2D* curveTexture;
 public:
 	ColorGrading();
@@ -27,9 +24,6 @@ public:
     void SetContrast(float contrast);
     void SetSaturation(float saturation);
     void SetCurveTexture(Texture2D* texture);
-
-    void SetGamma(float gamma);
-    void SetEnableGammaCorrection(bool enableGammaCorrection);
 
     virtual void DrawImGui() override;
 };

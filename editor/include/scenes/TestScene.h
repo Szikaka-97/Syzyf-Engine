@@ -232,9 +232,11 @@ inline void InitScene(Scene& mainScene) {
     auto* dof = playerNode->AddObject<DepthOfField>();
     dof->SetEnabled(false);
     playerNode->AddObject<Bloom>();
+    auto* colorGradingObject = playerNode->AddObject<ColorGrading>();
+    colorGradingObject->SetBrightness(0.75f);
+    colorGradingObject->SetSaturation(1.15f);
     playerNode->AddObject<Tonemapper>()->SetOperator(
         Tonemapper::TonemapperOperator::GranTurismo);
-    playerNode->AddObject<ColorGrading>();
     playerNode->AddObject<Fxaa>();
 
     JPH::Ref<JPH::CharacterVirtualSettings> characterSettings =
@@ -351,7 +353,7 @@ inline void InitScene(Scene& mainScene) {
             .WithPixelShader(mainScene.Resources()->Get<PixelShader>(
                 "./res/shaders/lambert color.frag"))
             .Link();
-    scatterProgram->SetCastsShadows(false);
+    scatterProgram->SetCastsShadows(true);
     scatterProgram->SetIgnoresDepthPrepass(true);
     auto scatterMaterial = std::make_unique<Material>(scatterProgram);
     scatterMaterial->SetValue("uColor", glm::vec3(0.2, 0.6, 0.9));
@@ -378,9 +380,9 @@ inline void InitScene(Scene& mainScene) {
             .WithVertexShader(mainScene.Resources()->Get<VertexShader>(
                 "./res/shaders/particles/particles.vert"))
             .WithPixelShader(mainScene.Resources()->Get<PixelShader>(
-                "./res/shaders/particles/particles_dither.frag"))
+                "./res/shaders/particles/particles_blend.frag"))
             .Link();
-    dustProgram->SetTransparent(false);
+    dustProgram->SetTransparent(true);
     dustProgram->SetCastsShadows(false);
 
     auto dustMaterial = std::make_unique<Material>(dustProgram);
@@ -408,7 +410,7 @@ inline void InitScene(Scene& mainScene) {
                                 .maxLifetime = 10000.0f,
                                 .minScale = 0.02f,
                                 .maxScale = 0.03f,
-                                .alphaMode = AlphaMode::Dither,
+                                .alphaMode = AlphaMode::Alpha,
                                 .enableProximityFade = true,
                                 .proximityFadeMin = 0.2f,
                                 .proximityFadeMax = 1.5f,
