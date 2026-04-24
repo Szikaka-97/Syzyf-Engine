@@ -252,7 +252,7 @@ def main():
 
 	CppClass.read_all_classes(construct_file(files, compile_args))
 
-	with open(sys.argv[3] + "/typeinfos.json", "w") as json_file:
+	with open(sys.argv[3] + "/type_database.json", "w") as json_file:
 		json.dump(CppClass.all_classes, json_file, indent=2, default=lambda o: o.__json__() if hasattr(o, '__json__') else None)
 	
 if __name__ == "__main__":

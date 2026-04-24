@@ -18,7 +18,7 @@ set cmake_source_dir=%1
 set cmake_include_dir=%2
 set cmake_binary_dir=%3
 
-python GenerateTypeInfo.py %cmake_source_dir% %cmake_include_dir% %cmake_binary_dir%
+python GenerateTypeDatabase.py %cmake_source_dir% %cmake_include_dir% %cmake_binary_dir%
 
 if not %ERRORLEVEL% == 0 (
 	exit
