@@ -21,3 +21,6 @@ venv/
 
 # Nix
 .direnv/
+
+# Python venv
+scripts/venv
