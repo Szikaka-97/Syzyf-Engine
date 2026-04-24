@@ -49,6 +49,7 @@ vec4 karisAvg(vec4 c) {
     if (useTreshold) {
 	    return c / (1.0 + luma(c.rgb));
     }
+	return c;
 }
 
 void storeSharedColor(int idx, vec4 c) {
