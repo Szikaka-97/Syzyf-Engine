@@ -17,6 +17,7 @@
 #include <Material.h>
 #include <Mesh.h>
 #include <MeshRenderer.h>
+#include <Mirror.h>
 #include <ParticleSpawner.h>
 #include <ReflectionProbe.h>
 #include <Scene.h>
@@ -338,6 +339,10 @@ inline void InitScene(Scene& mainScene) {
     bimberman->GlobalTransform().Rotation() =
         glm::quat(glm::radians(glm::vec3(0.0f, 90.0f, 0.0f)));
     bimberman->GlobalTransform().Position() = {0.0f, 0.0f, 10.0f};
+    bimberman->SetLayer(1);
+    for (auto* child : bimberman->GetChildren()) {
+        child->SetLayer(1);
+    }
 
     ShaderProgram* scatterProgram =
         ShaderProgram::Build()
@@ -477,5 +482,18 @@ inline void InitScene(Scene& mainScene) {
         })
         .Detach();
     ;
+
+    Mesh* mirrorMesh =
+        mainScene.Resources()->Get<Mesh>("./res/models/plane.obj");
+    SceneNode* mirrorNode = mainScene.CreateNode("Mirror");
+    mirrorNode->AddObject<Mirror>(mirrorMesh);
+    mirrorNode->GlobalTransform().Position() = {15.0f, 0.0f, 1.5f};
+    mirrorNode->GlobalTransform().Rotation() =
+        glm::quat(glm::radians(glm::vec3(0.0f, 180.0f, 0.0f)));
+    mirrorNode->GetObjectInChildren<MeshRenderer>()->GlobalTransform().Scale() =
+        {10.0f, 7.0f, 1.0f};
+    Physics::CreateCompoundShapeFromNode(
+        mirrorNode->GetObjectInChildren<MeshRenderer>()->GetNode(), false,
+        JPH::EMotionType::Static, Physics::Layers::NON_MOVING);
 }
 } // namespace TestScene
