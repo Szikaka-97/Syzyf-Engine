@@ -6,6 +6,7 @@
 
 Player::Player() : m_RoomID(0) {
 	rooms = GetScene()->FindObjectsOfType<Surface>();  
+	spdlog::info("Player found {} rooms in the scene", rooms.size());
 }
 
 void Player::Update() {
@@ -15,28 +16,25 @@ void Player::Update() {
 }
 
 bool Player::HasRoomChanged() {
-	//std::vector<SceneNode*> rooms = GetScene()->FinfObjectsOfType<Surface>;
-	for (auto room : rooms) {
-		if (room->GetID()==m_RoomID) { //check if its my room 
-			if (!room->IsOnSurface(this->GlobalTransform().Position())) {
-				//my room has changed
-				spdlog::error("Player left room {}, checking for new room", m_RoomID);
-				room->InformExit();
-				return true;
-			}
-		}
-	}
-	return false;
+    for (auto* room : rooms) {
+        if (room->GetID() == m_RoomID) {
+            if (!room->ContainsPoint(this->GlobalTransform().Position())) {
+                spdlog::info("Player left room {}", m_RoomID);
+                room->InformExit();
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 void Player::CheckPosition() {
-	//std::vector<SceneNode*> rooms = GetScene()->FinfObjectsOfType<Surface>;
-	for (auto room : rooms) {
-		if (room->IsOnSurface(this->GlobalTransform().Position())) { //check if im in this room 
-			this->m_RoomID = room->GetID();
-			spdlog::error("Player entered room {}, informing room and enemies", m_RoomID);
-			room->InformEnter();
-			return;
-		}
-	}
+    for (auto* room : rooms) {
+        if (room->ContainsPoint(this->GlobalTransform().Position())) {
+            m_RoomID = room->GetID();
+            spdlog::info("Player entered room {}", m_RoomID);
+            room->InformEnter();
+            return;
+        }
+    }
 }

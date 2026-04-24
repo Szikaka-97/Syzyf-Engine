@@ -119,6 +119,13 @@ bool Surface::IsOnSurface(const glm::vec3& point) const {
     return false;
 }
 
+bool Surface::ContainsPoint(const glm::vec3& point)  {
+    if (walkablePoints.empty()) return false;
+    glm::vec3 half = m_size * 0.5f;
+    return (point.x >= m_center.x - half.x && point.x <= m_center.x + half.x &&
+            point.z >= m_center.z - half.z && point.z <= m_center.z + half.z);
+}
+
 void Surface::InformEnter() {
     spdlog::warn("Player entered surface {}, informing {} enemies", GetID(), myEnemies.size());
     for (auto* enemy : myEnemies) {

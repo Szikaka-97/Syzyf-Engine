@@ -66,6 +66,7 @@ private:
      std::vector<glm::vec3> m_Path;           //current
      int m_CurrentPathIndex = 0;
      bool isPlayerInRoom = false;   
+     int m_RoomID;
 
      std::vector<glm::vec3> FindPath(const glm::vec3& start, const glm::vec3& target);
      std::vector<glm::vec3> GetNeighbors(const glm::vec3& node);
@@ -82,6 +83,9 @@ public:
 
     void SetTarget(SceneNode* target);
     void SetSurface(Surface* surface);
+    void SetRoomID(int id) { m_RoomID = id; }
+    int GetID() const { return m_RoomID; }
+    Surface* GetSurface() const {return m_Surface;}
     void SetPatrolPoints(const std::vector<glm::vec2>& points);
     void SetProjectileResources(Mesh* mesh, Material* material);
     void SetAttackCooldown(float cooldown);

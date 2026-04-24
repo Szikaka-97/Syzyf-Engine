@@ -486,6 +486,8 @@ void MakeRooms(Mesh* cubeMesh,Material* roomMat, Scene* mainScene, Material* sky
     playerRoomNode->GlobalTransform().Position() = glm::vec3(0.0f, -0.5f, 0.0f);
     auto* playerRoomBody = playerRoomNode->AddObject<Physics::Body>(playerRoomSettings);
 	//MakeWalls(cubeMesh, roomMat, playerRoomNode,true,true,false, true);
+	playerRoomNode->AddObject<Surface>(cubeMesh);
+	playerRoomNode->GetObject<Surface>()->SetID(0);
 
 	auto enemyRoomNode = mainScene->CreateNode("Enemy Room");
 	
@@ -534,6 +536,7 @@ void AddEnemies(Mesh* enemyMesh, Material* enemyMat, Scene* mainScene, SceneNode
         auto* surface = enemyRoom->GetObject<Surface>();
         if (surface) {
             enemyAi1->SetSurface(surface);
+			surface->AddEnemy(enemyAi1);
         } else {
             spdlog::error("Enemy Room has no Surface component!");
         }
@@ -544,6 +547,8 @@ void AddEnemies(Mesh* enemyMesh, Material* enemyMat, Scene* mainScene, SceneNode
     enemyAi1->SetTarget(target);
     enemyAi1->SetProjectileResources(cubeMesh, reflectiveMat);
     enemyAi1->SetAttackCooldown(1.2f);
+	enemyAi1->SetRoomID(1);
+	enemyAi1->SetRoomID(1);
 
     glm::vec2 patrolPoints[] = {
         glm::vec2(10.5f, 0.0f),

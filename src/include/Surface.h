@@ -12,9 +12,10 @@ class AiNode;
 class Surface : public GameObject {
 private:
     Mesh* floorMesh;
-    std::vector<glm::vec3> walkablePoints;
+
     float cellSize;
-    glm::vec3 m_center;  
+            std::vector<glm::vec3> walkablePoints;
+        glm::vec3 m_center;  
     glm::vec3 m_size;
     int m_RoomID;
     std::vector<AiNode*> myEnemies;
@@ -26,6 +27,7 @@ private:
     void GenerateGrid(float minX, float maxX, float minZ, float maxZ);
 
 public:
+
     Surface(Mesh* floorMesh, float cellSize = 1.0f);
     ~Surface();
 
@@ -42,6 +44,9 @@ public:
     void InformEnter() ; 
     void InformExit() ;
     void SetID(int id) { m_RoomID = id; }
+    void SetEnemies(const std::vector<AiNode*>& enemies) { myEnemies = enemies; }
+    void AddEnemy(AiNode* enemy) { myEnemies.push_back(enemy); }
+    bool ContainsPoint(const glm::vec3& point) ;
     void DrawDebugSurface(Physics::DebugRenderer* debugRenderer, float pointSize = 0.1f, int step = 5) const;
 
 };
