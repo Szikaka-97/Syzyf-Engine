@@ -2,11 +2,12 @@
 #pragma once
 
 #include <cmath>
+#include <numbers>
 
 namespace Easing {
   
   inline float inOutSine(const float x) {
-    return -(cos(M_PI * x) - 1.0f) * 0.5f;
+    return -(cos(std::numbers::pi * x) - 1.0f) * 0.5f;
   }
 
   inline float inOutBack(const float x) {
