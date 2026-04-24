@@ -2,7 +2,7 @@
 
 echo PREPARING SCRIPTS
 
-if not exist "venv" (
+if not exist "venv/Scripts/activate.bat" (
 	python -m venv venv
 )
 

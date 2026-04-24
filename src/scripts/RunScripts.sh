@@ -2,7 +2,9 @@
 
 echo PREPARING SCRIPTS
 
-if [ ! -d venv ]; then
+
+
+if [ ! -f venv/bin/activate ]; then
 	python3 -m venv venv
 fi
 
