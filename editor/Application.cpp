@@ -68,6 +68,8 @@ bool Application::InitProgram() {
     JPH::RegisterDefaultAllocator();
     JPH::Factory::sInstance = new JPH::Factory();
     JPH::RegisterTypes();
+    this->context.physicsDebugRenderer =
+        std::make_unique<Physics::DebugRenderer>();
 
     JPH::Trace = Physics::TraceImpl;
 #ifdef JPH_ENABLE_ASSERTS
@@ -164,6 +166,18 @@ void Application::Terminate() {
 void Application::MainLoop() {
     // temporary
     this->context.selectedScene = Scene::CreateStandaloneScene();
+
+    ShaderProgram* debugShader =
+        ShaderProgram::Build()
+            .WithVertexShader(
+                this->context.selectedScene->Resources()->Get<VertexShader>(
+                    "./res/shaders/physics_debug/physics_debug.vert"))
+            .WithPixelShader(
+                this->context.selectedScene->Resources()->Get<PixelShader>(
+                    "./res/shaders/physics_debug/physics_debug.frag"))
+            .Link();
+    this->context.physicsDebugRenderer->Init(debugShader);
+
     this->context.loadedScenes.push_back(this->context.selectedScene);
     TestScene::InitScene(*this->context.selectedScene);
     Scene* dungeonScene = Scene::CreateStandaloneScene();

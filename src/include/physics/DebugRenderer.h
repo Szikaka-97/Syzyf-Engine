@@ -22,13 +22,15 @@ class IgnoreEditorLayerFilter : public JPH::BodyDrawFilter {
         }
     };
 
-class DebugRenderer : public JPH::DebugRendererSimple, public SceneComponent
+class DebugRenderer : public JPH::DebugRendererSimple
 {
 public:
     IgnoreEditorLayerFilter filter;
 public:
-  DebugRenderer(Scene *scene);
+  DebugRenderer() = default;
   virtual ~DebugRenderer() = default;
+
+  void Init(ShaderProgram* debugShader);
 
   virtual void DrawLine(JPH::RVec3Arg inFrom, JPH::RVec3Arg inTo, JPH::ColorArg inColor) override;
   virtual void DrawTriangle(JPH::RVec3Arg inV1, JPH::RVec3Arg inV2, JPH::RVec3Arg inV3, JPH::ColorArg inColor, ECastShadow inCastShadow) override;

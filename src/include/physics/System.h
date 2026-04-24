@@ -25,6 +25,8 @@ namespace JPH {
 
 namespace Physics {
 
+class DebugRenderer;
+
 struct SystemSettings {
   JPH::uint maxBodies = 9024;
   JPH::uint numBodyMutexes = 0;
@@ -81,9 +83,9 @@ public:
   System(Scene* scene, const SystemSettings& settings = SystemSettings());
   virtual ~System();
 
-
   void OnPreUpdate();
-  void OnPostRender();
+
+  void DrawPhysicsDebug(DebugRenderer* debugRenderer);
 
   void DrawImGui();
 

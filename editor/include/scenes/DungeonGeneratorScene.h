@@ -38,7 +38,6 @@
 #include <glm/trigonometric.hpp>
 #include <physics/Body.h>
 #include <physics/CharacterController.h>
-#include <physics/DebugRenderer.h>
 #include <physics/ICollisionReceiver.h>
 #include <physics/LayerMaskFilter.h>
 #include <physics/System.h>
@@ -404,7 +403,6 @@ class AutoRotator : public GameObject {
 
 inline void InitScene(Scene& mainScene) {
     mainScene.AddComponent<Physics::System>();
-    mainScene.AddComponent<Physics::DebugRenderer>();
 
     ShaderProgram* skyProg =
         ShaderProgram::Build()

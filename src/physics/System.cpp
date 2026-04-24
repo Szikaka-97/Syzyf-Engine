@@ -1,7 +1,6 @@
 #include "physics/System.h"
 #include "Jolt/Physics/Collision/BroadPhase/BroadPhase.h"
 #include "Jolt/Physics/Collision/TransformedShape.h"
-#include "MeshRenderer.h"
 #include "physics/CharacterController.h"
 #include "physics/ICollisionReceiver.h"
 #include "physics/DebugRenderer.h"
@@ -260,24 +259,6 @@ namespace Physics {
     ));
   }
 
-  // Sends shapes to the debug rendere
-  void System::OnPostRender() {
-    if (drawDebug) {
-      auto* debugRenderer = GetScene()->GetComponent<DebugRenderer>();
-      
-      if (debugRenderer) {
-        JPH::BodyManager::DrawSettings settings;
-        settings.mDrawShape = true;
-        settings.mDrawBoundingBox = true;
-        settings.mDrawCenterOfMassTransform = true;
-        settings.mDrawShapeWireframe = true;
-
-        physicsSystem->DrawBodies(settings, debugRenderer, &debugRenderer->filter);
-        physicsSystem->DrawConstraints(debugRenderer);
-      }
-    }
-  }
-
   void System::OnPreUpdate() {
     // TMEPRORARY
     this->accumulator += Time::Delta();
@@ -371,6 +352,19 @@ namespace Physics {
   }
 
   // Queue stuff
+}
+
+void Physics::System::DrawPhysicsDebug(DebugRenderer* debugRenderer) {
+    if (drawDebug && debugRenderer) {
+        JPH::BodyManager::DrawSettings settings;
+        settings.mDrawShape = true;
+        settings.mDrawBoundingBox = true;
+        settings.mDrawCenterOfMassTransform = true;
+        settings.mDrawShapeWireframe = true;
+
+        physicsSystem->DrawBodies(settings, debugRenderer, &debugRenderer->filter);
+        physicsSystem->DrawConstraints(debugRenderer);
+    }
 }
 
 void System::DrawImGui() {

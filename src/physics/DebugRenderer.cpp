@@ -7,12 +7,9 @@
 #include <glm/gtc/type_ptr.hpp>
 
 namespace Physics {
-DebugRenderer::DebugRenderer(Scene *scene) : SceneComponent(scene) {
-    shader = ShaderProgram::Build()
-        .WithVertexShader(GetScene()->Resources()->Get<VertexShader>("./res/shaders/physics_debug/physics_debug.vert"))
-        .WithPixelShader(GetScene()->Resources()->Get<PixelShader>("./res/shaders/physics_debug/physics_debug.frag"))
-        .Link();
-    
+void DebugRenderer::Init(ShaderProgram* debugShader) {
+    shader = debugShader;
+
     if (shader) {
         shader->SetCastsShadows(false);
         shader->SetIgnoresDepthPrepass(true);
@@ -166,12 +163,6 @@ void DebugRenderer::Render() {
 
     GLuint shaderHandle = shader->GetHandle();
     glUseProgram(shaderHandle);
-
-    std::vector<Camera*> cameraObjects = GetScene()->FindObjectsOfType<Camera>();
-
-    if (cameraObjects.empty()) return;
-
-    glm::mat4 vp = cameraObjects.front()->ViewProjectionMatrix();
 
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LEQUAL);

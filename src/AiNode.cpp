@@ -127,8 +127,6 @@ void AiNode::Update() {
 		else if (canSeePlayer && playerInAttackRange) {
 			 Attack();
 		}
-
-		DrawDebugView();
 	}
 
 	void AiNode::SetTarget(SceneNode * target) {
@@ -622,14 +620,8 @@ void AiNode::SearchWalkPoint() {
 		walkPoint = patrolPoints[posIndex];
 		walkPointSet = true;
 	}
-	void AiNode::DrawDebugView() {
-		if (!myNode) return;
-
-		auto* scene = GetScene();
-		auto* debugRenderer = scene ? scene->GetComponent<Physics::DebugRenderer>() : nullptr;
-		if (!debugRenderer) {
-			return;
-		}
+	void AiNode::DrawDebugView(Physics::DebugRenderer* debugRenderer) {
+		if (!myNode || !debugRenderer) return;
 
 		int segments = 24;
 

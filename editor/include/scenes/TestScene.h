@@ -36,7 +36,6 @@
 #include <glm/geometric.hpp>
 #include <glm/trigonometric.hpp>
 #include <physics/Body.h>
-#include <physics/DebugRenderer.h>
 #include <physics/Helpers.h>
 #include <physics/System.h>
 #include <physics/Water.h>

@@ -3,6 +3,7 @@
 #include "CameraController.h"
 #include "Commands.h"
 #include "MousePickingBodySystem.h"
+#include "physics/DebugRenderer.h"
 #include "scenes/TestScene.h"
 
 #include "physics/CharacterController.h"
@@ -132,7 +133,22 @@ void SceneViewPanel::Draw(Context& context) {
     }
     context.selectedScene->Render();
     if (context.state != State::Game) {
-        context.selectedScene->GetComponent<Physics::System>()->OnPostRender();
+        for (auto* aiNode :
+             context.selectedScene->FindObjectsOfType<AiNode>()) {
+            aiNode->DrawDebugView(context.physicsDebugRenderer.get());
+        }
+
+        context.physicsDebugRenderer->Render();
+    }
+
+    if (auto* physicsSystem =
+            context.selectedScene->GetComponent<Physics::System>()) {
+        physicsSystem->DrawPhysicsDebug(context.physicsDebugRenderer.get());
+        glBindFramebuffer(GL_FRAMEBUFFER, context.selectedScene->GetGraphics()
+                                              ->GetMainFramebuffer()
+                                              ->GetHandle());
+        context.physicsDebugRenderer->Render();
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
     GLuint textureID = context.selectedScene->GetGraphics()

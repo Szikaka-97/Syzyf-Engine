@@ -8,11 +8,13 @@
 #include "panels/InspectorPanel.h"
 #include "panels/MainMenuBar.h"
 #include "panels/SceneViewPanel.h"
-
 #include "panels/StatusBar.h"
 #include "panels/SystemsDebugPanel.h"
 #include "thirdparty/ImGuizmo.h"
+
 #include <SDL3/SDL_video.h>
+#include <physics/DebugRenderer.h>
+
 class Scene;
 class SceneNode;
 class Camera;
@@ -39,6 +41,8 @@ struct Context {
     ImGuizmo::OPERATION currentGizmoOperation = ImGuizmo::TRANSLATE;
 
     State state = State::Editor;
+
+    std::unique_ptr<Physics::DebugRenderer> physicsDebugRenderer;
 };
 
 class Application {
