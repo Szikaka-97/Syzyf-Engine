@@ -156,21 +156,13 @@ class CppClass:
 
 
 	def populate(self) -> None:
-		print("Populating class: " + self.get_full_name())
-
 		for class_part in self.cursor.get_children():
 			if class_part.kind == clang.CursorKind.CXX_BASE_SPECIFIER:
-				print("\tReading base class: " + class_part.spelling)
-
 				if class_part.spelling in CppClass.all_classes:
 					self.parent_classes.append(CppClass.all_classes[class_part.spelling])
 			elif class_part.kind == clang.CursorKind.FIELD_DECL:
-				print("\tReading field: " + class_part.spelling)
-
 				self.fields.append(CppField(class_part))
 			if class_part.kind == clang.CursorKind.CXX_METHOD:
-				print("\tReading method: " + class_part.spelling)
-
 				self.methods.append(CppMethod(class_part))
 	
 
@@ -211,7 +203,7 @@ def construct_file(files: list[str], compile_args: list[str]) -> clang.Translati
 
 
 def main():
-	print("Generating type infos: brrrrrr...")
+	print("Generating type database...")
 
 	compile_args: list[str] = []
 
@@ -255,11 +247,13 @@ def main():
 	with open(sys.argv[3] + "/type_database.json", "w") as json_file:
 		json.dump(CppClass.all_classes, json_file, indent=2, default=lambda o: o.__json__() if hasattr(o, '__json__') else None)
 	
+
+	print("\tDone!")
+	
 if __name__ == "__main__":
 	try:
 		main()
 	except Exception as e:
-		# print(e)
 		print(traceback.format_exc())
 
 		exit(1)
