@@ -28,6 +28,8 @@ struct Context {
     SDL_Window* window = nullptr;
     SDL_GLContext glContext = nullptr;
 
+    ImFont* consoleFont = nullptr;
+
     CommandHistory commandHistory;
 
     std::vector<Scene*> loadedScenes;

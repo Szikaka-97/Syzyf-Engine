@@ -106,6 +106,15 @@ bool Application::InitImGui() {
 
     io.IniFilename = "imgui.ini";
 
+    io.Fonts->AddFontFromFileTTF(
+        "./res/fonts/Open_Sans/static/OpenSans-Regular.ttf", 15.0f);
+    io.Fonts->AddFontFromFileTTF(
+        "./res/fonts/Open_Sans/static/OpenSans-Bold.ttf", 15.0f);
+
+    ImFont* consoleFont = io.Fonts->AddFontFromFileTTF(
+        "./res/fonts/JetBrains_Mono/static/JetBrainsMono-Regular.ttf", 14.0f);
+    this->context.consoleFont = consoleFont;
+
     if (!std::filesystem::exists("imgui.ini")) {
         if (std::filesystem::exists("default_editor_layout.ini")) {
             ImGui::LoadIniSettingsFromDisk("default_editor_layout.ini");
@@ -227,7 +236,7 @@ void Application::DrawPanels(bool& shouldClose) {
     this->systemsDebugPanel.Draw(this->context);
     this->inspectorPanel.Draw(this->context);
     this->filesPanel.Draw();
-    this->consolePanel.Draw();
+    this->consolePanel.Draw(this->context);
     this->sceneViewPanel.Draw(this->context);
     // this->statusBar.Draw(); a bit broken
 }
