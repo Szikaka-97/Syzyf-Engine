@@ -231,7 +231,10 @@ inline void InitScene(Scene& mainScene) {
     cameraNode->AddObject<CameraSettings>(playerNode);
     auto* dof = playerNode->AddObject<DepthOfField>();
     dof->SetEnabled(false);
-    playerNode->AddObject<Bloom>();
+    auto* bloom = playerNode->AddObject<Bloom>();
+    bloom->SetDirtTexture(mainScene.Resources()->Get<Texture2D>(
+        "./res/textures/lensDirt1.png", Texture2D::TechnicalMapXYZ));
+    bloom->SetDirtIntensity(0.5f);
     auto* colorGradingObject = playerNode->AddObject<ColorGrading>();
     colorGradingObject->SetBrightness(0.75f);
     colorGradingObject->SetSaturation(1.15f);
