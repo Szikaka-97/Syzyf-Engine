@@ -17,6 +17,7 @@ class InspectorPanel {
     glm::quat initialRotation;
     glm::vec3 initialScale;
 
-    bool showAddComponentWindow = false;
+    char componentSearchBuffer[256] = "";
+    bool focusComponentSearch = false;
 };
 } // namespace Editor

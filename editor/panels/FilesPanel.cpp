@@ -1,6 +1,7 @@
 #include "panels/FilesPanel.h"
 
 #include <Texture.h>
+#include <algorithm>
 #include <cctype>
 #include <filesystem>
 #include <imgui.h>
@@ -17,13 +18,33 @@ void FilesPanel::Draw() {
 
     ImGui::Begin("Files");
 
-    if (this->currentDirectory != "./res/" &&
-        this->currentDirectory != "./res") {
-        if (ImGui::Button("Back")) {
-            this->currentDirectory = this->currentDirectory.parent_path();
-        }
-        ImGui::Separator();
+    bool canGoBack =
+        this->currentDirectory != "./res/" && this->currentDirectory != "./res";
+    if (!canGoBack)
+        ImGui::BeginDisabled();
+    if (ImGui::Button("Back")) {
+        this->currentDirectory = this->currentDirectory.parent_path();
     }
+    if (!canGoBack)
+        ImGui::EndDisabled();
+    ImGui::SameLine();
+
+    float searchWidth = 200.0f;
+    float rightEdge = ImGui::GetWindowContentRegionMax().x;
+
+    if (rightEdge - searchWidth > ImGui::GetCursorPosX()) {
+        ImGui::SetCursorPosX(rightEdge - searchWidth);
+    }
+
+    ImGui::SetNextItemWidth(searchWidth);
+    ImGui::InputTextWithHint("##FileSearch", "Search...", this->searchBuffer,
+                             sizeof(this->searchBuffer));
+
+    ImGui::Separator();
+
+    std::string searchString = this->searchBuffer;
+    std::transform(searchString.begin(), searchString.end(),
+                   searchString.begin(), ::tolower);
 
     float panelWidth = ImGui::GetContentRegionAvail().x;
     int columnCount = static_cast<int>(panelWidth / this->CELL_SIZE);
@@ -35,10 +56,21 @@ void FilesPanel::Draw() {
         if (fs::exists(this->currentDirectory)) {
             for (auto& directoryEntry :
                  fs::directory_iterator(this->currentDirectory)) {
-                ImGui::TableNextColumn();
 
                 const auto& path = directoryEntry.path();
                 std::string filenameString = path.filename().string();
+
+                if (!searchString.empty()) {
+                    std::string lowerFilename = filenameString;
+                    std::transform(lowerFilename.begin(), lowerFilename.end(),
+                                   lowerFilename.begin(), ::tolower);
+
+                    if (lowerFilename.find(searchString) == std::string::npos) {
+                        continue;
+                    }
+                }
+
+                ImGui::TableNextColumn();
 
                 ImGui::PushID(filenameString.c_str());
 

@@ -8,6 +8,7 @@
 #include <Scene.h>
 #include <animation/AnimationComponent.h>
 
+#include <cctype>
 #include <cstdint>
 #include <glm/glm.hpp>
 #include <glm/gtc/constants.hpp>
@@ -258,33 +259,74 @@ void InspectorPanel::Draw(Context& context) {
         ImGui::Spacing();
 
         if (ImGui::Button("Add Component", ImVec2(-1, 30))) {
-            this->showAddComponentWindow = true;
+            ImGui::OpenPopup("AddComponentPopup");
+            this->focusComponentSearch = true;
+            this->componentSearchBuffer[0] = '\0';
         }
-    }
-    ImGui::End();
-
-    if (this->showAddComponentWindow && context.selectedNode != nullptr) {
-        ImGuiWindowFlags flags =
-            ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_AlwaysAutoResize;
 
         ImVec2 center = ImGui::GetMainViewport()->GetCenter();
         ImGui::SetNextWindowPos(center, ImGuiCond_Appearing,
                                 ImVec2(0.5f, 0.5f));
 
-        ImGui::Begin("Add Component", &this->showAddComponentWindow, flags);
+        if (ImGui::BeginPopup("AddComponentPopup",
+                              ImGuiWindowFlags_AlwaysAutoResize)) {
+            ImGui::Text("Select a component to add to: %s",
+                        context.selectedNode->GetName().c_str());
+            ImGui::Separator();
 
-        ImGui::Text("Select a component to add to: %s",
-                    context.selectedNode->GetName().c_str());
-        ImGui::Separator();
-
-        for (const auto& [name, factoryFunc] :
-             ComponentRegistry::Get().GetFactories()) {
-            if (ImGui::Selectable(name.c_str())) {
-                factoryFunc(context.selectedNode);
-                this->showAddComponentWindow = false;
+            if (this->focusComponentSearch) {
+                ImGui::SetKeyboardFocusHere();
+                this->focusComponentSearch = false;
             }
+
+            bool enterPressed = ImGui::InputTextWithHint(
+                "##Search", "Search...", this->componentSearchBuffer,
+                sizeof(this->componentSearchBuffer),
+                ImGuiInputTextFlags_EnterReturnsTrue |
+                    ImGuiInputTextFlags_AutoSelectAll);
+
+            ImGui::Separator();
+
+            std::string searchString = this->componentSearchBuffer;
+            std::transform(searchString.begin(), searchString.end(),
+                           searchString.begin(), ::tolower);
+
+            ComponentFactoryFunc firstMatchFunction = nullptr;
+            bool isFirstMatch = true;
+
+            for (const auto& [name, factoryFunc] :
+                 ComponentRegistry::Get().GetFactories()) {
+                std::string lowerName = name;
+                std::transform(lowerName.begin(), lowerName.end(),
+                               lowerName.begin(), ::tolower);
+
+                if (searchString.empty() ||
+                    lowerName.find(searchString) != std::string::npos) {
+                    if (isFirstMatch) {
+                        firstMatchFunction = factoryFunc;
+                    }
+
+                    if (ImGui::Selectable(name.c_str(), isFirstMatch)) {
+                        factoryFunc(context.selectedNode);
+                        ImGui::CloseCurrentPopup();
+                    }
+
+                    isFirstMatch = false;
+                }
+            }
+
+            if (enterPressed && firstMatchFunction != nullptr) {
+                firstMatchFunction(context.selectedNode);
+                ImGui::CloseCurrentPopup();
+            }
+
+            if (ImGui::IsKeyPressed(ImGuiKey_Escape)) {
+                ImGui::CloseCurrentPopup();
+            }
+
+            ImGui::EndPopup();
         }
-        ImGui::End();
     }
+    ImGui::End();
 }
 } // namespace Editor

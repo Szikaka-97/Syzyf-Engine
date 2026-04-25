@@ -8,7 +8,7 @@
 #include "imgui.h"
 #include <glm/gtc/random.hpp>
 
-ParticleSpawner::ParticleSpawner(Mesh* mesh, std::unique_ptr<Material> material, ParticleSpawnerSettings settings) : mesh(mesh), material(std::move(material)), settings(settings) {
+ParticleSpawner::ParticleSpawner(Mesh* mesh, Material* material, ParticleSpawnerSettings settings) : mesh(mesh), material(material), settings(settings) {
     this->ditherTexture = this->GetScene()->Resources()->Get<Texture2D>(DITHER_TEXTURE_PATH, Texture::TechnicalMapXYZ);
     ComputeShader* shader = this->GetScene()->Resources()->Get<ComputeShader>(COMPUTE_SHADER_PATH);
     this->computeDispatch.reset(new ComputeShaderDispatch(shader));
@@ -53,7 +53,6 @@ ParticleSpawner::ParticleSpawner(Mesh* mesh, std::unique_ptr<Material> material,
     glBufferData(GL_SHADER_STORAGE_BUFFER, settings.maxParticles * sizeof(ParticleData), this->initialParticleData.data(), GL_DYNAMIC_COPY);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
-    this->material->BindStorageBuffer("ParticleBuffer", this->particleBuffer);
     this->computeDispatch->GetData()->BindStorageBuffer("ParticleBuffer", this->particleBuffer);
 }
 
@@ -64,6 +63,15 @@ ParticleSpawner::~ParticleSpawner() {
 }
 
 void ParticleSpawner::Update() {
+    if (this->material == nullptr) {
+        return;
+    }
+
+    if (!this->particleBufferBoundToMaterial) {
+        this->material->BindStorageBuffer("ParticleBuffer", this->particleBuffer);
+        this->particleBufferBoundToMaterial = true;
+    }
+
     // rename so either nothing has the 'u' prefix or every uniform has it
     this->material->SetValue("areaCenter", this->GlobalTransform().Position().value);
 
@@ -131,7 +139,7 @@ void ParticleSpawner::Render() {
     this->GetScene()->GetGraphics()->DrawMeshInstanced(
         this->mesh,
         0,
-        this->material.get(),
+        this->material,
         this->GlobalTransform(),
         this->settings.maxParticles,
         BoundingBox::CenterAndExtents(glm::vec3(0.0f), this->settings.areaExtents),
@@ -141,6 +149,38 @@ void ParticleSpawner::Render() {
 
 // Move set value to here perhaps?
 void ParticleSpawner::DrawImGui() {
+    ImGui::Text("Mesh:");
+    ImGui::SameLine(100.0f);
+    std::string meshLabel = this->mesh ? "Mesh Loaded" : "Missing Mesh";
+    ImGui::Button(meshLabel.c_str(), ImVec2(-1, 0));
+
+    if (ImGui::BeginDragDropTarget()) {
+        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("DND_FILE_PATH")) {
+            const char* droppedFilePath = static_cast<const char*>(payload->Data);
+            std::filesystem::path path(droppedFilePath);
+
+            std::string extension = path.extension().string();
+            std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
+
+            if (extension == ".obj") {
+                this->mesh = this->GetScene()->Resources()->Get<Mesh>(path.string());
+            } else {
+                spdlog::warn("ParticleSpawner: Invalid file type dropped. Expected '.obj'");
+            }
+        }
+        ImGui::EndDragDropTarget();
+    }
+
+    ImGui::Text("Material:");
+    ImGui::SameLine(100.0f);
+    std::string materialLabel = this->mesh ? "Material Loaded" : "Missing Material";
+    ImGui::Button(materialLabel.c_str(), ImVec2(-1, 0));
+
+    ImGui::Separator();
+
+    if (this->mesh == nullptr || this->material == nullptr) {
+        ImGui::BeginDisabled();
+    }
     const char* billboardModes[] = { "Disabled", "Enabled", "Z" };
     int currentBillboardMode = static_cast<int>(this->settings.billboardMode);
     if (ImGui::Combo("Billboard Mode", &currentBillboardMode, billboardModes, IM_ARRAYSIZE(billboardModes))) {
@@ -170,4 +210,7 @@ void ParticleSpawner::DrawImGui() {
     }
 
     ImGui::Checkbox("Rotate Y", &this->settings.rotateY);
+    if (this->mesh == nullptr || this->material == nullptr) {
+        ImGui::EndDisabled();
+    }
 }

@@ -1,8 +1,15 @@
 #pragma once
 
+#include "Bloom.h"
+#include "Camera.h"
+#include "ColorGrading.h"
+#include "DepthOfField.h"
+#include "Fxaa.h"
 #include "Light.h"
 #include "MeshRenderer.h"
+#include "ParticleSpawner.h"
 #include "ReflectionProbe.h"
+#include "Skybox.h"
 #include "fog/Fog.h"
 #include "fog/FogVolume.h"
 #include "fog/VolumetricFog.h"
@@ -12,6 +19,7 @@
 
 #include "Jolt/Physics/Body/BodyCreationSettings.h"
 #include "Jolt/Physics/Body/MotionType.h"
+#include "scatter/Spawner.h"
 #include <functional>
 #include <map>
 #include <string>
@@ -37,6 +45,11 @@ class ComponentRegistry {
     }
 
     static void RegisterComponents() {
+        // missing:
+        //  Skybox
+        //  MeshRenderer
+        //  Camera
+        //  better physics components
         auto& registry = ComponentRegistry::Get();
 
         registry.Register("Light", [](SceneNode* node) {
@@ -45,9 +58,6 @@ class ComponentRegistry {
         registry.Register("Reflection Probe", [](SceneNode* node) {
             node->AddObject<ReflectionProbe>();
         });
-        // registry.Register("Particle Spawner", [](SceneNode* node) {
-        //     node->AddObject<ParticleSpawner>(ParticleSpawnerSettings{});
-        // });
 
         // Fog
         registry.Register("Fog Volume", [](SceneNode* node) {
@@ -58,6 +68,20 @@ class ComponentRegistry {
         });
         registry.Register("Fog",
                           [](SceneNode* node) { node->AddObject<Fog>(); });
+
+        // Post-Processing
+        //  perhaps only allow them to be placed on nodes with a camera object
+        //  attached
+        registry.Register("Bloom",
+                          [](SceneNode* node) { node->AddObject<Bloom>(); });
+        registry.Register("Color Grading", [](SceneNode* node) {
+            node->AddObject<ColorGrading>();
+        });
+        registry.Register("Depth Of Field", [](SceneNode* node) {
+            node->AddObject<DepthOfField>();
+        });
+        registry.Register("FXAA",
+                          [](SceneNode* node) { node->AddObject<Fxaa>(); });
 
         // Physics
         registry.Register("Physics Body", [](SceneNode* node) {
@@ -73,6 +97,13 @@ class ComponentRegistry {
 
                 node->AddObject<Physics::Body>(shape);
             }
+        });
+
+        registry.Register("Scatter Spawner", [](SceneNode* node) {
+            node->AddObject<Scatter::Spawner>(nullptr, nullptr);
+        });
+        registry.Register("Particle Spawner", [](SceneNode* node) {
+            node->AddObject<ParticleSpawner>(nullptr, nullptr);
         });
     }
 

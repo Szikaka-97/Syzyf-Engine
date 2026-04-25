@@ -98,15 +98,16 @@ private:
 
     Mesh* mesh = nullptr;
     Texture2D* ditherTexture = nullptr;
-    std::unique_ptr<Material> material = nullptr;
+    Material* material = nullptr;
     std::unique_ptr<ComputeShaderDispatch> computeDispatch;
 
     ParticleSpawnerSettings settings;
 
     std::vector<ParticleData> initialParticleData;
     GLuint particleBuffer;
+    bool particleBufferBoundToMaterial = false;
 public:
-    ParticleSpawner(Mesh* mesh, std::unique_ptr<Material> material, ParticleSpawnerSettings = {});
+    ParticleSpawner(Mesh* mesh, Material* material, ParticleSpawnerSettings = {});
     ~ParticleSpawner();
 
     void Update();

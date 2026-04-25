@@ -357,7 +357,7 @@ inline void InitScene(Scene& mainScene) {
             .Link();
     scatterProgram->SetCastsShadows(true);
     scatterProgram->SetIgnoresDepthPrepass(true);
-    auto scatterMaterial = std::make_unique<Material>(scatterProgram);
+    auto scatterMaterial = new Material(scatterProgram);
     scatterMaterial->SetValue("uColor", glm::vec3(0.2, 0.6, 0.9));
     SceneNode* scatter = mainScene.CreateNode("Scatter");
     Scatter::Settings scatterSettings =
@@ -387,7 +387,7 @@ inline void InitScene(Scene& mainScene) {
     dustProgram->SetTransparent(true);
     dustProgram->SetCastsShadows(false);
 
-    auto dustMaterial = std::make_unique<Material>(dustProgram);
+    auto dustMaterial = new Material(dustProgram);
     dustMaterial->SetValue("colorTex", mainScene.Resources()->Get<Texture2D>(
                                            "./res/textures/dust.png",
                                            Texture2D::ColorTextureRGBA));
@@ -395,7 +395,7 @@ inline void InitScene(Scene& mainScene) {
 
     cameraNode->AddObject<ParticleSpawner>(
         mainScene.Resources()->Get<Mesh>("./res/models/fullscreenquad.obj"),
-        std::move(dustMaterial),
+        dustMaterial,
         ParticleSpawnerSettings{.maxParticles = 8192,
                                 .areaExtents = glm::vec3(15.0f),
                                 .emissionShapeExtents = glm::vec3(15.0f),

@@ -54,7 +54,7 @@ Settings SettingsBuilder::Build() {
     return std::move(settings); 
 }
 
-Spawner::Spawner(Mesh* mesh, std::unique_ptr<Material> material, Settings settings) : mesh(mesh), material(std::move(material)), settings(settings) {
+Spawner::Spawner(Mesh* mesh, Material* material, Settings settings) : mesh(mesh), material(material), settings(settings) {
     Generate();
 }
 
@@ -158,14 +158,13 @@ void Spawner::Update() {
 
 void Spawner::Render() {
     if (!this->mesh || !this->material) {
-        spdlog::error("Scatter: missing mesh or material");
         return;
     }
 
     this->GetScene()->GetGraphics()->DrawMeshInstanced(
         this->mesh,
         0,
-        this->material.get(),
+        this->material,
         this->GlobalTransform(),
         this->instanceData.size(),
         BoundingBox::CenterAndExtents(glm::vec3(0.0f), this->settings.areaExtents),
@@ -185,7 +184,9 @@ void Spawner::UploadToGPU() {
         glBufferData(GL_SHADER_STORAGE_BUFFER, count * sizeof(InstanceData), this->instanceData.data(), GL_STATIC_DRAW);
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
-        this->material->BindStorageBuffer("ScatterInstanceBuffer", this->instanceBuffer);
+        if (this->instanceBuffer != 0 && this->material) {
+            this->material->BindStorageBuffer("ScatterInstanceBuffer", this->instanceBuffer);
+        }
     }
 }
 
@@ -196,11 +197,53 @@ void Spawner::DrawImGui() {
         ImGui::BeginDisabled();
         ImGui::Button("Generating...");
         ImGui::EndDisabled();
+    } else if (this->mesh == nullptr || this->material == nullptr) {
+        ImGui::BeginDisabled();
+        ImGui::Button("Generate");
+        ImGui::EndDisabled();
+
+        if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+            ImGui::SetTooltip("Missing mesh or material.");
+        }
     } else {
         if (ImGui::Button("Generate")) {
             this->Generate();
         }
     }
+
+    ImGui::Text("Mesh:");
+    ImGui::SameLine(100.0f);
+    std::string meshLabel = this->mesh ? "Mesh Loaded" : "Missing Mesh";
+    ImGui::Button(meshLabel.c_str(), ImVec2(-1, 0));
+
+    if (ImGui::BeginDragDropTarget()) {
+        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("DND_FILE_PATH")) {
+            const char* droppedFilePath = static_cast<const char*>(payload->Data);
+            std::filesystem::path path(droppedFilePath);
+
+            std::string extension = path.extension().string();
+            std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
+
+            if (extension == ".obj") {
+                this->mesh = this->GetScene()->Resources()->Get<Mesh>(path.string());
+            } else {
+                spdlog::warn("Scatter Spawner: Invalid file type dropped. Expected '.obj'");
+            }
+        }
+        ImGui::EndDragDropTarget();
+    }
+
+    ImGui::Text("Material:");
+    ImGui::SameLine(100.0f);
+    std::string materialLabel = this->mesh ? "Material Loaded" : "Missing Material";
+    ImGui::Button(materialLabel.c_str(), ImVec2(-1, 0));
+
+
+    if (this->mesh == nullptr || this->material == nullptr) {
+        ImGui::BeginDisabled();
+    }
+
+    ImGui::Separator();
 
     ImGui::Text("Instance count: %zu", this->instanceData.size());
 
@@ -301,6 +344,10 @@ void Spawner::DrawImGui() {
         if (ImGui::Selectable("Transform Modifier")) { this->settings.modifiers.push_back(TransformSettings{}); }
         if (ImGui::Selectable("Array Modifier")) { this->settings.modifiers.push_back(ArraySettings{}); }
         ImGui::EndPopup();    
+    }
+
+    if (this->mesh == nullptr || this->material == nullptr) {
+        ImGui::EndDisabled();
     }
 }
 

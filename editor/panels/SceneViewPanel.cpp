@@ -1,10 +1,12 @@
 #include "panels/SceneViewPanel.h"
+#include "AiNode.h"
 #include "Application.h"
 #include "CameraController.h"
 #include "Commands.h"
 #include "MousePickingBodySystem.h"
+#include "ParticleSpawner.h"
+#include "physics/Body.h"
 #include "physics/DebugRenderer.h"
-#include "scenes/TestScene.h"
 
 #include "physics/CharacterController.h"
 #include "physics/VirtualCharacterController.h"

@@ -56,7 +56,7 @@ public:
 class Spawner : public GameObject, public ImGuiDrawable {
 private:
     Mesh* mesh = nullptr;
-    std::unique_ptr<Material> material = nullptr;
+    Material* material = nullptr;
     Settings settings;
 
     std::vector<InstanceData> instanceData;
@@ -65,7 +65,7 @@ private:
     std::future<std::vector<InstanceData>> generationFuture;
     std::atomic<bool> isGenerating{false};
 public:
-    Spawner(Mesh* mesh, std::unique_ptr<Material> material, Settings settings = {});
+    Spawner(Mesh* mesh, Material* material, Settings settings = {});
     ~Spawner();
 
     void Generate();

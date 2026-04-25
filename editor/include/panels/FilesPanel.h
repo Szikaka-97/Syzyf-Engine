@@ -23,6 +23,8 @@ class FilesPanel {
 
     std::filesystem::path currentDirectory = "./res/";
 
+    char searchBuffer[256] = "";
+
     std::unique_ptr<Texture2D> folderIcon;
     std::unique_ptr<Texture2D> fileIcon;
     std::unique_ptr<Texture2D> modelIcon;
