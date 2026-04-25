@@ -46,7 +46,7 @@ public:
     void SetID(int id) { m_RoomID = id; }
     void SetEnemies(const std::vector<AiNode*>& enemies) { myEnemies = enemies; }
     void AddEnemy(AiNode* enemy) { myEnemies.push_back(enemy); }
-    bool ContainsPoint(const glm::vec3& point) ;
+    bool ContainsPoint (const glm::vec3& point, float margin) ;
     void DrawDebugSurface(Physics::DebugRenderer* debugRenderer, float pointSize = 0.1f, int step = 5) const;
 
 };

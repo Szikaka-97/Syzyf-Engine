@@ -129,9 +129,11 @@ void AiNode::Update() {
 			 Attack();
 		}*/
 	if(isPlayerInRoom) {
+		spdlog::warn("Player in room with enemy, engaging!");
 		Chase();
 	}
 	else{
+		spdlog::warn("Player not in room, patrolling...");
 		Patrol();
 	}
 

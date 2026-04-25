@@ -58,19 +58,15 @@ void Surface::CollectVertices() {
 }
 
 void Surface::CalculateBounds() {
-    if (walkablePoints.empty()) {
-        m_center = glm::vec3(0.0f);
-        m_size = glm::vec3(0.0f);
-        return;
-    }
-    glm::vec3 minP = walkablePoints[0];
-    glm::vec3 maxP = walkablePoints[0];
-    for (const auto& p : walkablePoints) {
-        minP = glm::min(minP, p);
-        maxP = glm::max(maxP, p);
-    }
-    m_center = (minP + maxP) * 0.5f;
-    m_size = maxP - minP;
+    SceneNode* node = GetNode();
+    if (!node) return;
+    glm::vec3 scale = node->GlobalTransform().Scale();
+    glm::vec3 pos   = node->GlobalTransform().Position();
+    // Zak³adamy, ¿e mesh w lokalnych wspó³rzêdnych jest od (-0.5, -0.5, -0.5) do (0.5, 0.5, 0.5)
+    // Jeœli nie – trzeba poznaæ faktyczny bounding box mesha.
+    m_size = scale;                 // size = pe³ny wymiar w ka¿dej osi
+    m_center = pos + glm::vec3(0, scale.y * 0.5f, 0); // œrodek = pozycja + po³owa wysokoœci (bo pivot mo¿e byæ na dole)
+    // Alternatywnie, jeœli pivot jest w centrum: m_center = pos;
 }
 
 glm::vec3 Surface::GetRandomWalkPoint(const glm::vec3& center, float radius) const {
@@ -119,15 +115,15 @@ bool Surface::IsOnSurface(const glm::vec3& point) const {
     return false;
 }
 
-bool Surface::ContainsPoint(const glm::vec3& point)  {
+bool Surface::ContainsPoint(const glm::vec3& point, float margin) {
     if (walkablePoints.empty()) return false;
     glm::vec3 half = m_size * 0.5f;
-    return (point.x >= m_center.x - half.x && point.x <= m_center.x + half.x &&
-            point.z >= m_center.z - half.z && point.z <= m_center.z + half.z);
+    return (point.x >= m_center.x - half.x - margin && point.x <= m_center.x + half.x + margin &&
+            point.z >= m_center.z - half.z - margin && point.z <= m_center.z + half.z + margin);
 }
 
 void Surface::InformEnter() {
-    spdlog::warn("Player entered surface {}, informing {} enemies", GetID(), myEnemies.size());
+   // spdlog::warn("Player entered surface {}, informing {} enemies", GetID(), myEnemies.size());
     for (auto* enemy : myEnemies) {
         if (enemy) {
             enemy->OnPlayerEnteredRoom();
@@ -136,7 +132,7 @@ void Surface::InformEnter() {
 }
 
 void Surface::InformExit() {
-    spdlog::warn("Player exited surface {}, informing {} enemies", GetID(), myEnemies.size());
+   // spdlog::warn("Player exited surface {}, informing {} enemies", GetID(), myEnemies.size());
     for (auto* enemy : myEnemies) {
         if (enemy) {
             enemy->OnPlayerExitedRoom();
