@@ -62,11 +62,8 @@ void Surface::CalculateBounds() {
     if (!node) return;
     glm::vec3 scale = node->GlobalTransform().Scale();
     glm::vec3 pos   = node->GlobalTransform().Position();
-    // Zak³adamy, ¿e mesh w lokalnych wspó³rzêdnych jest od (-0.5, -0.5, -0.5) do (0.5, 0.5, 0.5)
-    // Jeœli nie – trzeba poznaæ faktyczny bounding box mesha.
-    m_size = scale;                 // size = pe³ny wymiar w ka¿dej osi
-    m_center = pos + glm::vec3(0, scale.y * 0.5f, 0); // œrodek = pozycja + po³owa wysokoœci (bo pivot mo¿e byæ na dole)
-    // Alternatywnie, jeœli pivot jest w centrum: m_center = pos;
+    m_size = scale;                
+    m_center = pos + glm::vec3(0, scale.y * 0.5f, 0); 
 }
 
 glm::vec3 Surface::GetRandomWalkPoint(const glm::vec3& center, float radius) const {
@@ -142,8 +139,6 @@ void Surface::InformExit() {
 
 void Surface::DrawDebugSurface(Physics::DebugRenderer* debugRenderer, float pointSize, int step) const {
     if (!debugRenderer) return;
-
-    // Rysowanie punktów walkable (istniej¹ce)
     if (!walkablePoints.empty()) {
         JPH::Color pointColor = JPH::Color::sCyan;
         for (size_t i = 0; i < walkablePoints.size(); i += step) {
@@ -155,7 +150,6 @@ void Surface::DrawDebugSurface(Physics::DebugRenderer* debugRenderer, float poin
         }
     }
 
-    // Rêczne rysowanie bounding boxa
     if (!walkablePoints.empty()) {
         glm::vec3 half = m_size * 0.5f;
         glm::vec3 corners[8] = {
@@ -170,7 +164,6 @@ void Surface::DrawDebugSurface(Physics::DebugRenderer* debugRenderer, float poin
         };
 
         JPH::Color boxColor = JPH::Color::sGreen;
-        // Dolna podstawa
         debugRenderer->DrawLine(JPH::Vec3(corners[0].x, corners[0].y, corners[0].z),
                                 JPH::Vec3(corners[1].x, corners[1].y, corners[1].z), boxColor);
         debugRenderer->DrawLine(JPH::Vec3(corners[1].x, corners[1].y, corners[1].z),
@@ -198,8 +191,6 @@ void Surface::DrawDebugSurface(Physics::DebugRenderer* debugRenderer, float poin
         debugRenderer->DrawLine(JPH::Vec3(corners[3].x, corners[3].y, corners[3].z),
                                 JPH::Vec3(corners[7].x, corners[7].y, corners[7].z), boxColor);
     }
-
-    // Rysowanie œrodka (czerwona kula)
     if (!walkablePoints.empty()) {
         JPH::Vec3 center(m_center.x, m_center.y, m_center.z);
         debugRenderer->DrawSphere(center, 0.2f, JPH::Color::sRed);

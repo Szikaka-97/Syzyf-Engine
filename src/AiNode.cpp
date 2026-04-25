@@ -98,44 +98,55 @@ void AiNode::Update() {
 	myNode->GlobalTransform().Rotation() = m_Body->GetRotation();
 	glm::vec3 targetPos = m_TargetNode->GlobalTransform().Position();
 	glm::vec3 dirToTarget = targetPos - transform;
-	float dist = glm::length(dirToTarget);
-	bool canSeePlayer = false;
+	//float dist = glm::length(dirToTarget);
+	//bool canSeePlayer = false;
 
-	if (dist < sightRange) {
-		if (dist > 0.001f){
-			dirToTarget /= dist;
-			glm::vec3 forward = m_Body->GetRotation() * glm::vec3(0, 0, 1);
-			forward = glm::normalize(glm::vec3(forward.x, 0, forward.z));
-			glm::vec3 dirFlat = glm::normalize(glm::vec3(dirToTarget.x, 0, dirToTarget.z));
-			float dot = glm::dot(forward, dirFlat);
-			float angle = acos(glm::clamp(dot, -1.0f, 1.0f));
-			if (angle <= fov / 2.0f) {
-				canSeePlayer = true;  // bez raycasta ?
-				//pdlog::info("can see player");
-			}
-		}
-		
-	}
+	//if (dist < sightRange) {
+	//	if (dist > 0.001f){
+	//		dirToTarget /= dist;
+	//		glm::vec3 forward = m_Body->GetRotation() * glm::vec3(0, 0, 1);
+	//		forward = glm::normalize(glm::vec3(forward.x, 0, forward.z));
+	//		glm::vec3 dirFlat = glm::normalize(glm::vec3(dirToTarget.x, 0, dirToTarget.z));
+	//		float dot = glm::dot(forward, dirFlat);
+	//		float angle = acos(glm::clamp(dot, -1.0f, 1.0f));
+	//		if (angle <= fov / 2.0f) {
+	//			canSeePlayer = true;  // bez raycasta ?
+	//			//pdlog::info("can see player");
+	//		}
+	//	}
+	//	
+	//}
 
-	bool playerInAttackRange = canSeePlayer && dist < attackRange;
+	//bool playerInAttackRange = canSeePlayer && dist < attackRange;
 
-	/*if (!canSeePlayer && !playerInAttackRange) {
-		Patrol();
+	if (isPlayerInRoom) {
+    float dist = glm::distance(transform, targetPos);
+    const float keepDist = attackRange;           
+    const float tolerance = 0.5f; 
+	if (m_hp <= 30) {
+		Flee();
+		Attack(); 
 	}
-		else if (canSeePlayer && !playerInAttackRange) {
-			Chase();
-		}
-		else if (canSeePlayer && playerInAttackRange) {
-			 Attack();
-		}*/
-	if(isPlayerInRoom) {
-		spdlog::warn("Player in room with enemy, engaging!");
-		Chase();
+	else {
+		if (dist > keepDist + tolerance) {
+        Chase();
+    }
+    else if (dist < keepDist - tolerance) {
+        glm::vec3 awayDir = transform - targetPos;   
+        if (glm::length(awayDir) > 0.001f) {
+            MoveInDirection(awayDir);
+            RotateNode(targetPos - transform);
+        }
+    }
+    else {
+        StopMoving();
+        Attack();                        
+    }
 	}
-	else{
-		spdlog::warn("Player not in room, patrolling...");
-		Patrol();
-	}
+    
+} else {
+    Patrol();
+}
 
 		DrawDebugView();
 	}
@@ -392,7 +403,7 @@ void AiNode::Update() {
 		glm::vec3 targetPos = m_TargetNode->GlobalTransform().Position();
     glm::vec3 dir = targetPos - transform;
     float distance = glm::length(dir);
-    if (distance > 0.1f) {
+    if (distance != attackRange) {
        MoveInDirection(dir);
     }
     else {
@@ -402,6 +413,11 @@ void AiNode::Update() {
 
 	void AiNode::Attack() {
     if (!m_TargetNode) return;
+	
+	glm::vec3 targetPos = m_TargetNode->GlobalTransform().Position();
+	glm::vec3 dirTo = targetPos - transform;
+        if (glm::length(dirTo) > 0.01f)
+            RotateNode(dirTo);
 
     m_AttackTimer += Time::Delta();
     if (m_AttackTimer >= m_AttackCooldown) {
@@ -481,6 +497,15 @@ void AiNode::MoveInDirection(const glm::vec3& direction) {
     glm::vec3 currentVel = m_Body->GetLinearVelocity();
     glm::vec3 newVel = dir * m_Speed;
     newVel.y = currentVel.y;
+
+	if (m_Surface) {
+        glm::vec3 predictedPos = transform + newVel * Time::Delta();
+        if (!m_Surface->ContainsPoint(predictedPos,0.2)) {
+            StopMoving(); 
+            return;
+        }
+    }
+
     m_Body->SetLinearVelocity(newVel);
     RotateNode(dir);
 }
@@ -526,39 +551,6 @@ void AiNode::SearchWalkPoint() {
 					 float radius = glm::length(m_Surface->GetSize()) * 0.5f;
                 walkPoint = m_Surface->GetRandomWalkPoint(m_Surface->GetCenter(), radius);
                 walkPointSet = true;
-					//std::random_device rd;
-					//std::mt19937 gen(rd());
-					//std::uniform_real_distribution<float> dist(-walkPointRange, walkPointRange);
-
-					//float randomZ = dist(gen);
-					//float randomX = dist(gen);
-
-					//glm::vec3 candidate(transform.x + randomX, transform.y + 10.0f, transform.z + randomZ);
-
-					////ground check
-					/////unused
-					//auto* physics = GetScene()->GetComponent<Physics::System>();
-					//if (physics) {
-					//	JPH::RRayCast ray(JPH::RVec3(candidate.x, candidate.y, candidate.z), JPH::Vec3(0, -1, 0));
-					//	JPH::RayCastResult result;
-					//	if (physics->GetSystem().GetNarrowPhaseQuery().CastRay(ray, result)) {
-					//		JPH::RVec3 hit = ray.GetPointOnRay(result.mFraction);
-					//		walkPoint = glm::vec3(hit.GetX(), hit.GetY(), hit.GetZ());
-					//		walkPointSet = true;
-					//		spdlog::error("XXXXGenerated walk point: ({}, {}, {})", walkPoint.x, walkPoint.y, walkPoint.z);
-					//	}
-					//	else {
-					//		walkPointSet = false;
-					//		spdlog::error("XXXXfailed");
-					//	}
-
-					//}
-					//else {
-					//	// fallback – no physics
-					//	walkPoint = candidate;
-					//	walkPoint.y = transform.y;
-					//	walkPointSet = true;
-					//}
 				}
 			}
 		}

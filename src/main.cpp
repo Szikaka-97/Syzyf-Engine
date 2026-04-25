@@ -485,7 +485,7 @@ void MakeRooms(Mesh* cubeMesh,Material* roomMat, Scene* mainScene, Material* sky
     playerRoomNode->GlobalTransform().Scale() = glm::vec3(10.0f, 0.2f, 10.0f);
     playerRoomNode->GlobalTransform().Position() = glm::vec3(0.0f, -0.5f, 0.0f);
     auto* playerRoomBody = playerRoomNode->AddObject<Physics::Body>(playerRoomSettings);
-	//MakeWalls(cubeMesh, roomMat, playerRoomNode,true,true,false, true);
+	MakeWalls(cubeMesh, roomMat, playerRoomNode,true,true,false, true);
 	playerRoomNode->AddObject<Surface>(cubeMesh);
 	playerRoomNode->GetObject<Surface>()->SetID(0);
 
@@ -502,7 +502,7 @@ void MakeRooms(Mesh* cubeMesh,Material* roomMat, Scene* mainScene, Material* sky
 	//navGrid->Build(enemyRoomNode->GetObject<Surface>(), 2.0f, 45.0f);
 	///
 	auto* enemyRoomBody = enemyRoomNode->AddObject<Physics::Body>(playerRoomSettings);
-	//MakeWalls(cubeMesh, roomMat, enemyRoomNode,true,false,true, false);
+	MakeWalls(cubeMesh, roomMat, enemyRoomNode,true,false,true, false);
 
 	auto enemyRoomNode2 = mainScene->CreateNode("Enemy Room 2");
 	enemyRoomNode2->AddObject<MeshRenderer>(cubeMesh, roomMat);
