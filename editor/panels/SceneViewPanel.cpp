@@ -28,7 +28,6 @@
 
 namespace Editor {
 void SceneViewPanel::Draw(Context& context) {
-    // not sure if i need to set the size anymore
     ImGui::SetNextWindowSize(ImVec2(1024, 576), ImGuiCond_FirstUseEver);
     ImGui::Begin("Scene View", nullptr);
 
@@ -37,6 +36,9 @@ void SceneViewPanel::Draw(Context& context) {
         return;
     }
 
+    if (context.state == State::Game) {
+        ImGui::BeginDisabled();
+    }
     if (ImGui::BeginTabBar("SceneTabBar", ImGuiTabBarFlags_None)) {
         for (std::size_t i = 0; i < context.loadedScenes.size(); ++i) {
             Scene* scene = context.loadedScenes[i];
@@ -58,6 +60,9 @@ void SceneViewPanel::Draw(Context& context) {
             }
         }
         ImGui::EndTabBar();
+    }
+    if (context.state == State::Game) {
+        ImGui::EndDisabled();
     }
 
     if (context.selectedScene == nullptr) {
@@ -86,70 +91,9 @@ void SceneViewPanel::Draw(Context& context) {
     context.selectedScene->GetGraphics()->GetMainFramebuffer()->SetSize(
         glm::uvec2(resX, resY));
 
-    // ImGui::ShowDemoWindow();
-
     Time::Update();
 
-    // Clean this up
-    if (context.state == State::Game) {
-        context.selectedScene->Update();
-    } else {
-        context.selectedScene->GetComponent<InputSystem>()->OnPreUpdate();
-
-        // Move this into a function
-        // maybe adding a helper in each respective System would be faster
-        //  but ideally scene would have UpdateEditor or sth instead of this
-        for (auto* body :
-             context.selectedScene->FindObjectsOfType<Physics::Body>()) {
-            body->SyncToNode();
-        }
-        for (auto* controller :
-             context.selectedScene
-                 ->FindObjectsOfType<Physics::CharacterController>()) {
-            controller->SyncToNode();
-        }
-        for (auto* controller :
-             context.selectedScene
-                 ->FindObjectsOfType<Physics::VirtualCharacterController>()) {
-            controller->SyncToNode();
-        }
-
-        for (auto* spawner :
-             context.selectedScene->FindObjectsOfType<ParticleSpawner>()) {
-            spawner->Update();
-        }
-
-        for (auto* spawner :
-             context.selectedScene->FindObjectsOfType<Scatter::Spawner>()) {
-            spawner->Update();
-        }
-
-        context.selectedScene->GetComponent<MousePickingBodySystem>()
-            ->OnPreUpdate();
-        context.selectedScene->FindObjectsOfType<CameraController>()
-            .front()
-            ->Update();
-        context.selectedScene->GetComponent<InputSystem>()->OnPostUpdate();
-    }
-    context.selectedScene->Render();
-    if (context.state != State::Game) {
-        for (auto* aiNode :
-             context.selectedScene->FindObjectsOfType<AiNode>()) {
-            aiNode->DrawDebugView(context.physicsDebugRenderer.get());
-        }
-
-        context.physicsDebugRenderer->Render();
-    }
-
-    if (auto* physicsSystem =
-            context.selectedScene->GetComponent<Physics::System>()) {
-        physicsSystem->DrawPhysicsDebug(context.physicsDebugRenderer.get());
-        glBindFramebuffer(GL_FRAMEBUFFER, context.selectedScene->GetGraphics()
-                                              ->GetMainFramebuffer()
-                                              ->GetHandle());
-        context.physicsDebugRenderer->Render();
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    }
+    this->UpdateAndRenderScene(context);
 
     GLuint textureID = context.selectedScene->GetGraphics()
                            ->GetMainFramebuffer()
@@ -167,15 +111,11 @@ void SceneViewPanel::Draw(Context& context) {
 
     if (context.state != State::Game && context.mainCamera != nullptr) {
         if (context.selectedNode != nullptr) {
-            // Having this commented out might cause problems later
             if ((ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows) ||
                  this->keyboardControls.IsActive()) &&
                 !SDL_GetWindowRelativeMouseMode(context.window)) {
-                // Keyboard Controls
                 this->keyboardControls.Run(context);
 
-                // Switching ImGuizmo mode
-                // DOTA :frog:
                 if (ImGui::Shortcut(ImGuiKey_Z)) {
                     context.currentGizmoOperation = ImGuizmo::TRANSLATE;
                 }
@@ -186,8 +126,6 @@ void SceneViewPanel::Draw(Context& context) {
                     context.currentGizmoOperation = ImGuizmo::SCALE;
                 }
             }
-            // Should let the user know in some way that this is running
-            //  also perhaps move it out of the class into here
 
             ImGuizmo::SetDrawlist();
             ImGuizmo::SetRect(cursorScreenPosition.x, cursorScreenPosition.y,
@@ -277,6 +215,65 @@ void SceneViewPanel::Draw(Context& context) {
     }
 
     ImGui::End();
+}
+
+void SceneViewPanel::UpdateAndRenderScene(Context& context) {
+    if (context.state == State::Game) {
+        context.selectedScene->Update();
+    } else {
+        context.selectedScene->GetComponent<InputSystem>()->OnPreUpdate();
+
+        for (auto* body :
+             context.selectedScene->FindObjectsOfType<Physics::Body>()) {
+            body->SyncToNode();
+        }
+        for (auto* controller :
+             context.selectedScene
+                 ->FindObjectsOfType<Physics::CharacterController>()) {
+            controller->SyncToNode();
+        }
+        for (auto* controller :
+             context.selectedScene
+                 ->FindObjectsOfType<Physics::VirtualCharacterController>()) {
+            controller->SyncToNode();
+        }
+
+        for (auto* spawner :
+             context.selectedScene->FindObjectsOfType<ParticleSpawner>()) {
+            spawner->Update();
+        }
+
+        for (auto* spawner :
+             context.selectedScene->FindObjectsOfType<Scatter::Spawner>()) {
+            spawner->Update();
+        }
+
+        context.selectedScene->GetComponent<MousePickingBodySystem>()
+            ->OnPreUpdate();
+        context.selectedScene->FindObjectsOfType<CameraController>()
+            .front()
+            ->Update();
+        context.selectedScene->GetComponent<InputSystem>()->OnPostUpdate();
+    }
+    context.selectedScene->Render();
+    if (context.state != State::Game) {
+        for (auto* aiNode :
+             context.selectedScene->FindObjectsOfType<AiNode>()) {
+            aiNode->DrawDebugView(context.physicsDebugRenderer.get());
+        }
+
+        context.physicsDebugRenderer->Render();
+    }
+
+    if (auto* physicsSystem =
+            context.selectedScene->GetComponent<Physics::System>()) {
+        physicsSystem->DrawPhysicsDebug(context.physicsDebugRenderer.get());
+        glBindFramebuffer(GL_FRAMEBUFFER, context.selectedScene->GetGraphics()
+                                              ->GetMainFramebuffer()
+                                              ->GetHandle());
+        context.physicsDebugRenderer->Render();
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
 }
 
 void SceneViewPanel::HandleMousePicking(Context& context, float resX,

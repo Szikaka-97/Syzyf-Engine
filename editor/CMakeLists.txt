@@ -22,6 +22,7 @@ target_link_libraries(SyzyfEditor PRIVATE imgui SDL3::SDL3 glad)
 target_include_directories(SyzyfEditor PRIVATE
     ${CMAKE_SOURCE_DIR}/src/include
     ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/stb_image_resize2
 )
 
 add_custom_command(TARGET SyzyfEditor POST_BUILD

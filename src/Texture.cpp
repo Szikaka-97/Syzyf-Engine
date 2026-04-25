@@ -398,8 +398,8 @@ Texture2D* Texture2D::Create(unsigned char* textureData, int width, int height, 
 	return result;
 }
 
-Texture2D* Texture2D::Load(const unsigned char* data, const int length, const TextureParams loadParams) {
-  stbi_set_flip_vertically_on_load(false);
+Texture2D* Texture2D::Load(const unsigned char* data, const int length, const TextureParams loadParams, bool flip) {
+  stbi_set_flip_vertically_on_load(flip);
 
   int width, height, nrChannels;
   unsigned char* textureData = nullptr;
@@ -421,8 +421,8 @@ Texture2D* Texture2D::Load(const unsigned char* data, const int length, const Te
   return texture;
 }
 
-Texture2D* Texture2D::Load(const fs::path& texturePath, const TextureParams& loadParams) {
-	stbi_set_flip_vertically_on_load(true);
+Texture2D* Texture2D::Load(const fs::path& texturePath, const TextureParams& loadParams, bool flip) {
+	stbi_set_flip_vertically_on_load(flip);
 	
 	fs::directory_entry textureFile(texturePath);
 
