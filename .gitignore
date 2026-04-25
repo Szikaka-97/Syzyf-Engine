@@ -23,6 +23,9 @@ res/testing/
 # Nix
 .direnv/
 
-
 #Clion
 .idea
+
+# doxygen
+html/
+latex/

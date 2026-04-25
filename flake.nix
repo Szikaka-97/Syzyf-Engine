@@ -43,6 +43,8 @@
           glslang
           glslls
           clang-tools
+          doxygen
+          graphviz
         ];
 
         buildInputs = with pkgs; [
