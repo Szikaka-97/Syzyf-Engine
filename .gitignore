@@ -23,4 +23,6 @@ venv/
 .direnv/
 
 # Python venv
-scripts/venv
+src/scripts/venv/
+src/scripts/__pycache__/
+src/codegen/
