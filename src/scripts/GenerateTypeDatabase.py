@@ -11,7 +11,7 @@ clang.TemplateArgumentKind.STRUCTURAL_VALUE = clang.TemplateArgumentKind(5)
 
 SOURCE_FILES_DIRECTORY = sys.argv[1]
 HEADER_FILES_DIRECTORY = sys.argv[2]
-COMMAND_FILE = path.abspath(sys.argv[3]) + "/../compile_commands.json"
+COMMAND_FILE = path.abspath(sys.argv[3])
 
 class CppType:
 	def __init__(self, clang_type: clang.Type):
@@ -308,7 +308,7 @@ def main():
 
 	CppClass.read_all_classes(construct_file(files, compile_args))
 
-	with open(sys.argv[3] + "/type_database.json", "w") as json_file:
+	with open(SOURCE_FILES_DIRECTORY + "/codegen/type_database.json", "w") as json_file:
 		json.dump(CppClass.all_classes, json_file, indent=2, default=lambda o: o.__json__() if hasattr(o, '__json__') else None)
 	
 
