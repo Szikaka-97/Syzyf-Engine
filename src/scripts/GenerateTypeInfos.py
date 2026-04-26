@@ -126,7 +126,7 @@ def main():
 		dest_impl.less_indent()
 		dest_impl.line("};")
 
-		dest_impl.line("const TypeInfo& GetTypeInfo(const std::string& typeName) {")
+		dest_impl.line("const TypeInfo& TypeInfo::GetTypeInfo(const std::string& typeName) {")
 		dest_impl.more_indent()
 
 		dest_impl.line("return allTypeInfos[typeInfoLookupByName[typeName]];")
@@ -134,7 +134,7 @@ def main():
 		dest_impl.less_indent()
 		dest_impl.line("};")
 
-		dest_impl.line("const TypeInfo& GetTypeInfo(const std::type_info& typeInfo) {")
+		dest_impl.line("const TypeInfo& TypeInfo::GetTypeInfo(const std::type_info& typeInfo) {")
 		dest_impl.more_indent()
 
 		dest_impl.line("return allTypeInfos[typeInfoLookupByTypeId[typeInfo]];")
