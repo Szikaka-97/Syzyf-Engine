@@ -65,6 +65,11 @@ AiNode::AiNode()
 	walkPoint = glm::vec3(0.0f);
 	m_PatrolTimeout = 0.0f;
 
+	 m_Body->SetRestitution(0.0f);
+    m_Body->SetFriction(0.5f);
+    m_Body->SetLinearDamping(0.1f);
+    m_Body->SetCollisionLayerAndMask({ Physics::Layers::MOVING, Physics::Layers::NON_MOVING });
+
 	SetSurface(nullptr);
 }
 
