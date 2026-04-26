@@ -38,11 +38,27 @@ class CppType:
 
 		self.template_args = []
 
-		for i in range(clang_type.get_declaration().get_num_template_arguments()):
-			if clang_type.get_declaration().get_template_argument_kind(i) == clang.TemplateArgumentKind.INTEGRAL:
-				self.template_args.append(clang_type.get_declaration().get_template_argument_value(i))
-			else:
-				self.template_args.append(CppType(clang_type.get_declaration().get_template_argument_type(i).get_canonical()))
+		if clang_type.get_declaration().get_num_template_arguments() > 0:
+			self.full_name += "<"
+
+			for i in range(clang_type.get_declaration().get_num_template_arguments()):
+				if clang_type.get_declaration().get_template_argument_kind(i) == clang.TemplateArgumentKind.INTEGRAL:
+					# dirty glm::vec fix
+					if self.full_name.startswith("glm::") and i == clang_type.get_declaration().get_num_template_arguments() - 1:
+						self.template_args.append("glm::defaultp")
+					else:
+						self.template_args.append(clang_type.get_declaration().get_template_argument_value(i))
+
+					self.full_name += str(self.template_args[-1])
+				else:
+					self.template_args.append(CppType(clang_type.get_declaration().get_template_argument_type(i).get_canonical()))
+
+					self.full_name += self.template_args[-1].full_name
+
+				if i < clang_type.get_declaration().get_num_template_arguments() - 1:
+					self.full_name += ", "
+			
+			self.full_name += ">"
 
 		if self.is_anonymous and not self.is_union:
 			self.type_def = CppClass(clang_type.get_declaration())
@@ -54,7 +70,7 @@ class CppType:
 	
 
 	def __json__(self):
-		rep = { "const": self.is_const, "union": self.is_union, "pointer": self.is_pointer, "reference": self.is_reference }
+		rep = { "is_const": self.is_const, "is_union": self.is_union, "is_pointer": self.is_pointer, "is_reference": self.is_reference }
 
 		if len(self.template_args) > 0:
 			rep["template_args"] = self.template_args
@@ -67,7 +83,7 @@ class CppType:
 			rep["pointed_type"] = self.pointed_type
 		
 		if self.is_anonymous and not self.is_union:
-			rep["type_def"] = self.type_def
+			rep["class_def"] = self.type_def
 
 		return rep
 
@@ -80,13 +96,17 @@ class CppField:
 
 		self.attributes = []
 
+		self.access = str_access_specifier(field_cursor.access_specifier)
+
+		self.offset = field_cursor.get_field_offsetof()
+
 		for field_token in field_cursor.get_children():
 			if field_token.kind == clang.CursorKind.ANNOTATE_ATTR:
 				self.attributes.append(field_token.displayname)
 
 	
 	def __json__(self):
-		return { "name": self.name, "type": self.type, "attributes": self.attributes }
+		return { "name": self.name, "type": self.type, "attributes": self.attributes, "access": self.access, "byte_offset": self.offset }
 
 
 class CppMethod:
@@ -97,11 +117,15 @@ class CppMethod:
 
 		self.argument_types = []
 
+		self.is_abstract = method_cursor.is_pure_virtual_method()
+
+		self.access = str_access_specifier(method_cursor.access_specifier)
+
 		for arg in method_cursor.type.argument_types():
 			self.argument_types.append(CppType(arg.get_canonical()))
 
 	def __json__(self):
-		return { "name": self.name, "return_type": self.return_type, "argument_types": self.argument_types }
+		return { "name": self.name, "return_type": self.return_type, "argument_types": self.argument_types, "is_virtual": self.is_abstract, "access": self.access }
 
 
 class CppClass:
@@ -141,6 +165,22 @@ class CppClass:
 
 		self.is_abstract = False
 
+		self.template_args = []
+
+		if class_cursor.semantic_parent and class_cursor.semantic_parent.kind == clang.CursorKind.NAMESPACE:
+			namespace_cursor = class_cursor.semantic_parent
+
+			while namespace_cursor and namespace_cursor.kind == clang.CursorKind.NAMESPACE:
+				self.name = namespace_cursor.spelling + "::" + self.name
+
+				namespace_cursor = namespace_cursor.semantic_parent
+
+		for i in range(class_cursor.get_num_template_arguments()):
+			if class_cursor.get_template_argument_kind(i) == clang.TemplateArgumentKind.INTEGRAL:
+				self.template_args.append(class_cursor.get_template_argument_value(i))
+			else:
+				self.template_args.append(CppType(class_cursor.get_template_argument_type(i).get_canonical()))
+
 		for class_part in class_cursor.get_children():
 			if (class_part.kind == clang.CursorKind.CLASS_DECL or class_part.kind == clang.CursorKind.STRUCT_DECL) and class_part.is_definition():
 				nested_cls = CppClass(class_part, self)
@@ -149,10 +189,23 @@ class CppClass:
 	
 
 	def get_full_name(self) -> str:
-		if self.enclosing_class == None:
-			return self.name
+		full_name = self.name if not self.enclosing_class else self.enclosing_class.get_full_name() + "::" + self.name
 
-		return self.enclosing_class.get_full_name() + "::" + self.name
+		if len(self.template_args) > 0:
+			full_name += "<"
+
+			for i in range(len(self.template_args)):
+				if isinstance(self.template_args[i], CppType):
+					full_name += self.template_args[i].full_name
+				else:
+					full_name += self.template_args[i]
+
+				if i < len(self.template_args) - 1:
+					full_name += ", "
+			
+			full_name += ">"
+
+		return full_name
 
 
 	def populate(self) -> None:
@@ -174,9 +227,20 @@ class CppClass:
 		rep["enclosing_class"] = self.enclosing_class.get_full_name() if self.enclosing_class else ""
 		rep["fields"] = self.fields
 		rep["methods"] = self.methods
+		rep["source"] = self.cursor.location.file.name
+
+		rep["access"] = str_access_specifier(self.cursor.access_specifier)
 
 		return rep
 
+
+def str_access_specifier(access_specifier: clang.AccessSpecifier) -> str:
+	if access_specifier == clang.AccessSpecifier.PUBLIC or access_specifier == clang.AccessSpecifier.INVALID:
+		return "public"
+	elif access_specifier == clang.AccessSpecifier.PROTECTED:
+		return "protected"
+	else:
+		return "private"
 
 
 def construct_file(files: list[str], compile_args: list[str]) -> clang.TranslationUnit:
