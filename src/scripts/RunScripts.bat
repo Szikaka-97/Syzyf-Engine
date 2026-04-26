@@ -25,3 +25,9 @@ if not %ERRORLEVEL% == 0 (
 )
 
 python SerializationDatabase.py %cmake_source_dir% %cmake_include_dir% SerializationDecls %cmake_binary_dir%/../compile_commands.json
+
+if not %ERRORLEVEL% == 0 (
+	exit
+)
+
+python GenerateTypeInfos.py %cmake_source_dir%/codegen/type_database.json

@@ -11,7 +11,8 @@ from TypeDatabase import *
 all_classes: dict[str, CppClass] = {}
 data: dict[str, dict] = None
 
-DEST_SOURCE_FILE_PATH = "TypeInfo.cpp"
+SOURCE_TYPE_DATABASE = sys.argv[1]
+DEST_SOURCE_FILE_PATH = os.path.dirname(sys.argv[1]) + "/TypeInfo.cpp"
 
 class CodeWriter:
 	def __init__(self, path: str):
@@ -65,8 +66,10 @@ def load_class(class_name, cls_data) -> CppClass:
 
 def main():
 	global all_classes, data
+
+	print("Generating TypeInfo structures...")
 	
-	with open(sys.argv[1]) as json_file:
+	with open(SOURCE_TYPE_DATABASE) as json_file:
 		data = json.load(json_file)
 
 		for class_name, cls_data in data.items():
@@ -138,6 +141,8 @@ def main():
 
 		dest_impl.less_indent()
 		dest_impl.line("};")
+	
+	print("\tDone!")
 
 
 if __name__ == "__main__":

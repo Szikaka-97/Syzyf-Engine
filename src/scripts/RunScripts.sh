@@ -26,3 +26,9 @@ if [ ! $? == 0 ]; then
 fi
 
 python SerializationDatabase.py $cmake_source_dir $cmake_include_dir SerializationDecls $cmake_binary_dir/../compile_commands.json
+
+if [ ! $? == 0 ]; then
+	exit
+fi
+
+python GenerateTypeInfos.py $cmake_source_dir/codegen/type_database.json
