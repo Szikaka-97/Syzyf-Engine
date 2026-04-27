@@ -169,14 +169,11 @@ void Application::MainLoop() {
     this->context.selectedScene = Scene::CreateStandaloneScene();
 
     ShaderProgram* debugShader =
-        ShaderProgram::Build()
-            .WithVertexShader(
-                this->context.selectedScene->Resources()->Get<VertexShader>(
-                    "./res/shaders/physics_debug/physics_debug.vert"))
-            .WithPixelShader(
-                this->context.selectedScene->Resources()->Get<PixelShader>(
-                    "./res/shaders/physics_debug/physics_debug.frag"))
-            .Link();
+    ShaderProgram::Build()
+    .WithVertexShader("./res/shaders/physics_debug/physics_debug.vert")
+    .WithPixelShader("./res/shaders/physics_debug/physics_debug.frag")
+    .Link();
+
     this->context.physicsDebugRenderer->Init(debugShader);
 
     this->context.loadedScenes.push_back(this->context.selectedScene);

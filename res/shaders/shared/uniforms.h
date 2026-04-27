@@ -2,8 +2,6 @@
 
 #ifdef __cplusplus
 
-#pragma once
-
 #include <glm/glm.hpp>
 
 #define mat4 glm::mat4

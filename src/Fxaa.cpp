@@ -9,7 +9,7 @@
 
 Fxaa::Fxaa()
 {
-    auto* shader = GetScene()->Resources()->Get<ComputeShader>("./res/shaders/fxaa/fxaa.comp");
+    auto* shader = new ComputeShaderProgram("./res/shaders/fxaa/fxaa.comp");
 
     if (!shader)
     {

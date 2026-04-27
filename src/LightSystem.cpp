@@ -80,7 +80,7 @@ void LightSystem::DoSpotLightShadowmap(Light* light, ShadowMapRegion& shadowmapR
 		shadowmapRect.end.x - shadowmapRect.start.x, shadowmapRect.end.y - shadowmapRect.start.y
 	));
 
-	GetScene()->GetGraphics()->RenderScene(globalUniforms, this->shadowAtlasFramebuffer, renderParams);
+	GetScene()->GetGraphics()->RenderShadows(globalUniforms, renderParams, this->shadowAtlasFramebuffer);
 
 	shadowmapRect.start /= this->shadowmapAtlasSize;
 	shadowmapRect.end /= this->shadowmapAtlasSize;
@@ -174,8 +174,8 @@ void LightSystem::DoDirectionalLightShadowmap(Light* light, ShadowMapRegion* sha
 			shadowmapRect.start.x, shadowmapRect.start.y,
 			shadowmapRect.end.x - shadowmapRect.start.x, shadowmapRect.end.y - shadowmapRect.start.y
 		));
-
-		GetScene()->GetGraphics()->RenderScene(globalUniforms, this->shadowAtlasFramebuffer, renderParams);
+		
+		GetScene()->GetGraphics()->RenderShadows(globalUniforms, renderParams, this->shadowAtlasFramebuffer);
 
 		shadowmapRect.start /= this->shadowmapAtlasSize;
 		shadowmapRect.end /= this->shadowmapAtlasSize;
@@ -237,8 +237,8 @@ void LightSystem::DoPointLightShadowmap(Light* light, ShadowMapRegion* shadowmap
 			shadowmapRect.start.x, shadowmapRect.start.y,
 			shadowmapRect.end.x - shadowmapRect.start.x, shadowmapRect.end.y - shadowmapRect.start.y
 		));
-
-		GetScene()->GetGraphics()->RenderScene(globalUniforms, this->shadowAtlasFramebuffer, renderParams);
+		
+		GetScene()->GetGraphics()->RenderShadows(globalUniforms, renderParams, this->shadowAtlasFramebuffer);
 
 		shadowmapRect.start /= this->shadowmapAtlasSize;
 		shadowmapRect.end /= this->shadowmapAtlasSize;
@@ -373,7 +373,7 @@ void LightSystem::OnPostRender() {
 					rep.shadowAtlasIndex = -1;
 				}
 
-                glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->lightsBuffer);
+				glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->lightsBuffer);
 				glBufferSubData(GL_SHADER_STORAGE_BUFFER, 32 + sizeof(ShaderLightRep) * lightIndex, sizeof(rep), &rep);
 			}
 
@@ -403,8 +403,8 @@ int LightSystem::Order() {
 
 void LightSystem::DrawImGui() {
 	if (ImGui::TreeNode("Lights Debug")) {
-        ImGui::ColorEdit4("Ambient Color", &this->ambientLight.x);
-        ImGui::Separator();
+		ImGui::ColorEdit4("Ambient Color", &this->ambientLight.x);
+		ImGui::Separator();
 
 		ImGui::Text("Shadow atlas resolution: %ix%i px", this->shadowmapAtlasSize, this->shadowmapAtlasSize);
 		ImGui::Text("Active lights: %i", (int) this->GetAllObjects()->size());

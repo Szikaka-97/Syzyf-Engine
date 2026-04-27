@@ -9,7 +9,7 @@
 
 ColorGrading::ColorGrading() {
     this->colorGradingShader = new ComputeShaderDispatch(
-        GetScene()->Resources()->Get<ComputeShader>("./res/shaders/color_grading.comp")
+        new ComputeShaderProgram("./res/shaders/color_grading.comp")
     );
 
     this->brightness = 1.0f;

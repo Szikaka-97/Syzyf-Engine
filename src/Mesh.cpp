@@ -380,11 +380,10 @@ Mesh* Mesh::Load(fs::path modelPath, bool loadMaterials) {
 	std::vector<Material*> materials;
 
 	if (loadMaterials && loaded_scene->HasMaterials()) {
-		ShaderProgram* pbrProg = ShaderProgram::Build().WithVertexShader(
-			ResourceDatabase::Global->Get<VertexShader>("./res/shaders/lit.vert")
-		).WithPixelShader(
-			ResourceDatabase::Global->Get<PixelShader>("./res/shaders/pbr.frag")
-		).Link();
+		ShaderProgram* pbrProg = ShaderProgram::Build()
+		.WithVertexShader("./res/shaders/lit.vert")
+		.WithPixelShader("./res/shaders/pbr.frag")
+		.Link();
 
 		for (int matIndex = 0; matIndex < loaded_scene->mNumMaterials; matIndex++) {
 			auto meshMaterial = loaded_scene->mMaterials[matIndex];

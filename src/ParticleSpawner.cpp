@@ -10,7 +10,7 @@
 
 ParticleSpawner::ParticleSpawner(Mesh* mesh, Material* material, ParticleSpawnerSettings settings) : mesh(mesh), material(material), settings(settings) {
     this->ditherTexture = this->GetScene()->Resources()->Get<Texture2D>(DITHER_TEXTURE_PATH, Texture::TechnicalMapXYZ);
-    ComputeShader* shader = this->GetScene()->Resources()->Get<ComputeShader>(COMPUTE_SHADER_PATH);
+    ComputeShaderProgram* shader = new ComputeShaderProgram(COMPUTE_SHADER_PATH);
     this->computeDispatch.reset(new ComputeShaderDispatch(shader));
 
     this->initialParticleData.reserve(settings.maxParticles);

@@ -13,8 +13,8 @@ dirty(true),
 irradianceMap(nullptr),
 prefilterMap(nullptr) {
 	ShaderProgram* cubemapGizmoShader = ShaderProgram::Build()
-	.WithVertexShader(GetScene()->Resources()->Get<VertexShader>("./res/shaders/lit.vert"))
-	.WithPixelShader(GetScene()->Resources()->Get<PixelShader>("./res/shaders/cubemap.frag"))
+	.WithVertexShader("./res/shaders/lit.vert")
+	.WithPixelShader("./res/shaders/cubemap.frag")
 	.Link();
 	
 	this->gizmoMaterial = new Material(cubemapGizmoShader);

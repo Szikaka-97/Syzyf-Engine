@@ -16,9 +16,9 @@ DepthOfField::DepthOfField() {
 	glTextureParameteri(this->dofTexture, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTextureParameteri(this->dofTexture, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-	this->downsampleShader = new ComputeShaderProgram(GetScene()->Resources()->Get<ComputeShader>("./res/shaders/bloom/bloom_downsample.comp"));
-	this->upsampleShader = new ComputeShaderProgram(GetScene()->Resources()->Get<ComputeShader>("./res/shaders/dof/dof_upsample.comp"));
-	this->finalShader = new ComputeShaderProgram(GetScene()->Resources()->Get<ComputeShader>("./res/shaders/dof/dof_composite.comp"));
+	this->downsampleShader = new ComputeShaderProgram("./res/shaders/bloom/bloom_downsample.comp");
+	this->upsampleShader = new ComputeShaderProgram("./res/shaders/dof/dof_upsample.comp");
+	this->finalShader = new ComputeShaderProgram("./res/shaders/dof/dof_composite.comp");
 }
 
 void DepthOfField::OnPostProcess(const PostProcessParams* params) {

@@ -168,8 +168,8 @@ inline void InitScene(Scene& mainScene) {
 #pragma region World
 
 	ShaderProgram* skyProg = ShaderProgram::Build()
-	.WithVertexShader(mainScene.Resources()->Get<VertexShader>("./res/shaders/skybox.vert"))
-	.WithPixelShader(mainScene.Resources()->Get<PixelShader>(	"./res/shaders/skybox.frag"))
+	.WithVertexShader("./res/shaders/skybox.vert")
+	.WithPixelShader("./res/shaders/skybox.frag")
 	.Link();
 
 	Cubemap* skyCubemap = mainScene.Resources()->Get<Cubemap>(
@@ -230,9 +230,6 @@ inline void InitScene(Scene& mainScene) {
 
 	player->aim = aimingAid;
 
-
-
-
 #pragma endregion
 #pragma region Camera
 
@@ -246,6 +243,10 @@ inline void InitScene(Scene& mainScene) {
 
 #pragma endregion
 #pragma region Miscellaneous
+	SceneNode* sun = mainScene.CreateNode("Sun");
+	sun->AddObject<Light>(Light::DirectionalLight({1, 1, 1}, 2))->SetShadowCasting(true);
+	sun->GlobalTransform().Position() = {1, 2.2f, 0};
+	sun->GlobalTransform().Rotation() = glm::quat(glm::radians(glm::vec3(50.0f, -20.0f, 0.0f)));
 
 	Mesh* mirrorMesh = mainScene.Resources()->Get<Mesh>("./res/models/plane.obj");
 	SceneNode* mirrorNode = mainScene.CreateNode("Mirror");
@@ -257,6 +258,32 @@ inline void InitScene(Scene& mainScene) {
 	mirrorNode->GetObjectInChildren<MeshRenderer>()->GetNode(), false,
 		JPH::EMotionType::Static, Physics::Layers::NON_MOVING
 	);
+
+	SceneNode* fogVolume = mainScene.CreateNode("Fog Volume");
+	fogVolume->AddObject<FogVolume>();
+	fogVolume->GlobalTransform().Position() = { 0.0f, -0.1f, 0.0f };
+	fogVolume->GlobalTransform().Scale() = { 20.0f, 1.0f, 20.0f };
+
+	ShaderProgram* transparentProg = ShaderProgram::Build()
+	.WithVertexShader("./res/shaders/lit.vert")
+	.WithPixelShader("./res/shaders/transparent.frag")
+	.Link();
+
+	Material* pinkTransparentMat = new Material(transparentProg);
+	pinkTransparentMat->SetValue("uColor", glm::vec4(1.0, 0.5, 0.5, 0.6));
+
+	Material* blueTransparentMat = new Material(transparentProg);
+	blueTransparentMat->SetValue("uColor", glm::vec4(0.5, 0.5, 1.0, 0.6));
+
+	Mesh* cubeMesh = mainScene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
+
+	SceneNode* pinkTransparentCubeNode = mainScene.CreateNode("Pink Cube");
+	pinkTransparentCubeNode->AddObject<MeshRenderer>(cubeMesh, pinkTransparentMat);
+	pinkTransparentCubeNode->LocalTransform().Position() = {-3, 0, -3};
+
+	SceneNode* blueTransparentCubeNode = mainScene.CreateNode("Blue Cube");
+	blueTransparentCubeNode->AddObject<MeshRenderer>(cubeMesh, blueTransparentMat);
+	blueTransparentCubeNode->LocalTransform().Position() = {-3, 0, -5};
 
 #pragma endregion
 

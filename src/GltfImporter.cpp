@@ -609,25 +609,21 @@ std::vector<Material*> GltfImporter::LoadMaterials(Scene* scene, fastgltf::Asset
 
   const char* vertexShaderPath = isSkinned ? "./res/shaders/gltf/lit_animation.vert" : "./res/shaders/gltf/lit.vert";
 
-	auto* opaqueProg = ShaderProgram::Build().WithVertexShader(
-		resources->Get<VertexShader>(vertexShaderPath)
-	).WithPixelShader(
-		resources->Get<PixelShader>("./res/shaders/gltf/pbr.frag")
-	).Link();
+	auto* opaqueProg = ShaderProgram::Build()
+  .WithVertexShader(vertexShaderPath)
+  .WithPixelShader("./res/shaders/gltf/pbr.frag")
+  .Link();
 
-  auto* maskProg = ShaderProgram::Build().WithVertexShader(
-    resources->Get<VertexShader>(vertexShaderPath)
-  ).WithPixelShader(
-    resources->Get<PixelShader>("./res/shaders/gltf/pbr_mask.frag")
-  ).Link();
+  auto* maskProg = ShaderProgram::Build()
+  .WithVertexShader(vertexShaderPath)
+  .WithPixelShader("./res/shaders/gltf/pbr_mask.frag")
+  .Link();
 
-  auto* blendProg = ShaderProgram::Build().WithVertexShader(
-    resources->Get<VertexShader>(vertexShaderPath)
-    ).WithPixelShader(
-    resources->Get<PixelShader>("./res/shaders/gltf/pbr_blend.frag")
-    ).Link();
-  blendProg->SetTransparent(true);
-
+  auto* blendProg = ShaderProgram::Build()
+  .WithVertexShader(vertexShaderPath)
+  .WithPixelShader("./res/shaders/gltf/pbr_blend.frag")
+  .Link();
+  
   for (auto& gltfMaterial : asset.materials) {
     Material* material = nullptr;
 
