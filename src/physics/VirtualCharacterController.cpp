@@ -46,6 +46,11 @@ VirtualCharacterController::VirtualCharacterController(const JPH::Ref<JPH::Chara
 VirtualCharacterController::~VirtualCharacterController() {}
 
 void VirtualCharacterController::Move(const glm::vec3& velocity, float deltaTime) {
+  if (!MathHelpers::IsValid(velocity)) {
+      spdlog::error("Physics::VirtualCharacterController: Attempted to move with NaN or Inf velocity");
+      return;
+  }
+
   System* physics = GetScene()->GetComponent<System>();
   if (!physics || !this->character) {
     spdlog::error("VirtualCharacterController: Move: Tried calling move without a system/on an invalid character");
@@ -166,6 +171,10 @@ void VirtualCharacterController::SetCollisionLayerAndMask(std::initializer_list<
 }
 
 void VirtualCharacterController::SetPosition(const glm::vec3& position) {
+  if (!MathHelpers::IsValid(position)) {
+      spdlog::error("Physics::VirtualCharacterController: Attempted to set NaN or Inf position");
+      return;
+  }
   if (this->character) {
     this->character->SetPosition(JPH::RVec3(position.x, position.y, position.z));
     this->GetTransform().GlobalTransform().Position() = position;
@@ -173,6 +182,10 @@ void VirtualCharacterController::SetPosition(const glm::vec3& position) {
 }
 
 void VirtualCharacterController::SetRotation(const glm::quat& rotation) {
+  if (!MathHelpers::IsValid(rotation)) {
+      spdlog::error("Physics::VirtualCharacterController: Attempted to set NaN or Inf rotation");
+      return;
+  }
   if (this->character) {
     this->character->SetRotation(JPH::Quat(rotation.x, rotation.y, rotation.z, rotation.w));
     this->GetTransform().GlobalTransform().Rotation() = rotation;
@@ -188,6 +201,11 @@ void VirtualCharacterController::SyncToNode() {
         glm::vec3 position = this->GetTransform().GlobalTransform().Position().Value();
         glm::quat rotation = this->GetTransform().GlobalTransform().Rotation().Value();
         glm::vec3 scale = this->GetTransform().GlobalTransform().Scale().Value();
+
+        if (!MathHelpers::IsValid(position) || !MathHelpers::IsValid(rotation) || !MathHelpers::IsValid(scale)) {
+            spdlog::error("Physics::VirtualCharacterController::SyncToNode: Node has invalid NaN or Inf transform. Skipping sync.");
+            return;
+        }
 
         this->SetPosition(position);
         this->SetRotation(rotation);

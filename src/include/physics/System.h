@@ -7,7 +7,9 @@
 #include <Jolt/Physics/Collision/ObjectLayer.h>
 #include <Jolt/Physics/Collision/BroadPhase/BroadPhaseLayer.h>
 #include <Jolt/Physics/PhysicsSystem.h>
-#include <glm/fwd.hpp>
+#include <glm/glm.hpp>
+#include <glm/common.hpp>
+#include <glm/gtc/quaternion.hpp>
 
 #include "Jolt/Physics/Body/BodyFilter.h"
 #include "SceneComponent.h"
@@ -118,4 +120,15 @@ public:
 
   JPH::GroupFilter* GetLayerGroupFilter() const;
 };
+}
+
+// Move somewhere else perhaps
+namespace MathHelpers {
+    [[nodiscard]] inline bool IsValid(const glm::vec3& v) noexcept {
+        return !glm::any(glm::isnan(v)) && !glm::any(glm::isinf(v));
+    }
+
+    [[nodiscard]] inline bool IsValid(const glm::quat& q) noexcept {
+        return !glm::any(glm::isnan(glm::vec4(q.x, q.y, q.z, q.w))) && !glm::any(glm::isinf(glm::vec4(q.x, q.y, q.z, q.w)));
+    }
 }
