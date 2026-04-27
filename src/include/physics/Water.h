@@ -1,3 +1,5 @@
+#pragma once
+
 #include "physics/ICollisionReceiver.h"
 #include "GameObject.h"
 

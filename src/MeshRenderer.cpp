@@ -47,6 +47,10 @@ Material* MeshRenderer::GetMaterial(int materialIndex) {
 	return this->materials[materialIndex];
 }
 
+int MeshRenderer::GetMaterialCount() const {
+	return this->mesh->GetMaterialsCount();
+}
+
 void MeshRenderer::SetMaterial(Material* newMaterial, int materialIndex) {
 	if (materialIndex < 0 || this->mesh->GetMaterialsCount() <= materialIndex) {
 		return;

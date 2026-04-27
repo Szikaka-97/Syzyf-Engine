@@ -7,7 +7,10 @@
 #include <vector>
 #include <glm/vec3.hpp>
 #include "astar/NavigationGrid.h"
+#include "physics/DebugRenderer.h"
+#include "Mesh.h"
 
+class Material;
 class NavigationGrid;
 class AnimationComponent;
 
@@ -51,7 +54,6 @@ private:
     void SpawnProjectile(const glm::vec3& targetPos);
 	void SearchWalkPoint();
     void RotateNode(glm::vec3 dir);
-    void DrawDebugView();
 	void LookForNextPoint();
     //float CalculateDistance(glm::vec3 current, glm::vec3 target);
     
@@ -95,6 +97,8 @@ public:
 
     void OnPlayerEnteredRoom();
     void OnPlayerExitedRoom();
+
+    void DrawDebugView(Physics::DebugRenderer* debugRenderer);
 
     void TakeDamage(int damage);
 };

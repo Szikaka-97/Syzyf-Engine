@@ -424,154 +424,154 @@ public:
 	}
 };
 
-void SingleWall(SceneNode* node, glm::vec3 pos, glm::vec3 wallSize,Mesh* cubeMesh,Material* roomMat, std::string name ) {
-	JPH::BodyCreationSettings playerRoomSettings = Physics::Body::ConvexHullMesh(cubeMesh, JPH::EMotionType::Static, Physics::Layers::NON_MOVING);
-	auto wallNode = node->GetScene()->CreateNode(node->GetName() + " Wall"+ name);
-	wallNode->AddObject<MeshRenderer>(cubeMesh, roomMat);
-	wallNode->GlobalTransform().Position() = (pos);
-	wallNode->GlobalTransform().Scale() = wallSize;
-	auto* wallBody = wallNode->AddObject<Physics::Body>(playerRoomSettings);
-	wallNode->SetParent(node);
-}
-
-/// <summary>
-/// got confused with directions, actual set of params is WEST EAST NORT SOUTH 
-/// </summary>
-void MakeWalls(Mesh* cubeMesh, Material* roomMat, SceneNode* node, bool a, bool b, bool c, bool d) {
-    glm::vec3 pos = node->GlobalTransform().Position();
-    glm::vec3 size = node->GlobalTransform().Scale();   
-    float wallThick = 0.2f;
-    float wallHeight = size.y + 4.0f;
-    
-    if (d) {
-        glm::vec3 wallSize = glm::vec3(wallThick, wallHeight, size.z);
-        glm::vec3 wallPos = glm::vec3(
-            pos.x - size.x/2.0f - wallThick/2.0f,
-            pos.y + size.y/2.0f + wallHeight/2.0f,
-            pos.z
-        );
-        SingleWall(node, wallPos, wallSize, cubeMesh, roomMat, "d");
-    }
-    if (c) {
-        glm::vec3 wallSize = glm::vec3(wallThick, wallHeight, size.z);
-        glm::vec3 wallPos = glm::vec3(
-            pos.x + size.x/2.0f + wallThick/2.0f,
-            pos.y + size.y/2.0f + wallHeight/2.0f,
-            pos.z
-        );
-        SingleWall(node, wallPos, wallSize, cubeMesh, roomMat, "c");
-    }
-    if (b) {
-        glm::vec3 wallSize = glm::vec3(size.x, wallHeight, wallThick);
-        glm::vec3 wallPos = glm::vec3(
-            pos.x,
-            pos.y + size.y/2.0f + wallHeight/2.0f,
-            pos.z + size.z/2.0f + wallThick/2.0f
-        );
-        SingleWall(node, wallPos, wallSize, cubeMesh, roomMat, "b");
-    }
-    if (a) {
-        glm::vec3 wallSize = glm::vec3(size.x, wallHeight, wallThick);
-        glm::vec3 wallPos = glm::vec3(
-            pos.x,
-            pos.y + size.y/2.0f + wallHeight/2.0f,
-            pos.z - size.z/2.0f - wallThick/2.0f
-        );
-        SingleWall(node, wallPos, wallSize, cubeMesh, roomMat, "a");
-    }
-}
-
-void MakeRooms(Mesh* cubeMesh,Material* roomMat, Scene* mainScene, Material* skyMat) {
-	JPH::BodyCreationSettings playerRoomSettings = Physics::Body::ConvexHullMesh(cubeMesh, JPH::EMotionType::Static, Physics::Layers::NON_MOVING);
-
-	auto playerRoomNode = mainScene->CreateNode("Player Room");
-    playerRoomNode->AddObject<MeshRenderer>(cubeMesh, roomMat);
-    playerRoomNode->AddObject<Skybox>(skyMat);
-    playerRoomNode->GlobalTransform().Scale() = glm::vec3(10.0f, 0.2f, 10.0f);
-    playerRoomNode->GlobalTransform().Position() = glm::vec3(0.0f, -0.5f, 0.0f);
-    auto* playerRoomBody = playerRoomNode->AddObject<Physics::Body>(playerRoomSettings);
-	MakeWalls(cubeMesh, roomMat, playerRoomNode,true,true,false, true);
-	playerRoomNode->AddObject<Surface>(cubeMesh);
-	playerRoomNode->GetObject<Surface>()->SetID(0);
-
-	auto enemyRoomNode = mainScene->CreateNode("Enemy Room");
-	
-	enemyRoomNode->GlobalTransform().Scale() = glm::vec3(10.0f, 0.2f, 10.0f);
-	enemyRoomNode->GlobalTransform().Position() = glm::vec3(10.5f, -0.5f, 0.0f);
-	enemyRoomNode->AddObject<MeshRenderer>(cubeMesh, roomMat);
-	///
-	enemyRoomNode->AddObject<Surface>(cubeMesh);
-	enemyRoomNode->GetObject<Surface>()->SetID(1);
-	//enemyRoomNode->GetObject<Surface>()->SetRoomID(1);
-	//auto* navGrid = enemyRoomNode->AddObject<NavigationGrid>();
-	//navGrid->Build(enemyRoomNode->GetObject<Surface>(), 2.0f, 45.0f);
-	///
-	auto* enemyRoomBody = enemyRoomNode->AddObject<Physics::Body>(playerRoomSettings);
-	MakeWalls(cubeMesh, roomMat, enemyRoomNode,true,false,true, false);
-
-	auto enemyRoomNode2 = mainScene->CreateNode("Enemy Room 2");
-	enemyRoomNode2->AddObject<MeshRenderer>(cubeMesh, roomMat);
-	enemyRoomNode2->GlobalTransform().Scale() = glm::vec3(14.0f, 0.2f, 18.0f);
-	enemyRoomNode2->GlobalTransform().Position() = glm::vec3(10.5f, -0.5f, 14.5f);
-	auto* enemyRoomBody2 = enemyRoomNode2->AddObject<Physics::Body>(playerRoomSettings);
-  	MakeWalls(cubeMesh, roomMat, enemyRoomNode2,false,true,true, true);
-}
-
-
-void AddEnemies(Mesh* enemyMesh, Material* enemyMat, Scene* mainScene, SceneNode* target, Mesh* cubeMesh, Material* reflectiveMat) {
-    JPH::BodyCreationSettings enemyShapeSettings = Physics::Body::ConvexHullMesh(enemyMesh, JPH::EMotionType::Dynamic, Physics::Layers::MOVING);
-	    auto enemyRoom = mainScene->FindNode("Enemy Room");
-   auto* surface = enemyRoom->GetObject<Surface>();
-	target->AddObject<Player>();
-
-    SceneNode* enemy1 = mainScene->CreateNode("Enemy 1");
-    enemy1->AddObject<MeshRenderer>(enemyMesh, enemyMat);
-    enemy1->GlobalTransform().Position() = glm::vec3(10.5f, 0.0f, 2.0f);
-    enemy1->GlobalTransform().Scale() = glm::vec3(0.5f, 0.5f, 0.5f);
-
-    auto* enemyBody1 = enemy1->AddObject<Physics::Body>(enemyShapeSettings);
-	auto* enemyAi1 = enemy1->AddObject<AiNode>();
-
-
-            enemyAi1->SetSurface(surface);
-			surface->AddEnemy(enemyAi1);
-
-    enemyAi1->SetTarget(target);
-    enemyAi1->SetProjectileResources(cubeMesh, reflectiveMat);
-    enemyAi1->SetAttackCooldown(1.2f);
-	enemyAi1->SetRoomID(1);
-	if (auto* animComp = enemyAi1->GetObject<AnimationComponent>()) {
-    enemyAi1->SetAttackAnimation(animComp);
-
-}
-	auto animatedScene = GltfImporter::LoadScene("./res/models/jake_tangents.glb", "Animated Gltf");
-AnimationComponent* animComponents = animatedScene->GetRootNode()->GetObjectInChildren<AnimationComponent>();
-if (animComponents && !animComponents->animations.empty()) {
- 
-    enemyAi1->SetAttackAnimation(animComponents);   // użyj pierwszego znalezionego
-}
-	//SceneNode* enemy2 = mainScene->CreateNode("Enemy 2");
-	//enemy2->AddObject<MeshRenderer>(enemyMesh, enemyMat);
-	//enemy2->GlobalTransform().Position() = glm::vec3(10.5f, 0.0f, 3.0f);
-	//enemy2->GlobalTransform().Scale() = glm::vec3(0.5f, 0.5f, 0.5f);
-	//auto* enemyBody2 = enemy2->AddObject<Physics::Body>(enemyShapeSettings);
-	//auto* enemyAi2 = enemy2->AddObject<AiSimplified>();
-	//enemyAi2->SetSurface(surface);
-	////surface->AddEnemy(enemyAi2);
-	//glm::vec3 targetPos = glm::vec3(12.0f, 0.0f, -2.0f);
-	//enemyAi2->SetTarget(targetPos);
-	// /*enemyAi2->SetProjectileResources(cubeMesh, reflectiveMat);
-	//enemyAi2->SetAttackCooldown(1.0f);
-	//enemyAi2->SetRoomID(1);*/
-
-	//Scene* animatedGltfScene = GltfImporter::LoadScene("./res/models/jake_tangents.glb", "Animated Gltf");
-	 //mainScene->GetRootNode()->AttachScene(animatedGltfScene);
-
-}
+//void SingleWall(SceneNode* node, glm::vec3 pos, glm::vec3 wallSize,Mesh* cubeMesh,Material* roomMat, std::string name ) {
+//	JPH::BodyCreationSettings playerRoomSettings = Physics::Body::ConvexHullMesh(cubeMesh, JPH::EMotionType::Static, Physics::Layers::NON_MOVING);
+//	auto wallNode = node->GetScene()->CreateNode(node->GetName() + " Wall"+ name);
+//	wallNode->AddObject<MeshRenderer>(cubeMesh, roomMat);
+//	wallNode->GlobalTransform().Position() = (pos);
+//	wallNode->GlobalTransform().Scale() = wallSize;
+//	auto* wallBody = wallNode->AddObject<Physics::Body>(playerRoomSettings);
+//	wallNode->SetParent(node);
+//}
+//
+///// <summary>
+///// got confused with directions, actual set of params is WEST EAST NORT SOUTH 
+///// </summary>
+//void MakeWalls(Mesh* cubeMesh, Material* roomMat, SceneNode* node, bool a, bool b, bool c, bool d) {
+//    glm::vec3 pos = node->GlobalTransform().Position();
+//    glm::vec3 size = node->GlobalTransform().Scale();   
+//    float wallThick = 0.2f;
+//    float wallHeight = size.y + 4.0f;
+//    
+//    if (d) {
+//        glm::vec3 wallSize = glm::vec3(wallThick, wallHeight, size.z);
+//        glm::vec3 wallPos = glm::vec3(
+//            pos.x - size.x/2.0f - wallThick/2.0f,
+//            pos.y + size.y/2.0f + wallHeight/2.0f,
+//            pos.z
+//        );
+//        SingleWall(node, wallPos, wallSize, cubeMesh, roomMat, "d");
+//    }
+//    if (c) {
+//        glm::vec3 wallSize = glm::vec3(wallThick, wallHeight, size.z);
+//        glm::vec3 wallPos = glm::vec3(
+//            pos.x + size.x/2.0f + wallThick/2.0f,
+//            pos.y + size.y/2.0f + wallHeight/2.0f,
+//            pos.z
+//        );
+//        SingleWall(node, wallPos, wallSize, cubeMesh, roomMat, "c");
+//    }
+//    if (b) {
+//        glm::vec3 wallSize = glm::vec3(size.x, wallHeight, wallThick);
+//        glm::vec3 wallPos = glm::vec3(
+//            pos.x,
+//            pos.y + size.y/2.0f + wallHeight/2.0f,
+//            pos.z + size.z/2.0f + wallThick/2.0f
+//        );
+//        SingleWall(node, wallPos, wallSize, cubeMesh, roomMat, "b");
+//    }
+//    if (a) {
+//        glm::vec3 wallSize = glm::vec3(size.x, wallHeight, wallThick);
+//        glm::vec3 wallPos = glm::vec3(
+//            pos.x,
+//            pos.y + size.y/2.0f + wallHeight/2.0f,
+//            pos.z - size.z/2.0f - wallThick/2.0f
+//        );
+//        SingleWall(node, wallPos, wallSize, cubeMesh, roomMat, "a");
+//    }
+//}
+//
+//void MakeRooms(Mesh* cubeMesh,Material* roomMat, Scene* mainScene, Material* skyMat) {
+//	JPH::BodyCreationSettings playerRoomSettings = Physics::Body::ConvexHullMesh(cubeMesh, JPH::EMotionType::Static, Physics::Layers::NON_MOVING);
+//
+//	auto playerRoomNode = mainScene->CreateNode("Player Room");
+//    playerRoomNode->AddObject<MeshRenderer>(cubeMesh, roomMat);
+//    playerRoomNode->AddObject<Skybox>(skyMat);
+//    playerRoomNode->GlobalTransform().Scale() = glm::vec3(10.0f, 0.2f, 10.0f);
+//    playerRoomNode->GlobalTransform().Position() = glm::vec3(0.0f, -0.5f, 0.0f);
+//    auto* playerRoomBody = playerRoomNode->AddObject<Physics::Body>(playerRoomSettings);
+//	MakeWalls(cubeMesh, roomMat, playerRoomNode,true,true,false, true);
+//	playerRoomNode->AddObject<Surface>(cubeMesh);
+//	playerRoomNode->GetObject<Surface>()->SetID(0);
+//
+//	auto enemyRoomNode = mainScene->CreateNode("Enemy Room");
+//	
+//	enemyRoomNode->GlobalTransform().Scale() = glm::vec3(10.0f, 0.2f, 10.0f);
+//	enemyRoomNode->GlobalTransform().Position() = glm::vec3(10.5f, -0.5f, 0.0f);
+//	enemyRoomNode->AddObject<MeshRenderer>(cubeMesh, roomMat);
+//	///
+//	enemyRoomNode->AddObject<Surface>(cubeMesh);
+//	enemyRoomNode->GetObject<Surface>()->SetID(1);
+//	//enemyRoomNode->GetObject<Surface>()->SetRoomID(1);
+//	//auto* navGrid = enemyRoomNode->AddObject<NavigationGrid>();
+//	//navGrid->Build(enemyRoomNode->GetObject<Surface>(), 2.0f, 45.0f);
+//	///
+//	auto* enemyRoomBody = enemyRoomNode->AddObject<Physics::Body>(playerRoomSettings);
+//	MakeWalls(cubeMesh, roomMat, enemyRoomNode,true,false,true, false);
+//
+//	auto enemyRoomNode2 = mainScene->CreateNode("Enemy Room 2");
+//	enemyRoomNode2->AddObject<MeshRenderer>(cubeMesh, roomMat);
+//	enemyRoomNode2->GlobalTransform().Scale() = glm::vec3(14.0f, 0.2f, 18.0f);
+//	enemyRoomNode2->GlobalTransform().Position() = glm::vec3(10.5f, -0.5f, 14.5f);
+//	auto* enemyRoomBody2 = enemyRoomNode2->AddObject<Physics::Body>(playerRoomSettings);
+//  	MakeWalls(cubeMesh, roomMat, enemyRoomNode2,false,true,true, true);
+//}
+//
+//
+//void AddEnemies(Mesh* enemyMesh, Material* enemyMat, Scene* mainScene, SceneNode* target, Mesh* cubeMesh, Material* reflectiveMat) {
+//    JPH::BodyCreationSettings enemyShapeSettings = Physics::Body::ConvexHullMesh(enemyMesh, JPH::EMotionType::Dynamic, Physics::Layers::MOVING);
+//	    auto enemyRoom = mainScene->FindNode("Enemy Room");
+//   auto* surface = enemyRoom->GetObject<Surface>();
+//	target->AddObject<Player>();
+//
+//    SceneNode* enemy1 = mainScene->CreateNode("Enemy 1");
+//    enemy1->AddObject<MeshRenderer>(enemyMesh, enemyMat);
+//    enemy1->GlobalTransform().Position() = glm::vec3(10.5f, 0.0f, 2.0f);
+//    enemy1->GlobalTransform().Scale() = glm::vec3(0.5f, 0.5f, 0.5f);
+//
+//    auto* enemyBody1 = enemy1->AddObject<Physics::Body>(enemyShapeSettings);
+//	auto* enemyAi1 = enemy1->AddObject<AiNode>();
+//
+//
+//            enemyAi1->SetSurface(surface);
+//			surface->AddEnemy(enemyAi1);
+//
+//    enemyAi1->SetTarget(target);
+//    enemyAi1->SetProjectileResources(cubeMesh, reflectiveMat);
+//    enemyAi1->SetAttackCooldown(1.2f);
+//	enemyAi1->SetRoomID(1);
+//	if (auto* animComp = enemyAi1->GetObject<AnimationComponent>()) {
+//    enemyAi1->SetAttackAnimation(animComp);
+//
+//}
+//	auto animatedScene = GltfImporter::LoadScene("./res/models/jake_tangents.glb", "Animated Gltf");
+//AnimationComponent* animComponents = animatedScene->GetRootNode()->GetObjectInChildren<AnimationComponent>();
+//if (animComponents && !animComponents->animations.empty()) {
+// 
+//    enemyAi1->SetAttackAnimation(animComponents);   // użyj pierwszego znalezionego
+//}
+//	//SceneNode* enemy2 = mainScene->CreateNode("Enemy 2");
+//	//enemy2->AddObject<MeshRenderer>(enemyMesh, enemyMat);
+//	//enemy2->GlobalTransform().Position() = glm::vec3(10.5f, 0.0f, 3.0f);
+//	//enemy2->GlobalTransform().Scale() = glm::vec3(0.5f, 0.5f, 0.5f);
+//	//auto* enemyBody2 = enemy2->AddObject<Physics::Body>(enemyShapeSettings);
+//	//auto* enemyAi2 = enemy2->AddObject<AiSimplified>();
+//	//enemyAi2->SetSurface(surface);
+//	////surface->AddEnemy(enemyAi2);
+//	//glm::vec3 targetPos = glm::vec3(12.0f, 0.0f, -2.0f);
+//	//enemyAi2->SetTarget(targetPos);
+//	// /*enemyAi2->SetProjectileResources(cubeMesh, reflectiveMat);
+//	//enemyAi2->SetAttackCooldown(1.0f);
+//	//enemyAi2->SetRoomID(1);*/
+//
+//	//Scene* animatedGltfScene = GltfImporter::LoadScene("./res/models/jake_tangents.glb", "Animated Gltf");
+//	 //mainScene->GetRootNode()->AttachScene(animatedGltfScene);
+//
+//}
 
 void InitScene(Scene* mainScene) {
   mainScene->AddComponent<Physics::System>();
-  mainScene->AddComponent<Physics::DebugRenderer>();
+ // mainScene->AddComponent<Physics::DebugRenderer>();
 
 	ShaderProgram* skyProg = ShaderProgram::Build().WithVertexShader(
 		mainScene->Resources()->Get<VertexShader>("./res/shaders/skybox.vert")
@@ -638,9 +638,9 @@ void InitScene(Scene* mainScene) {
 	playerNode->GlobalTransform().Scale() = glm::vec3(0.5f, 0.5f, 0.5f);
 	playerNode->AddObject<MeshRenderer>(schnozMesh, reflectiveMat);
 
-	playerNode->AddObject<Player>();
+	playerNode->AddObject<Player>();/*
 	MakeRooms(cubeMesh2, roomMat, mainScene, skyMat);
-	AddEnemies(jakeMesh, schnozMat, mainScene, playerNode, cubeMesh2, reflectiveMat);
+	AddEnemies(jakeMesh, schnozMat, mainScene, playerNode, cubeMesh2, reflectiveMat);*/
 
 	
 
@@ -661,7 +661,7 @@ void InitScene(Scene* mainScene) {
 	bottleThrower->SetResources(cubeMesh, reflectiveMat);
 
 	auto* controller = playerNode->AddObject<PlayerController>(mouseMarkerNode);
-	controller->SetBottleThrower(bottleThrower);
+	//controller->SetBottleThrower(bottleThrower);
 
 	auto cameraNode = mainScene->CreateNode("Camera");
 	Camera* camera = cameraNode->AddObject<Camera>(

@@ -128,6 +128,10 @@ unsigned int Mesh::SubMesh::GetFaceCount() const {
 	return this->faceCount;
 }
 
+const unsigned int* Mesh::SubMesh::GetIndexData() const {
+    return this->indexData;
+}
+
 Mesh::~Mesh() {
 	delete this->vertexData;
 	glDeleteBuffers(1, &this->vertexBuffer);

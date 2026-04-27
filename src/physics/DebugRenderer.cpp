@@ -7,12 +7,9 @@
 #include <glm/gtc/type_ptr.hpp>
 
 namespace Physics {
-DebugRenderer::DebugRenderer(Scene *scene) : SceneComponent(scene) {
-    shader = ShaderProgram::Build()
-        .WithVertexShader(GetScene()->Resources()->Get<VertexShader>("./res/shaders/physics_debug/physics_debug.vert"))
-        .WithPixelShader(GetScene()->Resources()->Get<PixelShader>("./res/shaders/physics_debug/physics_debug.frag"))
-        .Link();
-    
+void DebugRenderer::Init(ShaderProgram* debugShader) {
+    shader = debugShader;
+
     if (shader) {
         shader->SetCastsShadows(false);
         shader->SetIgnoresDepthPrepass(true);
@@ -52,7 +49,7 @@ void DebugRenderer::DrawTriangle(JPH::RVec3Arg inV1, JPH::RVec3Arg inV2, JPH::RV
 
 void DebugRenderer::DrawText3D(JPH::RVec3Arg inPosition, const std::string_view &inString, JPH::ColorArg inColor, float inHeight) {}
 
-void DebugRenderer::DrawBoundingBox(const BoundingBox& box, JPH::ColorArg color) {
+void DebugRenderer::DrawBoundingBox(const BoundingBox& box, JPH::ColorArg color, glm::mat4 transform) {
   JPH::Vec3 halfExtents(box.axisU.w, box.axisV.w, box.axisW.w);
   JPH::AABox boxLocal(-halfExtents, halfExtents);
 
@@ -61,14 +58,21 @@ void DebugRenderer::DrawBoundingBox(const BoundingBox& box, JPH::ColorArg color)
   glm::vec3 w = glm::vec3(box.axisW);
   glm::vec3 p = box.center;
 
-  JPH::Mat44 transform(
+  JPH::Mat44 finalTransform(
     JPH::Vec4(u.x, u.y, u.z, 0),
     JPH::Vec4(v.x, v.y, v.z, 0),
     JPH::Vec4(w.x, w.y, w.z, 0),
     JPH::Vec4(p.x, p.y, p.z, 1)
   );
 
-  DrawWireBox(transform, boxLocal, color);
+    JPH::Mat44 outMat;
+    for (int row = 0; row < 4; ++row) {
+        for (int col = 0; col < 4; ++col) {
+            outMat(col, row) = transform[row][col];
+        }
+    }
+
+  DrawWireBox(finalTransform * outMat, boxLocal, color);
 }
 
 void DebugRenderer::DrawFrustum(glm::mat4 viewProjection, JPH::ColorArg color) {
@@ -159,12 +163,6 @@ void DebugRenderer::Render() {
 
     GLuint shaderHandle = shader->GetHandle();
     glUseProgram(shaderHandle);
-
-    std::vector<Camera*> cameraObjects = GetScene()->FindObjectsOfType<Camera>();
-
-    if (cameraObjects.empty()) return;
-
-    glm::mat4 vp = cameraObjects.front()->ViewProjectionMatrix();
 
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LEQUAL);

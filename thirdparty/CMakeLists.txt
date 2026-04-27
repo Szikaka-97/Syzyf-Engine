@@ -22,8 +22,9 @@ set(FASTNOISELITE_DIR ${CMAKE_CURRENT_LIST_DIR}/fastnoiselite CACHE INTERNAL "")
 # other
 CPMAddPackage("gh:assimp/assimp@6.0.4")
 CPMAddPackage("gh:g-truc/glm#1.0.3")
-CPMAddPackage("gh:ocornut/imgui@1.92.5")
+CPMAddPackage("gh:ocornut/imgui#v1.92.5-docking")
 CPMAddPackage("gh:gabime/spdlog@1.17.0")
+CPMAddPackage("gh:nlohmann/json@3.12.0")
 CPMAddPackage(
     NAME fastgltf
     GITHUB_REPOSITORY spnda/fastgltf
@@ -72,6 +73,7 @@ set_target_properties(glad
                       spdlog
                       fastgltf
                       imgui
+                      nlohmann_json
                       Jolt
                       spdlog PROPERTIES FOLDER "thirdparty")
 

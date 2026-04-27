@@ -171,9 +171,9 @@ public:
 
   static Texture2D* Create(unsigned char* textureData, int width, int height, const TextureParams& loadParams);
 
-	static Texture2D* Load(const fs::path& texturePath, const TextureParams& loadParams);
+	static Texture2D* Load(const fs::path& texturePath, const TextureParams& loadParams, bool flip = true);
 
-  static Texture2D* Load(const unsigned char* data, const int length, const TextureParams loadParams);
+  static Texture2D* Load(const unsigned char* data, const int length, const TextureParams loadParams, bool flip = true);
 
 	virtual constexpr TextureType GetType() const {
 		return TextureType::Texture2D;

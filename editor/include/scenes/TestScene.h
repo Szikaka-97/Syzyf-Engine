@@ -1,0 +1,266 @@
+#pragma once
+
+#include "EasingFunctions.h"
+#include "GltfImporter.h"
+#include "LightSystem.h"
+#include "game_scripts/AimingAid.h"
+#include "game_scripts/ThrowBottle.h"
+
+#include <AiNode.h>
+#include <Bloom.h>
+#include <Camera.h>
+#include <ColorGrading.h>
+#include <Framebuffer.h>
+#include <Fxaa.h>
+#include <InputSystem.h>
+#include <Light.h>
+#include <Material.h>
+#include <Mesh.h>
+#include <MeshRenderer.h>
+#include <ParticleSpawner.h>
+#include <ReflectionProbe.h>
+#include <Scene.h>
+#include <Shader.h>
+#include <Skybox.h>
+#include <TimeSystem.h>
+#include <Tonemapper.h>
+#include <TweenSystem.h>
+#include <Viewport.h>
+#include <animation/AnimationSystem.h>
+#include <fog/FogVolume.h>
+#include <game_scripts/CameraSettings.h>
+#include <game_scripts/PlayerController.h>
+#include <game_scripts/ThrowBottle.h>
+#include <glm/fwd.hpp>
+#include <glm/geometric.hpp>
+#include <glm/trigonometric.hpp>
+#include <physics/Body.h>
+#include <physics/DebugRenderer.h>
+#include <physics/Helpers.h>
+#include <physics/System.h>
+#include <physics/Water.h>
+#include <scatter/Spawner.h>
+#include <Mirror.h>
+
+#include <Jolt/Jolt.h>
+#include <Jolt/Physics/Body/MotionType.h>
+#include <Jolt/Physics/Character/CharacterVirtual.h>
+#include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
+#include <Jolt/Physics/Collision/Shape/Shape.h>
+#include "Jolt/Math/Vec3.h"
+#include <imgui.h>
+#include <physics/VirtualCharacterController.h>
+
+namespace TestScene {
+class EditorCameraTag : public GameObject {};
+
+class Mover : public GameObject, public ImGuiDrawable {
+  private:
+	float pitch;
+	float rotation;
+	bool movementEnabled = false;
+	int mode;
+	float movementSpeed = 10.0f;
+	float mouseSensitivity = 1.0f;
+
+  public:
+	Mover() {
+		this->pitch = 0;
+		this->rotation = 0;
+		this->mode = 0;
+	}
+
+	void Update() {
+		if (movementEnabled) {
+			glm::vec3 movement = glm::zero<glm::vec3>();
+			glm::quat rotation = glm::identity<glm::quat>();
+			float movementSpeed = this->movementSpeed;
+
+			glm::vec3 right = this->GlobalTransform().Right();
+			glm::vec3 up = glm::vec3(0, 1, 0);
+			glm::vec3 forward = mode == 0 ? glm::cross(right, up)
+										  : this->GlobalTransform().Forward();
+
+			if (GetScene()->Input()->KeyPressed(Key::A)) {
+				movement += right;
+			}
+			if (GetScene()->Input()->KeyPressed(Key::D)) {
+				movement -= right;
+			}
+			if (GetScene()->Input()->KeyPressed(Key::W)) {
+				movement += forward;
+			}
+			if (GetScene()->Input()->KeyPressed(Key::S)) {
+				movement -= forward;
+			}
+			if (GetScene()->Input()->KeyPressed(Key::E)) {
+				movement += up;
+			}
+			if (GetScene()->Input()->KeyPressed(Key::Q)) {
+				movement -= up;
+			}
+			if (GetScene()->Input()->KeyPressed(Key::LeftShift)) {
+				movementSpeed *= 2;
+			}
+
+			if (glm::length(movement) > 0.0f) {
+				movement = glm::normalize(movement);
+			}
+
+			this->GlobalTransform().Position() +=
+				movement * (movementSpeed * Time::Delta());
+
+			glm::vec2 deltaMovement = GetScene()->Input()->GetMouseMovement();
+
+			this->rotation -= (deltaMovement.x / 20) * this->mouseSensitivity;
+			this->pitch -= (deltaMovement.y / 20) * this->mouseSensitivity;
+
+			if (this->rotation < -180) {
+				this->rotation += 360;
+			} else if (this->rotation > 180) {
+				this->rotation -= 360;
+			}
+
+			this->pitch = glm::clamp(this->pitch, -89.0f, 89.0f);
+
+			this->GlobalTransform().Rotation() =
+				glm::angleAxis(glm::radians(this->rotation),
+							   glm::vec3(0, 1, 0)) *
+				glm::angleAxis(glm::radians(this->pitch), glm::vec3(1, 0, 0));
+
+			this->GlobalTransform().Rotation() =
+				this->GlobalTransform().Rotation().value;
+		}
+
+		if (GetScene()->Input()->KeyDown(Key::Escape)) {
+			this->movementEnabled = !this->movementEnabled;
+			GetScene()->Input()->SetMouseLocked(this->movementEnabled);
+
+			if (this->movementEnabled) {
+				glm::vec3 forward = this->GlobalTransform().Forward();
+				this->pitch =
+					glm::degrees(asin(glm::clamp(-forward.y, -1.0f, 1.0f)));
+				this->rotation = glm::degrees(atan2(forward.x, forward.z));
+			}
+		}
+	}
+
+	virtual void DrawImGui() {
+		const char* modes[]{
+			"Walking",
+			"Freecam",
+		};
+
+		ImGui::Combo("Movement type", &this->mode, modes, 2);
+
+		ImGui::InputFloat("Movement speed", &this->movementSpeed);
+		ImGui::InputFloat("Mouse sensitivity", &this->mouseSensitivity);
+	}
+};
+
+inline void InitScene(Scene& mainScene) {
+	mainScene.AddComponent<Physics::System>();
+	mainScene.AddComponent<DebugInspector>();
+	mainScene.AddComponent<AnimationSystem>();
+	auto* tweenSystem = mainScene.AddComponent<TweenSystem>();
+
+// If Visual Studio doesn't like this I'm going to give up and force you guys to switch to GCC
+#pragma region World
+
+	ShaderProgram* skyProg = ShaderProgram::Build()
+	.WithVertexShader(mainScene.Resources()->Get<VertexShader>("./res/shaders/skybox.vert"))
+	.WithPixelShader(mainScene.Resources()->Get<PixelShader>(	"./res/shaders/skybox.frag"))
+	.Link();
+
+	Cubemap* skyCubemap = mainScene.Resources()->Get<Cubemap>(
+		"./res/textures/citrus_orchard_road_puresky.hdr",
+		Texture::HDRColorBuffer
+	);
+	skyCubemap->SetWrapModeU(TextureWrap::Clamp);
+	skyCubemap->SetWrapModeV(TextureWrap::Clamp);
+	skyCubemap->SetWrapModeW(TextureWrap::Clamp);
+
+	Material* skyMat = new Material(skyProg);
+	skyMat->SetValue("skyboxTexture", skyCubemap);
+
+	auto floorNode = GltfImporter::LoadScene(&mainScene, "./res/models/floor.glb", "Floor");
+	floorNode->AddObject<Skybox>(skyMat);
+	MeshRenderer* floorMeshRenderer = floorNode->GetObjectInChildren<MeshRenderer>();
+	floorMeshRenderer->GetNode()->AddObject<Physics::Body>(
+		JPH::BodyCreationSettings{
+			Physics::MeshShape(floorMeshRenderer->GetMesh()),
+			JPH::RVec3::sZero(), JPH::Quat::sZero(), JPH::EMotionType::Static,
+			Physics::Layers::NON_MOVING
+		}
+	);
+	floorNode->AddObject<Surface>(floorMeshRenderer->GetMesh(), 1.0f);
+
+	SceneNode* monkey = GltfImporter::LoadScene(&mainScene, "./res/models/big_monkey.glb", "Monkey", floorNode);
+	JPH::ShapeRefC monkeyShape = Physics::CreateCompoundShapeFromNode(
+		monkey, false, JPH::EMotionType::Static, Physics::Layers::NON_MOVING
+	);
+	monkey->AddObject<Physics::Body>(JPH::BodyCreationSettings{
+		monkeyShape, JPH::Vec3::sZero(), JPH::Quat::sIdentity(),
+		JPH::EMotionType::Static, Physics::Layers::MOVING
+	});
+
+#pragma endregion
+#pragma region Player
+
+	JPH::Ref<JPH::CharacterVirtualSettings> characterSettings = new JPH::CharacterVirtualSettings();
+	characterSettings->mShape = new JPH::CapsuleShape(0.5f, 0.5f);
+	characterSettings->mShapeOffset = JPH::Vec3(0, 1, 0);
+	characterSettings->mMaxSlopeAngle = JPH::DegreesToRadians(45.0f);
+	
+	SceneNode* playerNode = mainScene.CreateNode("Player");
+
+	SceneNode* bimberman = GltfImporter::LoadScene(&mainScene, "./res/models/bimbermann_throwing.glb", "Bimberman");
+	bimberman->SetParent(playerNode);
+
+	auto* virtualCharacter = playerNode->AddObject<Physics::VirtualCharacterController>(characterSettings);
+	virtualCharacter->SetPosition(playerNode->GlobalTransform().Position().Value());
+	virtualCharacter->SetGravityFactor(0);
+	virtualCharacter->SetCollisionLayerAndMask({ 0 }, 0);
+	auto* player = playerNode->AddObject<PlayerController>();
+
+	auto* aimingAid = mainScene.CreateNode("AimingAid")->AddObject<AimingAid>();
+
+	aimingAid->crosshair = GltfImporter::LoadScene(&mainScene, "./res/models/crosshair.glb", "crosshair", floorNode);
+	aimingAid->crosshair->SetParent(aimingAid->GetNode());
+
+	player->aim = aimingAid;
+
+
+
+
+#pragma endregion
+#pragma region Camera
+
+	SceneNode* cameraNode = mainScene.CreateNode("Camera Node");
+	cameraNode->AddObject<Camera>(Camera::Perspective(60.0f, 16.0f / 9.0f, 1.0f, 20.0f));
+	cameraNode->AddObject<CameraSettings>(playerNode->GlobalTransform().Position());
+	cameraNode->AddObject<Bloom>();
+	cameraNode->AddObject<Tonemapper>()->SetOperator(Tonemapper::TonemapperOperator::GranTurismo);
+	cameraNode->AddObject<ColorGrading>();
+	cameraNode->AddObject<Fxaa>();
+
+#pragma endregion
+#pragma region Miscellaneous
+
+	Mesh* mirrorMesh = mainScene.Resources()->Get<Mesh>("./res/models/plane.obj");
+	SceneNode* mirrorNode = mainScene.CreateNode("Mirror");
+	mirrorNode->AddObject<Mirror>(mirrorMesh);
+	mirrorNode->GlobalTransform().Position() = {15.0f, 0.0f, 1.5f};
+	mirrorNode->GlobalTransform().Rotation() = glm::quat(glm::radians(glm::vec3(0.0f, 180.0f, 0.0f)));
+	mirrorNode->GetObjectInChildren<MeshRenderer>()->GlobalTransform().Scale() = {10.0f, 7.0f, 1.0f};
+	Physics::CreateCompoundShapeFromNode(
+	mirrorNode->GetObjectInChildren<MeshRenderer>()->GetNode(), false,
+		JPH::EMotionType::Static, Physics::Layers::NON_MOVING
+	);
+
+#pragma endregion
+
+	return;
+
+}
+} // namespace TestScene

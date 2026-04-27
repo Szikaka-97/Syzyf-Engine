@@ -20,6 +20,8 @@ public:
 	Mesh* GetMesh();
 	void SetMesh(Mesh* newMesh);
 
+	int GetMaterialCount() const;
+
 	Material* GetMaterial(int materialIndex = 0);
 
 	void SetMaterial(Material* newMaterial, int materialIndex = 0);

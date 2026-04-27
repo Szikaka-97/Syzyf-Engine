@@ -25,5 +25,8 @@ void main() {
 	col.g = col.g / (1 + col.g);
 	col.b = col.b / (1 + col.b);
 
+	float gamma = 2.2;
+	col.rgb = pow(col.rgb, vec3(1.0/gamma));
+
 	imageStore(outputImg, pixelCoord, col);
 }

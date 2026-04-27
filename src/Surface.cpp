@@ -93,7 +93,7 @@ float Surface::GetGroundHeight(float x, float z) const {
 
     JPH::RRayCast ray(JPH::RVec3(x, 500.0f, z), JPH::Vec3(0, -1, 0));
     JPH::RayCastResult result;
-    if (physics->GetSystem().GetNarrowPhaseQuery().CastRay(ray, result)) {
+    if (physics->GetJoltSystem()->GetNarrowPhaseQuery().CastRay(ray, result)) {
         JPH::RVec3 hit = ray.GetPointOnRay(result.mFraction);
         return static_cast<float>(hit.GetY());
     }
@@ -106,7 +106,7 @@ bool Surface::IsOnSurface(const glm::vec3& point) const {
 
     JPH::RRayCast ray(JPH::RVec3(point.x, point.y, point.z), JPH::Vec3(0, -1, 0));
     JPH::RayCastResult result;
-    if (physics->GetSystem().GetNarrowPhaseQuery().CastRay(ray, result)) {
+    if (physics->GetJoltSystem()->GetNarrowPhaseQuery().CastRay(ray, result)) {
         return true;
     }
     return false;

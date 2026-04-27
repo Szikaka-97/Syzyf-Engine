@@ -25,12 +25,14 @@ namespace JPH {
 
 namespace Physics {
 
+class DebugRenderer;
+
 struct SystemSettings {
-  JPH::uint maxBodies = 1024;
+  JPH::uint maxBodies = 9024;
   JPH::uint numBodyMutexes = 0;
-  JPH::uint maxBodyPairs = 1024;
-  JPH::uint maxContactConstraints = 1024;
-  JPH::uint tempAllocatorSize = 10 * 1024 * 1024;
+  JPH::uint maxBodyPairs = 9024;
+  JPH::uint maxContactConstraints = 9024;
+  JPH::uint tempAllocatorSize = 10 * 9024 * 8024;
 };
 
 struct CollisionData {
@@ -42,13 +44,15 @@ struct CollisionData {
 struct Layers {
   static constexpr JPH::ObjectLayer NON_MOVING = 0;
   static constexpr JPH::ObjectLayer MOVING = 1;
-  static constexpr JPH::ObjectLayer NUM_LAYERS = 2;
+  static constexpr JPH::ObjectLayer EDITOR = 2;
+  static constexpr JPH::ObjectLayer NUM_LAYERS = 3;
 };
 
 struct BroadPhaseLayers {
   static constexpr JPH::BroadPhaseLayer NON_MOVING{0};
   static constexpr JPH::BroadPhaseLayer MOVING{1};
-  static constexpr JPH::uint NUM_LAYERS{2};
+  static constexpr JPH::BroadPhaseLayer EDITOR{2};
+  static constexpr JPH::uint NUM_LAYERS{3};
 };
 
 class System : public SceneComponent {
@@ -79,9 +83,9 @@ public:
   System(Scene* scene, const SystemSettings& settings = SystemSettings());
   virtual ~System();
 
-
   void OnPreUpdate();
-  void OnPostRender();
+
+  void DrawPhysicsDebug(DebugRenderer* debugRenderer);
 
   void DrawImGui();
 
@@ -109,7 +113,7 @@ public:
   void SetGravity(const glm::vec3 gravity);
 
   JPH::BodyInterface& GetBodyInterface();
-  JPH::PhysicsSystem& GetSystem();
+  JPH::PhysicsSystem* GetJoltSystem();
   JPH::TempAllocatorImpl& GetTempAllocator();
 
   JPH::GroupFilter* GetLayerGroupFilter() const;

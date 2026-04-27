@@ -36,10 +36,15 @@
           pkg-config
           gdb
           wayland-scanner
-          ccache
+          python3
 
+          cppcheck
+          include-what-you-use
+          glslang
           glslls
           clang-tools
+          doxygen
+          graphviz
         ];
 
         buildInputs = with pkgs; [
@@ -53,3 +58,4 @@
       };
     };
 }
+

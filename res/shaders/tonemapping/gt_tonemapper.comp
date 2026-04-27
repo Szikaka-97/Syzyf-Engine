@@ -49,5 +49,8 @@ void main() {
 	col.g = GranTurismoTonemapper(col.g);
 	col.b = GranTurismoTonemapper(col.b);
 
+	float gamma = 2.2;
+	col.rgb = pow(col.rgb, vec3(1.0/gamma));
+
 	imageStore(outputImg, pixelCoord, col);
 }

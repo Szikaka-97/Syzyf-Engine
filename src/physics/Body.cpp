@@ -2,17 +2,10 @@
 #include "physics/System.h"
 
 #include "GameObject.h"
-#include "Jolt/Core/Core.h"
-#include "Jolt/Geometry/Triangle.h"
+#include <Jolt/Jolt.h>
 #include "Jolt/Math/Real.h"
 #include "Jolt/Physics/Body/MotionType.h"
-#include "Jolt/Physics/Collision/ObjectLayer.h"
-#include "Jolt/Physics/Collision/Shape/BoxShape.h"
-#include "Jolt/Physics/Collision/Shape/CapsuleShape.h"
 #include "Jolt/Physics/Collision/Shape/Shape.h"
-#include "Jolt/Physics/Collision/Shape/PlaneShape.h"
-#include "Jolt/Physics/Collision/Shape/MeshShape.h"
-#include "Jolt/Physics/EActivation.h"
 #include <spdlog/spdlog.h>
 #include <imgui.h>
 
@@ -28,137 +21,6 @@ using namespace JPH::literals;
 Body::Body() {};
 
 Body::Body(const JPH::BodyCreationSettings& settings): bodyCreationSettings(settings) {}
-
-JPH::BodyCreationSettings Body::Sphere(float radius, const JPH::EMotionType type, const JPH::ObjectLayer layer) {
-  // If the radius is to small it complains about not being able to calculate the mass and does a SIGTRAP
-  if (radius < 0.001f) {
-    spdlog::warn("Trying to create a `PhysicsObjet::Sphere` with too small of a radius, setting it to 0.001");
-    radius = 0.001f; 
-  }
-
-  return JPH::BodyCreationSettings(
-  new JPH::SphereShape(radius),
-    JPH::RVec3::sZero(),
-    JPH::QuatArg::sIdentity(),
-    type,
-    layer
-  );
-}
-
-JPH::BodyCreationSettings Body::Box(glm::vec3 halfExtent, const JPH::EMotionType type, const JPH::ObjectLayer layer) {
-  if (halfExtent.x < defaultConvexRadius || halfExtent.y < defaultConvexRadius || halfExtent.z < defaultConvexRadius) {
-    spdlog::warn("Trying to create a `PhysicsObject::Box` with extents smaller than Jolt's default convex radius. Clamping to 0.05f");
-    halfExtent.x = std::max(halfExtent.x, defaultConvexRadius);
-    halfExtent.y = std::max(halfExtent.y, defaultConvexRadius);
-    halfExtent.z = std::max(halfExtent.z, defaultConvexRadius);
-  }
-  
-  return JPH::BodyCreationSettings(
-      new JPH::BoxShape(JPH::Vec3Arg(halfExtent.x, halfExtent.y, halfExtent.z)),
-      JPH::RVec3Arg::sZero(),
-      JPH::QuatArg::sIdentity(),
-      type,
-      layer
-  );
-}
-
-JPH::BodyCreationSettings Body::Capsule(float halfHeight, float radius, const JPH::EMotionType type, const JPH::ObjectLayer layer) {
-  if (halfHeight < defaultConvexRadius || radius < defaultConvexRadius) {
-    spdlog::warn("Trying to create a `PhysicsObject::Capsule` with dimensions smaller than Jolt's convex radius. Clamping to 0.05f");
-    halfHeight = std::max(halfHeight, defaultConvexRadius);
-    radius = std::max(halfHeight, defaultConvexRadius);
-  }
-
-  return JPH::BodyCreationSettings(
-      new JPH::CapsuleShape(halfHeight, radius),
-      JPH::RVec3Arg::sZero(),
-      JPH::QuatArg::sIdentity(),
-      type,
-      layer
-  );    
-}
-
-JPH::BodyCreationSettings Body::Plane(glm::vec3 normal, const JPH::EMotionType type, const JPH::ObjectLayer layer) {
-  return JPH::BodyCreationSettings (
-    new JPH::PlaneShape,
-    JPH::RVec3Arg::sZero(),
-    JPH::QuatArg::sIdentity(),
-    type,
-    layer
-  );
-}
-
-JPH::BodyCreationSettings Body::ConvexHullMesh(const class Mesh* mesh, const JPH::EMotionType type, const JPH::ObjectLayer layer) {
-  const uint8_t* vertexDataPointer = reinterpret_cast<const uint8_t*>(mesh->GetVertexData());
-  const unsigned int vertexStride = mesh->GetVertexStride() * sizeof(float);
-  const unsigned int vertexCount = mesh->GetVertexCount();
-
-  std::vector<JPH::Vec3> joltVertices;
-  joltVertices.reserve(vertexCount);
-
-  for (unsigned int i = 0; i < mesh->GetVertexCount(); i++) {
-    const float* pointer = reinterpret_cast<const float*>(vertexDataPointer);
-
-    joltVertices.emplace_back(
-      pointer[0],
-      pointer[1],
-      pointer[2]
-    );
-
-    vertexDataPointer += vertexStride;
-  }
-
-  JPH::ConvexHullShapeSettings* shapeSettings = new JPH::ConvexHullShapeSettings(
-    joltVertices.data(),
-    joltVertices.size()
-  );
-
-  return JPH::BodyCreationSettings(
-    shapeSettings,
-    JPH::RVec3Arg::sZero(),
-    JPH::QuatArg::sIdentity(),
-    type,
-    layer
-  );
-}
-
-JPH::BodyCreationSettings Body::Mesh(const class Mesh* mesh, const JPH::EMotionType type, const JPH::ObjectLayer layer) {
-  const uint8_t* vertexDataPointer = reinterpret_cast<const uint8_t*>(mesh->GetVertexData());
-  const unsigned int vertexStride = mesh->GetVertexStride() * sizeof(float);
-  const unsigned int vertexCount = mesh->GetVertexCount();
-
-  JPH::TriangleList triangles;
-  triangles.reserve(vertexCount / 3);
-
-  for (unsigned int i = 0; i < vertexCount; i += 3) {
-    const float* p1 = reinterpret_cast<const float*>(vertexDataPointer);
-    JPH::Vec3 v1(p1[0], p1[1], p1[2]);
-    vertexDataPointer += vertexStride;
-
-    const float* p2 = reinterpret_cast<const float*>(vertexDataPointer);
-    JPH::Vec3 v2(p2[0], p2[1], p2[2]);
-    vertexDataPointer += vertexStride;
-
-    const float* p3 = reinterpret_cast<const float*>(vertexDataPointer);
-    JPH::Vec3 v3(p3[0], p3[1], p3[2]);
-    vertexDataPointer += vertexStride;
-
-    triangles.emplace_back(v1, v2, v3);
-  }
-
-  JPH::MeshShapeSettings* shapeSettings = new JPH::MeshShapeSettings(triangles);
-
-  shapeSettings->Sanitize();
-
-  return JPH::BodyCreationSettings(
-    shapeSettings,
-    JPH::RVec3Arg::sZero(),
-    JPH::QuatArg::sIdentity(),
-    type,
-    layer
-  );
- 
-}
 
 Body::~Body() {
   if (bodyCreated) {
@@ -263,7 +125,7 @@ float Body::GetGravityFactor() const {
 float Body::GetLinearDamping() const {
   if (bodyCreated) {
     if (System* physics = GetScene()->GetComponent<System>()) {
-      JPH::BodyLockRead lock(physics->GetSystem().GetBodyLockInterface(), bodyID);
+      JPH::BodyLockRead lock(physics->GetJoltSystem()->GetBodyLockInterface(), bodyID);
       if (lock.Succeeded()) {
         if (const JPH::MotionProperties* motionProperties = lock.GetBody().GetMotionProperties()) {
           return motionProperties->GetLinearDamping();
@@ -277,7 +139,7 @@ float Body::GetLinearDamping() const {
 float Body::GetAngularDamping() const {
   if (bodyCreated) {
     if (System* physics = GetScene()->GetComponent<System>()) {
-      JPH::BodyLockRead lock(physics->GetSystem().GetBodyLockInterface(), bodyID);
+      JPH::BodyLockRead lock(physics->GetJoltSystem()->GetBodyLockInterface(), bodyID);
       if (lock.Succeeded()) {
         if (const JPH::MotionProperties* motionProperties = lock.GetBody().GetMotionProperties()) {
           return motionProperties->GetAngularDamping();
@@ -309,7 +171,7 @@ bool Body::IsActive() const {
 bool Body::IsSensor() const {
   if (bodyCreated) {
     if (System* physics = GetScene()->GetComponent<System>()) {
-      JPH::BodyLockRead lock(physics->GetSystem().GetBodyLockInterface(), bodyID);
+      JPH::BodyLockRead lock(physics->GetJoltSystem()->GetBodyLockInterface(), bodyID);
       if (lock.Succeeded()) {
         return lock.GetBody().IsSensor();
       }
@@ -381,7 +243,7 @@ void Body::SetRotation(const glm::quat& rotation) {
     return;
   }
   if (System* physics = GetScene()->GetComponent<System>()) {
-    physics->GetBodyInterface().SetRotation(bodyID, JPH::Quat(rotation.x, rotation.y, rotation.z, rotation.w), JPH::EActivation::Activate);
+    physics->GetBodyInterface().SetRotation(bodyID, JPH::Quat(rotation.x, rotation.y, rotation.z, rotation.w).Normalized(), JPH::EActivation::Activate);
   }
 }
 
@@ -408,6 +270,7 @@ void Body::SetAngularVelocity(const glm::vec3& velocity) {
 void Body::SetFriction(const float friction) {
   if (!bodyCreated) {
     spdlog::warn("Tried setting friction on a body that hasn't been created yet");
+    return;
   }
   if (System* physics = GetScene()->GetComponent<System>()) {
     physics->GetBodyInterface().SetFriction(bodyID, friction);
@@ -417,6 +280,7 @@ void Body::SetFriction(const float friction) {
 void Body::SetRestitution(const float restitution) {
   if (!bodyCreated) {
     spdlog::warn("Tried setting restitution on a body that hasn't been created yet");
+    return;
   }
   if (System* physics = GetScene()->GetComponent<System>()) {
     physics->GetBodyInterface().SetRestitution(bodyID, restitution);
@@ -426,6 +290,7 @@ void Body::SetRestitution(const float restitution) {
 void Body::SetGravityFactor(const float factor) {
   if (!bodyCreated) {
     spdlog::warn("Tried setting gravity factor on a body that hasn't been created yet");
+    return;
   }
   if (System* physics = GetScene()->GetComponent<System>()) {
     physics->GetBodyInterface().SetGravityFactor(bodyID, factor);
@@ -433,10 +298,10 @@ void Body::SetGravityFactor(const float factor) {
 }
 
 void Body::SetLinearDamping(float damping) {
-  bodyCreationSettings.mAngularDamping = damping;
+  bodyCreationSettings.mLinearDamping = damping;
   if (!bodyCreated) return;
   if (System* physics = GetScene()->GetComponent<System>()) {
-    JPH::BodyLockWrite lock(physics->GetSystem().GetBodyLockInterface(), bodyID);
+    JPH::BodyLockWrite lock(physics->GetJoltSystem()->GetBodyLockInterface(), bodyID);
 
     if (lock.Succeeded()) {
       if (JPH::MotionProperties* motionProperties = lock.GetBody().GetMotionProperties()) {
@@ -450,7 +315,7 @@ void Body::SetAngularDamping(float damping) {
   bodyCreationSettings.mAngularDamping = damping;
   if (!bodyCreated) return;
   if (System* physics = GetScene()->GetComponent<System>()) {
-    JPH::BodyLockWrite lock(physics->GetSystem().GetBodyLockInterface(), bodyID);
+    JPH::BodyLockWrite lock(physics->GetJoltSystem()->GetBodyLockInterface(), bodyID);
 
     if (lock.Succeeded()) {
       if (JPH::MotionProperties* motionProperties = lock.GetBody().GetMotionProperties()) {
@@ -530,6 +395,46 @@ void Body::ApplyAngularImpulse(const glm::vec3& impulse) {
   }
 }
 
+// Syncs the node when moving it in the editor
+void Body::SyncToNode() {
+    if (!bodyCreated) {
+        spdlog::warn("Tried syncing a body that hasn't been created yet");
+        return;
+    }
+    glm::vec3 position = GetNode()->GlobalTransform().Position().Value();
+    glm::quat rotation = GetNode()->GlobalTransform().Rotation().Value();
+    glm::vec3 scale = GetNode()->GlobalTransform().Scale().Value();
+
+    this->SetPosition(position);
+    this->SetRotation(rotation);
+
+    if (scale != this->lastScale && this->originalShape != nullptr) {
+        JPH::ShapeRefC newShape;
+            
+        if (scale == glm::vec3(1.0f)) {
+            newShape = this->originalShape;
+        } else {
+            newShape = new JPH::ScaledShape(
+                this->originalShape, 
+                JPH::Vec3(scale.x, scale.y, scale.z)
+            );
+        }
+
+        if (Physics::System* system = this->GetScene()->GetComponent<Physics::System>()) {
+            system->GetBodyInterface().SetShape(
+                GetBodyID(), 
+                newShape, 
+                false,
+                JPH::EActivation::DontActivate
+            );
+            this->lastScale = scale;
+            }
+        }
+    // This activates the body after it's been moved
+    //  not sure if having this happen while editing won't cause issues
+    // the same is true for character controllers
+}
+
 void Body::Awake() {
   System* physics = GetScene()->GetComponent<System>();
   if (!physics) {
@@ -542,33 +447,32 @@ void Body::Awake() {
 
   SceneNode* node = GetNode();
 
-  SceneTransform::PositionAccess nodePosition = node->GetTransform().GlobalTransform().Position();
-  SceneTransform::RotationAccess nodeRotation = node->GetTransform().GlobalTransform().Rotation();
-  SceneTransform::ScaleAccess nodeScale = node->GetTransform().GlobalTransform().Scale();
+  glm::vec3 nodePosition = node->GetTransform().GlobalTransform().Position();
+  glm::quat nodeRotation = node->GetTransform().GlobalTransform().Rotation();
+  glm::vec3 nodeScale = node->GetTransform().GlobalTransform().Scale();
 
   position = JPH::RVec3(nodePosition.x, nodePosition.y, nodePosition.z);
-  rotation = JPH::Quat(nodeRotation.x, nodeRotation.y, nodeRotation.z, nodeRotation.w);
+  rotation = JPH::Quat(nodeRotation.x, nodeRotation.y, nodeRotation.z, nodeRotation.w).Normalized();
 
-  const float epsilon = 1.0e-4f;
-  bool isScaled = glm::abs(nodeScale.x - 1.0f) > epsilon || 
-    glm::abs(nodeScale.y - 1.0f) > epsilon || 
-    glm::abs(nodeScale.z - 1.0f) > epsilon;
+if (bodyCreationSettings.GetShapeSettings() != nullptr) {
+      JPH::Shape::ShapeResult result = bodyCreationSettings.GetShapeSettings()->Create();
+      if (result.IsValid()) {
+          this->originalShape = result.Get();
+      }
+  } else if (bodyCreationSettings.GetShape() != nullptr) {
+      this->originalShape = bodyCreationSettings.GetShape();
+  }
 
-  if (nodeScale.value != glm::vec3(1.0f)) {
-    if (glm::abs(nodeScale.x - nodeScale.y) > epsilon || glm::abs(nodeScale.y - nodeScale.z) > epsilon) {
-      spdlog::warn("PhysicsObject: Non-uniform scaling, will fail if applied to a Capsule/Sphere shapes");
-    }
+  JPH::ShapeRefC activeShape = this->originalShape;
+  if (nodeScale != glm::vec3(1.0f)) {
+      if (glm::abs(nodeScale.x - nodeScale.y) > glm::epsilon<float>() || glm::abs(nodeScale.y - nodeScale.z) > glm::epsilon<float>()) {
+        spdlog::warn("PhysicsObject::Awake: Non-uniform scaling may not work on Sphere/Capsule shapes");
+      }
+      activeShape = new JPH::ScaledShape(this->originalShape, JPH::Vec3(nodeScale.x, nodeScale.y, nodeScale.z));
+  }
 
-    const JPH::ShapeSettings* baseSettings = bodyCreationSettings.GetShapeSettings();
-
-    if (baseSettings != nullptr) {
-      // ! Doesn't check whether the scale is valid for the shape !
-      JPH::ScaledShapeSettings* scaledSettings = new JPH::ScaledShapeSettings(
-        baseSettings,
-        JPH::Vec3Arg(nodeScale.x, nodeScale.y, nodeScale.z));
-      bodyCreationSettings.SetShapeSettings(scaledSettings);
-      };
-    }
+  bodyCreationSettings.SetShape(activeShape);
+  this->lastScale = nodeScale;
 
   bodyCreationSettings.mPosition = position;
   bodyCreationSettings.mRotation = rotation;
@@ -588,8 +492,8 @@ void Body::Awake() {
 }
 
 void Body::OnEnable() {
-  if (!bodyCreated) {
-    spdlog::warn("Tried enabling a body that hasn't been created yet");
+  if (!bodyCreated || addedToWorld) {
+    spdlog::warn("Tried enabling a body that hasn't been created yet, or one which has already been added");
     return;
   }
 
@@ -599,8 +503,8 @@ void Body::OnEnable() {
 }
 
 void Body::OnDisable() {
-  if (!bodyCreated) {
-    spdlog::warn("Tried disabling a body that hasn't been created yet");
+  if (!bodyCreated || !addedToWorld) {
+    spdlog::warn("Tried disabling a body that hasn't been created yet or one that hasn't been added yet");
     return;
   }
 

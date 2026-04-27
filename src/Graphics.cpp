@@ -23,7 +23,6 @@
 #include "animation/SkeletonSystem.h"
 #include "include/Framebuffer.h"
 #include "include/Shader.h"
-#include "physics/DebugRenderer.h"
 
 #define LIGHT_GRID_SIZE 16
 
@@ -252,7 +251,7 @@ void SceneGraphics::RenderObjects(const ShaderGlobalUniforms &globalUniforms,
 
     mat->Bind();
 
-    int offsetLocation = glGetUniformLocation(mat->GetShader()->handle, "uBoneOffet");
+    int offsetLocation = glGetUniformLocation(mat->GetShader()->handle, "uBoneOffset");
     if (offsetLocation >= 0) {
       if (node.jointBufferOffset >= 0) {
         glUniform1i(offsetLocation, node.jointBufferOffset);
@@ -261,7 +260,7 @@ void SceneGraphics::RenderObjects(const ShaderGlobalUniforms &globalUniforms,
       }
     }
 
-    if (params.pass == RenderPassType::Color) {
+    if (params.pass == RenderPassType::Color || params.pass == RenderPassType::Transparent) {
       int shadowmaskUniformLocation =
           glGetUniformLocation(mat->GetShader()->handle, "Builtin_ShadowMask");
 
@@ -503,8 +502,15 @@ void SceneGraphics::DrawMeshInstanced(MeshRenderer *renderer,
       targetRenderQueue = &this->volumetricRenders;
     }
 
+    BoundingBox bounds = mesh->GetBounds();
+    // A hack to stop animated meshes from getting culled
+    if (skeleton) {
+        bounds = BoundingBox(glm::vec3(-100000.0f), glm::vec3(100000.0f));
+    }
+
     RenderNode node(mesh, material, instanceCount,
                     renderer->GlobalTransform(),
+                    bounds,
                     renderer->GetNode()->GetLayer());
     node.jointBufferOffset = skinningOffset;
     targetRenderQueue->push_back(node);
@@ -578,11 +584,7 @@ void SceneGraphics::Render() {
   glViewport(0, 0, this->mainViewport->GetSize().x,
              this->mainViewport->GetSize().y);
 
-  CompositeTransparentPass();
-
-  if (Physics::DebugRenderer* debugRenderer = this->GetScene()->GetComponent<Physics::DebugRenderer>()) {
-    debugRenderer->Render();
-  }
+  glBindFramebuffer(GL_FRAMEBUFFER, this->mainViewport->GetFramebuffer()->GetHandle());
 
   RenderFullscreenFrameQuad();
 
@@ -641,6 +643,7 @@ void SceneGraphics::RenderCamera(Camera *camera, Viewport *renderTarget,
   globalUniforms.Global_CameraWorldPos =
       glm::vec4(camera->GlobalTransform().Position().Value(), 0.0);
   globalUniforms.Global_Time = Time::Current();
+  globalUniforms.Global_Resolution = glm::vec4(GetScreenResolution(), 1.0f / GetScreenResolution());
   globalUniforms.Global_CameraFarPlane = camera->GetFarPlane();
   globalUniforms.Global_CameraNearPlane = camera->GetNearPlane();
   globalUniforms.Global_CameraFov = camera->GetFovRad();
@@ -679,19 +682,21 @@ void SceneGraphics::RenderCamera(Camera *camera, Viewport *renderTarget,
     RenderScene(globalUniforms, renderTarget, activeParams);
   }
 
-  if ((params.pass & RenderPassType::PostProcessing) ==
-      RenderPassType::PostProcessing) {
-    activeParams.pass = RenderPassType(RenderPassType::PostProcessing);
-
-    RenderScene(globalUniforms, renderTarget, activeParams);
-  }
-
   if (camera == this->mainCamera &&
       (params.pass & RenderPassType::Transparent) ==
           RenderPassType::Transparent) {
     activeParams.pass = RenderPassType(RenderPassType::Transparent);
 
     RenderScene(globalUniforms, this->transparentPassFramebuffer, activeParams);
+
+    CompositeTransparentPass();
+  }
+
+  if ((params.pass & RenderPassType::PostProcessing) ==
+      RenderPassType::PostProcessing) {
+    activeParams.pass = RenderPassType(RenderPassType::PostProcessing);
+
+    RenderScene(globalUniforms, renderTarget, activeParams);
   }
 }
 
@@ -895,6 +900,7 @@ void SceneGraphics::RenderScene(const CameraData &camera,
       globalUniforms.Global_ProjectionMatrix * globalUniforms.Global_ViewMatrix;
   globalUniforms.Global_CameraWorldPos =
       glm::vec4((glm::vec3)camera.cameraTransform[3], 0.0);
+  globalUniforms.Global_Resolution = glm::vec4(GetScreenResolution(), 1.0f / GetScreenResolution());
   globalUniforms.Global_Time = Time::Current();
   globalUniforms.Global_CameraFarPlane = camera.GetFarPlane();
   globalUniforms.Global_CameraNearPlane = camera.GetNearPlane();

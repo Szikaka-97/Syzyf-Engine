@@ -2,7 +2,6 @@
 
 #include <malloc.h>
 #include <algorithm>
-#include <stack>
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -401,6 +400,36 @@ void Scene::DeleteNode(SceneNode* node) {
     delete node;
 }
 
+void Scene::FlushQueues() {
+    while (!this->deletedReceiversQueue.empty() || !this->deletedNodesQueue.empty()) {
+        while (!this->deletedReceiversQueue.empty()) {
+            auto deleted = this->deletedReceiversQueue.front();
+            
+            bool isGameObject = dynamic_cast<GameObject*>(deleted) != nullptr;
+            void* rawMem = dynamic_cast<void*>(deleted);
+            
+            deleted->~MessageReceiver();
+            
+            if (isGameObject) {
+                delete[] reinterpret_cast<unsigned char*>(rawMem);
+            } else {
+                ::operator delete(rawMem);
+            }
+            
+            this->deletedReceiversQueue.pop();
+        }
+
+        if (!this->deletedNodesQueue.empty()) {
+            auto deleted = this->deletedNodesQueue.front();
+            deleted->~SceneNode();
+            
+            ::operator delete(deleted);
+            
+            this->deletedNodesQueue.pop();
+        }
+    }
+}
+
 void Scene::QueueDelete(SceneNode* node) {
     this->deletedNodesQueue.push(node);
 
@@ -429,19 +458,7 @@ void Scene::Update() {
         component->OnPostUpdate();
     }
 
-    while (!this->deletedReceiversQueue.empty()) {
-        auto deleted = this->deletedReceiversQueue.front();
-        deleted->~MessageReceiver();
-        std::free(deleted);
-        this->deletedReceiversQueue.pop();
-    }
-
-    while (!this->deletedNodesQueue.empty()) {
-        auto deleted = this->deletedNodesQueue.front();
-        deleted->~SceneNode();
-        std::free(deleted);
-        this->deletedNodesQueue.pop();
-    }
+    this->FlushQueues();
 }
 
 void Scene::Render() {

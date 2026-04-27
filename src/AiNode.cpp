@@ -33,7 +33,6 @@
 #include "physics/System.h"
 #include "physics/DebugRenderer.h"
 #include "physics/Body.h"
-#include "physics/Water.h"
 
 #include <Jolt/Physics/Collision/Shape/ConvexHullShape.h>
 #include <Jolt/Physics/Collision/CollideShape.h>
@@ -153,7 +152,7 @@ void AiNode::Update() {
     Patrol();
 }
 
-		DrawDebugView();
+		//DrawDebugView();
 	}
 
 	void AiNode::SetTarget(SceneNode * target) {
@@ -584,16 +583,17 @@ void AiNode::SearchWalkPoint() {
 		walkPoint = patrolPoints[posIndex];
 		walkPointSet = true;
 	}
-	void AiNode::DrawDebugView() {
+	void AiNode::DrawDebugView(Physics::DebugRenderer* debugRenderer) {
 		if (!myNode) return;
 
-		auto* scene = GetScene();
-		auto* debugRenderer = scene ? scene->GetComponent<Physics::DebugRenderer>() : nullptr;
+		/*auto* scene = GetScene();
+		Physics::DebugRenderer* debugRenderer = scene ? scene->GetComponent<Physics::DebugRenderer>() : nullptr;
 		if (!debugRenderer) {
 			return;
-		}
+		}*/
 
-		if (m_Surface && debugRenderer) {
+
+		if (m_Surface) {
         m_Surface->DrawDebugSurface(debugRenderer, 0.5f, 1);
     }
 

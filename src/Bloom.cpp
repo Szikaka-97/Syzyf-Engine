@@ -36,6 +36,14 @@ Bloom::Bloom() {
 	this->finalShader = new ComputeShaderProgram(GetScene()->Resources()->Get<ComputeShader>("./res/shaders/bloom/bloom_final.comp"));
 }
 
+void Bloom::SetDirtTexture(Texture2D* texture) {
+    this->dirtTexture = texture;
+}
+
+void Bloom::SetDirtIntensity(float intensity) {
+    this->dirtIntensity = intensity;
+}
+
 void Bloom::OnPostProcess(const PostProcessParams* params) {
 	if (this->savedResolution != GetScene()->GetGraphics()->GetScreenResolution()) {
 		this->savedResolution = GetScene()->GetGraphics()->GetScreenResolution();
@@ -76,6 +84,14 @@ void Bloom::OnPostProcess(const PostProcessParams* params) {
 
 	glUniform1f(glGetUniformLocation(this->upsampleShader->GetHandle(), "bloomIntensity"), this->intensity);
 
+    if (this->dirtTexture != nullptr) {
+        glUniform1i(glGetUniformLocation(this->upsampleShader->GetHandle(), "useDirtTexture"), true);
+        glBindTextureUnit(1, this->dirtTexture->GetHandle());
+        glUniform1f(glGetUniformLocation(this->upsampleShader->GetHandle(), "dirtIntensity"), this->dirtIntensity);
+    } else {
+        glUniform1i(glGetUniformLocation(this->upsampleShader->GetHandle(), "useDirtTexture"), false);
+    }
+
 	for (int i = BLOOM_LEVEL - 1; i >= 1; i--) {
 		if (i == 1) {
 			glBindImageTexture(0, params->outputTexture->GetHandle(), 0, false, 0, GL_READ_WRITE, GL_RGBA16F);
@@ -103,4 +119,7 @@ void Bloom::DrawImGui() {
 	ImGui::InputFloat("Threshold", &this->threshold);
 	ImGui::InputFloat("Knee", &this->knee);
 	ImGui::InputFloat("Intensity", &this->intensity);
+    if (this->dirtTexture != nullptr) {
+        ImGui::InputFloat("Dirt Intensity", &this->dirtIntensity);
+    }
 }
