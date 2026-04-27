@@ -455,8 +455,8 @@ inline void InitScene(Scene& mainScene) {
 
     Mesh* cannonMesh =
         mainScene.Resources()->Get<Mesh>("./res/models/cannon/cannon.obj");
-    Mesh* cubeMesh =
-        mainScene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
+    // Mesh* cubeMesh =
+    //     mainScene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
     Mesh* tvMesh =
         mainScene.Resources()->Get<Mesh>("./res/models/tv_stand.fbx");
     Mesh* schnozMesh =
@@ -542,22 +542,22 @@ inline void InitScene(Scene& mainScene) {
     Material* blueTransparentMat = new Material(transparentProg);
     blueTransparentMat->SetValue("uColor", glm::vec4(0.5, 0.5, 1.0, 0.6));
 
-    SceneNode* playerNode = mainScene.CreateNode("Player");
-    playerNode->GlobalTransform().Position() = glm::vec3(0.0f, 5.0f, -10.0f);
-    JPH::Ref<JPH::CharacterSettings> characterSettings =
-        new JPH::CharacterSettings();
-    characterSettings->mShape = new JPH::CapsuleShape(1.0f, 0.5f);
-    characterSettings->mMaxSlopeAngle = JPH::DegreesToRadians(45.0f);
-    characterSettings->mFriction = 0.5f;
-    characterSettings->mLayer = Physics::Layers::MOVING;
-    playerNode->AddObject<Physics::CharacterController>(characterSettings);
-    playerNode->AddObject<PhysicsMover>();
+    // SceneNode* playerNode = mainScene.CreateNode("Player");
+    // playerNode->GlobalTransform().Position() = glm::vec3(0.0f, 5.0f, -10.0f);
+    // JPH::Ref<JPH::CharacterSettings> characterSettings =
+    //     new JPH::CharacterSettings();
+    // characterSettings->mShape = new JPH::CapsuleShape(1.0f, 0.5f);
+    // characterSettings->mMaxSlopeAngle = JPH::DegreesToRadians(45.0f);
+    // characterSettings->mFriction = 0.5f;
+    // characterSettings->mLayer = Physics::Layers::MOVING;
+    // playerNode->AddObject<Physics::CharacterController>(characterSettings);
+    // playerNode->AddObject<PhysicsMover>();
 
-    auto cameraNode = mainScene.CreateNode(playerNode, "Camera");
-    Camera* camera = cameraNode->AddObject<Camera>(
-        Camera::Perspective(40.0f, 16.0f / 9.0f, 0.5f, 200.0f));
-    camera->GlobalTransform().Position() = glm::vec3(0.0f, 5.0f, -10.0f);
-
+    // auto cameraNode = mainScene.CreateNode(playerNode, "Camera");
+    // Camera* camera = cameraNode->AddObject<Camera>(
+    //     Camera::Perspective(40.0f, 16.0f / 9.0f, 0.5f, 200.0f));
+    // camera->GlobalTransform().Position() = glm::vec3(0.0f, 5.0f, -10.0f);
+    //
     auto floorNode = mainScene.CreateNode("Floor");
     floorNode->GlobalTransform().Position() -= glm::vec3(0.0f, 0.5f, 0.0f);
     floorNode->AddObject<Skybox>(skyMat);
@@ -572,80 +572,123 @@ inline void InitScene(Scene& mainScene) {
     lightNode->GlobalTransform().Position() = {-1, 2.2f, 0};
 
     auto lightNode2 = mainScene.CreateNode("Directional Light");
-    lightNode2->AddObject<Light>(Light::DirectionalLight({1, 1, 1}, 4))
+    lightNode2->AddObject<Light>(Light::DirectionalLight({1, 1, 1}, 1))
         ->SetShadowCasting(true);
     lightNode2->GlobalTransform().Position() = {1, 2.2f, 0};
     lightNode2->GlobalTransform().Rotation() =
         glm::quat(glm::radians(glm::vec3(64.0f, 0.0f, 0.0f)));
 
-    SceneNode* schnozCameraNode = mainScene.CreateNode("Schnoz Camera");
-    schnozCameraNode->LocalTransform().Position() = glm::vec3(-56.5, 2.0, -2.0);
-    schnozCameraNode->LocalTransform().Rotation() =
-        glm::quat(glm::radians(glm::vec3(5.0f, 85.0f, 0.0f)));
+    // SceneNode* schnozCameraNode = mainScene.CreateNode("Schnoz Camera");
+    // schnozCameraNode->LocalTransform().Position() = glm::vec3(-56.5, 2.0,
+    // -2.0); schnozCameraNode->LocalTransform().Rotation() =
+    //     glm::quat(glm::radians(glm::vec3(5.0f, 85.0f, 0.0f)));
+    //
+    // auto schnozCamera = schnozCameraNode->AddObject<Camera>(
+    //     Camera::Perspective(40.0f, 16.0f / 9.0f, 0.5f, 200.0f));
+    // schnozCamera->SetAspectRatio(2);
+    // schnozCamera->SetRenderTarget(schnozPreview);
+    // schnozCamera->SetLayerMask(uint8_t(5));
 
-    auto schnozCamera = schnozCameraNode->AddObject<Camera>(
-        Camera::Perspective(40.0f, 16.0f / 9.0f, 0.5f, 200.0f));
-    schnozCamera->SetAspectRatio(2);
-    schnozCamera->SetRenderTarget(schnozPreview);
-    schnozCamera->SetLayerMask(uint8_t(5));
+    // SceneNode* schnozNode = mainScene.CreateNode("Schnoz");
+    // schnozNode->LocalTransform().Position() = glm::vec3(-53.5, 1.75, -2.4);
+    // schnozNode->LocalTransform().Scale() = glm::vec3(0.15, 0.15, 0.15);
+    // schnozNode->AddObject<MeshRenderer>(schnozMesh, schnozMat);
+    // schnozNode->AddObject<AutoRotator>(1);
+    // schnozNode->SetLayer(5);
+    //
+    // SceneNode* w_schnozNode = mainScene.CreateNode("w_schnozNode");
+    // w_schnozNode->LocalTransform().Position() = glm::vec3(-20, 0, -20);
+    // schnozNode->LocalTransform().Scale() = glm::vec3(1, 1, 1);
+    // w_schnozNode->AddObject<MeshRenderer>(schnozMesh, schnozMat);
+    //
+    // JPH::ShapeRefC w_schnozShape = Physics::ConvexHullMeshShape(schnozMesh);
+    // JPH::BodyCreationSettings w_schnozShapeSettings = {
+    //     w_schnozShape, JPH::RVec3::sZero(), JPH::Quat::sIdentity(),
+    //     JPH::EMotionType::Dynamic, Physics::Layers::MOVING};
 
-    SceneNode* schnozNode = mainScene.CreateNode("Schnoz");
-    schnozNode->LocalTransform().Position() = glm::vec3(-53.5, 1.75, -2.4);
-    schnozNode->LocalTransform().Scale() = glm::vec3(0.15, 0.15, 0.15);
-    schnozNode->AddObject<MeshRenderer>(schnozMesh, schnozMat);
-    schnozNode->AddObject<AutoRotator>(1);
-    schnozNode->SetLayer(5);
+    // auto* w_schnozBody =
+    //     w_schnozNode->AddObject<Physics::Body>(w_schnozShapeSettings);
+    // w_schnozBody->SetRestitution(0.0f);
+    // w_schnozBody->SetFriction(0.5f);
+    // w_schnozBody->SetLinearDamping(0.1f);
+    // w_schnozBody->SetCollisionLayerAndMask({0});
+    //
+    // SceneNode* schnozLightNode = mainScene.CreateNode("Schnoz Light");
+    // schnozLightNode->LocalTransform().Position() = glm::vec3(-55.5, 3.0,
+    // -2.0); schnozLightNode->AddObject<Light>(
+    //     Light::PointLight(glm::vec3(1, 1, 1), 5, 5));
 
-    SceneNode* w_schnozNode = mainScene.CreateNode("w_schnozNode");
-    w_schnozNode->LocalTransform().Position() = glm::vec3(-20, 0, -20);
-    schnozNode->LocalTransform().Scale() = glm::vec3(1, 1, 1);
-    w_schnozNode->AddObject<MeshRenderer>(schnozMesh, schnozMat);
+    // JPH::ShapeRefC schnozShape = Physics::ConvexHullMeshShape(schnozMesh);
+    // SceneNode* schnozRootNode = mainScene.CreateNode("Schnoz Root");
+    // for (int i = 0; i < 50; ++i) {
+    //     SceneNode* physicsSchnozNode =
+    //         mainScene.CreateNode(schnozRootNode, "Physics Schnoz");
+    //     physicsSchnozNode->AddObject<MeshRenderer>(schnozMesh, schnozMat);
+    //     physicsSchnozNode->GlobalTransform().Position() = {
+    //         2.0f + i, 10.0f + i * 2.0f, 0.0f - i};
+    //     physicsSchnozNode->GlobalTransform().Scale() = glm::vec3(0.25f);
+    //     JPH::BodyCreationSettings schnozShapeSettings = {
+    //         schnozShape, JPH::RVec3::sZero(), JPH::Quat::sIdentity(),
+    //         JPH::EMotionType::Dynamic, Physics::Layers::MOVING};
+    //     auto* schnozBody =
+    //         physicsSchnozNode->AddObject<Physics::Body>(schnozShapeSettings);
+    //
+    //     schnozBody->SetCollisionLayerAndMask({0});
+    // }
 
-    JPH::ShapeRefC w_schnozShape = Physics::ConvexHullMeshShape(schnozMesh);
-    JPH::BodyCreationSettings w_schnozShapeSettings = {
-        w_schnozShape, JPH::RVec3::sZero(), JPH::Quat::sIdentity(),
-        JPH::EMotionType::Dynamic, Physics::Layers::MOVING};
+    // cameraNode->AddObject<Bloom>();
+    // cameraNode->AddObject<Tonemapper>()->SetOperator(
+    //     Tonemapper::TonemapperOperator::GranTurismo);
 
-    auto* w_schnozBody =
-        w_schnozNode->AddObject<Physics::Body>(w_schnozShapeSettings);
-    w_schnozBody->SetRestitution(0.0f);
-    w_schnozBody->SetFriction(0.5f);
-    w_schnozBody->SetLinearDamping(0.1f);
-    w_schnozBody->SetCollisionLayerAndMask({0});
+    // SceneNode* dungeon = mainScene.CreateNode("Dungeon");
+    // dungeon->AddObject<DungeonGenerator>(
+    //     DungeonGeneratorSettings{.steps = 50,
+    //                              .numberOf2x2Rooms = 1,
+    //                              .numberOf3x3Rooms = 1,
+    //                              .margin = 0.0f});
+    // dungeon->GlobalTransform().Scale() = glm::vec3(25.0f);
 
-    SceneNode* schnozLightNode = mainScene.CreateNode("Schnoz Light");
-    schnozLightNode->LocalTransform().Position() = glm::vec3(-55.5, 3.0, -2.0);
-    schnozLightNode->AddObject<Light>(
-        Light::PointLight(glm::vec3(1, 1, 1), 5, 5));
+    // mainScene.AddComponent<DebugInspector>();
+    // mainScene.AddComponent<AnimationSystem>();
 
-    JPH::ShapeRefC schnozShape = Physics::ConvexHullMeshShape(schnozMesh);
-    SceneNode* schnozRootNode = mainScene.CreateNode("Schnoz Root");
-    for (int i = 0; i < 50; ++i) {
-        SceneNode* physicsSchnozNode =
-            mainScene.CreateNode(schnozRootNode, "Physics Schnoz");
-        physicsSchnozNode->AddObject<MeshRenderer>(schnozMesh, schnozMat);
-        physicsSchnozNode->GlobalTransform().Position() = {
-            2.0f + i, 10.0f + i * 2.0f, 0.0f - i};
-        physicsSchnozNode->GlobalTransform().Scale() = glm::vec3(0.25f);
-        JPH::BodyCreationSettings schnozShapeSettings = {
-            schnozShape, JPH::RVec3::sZero(), JPH::Quat::sIdentity(),
-            JPH::EMotionType::Dynamic, Physics::Layers::MOVING};
-        auto* schnozBody =
-            physicsSchnozNode->AddObject<Physics::Body>(schnozShapeSettings);
+    // // ---- PLAYER ----
+    // SceneNode* playerNode = mainScene.CreateNode("Player");
+    // SceneNode* cameraNode = mainScene.CreateNode("Camera Node");
+    // playerNode->GlobalTransform().Position() = glm::vec3(0.0f, 10.0f, 0.0f);
+    // cameraNode->AddObject<Camera>(
+    //     Camera::Perspective(25.0f, 16.0f / 9.0f, 0.1f, 200.0f));
+    // cameraNode->AddObject<CameraSettings>(playerNode);
+    // playerNode->AddObject<Bloom>();
+    // playerNode->AddObject<Tonemapper>()->SetOperator(
+    //     Tonemapper::TonemapperOperator::GranTurismo);
+    // playerNode->AddObject<ColorGrading>();
+    // playerNode->AddObject<Fxaa>();
 
-        schnozBody->SetCollisionLayerAndMask({0});
-    }
+    // JPH::Ref<JPH::CharacterVirtualSettings> characterSettings =
+    //     new JPH::CharacterVirtualSettings();
+    // characterSettings->mShape = new JPH::CapsuleShape(0.2f, 0.7f);
+    // characterSettings->mMaxSlopeAngle = JPH::DegreesToRadians(45.0f);
 
-    cameraNode->AddObject<Bloom>();
-    cameraNode->AddObject<Tonemapper>()->SetOperator(
-        Tonemapper::TonemapperOperator::GranTurismo);
+    // auto* virtualCharacter =
+    //     playerNode->AddObject<Physics::VirtualCharacterController>(
+    //         characterSettings);
+    // virtualCharacter->SetPosition(
+    //     playerNode->GlobalTransform().Position().Value());
 
-    SceneNode* dungeon = mainScene.CreateNode("Dungeon");
-    dungeon->AddObject<DungeonGenerator>(DungeonGeneratorSettings{
-        .numberOf2x2Rooms = 1,
-    });
+    // auto mouseMarkerNode = mainScene.CreateNode("Mouse Marker");
+    // mouseMarkerNode->GlobalTransform().Scale() = glm::vec3(0.15f, 0.02f, 0.15f);
 
-    mainScene.AddComponent<DebugInspector>();
-    mainScene.AddComponent<AnimationSystem>();
+    // auto* bottleThrower = playerNode->AddObject<ThrowBottle>();
+    // bottleThrower->SetPoolSize(10);
+    // auto* controller = playerNode->AddObject<PlayerController>(mouseMarkerNode);
+    // controller->SetBottleThrower(bottleThrower);
+
+    // SceneNode* playerMeshNode = mainScene.CreateNode(playerNode);
+    // playerMeshNode->AddObject<MeshRenderer>(schnozMesh, reflectiveMat);
+    // playerMeshNode->GlobalTransform().Position() = glm::vec3(0.0f, 5.0f, 0.0f);
+    // playerMeshNode->GlobalTransform().Scale() = glm::vec3(0.5f, 0.5f, 0.5f);
+    // Mesh* cubeMesh =
+    //     mainScene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
+    // bottleThrower->SetResources(cubeMesh, reflectiveMat);
 }
 } // namespace DungeonGeneratorScene

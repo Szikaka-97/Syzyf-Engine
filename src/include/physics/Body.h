@@ -24,7 +24,7 @@ private:
   glm::vec3 lastScale = glm::vec3(1.0f);
 
   uint32_t collisionLayer = 1;
-  uint32_t collisionMask = 1;
+  uint32_t collisionMask = 0xFFFFFFFF;
 
   bool bodyCreated = false;
   bool addedToWorld = false;

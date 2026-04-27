@@ -144,6 +144,7 @@ public:
                 bottle.body = bottle.node->AddObject<Physics::Body>(bottleSettings);
                 bottle.body->SetRestitution(0.3f);
                 bottle.body->SetFriction(0.5f);
+                bottle.body->SetCollisionLayerAndMask({2}, {0});
 
                 float gravity = 9.81f;
                 glm::vec3 displacement = targetPos - startPos;

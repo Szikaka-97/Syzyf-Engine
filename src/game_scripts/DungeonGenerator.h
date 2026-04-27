@@ -456,13 +456,11 @@ private:
                 };
                 scene->LocalTransform().Position() = startPosition + positionOffset + modelOffset;
 
-                if (room.roomType != RoomType::Empty) {
-                    JPH::ShapeRefC shape = Physics::CreateCompoundShapeFromNode(scene, false, JPH::EMotionType::Static, Physics::Layers::NON_MOVING);
-                    JPH::BodyCreationSettings settings = {
-                        shape, JPH::RVec3::sZero(), JPH::Quat::sIdentity(), JPH::EMotionType::Static, Physics::Layers::NON_MOVING
-                    };
-                    scene->AddObject<Physics::Body>(settings);
-                }
+                JPH::ShapeRefC shape = Physics::CreateCompoundShapeFromNode(scene, false, JPH::EMotionType::Static, Physics::Layers::NON_MOVING);
+                JPH::BodyCreationSettings settings = {
+                    shape, JPH::RVec3::sZero(), JPH::Quat::sIdentity(), JPH::EMotionType::Static, Physics::Layers::NON_MOVING
+                };
+                scene->AddObject<Physics::Body>(settings);
             }
         }
     }

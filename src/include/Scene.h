@@ -172,6 +172,8 @@ public:
 	void DeleteObject(GameObject* obj);
 	void DeleteNode(SceneNode* node);
 
+    void FlushQueues();
+
 	template<class T_GO>
 		requires std::derived_from<T_GO, GameObject>
 	std::vector<T_GO*> FindObjectsOfType();
