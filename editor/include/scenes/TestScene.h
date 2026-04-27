@@ -208,16 +208,22 @@ inline void InitScene(Scene& mainScene) {
 #pragma region Player
 
 	JPH::Ref<JPH::CharacterVirtualSettings> characterSettings = new JPH::CharacterVirtualSettings();
-	characterSettings->mShape = new JPH::CapsuleShape(1.0f, 0.5f);
+	characterSettings->mShape = new JPH::CapsuleShape(0.5f, 0.5f);
 	characterSettings->mShapeOffset = JPH::Vec3(0, 1, 0);
 	characterSettings->mMaxSlopeAngle = JPH::DegreesToRadians(45.0f);
-
+	
 	SceneNode* playerNode = mainScene.CreateNode("Player");
+
+	SceneNode* bimberman = GltfImporter::LoadScene(&mainScene, "./res/models/bimbermann_throwing.glb", "Bimberman");
+	bimberman->SetParent(playerNode);
+
 	auto* virtualCharacter = playerNode->AddObject<Physics::VirtualCharacterController>(characterSettings);
 	virtualCharacter->SetPosition(playerNode->GlobalTransform().Position().Value());
+	virtualCharacter->SetGravityFactor(0);
+	virtualCharacter->SetCollisionLayerAndMask({ 0 }, 0);
 	auto* player = playerNode->AddObject<PlayerController>();
 
-	auto* aimingAid = mainScene.CreateNode(playerNode, "AimingAid")->AddObject<AimingAid>();
+	auto* aimingAid = mainScene.CreateNode("AimingAid")->AddObject<AimingAid>();
 
 	aimingAid->crosshair = GltfImporter::LoadScene(&mainScene, "./res/models/crosshair.glb", "crosshair", floorNode);
 	aimingAid->crosshair->SetParent(aimingAid->GetNode());
@@ -226,8 +232,6 @@ inline void InitScene(Scene& mainScene) {
 
 
 
-	SceneNode* bimberman = GltfImporter::LoadScene(&mainScene, "./res/models/bimbermann.glb", "Bimberman");
-	bimberman->SetParent(playerNode);
 
 #pragma endregion
 #pragma region Camera

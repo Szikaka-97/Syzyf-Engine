@@ -18,10 +18,10 @@ public:
 
 	void SetStretch(float amount) {
 		if (amount < 0) {
-			stretchPart->SetEnabled(false);
+			// stretchPart->SetEnabled(false);
 		}
 		else {
-			stretchPart->SetEnabled(true);
+			// stretchPart->SetEnabled(true);
 			//TODO
 		}
 	}
