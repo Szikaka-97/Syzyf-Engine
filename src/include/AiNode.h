@@ -52,7 +52,7 @@ private:
     void RotateNode(glm::vec3 dir);
     void DrawDebugView();
 	void LookForNextPoint();
-    float CalculateDistance(glm::vec3 current, glm::vec3 target);
+    //float CalculateDistance(glm::vec3 current, glm::vec3 target);
     
 
      glm::vec3 walkPoint;
