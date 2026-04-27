@@ -232,6 +232,12 @@ void Body::SetPosition(const glm::vec3& position) {
     spdlog::warn("Tried setting position on a body that hasn't been created yet");
     return;
   }
+
+  if (!MathHelpers::IsValid(position)) {
+      spdlog::error("Physics::Body: Attemped to set NaN or Inf position");
+      return;
+  }
+
   if (System* physics = GetScene()->GetComponent<System>()) {
     physics->GetBodyInterface().SetPosition(bodyID, JPH::RVec3(position.x, position.y, position.z), JPH::EActivation::Activate);
   }
@@ -242,6 +248,12 @@ void Body::SetRotation(const glm::quat& rotation) {
     spdlog::warn("Tried setting rotation on a body that hasn't been created yet");
     return;
   }
+
+  if (!MathHelpers::IsValid(rotation)) {
+      spdlog::error("Physics::Body: Attemped to set NaN or Inf rotation");
+      return;
+  }
+
   if (System* physics = GetScene()->GetComponent<System>()) {
     physics->GetBodyInterface().SetRotation(bodyID, JPH::Quat(rotation.x, rotation.y, rotation.z, rotation.w).Normalized(), JPH::EActivation::Activate);
   }
@@ -252,6 +264,12 @@ void Body::SetLinearVelocity(const glm::vec3& velocity) {
     spdlog::warn("Tried setting linear velocity on a body that hasn't been created yet");
     return;
   }
+
+  if (!MathHelpers::IsValid(velocity)) {
+      spdlog::error("Physics::Body: Attemped to set NaN or Inf velocity");
+      return;
+  }
+
   if (System* physics = GetScene()->GetComponent<System>()) {
     physics->GetBodyInterface().SetLinearVelocity(bodyID, JPH::Vec3(velocity.x, velocity.y, velocity.z));
   }
@@ -262,6 +280,12 @@ void Body::SetAngularVelocity(const glm::vec3& velocity) {
     spdlog::warn("Tried setting angular velocity on a body that hasn't been created yet");
     return;
   }
+
+  if (!MathHelpers::IsValid(velocity)) {
+      spdlog::error("Physics::Body: Attemped to set NaN or Inf angular velocity");
+      return;
+  }
+
   if (System* physics = GetScene()->GetComponent<System>()) {
     physics->GetBodyInterface().SetAngularVelocity(bodyID, JPH::Vec3(velocity.x, velocity.y, velocity.z));
   }
@@ -360,6 +384,12 @@ void Body::ApplyForce(const glm::vec3& force) {
     spdlog::warn("Tried applying force to a body that hasn't been created yet");
     return;
   }
+
+  if (!MathHelpers::IsValid(force)) {
+      spdlog::error("Physics::Body: Attemped to set NaN or Inf position");
+      return;
+  }
+
   if (System* physics = GetScene()->GetComponent<System>()) {
     physics->GetBodyInterface().AddForce(bodyID, JPH::Vec3(force.x, force.y, force.z));
   }
@@ -370,6 +400,12 @@ void Body::ApplyImpulse(const glm::vec3& impulse) {
     spdlog::warn("Tried applying an impulse to a body that hasn't been created yet");
     return;
   }
+
+  if (!MathHelpers::IsValid(impulse)) {
+      spdlog::error("Physics::Body: Attemped to apply NaN or Inf impulse");
+      return;
+  }
+
   if (System* physics = GetScene()->GetComponent<System>()) {
     physics->GetBodyInterface().AddImpulse(bodyID, JPH::Vec3(impulse.x, impulse.y, impulse.z));
   }
@@ -380,6 +416,12 @@ void Body::ApplyTorque(const glm::vec3& torque) {
     spdlog::warn("Tried applying torque to a body that hasn't been created yet");
     return;
   }
+
+  if (!MathHelpers::IsValid(torque)) {
+      spdlog::error("Physics::Body: Attemped to apply NaN or Inf torque");
+      return;
+  }
+
   if (System* physics = GetScene()->GetComponent<System>()) {
     physics->GetBodyInterface().AddTorque(bodyID, JPH::Vec3(torque.x, torque.y, torque.z));
   }
@@ -390,6 +432,12 @@ void Body::ApplyAngularImpulse(const glm::vec3& impulse) {
     spdlog::warn("Tried applying force to a body that hasn't been created yet");
     return;
   }
+
+  if (!MathHelpers::IsValid(impulse)) {
+      spdlog::error("Physics::Body: Attemped to apply NaN or Inf angular impulse");
+      return;
+  }
+
   if (System* physics = GetScene()->GetComponent<System>()) {
     physics->GetBodyInterface().AddAngularImpulse(bodyID, JPH::Vec3(impulse.x, impulse.y, impulse.z));
   }
@@ -401,9 +449,15 @@ void Body::SyncToNode() {
         spdlog::warn("Tried syncing a body that hasn't been created yet");
         return;
     }
+    
     glm::vec3 position = GetNode()->GlobalTransform().Position().Value();
     glm::quat rotation = GetNode()->GlobalTransform().Rotation().Value();
     glm::vec3 scale = GetNode()->GlobalTransform().Scale().Value();
+
+    if (!MathHelpers::IsValid(position) || !MathHelpers::IsValid(rotation) || !MathHelpers::IsValid(scale)) {
+        spdlog::error("Physics::Body::SyncToNode: Node has invalid NaN or Inf transform. Skipping sync.");
+        return;
+    }
 
     this->SetPosition(position);
     this->SetRotation(rotation);
@@ -428,8 +482,8 @@ void Body::SyncToNode() {
                 JPH::EActivation::DontActivate
             );
             this->lastScale = scale;
-            }
         }
+    }
     // This activates the body after it's been moved
     //  not sure if having this happen while editing won't cause issues
     // the same is true for character controllers
@@ -552,3 +606,4 @@ void Body::DrawImGui() {
   }
 }
 }
+

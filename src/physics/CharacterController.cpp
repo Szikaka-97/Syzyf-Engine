@@ -158,30 +158,50 @@ void CharacterController::SetCollisionLayerAndMask(std::initializer_list<uint32_
 }
 
 void CharacterController::AddImpulse(const glm::vec3& impulse) {
+  if (!MathHelpers::IsValid(impulse)) {
+      spdlog::error("Physics::CharacterController: Attempted to add NaN or Inf impulse");
+      return;
+  }
   if (this->character) {
     this->character->AddImpulse(JPH::Vec3(impulse.x, impulse.y, impulse.z));
   }
 }
 
 void CharacterController::SetLinearVelocity(const glm::vec3& velocity) {
+  if (!MathHelpers::IsValid(velocity)) {
+      spdlog::error("Physics::CharacterController: Attempted to set NaN or Inf velocity");
+      return;
+  }
   if (this->character) {
     this->character->SetLinearVelocity(JPH::Vec3(velocity.x, velocity.y, velocity.z));
   }
 }
 
 void CharacterController::AddLinearVelocity(const glm::vec3& velocity) {
+  if (!MathHelpers::IsValid(velocity)) {
+      spdlog::error("Physics::CharacterController: Attempted to add NaN or Inf velocity");
+      return;
+  }
   if (this->character) {
     this->character->AddLinearVelocity(JPH::Vec3(velocity.x, velocity.y, velocity.z));
   }
 }
 
 void CharacterController::SetPosition(const glm::vec3& position) {
+  if (!MathHelpers::IsValid(position)) {
+      spdlog::error("Physics::CharacterController: Attempted to set NaN or Inf position");
+      return;
+  }
   if (this->character) {
     this->character->SetPosition(JPH::RVec3(position.x, position.y, position.z));
   }
 }
 
 void CharacterController::SetRotation(const glm::quat& rotation) {
+  if (!MathHelpers::IsValid(rotation)) {
+      spdlog::error("Physics::CharacterController: Attempted to set NaN or Inf rotation");
+      return;
+  }
   if (this->character) {
     this->character->SetRotation(JPH::Quat(rotation.x, rotation.y, rotation.z, rotation.w));
   }
@@ -196,6 +216,10 @@ void CharacterController::SetGravityFactor(float factor) {
 }
 
 void CharacterController::SetUp(const glm::vec3& up) {
+  if (!MathHelpers::IsValid(up)) {
+      spdlog::error("Physics::CharacterController: Attempted to set NaN or Inf up vector");
+      return;
+  }
   if (this->character) {
     this->character->SetUp(JPH::Vec3(up.x, up.y, up.z));
   }
@@ -216,6 +240,11 @@ void CharacterController::SyncToNode() {
     glm::vec3 position = this->GetTransform().GlobalTransform().Position().Value();
     glm::quat rotation = this->GetTransform().GlobalTransform().Rotation().Value();
     glm::vec3 scale = this->GetTransform().GlobalTransform().Scale().Value();
+
+    if (!MathHelpers::IsValid(position) || !MathHelpers::IsValid(rotation) || !MathHelpers::IsValid(scale)) {
+        spdlog::error("Physics::CharacterController::SyncToNode: Node has invalid NaN or Inf transform. Skipping sync.");
+        return;
+    }
 
     this->SetPosition(position);
     this->SetRotation(rotation);
@@ -238,7 +267,6 @@ void CharacterController::SyncToNode() {
         this->lastScale = scale;
     }
 }
-
 void CharacterController::Awake() {
   System* physics = this->GetScene()->GetComponent<System>();
   if (physics == nullptr) {

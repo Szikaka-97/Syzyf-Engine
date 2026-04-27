@@ -41,26 +41,26 @@ public:
 	float wobbliness = 1;
 	float speed = 8;
 	float velocityThrowBoost = 1;
-	float sidewaysWobbleFrequency;
-	glm::vec3 desiredMovement;
+	float sidewaysWobbleFrequency = 0;
+	glm::vec3 desiredMovement = glm::vec3(0.0f);
 
-	SceneNode* throwingArm;
-	SceneNode* torso;
-	SceneNode* throwPoint;
+	SceneNode* throwingArm = nullptr;
+	SceneNode* torso = nullptr;
+	SceneNode* throwPoint = nullptr;
 
-	glm::quat baseArmRotation;
-	glm::vec3 targetOffset;
-	AimingAid* aim;
+	glm::quat baseArmRotation = glm::quat(1, 0, 0, 0);
+	glm::vec3 targetOffset = glm::vec3(0.0f);
+	AimingAid* aim = nullptr;
 	float throwSpeedTime = 0.6f;
 	float minThrowDistance = 1;
 	float maxThrowDistance = 5;
 	float flightTime = 1;
-	float throwStrengthAccum;
-	float throwStrengthCache;
+	float throwStrengthAccum = 0;
+	float throwStrengthCache = 0;
 
 	float wobblinessAccum = 0;
 
-	SceneNode* bottle;
+	SceneNode* bottle = nullptr;
 
 	Physics::VirtualCharacterController* virtualController = nullptr;
 	glm::vec3 velocity = glm::vec3(0.0f);
@@ -214,7 +214,9 @@ public:
 		// this->aim->PointAt(targetPos);
 		this->aim->SetCrosshairPosition(targetPos);
 
-		GlobalTransform().Rotation() = glm::quatLookAt(glm::normalize(-targetOffset), glm::vec3(0, 1, 0));
+        if (glm::length(this->targetOffset) > 0.001f) { 
+		    GlobalTransform().Rotation() = glm::quatLookAt(glm::normalize(-targetOffset), glm::vec3(0, 1, 0));
+        }
 
 		float throwOomph = 0;
 
@@ -237,10 +239,12 @@ public:
 
 			this->aim->SetStretch(ThrowStrengthEasing(this->throwStrengthAccum));
 
-			glm::vec3 hitPoint = glm::normalize(targetOffset) * glm::mix(minThrowDistance, maxThrowDistance, ThrowStrengthEasing(this->throwStrengthAccum)) + GetStrengthFromVelocity();
+            glm::vec3 targetDir = glm::length(this->targetOffset) > 0.001f ? glm::normalize(this->targetOffset) : GlobalTransform().Forward();
 
-			this->aim->crosshair->SetEnabled(true);
-			this->aim->SetCrosshairPosition(GlobalTransform().Position() + hitPoint);
+            glm::vec3 hitPoint = targetDir * glm::mix(minThrowDistance, maxThrowDistance, ThrowStrengthEasing(this->throwStrengthAccum)) + GetStrengthFromVelocity();
+
+            this->aim->crosshair->SetEnabled(true);
+            this->aim->SetCrosshairPosition(GlobalTransform().Position() + hitPoint);
 
 			// this.torso.localRotation = Quaternion.AngleAxis(ThrowStrengthEasing(this.throwStrengthAccum) * -10, Vector3.right);
 		}
@@ -262,7 +266,9 @@ public:
 
 				// Fill up thrownBottle
 
-				glm::vec3 hitPoint = glm::normalize(targetOffset) * glm::mix(minThrowDistance, maxThrowDistance, ThrowStrengthEasing(this->throwStrengthCache)) + GetStrengthFromVelocity();
+                glm::vec3 targetDir = glm::length(this->targetOffset) > 0.001f ? glm::normalize(this->targetOffset) : GlobalTransform().Forward();
+
+				glm::vec3 hitPoint = targetDir * glm::mix(minThrowDistance, maxThrowDistance, ThrowStrengthEasing(this->throwStrengthCache)) + GetStrengthFromVelocity();
 
 				float speedX = glm::length(hitPoint) / this->flightTime;
 
@@ -270,6 +276,8 @@ public:
 
 				glm::vec3 throwDirection = this->GlobalTransform().Position() + hitPoint - this->throwPoint->GlobalTransform().Position();
 				throwDirection.y = 0;
+
+                throwDirection = glm::length(throwDirection) > 0.001f ? glm::normalize(throwDirection) : GlobalTransform().Forward();
 
 				glm::vec3 throwForce = glm::normalize(throwDirection) * speedX + glm::vec3(0, 1, 0) * speedY;
 
