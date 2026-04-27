@@ -9,7 +9,7 @@
 #include "astar/NavigationGrid.h"
 
 class NavigationGrid;
-
+class AnimationComponent;
 
 class AiNode : public GameObject {
 private:
@@ -33,6 +33,7 @@ private:
     Material* m_ProjectileMaterial; 
     int m_hp;
     NavigationGrid* m_NavGrid = nullptr;
+    AnimationComponent* m_AttackAnimation = nullptr;
 
     void Patrol();
     void Chase();
@@ -89,6 +90,8 @@ public:
     void SetPatrolPoints(const std::vector<glm::vec2>& points);
     void SetProjectileResources(Mesh* mesh, Material* material);
     void SetAttackCooldown(float cooldown);
+    void SetAttackAnimation(AnimationComponent* anim);
+    void PlayAttackAnimation();
 
     void OnPlayerEnteredRoom();
     void OnPlayerExitedRoom();

@@ -45,6 +45,10 @@
 #include <Engine.h>
 #include "Player.h"
 #include <AiSimplified.h>
+#include <animation/AnimationSystem.h>
+#include <animation/AnimationSystem.h>
+#include <animation/SkeletonComponent.h>
+#include <animation/SkeletonSystem.h>
 
 #include <glm/trigonometric.hpp>
 #include <spdlog/spdlog.h>
@@ -520,7 +524,7 @@ void AddEnemies(Mesh* enemyMesh, Material* enemyMat, Scene* mainScene, SceneNode
    auto* surface = enemyRoom->GetObject<Surface>();
 	target->AddObject<Player>();
 
-   /* SceneNode* enemy1 = mainScene->CreateNode("Enemy 1");
+    SceneNode* enemy1 = mainScene->CreateNode("Enemy 1");
     enemy1->AddObject<MeshRenderer>(enemyMesh, enemyMat);
     enemy1->GlobalTransform().Position() = glm::vec3(10.5f, 0.0f, 2.0f);
     enemy1->GlobalTransform().Scale() = glm::vec3(0.5f, 0.5f, 0.5f);
@@ -535,21 +539,33 @@ void AddEnemies(Mesh* enemyMesh, Material* enemyMat, Scene* mainScene, SceneNode
     enemyAi1->SetTarget(target);
     enemyAi1->SetProjectileResources(cubeMesh, reflectiveMat);
     enemyAi1->SetAttackCooldown(1.2f);
-	enemyAi1->SetRoomID(1);*/
+	enemyAi1->SetRoomID(1);
+	if (auto* animComp = enemyAi1->GetObject<AnimationComponent>()) {
+    enemyAi1->SetAttackAnimation(animComp);
 
-	SceneNode* enemy2 = mainScene->CreateNode("Enemy 2");
-	enemy2->AddObject<MeshRenderer>(enemyMesh, enemyMat);
-	enemy2->GlobalTransform().Position() = glm::vec3(10.5f, 0.0f, 3.0f);
-	enemy2->GlobalTransform().Scale() = glm::vec3(0.5f, 0.5f, 0.5f);
-	auto* enemyBody2 = enemy2->AddObject<Physics::Body>(enemyShapeSettings);
-	auto* enemyAi2 = enemy2->AddObject<AiSimplified>();
-	enemyAi2->SetSurface(surface);
-	//surface->AddEnemy(enemyAi2);
-	glm::vec3 targetPos = glm::vec3(12.0f, 0.0f, -2.0f);
-	enemyAi2->SetTarget(targetPos);
-	/*enemyAi2->SetProjectileResources(cubeMesh, reflectiveMat);
-	enemyAi2->SetAttackCooldown(1.0f);
-	enemyAi2->SetRoomID(1);*/
+}
+	auto animatedScene = GltfImporter::LoadScene("./res/models/jake_tangents.glb", "Animated Gltf");
+AnimationComponent* animComponents = animatedScene->GetRootNode()->GetObjectInChildren<AnimationComponent>();
+if (animComponents && !animComponents->animations.empty()) {
+ 
+    enemyAi1->SetAttackAnimation(animComponents);   // użyj pierwszego znalezionego
+}
+	//SceneNode* enemy2 = mainScene->CreateNode("Enemy 2");
+	//enemy2->AddObject<MeshRenderer>(enemyMesh, enemyMat);
+	//enemy2->GlobalTransform().Position() = glm::vec3(10.5f, 0.0f, 3.0f);
+	//enemy2->GlobalTransform().Scale() = glm::vec3(0.5f, 0.5f, 0.5f);
+	//auto* enemyBody2 = enemy2->AddObject<Physics::Body>(enemyShapeSettings);
+	//auto* enemyAi2 = enemy2->AddObject<AiSimplified>();
+	//enemyAi2->SetSurface(surface);
+	////surface->AddEnemy(enemyAi2);
+	//glm::vec3 targetPos = glm::vec3(12.0f, 0.0f, -2.0f);
+	//enemyAi2->SetTarget(targetPos);
+	// /*enemyAi2->SetProjectileResources(cubeMesh, reflectiveMat);
+	//enemyAi2->SetAttackCooldown(1.0f);
+	//enemyAi2->SetRoomID(1);*/
+
+	//Scene* animatedGltfScene = GltfImporter::LoadScene("./res/models/jake_tangents.glb", "Animated Gltf");
+	 //mainScene->GetRootNode()->AttachScene(animatedGltfScene);
 
 }
 
@@ -584,6 +600,7 @@ void InitScene(Scene* mainScene) {
 	Mesh* cubeMesh = mainScene->Resources()->Get<Mesh>("./res/models/not_cube.obj");
 	Mesh* cubeMesh2 = mainScene->Resources()->Get<Mesh>("./res/models/not_cube2.obj");
 	Mesh* schnozMesh = mainScene->Resources()->Get<Mesh>("./res/models/schnoz/schnoz.obj");
+	Mesh* jakeMesh = mainScene->Resources()->Get<Mesh>("./res/models/jake_tangents.glb");
 
 	Cubemap* skyCubemap = mainScene->Resources()->Get<Cubemap>("./res/textures/citrus_orchard_road_puresky.hdr", Texture::HDRColorBuffer);
 	skyCubemap->SetWrapModeU(TextureWrap::Clamp);
@@ -623,7 +640,7 @@ void InitScene(Scene* mainScene) {
 
 	playerNode->AddObject<Player>();
 	MakeRooms(cubeMesh2, roomMat, mainScene, skyMat);
-	AddEnemies(schnozMesh, schnozMat, mainScene, playerNode, cubeMesh2, reflectiveMat);
+	AddEnemies(jakeMesh, schnozMat, mainScene, playerNode, cubeMesh2, reflectiveMat);
 
 	
 

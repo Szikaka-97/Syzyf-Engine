@@ -429,6 +429,7 @@ void AiNode::Update() {
         m_AttackTimer = 0.0f;
 
         glm::vec3 targetPos = m_TargetNode->GlobalTransform().Position();
+		PlayAttackAnimation();
         SpawnProjectile(targetPos);
     }
 }
@@ -462,6 +463,16 @@ void AiNode::SpawnProjectile(const glm::vec3& targetPos) {
     body->SetRestitution(0.3f);
     body->SetFriction(0.5f);
    // body->Awake();
+}
+
+void AiNode::SetAttackAnimation(AnimationComponent* anim) {
+    m_AttackAnimation = anim;
+}
+
+void AiNode::PlayAttackAnimation() {
+    if (m_AttackAnimation) {
+        m_AttackAnimation->Play("Attack");   // nazwa animacji – dostosuj do swojego modelu
+    }
 }
 
 void AiNode::TakeDamage(int damage) {
