@@ -100,6 +100,14 @@ float Surface::GetGroundHeight(float x, float z) const {
     return 0.0f;
 }
 
+void Surface::SetGroundHeight(float height) {
+    SceneNode* node = GetNode();
+    if (!node) return;
+    glm::vec3 pos = node->GlobalTransform().Position();
+    pos.y = height;
+    node->GlobalTransform().Position() = pos;
+}
+
 bool Surface::IsOnSurface(const glm::vec3& point) const {
     auto* physics = GetScene()->GetComponent<Physics::System>();
     if (!physics) return false;

@@ -98,7 +98,7 @@ public:
     void OnPlayerEnteredRoom();
     void OnPlayerExitedRoom();
 
-    void DrawDebugView(Physics::DebugRenderer* debugRenderer);
+    void DrawDebugView();
 
     void TakeDamage(int damage);
 };

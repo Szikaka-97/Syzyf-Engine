@@ -152,7 +152,7 @@ void AiNode::Update() {
     Patrol();
 }
 
-		//DrawDebugView();
+		DrawDebugView();
 	}
 
 	void AiNode::SetTarget(SceneNode * target) {
@@ -583,7 +583,7 @@ void AiNode::SearchWalkPoint() {
 		walkPoint = patrolPoints[posIndex];
 		walkPointSet = true;
 	}
-	void AiNode::DrawDebugView(Physics::DebugRenderer* debugRenderer) {
+	void AiNode::DrawDebugView() {
 		if (!myNode) return;
 
 		/*auto* scene = GetScene();
@@ -591,6 +591,9 @@ void AiNode::SearchWalkPoint() {
 		if (!debugRenderer) {
 			return;
 		}*/
+		if (!myNode) return;
+    auto* debugRenderer = static_cast<Physics::DebugRenderer*>(JPH::DebugRenderer::sInstance);
+    if (!debugRenderer) return;
 
 
 		if (m_Surface) {

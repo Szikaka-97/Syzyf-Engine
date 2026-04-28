@@ -188,7 +188,7 @@ inline void InitScene(Scene& mainScene) {
     skyMat->SetValue("skyboxTexture", skyCubemap);
 
     auto floorNode =
-        GltfImporter::LoadScene(&mainScene, "./res/models/floor.glb", "Floor");
+        GltfImporter::LoadScene(&mainScene, "./res/models/floor2804.glb", "Floor");
     floorNode->AddObject<Skybox>(skyMat);
     MeshRenderer* floorMeshRenderer =
         floorNode->GetObjectInChildren<MeshRenderer>();
@@ -198,6 +198,7 @@ inline void InitScene(Scene& mainScene) {
             JPH::RVec3::sZero(), JPH::Quat::sZero(), JPH::EMotionType::Static,
             Physics::Layers::NON_MOVING});
     floorNode->AddObject<Surface>(floorMeshRenderer->GetMesh(), 1.0f);
+    //floorNode->GetObject<Surface>()->DrawDebugSurface();
 
     SceneNode* monkey = GltfImporter::LoadScene(
         &mainScene, "./res/models/big_monkey.glb", "Monkey", floorNode);
@@ -278,7 +279,7 @@ inline void InitScene(Scene& mainScene) {
     Material* enemyMat =
         mainScene.Resources()->Get<Material>("./res/materials/jake.mat");
     enemy1->AddObject<MeshRenderer>(enemyMesh, reflectiveMat);
-    enemy1->GlobalTransform().Position() = glm::vec3(10.5f, 0.0f, 2.0f);
+    enemy1->GlobalTransform().Position() = glm::vec3(10.5f, 0.0f, -5.0f);
     enemy1->GlobalTransform().Scale() = glm::vec3(0.5f, 0.5f, 0.5f);
     //auto* enemyBody1 = enemy1->AddObject<Physics::Body>(enemyShapeSettings);
     JPH::ShapeRefC enemyShape =
@@ -293,13 +294,14 @@ inline void InitScene(Scene& mainScene) {
     auto* enemyAi1 = enemy1->AddObject<AiNode>();
 
     enemyAi1->SetSurface(surface);
+    enemyAi1->GetSurface()->SetGroundHeight(0.0f);
     surface->AddEnemy(enemyAi1);
     enemyAi1->SetTarget(player->GetNode());
     Mesh* cubeMesh = mainScene.Resources()->Get<Mesh>("./res/models/cube.obj");
     enemyAi1->SetProjectileResources(cubeMesh, enemyMat);
     enemyAi1->SetAttackCooldown(1.2f);
     enemyAi1->SetRoomID(1);
-
+    //enemyAi1->DrawDebugView();
     if (auto* animComp = enemyAi1->GetObject<AnimationComponent>()) {
         enemyAi1->SetAttackAnimation(animComp);
     }

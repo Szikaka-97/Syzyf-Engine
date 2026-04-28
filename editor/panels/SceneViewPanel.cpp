@@ -261,7 +261,7 @@ void SceneViewPanel::UpdateAndRenderScene(Context& context) {
     if (context.state != State::Game) {
         for (auto* aiNode :
              context.selectedScene->FindObjectsOfType<AiNode>()) {
-            aiNode->DrawDebugView(context.physicsDebugRenderer.get());
+           // aiNode->DrawDebugView(context.physicsDebugRenderer.get());
         }
 
         context.physicsDebugRenderer->Render();
