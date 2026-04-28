@@ -278,8 +278,8 @@ inline void InitScene(Scene& mainScene) {
     auto enemyRoom = mainScene.FindNode("Floor");
     auto* surface = enemyRoom->GetObject<Surface>();
     SceneNode* enemy1 = mainScene.CreateNode("Enemy 1");
-    Mesh* enemyMesh =
-        mainScene.Resources()->Get<Mesh>("./res/models/jake_tangents.glb");
+    /*Mesh* enemyMesh =
+        mainScene.Resources()->Get<Mesh>("./res/models/jake_tangents.glb");*/
     Material* enemyMat =
         mainScene.Resources()->Get<Material>("./res/materials/jake.mat");
    // enemy1->AddObject<MeshRenderer>(enemyMesh, reflectiveMat);
@@ -310,8 +310,9 @@ inline void InitScene(Scene& mainScene) {
     //enemyAi1->DrawDebugView();
 
     SceneNode* enemyModel = GltfImporter::LoadScene(
-        &mainScene, "./res/models/jake_tangents.glb", "EnemyModel");
+        &mainScene, "./res/models/szkielet6.glb", "EnemyModel");
     enemyModel->SetParent(enemy1);
+    enemyModel->GlobalTransform().Scale() = glm::vec3(0.1,0.1,0.1);
 
     // Pobierz AnimationComponent z zaimportowanego modelu
     auto* animComp = enemyModel->GetObjectInChildren<AnimationComponent>();

@@ -470,7 +470,7 @@ void AiNode::SetAttackAnimation(AnimationComponent* anim) {
 
 void AiNode::PlayAttackAnimation() {
     if (m_AttackAnimation) {
-        m_AttackAnimation->Play("Attack");   // nazwa animacji – dostosuj do swojego modelu
+        m_AttackAnimation->Play("attack.001");   // nazwa animacji – dostosuj do swojego modelu
     }
 }
 
