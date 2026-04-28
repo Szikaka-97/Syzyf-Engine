@@ -30,8 +30,8 @@ MousePickingBody* MousePickingBody::CreateFromMesh(SceneNode* node,
     return body;
 }
 
-MousePickingBody* MousePickingBody::CreateBox(SceneNode* node) {
-    JPH::ShapeRefC shape = Physics::BoxShape(glm::vec3(0.3f));
+MousePickingBody* MousePickingBody::CreateSphere(SceneNode* node) {
+    JPH::ShapeRefC shape = Physics::SphereShape(0.3f);
     JPH::BodyCreationSettings settings(
         shape, JPH::RVec3::sZero(), JPH::Quat::sIdentity(),
         JPH::EMotionType::Static, Physics::Layers::EDITOR);

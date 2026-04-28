@@ -242,7 +242,7 @@ public:
 			if (this->throwStrengthCache > 0 && this->throwStrengthAccum < 0.7f) {
 				SceneNode* thrownBottle = GetScene()->CreateNode("Thrown Bottle");
 				thrownBottle->GlobalTransform().Position() = this->throwPoint->GlobalTransform().Position().Value();
-				thrownBottle->AddObject<Physics::Body>(JPH::BodyCreationSettings(Physics::BoxShape(glm::vec3(0.1f)), JPH::Vec3::sZero(), JPH::Quat::sIdentity(), JPH::EMotionType::Dynamic, Physics::Layers::MOVING));
+				thrownBottle->AddObject<Physics::Body>(JPH::BodyCreationSettings(Physics::SphereShape(0.1f), JPH::Vec3::sZero(), JPH::Quat::sIdentity(), JPH::EMotionType::Dynamic, Physics::Layers::MOVING));
 				thrownBottle->GetObject<Physics::Body>()->SetCollisionLayerAndMask({0}, 0);
 
 				this->bottle->SetParent(thrownBottle);

@@ -28,7 +28,7 @@ void MousePickingBodySystem::UpdateBodies(SceneNode* node) {
         } else if (node->GetObject<Light>() ||
                    node->GetObject<ReflectionProbe>()) {
             // enable this for other objects as well
-            body = MousePickingBody::CreateBox(node);
+            body = MousePickingBody::CreateSphere(node);
         }
     }
 

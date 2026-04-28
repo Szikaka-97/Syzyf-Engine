@@ -16,7 +16,7 @@ class MousePickingBody : public Physics::Body {
     static MousePickingBody* CreateFromMesh(SceneNode* node,
                                             const class Mesh* mesh);
 
-    static MousePickingBody* CreateBox(SceneNode* node);
+    static MousePickingBody* CreateSphere(SceneNode* node);
 
     void SyncToNode();
 };
