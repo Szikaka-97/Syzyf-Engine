@@ -41,6 +41,7 @@
 #include <physics/System.h>
 #include <physics/Water.h>
 #include <scatter/Spawner.h>
+#include <Player.h>
 
 #include "Jolt/Math/Vec3.h"
 #include <Jolt/Jolt.h>
@@ -237,6 +238,72 @@ inline void InitScene(Scene& mainScene) {
     aimingAid->crosshair->SetParent(aimingAid->GetNode());
 
     player->aim = aimingAid;
+
+#pragma endregion
+
+#pragma region Enemy
+    /*JPH::BodyCreationSettings enemyShapeSettings = JPH::BodyCreationSettings(
+        Physics::MeshShape(floorMeshRenderer->GetMesh()), JPH::RVec3::sZero(),
+        JPH::Quat::sZero(), JPH::EMotionType::Dynamic, Physics::Layers::MOVING);*/
+    ShaderProgram* pbrProg =
+        ShaderProgram::Build()
+            .WithVertexShader(mainScene.Resources()->Get<VertexShader>(
+                "./res/shaders/lit.vert"))
+            .WithPixelShader(mainScene.Resources()->Get<PixelShader>(
+                "./res/shaders/pbr.frag"))
+            .Link();
+
+    Texture2D* reflectiveDiffuse = mainScene.Resources()->Get<Texture2D>(
+        "./res/textures/material_preview/worn-shiny-metal-albedo.png",
+        Texture::ColorTextureRGB);
+    Texture2D* reflectiveNormal = mainScene.Resources()->Get<Texture2D>(
+        "./res/textures/material_preview/worn-shiny-metal-Normal-ogl.png",
+        Texture::TechnicalMapXYZ);
+    Texture2D* reflectiveARM = mainScene.Resources()->Get<Texture2D>(
+        "./res/textures/material_preview/worn-shiny-metal-arm.png",
+        Texture::TechnicalMapXYZ);
+
+    Material* reflectiveMat = new Material(pbrProg);
+    reflectiveMat->SetValue("albedoMap", reflectiveDiffuse);
+    reflectiveMat->SetValue("normalMap", reflectiveNormal);
+    reflectiveMat->SetValue("armMap", reflectiveARM);
+
+
+    auto enemyRoom = mainScene.FindNode("Floor");
+    auto* surface = enemyRoom->GetObject<Surface>();
+    player->AddObject<Player>();
+    SceneNode* enemy1 = mainScene.CreateNode("Enemy 1");
+    Mesh* enemyMesh =
+        mainScene.Resources()->Get<Mesh>("./res/models/jake_tangents.glb");
+    Material* enemyMat =
+        mainScene.Resources()->Get<Material>("./res/materials/jake.mat");
+    enemy1->AddObject<MeshRenderer>(enemyMesh, reflectiveMat);
+    enemy1->GlobalTransform().Position() = glm::vec3(10.5f, 0.0f, 2.0f);
+    enemy1->GlobalTransform().Scale() = glm::vec3(0.5f, 0.5f, 0.5f);
+    //auto* enemyBody1 = enemy1->AddObject<Physics::Body>(enemyShapeSettings);
+    JPH::ShapeRefC enemyShape =
+        new JPH::CapsuleShape(0.5f, 1.0f); 
+    JPH::BodyCreationSettings enemySettings(
+        enemyShape, JPH::RVec3(10.5f, 0.0f, 2.0f), 
+        JPH::Quat::sIdentity(), JPH::EMotionType::Dynamic,
+        Physics::Layers::MOVING);
+    Physics::Body* enemyBody1 = enemy1->AddObject<Physics::Body>(enemySettings);
+    enemyBody1->SetRestitution(0.0f);
+
+    auto* enemyAi1 = enemy1->AddObject<AiNode>();
+
+    enemyAi1->SetSurface(surface);
+    surface->AddEnemy(enemyAi1);
+    enemyAi1->SetTarget(player->GetNode());
+    Mesh* cubeMesh = mainScene.Resources()->Get<Mesh>("./res/models/cube.obj");
+    enemyAi1->SetProjectileResources(cubeMesh, enemyMat);
+    enemyAi1->SetAttackCooldown(1.2f);
+    enemyAi1->SetRoomID(1);
+
+    if (auto* animComp = enemyAi1->GetObject<AnimationComponent>()) {
+        enemyAi1->SetAttackAnimation(animComp);
+    }
+
 
 #pragma endregion
 #pragma region Camera
