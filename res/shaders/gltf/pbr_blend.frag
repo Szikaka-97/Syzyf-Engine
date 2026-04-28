@@ -12,8 +12,9 @@ in VS_OUT {
 #include "shared/shared.h"
 #include "shared/uniforms.h"
 
-layout (location = 0) out vec4 accumValue;
-layout (location = 1) out float revealValue;
+#pragma transparent
+
+out vec4 FragColor;
 
 #define SHADING_PBR
 
@@ -113,9 +114,5 @@ void main() {
 
   finalColor.xyz += ambient + emissive;
 
-  const float weight = calcWeight(finalColor.a);
-  const vec3 viewDir = normalize(Global_CameraWorldPos - ps_in.worldPos);
-
-  accumValue = vec4(finalColor.rgb * finalColor.a, finalColor.a) * weight;
-  revealValue = finalColor.a;
+  FragColor = finalColor;
 }

@@ -669,7 +669,7 @@ void SceneGraphics::RenderVolumetric(const ShaderGlobalUniforms& uniforms, const
 	target->SetColorAttachmentEnabled(true);
 	glBindFramebuffer(GL_FRAMEBUFFER, target->GetHandle());
 	
-	glViewport(params.viewport.x, params.viewport.y, params.viewport.z, params.viewport.w);
+	glViewport(0, 0, this->volumetricPassFramebuffer->GetSize().x, this->volumetricPassFramebuffer->GetSize().y);
 
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT);
@@ -705,6 +705,7 @@ void SceneGraphics::RenderVolumetric(const ShaderGlobalUniforms& uniforms, const
 		}
 
 		objectUniforms.Object_ModelMatrix = render.transformation;
+        objectUniforms.Object_InverseModelMatrix = glm::inverse(render.transformation);
 		objectUniforms.Object_MVPMatrix = uniforms.Global_VPMatrix * objectUniforms.Object_ModelMatrix;
 		objectUniforms.Object_NormalModelMatrix = glm::transpose(glm::inverse(glm::mat3(objectUniforms.Object_ModelMatrix)));
 
@@ -1406,7 +1407,9 @@ void SceneGraphics::RenderCamera(Camera* camera, Viewport* renderTarget, const R
 	}
 
 	this->currentUniforms.Global_ViewMatrix = camera->ViewMatrix();
+    this->currentUniforms.Global_InverseViewMatrix = glm::inverse(camera->ViewMatrix());
 	this->currentUniforms.Global_ProjectionMatrix = camera->ProjectionMatrix();
+    this->currentUniforms.Global_InverseProjectionMatrix = glm::inverse(camera->ProjectionMatrix());
 	this->currentUniforms.Global_VPMatrix = this->currentUniforms.Global_ProjectionMatrix * this->currentUniforms.Global_ViewMatrix;
 	this->currentUniforms.Global_CameraWorldPos = glm::vec4(camera->GlobalTransform().Position().Value(), 0.0);
 	this->currentUniforms.Global_Time = Time::Current();
@@ -1438,7 +1441,7 @@ void SceneGraphics::RenderCamera(Camera* camera, Viewport* renderTarget, const R
 		RenderVolumetric(activeParams, this->volumetricPassFramebuffer);
 
 		CompositeVolumetricPass();
-  }
+    }
 
 	if ((params.pass & RenderPassType::Gizmos) == RenderPassType::Gizmos) {
 		activeParams.pass = RenderPassType(RenderPassType::Gizmos);

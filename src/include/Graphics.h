@@ -85,6 +85,7 @@ private:
 	Framebuffer* opaquePassFramebuffer;
 	Framebuffer* transparentPassFramebuffer;
 	Framebuffer* volumetricPassFramebuffer;
+    float depthMult = 1.0f;
 
 	LightSystem* lightSystem;
 	PostProcessingSystem* postProcessing;
