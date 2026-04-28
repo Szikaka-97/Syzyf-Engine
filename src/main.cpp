@@ -1,4 +1,4 @@
-#include "SerializationDecls.h"
+
 #include "Serialized.h"
 #include "imgui.h"
 #include <fstream>
@@ -339,9 +339,9 @@ void InitScene(Scene* mainScene) {
 
 	std::ofstream destJson("sceneDump.json");
 
-	nlohmann::json sceneDump = Serialization::Serialize(mainScene);
+	// nlohmann::json sceneDump = Serialization::Serialize(mainScene);
 
-	destJson << sceneDump.dump(4) << "\n";
+	// destJson << sceneDump.dump(4) << "\n";
 
 	destJson.close();
 
@@ -356,16 +356,18 @@ void LoadScene(Scene* mainScene) {
 
 	mainScene->GetRootNode()->AttachScene(desedScene);
 
-	Serialization::DeserializeOn(desedScene, sceneDump);
+	// Serialization::DeserializeOn(desedScene, sceneDump);
 
 	mainScene->AddComponent<DebugInspector>();
 }
 
+#include <TypeInfo.h>
+
 int main(int, char**) {
-	if (!Engine::Setup(InitScene)) {
-		spdlog::error("Failed to initialize project!");
-		return EXIT_FAILURE;
-	}
+	// if (!Engine::Setup(InitScene)) {
+	// 	spdlog::error("Failed to initialize project!");
+	// 	return EXIT_FAILURE;
+	// }
 
 	// spdlog::info("");
 	
@@ -393,9 +395,22 @@ int main(int, char**) {
 	// spdlog::info(shader->HasPragma("poop"));
 	
 	// return 0;
-	spdlog::info("Initialized project.");
+	spdlog::info("FUCK.");
 
-	Engine::MainLoop();
+	json one;
+	one["thing"] = "bep";
+
+	json two;
+	two["something"] = "raf";
+
+	one.merge_patch(two);
+
+	spdlog::info("\n{}", one.dump(2));
+
+	// spdlog::info(TypeInfo::GetTypeInfo("SceneComponent").name);
+	// spdlog::info(TypeInfo::GetTypeInfo("SceneComponent").size);
+
+	// Engine::MainLoop();
 
 	return 0;
 }

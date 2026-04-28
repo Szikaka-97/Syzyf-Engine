@@ -1,4 +1,4 @@
-#include "SerializationDecls.h"
+// #include "SerializationDecls.h"
 #include "Serialized.h"
 #include <Scene.h>
 
@@ -521,7 +521,7 @@ void Scene::Deserialize(const nlohmann::json& json_node) {
 				continue;
 			}
 
-			Serialization::DeserializeGameObject(nodes[i], objData);
+			// Serialization::DeserializeGameObject(nodes[i], objData);
 		}
 	}
 }
@@ -548,7 +548,7 @@ nlohmann::json Scene::Serialize() {
 
 		std::vector<nlohmann::json> gameObjectData;
 		for (GameObject* obj : current->objects) {
-			gameObjectData.push_back(Serialization::SerializeGameObject(obj));
+			// gameObjectData.push_back(Serialization::SerializeGameObject(obj));
 		}
 		nodeRep["objects"] = gameObjectData;
 
@@ -563,9 +563,9 @@ nlohmann::json Scene::Serialize() {
 
 	json resources;
 
-	for (auto res : Serialization::GetSerializedResources()) {
-		resources[std::to_string((intptr_t) res)] = Serialization::Serialize(res);
-	}
+	// for (auto res : Serialization::GetSerializedResources()) {
+	// 	resources[std::to_string((intptr_t) res)] = Serialization::Serialize(res);
+	// }
 
 	data["resources"] = resources;
 

@@ -17,6 +17,7 @@ private:
 	serialized float threshold = 1.5f;
 	serialized float knee = 0.1f;
 	serialized float intensity = 0.6f;
+	serialized std::string debugName = "kurwa";
 
 	void UpdateTexture();
 public:

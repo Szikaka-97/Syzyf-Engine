@@ -119,7 +119,7 @@ public:
 	const ShaderCode& GetCode() const;
 };
 
-class ShaderProgram : Resource {
+class ShaderProgram : public Resource {
 	friend class ShaderBuilder;
 private:
 	struct ShaderAttachment {

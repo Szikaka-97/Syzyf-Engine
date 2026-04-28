@@ -63,6 +63,9 @@ class CppType:
 		if self.is_anonymous and not self.is_union:
 			self.type_def = CppClass(clang_type.get_declaration())
 		
+		self.is_enum = clang_type.get_declaration().kind == clang.CursorKind.ENUM_DECL
+		self.enum_width = clang_type.get_size() if self.is_enum else 0
+
 		if self.is_pointer or self.is_reference:
 			self.pointed_type = CppType(clang_type.get_pointee())
 		else:
@@ -70,7 +73,7 @@ class CppType:
 	
 
 	def __json__(self):
-		rep = { "is_const": self.is_const, "is_union": self.is_union, "is_pointer": self.is_pointer, "is_reference": self.is_reference }
+		rep = { "is_const": self.is_const, "is_union": self.is_union, "is_pointer": self.is_pointer, "is_reference": self.is_reference, "is_enum": self.is_enum, "enum_width": self.enum_width }
 
 		if len(self.template_args) > 0:
 			rep["template_args"] = self.template_args

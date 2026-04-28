@@ -59,11 +59,14 @@ else ()
 	set(RUN_SCRIPTS_CMD RunScripts.sh)
 endif ()
 
-add_custom_command(OUTPUT type_database.json TypeInfo.cpp SerializationDecls.h SerializationDecls.cpp
-                   COMMAND "${CMAKE_SOURCE_DIR}/src/scripts/${RUN_SCRIPTS_CMD}" "${CMAKE_SOURCE_DIR}/src" "${CMAKE_SOURCE_DIR}/src/include" ${CMAKE_CURRENT_BINARY_DIR}
-                   DEPENDS ${HEADER_FILES}
-                   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/src/scripts
-                   CODEGEN
+add_custom_command(
+	OUTPUT
+		SerializationDecls.h
+	COMMAND "${CMAKE_SOURCE_DIR}/src/scripts/${RUN_SCRIPTS_CMD}" "${CMAKE_SOURCE_DIR}/src" "${CMAKE_SOURCE_DIR}/src/include" ${CMAKE_CURRENT_BINARY_DIR}
+	DEPENDS ${HEADER_FILES} ${CMAKE_SOURCE_DIR}/src/scripts/GenerateSerializationDatabase.py
+	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/src/scripts
+	CODEGEN
 )
 
-target_sources(${PROJECT_NAME} PRIVATE SerializationDecls.h PRIVATE SerializationDecls.cpp)
+target_sources(${PROJECT_NAME} PRIVATE SerializationDecls.h PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/codegen/SerializationDecls.cpp PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/codegen/TypeInfo.cpp)
+

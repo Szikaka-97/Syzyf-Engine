@@ -6,6 +6,8 @@ class CppType:
 		self.is_union: bool = data["is_union"]
 		self.is_pointer: bool = data["is_pointer"]
 		self.is_reference: bool = data["is_reference"]
+		self.is_enum: bool = data["is_enum"]
+		self.enum_width:int = data["enum_width"]
 
 		self.template_args: list = data["template_args"] if "template_args" in data else []
 		self.name: str = data["name"] if "name" in data else ""

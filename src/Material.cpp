@@ -10,7 +10,7 @@
 #include <UniformSpec.h>
 #include <Debug.h>
 
-#include "SerializationDecls.h"
+// #include "SerializationDecls.h"
 
 
 std::vector<Material*> Material::allMaterials;
@@ -280,7 +280,7 @@ Material* Material::Load(fs::path materialPath) {
 
 	volatile Material* result = new Material();
 
-	Serialization::DeserializeOn(result, materialData);
+	// Serialization::DeserializeOn(result, materialData);
 
 	const_cast<Material *>(result)->path = materialPath;
 
@@ -335,7 +335,7 @@ void Material::Deserialize(const nlohmann::json& json_node) {
 nlohmann::json Material::Serialize() {
 	spdlog::info("Material Serialize");
 
-	return json{};
+	return nlohmann::json{};
 }
 
 const ShaderProgram* Material::GetShader() const {

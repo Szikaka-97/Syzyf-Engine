@@ -23,31 +23,12 @@ class Mesh;
 class DoNotSerialize { };
 
 namespace Serialization {
-	template<typename T>
-	void DeserializeOn(volatile T* ptr, const json& json_node) = delete;
+	void StartObjectSerialization();
+	void QueueObjectSerialization(const void* obj);
+	json FinishObjectSerialization();
 
 	template<typename T>
-	json Serialize(const T* ptr);
-
-	void DeserializeInPlace(volatile void* ptr, const json& json_node);
-
-	GameObject* DeserializeGameObject(SceneNode* node, nlohmann::json json_node);
-	nlohmann::json SerializeGameObject(GameObject* obj);
-	size_t GetObjectSize(const std::string& className);
-	
-	void QueueSerializeNamedResource(const Resource* res, std::string typeName);
-	template<typename T>
-		requires(std::derived_from<T, Resource>)
-	void QueueSerializeResource(const T* res) {
-		QueueSerializeNamedResource(res, typeid(res).name());
-	}
-
-	std::vector<const Resource*> GetSerializedResources();
-
-	template<class T>
-	T Deserialize(const json& json_node) = delete;
-
-	void Deserialize(volatile void* ptr, const json& json_node);
+	T Deserialize(const json& json_node);
 
 	template<>
 	glm::vec2 Deserialize(const json& json_node);
@@ -79,8 +60,3 @@ namespace Serialization {
 	json Serialize(const glm::mat3& v);
 	json Serialize(const glm::mat4& v);
 };
-
-// template<class T>
-// T Serialization::Deserialize(const json& json_node) {
-
-// }
