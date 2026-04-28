@@ -54,10 +54,10 @@ private:
 	static TimePoint now;
 	static float applicationTime;
 	static float deltaTime;
-	static void Update();
 public:
 	static const TimePoint& Now();
 	static TimePoint SystemTime();
 	static float Current();
 	static float Delta();
+    static void Update();
 };

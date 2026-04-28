@@ -1,14 +1,56 @@
 #include "physics/VirtualCharacterController.h"
 #include "physics/System.h"
 
+#include <glm/ext/scalar_constants.hpp>
+#include <glm/gtc/epsilon.hpp>
 #include <imgui.h>
 
 namespace Physics {
+class VirtualCharacterBodyFilter : public JPH::BodyFilter {
+private:
+    JPH::BodyInterface& bodyInterface;
+    uint32_t charLayer;
+    uint32_t charMask;
+public:
+    VirtualCharacterBodyFilter(JPH::BodyInterface& bi, uint32_t layer, uint32_t mask)
+        : bodyInterface(bi), charLayer(layer), charMask(mask) {}
+
+    bool ShouldCollide(const JPH::BodyID& inBodyID) const override {
+        JPH::CollisionGroup group = bodyInterface.GetCollisionGroup(inBodyID);
+        
+        uint32_t bodyLayer = group.GetGroupID();
+        uint32_t bodyMask = group.GetSubGroupID();
+        
+        if ((charMask & bodyLayer) == 0) return false;
+        
+        if ((bodyMask & charLayer) == 0) return false;
+
+        return true;
+    }
+    
+    bool ShouldCollideLocked(const JPH::Body& inBody) const override {
+        JPH::CollisionGroup group = inBody.GetCollisionGroup();
+        
+        uint32_t bodyLayer = group.GetGroupID();
+        uint32_t bodyMask = group.GetSubGroupID();
+
+        if ((charMask & bodyLayer) == 0) return false;
+        if ((bodyMask & charLayer) == 0) return false;
+        
+        return true;
+    }
+};
+
 VirtualCharacterController::VirtualCharacterController(const JPH::Ref<JPH::CharacterVirtualSettings>& settings) : characterSettings(settings) {}
 
 VirtualCharacterController::~VirtualCharacterController() {}
 
 void VirtualCharacterController::Move(const glm::vec3& velocity, float deltaTime) {
+  if (!MathHelpers::IsValid(velocity)) {
+      spdlog::error("Physics::VirtualCharacterController: Attempted to move with NaN or Inf velocity");
+      return;
+  }
+
   System* physics = GetScene()->GetComponent<System>();
   if (!physics || !this->character) {
     spdlog::error("VirtualCharacterController: Move: Tried calling move without a system/on an invalid character");
@@ -17,12 +59,16 @@ void VirtualCharacterController::Move(const glm::vec3& velocity, float deltaTime
 
   this->character->SetLinearVelocity(JPH::Vec3(velocity.x, velocity.y, velocity.z));
 
+  VirtualCharacterBodyFilter bodyFilter(physics->GetBodyInterface(), this->collisionLayer, this->collisionMask);
+
+  JPH::ObjectLayer joltObjectLayer = Physics::Layers::MOVING;
+
   this->character->Update(
     deltaTime,
-    physics->GetSystem().GetGravity() * this->gravityFactor,
-    physics->GetSystem().GetDefaultBroadPhaseLayerFilter(collisionLayer),
-    physics->GetSystem().GetDefaultLayerFilter(collisionLayer),
-    { },
+    physics->GetJoltSystem()->GetGravity() * this->gravityFactor,
+    physics->GetJoltSystem()->GetDefaultBroadPhaseLayerFilter(joltObjectLayer),
+    physics->GetJoltSystem()->GetDefaultLayerFilter(joltObjectLayer),
+    bodyFilter,
     { },
     physics->GetTempAllocator()
   );
@@ -107,17 +153,28 @@ bool VirtualCharacterController::IsSupported() const {
   return false;
 }
 
-void VirtualCharacterController::SetCollisionLayer(uint32_t layer) {
-  this->collisionLayer = layer;
+void VirtualCharacterController::SetCollisionLayerAndMask(uint32_t layer, uint32_t mask) {
+    this->collisionLayer = layer;
+    this->collisionMask = mask;
 }
 
-void VirtualCharacterController::SetCollisionLayer(std::initializer_list<uint32_t> layers) {
-  uint32_t combinedLayer = 0;
-  for (uint32_t l : layers) combinedLayer |= (1 << l);
-  SetCollisionLayer(combinedLayer);
+void VirtualCharacterController::SetCollisionLayerAndMask(std::initializer_list<uint32_t> layers, uint32_t mask) {
+    uint32_t combinedLayer = 0;
+    for (uint32_t l : layers) combinedLayer |= (1 << l);
+    SetCollisionLayerAndMask(combinedLayer, mask);
+}
+
+void VirtualCharacterController::SetCollisionLayerAndMask(std::initializer_list<uint32_t> layers, std::initializer_list<uint32_t> collideWithLayers) {
+    uint32_t combinedMask = 0;
+    for (uint32_t l : collideWithLayers) combinedMask |= (1 << l);
+    SetCollisionLayerAndMask(layers, combinedMask);
 }
 
 void VirtualCharacterController::SetPosition(const glm::vec3& position) {
+  if (!MathHelpers::IsValid(position)) {
+      spdlog::error("Physics::VirtualCharacterController: Attempted to set NaN or Inf position");
+      return;
+  }
   if (this->character) {
     this->character->SetPosition(JPH::RVec3(position.x, position.y, position.z));
     this->GetTransform().GlobalTransform().Position() = position;
@@ -125,6 +182,10 @@ void VirtualCharacterController::SetPosition(const glm::vec3& position) {
 }
 
 void VirtualCharacterController::SetRotation(const glm::quat& rotation) {
+  if (!MathHelpers::IsValid(rotation)) {
+      spdlog::error("Physics::VirtualCharacterController: Attempted to set NaN or Inf rotation");
+      return;
+  }
   if (this->character) {
     this->character->SetRotation(JPH::Quat(rotation.x, rotation.y, rotation.z, rotation.w));
     this->GetTransform().GlobalTransform().Rotation() = rotation;
@@ -133,6 +194,27 @@ void VirtualCharacterController::SetRotation(const glm::quat& rotation) {
 
 void VirtualCharacterController::SetGravityFactor(float factor) {
   this->gravityFactor = factor;
+}
+
+void VirtualCharacterController::SyncToNode() {
+    if (this->character) {
+        glm::vec3 position = this->GetTransform().GlobalTransform().Position().Value();
+        glm::quat rotation = this->GetTransform().GlobalTransform().Rotation().Value();
+        glm::vec3 scale = this->GetTransform().GlobalTransform().Scale().Value();
+
+        if (!MathHelpers::IsValid(position) || !MathHelpers::IsValid(rotation) || !MathHelpers::IsValid(scale)) {
+            spdlog::error("Physics::VirtualCharacterController::SyncToNode: Node has invalid NaN or Inf transform. Skipping sync.");
+            return;
+        }
+
+        this->SetPosition(position);
+        this->SetRotation(rotation);
+
+        if (!glm::all(glm::epsilonEqual(scale, glm::vec3(1.0f), glm::epsilon<float>()))) {
+            //commented out because of spam
+            // spdlog::warn("Physics::VirtualCharacterController::SyncToNode: Scaling virtual character controllers isn't supported");
+        }
+    }
 }
 
 void VirtualCharacterController::Awake() {
@@ -148,17 +230,17 @@ void VirtualCharacterController::Awake() {
   JPH::RVec3 position(nodePosition.x, nodePosition.y, nodePosition.z);
   JPH::Quat rotation(nodeRotation.x, nodeRotation.y, nodeRotation.z, nodeRotation.w);
 
-  this->character = new JPH::CharacterVirtual(this->characterSettings, position, rotation, &physics->GetSystem());
+  this->character = new JPH::CharacterVirtual(this->characterSettings, position, rotation, physics->GetJoltSystem());
 }
 
-// Make consistent with body
+// // Make consistent with body
 void VirtualCharacterController::DrawImGui() {
-  if (ImGui::TreeNode("Virtual Character")) {
-    int layer = static_cast<int>(this->collisionLayer);
-    if (ImGui::InputInt("Collision Layer", &layer)) {
-      this->SetCollisionLayer(static_cast<uint32_t>(layer));
-    }
-    ImGui::TreePop();
-  }
+  // if (ImGui::TreeNode("Virtual Character")) {
+  //   int layer = static_cast<int>(this->collisionLayer);
+  //   if (ImGui::InputInt("Collision Layer", &layer)) {
+  //     this->SetCollisionLayer(static_cast<uint32_t>(layer));
+  //   }
+  //   ImGui::TreePop();
+  // }
 }
 }

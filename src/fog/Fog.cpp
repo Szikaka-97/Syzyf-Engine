@@ -6,11 +6,9 @@
 
 Fog::Fog(Fog::Type fogType, float minDistance, float maxDistance, glm::vec4 fogColor) : minDistance(minDistance), maxDistance(maxDistance), fogColor(fogColor) {
   this->shader = ShaderProgram::Build()
-    .WithVertexShader(
-      GetScene()->Resources()->Get<VertexShader>("./res/shaders/fullscreen.vert")
-    ).WithPixelShader(
-      GetScene()->Resources()->Get<PixelShader>("./res/shaders/fog/fog.frag")
-    ).Link();
+    .WithVertexShader("./res/shaders/fullscreen.vert")
+    .WithPixelShader( "./res/shaders/fog/fog.frag")
+    .Link();
 
   this->material = new Material(this->shader);
 

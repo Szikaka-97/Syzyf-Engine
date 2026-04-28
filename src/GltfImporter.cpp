@@ -22,9 +22,7 @@
 #include <glm/trigonometric.hpp>
 #include <spdlog/spdlog.h>
 
-Scene* GltfImporter::LoadScene(const fs::path path, std::string name) {
-  Scene* scene = new Scene(); 
-
+SceneNode* GltfImporter::LoadScene(Scene* scene, const fs::path path, std::string name, SceneNode* parent) {
   if (!std::filesystem::exists(path)) {
     spdlog::warn("GltfImporter: File not found: {}", path.string());
     return nullptr;
@@ -59,7 +57,7 @@ Scene* GltfImporter::LoadScene(const fs::path path, std::string name) {
   bool isSkinned = !asset->skins.empty();
   std::vector<Material*> materials = LoadMaterials(scene, asset.get(), isSkinned);
   
-  SceneNode* root = scene->CreateNode(name);
+  SceneNode* root = scene->CreateNode(parent, name);
   auto& nodeIndices = asset->scenes[asset->defaultScene.value()].nodeIndices;
 
   // Saving scene nodes to be able to add them as targets when adding animations
@@ -115,7 +113,7 @@ Scene* GltfImporter::LoadScene(const fs::path path, std::string name) {
     }
   }
 
-  return scene; 
+  return root; 
 }
 
 std::optional<AnimationComponent::Animation> GltfImporter::LoadAnimation(
@@ -342,10 +340,9 @@ Mesh* GltfImporter::LoadMesh(fastgltf::Mesh& gltfMesh, fastgltf::Asset& asset, s
     auto& primitive = mesh->subMeshes[index];
 
     if (it->materialIndex.has_value()) {
-#warning GltfImporter: Add a defualt material and offset this by one
       primitive.materialIndex = it->materialIndex.value();
     } else {
-      primitive.materialIndex = 0;
+      primitive.materialIndex = materials.size() - 1;
     }
 
     primitive.indexData = new unsigned int[primitive.faceCount * (unsigned int) primitive.type];
@@ -355,18 +352,18 @@ Mesh* GltfImporter::LoadMesh(fastgltf::Mesh& gltfMesh, fastgltf::Asset& asset, s
     if (positionAccessor.min.has_value() && positionAccessor.max.has_value()
         && positionAccessor.min.value().size() == 3 && positionAccessor.max.value().size() == 3
       ) {
-      primitive.bounds = BoundingBox(
-        glm::vec3(
-          static_cast<float>(positionAccessor.min->get<double>(0)),
-          static_cast<float>(positionAccessor.min->get<double>(1)),
-          static_cast<float>(positionAccessor.min->get<double>(2))
-        ),
-        glm::vec3(
-          static_cast<float>(positionAccessor.max->get<double>(0)),
-          static_cast<float>(positionAccessor.max->get<double>(1)),
-          static_cast<float>(positionAccessor.max->get<double>(2))
-        )
-      );
+        glm::vec3 minBound(
+            static_cast<float>(positionAccessor.min->get<double>(0)),
+            static_cast<float>(positionAccessor.min->get<double>(1)),
+            static_cast<float>(positionAccessor.min->get<double>(2))
+        );
+        glm::vec3 maxBound(
+            static_cast<float>(positionAccessor.max->get<double>(0)),
+            static_cast<float>(positionAccessor.max->get<double>(1)),
+            static_cast<float>(positionAccessor.max->get<double>(2))
+        );
+
+        primitive.bounds = BoundingBox(minBound, maxBound);
     }
 
     if (positionIt != it->attributes.end()) {
@@ -398,7 +395,6 @@ Mesh* GltfImporter::LoadMesh(fastgltf::Mesh& gltfMesh, fastgltf::Asset& asset, s
         target[0] = tangent.x();
         target[1] = tangent.y();
         target[2] = tangent.z();
-        target[3] = tangent.w();
       });
     }
 
@@ -437,12 +433,13 @@ Mesh* GltfImporter::LoadMesh(fastgltf::Mesh& gltfMesh, fastgltf::Asset& asset, s
     auto* jointsIt = it->findAttribute("JOINTS_0");
     if (jointsIt != it->attributes.end()) {
       auto& jointsAccessor = asset.accessors[jointsIt->accessorIndex];
-      fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec4>(asset, jointsAccessor, [&](fastgltf::math::fvec4 joints, std::size_t index) {
+      
+      fastgltf::iterateAccessorWithIndex<fastgltf::math::uvec4>(asset, jointsAccessor, [&](fastgltf::math::uvec4 joints, std::size_t index) {
         float* target = mesh->vertexData + ((vertexPointer + index) * mesh->vertexStride) + jointsOffset;
-        target[0] = joints.x();
-        target[1] = joints.y();
-        target[2] = joints.z();
-        target[3] = joints.w();
+        target[0] = static_cast<float>(joints.x());
+        target[1] = static_cast<float>(joints.y());
+        target[2] = static_cast<float>(joints.z());
+        target[3] = static_cast<float>(joints.w());
       });
     }
 
@@ -463,6 +460,60 @@ Mesh* GltfImporter::LoadMesh(fastgltf::Mesh& gltfMesh, fastgltf::Asset& asset, s
       primitive.indexData[index] = ind + vertexPointer;
     });
 
+    // Replace with this later: https://github.com/mmikk/MikkTSpace
+    if (tangentIt == it->attributes.end() && primitive.type == Mesh::MeshType::Triangles) {
+        for (unsigned int i = 0; i < primitive.faceCount * 3; i += 3) {
+            unsigned int i0 = primitive.indexData[i];
+            unsigned int i1 = primitive.indexData[i + 1];
+            unsigned int i2 = primitive.indexData[i + 2];
+
+            float* v0 = mesh->vertexData + (i0 * mesh->vertexStride);
+            float* v1 = mesh->vertexData + (i1 * mesh->vertexStride);
+            float* v2 = mesh->vertexData + (i2 * mesh->vertexStride);
+
+            glm::vec3 pos0(v0[0], v0[1], v0[2]);
+            glm::vec3 pos1(v1[0], v1[1], v1[2]);
+            glm::vec3 pos2(v2[0], v2[1], v2[2]);
+
+            glm::vec2 uv0(v0[uv1Offset], v0[uv1Offset + 1]);
+            glm::vec2 uv1(v1[uv1Offset], v1[uv1Offset + 1]);
+            glm::vec2 uv2(v2[uv1Offset], v2[uv1Offset + 1]);
+
+            glm::vec3 edge1 = pos1 - pos0;
+            glm::vec3 edge2 = pos2 - pos0;
+
+            glm::vec2 deltaUV1 = uv1 - uv0;
+            glm::vec2 deltaUV2 = uv2 - uv0;
+
+            float f = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
+            
+            if (!std::isfinite(f)) f = 0.0f;
+
+            glm::vec3 tangent;
+            tangent.x = f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
+            tangent.y = f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
+            tangent.z = f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
+
+            v0[tangentOffset] += tangent.x; v0[tangentOffset + 1] += tangent.y; v0[tangentOffset + 2] += tangent.z;
+            v1[tangentOffset] += tangent.x; v1[tangentOffset + 1] += tangent.y; v1[tangentOffset + 2] += tangent.z;
+            v2[tangentOffset] += tangent.x; v2[tangentOffset + 1] += tangent.y; v2[tangentOffset + 2] += tangent.z;
+        }
+
+        auto& positionAccessor = asset.accessors[positionIt->accessorIndex];
+        for (std::size_t i = 0; i < positionAccessor.count; ++i) {
+            float* v = mesh->vertexData + ((vertexPointer + i) * mesh->vertexStride);
+            glm::vec3 t(v[tangentOffset], v[tangentOffset + 1], v[tangentOffset + 2]);
+            
+            if (glm::length(t) > 0.0001f) {
+                t = glm::normalize(t);
+                v[tangentOffset] = t.x;
+                v[tangentOffset + 1] = t.y;
+                v[tangentOffset + 2] = t.z;
+            } else {
+                v[tangentOffset] = 1.0f; v[tangentOffset + 1] = 0.0f; v[tangentOffset + 2] = 0.0f;
+            }
+        }
+    }
     vertexPointer += positionAccessor.count;
   }
 
@@ -556,28 +607,30 @@ std::vector<Material*> GltfImporter::LoadMaterials(Scene* scene, fastgltf::Asset
   materials.reserve(asset.materials.size());
   ResourceDatabase* resources = scene->Resources();
 
-  const char* vertexShaderPath = isSkinned ? "./res/shaders/lit_gltf_animation.vert" : "./res/shaders/lit_gltf.vert";
+  const char* vertexShaderPath = isSkinned ? "./res/shaders/gltf/lit_animation.vert" : "./res/shaders/gltf/lit.vert";
 
-	auto* opaqueProg = ShaderProgram::Build().WithVertexShader(
-		resources->Get<VertexShader>(vertexShaderPath)
-	).WithPixelShader(
-		resources->Get<PixelShader>("./res/shaders/pbr_gltf.frag")
-	).Link();
+	auto* opaqueProg = ShaderProgram::Build()
+  .WithVertexShader(vertexShaderPath)
+  .WithPixelShader("./res/shaders/gltf/pbr.frag")
+  .Link();
 
-  auto* maskProg = ShaderProgram::Build().WithVertexShader(
-    resources->Get<VertexShader>("./res/shaders/lit_gltf_animation.vert")
-  ).WithPixelShader(
-    resources->Get<PixelShader>("./res/shaders/pbr_gltf_mask.frag")
-  ).Link();
+  auto* maskProg = ShaderProgram::Build()
+  .WithVertexShader(vertexShaderPath)
+  .WithPixelShader("./res/shaders/gltf/pbr_mask.frag")
+  .Link();
 
+  auto* blendProg = ShaderProgram::Build()
+  .WithVertexShader(vertexShaderPath)
+  .WithPixelShader("./res/shaders/gltf/pbr_blend.frag")
+  .Link();
+  
   for (auto& gltfMaterial : asset.materials) {
     Material* material = nullptr;
 
     switch (gltfMaterial.alphaMode){
       case fastgltf::AlphaMode::Blend:
-#warning GltfImporter: Add blending once engine supports semi-transparent materials 
-        material = new Material(maskProg);
-        material->SetValue("alphaCutoff", gltfMaterial.alphaCutoff);
+        spdlog::info("{} is using a blend program", gltfMaterial.name);
+        material = new Material(blendProg);
         break;
       case fastgltf::AlphaMode::Opaque:
         material = new Material(opaqueProg);
@@ -696,6 +749,23 @@ std::vector<Material*> GltfImporter::LoadMaterials(Scene* scene, fastgltf::Asset
     // Add other stuff:
     //  clearcoat, culling, alpha blending
   }
-  
+ 
+    Material* defaultMaterial = new Material(opaqueProg);
+    defaultMaterial->name = "Default Material";
+    defaultMaterial->SetValue("baseColorFactor", glm::vec4(0.8f));
+    defaultMaterial->SetValue("roughnessFactor", 1.0f);
+    defaultMaterial->SetValue("metallicFactor", 0.0f);
+
+    Texture2D* defaultAlbedo = resources->Get<Texture2D>("./res/textures/default_color.png", Texture::ColorTextureRGBA);
+    defaultMaterial->SetValue("albedoMap", defaultAlbedo);
+    Texture2D* defaultArm = resources->Get<Texture2D>("./res/textures/default_arm.png", Texture::TechnicalMapXYZ);
+    defaultMaterial->SetValue("armMap", defaultArm);
+    Texture2D* defaultNormal = resources->Get<Texture2D>("./res/textures/default_norm.png", Texture::TechnicalMapXYZ);
+    defaultMaterial->SetValue("normalMap", defaultNormal);
+    Texture2D* defaultEmissive = resources->Get<Texture2D>("./res/textures/default_emissive.png", Texture::ColorTextureRGBA);
+    defaultMaterial->SetValue("emissiveMap", defaultEmissive);
+
+    materials.push_back(defaultMaterial);
+
   return materials;
 }

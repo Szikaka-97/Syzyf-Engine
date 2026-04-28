@@ -13,14 +13,10 @@
 FogVolume::FogVolume() {
   this->mesh = GetScene()->Resources()->Get<Mesh>("./res/models/not_cube.obj");
 
-  ShaderProgram *prog =
-      ShaderProgram::Build()
-          .WithVertexShader(GetScene()->Resources()->Get<VertexShader>(
-              "./res/shaders/fog/fog_volume.vert"))
-          .WithPixelShader(GetScene()->Resources()->Get<PixelShader>(
-              "./res/shaders/fog/fog_volume.frag"))
-          .Link();
-  prog->SetVolumetric(true);
+  ShaderProgram *prog = ShaderProgram::Build()
+  .WithVertexShader("./res/shaders/fog/fog_volume.vert")
+  .WithPixelShader("./res/shaders/fog/fog_volume.frag")
+  .Link();
 
   this->material = new Material(prog);
 }

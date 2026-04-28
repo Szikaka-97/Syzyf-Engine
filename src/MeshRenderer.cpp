@@ -1,8 +1,11 @@
+#include "Material.h"
+#include "imgui.h"
 #include <MeshRenderer.h>
 
 #include <glad/glad.h>
 #include <Scene.h>
 #include <Graphics.h>
+#include <glm/gtc/matrix_access.hpp>
 
 MeshRenderer::MeshRenderer():
 mesh(),
@@ -47,6 +50,10 @@ Material* MeshRenderer::GetMaterial(int materialIndex) {
 	return this->materials[materialIndex];
 }
 
+int MeshRenderer::GetMaterialCount() const {
+	return this->mesh->GetMaterialsCount();
+}
+
 void MeshRenderer::SetMaterial(Material* newMaterial, int materialIndex) {
 	if (materialIndex < 0 || this->mesh->GetMaterialsCount() <= materialIndex) {
 		return;
@@ -57,4 +64,27 @@ void MeshRenderer::SetMaterial(Material* newMaterial, int materialIndex) {
 
 void MeshRenderer::Render() const {
 	this->GetScene()->GetGraphics()->DrawMesh(const_cast<MeshRenderer*>(this));
+}
+
+void MeshRenderer::DrawImGui() {
+	if (ImGui::TreeNode(std::format("SubMesh count: {}", this->mesh->GetSubMeshCount()).c_str())) {
+		ImGui::TreePop();
+	}
+	if (ImGui::TreeNode(std::format("Material count: {}", this->materials.size()).c_str())) {
+		for (int i = 0; i < this->materials.size(); i++) {
+			Material* mat = this->materials[i];
+
+			ImGui::PushID(i);
+
+			if (ImGui::TreeNode(std::format("{}", i).c_str())) {
+				Debug::Property(*mat, "");
+
+				ImGui::TreePop();
+			}
+
+			ImGui::PopID();
+		}
+
+		ImGui::TreePop();
+	}
 }

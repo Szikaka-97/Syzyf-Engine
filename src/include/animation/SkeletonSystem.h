@@ -7,6 +7,7 @@
 class SkeletonSystem : public GameObjectSystem<SkeletonComponent> {
 private:
   GLuint skinningBuffer;
+  std::size_t currentBufferSize = 0;
 public:
   SkeletonSystem(Scene* scene);
 

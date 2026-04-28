@@ -8,6 +8,8 @@ in VS_OUT {
     vec3 worldPos;
 } ps_in;
 
+#pragma volumetric
+
 uniform sampler2D depthTex;
 uniform sampler3D noiseTex;
 

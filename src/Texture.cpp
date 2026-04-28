@@ -399,8 +399,8 @@ Texture2D* Texture2D::Create(unsigned char* textureData, int width, int height, 
 	return result;
 }
 
-Texture2D* Texture2D::Load(const unsigned char* data, const int length, const TextureParams loadParams) {
-  stbi_set_flip_vertically_on_load(false);
+Texture2D* Texture2D::Load(const unsigned char* data, const int length, const TextureParams loadParams, bool flip) {
+  stbi_set_flip_vertically_on_load(flip);
 
   int width, height, nrChannels;
   unsigned char* textureData = nullptr;
@@ -422,8 +422,8 @@ Texture2D* Texture2D::Load(const unsigned char* data, const int length, const Te
   return texture;
 }
 
-Texture2D* Texture2D::Load(const fs::path& texturePath, const TextureParams& loadParams) {
-	stbi_set_flip_vertically_on_load(true);
+Texture2D* Texture2D::Load(const fs::path& texturePath, const TextureParams& loadParams, bool flip) {
+	stbi_set_flip_vertically_on_load(flip);
 	
 	fs::directory_entry textureFile(texturePath);
 
@@ -530,7 +530,7 @@ Cubemap* Cubemap::Load(const fs::path& texturePath, const TextureParams& loadPar
 }
 
 Cubemap* Cubemap::LoadEquirectangular(const fs::path& texturePath, const TextureParams& loadParams) {
-	static ComputeShaderDispatch* cubemapBlitProg = new ComputeShaderDispatch(ResourceDatabase::Global->Get<ComputeShader>("./res/shaders/cubemapBlit/cubemapFromEqu.comp"));
+	static ComputeShaderDispatch* cubemapBlitProg = new ComputeShaderDispatch("./res/shaders/cubemapBlit/cubemapFromEqu.comp");
 
 	Texture2D* equTex = Texture2D::Load(texturePath, loadParams);
 	
@@ -658,7 +658,7 @@ Cubemap* Cubemap::LoadParts(const fs::path& texturePath, const TextureParams& lo
 }
 
 Cubemap* Cubemap::GenerateIrradianceMap() {
-	static ComputeShaderDispatch* irradianceProg = new ComputeShaderDispatch(ResourceDatabase::Global->Get<ComputeShader>("./res/shaders/cubemapBlit/cubemapIrradiance.comp"));
+	static ComputeShaderDispatch* irradianceProg = new ComputeShaderDispatch("./res/shaders/cubemapBlit/cubemapIrradiance.comp");
 
 	TextureParams creationParams {
 		.channels = TextureChannels::RGBA,
@@ -704,7 +704,7 @@ Cubemap* Cubemap::GenerateIrradianceMap() {
 }
 
 Cubemap* Cubemap::GeneratePrefilterIBLMap() {
-	static ComputeShaderDispatch* cubemapPrefilterProg = new ComputeShaderDispatch(ResourceDatabase::Global->Get<ComputeShader>("./res/shaders/cubemapBlit/cubemapPrefilter.comp"));
+	static ComputeShaderDispatch* cubemapPrefilterProg = new ComputeShaderDispatch("./res/shaders/cubemapBlit/cubemapPrefilter.comp");
 
 	TextureParams creationParams {
 		.channels = TextureChannels::RGBA,

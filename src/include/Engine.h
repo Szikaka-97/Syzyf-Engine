@@ -12,10 +12,11 @@ concept SceneCreationCallback = requires(T a, Scene* s) {
 };
 
 class Engine {
+public:
+	static SDL_Window* window;
 private:
 	Engine() = delete;
 
-	static SDL_Window* window;
 	static SDL_GLContextState* glContext;
 	static Scene* rootScene;
 

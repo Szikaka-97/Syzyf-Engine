@@ -1,4 +1,5 @@
 #include "physics/System.h"
+#include "Jolt/Physics/Collision/BroadPhase/BroadPhase.h"
 #include "Jolt/Physics/Collision/TransformedShape.h"
 #include "physics/CharacterController.h"
 #include "physics/ICollisionReceiver.h"
@@ -12,6 +13,7 @@
 #include "physics/ICollisionReceiver.h"
 
 #include <Jolt/Core/Core.h>
+#include <Jolt/Physics/Collision/Shape/StaticCompoundShape.h>
 #include <Jolt/Physics/Body/BodyID.h>
 #include <Jolt/Physics/Body/BodyManager.h>
 #include <Jolt/RegisterTypes.h>
@@ -46,6 +48,9 @@ namespace Physics {
   class ObjectLayerPairFilterImpl : public JPH::ObjectLayerPairFilter {
   public:
     virtual bool ShouldCollide(JPH::ObjectLayer inObject1, JPH::ObjectLayer inObject2) const override {
+      if (inObject1 == Layers::EDITOR || inObject2 == Layers::EDITOR)
+          return false;
+
       switch (inObject1) {
       case Layers::NON_MOVING:
         return inObject2 == Layers::MOVING; // Non moving only collides with moving
@@ -66,6 +71,7 @@ namespace Physics {
       // Create a mapping table from object to broad phase layer
       mObjectToBroadPhase[Layers::NON_MOVING] = BroadPhaseLayers::NON_MOVING;
       mObjectToBroadPhase[Layers::MOVING] = BroadPhaseLayers::MOVING;
+      mObjectToBroadPhase[Layers::EDITOR] = BroadPhaseLayers::EDITOR;
     }
 
     virtual unsigned int GetNumBroadPhaseLayers() const override {
@@ -82,6 +88,7 @@ namespace Physics {
       switch ((JPH::BroadPhaseLayer::Type)inLayer) {
       case (JPH::BroadPhaseLayer::Type)BroadPhaseLayers::NON_MOVING:	return "NON_MOVING";
       case (JPH::BroadPhaseLayer::Type)BroadPhaseLayers::MOVING: return "MOVING";
+      case (JPH::BroadPhaseLayer::Type)BroadPhaseLayers::EDITOR: return "EDITOR";
       default: JPH_ASSERT(false); return "INVALID";
       }
     }
@@ -100,6 +107,8 @@ namespace Physics {
         return inLayer2 == BroadPhaseLayers::MOVING;
       case Layers::MOVING:
         return true;
+      case Layers::EDITOR:
+        return false;
       default:
         JPH_ASSERT(false);
         return false;
@@ -111,6 +120,7 @@ namespace Physics {
     layerGroupFilter = new GroupFilterLayerMask();
     
     tempAllocator = new JPH::TempAllocatorImpl(settings.tempAllocatorSize);
+    // remember to change if any issues appear after adding sound/async file loading or anything else related to threads
     jobSystem = new JPH::JobSystemThreadPool(JPH::cMaxPhysicsJobs, JPH::cMaxPhysicsBarriers, JPH::thread::hardware_concurrency() - 1);
     bpLayerInterface = new BPLayerInterfaceImpl();
     objVsBPFilter = new ObjectVsBroadPhaseLayerFilterImpl();
@@ -220,8 +230,8 @@ namespace Physics {
     return *bodyInterface;
   }
 
-  JPH::PhysicsSystem& System::GetSystem() {
-    return *physicsSystem;
+  JPH::PhysicsSystem* System::GetJoltSystem() {
+    return physicsSystem;
   }
 
   JPH::TempAllocatorImpl& System::GetTempAllocator() {
@@ -247,24 +257,6 @@ namespace Physics {
       gravity.y,
       gravity.z
     ));
-  }
-
-  // Sends shapes to the debug rendere
-  void System::OnPostRender() {
-    if (drawDebug) {
-      auto* debugRenderer = GetScene()->GetComponent<DebugRenderer>();
-      
-      if (debugRenderer) {
-        JPH::BodyManager::DrawSettings settings;
-        settings.mDrawShape = true;
-        settings.mDrawBoundingBox = true;
-        settings.mDrawCenterOfMassTransform = true;
-        settings.mDrawShapeWireframe = true;
-
-        physicsSystem->DrawBodies(settings, debugRenderer);
-        physicsSystem->DrawConstraints(debugRenderer);
-      }
-    }
   }
 
   void System::OnPreUpdate() {
@@ -335,7 +327,7 @@ namespace Physics {
 
         Body* object = reinterpret_cast<Body*>(body.GetUserData());
         
-      if (object) {
+      if (object && body.GetObjectLayer() != Layers::EDITOR) {
         const JPH::RVec3& position = body.GetPosition();
         const JPH::Quat& rotation = body.GetRotation();
 
@@ -360,6 +352,19 @@ namespace Physics {
   }
 
   // Queue stuff
+}
+
+void Physics::System::DrawPhysicsDebug(DebugRenderer* debugRenderer) {
+    if (drawDebug && debugRenderer) {
+        JPH::BodyManager::DrawSettings settings;
+        settings.mDrawShape = true;
+        settings.mDrawBoundingBox = true;
+        settings.mDrawCenterOfMassTransform = true;
+        settings.mDrawShapeWireframe = true;
+
+        physicsSystem->DrawBodies(settings, debugRenderer, &debugRenderer->filter);
+        physicsSystem->DrawConstraints(debugRenderer);
+    }
 }
 
 void System::DrawImGui() {

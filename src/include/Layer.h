@@ -22,11 +22,11 @@ struct LayerMask {
 	constexpr LayerMask(const LayerMask& mask):
 	value(mask.value) { }
 
-	constexpr bool Test(uint8_t layer) {
+	constexpr bool Test(uint8_t layer) const {
 		return ((1 << layer) & this->value) != 0;
 	}
 
-	constexpr LayerMask operator|(uint32_t mask) {
+	constexpr LayerMask operator|(uint32_t mask) const {
 		LayerMask result = this->value | mask;
 
 		return result;
@@ -38,7 +38,7 @@ struct LayerMask {
 		return *this;
 	}
 
-	constexpr LayerMask operator&(uint32_t mask) {
+	constexpr LayerMask operator&(uint32_t mask) const {
 		LayerMask result = this->value & mask;
 
 		return result;

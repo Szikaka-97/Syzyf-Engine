@@ -49,6 +49,8 @@ public:
 		unsigned int GetVertexCount() const;
 		unsigned int GetFaceCount() const;
 
+        const unsigned int* GetIndexData() const;
+
 		BoundingBox GetBounds() const;
 	};
 

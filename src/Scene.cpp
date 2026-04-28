@@ -2,7 +2,6 @@
 
 #include <malloc.h>
 #include <algorithm>
-#include <stack>
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -25,15 +24,15 @@ SceneNode::SceneNode(Scene* scene)
 }
 
 SceneNode::~SceneNode() {
-    int objectsCount = this->objects.size();
-    GameObject** objectsCopy =
-        (GameObject**)alloca(sizeof(GameObject*) * objectsCount);
+    // int objectsCount = this->objects.size();
+    // GameObject** objectsCopy =
+    //     (GameObject**)alloca(sizeof(GameObject*) * objectsCount);
 
-    std::copy(this->objects.begin(), this->objects.end(), objectsCopy);
+    // std::copy(this->objects.begin(), this->objects.end(), objectsCopy);
 
-    for (int i = 0; i < objectsCount; i++) {
-        delete objectsCopy[i];
-    }
+    // for (int i = 0; i < objectsCount; i++) {
+    //     delete objectsCopy[i];
+    // }
 
     this->SetParent(nullptr);
 
@@ -208,8 +207,7 @@ const std::vector<GameObject*> SceneNode::AttachedObjects() {
 }
 
 void SceneNode::DeleteObject(GameObject* obj) {
-    this->objects.erase(
-        std::find(this->objects.begin(), this->objects.end(), obj));
+	this->objects.erase(std::find(this->objects.begin(), this->objects.end(), obj));
 
     this->scene->DeleteObjectInternal(obj);
 }
@@ -268,6 +266,8 @@ Scene::~Scene() {
 
 void Scene::DeleteObjectInternal(GameObject* obj) {
     SceneNode* node = obj->node;
+
+    spdlog::error("Deleting object on scene {:x}", (intptr_t) obj);
 
     this->messageTree.RemoveMessageReceiver(obj, node);
 
@@ -400,13 +400,48 @@ void Scene::DeleteNode(SceneNode* node) {
     delete node;
 }
 
+void Scene::FlushQueues() {
+    while (!this->deletedReceiversQueue.empty() || !this->deletedNodesQueue.empty()) {
+        while (!this->deletedReceiversQueue.empty()) {
+            auto deleted = this->deletedReceiversQueue.front();
+            
+            bool isGameObject = dynamic_cast<GameObject*>(deleted) != nullptr;
+            void* rawMem = dynamic_cast<void*>(deleted);
+            
+            deleted->~MessageReceiver();
+            
+            if (isGameObject) {
+                delete[] reinterpret_cast<unsigned char*>(rawMem);
+            } else {
+                ::operator delete(rawMem);
+            }
+            
+            this->deletedReceiversQueue.pop();
+        }
+
+        if (!this->deletedNodesQueue.empty()) {
+            auto deleted = this->deletedNodesQueue.front();
+            deleted->~SceneNode();
+            
+            ::operator delete(deleted);
+            
+            this->deletedNodesQueue.pop();
+        }
+    }
+}
+
 void Scene::QueueDelete(SceneNode* node) {
     this->deletedNodesQueue.push(node);
+
     node->SetEnabled(false);
+
+    for (GameObject* obj : node->objects) {
+        delete obj;
+    }
 }
 void Scene::QueueDelete(GameObject* object) {
-    this->deletedReceiversQueue.push(object);
-    object->SetEnabled(false);
+	this->deletedReceiversQueue.push(object);
+	object->SetEnabled(false);
 }
 void Scene::QueueDelete(Scene* scene) {
     this->deletedReceiversQueue.push(scene);
@@ -423,19 +458,7 @@ void Scene::Update() {
         component->OnPostUpdate();
     }
 
-    while (!this->deletedReceiversQueue.empty()) {
-        auto deleted = this->deletedReceiversQueue.front();
-        deleted->~MessageReceiver();
-        std::free(deleted);
-        this->deletedReceiversQueue.pop();
-    }
-
-    while (!this->deletedNodesQueue.empty()) {
-        auto deleted = this->deletedNodesQueue.front();
-        deleted->~SceneNode();
-        std::free(deleted);
-        this->deletedNodesQueue.pop();
-    }
+    this->FlushQueues();
 }
 
 void Scene::Render() {

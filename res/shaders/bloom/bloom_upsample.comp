@@ -14,12 +14,13 @@ layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE) in;
 layout(binding = 0) uniform sampler2D inputTex;
 layout(rgba16f, binding = 0) uniform image2D outputImg;
 
-// layout(binding = 1) uniform sampler2D u_dirt_texture;
+layout(binding = 1) uniform sampler2D dirtTexture;
 
 uniform vec2 texelSize;
 uniform int mipLevel;
 uniform float bloomIntensity;
-// uniform float dirtIntensity;
+uniform bool useDirtTexture;
+uniform float dirtIntensity;
 
 shared float sm_r[TILE_PIXEL_COUNT];
 shared float sm_g[TILE_PIXEL_COUNT];
@@ -76,10 +77,10 @@ void main() {
 
 	vec4 outPixel = imageLoad(outputImg, pixelCoord) + bloom * bloomIntensity;
 
-	// if (mipLevel == 1) {
-	// 	vec2 uv  = (vec2(pixelCoord) + vec2(0.5, 0.5)) * texelSize;
-	// 	outPixel += texture(u_dirt_texture, uv) * dirtIntensity * bloom * bloomIntensity;
-	// }
+	if (mipLevel == 0 && useDirtTexture) {
+		vec2 uv  = (vec2(pixelCoord) + vec2(0.5, 0.5)) * texelSize;
+		outPixel += texture(dirtTexture, uv) * dirtIntensity * bloom * bloomIntensity;
+	}
 
 	imageStore(outputImg, pixelCoord, outPixel);
 }

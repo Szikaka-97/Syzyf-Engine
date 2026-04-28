@@ -110,15 +110,14 @@ SceneTransform::TransformAccess& SceneTransform::TransformAccess::operator=(cons
 
 SceneTransform::PositionAccess::PositionAccess(TransformAccess& source) :
 source(source),
-value(glm::column(source.transformation, 3)) { }
+value(glm::column(source.transformation, 3)),
+initialValue(glm::column(source.transformation, 3)) { }
 
 SceneTransform::PositionAccess::~PositionAccess() {
-	glm::vec3 oldValue = glm::column(source.transformation, 3);
-
-	if (oldValue != this->value) {
-		this->source.transformation[3] = glm::vec4(this->value, 1.0f);
-		this->source.MarkDirty();
-	}
+    if (this->initialValue != this->value) {
+        this->source.transformation[3] = glm::vec4(this->value, 1.0f);
+        this->source.MarkDirty();
+    }
 }
 
 glm::vec3 SceneTransform::PositionAccess::Value() const {
@@ -201,35 +200,46 @@ source(source) {
 
 	glm::mat3 rotationMatrix = (glm::mat3) this->source.transformation;
 
-	rotationMatrix[0] /= scale.x;
-	rotationMatrix[1] /= scale.y;
-	rotationMatrix[2] /= scale.z;
+    const float epsilon = glm::epsilon<float>();
+
+    if (glm::abs(scale.x) > epsilon) {
+        rotationMatrix[0] /= scale.x;
+    }
+    if (glm::abs(scale.y) > epsilon) {
+        rotationMatrix[1] /= scale.y;
+    }
+    if (glm::abs(scale.z) > epsilon) {
+        rotationMatrix[2] /= scale.z;
+    }
 
 	this->value = glm::normalize(glm::quat(rotationMatrix));
+    this->initialValue = this->value;
 }
 
 SceneTransform::RotationAccess::~RotationAccess() {
-	glm::vec3 scale = this->source.Scale();
+    if (this->initialValue != this->value) {
+        glm::vec3 scale = this->source.Scale();
 
-	glm::mat3 rotationMatrix = glm::mat3_cast(glm::normalize(this->value));
+        glm::mat3 rotationMatrix = glm::mat3_cast(glm::normalize(this->value));
 
-	rotationMatrix[0] *= scale.x;
-	rotationMatrix[1] *= scale.y;
-	rotationMatrix[2] *= scale.z;
+        rotationMatrix[0] *= scale.x;
+        rotationMatrix[1] *= scale.y;
+        rotationMatrix[2] *= scale.z;
 
-	if (rotationMatrix != (glm::mat3) this->source.transformation) {
-		this->source.transformation[0][0] = rotationMatrix[0][0];
-		this->source.transformation[0][1] = rotationMatrix[0][1];
-		this->source.transformation[0][2] = rotationMatrix[0][2];
-		this->source.transformation[1][0] = rotationMatrix[1][0];
-		this->source.transformation[1][1] = rotationMatrix[1][1];
-		this->source.transformation[1][2] = rotationMatrix[1][2];
-		this->source.transformation[2][0] = rotationMatrix[2][0];
-		this->source.transformation[2][1] = rotationMatrix[2][1];
-		this->source.transformation[2][2] = rotationMatrix[2][2];
-	
-		this->source.MarkDirty();
-	}
+        if (rotationMatrix != (glm::mat3) this->source.transformation) {
+            this->source.transformation[0][0] = rotationMatrix[0][0];
+            this->source.transformation[0][1] = rotationMatrix[0][1];
+            this->source.transformation[0][2] = rotationMatrix[0][2];
+            this->source.transformation[1][0] = rotationMatrix[1][0];
+            this->source.transformation[1][1] = rotationMatrix[1][1];
+            this->source.transformation[1][2] = rotationMatrix[1][2];
+            this->source.transformation[2][0] = rotationMatrix[2][0];
+            this->source.transformation[2][1] = rotationMatrix[2][1];
+            this->source.transformation[2][2] = rotationMatrix[2][2];
+        
+            this->source.MarkDirty();
+        }
+    }
 }
 
 glm::quat SceneTransform::RotationAccess::Value() const {
@@ -270,22 +280,35 @@ value(
 	glm::length(glm::column(this->source.transformation, 0)),
 	glm::length(glm::column(this->source.transformation, 1)),
 	glm::length(glm::column(this->source.transformation, 2))
-) { }
+) {
+    this->initialValue = this->value;
+}
 
 SceneTransform::ScaleAccess::~ScaleAccess() {
-	glm::vec3 oldScale = glm::vec3(
-		glm::length(glm::column(this->source.transformation, 0)),
-		glm::length(glm::column(this->source.transformation, 1)),
-		glm::length(glm::column(this->source.transformation, 2))
-	);
+    if (this->initialValue != this->value) {
+        glm::vec3 oldScale = this->initialValue;
+        const float epsilon = glm::epsilon<float>();
 
-	if (this->value != oldScale) {
-		this->source.transformation[0][0] /= oldScale.x;
-		this->source.transformation[0][0] *= this->value.x;
-		this->source.transformation[1][1] /= oldScale.y;
-		this->source.transformation[1][1] *= this->value.y;
-		this->source.transformation[2][2] /= oldScale.z;
-		this->source.transformation[2][2] *= this->value.z;
+        if (glm::abs(oldScale.x) > epsilon) {
+            float factor = this->value.x / oldScale.x;
+            this->source.transformation[0][0] *= factor;
+            this->source.transformation[0][1] *= factor;
+            this->source.transformation[0][2] *= factor;
+        }
+
+        if (glm::abs(oldScale.y) > epsilon) {
+            float factor = this->value.y / oldScale.y;
+            this->source.transformation[1][0] *= factor;
+            this->source.transformation[1][1] *= factor;
+            this->source.transformation[1][2] *= factor;
+        }
+
+        if (glm::abs(oldScale.z) > epsilon) {
+            float factor = this->value.z / oldScale.z;
+            this->source.transformation[2][0] *= factor;
+            this->source.transformation[2][1] *= factor;
+            this->source.transformation[2][2] *= factor;
+        }
 
 		this->source.MarkDirty();
 	}

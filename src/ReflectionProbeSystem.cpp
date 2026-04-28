@@ -9,15 +9,10 @@
 #include <Skybox.h>
 #include <TimeSystem.h>
 
-#include "../res/shaders/shared/shared.h"
 #include "../res/shaders/shared/uniforms.h"
 
 Texture2D* GenerateBRDFConvolution() {
-	static ComputeShaderDispatch* BrdfConvolutionDispatch;
-
-	if (BrdfConvolutionDispatch == nullptr) {
-		BrdfConvolutionDispatch = new ComputeShaderDispatch(ResourceDatabase::Global->Get<ComputeShader>("./res/shaders/cubemapBlit/brdf_convolution.comp"));
-	}
+	static ComputeShaderDispatch* BrdfConvolutionDispatch = new ComputeShaderDispatch("./res/shaders/cubemapBlit/brdf_convolution.comp");
 
 	TextureParams creationParams;
 	creationParams.channels = TextureChannels::RG;
@@ -173,11 +168,13 @@ void ReflectionProbeSystem::OnPostRender() {
 			globalUniforms.Global_ProjectionMatrix = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 100.0f);
 			globalUniforms.Global_VPMatrix = globalUniforms.Global_ProjectionMatrix * globalUniforms.Global_ViewMatrix;
 
+			GetScene()->GetGraphics()->BindUniformBuffers();
+
 			this->reflectionProbeFramebuffer->SetColorTexture(this->reflectionProbeFramebuffer->GetColorTexture(), face);
 
 			RenderParams params(RenderPassType::Color, glm::vec4(0, 0, ReflectionProbe::resolution, ReflectionProbe::resolution), true);
 			
-			GetScene()->GetGraphics()->RenderScene(globalUniforms, this->reflectionProbeFramebuffer, params);
+			GetScene()->GetGraphics()->RenderOpaque(globalUniforms, params, this->reflectionProbeFramebuffer);
 		}
 		
 		probe->dirty = false;
