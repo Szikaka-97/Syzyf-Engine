@@ -462,6 +462,8 @@ void Body::SyncToNode() {
     this->SetPosition(position);
     this->SetRotation(rotation);
 
+    spdlog::error("NEW SCALE: {}, {}, {}", scale.x, scale.y, scale.z);
+
     if (scale != this->lastScale && this->originalShape != nullptr) {
         JPH::ShapeRefC newShape;
             
