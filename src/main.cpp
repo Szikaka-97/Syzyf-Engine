@@ -46,7 +46,6 @@
 #include "Player.h"
 #include <AiSimplified.h>
 #include <animation/AnimationSystem.h>
-#include <animation/AnimationSystem.h>
 #include <animation/SkeletonComponent.h>
 #include <animation/SkeletonSystem.h>
 
@@ -597,6 +596,15 @@ void InitScene(Scene* mainScene) {
 		mainScene->Resources()->Get<PixelShader>("./res/shaders/pbr.frag")
 	).Link();
 
+	ShaderProgram* toonProg = ShaderProgram::Build().WithVertexShader(
+		mainScene->Resources()->Get<VertexShader>("./res/shaders/lit.vert")
+	).WithPixelShader(
+		mainScene->Resources()->Get<PixelShader>("./res/shaders/toon.frag")
+	).Link();
+	Material* toonMat = new Material(toonProg);
+	toonMat->SetValue("uColor", glm::vec4(1.0f, 0.5f, 0.5f, 1.0f)); 
+toonMat->SetValue("lightDir", glm::vec3(0.5f, -1.0f, 0.3f)); 
+
 	Mesh* cubeMesh = mainScene->Resources()->Get<Mesh>("./res/models/not_cube.obj");
 	Mesh* cubeMesh2 = mainScene->Resources()->Get<Mesh>("./res/models/not_cube2.obj");
 	Mesh* schnozMesh = mainScene->Resources()->Get<Mesh>("./res/models/schnoz/schnoz.obj");
@@ -626,22 +634,63 @@ void InitScene(Scene* mainScene) {
 	Material* skyMat = new Material(skyProg);
 	skyMat->SetValue("skyboxTexture", skyCubemap);
 
-	Material* roomMat = new Material(coloredProg);
-	roomMat->SetValue("uColor", glm::vec3(1.0, 0.166, 0.234));
-
-	Material* schnozMat = new Material(diffuseTexProg);
-	schnozMat->SetValue("uColor", glm::vec3(1, 1, 1));
-	schnozMat->SetValue("colorTex", schnozTexture);
-
 	SceneNode* playerNode = mainScene->CreateNode("Player");
 	playerNode->GlobalTransform().Position() = glm::vec3(0.0f, 2.0f, 0.0f);
 	playerNode->GlobalTransform().Scale() = glm::vec3(0.5f, 0.5f, 0.5f);
-	playerNode->AddObject<MeshRenderer>(schnozMesh, reflectiveMat);
+	
 
 	playerNode->AddObject<Player>();
-	MakeRooms(cubeMesh2, roomMat, mainScene, skyMat);
-	AddEnemies(jakeMesh, schnozMat, mainScene, playerNode, cubeMesh2, reflectiveMat);
+	
 
+	auto cameraNode = mainScene->CreateNode("Camera");
+	Camera* camera = cameraNode->AddObject<Camera>(
+		Camera::Perspective(25.0f, 16.0f / 9.0f, 0.1f, 200.0f));
+	camera->SetAsMainCamera();
+	cameraNode->AddObject<CameraSettings>(playerNode);
+
+
+
+	Material* roomMat = new Material(toonProg);
+roomMat->SetValue("uColor", glm::vec4(1.0f, 0.166f, 0.234f, 1.0f));
+roomMat->SetValue("lightDir", glm::vec3(0.5f, -1.0f, 0.3f)); 
+glm::vec3 cameraPosition = camera->GetNode()->GlobalTransform().Position().Value(); 
+roomMat->SetValue<glm::vec3>("camPos", cameraPosition); 
+roomMat->SetValue("ambientFactor", 0.05f);
+roomMat->SetValue("specularPower", 0.5f);
+roomMat->SetValue("specularIntensity", 0.5f);
+roomMat->SetValue("rimThreshold", 0.5f);
+roomMat->SetValue("rimAmount", 0.3f);
+roomMat->SetValue("rimColor", glm::vec3(1.0f, 1.0f, 1.0f));
+roomMat->SetValue("gamma", 2.2f);
+
+	Material* schnozMat =  new Material(toonProg);;
+	schnozMat->SetValue("uColor", glm::vec4(0.82f, 0.21f,0.125f, 1.0f));
+	schnozMat->SetValue("lightDir", glm::vec3(0.5f, -1.0f, 0.3f)); 
+schnozMat->SetValue<glm::vec3>("camPos", cameraPosition); 
+schnozMat->SetValue("ambientFactor", 0.05f);
+schnozMat->SetValue("specularPower", 0.5f);
+schnozMat->SetValue("specularIntensity", 0.5f);
+schnozMat->SetValue("rimThreshold", 0.5f);
+schnozMat->SetValue("rimAmount", 0.3f);
+schnozMat->SetValue("rimColor", glm::vec3(1.0f, 1.0f, 1.0f));
+schnozMat->SetValue("gamma", 2.2f);
+
+Material* schnozMat2 = new Material(toonProg);
+schnozMat2->SetValue("uColor", glm::vec4(0.30f, 0.43f, 0.186f, 1.0f));
+schnozMat2->SetValue("lightDir", glm::vec3(0.5f, -1.0f, 0.3f)); 
+schnozMat2->SetValue<glm::vec3>("camPos", cameraPosition); 
+schnozMat2->SetValue("ambientFactor", 0.05f);
+schnozMat2->SetValue("specularPower", 0.5f);
+schnozMat2->SetValue("specularIntensity", 0.5f);
+schnozMat2->SetValue("rimThreshold", 0.5f);
+schnozMat2->SetValue("rimAmount", 0.3f);
+schnozMat2->SetValue("rimColor", glm::vec3(1.0f, 1.0f, 1.0f));
+schnozMat2->SetValue("gamma", 2.2f);
+
+playerNode->AddObject<MeshRenderer>(schnozMesh, schnozMat2);
+
+	MakeRooms(cubeMesh2, roomMat, mainScene, skyMat);
+	AddEnemies(jakeMesh, schnozMat, mainScene, playerNode, cubeMesh2, schnozMat2);
 	
 
 	JPH::Ref<JPH::CharacterVirtualSettings> characterSettings = new JPH::CharacterVirtualSettings();
@@ -663,11 +712,7 @@ void InitScene(Scene* mainScene) {
 	auto* controller = playerNode->AddObject<PlayerController>(mouseMarkerNode);
 	controller->SetBottleThrower(bottleThrower);
 
-	auto cameraNode = mainScene->CreateNode("Camera");
-	Camera* camera = cameraNode->AddObject<Camera>(
-		Camera::Perspective(25.0f, 16.0f / 9.0f, 0.1f, 200.0f));
-	camera->SetAsMainCamera();
-	cameraNode->AddObject<CameraSettings>(playerNode);
+	
 
 	auto lightNode2 = mainScene->CreateNode("Directional Light");
 	lightNode2->AddObject<Light>(Light::DirectionalLight({1, 1, 1}, 4))->SetShadowCasting(true);
