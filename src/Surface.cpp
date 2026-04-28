@@ -57,13 +57,28 @@ void Surface::CollectVertices() {
     CalculateBounds();
 }
 
+//void Surface::CalculateBounds() {
+//    SceneNode* node = GetNode();
+//    if (!node) return;
+//    glm::vec3 scale = node->GlobalTransform().Scale();
+//    glm::vec3 pos   = node->GlobalTransform().Position();
+//    m_size = scale;                
+//    m_center = pos + glm::vec3(0, scale.y * 0.5f, 0); 
+//}
 void Surface::CalculateBounds() {
-    SceneNode* node = GetNode();
-    if (!node) return;
-    glm::vec3 scale = node->GlobalTransform().Scale();
-    glm::vec3 pos   = node->GlobalTransform().Position();
-    m_size = scale;                
-    m_center = pos + glm::vec3(0, scale.y * 0.5f, 0); 
+    if (walkablePoints.empty()) {
+        m_center = glm::vec3(0.0f);
+        m_size = glm::vec3(0.0f);
+        return;
+    }
+    glm::vec3 minP = walkablePoints[0];
+    glm::vec3 maxP = walkablePoints[0];
+    for (const auto& p : walkablePoints) {
+        minP = glm::min(minP, p);
+        maxP = glm::max(maxP, p);
+    }
+    m_center = (minP + maxP) * 0.5f;
+    m_size = maxP - minP;
 }
 
 glm::vec3 Surface::GetRandomWalkPoint(const glm::vec3& center, float radius) const {

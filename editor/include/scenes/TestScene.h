@@ -285,7 +285,7 @@ inline void InitScene(Scene& mainScene) {
     JPH::ShapeRefC enemyShape =
         new JPH::CapsuleShape(0.5f, 1.0f); 
     JPH::BodyCreationSettings enemySettings(
-        enemyShape, JPH::RVec3(10.5f, 0.0f, 2.0f), 
+        enemyShape, JPH::RVec3(10.5f, 2.0f, 2.0f), 
         JPH::Quat::sIdentity(), JPH::EMotionType::Dynamic,
         Physics::Layers::MOVING);
     Physics::Body* enemyBody1 = enemy1->AddObject<Physics::Body>(enemySettings);
@@ -294,7 +294,7 @@ inline void InitScene(Scene& mainScene) {
     auto* enemyAi1 = enemy1->AddObject<AiNode>();
 
     enemyAi1->SetSurface(surface);
-    enemyAi1->GetSurface()->SetGroundHeight(0.0f);
+   // enemyAi1->GetSurface()->SetGroundHeight(0.0f);
     surface->AddEnemy(enemyAi1);
     enemyAi1->SetTarget(player->GetNode());
     Mesh* cubeMesh = mainScene.Resources()->Get<Mesh>("./res/models/cube.obj");

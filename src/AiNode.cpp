@@ -207,7 +207,7 @@ void AiNode::Update() {
 
 			m_PatrolTimeout += Time::Delta();
 			if (m_PatrolTimeout > 5.0f) {
-				spdlog::warn("AiNode: Patrol timeout reached, resetting walk point");
+				spdlog::warn("AiNode: Patrol timeout reached, resetting walk point, current pos ({:.2f},{:.2f},{:.2f}), nex point ({:.2f},{:.2f},{:.2f})", transform.x,transform.y,transform.z, walkPoint.x, walkPoint.y, walkPoint.z);
 				walkPointSet = false;
 				m_PatrolTimeout = 0.0f;
 				return;
@@ -565,6 +565,7 @@ void AiNode::SearchWalkPoint() {
 				else {
 					 float radius = glm::length(m_Surface->GetSize()) * 0.5f;
                 walkPoint = m_Surface->GetRandomWalkPoint(m_Surface->GetCenter(), radius);
+				spdlog::warn("AiNode: NavGrid not available, using random walk point on surface ({:.2f},{:.2f},{:.2f})", walkPoint.x,walkPoint.y,walkPoint.z);
                 walkPointSet = true;
 				}
 			}
