@@ -121,6 +121,8 @@ def main():
 		for cls_name, cls in all_classes.items():
 			if cls.access == "public":
 				dest_impl.line(f"{{ typeid({cls_name}), {index} }},")
+				dest_impl.line(f"{{ typeid({cls_name} *), {index} }},")
+				dest_impl.line(f"{{ typeid(const {cls_name} *), {index} }},")
 				index += 1
 
 		dest_impl.less_indent()
@@ -137,7 +139,7 @@ def main():
 		dest_impl.line("const TypeInfo& TypeInfo::GetTypeInfo(const std::type_info& typeInfo) {")
 		dest_impl.more_indent()
 
-		dest_impl.line("return allTypeInfos[typeInfoLookupByTypeId[typeInfo]];")
+		dest_impl.line("return allTypeInfos[typeInfoLookupByTypeId[std::type_index{typeInfo}]];")
 
 		dest_impl.less_indent()
 		dest_impl.line("};")
