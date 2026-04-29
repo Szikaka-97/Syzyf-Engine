@@ -70,6 +70,11 @@ private:
      int m_CurrentPathIndex = 0;
      bool isPlayerInRoom = false;   
      int m_RoomID;
+     std::string m_CurrentAnimation;   
+     bool m_InAttackAnimation = false;
+float m_AttackAnimationDuration = 1.0f;
+float m_AttackAnimationElapsed = 0.0f;
+
 
      std::vector<glm::vec3> FindPath(const glm::vec3& start, const glm::vec3& target);
      std::vector<glm::vec3> GetNeighbors(const glm::vec3& node);
@@ -77,7 +82,8 @@ private:
      bool IsWalkable(const glm::vec3& point);
      glm::vec3 GetNearestWalkable(const glm::vec3& point, float radius = 3.0f);
 
-
+     void UpdateAttackAnimation();
+     void SetAnimation(const std::string& name);
 public:
     AiNode();
     virtual ~AiNode();
@@ -93,7 +99,7 @@ public:
     void SetProjectileResources(Mesh* mesh, Material* material);
     void SetAttackCooldown(float cooldown);
     void SetAttackAnimation(AnimationComponent* anim);
-    void PlayAttackAnimation();
+    void PlayAttackAnimation(std::string name);
 
     void OnPlayerEnteredRoom();
     void OnPlayerExitedRoom();

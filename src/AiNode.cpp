@@ -122,7 +122,13 @@ void AiNode::Update() {
 	//}
 
 	//bool playerInAttackRange = canSeePlayer && dist < attackRange;
+	UpdateAttackAnimation();
 
+// Podczas animacji ataku wróg ma stać i nie podejmować innych decyzji
+if (m_InAttackAnimation) {
+    StopMoving();
+    return;
+}
 	if (isPlayerInRoom) {
     float dist = glm::distance(transform, targetPos);
     const float keepDist = attackRange;           
@@ -417,7 +423,7 @@ void AiNode::Update() {
 
 	void AiNode::Attack() {
     if (!m_TargetNode) return;
-	
+	if (m_InAttackAnimation) return;    
 	glm::vec3 targetPos = m_TargetNode->GlobalTransform().Position();
 	glm::vec3 dirTo = targetPos - transform;
         if (glm::length(dirTo) > 0.01f)
@@ -426,9 +432,11 @@ void AiNode::Update() {
     m_AttackTimer += Time::Delta();
     if (m_AttackTimer >= m_AttackCooldown) {
         m_AttackTimer = 0.0f;
-
+		SetAnimation("attack.001");
+        m_InAttackAnimation = true;
+        m_AttackAnimationElapsed = 0.0f;
         glm::vec3 targetPos = m_TargetNode->GlobalTransform().Position();
-		PlayAttackAnimation();
+		PlayAttackAnimation("attack.001");
         SpawnProjectile(targetPos);
     }
 }
@@ -466,11 +474,41 @@ void AiNode::SpawnProjectile(const glm::vec3& targetPos) {
 
 void AiNode::SetAttackAnimation(AnimationComponent* anim) {
     m_AttackAnimation = anim;
+    if (anim) {
+        for (const auto& a : anim->animations) {
+            if (a.data.name == "attack.001") {           // dopasuj nazwę do swojego modelu
+                m_AttackAnimationDuration = a.data.duration;
+                spdlog::info("Attack anim duration = {:.2f}s", m_AttackAnimationDuration);
+                break;
+            }
+        }
+    }
 }
 
-void AiNode::PlayAttackAnimation() {
+void AiNode::PlayAttackAnimation(std::string name) {
     if (m_AttackAnimation) {
-        m_AttackAnimation->Play("attack.001");   // nazwa animacji – dostosuj do swojego modelu
+        m_AttackAnimation->Play(name); 
+    }
+}
+void AiNode::SetAnimation(const std::string& name) {
+    if (!m_AttackAnimation) return;                   // brak komponentu animacji
+    if (m_CurrentAnimation == name) return;           // ta sama animacja już gra
+    m_AttackAnimation->Play(name);
+    m_CurrentAnimation = name;
+    spdlog::debug("AiNode: changed animation to {}", name);
+}
+void AiNode::UpdateAttackAnimation() {
+    if (!m_InAttackAnimation) return;
+
+    m_AttackAnimationElapsed += Time::Delta();
+    if (m_AttackAnimationElapsed >= m_AttackAnimationDuration) {
+        m_InAttackAnimation = false;
+
+        // Wróć do odpowiedniej animacji po ataku
+        if (glm::length(m_Body->GetLinearVelocity()) > 0.1f)
+            SetAnimation("idle.001");      // nadal się porusza
+        else
+            SetAnimation("stop.001");      // stoi w miejscu
     }
 }
 
@@ -512,6 +550,9 @@ void AiNode::MoveInDirection(const glm::vec3& direction) {
     glm::vec3 currentVel = m_Body->GetLinearVelocity();
     glm::vec3 newVel = dir * m_Speed;
     newVel.y = currentVel.y;
+	if (!m_InAttackAnimation) {
+        SetAnimation("idle.001");
+    }
 
 	if (m_Surface) {
         glm::vec3 predictedPos = transform + newVel * Time::Delta();
@@ -528,6 +569,9 @@ void AiNode::MoveInDirection(const glm::vec3& direction) {
 void AiNode::StopMoving() {
     glm::vec3 currentVel = m_Body->GetLinearVelocity();
     m_Body->SetLinearVelocity(glm::vec3(0, currentVel.y, 0));
+	if (!m_InAttackAnimation) {
+        SetAnimation("stop.001");
+    }
 }
 
 	void AiNode::RotateNode(glm::vec3 dir) {
