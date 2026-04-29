@@ -17,6 +17,7 @@
 
 struct DungeonGeneratorSettings {
     int mapColumns = 10;
+    int mapRows = 10;
     int steps = 10;
 
     int numberOfBranches = 0;
@@ -27,6 +28,8 @@ struct DungeonGeneratorSettings {
     int numberOf3x3Rooms = 0;
 
     float margin = 0.1f;
+    float momentum = 2.0f;
+    float horizontalBias = 0.5f;
 };
 
 class DungeonGenerator : public GameObject, public ImGuiDrawable {
@@ -44,6 +47,7 @@ private:
     };
 
     enum class Directions {
+        None,
         Left,
         Right,
         Up,
@@ -104,6 +108,7 @@ public:
     void DrawImGui() {
         ImGui::SliderInt("Steps", &this->settings.steps, 1, 100); 
         ImGui::SliderInt("Columns", &this->settings.mapColumns, 1, 20);
+        ImGui::SliderInt("Rows", &this->settings.mapRows, 1, 20);
         ImGui::SliderInt("Number of branches", &this->settings.numberOfBranches, 0, 10);
         ImGui::SliderInt("Min branch length", &this->settings.minBranchLength, 0, 10);
         ImGui::SliderInt("Max branch length", &this->settings.maxBranchLength, 0, 10);
@@ -112,7 +117,8 @@ public:
         ImGui::SliderInt("Number of 3x3 rooms", &this->settings.numberOf3x3Rooms, 0, 10);
 
         ImGui::SliderFloat("Margin size", &this->settings.margin, 0.0f, 1.0f);
-
+        ImGui::SliderFloat("Momentum", &this->settings.momentum, 0.0f, 10.0f);
+        ImGui::SliderFloat("Horizontal Bias", &this->settings.horizontalBias, 0.0f, 1.0f);
 
         if (ImGui::Button("Regenerate Dungeon"))
             this->Regenerate();
@@ -124,7 +130,7 @@ private:
         // Main path
         std::srand(static_cast<unsigned int>(std::time(nullptr)));
 
-        const int roomCount = this->settings.mapColumns * this->settings.mapColumns;
+        const int roomCount = this->settings.mapColumns * this->settings.mapRows;
 
         this->map.clear();
         this->map.resize(roomCount, Room());
@@ -157,7 +163,7 @@ private:
             int branchLength = glm::linearRand(this->settings.minBranchLength, this->settings.maxBranchLength);
             Traverse(visited, startPosition, branchLength, false);
         } 
-       
+        
         // Rooms
         for (std::size_t i = 0; i < this->settings.numberOf2x2Rooms; ++i) {
             int attempts = 0;
@@ -191,6 +197,7 @@ private:
         int currentPosition = startPosition;
         std::vector<int> previousPositions;
         int step = 0;
+        Directions previousDirection = Directions::None;
 
         while (step < steps && step > -1) {
             bool backtrack = false;
@@ -198,16 +205,44 @@ private:
             std::vector<Directions> availableDirections = this->GetAvailableDirections(currentPosition);
 
             while (!availableDirections.empty()) {
-                Directions direction = availableDirections.at(
-                    glm::linearRand(0, static_cast<int>(availableDirections.size() - 1))
-                );
+                float totalWeight = 0.0f;
+                std::vector<float> weights;
+                weights.reserve(availableDirections.size());
+
+                for (Directions dir : availableDirections) {
+                    float weight = 1.0f;
+                    if (dir == Directions::Left || dir == Directions::Right) {
+                        weight *= this->settings.horizontalBias;
+                    } else {
+                        weight *= (1.0f - this->settings.horizontalBias);
+                    }
+
+                    if (dir == previousDirection) {
+                        weight *= this->settings.momentum;
+                    }
+
+                    weights.push_back(weight);
+                    totalWeight += weight;
+                }
+
+                float randomVal = glm::linearRand(0.0f, totalWeight);
+                float currentWeight = 0.0f;
+                Directions direction = availableDirections.front();
+                
+                for (std::size_t i = 0; i < availableDirections.size(); ++i) {
+                    currentWeight += weights[i];
+                    if (randomVal <= currentWeight) {
+                        direction = availableDirections[i];
+                        break;
+                    }
+                }
 
                 int nextPosition = currentPosition;
                 bool moved = false;
                 switch (direction) {
                     case Directions::Up:
                         nextPosition = currentPosition - this->settings.mapColumns;
-                        if (!visited.contains(nextPosition) && nextPosition < map.size()) {
+                        if (!visited.contains(nextPosition) && nextPosition >= 0 && nextPosition < map.size()) {
                             map.at(currentPosition).doors.top = true;
                             map.at(nextPosition).doors.bottom = true;
                             currentPosition = nextPosition;
@@ -219,6 +254,7 @@ private:
                             } else {
                                 map.at(currentPosition).roomType = RoomType::BigRoom;
                             }
+                            previousDirection = Directions::Up;
                             availableDirections.clear();
                             moved = true;
                         } else {
@@ -227,7 +263,7 @@ private:
                         break;
                     case Directions::Down:
                         nextPosition = currentPosition + this->settings.mapColumns;
-                        if (!visited.contains(nextPosition) && nextPosition < map.size()) {
+                        if (!visited.contains(nextPosition) && nextPosition >= 0 && nextPosition < map.size()) {
                             map.at(currentPosition).doors.bottom = true;
                             map.at(nextPosition).doors.top = true;
                             currentPosition = nextPosition;
@@ -239,6 +275,7 @@ private:
                             } else {
                                 map.at(currentPosition).roomType = RoomType::BigRoom;
                             }
+                            previousDirection = Directions::Down;
                             availableDirections.clear();
                             moved = true;
                         } else {
@@ -247,7 +284,7 @@ private:
                         break;
                     case Directions::Left:
                         nextPosition = currentPosition - 1;
-                        if (!visited.contains(nextPosition) && nextPosition < map.size()) {
+                        if (!visited.contains(nextPosition) && nextPosition >= 0 && nextPosition < map.size()) {
                             map.at(currentPosition).doors.left = true;
                             map.at(nextPosition).doors.right = true;
                             currentPosition = nextPosition;
@@ -259,6 +296,7 @@ private:
                             } else {
                                 map.at(currentPosition).roomType = RoomType::BigRoom;
                             }
+                            previousDirection = Directions::Left;
                             availableDirections.clear();
                             moved = true;
                         } else {
@@ -267,7 +305,7 @@ private:
                         break;
                     case Directions::Right:
                         nextPosition = currentPosition + 1;
-                        if (!visited.contains(nextPosition) && nextPosition < map.size()) {
+                        if (!visited.contains(nextPosition) && nextPosition >= 0 && nextPosition < map.size()) {
                             map.at(currentPosition).doors.right = true;
                             map.at(nextPosition).doors.left = true;
                             currentPosition = nextPosition;
@@ -279,18 +317,21 @@ private:
                             } else {
                                 map.at(currentPosition).roomType = RoomType::BigRoom;
                             }
+                            previousDirection = Directions::Right;
                             availableDirections.clear();
                             moved = true;
                         } else {
                             std::erase(availableDirections, Directions::Right);
                         }
                         break;
+                    default:
+                        break;
                 }
 
                 if (availableDirections.empty() && !previousPositions.empty() && moved == false) {
                     currentPosition = previousPositions.back();
                     previousPositions.pop_back();
-
+                    previousDirection = Directions::None;
                     backtrack = true;
                 } else if (availableDirections.empty() && previousPositions.empty() && moved == false) {
                     break;
@@ -311,7 +352,7 @@ private:
     bool GenerateRooms(std::set<int>& visited, glm::uvec2 roomSize, RoomType roomType) {
         int randomIndex = glm::linearRand(0, static_cast<int>(visited.size() - 1));
         int roomPosition = *std::next(visited.begin(), randomIndex);
-       
+        
         if (!this->CheckIfRoomPositionIsValid(roomPosition, roomSize))
             return false;
 
@@ -334,7 +375,7 @@ private:
         };
 
         if ((roomPosition % this->settings.mapColumns) + roomSize.x > this->settings.mapColumns ||
-            (roomPosition / this->settings.mapColumns) + roomSize.y > this->settings.mapColumns) {
+            (roomPosition / this->settings.mapColumns) + roomSize.y > this->settings.mapRows) {
             return false;
         }
 
@@ -354,7 +395,7 @@ private:
         if (currentPosition >= this->settings.mapColumns)
             availableDirections.push_back(Directions::Up);
 
-        const int roomCount = this->settings.mapColumns * this->settings.mapColumns;
+        const int roomCount = this->settings.mapColumns * this->settings.mapRows;
         if (currentPosition < roomCount - this->settings.mapColumns)
             availableDirections.push_back(Directions::Down);
 
@@ -369,14 +410,15 @@ private:
 
     // Replace with something smarter later
     void CreateRoomNodes() {
-        const float offset = (this->settings.mapColumns * (this->ROOM_SIZE + marginSize) * 0.5f) + this->ROOM_SIZE * 0.5f;
+        const float offsetX = (this->settings.mapColumns * (this->ROOM_SIZE + marginSize) * 0.5f) + this->ROOM_SIZE * 0.5f;
+        const float offsetZ = (this->settings.mapRows * (this->ROOM_SIZE + marginSize) * 0.5f) + this->ROOM_SIZE * 0.5f;
         glm::vec3 startPosition = {
-            -offset,
+            -offsetX,
             0.0f,
-            -offset,
+            -offsetZ,
         };
 
-        for (std::size_t y = 0; y < this->settings.mapColumns; y++) {
+        for (std::size_t y = 0; y < this->settings.mapRows; y++) {
             for (std::size_t x = 0; x < this->settings.mapColumns; x++) {
                 const std::size_t index = y * this->settings.mapColumns + x;
                 Room& room = this->map.at(index);
