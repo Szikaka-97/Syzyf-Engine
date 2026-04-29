@@ -137,8 +137,13 @@ def main():
 		
 		dest_impl.line()
 
+		dest_impl.line("extern std::vector<json> serializedObjects;")
+
+		dest_impl.line()
+
 		for cls_name in all_classes:
 			dest_impl.line(f"json InternalSerialize{sanitize_class_name(cls_name)}(const void* ptr);")
+			dest_impl.line(f"int SerializeObject(const {cls_name}* ptr);")
 
 		dest_impl.line()
 
@@ -155,10 +160,10 @@ def main():
 
 		dest_impl.line()
 
-		dest_impl.line("void InternalSerializeObject(const void* ptr) {")
+		dest_impl.line("int InternalSerializeObject(const void* ptr, const std::type_info& objectType) {")
 		dest_impl.more_indent()
 
-		dest_impl.line("const std::string typeName = TypeInfo::GetTypeInfo(typeid(ptr)).name;")
+		dest_impl.line("const std::string typeName = TypeInfo::GetTypeInfo(objectType).name;")
 			
 		dest_impl.line("json result;")
 
@@ -167,15 +172,31 @@ def main():
 
 		dest_impl.line()
 
-		dest_impl.line("// TODO")
+		dest_impl.line("serializedObjects.push_back(result);")
+
+		dest_impl.line()
+
+		dest_impl.line("return serializedObjects.size() - 1;")
 
 		dest_impl.less_indent()
 		dest_impl.line("}")
 
 		for cls_name in all_classes:
+			dest_impl.line(f"int SerializeObject(const {cls_name}* ptr) {{")
+			dest_impl.more_indent()
+
+			dest_impl.line("return InternalSerializeObject(ptr, typeid(*ptr));")
+
+			dest_impl.less_indent()
+			dest_impl.line("}")
+
 			dest_impl.line(f"json InternalSerialize{sanitize_class_name(cls_name)}(const void* ptr) {{")
 			dest_impl.more_indent()
 			
+			dest_impl.line(f"spdlog::info(\"Serializing class {cls_name}\");")
+
+			dest_impl.line()
+
 			dest_impl.line("json result;")
 			dest_impl.line("const uint8_t* data = reinterpret_cast<const uint8_t*>(ptr);")
 
@@ -201,11 +222,13 @@ def main():
 					dest_impl.line(f"result[\"{field.name}\"] = InternalSerialize{sanitize_class_name(field.type.full_name)}(data + {field.offset});")
 				else:
 					dest_impl.line(f"// Pointer field {field.type.full_name} {field.name} at {field.offset}")
+					dest_impl.line(f"result[\"{field.name}\"] = SerializeObject(*(const {field.type.full_name}*) (data + {field.offset}));")
 
 			dest_impl.line("return result;")
 
 			dest_impl.less_indent()
 			dest_impl.line("}")
+			dest_impl.line()
 
 
 	# for serialized_class in all_classes.values():

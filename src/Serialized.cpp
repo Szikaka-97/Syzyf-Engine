@@ -2,8 +2,10 @@
 #include <Resources.h>
 
 #include <nlohmann/json.hpp>
+#include <stack>
 
-std::vector<const Resource*> serializedResources;
+std::stack<void*> currentSerializationStack;
+std::vector<json> serializedObjects;
 
 // void Serialization::QueueSerializeNamedResource(const Resource* res, std::string typeName) {
 // 	spdlog::info("Serializing resource: {} of type {}", res->GetPath().string(), typeName);
