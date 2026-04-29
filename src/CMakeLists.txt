@@ -61,12 +61,18 @@ endif ()
 
 add_custom_command(
 	OUTPUT
-		SerializationDecls.h
+		codegen/type_database.json
+		codegen/SerializationDecls.h
+		codegen/SerializationDecls.cpp
+		codegen/TypeInfo.cpp
 	COMMAND "${CMAKE_SOURCE_DIR}/src/scripts/${RUN_SCRIPTS_CMD}" "${CMAKE_SOURCE_DIR}/src" "${CMAKE_SOURCE_DIR}/src/include" ${CMAKE_CURRENT_BINARY_DIR}
-	DEPENDS ${HEADER_FILES} ${CMAKE_SOURCE_DIR}/src/scripts/GenerateSerializationDatabase.py
+	DEPENDS ${HEADER_FILES} ${CMAKE_SOURCE_DIR}/src/scripts/*
 	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/src/scripts
 	CODEGEN
 )
 
-target_sources(${PROJECT_NAME} PRIVATE SerializationDecls.h PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/codegen/SerializationDecls.cpp PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/codegen/TypeInfo.cpp)
-
+target_sources(${PROJECT_NAME}
+	PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/codegen/SerializationDecls.h
+	PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/codegen/SerializationDecls.cpp
+	PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/codegen/TypeInfo.cpp
+)

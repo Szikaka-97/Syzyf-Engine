@@ -117,7 +117,7 @@ def main():
 		dest_header.line()
 
 	with CodeWriter(DEST_SOURCE_FILE_PATH) as dest_impl:
-		dest_impl.line("#include <codegen/SerializationDecls.h>")
+		dest_impl.line("#include \"SerializationDecls.h\"")
 		dest_impl.line()
 		dest_impl.line("#include <unordered_map>")
 		dest_impl.line("#include <nlohmann/json.hpp>")
