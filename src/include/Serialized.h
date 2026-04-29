@@ -1,6 +1,5 @@
 #pragma once
 
-#include <concepts>
 #ifdef __SERIALIZER_RUNNING__
 #define serialized __attribute__((annotate("__serialized__")))
 #define not_serialized __attribute__((annotate("__not_serialized__")))
@@ -9,7 +8,7 @@
 #define not_serialized
 #endif
 
-#include <nlohmann/json_fwd.hpp>
+#include <nlohmann/json.hpp>
 #include <glm/glm.hpp>
 #include <Resources.h>
 
@@ -31,6 +30,9 @@ namespace Serialization {
 	void QueueObjectSerialization(const T* obj);
 
 	json FinishObjectSerialization();
+
+	template<typename T>
+	json Serialize(const T* obj);
 
 	template<typename T>
 	T Deserialize(const json& json_node);
@@ -69,4 +71,13 @@ namespace Serialization {
 template <typename T>
 void Serialization::QueueObjectSerialization(const T* obj) {
 	InternalSerializeObject(obj, typeid(*obj));
+}
+
+template <typename T>
+json Serialization::Serialize(const T* obj) {
+	StartObjectSerialization();
+
+	QueueObjectSerialization(obj);
+
+	return FinishObjectSerialization();
 }
