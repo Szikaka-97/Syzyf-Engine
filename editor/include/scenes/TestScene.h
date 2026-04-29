@@ -297,6 +297,21 @@ inline void InitScene(Scene& mainScene) {
     Mesh* cubeMesh =
         mainScene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
 
+    Mesh* sphereMesh =
+        mainScene.Resources()->Get<Mesh>("./res/models/sphere.obj");
+
+    ShaderProgram* rimProg =
+        ShaderProgram::Build()
+            .WithVertexShader("./res/shaders/lit.vert")
+            .WithPixelShader("./res/shaders/rim.frag")
+            .Link();
+
+    Material* rimMat = new Material(rimProg);
+        rimMat->SetValue("uColor", glm::vec3(0.25f, 0.25f, 0.25f));
+        rimMat->SetValue("rimColor", glm::vec3(0.8f, 0.8f, 0.8f));
+        rimMat->SetValue("rimPower", 1.2f);
+        rimMat->SetValue("rimStrength", 3.0f);
+
     SceneNode* pinkTransparentCubeNode = mainScene.CreateNode("Pink Cube");
     pinkTransparentCubeNode->AddObject<MeshRenderer>(cubeMesh,
                                                      pinkTransparentMat);
@@ -306,6 +321,21 @@ inline void InitScene(Scene& mainScene) {
     blueTransparentCubeNode->AddObject<MeshRenderer>(cubeMesh,
                                                      blueTransparentMat);
     blueTransparentCubeNode->LocalTransform().Position() = {-3, 0, -5};
+
+    
+    SceneNode* rimMonkeyNode = GltfImporter::LoadScene(
+        &mainScene,
+        "./res/models/big_monkey.glb",
+        "Rim Lighting Monkey"
+        );
+
+    MeshRenderer* rimMonkeyRenderer =
+        rimMonkeyNode->GetObjectInChildren<MeshRenderer>();
+
+    rimMonkeyRenderer->SetMaterial(rimMat);
+
+    rimMonkeyNode->LocalTransform().Position() = {-40.0f, 0.0f, 3.0f};
+
 
 #pragma endregion
 
