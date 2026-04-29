@@ -9,7 +9,9 @@ class CppType:
 		self.is_enum: bool = data["is_enum"]
 		self.enum_width:int = data["enum_width"]
 
-		self.template_args: list = data["template_args"] if "template_args" in data else []
+		self.template_args: list = [
+			(CppType(template_param_data) if isinstance(template_param_data, dict) else template_param_data) for template_param_data in data["template_args"]
+		] if "template_args" in data else []
 		self.name: str = data["name"] if "name" in data else ""
 		self.full_name: str = data["full_name"] if "full_name" in data else ""
 
