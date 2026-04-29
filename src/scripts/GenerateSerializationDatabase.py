@@ -99,6 +99,61 @@ def is_array_type(type: CppType) -> bool:
 	return type.full_name.startswith("std::vector")
 
 
+def write_field_serializer(writer: CodeWriter, field: CppField, lhs: str) -> None:
+	if is_simple_type(field.type):
+		writer.line(lhs + f" = *({field.type.full_name} *) (data + {field.offset});")
+	elif field.type.is_enum:
+		writer.line(lhs + f" = *({get_enum_type(field.type)} *) (data + {field.offset});")
+	elif is_array_type(field.type):
+		write_array_serializer(writer, field, lhs)
+	elif sanitize_class_name(field.type.full_name) in INTRINSIC_SERIALIZERS:
+		writer.line(lhs + f" = Serialization::Serialize(*({field.type.full_name} *) (data + {field.offset}));")
+	elif not field.type.is_pointer:
+		writer.line(lhs + f" = InternalSerialize{sanitize_class_name(field.type.full_name)}(data + {field.offset});")
+	else:
+		writer.line(lhs + f" = SerializeObject(*(const {field.type.full_name}*) (data + {field.offset}));")
+
+def write_array_serializer(writer: CodeWriter, field: CppField, lhs: str) -> None:
+	writer.line("{")
+	writer.more_indent()
+
+	writer.line(f"json resultArray;")
+	writer.line(f"auto& sourceArray = *({field.type.full_name} *) (data + {field.offset});")
+
+	writer.line()
+
+	element_type = field.type.template_args[0]
+
+	writer.line("for (auto& element : sourceArray) {")
+	writer.more_indent()
+
+	if is_simple_type(element_type):
+		writer.line(f"resultArray.push_back(element);")
+	elif element_type.is_enum:
+		writer.line(f"resultArray.push_back(({get_enum_type(element_type)}) element);")
+	elif is_array_type(element_type):
+		# write_array_serializer(writer, field, lhs)
+		print(f"\tWARN: Nested arrays aren't supported yet: {field.name}")
+		pass
+	elif sanitize_class_name(element_type.full_name) in INTRINSIC_SERIALIZERS:
+		writer.line(f"resultArray.push_back(Serialization::Serialize(element));")
+	elif not element_type.is_pointer:
+		writer.line(f"resultArray.push_back(InternalSerialize{sanitize_class_name(element_type.full_name)}(&element);")
+	else:
+		writer.line(f"resultArray.push_back(SerializeObject(element));")
+
+	writer.less_indent()
+	writer.line("}")
+
+	writer.line()
+
+	writer.line(f"{lhs} = resultArray;")
+	# writer.line(f"// {lhs} = Array field {field.type.full_name} {field.name} at {field.offset}")
+
+	writer.less_indent()
+	writer.line("}")
+
+
 def main():
 	global all_classes, data
 
@@ -209,20 +264,7 @@ def main():
 				if "__serialized__" not in field.attributes:
 					continue
 
-				if is_simple_type(field.type):
-					dest_impl.line(f"result[\"{field.name}\"] = *({field.type.full_name} *) (data + {field.offset});")
-				elif field.type.is_enum:
-					dest_impl.line(f"result[\"{field.name}\"] = *({get_enum_type(field.type)} *) (data + {field.offset});")
-				elif is_array_type(field.type):
-					dest_impl.line(f"// Array field {field.type.full_name} {field.name} at {field.offset}")
-				elif sanitize_class_name(field.type.full_name) in INTRINSIC_SERIALIZERS:
-					dest_impl.line(f"result[\"{field.name}\"] = Serialization::Serialize(*({field.type.full_name} *) (data + {field.offset}));")
-				elif not field.type.is_pointer:
-					dest_impl.line(f"// ob field {field.type.full_name} {field.name} at {field.offset}")
-					dest_impl.line(f"result[\"{field.name}\"] = InternalSerialize{sanitize_class_name(field.type.full_name)}(data + {field.offset});")
-				else:
-					dest_impl.line(f"// Pointer field {field.type.full_name} {field.name} at {field.offset}")
-					dest_impl.line(f"result[\"{field.name}\"] = SerializeObject(*(const {field.type.full_name}*) (data + {field.offset}));")
+				write_field_serializer(dest_impl, field, f"result[\"{field.name}\"]")
 
 			dest_impl.line("return result;")
 
