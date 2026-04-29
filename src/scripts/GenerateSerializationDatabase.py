@@ -138,7 +138,7 @@ def write_array_serializer(writer: CodeWriter, field: CppField, lhs: str) -> Non
 	elif sanitize_class_name(element_type.full_name) in INTRINSIC_SERIALIZERS:
 		writer.line(f"resultArray.push_back(Serialization::Serialize(element));")
 	elif not element_type.is_pointer:
-		writer.line(f"resultArray.push_back(InternalSerialize{sanitize_class_name(element_type.full_name)}(&element);")
+		writer.line(f"resultArray.push_back(InternalSerialize{sanitize_class_name(element_type.full_name)}(&element));")
 	else:
 		writer.line(f"resultArray.push_back(SerializeObject(element));")
 
