@@ -160,6 +160,7 @@ def write_field_serializer(writer: CodeWriter, field: CppField, lhs: str) -> Non
 		else:
 			print(f"WARN: Serializing object of non-serializable type {field.type.full_name}")
 
+
 def write_array_serializer(writer: CodeWriter, field: CppField, lhs: str) -> None:
 	writer.line("{")
 	writer.more_indent()
@@ -202,6 +203,105 @@ def write_array_serializer(writer: CodeWriter, field: CppField, lhs: str) -> Non
 
 	writer.line(f"{lhs} = resultArray;")
 	# writer.line(f"// {lhs} = Array field {field.type.full_name} {field.name} at {field.offset}")
+
+	writer.less_indent()
+	writer.line("}")
+
+
+def write_field_deserializer(writer: CodeWriter, field: CppField, lhs: str) -> None:
+	if is_simple_type(field.type):
+		writer.line(f"new(({field.type.full_name}*) (raw + {field.offset})) {field.type.full_name}{{data[\"{field.name}\"].get<{field.type.full_name}>()}};")
+	elif field.type.is_enum:
+		writer.line(f"new(({get_enum_type(field.type)}*) (raw + {field.offset})) {get_enum_type(field.type)}{{data[\"{field.name}\"].get<{get_enum_type(field.type)}>()}};")
+	elif is_array_type(field.type):
+		write_array_deserializer(writer, field, lhs)
+	elif sanitize_class_name(field.type.full_name) in INTRINSIC_SERIALIZERS:
+		writer.line(f"new(({field.type.full_name}*) (raw + {field.offset})) {field.type.full_name}{{Serialization::Deserialize<{field.type.full_name}>(data[\"{field.name}\"])}};")
+	elif not field.type.is_pointer:
+		if field.type.full_name in all_classes:
+			writer.line(f"InternalDeserializeOn(reinterpret_cast<volatile {field.type.full_name} *>(raw + {field.offset}), data[\"{field.name}\"]);")
+		else:
+			print(f"WARN: Deserializing object of non-serializable type {field.type.full_name}")
+	else:
+		if field.type.full_name.removesuffix("*").removesuffix(" ") in all_classes:
+			# writer.line(lhs + f" = SerializeObject(*(const {field.type.full_name}*) (data + {field.offset}));")
+			writer.line("// Pointers deserialize: Not yet")
+		else:
+			print(f"WARN: Deserializing object of non-serializable type {field.type.full_name}")
+
+
+def write_array_deserializer(writer: CodeWriter, field: CppField, lhs: str) -> None:
+	writer.line("// Array deserialize: Not yet")
+
+
+def write_serialize_object(writer: CodeWriter, cls_name: str) -> None:
+	writer.line(f"int SerializeObject(const {cls_name}* ptr) {{")
+	writer.more_indent()
+
+	writer.line("return InternalSerializeObject(ptr, typeid(*ptr));")
+
+	writer.less_indent()
+	writer.line("}")
+
+
+def write_internal_serialize(writer: CodeWriter, cls_name: str, cls: CppClass) -> None:
+	writer.line(f"json InternalSerialize{sanitize_class_name(cls_name)}(const void* ptr) {{")
+	writer.more_indent()
+	
+	writer.line(f"spdlog::info(\"Serializing class {cls_name}\");")
+
+	writer.line()
+
+	writer.line("json result;")
+	writer.line("const uint8_t* data = reinterpret_cast<const uint8_t*>(ptr);")
+
+	writer.line()
+
+	for base in cls.base_classes:
+		if not is_serialized_class(base):
+			continue
+
+		writer.line(f"result.merge_patch(InternalSerialize{sanitize_class_name(base.get_full_name())}(dynamic_cast<const {base.name} *>(reinterpret_cast<const {cls_name} *>(ptr))));")
+		
+	for field in cls.fields:
+		if "__serialized__" not in field.attributes:
+			continue
+
+		write_field_serializer(writer, field, f"result[\"{field.name}\"]")
+
+	writer.line()
+
+	writer.line("return result;")
+
+	writer.less_indent()
+	writer.line("}")
+
+
+def write_internal_deserialize(writer: CodeWriter, cls_name: str, cls: CppClass) -> None:
+	writer.line(f"volatile {cls_name}* InternalDeserializeOn(volatile {cls_name}* ptr, json data) {{")
+	writer.more_indent()
+
+	writer.line("volatile uint8_t* raw = reinterpret_cast<volatile uint8_t*>(ptr);")
+
+	writer.line()
+
+	for base in cls.base_classes:
+		if not is_serialized_class(base):
+			continue
+
+		writer.line(f"InternalDeserializeOn(dynamic_cast<volatile {base.get_full_name()} *>(ptr), data);")
+
+	writer.line()	
+
+	for field in cls.fields:
+		if "__serialized__" not in field.attributes:
+			continue
+
+		write_field_deserializer(writer, field, f"result[\"{field.name}\"]")
+
+	writer.line()
+
+	writer.line("return ptr;")
 
 	writer.less_indent()
 	writer.line("}")
@@ -268,6 +368,7 @@ def main():
 		for cls_name in all_classes:
 			dest_impl.line(f"json InternalSerialize{sanitize_class_name(cls_name)}(const void* ptr);")
 			dest_impl.line(f"int SerializeObject(const {cls_name}* ptr);")
+			dest_impl.line(f"volatile {cls_name}* InternalDeserializeOn(volatile {cls_name}* ptr, json data);")
 
 		dest_impl.line()
 
@@ -317,43 +418,13 @@ def main():
 		dest_impl.less_indent()
 		dest_impl.line("}")
 
-		for cls_name in all_classes:
-			dest_impl.line(f"int SerializeObject(const {cls_name}* ptr) {{")
-			dest_impl.more_indent()
+		for cls_name, cls in all_classes.items():
+			write_serialize_object(dest_impl, cls_name)
 
-			dest_impl.line("return InternalSerializeObject(ptr, typeid(*ptr));")
+			write_internal_serialize(dest_impl, cls_name, cls)
 
-			dest_impl.less_indent()
-			dest_impl.line("}")
+			write_internal_deserialize(dest_impl, cls_name, cls)
 
-			dest_impl.line(f"json InternalSerialize{sanitize_class_name(cls_name)}(const void* ptr) {{")
-			dest_impl.more_indent()
-			
-			dest_impl.line(f"spdlog::info(\"Serializing class {cls_name}\");")
-
-			dest_impl.line()
-
-			dest_impl.line("json result;")
-			dest_impl.line("const uint8_t* data = reinterpret_cast<const uint8_t*>(ptr);")
-
-			dest_impl.line()
-
-			for base in all_classes[cls_name].base_classes:
-				if not is_serialized_class(base):
-					continue
-
-				dest_impl.line(f"result.merge_patch(InternalSerialize{sanitize_class_name(base.get_full_name())}(dynamic_cast<const {base.name} *>(reinterpret_cast<const {cls_name} *>(ptr))));")
-				
-			for field in all_classes[cls_name].fields:
-				if "__serialized__" not in field.attributes:
-					continue
-
-				write_field_serializer(dest_impl, field, f"result[\"{field.name}\"]")
-
-			dest_impl.line("return result;")
-
-			dest_impl.less_indent()
-			dest_impl.line("}")
 			dest_impl.line()
 		
 		dest_impl.line("void InternalStartObjectSerialization() {")
