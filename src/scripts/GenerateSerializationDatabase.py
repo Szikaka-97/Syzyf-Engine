@@ -99,6 +99,47 @@ def is_array_type(type: CppType) -> bool:
 	return type.full_name.startswith("std::vector")
 
 
+def is_serialized_class(cls: CppClass) -> bool:
+	if any([field for field in cls.fields if "__serialized__" in field.attributes]):
+		return True
+	
+	for base in cls.base_classes:
+		if is_serialized_class(base):
+			return True
+	
+	serialization_methods_present = any([
+		method for method in cls.methods if (
+			method.name == "Serialize"
+			and
+			not method.is_virtual
+			and
+			not method.return_type.is_pointer
+			and
+			method.return_type.name == "basic_json"
+			and
+			len(method.argument_types) == 0
+		)
+	]) and any([
+		method for method in cls.methods if (
+			method.name == "Deserialize"
+			and
+			not method.is_virtual
+			and
+			method.return_type.name == "void"
+			and
+			len(method.argument_types) == 1
+			and
+			(
+				method.argument_types[0].name == "basic_json"
+				or
+				(method.argument_types[0].is_reference and method.argument_types[0].pointed_type.name == "basic_json")
+			)
+		)
+	])
+
+	return serialization_methods_present
+
+
 def write_field_serializer(writer: CodeWriter, field: CppField, lhs: str) -> None:
 	if is_simple_type(field.type):
 		writer.line(lhs + f" = *({field.type.full_name} *) (data + {field.offset});")
@@ -109,9 +150,15 @@ def write_field_serializer(writer: CodeWriter, field: CppField, lhs: str) -> Non
 	elif sanitize_class_name(field.type.full_name) in INTRINSIC_SERIALIZERS:
 		writer.line(lhs + f" = Serialization::Serialize(*({field.type.full_name} *) (data + {field.offset}));")
 	elif not field.type.is_pointer:
-		writer.line(lhs + f" = InternalSerialize{sanitize_class_name(field.type.full_name)}(data + {field.offset});")
+		if field.type.full_name in all_classes:
+			writer.line(lhs + f" = InternalSerialize{sanitize_class_name(field.type.full_name)}(data + {field.offset});")
+		else:
+			print(f"WARN: Serializing object of non-serializable type {field.type.full_name}")
 	else:
-		writer.line(lhs + f" = SerializeObject(*(const {field.type.full_name}*) (data + {field.offset}));")
+		if field.type.full_name.removesuffix("*").removesuffix(" ") in all_classes:
+			writer.line(lhs + f" = SerializeObject(*(const {field.type.full_name}*) (data + {field.offset}));")
+		else:
+			print(f"WARN: Serializing object of non-serializable type {field.type.full_name}")
 
 def write_array_serializer(writer: CodeWriter, field: CppField, lhs: str) -> None:
 	writer.line("{")
@@ -138,9 +185,15 @@ def write_array_serializer(writer: CodeWriter, field: CppField, lhs: str) -> Non
 	elif sanitize_class_name(element_type.full_name) in INTRINSIC_SERIALIZERS:
 		writer.line(f"resultArray.push_back(Serialization::Serialize(element));")
 	elif not element_type.is_pointer:
-		writer.line(f"resultArray.push_back(InternalSerialize{sanitize_class_name(element_type.full_name)}(&element));")
+		if element_type.full_name in all_classes:
+			writer.line(f"resultArray.push_back(InternalSerialize{sanitize_class_name(element_type.full_name)}(&element));")
+		else:
+			print(f"WARN: Serializing array of non-serializable type {element_type.full_name}")
 	else:
-		writer.line(f"resultArray.push_back(SerializeObject(element));")
+		if element_type.full_name.removesuffix("*").removesuffix(" ") in all_classes:
+			writer.line(f"resultArray.push_back(SerializeObject(element));")
+		else:
+			print(f"WARN: Serializing array of non-serializable type {element_type.full_name}")
 
 	writer.less_indent()
 	writer.line("}")
@@ -165,7 +218,7 @@ def main():
 		for class_name, cls_data in data.items():
 			load_class(class_name, cls_data)
 
-	all_classes = {cls_name: cls for cls_name, cls in all_classes.items() if cls.access == "public"}
+	all_classes = {cls_name: cls for cls_name, cls in all_classes.items() if cls.access == "public" and is_serialized_class(cls)}
 
 	with CodeWriter(DEST_HEADER_FILE_PATH) as dest_header:
 		dest_header.line("#include <Serialized.h>")
@@ -286,6 +339,9 @@ def main():
 			dest_impl.line()
 
 			for base in all_classes[cls_name].base_classes:
+				if not is_serialized_class(base):
+					continue
+
 				dest_impl.line(f"result.merge_patch(InternalSerialize{sanitize_class_name(base.get_full_name())}(dynamic_cast<const {base.name} *>(reinterpret_cast<const {cls_name} *>(ptr))));")
 				
 			for field in all_classes[cls_name].fields:
