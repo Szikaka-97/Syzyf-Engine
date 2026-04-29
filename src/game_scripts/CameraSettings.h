@@ -40,9 +40,13 @@ public:
 	void Update() {
 		// asm("INT3");
 
-		PlayerController* player = GetScene()->FindObjectsOfType<PlayerController>()[0];
+		SceneNode* player = GetScene()->FindNode("Player");
 
-		this->target = player->GlobalTransform().Position() + glm::normalize(player->targetOffset);
+		if (player == nullptr) {
+			return;
+		}
+
+		this->target = player->GlobalTransform().Position();
 
 		glm::vec3 playerPos = player->GlobalTransform().Position();
 		glm::vec3 dir = glm::angleAxis(glm::radians(angleY), glm::vec3(0, 1, 0)) * (glm::angleAxis(-glm::radians(angleX), glm::vec3(1, 0, 0)) * glm::vec3(0, 0, 1));
@@ -65,17 +69,17 @@ public:
 		ImGui::InputFloat("angleX", &this->angleX);
 		ImGui::InputFloat("lerpAmount", &this->lerpAmount);
 
-		glm::vec3 playerPos = GetScene()->FindObjectsOfType<PlayerController>()[0]->GlobalTransform().Position();
-		glm::vec3 dir = glm::angleAxis(glm::radians(angleY), glm::vec3(0, 1, 0)) * (glm::angleAxis(-glm::radians(angleX), glm::vec3(1, 0, 0)) * glm::vec3(0, 0, 1));
+		// glm::vec3 playerPos = GetScene()->FindObjectsOfType<PlayerController>()[0]->GlobalTransform().Position();
+		// glm::vec3 dir = glm::angleAxis(glm::radians(angleY), glm::vec3(0, 1, 0)) * (glm::angleAxis(-glm::radians(angleX), glm::vec3(1, 0, 0)) * glm::vec3(0, 0, 1));
 
-		float rayDist = RayPlaneIntersection(this->height, this->target, dir);
+		// float rayDist = RayPlaneIntersection(this->height, this->target, dir);
 
-		glm::vec3 playerRelativePos = playerPos + dir * rayDist;
-		glm::vec3 targetRelativePos = target + dir * rayDist;
+		// glm::vec3 playerRelativePos = playerPos + dir * rayDist;
+		// glm::vec3 targetRelativePos = target + dir * rayDist;
 
-		glm::vec3 pos = glm::mix(playerRelativePos, targetRelativePos, lerpAmount);
+		// glm::vec3 pos = glm::mix(playerRelativePos, targetRelativePos, lerpAmount);
 
-		ImGui::Text("%f, %f, %f", dir.x, dir.y, dir.z);
-		ImGui::Text("%f, %f, %f", glm::normalize(target - pos).x, glm::normalize(target - pos).y, glm::normalize(target - pos).z);
+		// ImGui::Text("%f, %f, %f", dir.x, dir.y, dir.z);
+		// ImGui::Text("%f, %f, %f", glm::normalize(target - pos).x, glm::normalize(target - pos).y, glm::normalize(target - pos).z);
 	}
 };
