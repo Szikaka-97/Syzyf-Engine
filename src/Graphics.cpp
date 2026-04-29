@@ -27,97 +27,40 @@
 
 #define LIGHT_GRID_SIZE 16
 
-Frustum ComputeFrustum(const glm::mat4& projectionMatrix) {
-	Frustum result;
-
-	const glm::vec4 planeLeftParams = glm::normalize(-(glm::row(projectionMatrix, 3) + glm::row(projectionMatrix, 0)));
-	const glm::vec4 planeRightParams = glm::normalize(-(glm::row(projectionMatrix, 3) - glm::row(projectionMatrix, 0)));
-	const glm::vec4 planeBottomParams = glm::normalize(-(glm::row(projectionMatrix, 3) + glm::row(projectionMatrix, 1)));
-	const glm::vec4 planeTopParams = glm::normalize(-(glm::row(projectionMatrix, 3) - glm::row(projectionMatrix, 1)));
-	const glm::vec4 planeNearParams = glm::normalize(-(glm::row(projectionMatrix, 3) + glm::row(projectionMatrix, 2)));
-	const glm::vec4 planeFarParams = glm::normalize(-(glm::row(projectionMatrix, 3) - glm::row(projectionMatrix, 2)));
-
-	result.left = Plane(glm::vec3(planeLeftParams), planeLeftParams.w);
-	result.right = Plane(glm::vec3(planeRightParams), planeRightParams.w);
-	result.bottom = Plane(glm::vec3(planeBottomParams), planeBottomParams.w);
-	result.top = Plane(glm::vec3(planeTopParams), planeTopParams.w);
-	result.nearPlane = Plane(glm::vec3(planeNearParams), planeNearParams.w);
-	result.farPlane = Plane(glm::vec3(planeFarParams), planeFarParams.w);
-	
-	return result;
-}
-
-bool TestPlane(const Plane& plane, const BoundingBox& bounds) {
-	const glm::vec3 n = plane.normal;
-	const float d = plane.distance;
-
-	const glm::vec3 c = bounds.center;
-	const glm::vec3 h = bounds.GetExtents();
-
-	const float e = h.x * glm::abs(
-		glm::dot(n, glm::vec3(bounds.axisU))
-	) + h.y * glm::abs(
-		glm::dot(n, glm::vec3(bounds.axisV))
-	) + h.z * glm::abs(
-		glm::dot(n, glm::vec3(bounds.axisW))
-	);
-
-	const float s = glm::dot(c, n) + d;
-
-	return s - e <= 0;
-}
-
-bool TestFrustum(const Frustum& frustum, const BoundingBox& bounds) {
-	return (
-		TestPlane(frustum.left, bounds)
-		&&
-		TestPlane(frustum.right, bounds)
-		&&
-		TestPlane(frustum.bottom, bounds)
-		&&
-		TestPlane(frustum.top, bounds)
-		&&
-		TestPlane(frustum.farPlane, bounds)
-	);
-}
-
 RenderParams::RenderParams(RenderPassType pass, glm::vec4 viewport, bool clearDepth, LayerMask layers):
 pass(pass),
 viewport(viewport),
 clearDepth(clearDepth),
 layers(layers) { }
 
-SceneGraphics::RenderNode::RenderNode(const Mesh::SubMesh* mesh, const Material* material, unsigned int instanceCount, const glm::mat4& transformation, uint8_t layer):
+SceneGraphics::RenderNode::RenderNode(const Mesh::SubMesh* mesh, const Material* material, const glm::mat4& transformation, const BoundingBox& bounds, uint8_t layer, unsigned int instanceCount, GLuint instanceSSBO, bool ignoreDepth) :
 mesh(mesh),
 material(material),
-instanceCount(instanceCount),
-transformation(transformation),
-bounds(mesh->GetBounds()),
-layer(layer) { }
-
-SceneGraphics::RenderNode::RenderNode(const Mesh::SubMesh* mesh, const Material* material, unsigned int instanceCount, const glm::mat4& transformation, const BoundingBox& bounds, uint8_t layer):
-mesh(mesh),
-material(material),
-instanceCount(instanceCount),
 transformation(transformation),
 bounds(bounds),
-layer(layer) { }
+layer(layer),
+indirectBuffer(0),
+indirectBufferOffset(0),
+instanceSSBO(instanceSSBO),
+isIndirect(false) {
+    if (ignoreDepth) {
+        this->ignoreDepth = true;
+    } else {
+        this->instanceCount = instanceCount;
+    }
+}
 
-SceneGraphics::RenderNode::RenderNode(const Mesh::SubMesh* mesh, const Material* material, bool ignoreDepth, const glm::mat4& transformation, uint8_t layer):
+SceneGraphics::RenderNode::RenderNode(const Mesh::SubMesh* mesh, const Material* material, const glm::mat4& transformation, const BoundingBox& bounds, uint8_t layer, GLuint indirectBuffer, GLuint indirectBufferOffset, GLuint instanceSSBO) :
 mesh(mesh),
 material(material),
-ignoreDepth(ignoreDepth),
-transformation(transformation),
-bounds(mesh->GetBounds()),
-layer(layer) { }
-
-SceneGraphics::RenderNode::RenderNode(const Mesh::SubMesh* mesh, const Material* material, bool ignoreDepth, const glm::mat4& transformation, const BoundingBox& bounds, uint8_t layer):
-mesh(mesh),
-material(material),
-ignoreDepth(ignoreDepth),
+instanceCount(0),
 transformation(transformation),
 bounds(bounds),
-layer(layer) { }
+layer(layer),
+indirectBuffer(indirectBuffer),
+indirectBufferOffset(indirectBufferOffset),
+instanceSSBO(instanceSSBO),
+isIndirect(true) { }
 
 bool SceneGraphics::RenderNode::operator<(const SceneGraphics::RenderNode& other) const {
 	if (!this->material || !other.material) {
@@ -347,73 +290,84 @@ void SceneGraphics::DrawGizmoMesh(const Mesh* mesh, int subMeshIndex, const Mate
 	EnqueueGizmo(RenderNode(
 		&mesh->SubMeshAt(subMeshIndex),
 		material,
-		ignoresDepth,
-		transformation,
-		Layer::Gizmos
+        transformation,
+        mesh->SubMeshAt(subMeshIndex).GetBounds(),
+		Layer::Gizmos,
+        0,
+        0,
+        ignoresDepth
 	));
 }
 
 void SceneGraphics::DrawMeshInstanced(MeshRenderer* renderer, unsigned int instanceCount) {
-	for (int i = 0; i < renderer->GetMesh()->GetSubMeshCount(); i++) {
-		const Mesh::SubMesh* mesh = &renderer->GetMesh()->SubMeshAt(i);
+    if (!renderer || !renderer->GetMesh()) return;
 
-		const Material* material = renderer->GetMaterial(mesh->GetMaterialIndex()); 
+    for (int i = 0; i < renderer->GetMesh()->GetSubMeshCount(); i++) {
+        const Mesh::SubMesh* mesh = &renderer->GetMesh()->SubMeshAt(i);
+        const Material* material = renderer->GetMaterial(mesh->GetMaterialIndex()); 
 
-		DrawMeshInstanced(
-			renderer->GetMesh(),
-			i,
-			material,
-			renderer->GlobalTransform(),
-			instanceCount,
-			renderer->GetNode()->GetLayer()
-		);
-	}
+        DrawMeshInstanced(
+            renderer->GetMesh(),
+            i,
+            material,
+            renderer->GlobalTransform(),
+            instanceCount,
+            0,
+            renderer->GetNode()->GetLayer()
+        );
+    }
 }
 
-void SceneGraphics::DrawMeshInstanced(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, unsigned int instanceCount, uint8_t layer) {
-	DrawMeshInstanced(
-		mesh,
-		subMeshIndex,
-		material,
-		transformation,
-		instanceCount,
-		mesh->SubMeshAt(subMeshIndex).GetBounds(),
-		layer
-	);
+void SceneGraphics::DrawMeshInstanced(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, unsigned int instanceCount, GLuint instanceSSBO, uint8_t layer) {
+    DrawMeshInstanced(
+        mesh, subMeshIndex, material, transformation, instanceCount, 
+        mesh->SubMeshAt(subMeshIndex).GetBounds(), instanceSSBO, layer
+    );
 }
 
-void SceneGraphics::DrawMeshInstanced(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, unsigned int instanceCount, const BoundingBox& bounds, uint8_t layer) {
-	RenderNode node = RenderNode(
-		&mesh->SubMeshAt(subMeshIndex),
-		material,
-		instanceCount,
-		transformation,
-		bounds,
-		layer
-	);
+void SceneGraphics::DrawMeshInstanced(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, unsigned int instanceCount, const BoundingBox& bounds, GLuint instanceSSBO, uint8_t layer) {
+    
+    RenderNode node(&mesh->SubMeshAt(subMeshIndex), material, transformation, bounds, layer, instanceCount, instanceSSBO, false);
 
-	if (material->GetShader()->HasPragma("transparent")) {
+    if (material->GetShader()->HasPragma("transparent")) {
+        EnqueueOrderedTransparent(node);
+        return;
+    } else if (material->GetShader()->HasPragma("oit_transparent")) {
+        EnqueueOITransparent(node);
+        return;
+    } else if (material->GetShader()->HasPragma("additive")) {
+        EnqueueAdditive(node);
+        return;
+    } else if (material->GetShader()->HasPragma("volumetric")) {
+        EnqueueVolumetric(node);
+        return;
+    }
+
+    EnqueueOpaque(node);
+}
+
+void SceneGraphics::DrawMeshIndirect(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, GLuint indirectBuffer, GLuint indirectBufferOffset, GLuint instanceSSBO, const BoundingBox& bounds, uint8_t layer) {
+    RenderNode node = RenderNode(&mesh->SubMeshAt(subMeshIndex), material, transformation, bounds, layer, indirectBuffer, indirectBufferOffset, instanceSSBO);
+
+   	if (material->GetShader()->HasPragma("transparent")) {
 		EnqueueOrderedTransparent(node);
 
 		return;
-	}
-	else if (material->GetShader()->HasPragma("oit_transparent")) {
+	} else if (material->GetShader()->HasPragma("oit_transparent")) {
 		EnqueueOITransparent(node);
 
 		return;
-	}
-	else if (material->GetShader()->HasPragma("additive")) {
+	} else if (material->GetShader()->HasPragma("additive")) {
 		EnqueueAdditive(node);
 
 		return;
-	}
-	else if (material->GetShader()->HasPragma("volumetric")) {
+	} else if (material->GetShader()->HasPragma("volumetric")) {
 		EnqueueVolumetric(node);
 
 		return;
 	}
 
-	EnqueueOpaque(node);
+	EnqueueOpaque(node); 
 }
 
 void SceneGraphics::Render() {
@@ -553,8 +507,22 @@ void SceneGraphics::RenderPrepass(const ShaderGlobalUniforms& uniforms, const Re
 			glUseProgram(this->depthOnlyShader->GetHandle());
 		}
 
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, render.instanceSSBO);
 		glBindVertexArray(render.mesh->GetVertexArrayHandle());
 
+        if (render.isIndirect) {
+            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, render.indirectBuffer);
+
+            void* offsetPointer = (void*)(uintptr_t)render.indirectBufferOffset;
+
+            if (render.material->GetShader()->UsesPatches()) {
+                glPatchParameteri(GL_PATCH_VERTICES, (int)render.mesh->GetType());
+                glDrawElementsIndirect(GL_PATCHES, GL_UNSIGNED_INT, offsetPointer);
+            } else {
+                glDrawElementsIndirect(render.mesh->GetDrawMode(), GL_UNSIGNED_INT, offsetPointer);
+            }
+            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
+        }
 		if (render.material->GetShader()->UsesPatches()) {
 			glPatchParameteri(GL_PATCH_VERTICES, (int) render.mesh->GetType());
 
@@ -575,6 +543,7 @@ void SceneGraphics::RenderPrepass(const ShaderGlobalUniforms& uniforms, const Re
 		}
 	}
 
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, 0);
 	glBindVertexArray(0);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
@@ -636,9 +605,23 @@ void SceneGraphics::RenderShadows(const ShaderGlobalUniforms& uniforms, const Re
 			glUseProgram(this->depthOnlyShader->GetHandle());
 		}
 
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, render.instanceSSBO);
 		glBindVertexArray(render.mesh->GetVertexArrayHandle());
 
-		if (render.material->GetShader()->UsesPatches()) {
+        if (render.isIndirect) {
+            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, render.indirectBuffer);
+
+            void* offsetPointer = (void*)(uintptr_t)render.indirectBufferOffset;
+
+            if (render.material->GetShader()->UsesPatches()) {
+                glPatchParameteri(GL_PATCH_VERTICES, (int)render.mesh->GetType());
+                glDrawElementsIndirect(GL_PATCHES, GL_UNSIGNED_INT, offsetPointer);
+            } else {
+                glDrawElementsIndirect(render.mesh->GetDrawMode(), GL_UNSIGNED_INT, offsetPointer);
+            }
+            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
+        }
+        else if (render.material->GetShader()->UsesPatches()) {
 			glPatchParameteri(GL_PATCH_VERTICES, (int) render.mesh->GetType());
 
 			if (render.instanceCount <= 0) {
@@ -647,8 +630,7 @@ void SceneGraphics::RenderShadows(const ShaderGlobalUniforms& uniforms, const Re
 			else {
 				glDrawElementsInstanced(GL_PATCHES, render.mesh->GetVertexCount(), GL_UNSIGNED_INT, nullptr, render.instanceCount);
 			}
-		}
-		else {
+		} else {
 			if (render.instanceCount <= 0) {
 				glDrawElements(render.mesh->GetDrawMode(), render.mesh->GetVertexCount(), GL_UNSIGNED_INT, nullptr);
 			}
@@ -677,8 +659,6 @@ void SceneGraphics::RenderVolumetric(const ShaderGlobalUniforms& uniforms, const
 	glDepthMask(GL_FALSE);
 	glEnable(GL_BLEND);
 	glBlendEquation(GL_FUNC_ADD);
-	// GL_ONE to use as lighting, i think
-	// glBlendFunc(GL_ONE, GL_SRC_ALPHA);
 	glBlendFuncSeparate(GL_ONE, GL_SRC_ALPHA, GL_ZERO, GL_SRC_ALPHA);
 
 	glEnable(GL_DEPTH_TEST);
@@ -738,9 +718,23 @@ void SceneGraphics::RenderVolumetric(const ShaderGlobalUniforms& uniforms, const
 
 		glActiveTexture(GL_TEXTURE0);
 
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, render.instanceSSBO);
 		glBindVertexArray(render.mesh->GetVertexArrayHandle());
 
-		if (render.material->GetShader()->UsesPatches()) {
+        if (render.isIndirect) {
+            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, render.indirectBuffer);
+
+            void* offsetPointer = (void*)(uintptr_t)render.indirectBufferOffset;
+
+            if (render.material->GetShader()->UsesPatches()) {
+                glPatchParameteri(GL_PATCH_VERTICES, (int)render.mesh->GetType());
+                glDrawElementsIndirect(GL_PATCHES, GL_UNSIGNED_INT, offsetPointer);
+            } else {
+                glDrawElementsIndirect(render.mesh->GetDrawMode(), GL_UNSIGNED_INT, offsetPointer);
+            }
+            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
+        }
+        else if (render.material->GetShader()->UsesPatches()) {
 			glPatchParameteri(GL_PATCH_VERTICES, (int) render.mesh->GetType());
 
 			if (render.instanceCount <= 0) {
@@ -749,8 +743,7 @@ void SceneGraphics::RenderVolumetric(const ShaderGlobalUniforms& uniforms, const
 			else {
 				glDrawElementsInstanced(GL_PATCHES, render.mesh->GetVertexCount(), GL_UNSIGNED_INT, nullptr, render.instanceCount);
 			}
-		}
-		else {
+		} else {
 			if (render.instanceCount <= 0) {
 				glDrawElements(render.mesh->GetDrawMode(), render.mesh->GetVertexCount(), GL_UNSIGNED_INT, nullptr);
 			}
@@ -862,9 +855,23 @@ void SceneGraphics::RenderOpaque(const ShaderGlobalUniforms& uniforms, const Ren
 			}
 		}
 
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, render.instanceSSBO);
 		glBindVertexArray(render.mesh->GetVertexArrayHandle());
 
-		if (render.material->GetShader()->UsesPatches()) {
+        if (render.isIndirect) {
+            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, render.indirectBuffer);
+
+            void* offsetPointer = (void*)(uintptr_t)render.indirectBufferOffset;
+
+            if (render.material->GetShader()->UsesPatches()) {
+                glPatchParameteri(GL_PATCH_VERTICES, (int)render.mesh->GetType());
+                glDrawElementsIndirect(GL_PATCHES, GL_UNSIGNED_INT, offsetPointer);
+            } else {
+                glDrawElementsIndirect(render.mesh->GetDrawMode(), GL_UNSIGNED_INT, offsetPointer);
+            }
+            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
+        }
+        else if (render.material->GetShader()->UsesPatches()) {
 			glPatchParameteri(GL_PATCH_VERTICES, (int) render.mesh->GetType());
 
 			if (render.instanceCount <= 0) {
@@ -873,8 +880,7 @@ void SceneGraphics::RenderOpaque(const ShaderGlobalUniforms& uniforms, const Ren
 			else {
 				glDrawElementsInstanced(GL_PATCHES, render.mesh->GetVertexCount(), GL_UNSIGNED_INT, nullptr, render.instanceCount);
 			}
-		}
-		else {
+		} else {
 			if (render.instanceCount <= 0) {
 				glDrawElements(render.mesh->GetDrawMode(), render.mesh->GetVertexCount(), GL_UNSIGNED_INT, nullptr);
 			}
@@ -979,9 +985,23 @@ void SceneGraphics::RenderOrderedTransparent(const ShaderGlobalUniforms& uniform
 			}
 		}
 
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, render.instanceSSBO);
 		glBindVertexArray(render.mesh->GetVertexArrayHandle());
 
-		if (render.material->GetShader()->UsesPatches()) {
+        if (render.isIndirect) {
+            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, render.indirectBuffer);
+
+            void* offsetPointer = (void*)(uintptr_t)render.indirectBufferOffset;
+
+            if (render.material->GetShader()->UsesPatches()) {
+                glPatchParameteri(GL_PATCH_VERTICES, (int)render.mesh->GetType());
+                glDrawElementsIndirect(GL_PATCHES, GL_UNSIGNED_INT, offsetPointer);
+            } else {
+                glDrawElementsIndirect(render.mesh->GetDrawMode(), GL_UNSIGNED_INT, offsetPointer);
+            }
+            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
+        }
+        else if (render.material->GetShader()->UsesPatches()) {
 			glPatchParameteri(GL_PATCH_VERTICES, (int) render.mesh->GetType());
 
 			if (render.instanceCount <= 0) {
@@ -990,8 +1010,7 @@ void SceneGraphics::RenderOrderedTransparent(const ShaderGlobalUniforms& uniform
 			else {
 				glDrawElementsInstanced(GL_PATCHES, render.mesh->GetVertexCount(), GL_UNSIGNED_INT, nullptr, render.instanceCount);
 			}
-		}
-		else {
+		} else {
 			if (render.instanceCount <= 0) {
 				glDrawElements(render.mesh->GetDrawMode(), render.mesh->GetVertexCount(), GL_UNSIGNED_INT, nullptr);
 			}
@@ -1095,9 +1114,23 @@ void SceneGraphics::RenderOITransparent(const ShaderGlobalUniforms& uniforms, co
 			}
 		}
 
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, render.instanceSSBO);
 		glBindVertexArray(render.mesh->GetVertexArrayHandle());
 
-		if (render.material->GetShader()->UsesPatches()) {
+        if (render.isIndirect) {
+            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, render.indirectBuffer);
+
+            void* offsetPointer = (void*)(uintptr_t)render.indirectBufferOffset;
+
+            if (render.material->GetShader()->UsesPatches()) {
+                glPatchParameteri(GL_PATCH_VERTICES, (int)render.mesh->GetType());
+                glDrawElementsIndirect(GL_PATCHES, GL_UNSIGNED_INT, offsetPointer);
+            } else {
+                glDrawElementsIndirect(render.mesh->GetDrawMode(), GL_UNSIGNED_INT, offsetPointer);
+            }
+            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
+        }
+        else if (render.material->GetShader()->UsesPatches()) {
 			glPatchParameteri(GL_PATCH_VERTICES, (int) render.mesh->GetType());
 
 			if (render.instanceCount <= 0) {
@@ -1106,8 +1139,7 @@ void SceneGraphics::RenderOITransparent(const ShaderGlobalUniforms& uniforms, co
 			else {
 				glDrawElementsInstanced(GL_PATCHES, render.mesh->GetVertexCount(), GL_UNSIGNED_INT, nullptr, render.instanceCount);
 			}
-		}
-		else {
+		} else {
 			if (render.instanceCount <= 0) {
 				glDrawElements(render.mesh->GetDrawMode(), render.mesh->GetVertexCount(), GL_UNSIGNED_INT, nullptr);
 			}
@@ -1213,9 +1245,23 @@ void SceneGraphics::RenderAdditive(const ShaderGlobalUniforms& uniforms, const R
 			}
 		}
 
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, render.instanceSSBO);
 		glBindVertexArray(render.mesh->GetVertexArrayHandle());
 
-		if (render.material->GetShader()->UsesPatches()) {
+        if (render.isIndirect) {
+            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, render.indirectBuffer);
+
+            void* offsetPointer = (void*)(uintptr_t)render.indirectBufferOffset;
+
+            if (render.material->GetShader()->UsesPatches()) {
+                glPatchParameteri(GL_PATCH_VERTICES, (int)render.mesh->GetType());
+                glDrawElementsIndirect(GL_PATCHES, GL_UNSIGNED_INT, offsetPointer);
+            } else {
+                glDrawElementsIndirect(render.mesh->GetDrawMode(), GL_UNSIGNED_INT, offsetPointer);
+            }
+            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
+        }
+        else if (render.material->GetShader()->UsesPatches()) {
 			glPatchParameteri(GL_PATCH_VERTICES, (int) render.mesh->GetType());
 
 			if (render.instanceCount <= 0) {
@@ -1224,8 +1270,7 @@ void SceneGraphics::RenderAdditive(const ShaderGlobalUniforms& uniforms, const R
 			else {
 				glDrawElementsInstanced(GL_PATCHES, render.mesh->GetVertexCount(), GL_UNSIGNED_INT, nullptr, render.instanceCount);
 			}
-		}
-		else {
+		} else {
 			if (render.instanceCount <= 0) {
 				glDrawElements(render.mesh->GetDrawMode(), render.mesh->GetVertexCount(), GL_UNSIGNED_INT, nullptr);
 			}
@@ -1299,14 +1344,27 @@ void SceneGraphics::RenderGizmos(const ShaderGlobalUniforms& uniforms, const Ren
 
 		render.material->Bind();
 
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, render.instanceSSBO);
 		glBindVertexArray(render.mesh->GetVertexArrayHandle());
 
-		if (render.material->GetShader()->UsesPatches()) {
+        if (render.isIndirect) {
+            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, render.indirectBuffer);
+
+            void* offsetPointer = (void*)(uintptr_t)render.indirectBufferOffset;
+
+            if (render.material->GetShader()->UsesPatches()) {
+                glPatchParameteri(GL_PATCH_VERTICES, (int)render.mesh->GetType());
+                glDrawElementsIndirect(GL_PATCHES, GL_UNSIGNED_INT, offsetPointer);
+            } else {
+                glDrawElementsIndirect(render.mesh->GetDrawMode(), GL_UNSIGNED_INT, offsetPointer);
+            }
+            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
+        }
+        else if (render.material->GetShader()->UsesPatches()) {
 			glPatchParameteri(GL_PATCH_VERTICES, (int) render.mesh->GetType());
 
 			glDrawElements(GL_PATCHES, render.mesh->GetVertexCount(), GL_UNSIGNED_INT, nullptr);
-		}
-		else {
+		} else {
 			glDrawElements(render.mesh->GetDrawMode(), render.mesh->GetVertexCount(), GL_UNSIGNED_INT, nullptr);
 		}
 

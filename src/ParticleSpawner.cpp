@@ -67,11 +67,6 @@ void ParticleSpawner::Update() {
         return;
     }
 
-    if (!this->particleBufferBoundToMaterial) {
-        this->material->BindStorageBuffer("ParticleBuffer", this->particleBuffer);
-        this->particleBufferBoundToMaterial = true;
-    }
-
     // rename so either nothing has the 'u' prefix or every uniform has it
     this->material->SetValue("areaCenter", this->GlobalTransform().Position().value);
 
@@ -140,9 +135,10 @@ void ParticleSpawner::Render() {
         this->mesh,
         0,
         this->material,
-        this->GlobalTransform(),
+        this->GlobalTransform().Value(),
         this->settings.maxParticles,
         BoundingBox::CenterAndExtents(glm::vec3(0.0f), this->settings.areaExtents),
+        this->particleBuffer,
         Layer::Default
     );
 }

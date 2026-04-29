@@ -168,6 +168,25 @@ std::vector<Mesh::SubMesh> Mesh::GetSubMeshes() const {
 	return this->subMeshes;
 }
 
+BoundingBox Mesh::GetBounds() const {
+    return this->bounds;
+}
+
+void Mesh::CalculateBounds() {
+    glm::vec3 minPoint(std::numeric_limits<float>::max());
+    glm::vec3 maxPoint(std::numeric_limits<float>::lowest());
+
+    for (int i = 0; i < this->GetSubMeshCount(); i++) {
+        auto bounds = this->GetSubMeshes()[i].GetBounds();
+        minPoint = glm::min(minPoint, bounds.center - bounds.GetExtents());
+        maxPoint = glm::max(maxPoint, bounds.center + bounds.GetExtents());
+    }
+
+    glm::vec3 combinedExtents = (maxPoint - minPoint) * 0.5f;
+
+    this->bounds = BoundingBox(minPoint, maxPoint);
+}
+
 unsigned int Mesh::GetVertexCount() const {
   return this->vertexCount;
 }
@@ -429,6 +448,8 @@ Mesh* Mesh::Load(fs::path modelPath, bool loadMaterials) {
 
   loadedMesh->vertexData = vertexData;
   loadedMesh->vertexBuffer = loadedMesh->UploadToGpu(VertexSpec::Mesh);
+
+    loadedMesh->CalculateBounds();
 
 	return loadedMesh;
 }

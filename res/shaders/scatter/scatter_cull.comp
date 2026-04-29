@@ -1,0 +1,76 @@
+#version 460 core
+
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+
+#include "shared/uniforms.h";
+
+struct InstanceData {
+    mat4 transform;
+};
+
+layout(std430, binding = 0) readonly buffer InputInstances {
+    InstanceData in_data[];
+};
+
+layout(std430, binding = 1) writeonly buffer CulledInstances {
+    InstanceData out_data[];
+};
+
+struct DrawCommand {
+    uint count;
+    uint instanceCount;
+    uint firstIndex;
+    uint baseVertex;
+    uint baseInstance;
+};
+
+layout(std430, binding = 2) buffer IndirectBuffer {
+    DrawCommand commands[];
+} indirect;
+
+// epic
+uniform vec4 frustumTop;
+uniform vec4 frustumBottom;
+uniform vec4 frustumLeft;
+uniform vec4 frustumRight;
+uniform vec4 frustumNear;
+uniform vec4 frustumFar;
+
+uniform uint totalInstances;
+uniform vec3 meshExtents;
+uniform vec3 meshCenter;
+
+uniform uint subMeshCount;
+uniform mat4 spawnerTransform;
+
+void main() {
+    uint index = gl_GlobalInvocationID.x;
+    if (index >= totalInstances) return;
+
+    mat4 transform = in_data[index].transform;
+    mat4 worldTransform = spawnerTransform * transform;
+
+    vec3 position = vec3(worldTransform * vec4(meshCenter, 1.0));
+
+    float maxScale = max(length(vec3(transform[0])), max(length(vec3(transform[1])), length(vec3(transform[2]))));
+    float radius = length(meshExtents) * maxScale;
+
+    bool visible = true;
+    vec4 frustumPlanes[6] = { frustumTop, frustumBottom, frustumLeft, frustumRight, frustumNear, frustumFar };
+
+    for (int i = 0; i < 6; i++) {
+        if (dot(frustumPlanes[i].xyz, position) + frustumPlanes[i].w > radius) {
+            visible = false;
+            break;
+        }
+    }
+
+    if (visible) {
+        uint destinationIndex = atomicAdd(indirect.commands[0].instanceCount, 1);
+        out_data[destinationIndex].transform = transform;
+
+        for (uint i = 1; i < subMeshCount; i++) {
+            atomicAdd(indirect.commands[i].instanceCount, 1);
+        }
+    }
+}
