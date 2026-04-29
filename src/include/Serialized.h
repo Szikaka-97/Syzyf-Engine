@@ -22,9 +22,14 @@ class Mesh;
 
 class DoNotSerialize { };
 
+int InternalSerializeObject(const void* ptr, const std::type_info& objectType);
+
 namespace Serialization {
 	void StartObjectSerialization();
-	void QueueObjectSerialization(const void* obj);
+
+	template<typename T>
+	void QueueObjectSerialization(const T* obj);
+
 	json FinishObjectSerialization();
 
 	template<typename T>
@@ -60,3 +65,8 @@ namespace Serialization {
 	json Serialize(const glm::mat3& v);
 	json Serialize(const glm::mat4& v);
 };
+
+template <typename T>
+void Serialization::QueueObjectSerialization(const T* obj) {
+	InternalSerializeObject(obj, typeid(*obj));
+}

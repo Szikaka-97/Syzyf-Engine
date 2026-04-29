@@ -196,6 +196,22 @@ def main():
 
 		dest_impl.line()
 
+		dest_impl.line("struct SerializedObject {")
+		dest_impl.more_indent()
+
+		dest_impl.line("const void* objPtr;")
+		dest_impl.line("json dump;")
+		dest_impl.line("int index;")
+
+		dest_impl.less_indent()
+		dest_impl.line("};")
+
+		dest_impl.line()
+
+		dest_impl.line("std::unordered_map<const void*, SerializedObject> serializationMap;")
+
+		dest_impl.line()
+
 		for cls_name in all_classes:
 			dest_impl.line(f"json InternalSerialize{sanitize_class_name(cls_name)}(const void* ptr);")
 			dest_impl.line(f"int SerializeObject(const {cls_name}* ptr);")
@@ -218,6 +234,17 @@ def main():
 		dest_impl.line("int InternalSerializeObject(const void* ptr, const std::type_info& objectType) {")
 		dest_impl.more_indent()
 
+		dest_impl.line("auto objectAlreadySerializedSearch = serializationMap.find(ptr);")
+		dest_impl.line("if (objectAlreadySerializedSearch != serializationMap.end()) {")
+		dest_impl.more_indent()
+
+		dest_impl.line("return objectAlreadySerializedSearch->second.index;")
+
+		dest_impl.less_indent()
+		dest_impl.line("}")
+
+		dest_impl.line()
+
 		dest_impl.line("const std::string typeName = TypeInfo::GetTypeInfo(objectType).name;")
 			
 		dest_impl.line("json result;")
@@ -228,6 +255,7 @@ def main():
 		dest_impl.line()
 
 		dest_impl.line("serializedObjects.push_back(result);")
+		dest_impl.line("serializationMap[ptr] = { ptr, result, (int) serializedObjects.size() - 1 };")
 
 		dest_impl.line()
 
@@ -271,6 +299,14 @@ def main():
 			dest_impl.less_indent()
 			dest_impl.line("}")
 			dest_impl.line()
+		
+		dest_impl.line("void InternalStartObjectSerialization() {")
+		dest_impl.more_indent()
+
+		dest_impl.line("serializationMap.clear();")
+
+		dest_impl.less_indent()
+		dest_impl.line("}")
 
 
 	# for serialized_class in all_classes.values():

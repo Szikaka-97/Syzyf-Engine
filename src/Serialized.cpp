@@ -2,10 +2,10 @@
 #include <Resources.h>
 
 #include <nlohmann/json.hpp>
-#include <stack>
 
-std::stack<void*> currentSerializationStack;
 std::vector<json> serializedObjects;
+
+void InternalStartObjectSerialization();
 
 // void Serialization::QueueSerializeNamedResource(const Resource* res, std::string typeName) {
 // 	spdlog::info("Serializing resource: {} of type {}", res->GetPath().string(), typeName);
@@ -18,6 +18,21 @@ std::vector<json> serializedObjects;
 
 // 	serializedResources.clear();
 // }
+
+void Serialization::StartObjectSerialization() {
+	serializedObjects.clear();
+
+	InternalStartObjectSerialization();
+}
+json Serialization::FinishObjectSerialization() {
+	json result;
+
+	for (auto& obj : serializedObjects) {
+		result.push_back(obj);
+	}
+
+	return result;
+}
 
 template<>
 glm::vec2 Serialization::Deserialize(const json& json_node) {
