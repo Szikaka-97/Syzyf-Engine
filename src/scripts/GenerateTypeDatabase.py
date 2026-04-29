@@ -101,7 +101,7 @@ class CppField:
 
 		self.access = str_access_specifier(field_cursor.access_specifier)
 
-		self.offset = field_cursor.get_field_offsetof()
+		self.offset = int(field_cursor.get_field_offsetof() / 8)
 
 		for field_token in field_cursor.get_children():
 			if field_token.kind == clang.CursorKind.ANNOTATE_ATTR:
