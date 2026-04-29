@@ -92,7 +92,7 @@ def is_simple_type(type: CppType) -> bool:
 
 
 def get_enum_type(type: CppType) -> str:
-	return f"uint{pow(2, type.enum_width)}_t"
+	return f"uint{8 * type.enum_width}_t"
 
 
 def is_array_type(type: CppType) -> bool:
