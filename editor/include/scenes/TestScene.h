@@ -200,6 +200,8 @@ inline void InitScene(Scene& mainScene) {
     floorNode->AddObject<Surface>(floorMeshRenderer->GetMesh(), 1.0f);
     //floorNode->GetObject<Surface>()->DrawDebugSurface();
     floorNode->GetObject<Surface>()->SetID(0);
+    auto* navGrid = floorNode->AddObject<NavigationGrid>();
+    navGrid->Build(floorNode->GetObject<Surface>(), 2.0f, 45.0f);
     
 
     SceneNode* monkey = GltfImporter::LoadScene(

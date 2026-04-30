@@ -38,6 +38,15 @@ private:
     NavigationGrid* m_NavGrid = nullptr;
     AnimationComponent* m_AttackAnimation = nullptr;
 
+    // AiNode.h – w sekcji private (dodaj obok istniej¹cych)
+glm::vec3 m_LastChasePosition;        // pozycja przy rozpoczêciu pomiaru utkniêcia
+float m_StuckTimer = 0.0f;            // czas bez znacz¹cego ruchu
+float m_StuckThreshold = 1.5f;        // po tym czasie uruchamiamy A*
+float m_MinMovementThreshold = 0.2f;  // próg "braku ruchu" (odleg³oœæ)
+bool m_UsingAStar = false;            // czy aktualnie pod¹¿a œcie¿k¹ A*
+
+void UpdateStuckDetection();          // pomocnicza metoda sprawdzaj¹ca utkniêcie
+
     void Patrol();
     void Chase();
     void AstarChase();
@@ -84,6 +93,7 @@ float m_AttackAnimationElapsed = 0.0f;
 
      void UpdateAttackAnimation();
      void SetAnimation(const std::string& name);
+     bool CanSeePlayer() const;
 public:
     AiNode();
     virtual ~AiNode();

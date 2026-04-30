@@ -32,4 +32,5 @@ private:
     }
     void ConnectNeighbors();
     bool IsWalkableAt(const glm::vec3& point);
+    bool IsBlockedByObstacle(const glm::vec3& point) const;
 };

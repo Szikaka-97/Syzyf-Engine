@@ -9,6 +9,7 @@
 
 #include <Jolt/Physics/Collision/RayCast.h>
 #include <Jolt/Physics/Collision/CastResult.h>
+#include <unordered_set>
 
 Surface::Surface(Mesh* floorMesh, float cellSize)
     : floorMesh(floorMesh), cellSize(cellSize) {
@@ -46,13 +47,27 @@ void Surface::CollectVertices() {
 
     SceneNode* node = GetNode();
     glm::mat4 world = node->GlobalTransform();
-
-    for (unsigned int i = 0; i < vertexCount; ++i) {
-        const float* v = vertexData + i * stride;
-        glm::vec3 localPos(v[0], v[1], v[2]);
-        glm::vec3 worldPos = world * glm::vec4(localPos, 1.0f);
-        walkablePoints.push_back(worldPos);
+    struct IVec3Hash {
+    size_t operator()(const glm::ivec3& v) const {
+        return std::hash<int>()(v.x) ^ (std::hash<int>()(v.y) << 1) ^ (std::hash<int>()(v.z) << 2);
     }
+};
+    std::unordered_set<glm::ivec3, IVec3Hash> checkedCells;  
+const float cellFilterSize = 1.0f;             
+
+for (unsigned int i = 0; i < vertexCount; ++i) {
+    const float* v = vertexData + i * stride;
+    glm::vec3 localPos(v[0], v[1], v[2]);
+    glm::vec3 worldPos = world * glm::vec4(localPos, 1.0f);
+
+    glm::ivec3 cell = glm::round(worldPos / cellFilterSize);
+
+    if (checkedCells.insert(cell).second) {
+        if (!IsPointBlocked(worldPos)) {
+            walkablePoints.push_back(worldPos);
+        }
+    }
+}
 
     CalculateBounds();
 }
@@ -132,6 +147,19 @@ bool Surface::IsOnSurface(const glm::vec3& point) const {
     if (physics->GetJoltSystem()->GetNarrowPhaseQuery().CastRay(ray, result)) {
         return true;
     }
+    return false;
+}
+
+bool Surface::IsPointBlocked(const glm::vec3& point) const {
+    auto* scene = GetScene();
+    if (!scene) return false;
+    auto* physics = scene->GetComponent<Physics::System>();
+    if (!physics) return false;
+
+    glm::vec3 start = point + glm::vec3(0.0f, 0.1f, 0.0f);
+    SceneNode* hit = physics->CastRay(start, glm::vec3(0.0f, 1.0f, 0.0f) * 2.0f);
+    if (hit && hit->GetName() != "Floor")  
+        return true;
     return false;
 }
 

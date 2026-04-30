@@ -25,6 +25,7 @@ private:
 
     // convert mesh to grid of vertices
     void GenerateGrid(float minX, float maxX, float minZ, float maxZ);
+    bool IsPointBlocked(const glm::vec3& point) const;
 
 public:
 

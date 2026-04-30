@@ -36,6 +36,7 @@
 
 #include <Jolt/Physics/Collision/Shape/ConvexHullShape.h>
 #include <Jolt/Physics/Collision/CollideShape.h>
+#include <physics/LayerMaskFilter.h>
 
 AiNode::AiNode()
 	: m_Speed(5.0f)
@@ -61,6 +62,7 @@ AiNode::AiNode()
 		m_Body = myNode->GetObject<Physics::Body>();
 		transform = m_Body ? m_Body->GetPosition() : myNode->GlobalTransform().Position();
 	}
+	m_LastChasePosition = transform; 
 	walkPoint = glm::vec3(0.0f);
 	m_PatrolTimeout = 0.0f;
 
@@ -124,10 +126,12 @@ void AiNode::Update() {
 	//bool playerInAttackRange = canSeePlayer && dist < attackRange;
 	UpdateAttackAnimation();
 
-// Podczas animacji ataku wróg ma stać i nie podejmować innych decyzji
 if (m_InAttackAnimation) {
     StopMoving();
     return;
+}
+if (isPlayerInRoom) {
+    UpdateStuckDetection();
 }
 	if (isPlayerInRoom) {
     float dist = glm::distance(transform, targetPos);
@@ -155,6 +159,9 @@ if (m_InAttackAnimation) {
 	}
     
 } else {
+		m_UsingAStar = false;
+m_Path.clear();
+m_StuckTimer = 0.0f;
     Patrol();
 }
 
@@ -331,6 +338,39 @@ if (m_InAttackAnimation) {
 		return distance;
 	}
 
+	void AiNode::UpdateStuckDetection() {
+    if (!m_TargetNode || m_UsingAStar || m_InAttackAnimation)
+        return; 
+
+    float dist = glm::distance(transform, glm::vec3(m_TargetNode->GlobalTransform().Position()));
+    if (dist <= attackRange + 0.5f) return; 
+
+    float moved = glm::distance(transform, m_LastChasePosition);
+    if (moved < m_MinMovementThreshold) {
+        m_StuckTimer += Time::Delta();
+        spdlog::debug("AiNode stuck timer: {:.2f}s (moved {:.3f})", m_StuckTimer, moved);
+    } else {
+        m_StuckTimer = 0.0f;
+        m_LastChasePosition = transform;
+    }
+
+    if (m_StuckTimer > m_StuckThreshold) {
+        if (m_NavGrid && m_NavGrid->IsBuilt()) {
+            spdlog::warn("AiNode stuck! Switching to A* pathfinding.");
+            m_Path = m_NavGrid->FindPath(transform, m_TargetNode->GlobalTransform().Position());
+            if (!m_Path.empty()) {
+                m_CurrentPathIndex = 0;
+                m_UsingAStar = true;
+				m_ChasePathUpdateTimer = 0.0f;
+                m_StuckTimer = 0.0f;
+            } else {
+                spdlog::warn("AiNode: A* found no path, continuing direct chase.");
+            }
+        }
+        m_StuckTimer = 0.0f; 
+    }
+}
+
 	bool AiNode::IsWalkable(const glm::vec3 & point) {
 
 		/*if (!m_Surface) return false;
@@ -409,7 +449,26 @@ if (m_InAttackAnimation) {
         }
     }
 }
-	void AiNode::Chase() {
+
+	bool AiNode::CanSeePlayer() const {
+    if (!m_TargetNode || !m_Body) return false;
+    auto* physics = GetScene()->GetComponent<Physics::System>();
+    if (!physics) return false;
+
+    glm::vec3 targetPos = m_TargetNode->GlobalTransform().Position();
+    glm::vec3 origin = transform + glm::vec3(0.0f, 1.0f, 0.0f); 
+    glm::vec3 dir = targetPos - origin;
+    float dist = glm::length(dir);
+    if (dist < 0.1f) return true;
+
+    Physics::LayerMaskFilter filter({}, false);
+    filter.IgnoreBody(m_Body->GetBodyID());
+
+    SceneNode* hit = physics->CastRay(origin, dir * dist, {}, {}, filter);
+    if (!hit) return true;                 
+    return (hit == m_TargetNode);        
+}
+	/*void AiNode::Chase() {
 		glm::vec3 targetPos = m_TargetNode->GlobalTransform().Position();
     glm::vec3 dir = targetPos - transform;
     float distance = glm::length(dir);
@@ -419,8 +478,61 @@ if (m_InAttackAnimation) {
     else {
         StopMoving();
     }
-	}
+	}*/
+void AiNode::Chase() {
+    if (m_UsingAStar && !m_Path.empty() && m_CurrentPathIndex < m_Path.size()) {
 
+        m_ChasePathUpdateTimer += Time::Delta();
+
+        if (m_ChasePathUpdateTimer > 0.5f) {
+            m_ChasePathUpdateTimer = 0.0f;
+
+            if (CanSeePlayer()) {
+                spdlog::info("AiNode: Player visible, abandoning A*");
+                m_UsingAStar = false;
+                m_Path.clear();
+            }
+            else {
+                glm::vec3 targetPos = m_TargetNode->GlobalTransform().Position();
+                auto newPath = m_NavGrid->FindPath(transform, targetPos);
+                if (!newPath.empty()) {
+                    m_Path = std::move(newPath);
+                    m_CurrentPathIndex = 0;
+                    spdlog::debug("AiNode: A* path refreshed, {} nodes", m_Path.size());
+                } else {
+                    spdlog::warn("AiNode: Failed to refresh A* path, reverting to direct chase");
+                    m_UsingAStar = false;
+                    m_Path.clear();
+                }
+            }
+        }
+
+        if (m_UsingAStar) {
+            glm::vec3 nextPoint = m_Path[m_CurrentPathIndex];
+            float distToNext = glm::distance(transform, nextPoint);
+            if (distToNext < 0.5f) {
+                m_CurrentPathIndex++;
+                if (m_CurrentPathIndex >= m_Path.size()) {
+                    m_UsingAStar = false;
+                    m_Path.clear();
+                    spdlog::info("AiNode: A* path completed, back to direct chase.");
+                }
+            } else {
+                MoveInDirection(nextPoint - transform);
+            }
+            return;   
+        }
+    }
+
+    glm::vec3 targetPos = m_TargetNode->GlobalTransform().Position();
+    glm::vec3 dir = targetPos - transform;
+    float distance = glm::length(dir);
+    if (distance > 0.1f) {
+        MoveInDirection(dir);
+    } else {
+        StopMoving();
+    }
+}
 	void AiNode::Attack() {
     if (!m_TargetNode) return;
 	if (m_InAttackAnimation) return;    
@@ -476,7 +588,7 @@ void AiNode::SetAttackAnimation(AnimationComponent* anim) {
     m_AttackAnimation = anim;
     if (anim) {
         for (const auto& a : anim->animations) {
-            if (a.data.name == "attack.001") {           // dopasuj nazwę do swojego modelu
+            if (a.data.name == "attack.001") {          
                 m_AttackAnimationDuration = a.data.duration;
                 spdlog::info("Attack anim duration = {:.2f}s", m_AttackAnimationDuration);
                 break;
@@ -491,8 +603,8 @@ void AiNode::PlayAttackAnimation(std::string name) {
     }
 }
 void AiNode::SetAnimation(const std::string& name) {
-    if (!m_AttackAnimation) return;                   // brak komponentu animacji
-    if (m_CurrentAnimation == name) return;           // ta sama animacja już gra
+    if (!m_AttackAnimation) return;                   
+    if (m_CurrentAnimation == name) return;          
     m_AttackAnimation->Play(name);
     m_CurrentAnimation = name;
     spdlog::debug("AiNode: changed animation to {}", name);
@@ -504,11 +616,10 @@ void AiNode::UpdateAttackAnimation() {
     if (m_AttackAnimationElapsed >= m_AttackAnimationDuration) {
         m_InAttackAnimation = false;
 
-        // Wróć do odpowiedniej animacji po ataku
         if (glm::length(m_Body->GetLinearVelocity()) > 0.1f)
-            SetAnimation("idle.001");      // nadal się porusza
+            SetAnimation("idle.001");     
         else
-            SetAnimation("stop.001");      // stoi w miejscu
+            SetAnimation("stop.001");     
     }
 }
 
@@ -592,6 +703,9 @@ void AiNode::OnPlayerEnteredRoom() {
 }
 
 void AiNode::OnPlayerExitedRoom() {
+	m_UsingAStar = false;
+m_Path.clear();
+m_StuckTimer = 0.0f;
 		isPlayerInRoom=false;
 	}
 
