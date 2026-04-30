@@ -40,6 +40,7 @@ enum class RenderPassType {
 	Transparent = 32,
 	Additive = 64,
 	Volumetric = 128,
+    SSAO = 256,
 };
 
 struct RenderParams {
@@ -52,6 +53,17 @@ struct RenderParams {
 };
 
 class SceneGraphics : public GameObjectSystem<Camera> {
+public:
+    struct SSAOSettings {
+        bool enabled = true;
+        // max kernel size is hardcoded to 64
+        int kernelSize = 32;
+        float radius = 1.5f;
+        float bias = 0.025f;
+        float power = 4.0f;
+        int blurRange = 2;
+        float resolutionScale = 0.75f;
+    };
 private:
 	struct RenderNode {
 		const Mesh::SubMesh* mesh;
@@ -90,6 +102,8 @@ private:
 	Framebuffer* opaquePassFramebuffer;
 	Framebuffer* transparentPassFramebuffer;
 	Framebuffer* volumetricPassFramebuffer;
+    Framebuffer* ssaoFramebuffer;
+    Framebuffer* ssaoBlurFramebuffer;
     float depthMult = 1.0f;
 
 	LightSystem* lightSystem;
@@ -100,11 +114,20 @@ private:
 
 	ShaderGlobalUniforms currentUniforms;
 
-	ShaderProgram* prepassShader;
-    ShaderProgram* prepassShaderAnimated;
+    // Depth
     ShaderProgram* depthOnlyShader;
-    ShaderProgram* depthOnlyShaderAnimated;
-    ShaderProgram* prepassShaderScatter;
+    ShaderProgram* depthOnlyAnimatedShader;
+    // Prepass
+	ShaderProgram* prepassShader;
+    ShaderProgram* prepassAnimatedShader;
+    ShaderProgram* prepassScatterShader;
+
+    // SSAO 
+    ShaderProgram* ssaoShader;
+    ShaderProgram* ssaoBlurShader;
+    SSAOSettings ssaoSettings;
+    std::vector<glm::vec3> ssaoKernel;
+    std::unique_ptr<Texture2D> ssaoNoiseTexture;
 
 	void RenderFullscreenFrameQuad();
 	void CompositeTransparentPass();
@@ -122,6 +145,8 @@ private:
 	void EnqueueVolumetric(const RenderNode& node);
 
 	void BindMaterialProperties(Material* mat);
+
+    void GenerateSSAOKernelAndTexture();
 public:
 	SceneGraphics(Scene* scene);
 	
@@ -158,6 +183,12 @@ public:
 	
 	void RenderPrepass(const RenderParams& params, Framebuffer* target);
 	void RenderPrepass(const ShaderGlobalUniforms& uniforms, const RenderParams& params, Framebuffer* target);
+
+	void RenderSSAO(const RenderParams& params, Framebuffer* target);
+	void RenderSSAO(const ShaderGlobalUniforms& uniforms, const RenderParams& params, Framebuffer* target);
+
+	void RenderSSAOBlur(const RenderParams& params, Framebuffer* target);
+	void RenderSSAOBlur(const ShaderGlobalUniforms& uniforms, const RenderParams& params, Framebuffer* target);
 
 	void RenderOpaque(const RenderParams& params, Framebuffer* target);
 	void RenderOpaque(const ShaderGlobalUniforms& uniforms, const RenderParams& params, Framebuffer* target);
