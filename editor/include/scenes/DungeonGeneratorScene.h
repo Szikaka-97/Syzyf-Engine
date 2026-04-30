@@ -630,8 +630,6 @@ inline void InitScene(Scene& mainScene) {
         DungeonGeneratorSettings{.steps = 12,
                                  .mapColumns = 4,
                                  .mapRows = 10,
-                                 .numberOf2x2Rooms = 2,
-                                 .margin = 0.0f,
                                  .momentum = 2.0f,
                                  .horizontalBias = 0.0f});
 
