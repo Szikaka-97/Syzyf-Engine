@@ -388,7 +388,7 @@ Mesh* GltfImporter::LoadMesh(fastgltf::Mesh& gltfMesh, fastgltf::Asset& asset, s
     }
 
     auto* tangentIt = it->findAttribute("TANGENT");
-    if (tangentIt != it->attributes.end()) {
+    if (tangentIt != it->attributes.end() && meshSpec.GetLengthOf(VertexInputType::Tangent) > 0) {
       auto& tangentAccessor = asset.accessors[tangentIt->accessorIndex];
       fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec4>(asset, tangentAccessor, [&](fastgltf::math::fvec4 tangent, std::size_t index) {
         float* target = mesh->vertexData + ((vertexPointer + index) * mesh->vertexStride) + tangentOffset;
@@ -399,27 +399,27 @@ Mesh* GltfImporter::LoadMesh(fastgltf::Mesh& gltfMesh, fastgltf::Asset& asset, s
     }
 
     auto* texcoord0It = it->findAttribute("TEXCOORD_0");
-    if (texcoord0It != it->attributes.end()) {
+    if (texcoord0It != it->attributes.end() && meshSpec.GetLengthOf(VertexInputType::UV1) > 0) {
       auto& texcoord0Accessor = asset.accessors[texcoord0It->accessorIndex];
       fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec2>(asset, texcoord0Accessor, [&](fastgltf::math::fvec2 uv, std::size_t index) {
         float* target = mesh->vertexData + ((vertexPointer + index) * mesh->vertexStride) + uv1Offset;
         target[0] = uv.x();
-        target[1] = uv.y();
+        target[1] = 1.0f - uv.y();
       });
     }
 
     auto* texcoord1It = it->findAttribute("TEXCOORD_1");
-    if (texcoord1It != it->attributes.end()) {
+    if (texcoord1It != it->attributes.end() && meshSpec.GetLengthOf(VertexInputType::UV2) > 0) {
       auto& texcoord1Accessor = asset.accessors[texcoord1It->accessorIndex];
       fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec2>(asset, texcoord1Accessor, [&](fastgltf::math::fvec2 uv, std::size_t index) {
         float* target = mesh->vertexData + ((vertexPointer + index) * mesh->vertexStride) + uv2Offset;
         target[0] = uv.x();
-        target[1] = uv.y();
+        target[1] = 1.0f - uv.y();
       });
     }
 
     auto* colorIt = it->findAttribute("COLOR_0");
-    if (colorIt != it->attributes.end()) {
+    if (colorIt != it->attributes.end() && meshSpec.GetLengthOf(VertexInputType::Color) > 0) {
       auto& colorAccessor = asset.accessors[colorIt->accessorIndex];
       fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec4>(asset, colorAccessor, [&](fastgltf::math::fvec4 color, std::size_t index) {
         float* target = mesh->vertexData + ((vertexPointer + index) * mesh->vertexStride) + colorOffset;
@@ -431,7 +431,7 @@ Mesh* GltfImporter::LoadMesh(fastgltf::Mesh& gltfMesh, fastgltf::Asset& asset, s
     }
 
     auto* jointsIt = it->findAttribute("JOINTS_0");
-    if (jointsIt != it->attributes.end()) {
+    if (jointsIt != it->attributes.end() && meshSpec.GetLengthOf(VertexInputType::Joints) > 0) {
       auto& jointsAccessor = asset.accessors[jointsIt->accessorIndex];
       
       fastgltf::iterateAccessorWithIndex<fastgltf::math::uvec4>(asset, jointsAccessor, [&](fastgltf::math::uvec4 joints, std::size_t index) {
@@ -444,7 +444,7 @@ Mesh* GltfImporter::LoadMesh(fastgltf::Mesh& gltfMesh, fastgltf::Asset& asset, s
     }
 
     auto* weightsIt = it->findAttribute("WEIGHTS_0");
-    if (weightsIt != it->attributes.end()) {
+    if (weightsIt != it->attributes.end() && meshSpec.GetLengthOf(VertexInputType::Weights) > 0) {
       auto& weightsAccessor = asset.accessors[weightsIt->accessorIndex];
       fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec4>(asset, weightsAccessor, [&](fastgltf::math::fvec4 weights, std::size_t index) {
         float* target = mesh->vertexData + ((vertexPointer + index) * mesh->vertexStride) + weightsOffset;
@@ -461,7 +461,7 @@ Mesh* GltfImporter::LoadMesh(fastgltf::Mesh& gltfMesh, fastgltf::Asset& asset, s
     });
 
     // Replace with this later: https://github.com/mmikk/MikkTSpace
-    if (tangentIt == it->attributes.end() && primitive.type == Mesh::MeshType::Triangles) {
+    if (tangentIt == it->attributes.end() && primitive.type == Mesh::MeshType::Triangles && meshSpec.GetLengthOf(VertexInputType::Tangent) > 0) {
         for (unsigned int i = 0; i < primitive.faceCount * 3; i += 3) {
             unsigned int i0 = primitive.indexData[i];
             unsigned int i1 = primitive.indexData[i + 1];
