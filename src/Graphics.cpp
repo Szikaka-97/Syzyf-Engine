@@ -18,6 +18,8 @@
 #include <Frustum.h>
 #include <Viewport.h>
 #include <TimeSystem.h>
+#include "animation/SkeletonSystem.h"
+#include "animation/SkeletonComponent.h"
 
 #include "Scene.h"
 #include "include/Framebuffer.h"
@@ -177,6 +179,9 @@ void SceneGraphics::BindUniformBuffers() {
 
 	glBindBufferBase(GL_UNIFORM_BUFFER, 1, objectUniformsBuffer);
 
+    if (auto* skeletonSystem = GetScene()->GetComponent<SkeletonSystem>()) {
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, skeletonSystem->GetSkinningBufferHandle());
+    }
 }
 
 void SceneGraphics::RenderFullscreenFrameQuad() {
@@ -302,19 +307,34 @@ void SceneGraphics::DrawGizmoMesh(const Mesh* mesh, int subMeshIndex, const Mate
 void SceneGraphics::DrawMeshInstanced(MeshRenderer* renderer, unsigned int instanceCount) {
     if (!renderer || !renderer->GetMesh()) return;
 
+    int skinningOffset = -1;
+    if (auto* skeleton = renderer->GetNode()->GetObject<SkeletonComponent>()) {
+        skinningOffset = skeleton->bufferOffset;
+    }
+
     for (int i = 0; i < renderer->GetMesh()->GetSubMeshCount(); i++) {
         const Mesh::SubMesh* mesh = &renderer->GetMesh()->SubMeshAt(i);
-        const Material* material = renderer->GetMaterial(mesh->GetMaterialIndex()); 
+        const Material* material = renderer->GetMaterial(mesh->GetMaterialIndex());
 
-        DrawMeshInstanced(
-            renderer->GetMesh(),
-            i,
-            material,
-            renderer->GlobalTransform(),
-            instanceCount,
-            0,
-            renderer->GetNode()->GetLayer()
-        );
+        BoundingBox bounds = mesh->GetBounds();
+        if (skinningOffset >= 0) {
+            bounds = BoundingBox(glm::vec3(-100000.0f), glm::vec3(100000.0f));
+        }
+
+        RenderNode node = RenderNode(mesh, material, renderer->GlobalTransform().Value(), bounds, renderer->GetNode()->GetLayer());
+        node.jointBufferOffset = skinningOffset;
+
+        if (material->GetShader()->HasPragma("transparent")) {
+            EnqueueOrderedTransparent(node);
+        } else if (material->GetShader()->HasPragma("oit_transparent")) {
+            EnqueueOITransparent(node);
+        } else if (material->GetShader()->HasPragma("additive")) {
+            EnqueueAdditive(node);
+        } else if (material->GetShader()->HasPragma("volumetric")) {
+            EnqueueVolumetric(node);
+        } else {
+            EnqueueOpaque(node);
+        }
     }
 }
 
@@ -505,6 +525,10 @@ void SceneGraphics::RenderPrepass(const ShaderGlobalUniforms& uniforms, const Re
 		else if (!genericShaderBound) {
 			genericShaderBound = true;
 			glUseProgram(this->depthOnlyShader->GetHandle());
+
+            if (int offsetLocation = glGetUniformLocation(this->depthOnlyShader->GetHandle(), "uBoneOffset"); offsetLocation >= 0) {
+                glUniform1i(offsetLocation, std::max(0, render.jointBufferOffset));
+            }
 		}
 
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, render.instanceSSBO);
@@ -700,6 +724,11 @@ void SceneGraphics::RenderVolumetric(const ShaderGlobalUniforms& uniforms, const
 		}
 
 		render.material->Bind();
+        if (currentProg) {
+            if (int offsetLocation = glGetUniformLocation(currentProg->GetHandle(), "uBoneOffset"); offsetLocation >= 0) {
+                glUniform1i(offsetLocation, std::max(0, render.jointBufferOffset));
+            }
+        }
 
 		int shadowmaskUniformLocation = glGetUniformLocation(currentProg->GetHandle(), "Builtin_ShadowMask");
 
@@ -818,6 +847,11 @@ void SceneGraphics::RenderOpaque(const ShaderGlobalUniforms& uniforms, const Ren
 		}
 
 		render.material->Bind();
+        if (currentProg) {
+            if (int offsetLocation = glGetUniformLocation(currentProg->GetHandle(), "uBoneOffset"); offsetLocation >= 0) {
+                glUniform1i(offsetLocation, std::max(0, render.jointBufferOffset));
+            }
+        }
 
 		int shadowmaskUniformLocation = glGetUniformLocation(currentProg->GetHandle(), "Builtin_ShadowMask");
 
@@ -948,6 +982,11 @@ void SceneGraphics::RenderOrderedTransparent(const ShaderGlobalUniforms& uniform
 		}
 
 		render.material->Bind();
+        if (currentProg) {
+            if (int offsetLocation = glGetUniformLocation(currentProg->GetHandle(), "uBoneOffset"); offsetLocation >= 0) {
+                glUniform1i(offsetLocation, std::max(0, render.jointBufferOffset));
+            }
+        }
 
 		int shadowmaskUniformLocation = glGetUniformLocation(currentProg->GetHandle(), "Builtin_ShadowMask");
 
@@ -1077,6 +1116,11 @@ void SceneGraphics::RenderOITransparent(const ShaderGlobalUniforms& uniforms, co
 		}
 
 		render.material->Bind();
+        if (currentProg) {
+            if (int offsetLocation = glGetUniformLocation(currentProg->GetHandle(), "uBoneOffset"); offsetLocation >= 0) {
+                glUniform1i(offsetLocation, std::max(0, render.jointBufferOffset));
+            }
+        }
 
 		int shadowmaskUniformLocation = glGetUniformLocation(currentProg->GetHandle(), "Builtin_ShadowMask");
 
@@ -1208,6 +1252,11 @@ void SceneGraphics::RenderAdditive(const ShaderGlobalUniforms& uniforms, const R
 		}
 
 		render.material->Bind();
+        if (currentProg) {
+            if (int offsetLocation = glGetUniformLocation(currentProg->GetHandle(), "uBoneOffset"); offsetLocation >= 0) {
+                glUniform1i(offsetLocation, std::max(0, render.jointBufferOffset));
+            }
+        }
 
 		int shadowmaskUniformLocation = glGetUniformLocation(currentProg->GetHandle(), "Builtin_ShadowMask");
 

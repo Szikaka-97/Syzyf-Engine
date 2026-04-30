@@ -1,5 +1,7 @@
 #version 460
 
+#pragma complex_vertex_shader
+
 #include "shared/shared.h"
 #include "shared/uniforms.h"
 

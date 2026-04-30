@@ -64,6 +64,8 @@ private:
 		BoundingBox bounds;
 		uint8_t layer;
 
+        int jointBufferOffset = -1;
+
         GLuint indirectBuffer = 0;
         GLuint indirectBufferOffset = 0;
         GLuint instanceSSBO = 0;

@@ -163,9 +163,16 @@ public:
 		Camera* camera = GetScene()->GetGraphics()->GetMainCamera();
 		if (!camera) return;
 
-		glm::vec3 left = glm::normalize(glm::cross(camera->GlobalTransform().Forward(), glm::vec3(0, 1, 0)));
+        glm::vec3 forward = camera->GlobalTransform().Forward();
+        forward.y = 0.0f;
 
-		glm::vec3 forward = glm::normalize(glm::cross(glm::vec3(0, 1, 0), left));
+        if (glm::length(forward) < 0.001f) {
+            forward = camera->GlobalTransform().Up();
+            forward.y = 0.0f;
+        }
+
+        forward = glm::normalize(forward);
+        glm::vec3 left = glm::cross(forward, glm::vec3(0, 1, 0));
 
 		glm::vec3 movement = glm::zero<glm::vec3>();
 
@@ -182,7 +189,10 @@ public:
 			movement += left * speed;
 		}
 
-		float velocityLerpFactor = glm::dot(this->desiredMovement, movement) / (this->speed * this->speed);
+        float velocityLerpFactor = 0.0f;
+        if (this->speed > 0.001f) {
+            velocityLerpFactor = glm::dot(this->desiredMovement, movement) / (this->speed * this->speed);
+        }
 		velocityLerpFactor *= velocityLerpFactor;
 
 		float minVelocityLerpFactor = glm::length(this->desiredMovement) < glm::length(movement) ? 0.03f : 0.3f;
