@@ -395,6 +395,8 @@ Texture2D* Texture2D::Create(unsigned char* textureData, int width, int height, 
 	
 	Texture2D* result = new Texture2D(width, height, loadParams, textureHandle);
 
+    result->Update();
+
 	return result;
 }
 

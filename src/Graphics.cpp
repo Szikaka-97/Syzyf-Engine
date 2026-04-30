@@ -1,7 +1,9 @@
 #include <Graphics.h>
 
+#include <cmath>
 #include <glad/glad.h>
 #include <glm/geometric.hpp>
+#include <random>
 #include <spdlog/spdlog.h>
 #include <glm/gtc/matrix_access.hpp>
 #include <imgui.h>
@@ -102,6 +104,17 @@ currentUniforms() {
 
 	this->opaquePassFramebuffer = this->mainViewport->GetFramebuffer();
 	this->transparentPassFramebuffer = new Framebuffer(Framebuffer::Attachment::None, 0, 0);
+
+    // SSAO Framebuffer
+    TextureParams ssaoParams = {
+        .channels = TextureChannels::Grayscale,
+        .colorSpace = TextureColor::Linear,
+        .format = TextureFormat::Ubyte
+    };
+    this->ssaoFramebuffer = new Framebuffer(Framebuffer::Attachment::None, 0, 0);
+    this->ssaoFramebuffer->CreateCustomAttachment(0, ssaoParams);
+    this->ssaoBlurFramebuffer = new Framebuffer(Framebuffer::Attachment::None, 0, 0);
+    this->ssaoBlurFramebuffer->CreateCustomAttachment(0, ssaoParams);
 	
 	this->opaquePassFramebuffer->CreateColorAttachment(true, false);
 	this->opaquePassFramebuffer->CreateDepthAttachment(false, false);
@@ -122,24 +135,34 @@ currentUniforms() {
         .WithVertexShader("./res/shaders/basic.vert")
         .WithPixelShader("./res/shaders/basic.frag")
         .Link();
-    this->depthOnlyShaderAnimated = ShaderProgram::Build()
+    this->depthOnlyAnimatedShader= ShaderProgram::Build()
         .WithVertexShader("./res/shaders/prepass/prepass_animated.vert")
         .WithPixelShader("./res/shaders/basic.frag")
         .Link();
 
+    // None of these use normal maps
 	this->prepassShader = ShaderProgram::Build()
 	    .WithVertexShader("./res/shaders/prepass/prepass.vert")
 	    .WithPixelShader("./res/shaders/prepass/prepass.frag")
 	    .Link();
-    this->prepassShaderAnimated = ShaderProgram::Build()
+    this->prepassAnimatedShader= ShaderProgram::Build()
         .WithVertexShader("./res/shaders/prepass/prepass_animated.vert")
         .WithPixelShader("./res/shaders/prepass/prepass.frag")
         .Link();
     // No support for opaque particles
-    this->prepassShaderScatter = ShaderProgram::Build()
+    this->prepassScatterShader = ShaderProgram::Build()
         .WithVertexShader("./res/shaders/prepass/prepass_scatter.vert")
         .WithPixelShader("./res/shaders/prepass/prepass.frag")
         .Link();
+
+    // SSAO
+    this->ssaoShader = ShaderProgram::Build()
+        .WithVertexShader("./res/shaders/ssao/ssao.vert")
+        .WithPixelShader("./res/shaders/ssao/ssao.frag")
+        .Link();
+    this->GenerateSSAOKernelAndTexture();
+
+    // add ssao blur shader
 
     TextureParams normalBufferParams = TextureParams {
         .channels = TextureChannels::RGB,
@@ -159,6 +182,8 @@ void SceneGraphics::UpdateScreenResolution(glm::vec2 newResolution) {
 		this->mainViewport->SetSize(newResolution);
 		this->transparentPassFramebuffer->SetSize(newResolution);
 		this->volumetricPassFramebuffer->SetSize(newResolution * 0.5f);
+        this->ssaoFramebuffer->SetSize(newResolution);
+        this->ssaoBlurFramebuffer->SetSize(newResolution);
 
 		if (GetPostProcessing()) {
 			GetPostProcessing()->UpdateBufferResolution(newResolution);
@@ -432,7 +457,7 @@ void SceneGraphics::Render() {
 	}
 
 	RenderCamera(this->mainCamera, this->mainViewport, RenderParams {
-		RenderPassType::Color | RenderPassType::DepthPrepass | RenderPassType::Gizmos | RenderPassType::Transparent | RenderPassType::Volumetric,
+		RenderPassType::Color | RenderPassType::DepthPrepass | RenderPassType::Gizmos | RenderPassType::Transparent | RenderPassType::Volumetric | RenderPassType::SSAO,
 		glm::vec4(
 			0,
 			0,
@@ -549,10 +574,9 @@ void SceneGraphics::RenderPrepass(const ShaderGlobalUniforms& uniforms, const Re
 
         // Doesn't support opaque particles in the prepass !
         if (render.jointBufferOffset >= 0) {
-            targetShader = this->prepassShaderAnimated;
+            targetShader = this->prepassAnimatedShader;
         } else if (render.material->GetShader()->HasPragma("scatter")) {
-            spdlog::error("Scatter pragma !");
-            targetShader = this->prepassShaderScatter;
+            targetShader = this->prepassScatterShader;
         } else if (render.material->GetShader()->HasPragma("complex_vertex_shader")) {
             targetShader = render.material->GetShader();
         }
@@ -614,6 +638,40 @@ void SceneGraphics::RenderPrepass(const ShaderGlobalUniforms& uniforms, const Re
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
+void SceneGraphics::RenderSSAO(const RenderParams& params, Framebuffer* target) {
+    glBindFramebuffer(GL_FRAMEBUFFER, target->GetHandle());
+    glViewport(0, 0, target->GetSize().x, target->GetSize().y);
+
+	static Mesh* quadMesh = GetScene()->Resources()->Get<Mesh>("./res/models/fullscreenquad.obj");
+
+	glDisable(GL_DEPTH_TEST);
+    glBindVertexArray(quadMesh->SubMeshAt(0).GetVertexArrayHandle());
+    glUseProgram(this->ssaoShader->GetHandle());
+
+    glUniform1i(glGetUniformLocation(this->ssaoShader->GetHandle(), "depthTex"), 0);
+    glUniform1i(glGetUniformLocation(this->ssaoShader->GetHandle(), "normalTex"), 1);
+    glUniform1i(glGetUniformLocation(this->ssaoShader->GetHandle(), "noiseTex"), 2);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, this->GetMainFramebuffer()->GetDepthTexture()->GetHandle());
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, this->GetMainFramebuffer()->GetCustomAttachmentTexture(0)->GetHandle());
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_2D, this->ssaoNoiseTexture->GetHandle());
+
+    int kernelLocation = glGetUniformLocation(this->ssaoShader->GetHandle(), "samples");
+    glUniform3fv(kernelLocation, 64, &this->ssaoKernel[0][0]);
+
+    glm::vec2 resolution = this->GetScreenResolution();
+    glUniform2fv(glGetUniformLocation(this->ssaoShader->GetHandle(), "resolution"), 1, &resolution[0]);
+
+    glDrawElements(GL_TRIANGLES, quadMesh->SubMeshAt(0).GetVertexCount(), GL_UNSIGNED_INT, nullptr);
+
+    glEnable(GL_DEPTH_TEST);
+    glBindVertexArray(0);
+    glUseProgram(0);
+}
+
 void SceneGraphics::RenderShadows(const RenderParams& params, Framebuffer* target) {
 	RenderShadows(this->currentUniforms, params, target);
 }
@@ -658,8 +716,8 @@ void SceneGraphics::RenderShadows(const ShaderGlobalUniforms& uniforms, const Re
         const ShaderProgram* targetShader = this->depthOnlyShader;
 
         if (render.jointBufferOffset >= 0) {
-            targetShader = this->depthOnlyShaderAnimated;
-        } else if (render.material->GetShader()->HasPragma("complrex_vertex_shader")) {
+            targetShader = this->depthOnlyAnimatedShader;
+        } else if (render.material->GetShader()->HasPragma("complex_vertex_shader")) {
             targetShader = render.material->GetShader();
         }
 
@@ -945,6 +1003,13 @@ void SceneGraphics::RenderOpaque(const ShaderGlobalUniforms& uniforms, const Ren
 				glUniform1i(brdfConvolutionMapUniformLocation, 28);
 			}
 		}
+
+        int aoMapUniformLocation = glGetUniformLocation(currentProg->GetHandle(), "Builtin_AOMap");
+        if (aoMapUniformLocation >= 0) {
+            glActiveTexture(GL_TEXTURE27);
+            glBindTexture(GL_TEXTURE_2D, this->ssaoFramebuffer->GetCustomAttachmentTexture(0)->GetHandle());
+            glUniform1i(aoMapUniformLocation, 27);
+        }
 
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, render.instanceSSBO);
 		glBindVertexArray(render.mesh->GetVertexArrayHandle());
@@ -1580,8 +1645,20 @@ void SceneGraphics::RenderCamera(Camera* camera, Viewport* renderTarget, const R
 		RenderPrepass(activeParams, renderTarget->GetFramebuffer());
 	}
 
+    if ((params.pass & RenderPassType::SSAO) == RenderPassType::SSAO) {
+        activeParams.clearDepth = false;
+        activeParams.pass = RenderPassType::SSAO;
+
+        RenderSSAO(activeParams, this->ssaoFramebuffer);
+    }
+
+    // if ((params.pass & RenderPassType::SSAOBlur) == RenderPassType::SSAOBlur) {
+    //     activeParams.pass = RenderPassType::SSAOBlur;
+    //
+    //     RenderSSAOBlur(activeParams, this->ssaoBlurFramebuffer);
+    // }
+
 	if ((params.pass & RenderPassType::Color) == RenderPassType::Color) {
-		activeParams.clearDepth = false;
 		activeParams.pass = RenderPassType(RenderPassType::Color);
 	
 		RenderOpaque(activeParams, renderTarget->GetFramebuffer());
@@ -1639,4 +1716,48 @@ void SceneGraphics::DrawImGui() {
 
 int SceneGraphics::Order() {
 	return INT_MAX;
+}
+
+// Based on learnopengl.com
+void SceneGraphics::GenerateSSAOKernelAndTexture() {
+    // Kernel
+    std::uniform_real_distribution<float> randomFloats(0.0, 1.0); // random floats between [0.0, 1.0]
+    std::default_random_engine generator;
+    for (unsigned int i = 0; i < 64; ++i)
+    {
+        glm::vec3 sample(
+            randomFloats(generator) * 2.0 - 1.0, 
+            randomFloats(generator) * 2.0 - 1.0, 
+            randomFloats(generator)
+        );
+        sample  = glm::normalize(sample);
+        sample *= randomFloats(generator);
+        float scale = float(i) / 64.0f;
+
+        scale = std::lerp(0.1f, 1.0f, scale * scale);
+        sample *= scale;
+        this->ssaoKernel.push_back(sample);
+    }
+
+    // Texture
+    std::vector<glm::vec3> ssaoNoise;
+    for (unsigned int i = 0; i < 16; i++) {
+        glm::vec3 noise(randomFloats(generator) * 2.0 - 1.0, randomFloats(generator) * 2.0 - 1.0, 0.0f);
+        ssaoNoise.push_back(noise);
+    }
+
+    TextureParams params = TextureParams {
+        .channels = TextureChannels::RGB,
+        .colorSpace = TextureColor::Linear,
+        .format = TextureFormat::Float32,
+        .wrapU = TextureWrap::Repeat,
+        .wrapV = TextureWrap::Repeat,
+        .minFilter = TextureFilter::Nearest,
+        .magFilter = TextureFilter::Nearest,
+    };
+    this->ssaoNoiseTexture.reset(Texture2D::Create(
+        reinterpret_cast<unsigned char*>(ssaoNoise.data()),
+        4, 4,
+        params
+    ));
 }

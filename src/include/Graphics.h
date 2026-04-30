@@ -40,6 +40,8 @@ enum class RenderPassType {
 	Transparent = 32,
 	Additive = 64,
 	Volumetric = 128,
+    SSAO = 256,
+    SSAOBlur = 512,
 };
 
 struct RenderParams {
@@ -90,6 +92,8 @@ private:
 	Framebuffer* opaquePassFramebuffer;
 	Framebuffer* transparentPassFramebuffer;
 	Framebuffer* volumetricPassFramebuffer;
+    Framebuffer* ssaoFramebuffer;
+    Framebuffer* ssaoBlurFramebuffer;
     float depthMult = 1.0f;
 
 	LightSystem* lightSystem;
@@ -100,11 +104,19 @@ private:
 
 	ShaderGlobalUniforms currentUniforms;
 
-	ShaderProgram* prepassShader;
-    ShaderProgram* prepassShaderAnimated;
+    // Depth
     ShaderProgram* depthOnlyShader;
-    ShaderProgram* depthOnlyShaderAnimated;
-    ShaderProgram* prepassShaderScatter;
+    ShaderProgram* depthOnlyAnimatedShader;
+    // Prepass
+	ShaderProgram* prepassShader;
+    ShaderProgram* prepassAnimatedShader;
+    ShaderProgram* prepassScatterShader;
+    // SSAO
+    ShaderProgram* ssaoShader;
+    ShaderProgram* ssaoBlurShader;
+
+    std::vector<glm::vec3> ssaoKernel;
+    std::unique_ptr<Texture2D> ssaoNoiseTexture;
 
 	void RenderFullscreenFrameQuad();
 	void CompositeTransparentPass();
@@ -122,6 +134,8 @@ private:
 	void EnqueueVolumetric(const RenderNode& node);
 
 	void BindMaterialProperties(Material* mat);
+
+    void GenerateSSAOKernelAndTexture();
 public:
 	SceneGraphics(Scene* scene);
 	
@@ -158,6 +172,12 @@ public:
 	
 	void RenderPrepass(const RenderParams& params, Framebuffer* target);
 	void RenderPrepass(const ShaderGlobalUniforms& uniforms, const RenderParams& params, Framebuffer* target);
+
+	void RenderSSAO(const RenderParams& params, Framebuffer* target);
+	void RenderSSAO(const ShaderGlobalUniforms& uniforms, const RenderParams& params, Framebuffer* target);
+
+	void RenderSSAOBlur(const RenderParams& params, Framebuffer* target);
+	void RenderSSAOBlur(const ShaderGlobalUniforms& uniforms, const RenderParams& params, Framebuffer* target);
 
 	void RenderOpaque(const RenderParams& params, Framebuffer* target);
 	void RenderOpaque(const ShaderGlobalUniforms& uniforms, const RenderParams& params, Framebuffer* target);
