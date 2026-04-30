@@ -551,7 +551,6 @@ void SceneGraphics::RenderPrepass(const ShaderGlobalUniforms& uniforms, const Re
         if (render.jointBufferOffset >= 0) {
             targetShader = this->prepassShaderAnimated;
         } else if (render.material->GetShader()->HasPragma("scatter")) {
-            spdlog::error("Scatter pragma !");
             targetShader = this->prepassShaderScatter;
         } else if (render.material->GetShader()->HasPragma("complex_vertex_shader")) {
             targetShader = render.material->GetShader();
