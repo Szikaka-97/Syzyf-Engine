@@ -25,7 +25,6 @@
 #include <nlohmann/detail/conversions/from_json.hpp>
 #include <nlohmann/json.hpp>
 #include <nlohmann/json_fwd.hpp>
-#include <typeinfo>
 
 class Mover : public GameObject, public ImGuiDrawable {
 private:
@@ -364,10 +363,6 @@ void LoadScene(Scene* mainScene) {
 
 #include <TypeInfo.h>
 
-int SerializeObject(const DebugStructB* ptr);
-
-extern std::vector<json> serializedObjects;
-
 int main(int, char**) {
 	// if (!Engine::Setup(InitScene)) {
 	// 	spdlog::error("Failed to initialize project!");
@@ -402,32 +397,19 @@ int main(int, char**) {
 	// return 0;
 	spdlog::info("FUCK.");
 
-/*
-	Cechy gry:
+	json one;
+	one["thing"] = "bep";
 
-	1. Wizualna
-	2. Techniczna
-	3. Rozgrywka
-	4. Historia / emocje
-	5. Świat
-*/
+	json two;
+	two["something"] = "raf";
 
-	DebugStructC a;
-	a.bep = 1;
-	a.raf = 2;
-	a.sex = 3;
-	a.grek = 4;
-	a.banan = {
-		{0, 69},
-		{1, 2137},
-		{7, 420}
-	};
-	DebugStructB b1{&a, "widziadło"};
-	a.ptrThing = &b1;
+	one.merge_patch(two);
 
+	spdlog::info("\n{}", one.dump(2));
 
-	spdlog::info("\n{}", Serialization::Serialize(&b1).dump(2));
-	
+	// spdlog::info(TypeInfo::GetTypeInfo("SceneComponent").name);
+	// spdlog::info(TypeInfo::GetTypeInfo("SceneComponent").size);
+
 	// Engine::MainLoop();
 
 	return 0;
