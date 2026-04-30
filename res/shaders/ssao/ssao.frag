@@ -14,10 +14,10 @@ uniform sampler2D noiseTex;
 uniform vec3 samples[64];
 uniform vec2 resolution;
 
-// Change to uniforms
-int kernelSize = 64;
-float radius = 0.5;
-float bias = 0.025;
+uniform int kernelSize;
+uniform float radius;
+uniform float bias;
+uniform float power;
 
 vec3 ViewPosFromDepth(vec2 uv, float rawDepth) {
     vec4 ndc = vec4(uv * 2.0 - 1.0, rawDepth * 2.0 - 1.0, 1.0);
@@ -62,5 +62,5 @@ void main() {
     }
 
     occlusion = 1.0 - (occlusion / float(kernelSize));
-    FragColor = occlusion;
+    FragColor = pow(occlusion, power);
 }

@@ -41,7 +41,6 @@ enum class RenderPassType {
 	Additive = 64,
 	Volumetric = 128,
     SSAO = 256,
-    SSAOBlur = 512,
 };
 
 struct RenderParams {
@@ -54,6 +53,16 @@ struct RenderParams {
 };
 
 class SceneGraphics : public GameObjectSystem<Camera> {
+public:
+    struct SSAOSettings {
+        bool enabled = true;
+        // max kernel size is hardcoded to 64
+        int kernelSize = 32;
+        float radius = 0.5f;
+        float bias = 0.025f;
+        float power = 2.0f;
+        int blurRange = 2;
+    };
 private:
 	struct RenderNode {
 		const Mesh::SubMesh* mesh;
@@ -111,10 +120,11 @@ private:
 	ShaderProgram* prepassShader;
     ShaderProgram* prepassAnimatedShader;
     ShaderProgram* prepassScatterShader;
-    // SSAO
+
+    // SSAO 
     ShaderProgram* ssaoShader;
     ShaderProgram* ssaoBlurShader;
-
+    SSAOSettings ssaoSettings;
     std::vector<glm::vec3> ssaoKernel;
     std::unique_ptr<Texture2D> ssaoNoiseTexture;
 

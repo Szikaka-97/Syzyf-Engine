@@ -160,9 +160,11 @@ currentUniforms() {
         .WithVertexShader("./res/shaders/ssao/ssao.vert")
         .WithPixelShader("./res/shaders/ssao/ssao.frag")
         .Link();
+    this->ssaoBlurShader = ShaderProgram::Build()
+        .WithVertexShader("./res/shaders/ssao/ssao.vert")
+        .WithPixelShader("./res/shaders/ssao/ssao_blur.frag")
+        .Link();
     this->GenerateSSAOKernelAndTexture();
-
-    // add ssao blur shader
 
     TextureParams normalBufferParams = TextureParams {
         .channels = TextureChannels::RGB,
@@ -456,8 +458,13 @@ void SceneGraphics::Render() {
 		RenderCamera(camera);
 	}
 
+    RenderPassType passType = RenderPassType::Color | RenderPassType::DepthPrepass | RenderPassType::Gizmos | RenderPassType::Transparent | RenderPassType::Volumetric;
+    if (this->ssaoSettings.enabled) {
+        passType = passType | RenderPassType::SSAO;
+    }
+
 	RenderCamera(this->mainCamera, this->mainViewport, RenderParams {
-		RenderPassType::Color | RenderPassType::DepthPrepass | RenderPassType::Gizmos | RenderPassType::Transparent | RenderPassType::Volumetric | RenderPassType::SSAO,
+        passType,
 		glm::vec4(
 			0,
 			0,
@@ -646,11 +653,13 @@ void SceneGraphics::RenderSSAO(const RenderParams& params, Framebuffer* target) 
 
 	glDisable(GL_DEPTH_TEST);
     glBindVertexArray(quadMesh->SubMeshAt(0).GetVertexArrayHandle());
-    glUseProgram(this->ssaoShader->GetHandle());
+    
+    GLuint shaderHandle = this->ssaoShader->GetHandle();
+    glUseProgram(shaderHandle);
 
-    glUniform1i(glGetUniformLocation(this->ssaoShader->GetHandle(), "depthTex"), 0);
-    glUniform1i(glGetUniformLocation(this->ssaoShader->GetHandle(), "normalTex"), 1);
-    glUniform1i(glGetUniformLocation(this->ssaoShader->GetHandle(), "noiseTex"), 2);
+    glUniform1i(glGetUniformLocation(shaderHandle, "depthTex"), 0);
+    glUniform1i(glGetUniformLocation(shaderHandle, "normalTex"), 1);
+    glUniform1i(glGetUniformLocation(shaderHandle, "noiseTex"), 2);
 
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, this->GetMainFramebuffer()->GetDepthTexture()->GetHandle());
@@ -659,12 +668,41 @@ void SceneGraphics::RenderSSAO(const RenderParams& params, Framebuffer* target) 
 	glActiveTexture(GL_TEXTURE2);
 	glBindTexture(GL_TEXTURE_2D, this->ssaoNoiseTexture->GetHandle());
 
-    int kernelLocation = glGetUniformLocation(this->ssaoShader->GetHandle(), "samples");
+    int kernelLocation = glGetUniformLocation(shaderHandle, "samples");
     glUniform3fv(kernelLocation, 64, &this->ssaoKernel[0][0]);
 
     glm::vec2 resolution = this->GetScreenResolution();
-    glUniform2fv(glGetUniformLocation(this->ssaoShader->GetHandle(), "resolution"), 1, &resolution[0]);
+    glUniform2fv(glGetUniformLocation(shaderHandle, "resolution"), 1, &resolution[0]);
 
+    glUniform1i(glGetUniformLocation(shaderHandle, "kernelSize"), this->ssaoSettings.kernelSize);
+    glUniform1f(glGetUniformLocation(shaderHandle, "radius"), this->ssaoSettings.radius);
+    glUniform1f(glGetUniformLocation(shaderHandle, "bias"), this->ssaoSettings.bias);
+    glUniform1f(glGetUniformLocation(shaderHandle, "power"), this->ssaoSettings.power);
+
+    glDrawElements(GL_TRIANGLES, quadMesh->SubMeshAt(0).GetVertexCount(), GL_UNSIGNED_INT, nullptr);
+
+    glEnable(GL_DEPTH_TEST);
+    glBindVertexArray(0);
+    glUseProgram(0);
+}
+
+void SceneGraphics::RenderSSAOBlur(const RenderParams& params, Framebuffer* target) {
+    glBindFramebuffer(GL_FRAMEBUFFER, target->GetHandle());
+    glViewport(0, 0, target->GetSize().x, target->GetSize().y);
+
+    static Mesh* quadMesh = GetScene()->Resources()->Get<Mesh>("./res/models/fullscreenquad.obj");
+
+    glDisable(GL_DEPTH_TEST);
+    glBindVertexArray(quadMesh->SubMeshAt(0).GetVertexArrayHandle());
+    glUseProgram(this->ssaoBlurShader->GetHandle());
+
+    glUniform1i(glGetUniformLocation(this->ssaoBlurShader->GetHandle(), "ssaoTex"), 0);
+    glActiveTexture(GL_TEXTURE0);
+
+    glBindTexture(GL_TEXTURE_2D, this->ssaoFramebuffer->GetCustomAttachmentTexture(0)->GetHandle());
+
+    glUniform1i(glGetUniformLocation(this->ssaoBlurShader->GetHandle(), "blurRange"), this->ssaoSettings.blurRange);
+    
     glDrawElements(GL_TRIANGLES, quadMesh->SubMeshAt(0).GetVertexCount(), GL_UNSIGNED_INT, nullptr);
 
     glEnable(GL_DEPTH_TEST);
@@ -1007,7 +1045,13 @@ void SceneGraphics::RenderOpaque(const ShaderGlobalUniforms& uniforms, const Ren
         int aoMapUniformLocation = glGetUniformLocation(currentProg->GetHandle(), "Builtin_AOMap");
         if (aoMapUniformLocation >= 0) {
             glActiveTexture(GL_TEXTURE27);
-            glBindTexture(GL_TEXTURE_2D, this->ssaoFramebuffer->GetCustomAttachmentTexture(0)->GetHandle());
+            
+            if (this->ssaoSettings.enabled) {
+                glBindTexture(GL_TEXTURE_2D, this->ssaoBlurFramebuffer->GetCustomAttachmentTexture(0)->GetHandle());
+            } else {
+                static Texture2D* fallbackTexture = this->GetScene()->Resources()->Get<Texture2D>("./res/textures/default_color.png", Texture::ColorTextureRGB);
+                glBindTexture(GL_TEXTURE_2D, fallbackTexture->GetHandle());
+            }
             glUniform1i(aoMapUniformLocation, 27);
         }
 
@@ -1650,13 +1694,9 @@ void SceneGraphics::RenderCamera(Camera* camera, Viewport* renderTarget, const R
         activeParams.pass = RenderPassType::SSAO;
 
         RenderSSAO(activeParams, this->ssaoFramebuffer);
-    }
 
-    // if ((params.pass & RenderPassType::SSAOBlur) == RenderPassType::SSAOBlur) {
-    //     activeParams.pass = RenderPassType::SSAOBlur;
-    //
-    //     RenderSSAOBlur(activeParams, this->ssaoBlurFramebuffer);
-    // }
+        RenderSSAOBlur(activeParams, this->ssaoBlurFramebuffer);
+    }
 
 	if ((params.pass & RenderPassType::Color) == RenderPassType::Color) {
 		activeParams.pass = RenderPassType(RenderPassType::Color);
@@ -1709,6 +1749,26 @@ void SceneGraphics::DrawImGui() {
 	if (ImGui::TreeNode("Graphics Debug")) {
 		ImGui::Text("Resolution: %i:%i", (int) this->mainViewport->GetSize().x, (int) this->mainViewport->GetSize().y);
 		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+
+        // SSAO
+        if (ImGui::TreeNode("SSAO Settings")) {
+            ImGui::Checkbox("Enable SSAO", &this->ssaoSettings.enabled);
+
+            ImGui::BeginDisabled(!this->ssaoSettings.enabled);
+            ImGui::SliderInt("Kernel Size", &this->ssaoSettings.kernelSize, 8, 64);
+            ImGui::SliderFloat("Radius", &this->ssaoSettings.radius, 0.1f, 5.0f);
+            ImGui::SliderFloat("Bias", &this->ssaoSettings.bias, 0.001f, 0.1f, "%.4f");
+            ImGui::SliderFloat("Power", &this->ssaoSettings.power, 0.1f, 5.0f);
+            ImGui::SliderInt("Blur Range", &this->ssaoSettings.blurRange, 1, 4);
+
+            if (ImGui::Button("Reset")) {
+                ssaoSettings = {};
+            }
+
+            ImGui::EndDisabled();
+
+            ImGui::TreePop();
+        }
 
 		ImGui::TreePop();
 	}
