@@ -353,7 +353,6 @@ def main():
 		dest_impl.more_indent()
 
 		dest_impl.line("const void* objPtr;")
-		dest_impl.line("json dump;")
 		dest_impl.line("int index;")
 
 		dest_impl.less_indent()
@@ -400,20 +399,32 @@ def main():
 		dest_impl.line()
 
 		dest_impl.line("const std::string typeName = TypeInfo::GetTypeInfo(objectType).name;")
-			
+
+		dest_impl.line()
+
+		dest_impl.line("serializedObjects.push_back(json{});")
+		
 		dest_impl.line("json result;")
 
+		dest_impl.line()
+
+		dest_impl.line("int index = serializedObjects.size() - 1;")
+
+		dest_impl.line("serializationMap[ptr] = { ptr, index };")
+
+		dest_impl.line()
+
 		dest_impl.line(f"result[\"_class_name\"] = typeName;")
+
 		dest_impl.line("result[\"_data\"] = serializationFunctionLookup[typeName](ptr);")
 
 		dest_impl.line()
 
-		dest_impl.line("serializedObjects.push_back(result);")
-		dest_impl.line("serializationMap[ptr] = { ptr, result, (int) serializedObjects.size() - 1 };")
+		dest_impl.line("serializedObjects[index] = result;")
 
 		dest_impl.line()
 
-		dest_impl.line("return serializedObjects.size() - 1;")
+		dest_impl.line("return index;")
 
 		dest_impl.less_indent()
 		dest_impl.line("}")
