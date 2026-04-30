@@ -464,6 +464,10 @@ void Body::SyncToNode() {
 
     if (scale != this->lastScale && this->originalShape != nullptr) {
         JPH::ShapeRefC newShape;
+
+        if (glm::abs(scale.x) < 0.001f) scale.x = scale.x < 0.0f ? -0.001f : 0.001f;
+        if (glm::abs(scale.y) < 0.001f) scale.y = scale.y < 0.0f ? -0.001f : 0.001f;
+        if (glm::abs(scale.z) < 0.001f) scale.z = scale.z < 0.0f ? -0.001f : 0.001f;
             
         if (scale == glm::vec3(1.0f)) {
             newShape = this->originalShape;
@@ -531,6 +535,10 @@ if (bodyCreationSettings.GetShapeSettings() != nullptr) {
   } else if (bodyCreationSettings.GetShape() != nullptr) {
       this->originalShape = bodyCreationSettings.GetShape();
   }
+
+    if (glm::abs(nodeScale.x) < 0.001f) nodeScale.x = nodeScale.x < 0.0f ? -0.001f : 0.001f;
+    if (glm::abs(nodeScale.y) < 0.001f) nodeScale.y = nodeScale.y < 0.0f ? -0.001f : 0.001f;
+    if (glm::abs(nodeScale.z) < 0.001f) nodeScale.z = nodeScale.z < 0.0f ? -0.001f : 0.001f;
 
   JPH::ShapeRefC activeShape = this->originalShape;
   if (nodeScale != glm::vec3(1.0f)) {

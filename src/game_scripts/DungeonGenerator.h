@@ -26,7 +26,7 @@ enum class RoomShape {
 };
 
 struct RoomTemplate {
-    std::string modelPath;
+    std::string modelPath; // Change to a serialized scene later
     RoomShape shape;
 };
 
@@ -250,7 +250,6 @@ private:
                             currentPosition = nextPosition;
                             previousPositions.push_back(currentPosition);
                             visited.insert(currentPosition);
-                            // temporary
                             map.at(currentPosition).roomType = RoomType::Normal;
                             previousDirection = Directions::Down;
                             availableDirections.clear();
@@ -267,7 +266,6 @@ private:
                             currentPosition = nextPosition;
                             previousPositions.push_back(currentPosition);
                             visited.insert(currentPosition);
-                            // temporary
                             map.at(currentPosition).roomType = RoomType::Normal;
                             previousDirection = Directions::Left;
                             availableDirections.clear();
@@ -337,7 +335,6 @@ private:
         return availableDirections;
     }
 
-    // Replace with something smarter later
     void CreateRoomNodes() {
         const float offsetX = (this->settings.mapColumns * (this->ROOM_SIZE) * 0.5f) + this->ROOM_SIZE * 0.5f;
         const float offsetZ = (this->settings.mapRows * (this->ROOM_SIZE) * 0.5f) + this->ROOM_SIZE * 0.5f;
@@ -393,9 +390,9 @@ private:
                 }
 
                 std::vector<std::string> matchingPaths;
-                for (const auto& tmpl : this->settings.roomPool) {
-                    if (tmpl.shape == requiredShape) {
-                        matchingPaths.push_back(tmpl.modelPath);
+                for (const auto& roomTemplate : this->settings.roomPool) {
+                    if (roomTemplate.shape == requiredShape) {
+                        matchingPaths.push_back(roomTemplate.modelPath);
                     }
                 }
 
