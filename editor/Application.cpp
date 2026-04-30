@@ -175,12 +175,13 @@ void Application::MainLoop() {
 
     this->context.physicsDebugRenderer->Init(debugShader);
 
-    Scene* dungeonScene = Scene::CreateStandaloneScene();
-    DungeonGeneratorScene::InitScene(*dungeonScene);
-    this->context.loadedScenes.push_back(dungeonScene);
     this->context.selectedScene = Scene::CreateStandaloneScene();
     this->context.loadedScenes.push_back(this->context.selectedScene);
     TestScene::InitScene(*this->context.selectedScene);
+
+    Scene* dungeonScene = Scene::CreateStandaloneScene();
+    DungeonGeneratorScene::InitScene(*dungeonScene);
+    this->context.loadedScenes.push_back(dungeonScene);
 
     for (auto* scene : this->context.loadedScenes) {
         scene->GetGraphics()->UpdateScreenResolution(

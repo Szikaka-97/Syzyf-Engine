@@ -1,6 +1,6 @@
 #version 460 core
 
-#pragma complex_vertex_shader
+#pragma scatter
 
 #include "shared/shared.h"
 #include "shared/uniforms.h"

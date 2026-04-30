@@ -117,10 +117,36 @@ currentUniforms() {
 	this->volumetricPassFramebuffer = new Framebuffer(Framebuffer::Attachment::None, 0, 0);
 	this->volumetricPassFramebuffer->CreateColorAttachment(true, false);
 
-	this->depthOnlyShader = ShaderProgram::Build()
-	.WithVertexShader("./res/shaders/basic.vert")
-	.WithPixelShader("./res/shaders/basic.frag")
-	.Link();
+    // Added a shader for skinned meshes because i needed one for the prepass either way
+    this->depthOnlyShader = ShaderProgram::Build()
+        .WithVertexShader("./res/shaders/basic.vert")
+        .WithPixelShader("./res/shaders/basic.frag")
+        .Link();
+    this->depthOnlyShaderAnimated = ShaderProgram::Build()
+        .WithVertexShader("./res/shaders/prepass/prepass_animated.vert")
+        .WithPixelShader("./res/shaders/basic.frag")
+        .Link();
+
+	this->prepassShader = ShaderProgram::Build()
+	    .WithVertexShader("./res/shaders/prepass/prepass.vert")
+	    .WithPixelShader("./res/shaders/prepass/prepass.frag")
+	    .Link();
+    this->prepassShaderAnimated = ShaderProgram::Build()
+        .WithVertexShader("./res/shaders/prepass/prepass_animated.vert")
+        .WithPixelShader("./res/shaders/prepass/prepass.frag")
+        .Link();
+    // No support for opaque particles
+    this->prepassShaderScatter = ShaderProgram::Build()
+        .WithVertexShader("./res/shaders/prepass/prepass_scatter.vert")
+        .WithPixelShader("./res/shaders/prepass/prepass.frag")
+        .Link();
+
+    TextureParams normalBufferParams = TextureParams {
+        .channels = TextureChannels::RGB,
+        .colorSpace = TextureColor::Linear,
+        .format = TextureFormat::Float
+    };
+    this->opaquePassFramebuffer->CreateCustomAttachment(0, normalBufferParams);
 }
 
 glm::vec2 SceneGraphics::GetScreenResolution() const {
@@ -477,20 +503,22 @@ void SceneGraphics::RenderPrepass(const RenderParams& params, Framebuffer* targe
 }
 void SceneGraphics::RenderPrepass(const ShaderGlobalUniforms& uniforms, const RenderParams& params, Framebuffer* target) {
 	target->SetColorAttachmentEnabled(false);
+    target->SetCustomAttachmentEnabled(0, true);
+    target->Apply();
+
 	glBindFramebuffer(GL_FRAMEBUFFER, target->GetHandle());
 
 	glViewport(params.viewport.x, params.viewport.y, params.viewport.z, params.viewport.w);
 
 	glCullFace(GL_BACK);
 	glDepthFunc(GL_LESS);
-	glClear(GL_DEPTH_BUFFER_BIT);
+	glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 			
 	ShaderObjectUniforms objectUniforms;
 
 	Frustum viewFrustum = ComputeFrustum(uniforms.Global_VPMatrix);
 
-	bool genericShaderBound = true;
-	glUseProgram(this->depthOnlyShader->GetHandle());
+    const ShaderProgram* currentProgram = nullptr;
 
 	for (auto& render : this->opaqueRenders) {
 		if (!render.material || !render.mesh) {
@@ -516,21 +544,35 @@ void SceneGraphics::RenderPrepass(const ShaderGlobalUniforms& uniforms, const Re
 		glBindBuffer(GL_UNIFORM_BUFFER, objectUniformsBuffer);
 		glBufferData(GL_UNIFORM_BUFFER, sizeof(objectUniforms), &objectUniforms, GL_STREAM_DRAW);
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
-		
-		if (render.material->GetShader()->HasPragma("complex_vertex_shader")) {
-			render.material->Bind();
 
-			genericShaderBound = false;
-		}
-		else if (!genericShaderBound) {
-			genericShaderBound = true;
-			glUseProgram(this->depthOnlyShader->GetHandle());
+        const ShaderProgram*  targetShader = this->prepassShader;
 
-            if (int offsetLocation = glGetUniformLocation(this->depthOnlyShader->GetHandle(), "uBoneOffset"); offsetLocation >= 0) {
-                glUniform1i(offsetLocation, std::max(0, render.jointBufferOffset));
+        // Doesn't support opaque particles in the prepass !
+        if (render.jointBufferOffset >= 0) {
+            targetShader = this->prepassShaderAnimated;
+        } else if (render.material->GetShader()->HasPragma("scatter")) {
+            spdlog::error("Scatter pragma !");
+            targetShader = this->prepassShaderScatter;
+        } else if (render.material->GetShader()->HasPragma("complex_vertex_shader")) {
+            targetShader = render.material->GetShader();
+        }
+
+        if (currentProgram != targetShader) {
+            currentProgram = targetShader;
+            glUseProgram(currentProgram->GetHandle());
+
+            if (currentProgram == render.material->GetShader()) {
+                render.material->Bind();
             }
-		}
+        }
 
+        if (render.jointBufferOffset >= 0) {
+            int offsetLocation = glGetUniformLocation(currentProgram->GetHandle(), "uBoneOffset");
+            if (offsetLocation >= 0) {
+                glUniform1i(offsetLocation, render.jointBufferOffset);
+            }
+        }
+		
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, render.instanceSSBO);
 		glBindVertexArray(render.mesh->GetVertexArrayHandle());
 
@@ -588,11 +630,9 @@ void SceneGraphics::RenderShadows(const ShaderGlobalUniforms& uniforms, const Re
 	}
 			
 	ShaderObjectUniforms objectUniforms;
-
 	Frustum viewFrustum = ComputeFrustum(uniforms.Global_VPMatrix);
 
-	bool genericShaderBound = true;
-	glUseProgram(this->depthOnlyShader->GetHandle());
+    const ShaderProgram* currentProgram = nullptr;
 
 	for (auto& render : this->opaqueRenders) {
 		if (!render.material || !render.mesh) {
@@ -615,20 +655,34 @@ void SceneGraphics::RenderShadows(const ShaderGlobalUniforms& uniforms, const Re
 		objectUniforms.Object_MVPMatrix = uniforms.Global_VPMatrix * objectUniforms.Object_ModelMatrix;
 		objectUniforms.Object_NormalModelMatrix = glm::transpose(glm::inverse(glm::mat3(objectUniforms.Object_ModelMatrix)));
 
+        const ShaderProgram* targetShader = this->depthOnlyShader;
+
+        if (render.jointBufferOffset >= 0) {
+            targetShader = this->depthOnlyShaderAnimated;
+        } else if (render.material->GetShader()->HasPragma("complrex_vertex_shader")) {
+            targetShader = render.material->GetShader();
+        }
+
+        if (currentProgram != targetShader) {
+            currentProgram = targetShader;
+            glUseProgram(currentProgram->GetHandle());
+
+            if (currentProgram == render.material->GetShader()) {
+                render.material->Bind();
+            }
+        }
+
+        if (render.jointBufferOffset >= 0) {
+            int offsetLocation = glGetUniformLocation(currentProgram->GetHandle(), "uBoneOffset");
+            if (offsetLocation >= 0) {
+                glUniform1i(offsetLocation, render.jointBufferOffset);
+            }
+        }
+
 		glBindBuffer(GL_UNIFORM_BUFFER, objectUniformsBuffer);
 		glBufferData(GL_UNIFORM_BUFFER, sizeof(objectUniforms), &objectUniforms, GL_STREAM_DRAW);
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
 		
-		if (render.material->GetShader()->HasPragma("complex_vertex_shader")) {
-			render.material->Bind();
-
-			genericShaderBound = false;
-		}
-		else if (!genericShaderBound) {
-			genericShaderBound = true;
-			glUseProgram(this->depthOnlyShader->GetHandle());
-		}
-
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, render.instanceSSBO);
 		glBindVertexArray(render.mesh->GetVertexArrayHandle());
 
@@ -795,6 +849,9 @@ void SceneGraphics::RenderOpaque(const RenderParams& params, Framebuffer* target
 }
 void SceneGraphics::RenderOpaque(const ShaderGlobalUniforms& uniforms, const RenderParams& params, Framebuffer* target) {
 	target->SetColorAttachmentEnabled(true);
+    target->SetCustomAttachmentEnabled(0, false);
+    target->Apply();
+
 	glBindFramebuffer(GL_FRAMEBUFFER, target->GetHandle());
 
 	Skybox* sky = Skybox::GetCurrentSkybox();

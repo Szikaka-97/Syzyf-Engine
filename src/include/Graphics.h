@@ -99,7 +99,12 @@ private:
 	Camera* mainCamera;
 
 	ShaderGlobalUniforms currentUniforms;
-	ShaderProgram* depthOnlyShader;
+
+	ShaderProgram* prepassShader;
+    ShaderProgram* prepassShaderAnimated;
+    ShaderProgram* depthOnlyShader;
+    ShaderProgram* depthOnlyShaderAnimated;
+    ShaderProgram* prepassShaderScatter;
 
 	void RenderFullscreenFrameQuad();
 	void CompositeTransparentPass();

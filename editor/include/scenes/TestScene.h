@@ -320,8 +320,9 @@ inline void InitScene(Scene& mainScene) {
     SceneNode* scatter = mainScene.CreateNode("Scatter");
     Scatter::Settings scatterSettings =
         Scatter::SettingsBuilder()
-            .WithInstanceCount(1000000)
-            .WithAreaExtents(glm::vec3(200.0f, 200.0f, 200.0f))
+            .WithInstanceCount(1000)
+            .WithAreaExtents(glm::vec3(50.0f, 50.0f, 50.0f))
+            .AddProjection({.raycastLength = 20.0f, .raycastOffset = -20.0f})
             .AddTransform(
                 {.minRotation = {glm::radians(-15.0f), 0.0f,
                                  glm::radians(-15.0f)},

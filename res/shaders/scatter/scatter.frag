@@ -1,6 +1,6 @@
 #version 460
 
-#pragma no_depth_prepass 
+// #pragma no_depth_prepass 
 #pragma no_shadows
 
 in VS_OUT {
