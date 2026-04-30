@@ -58,10 +58,11 @@ public:
         bool enabled = true;
         // max kernel size is hardcoded to 64
         int kernelSize = 32;
-        float radius = 0.5f;
+        float radius = 1.5f;
         float bias = 0.025f;
-        float power = 2.0f;
+        float power = 4.0f;
         int blurRange = 2;
+        float resolutionScale = 0.75f;
     };
 private:
 	struct RenderNode {

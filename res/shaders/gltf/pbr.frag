@@ -67,7 +67,7 @@ void main() {
   // Ambient Occlusion
   float ao = 1.0f;
 
-  vec2 screenUV = gl_FragCoord.xy / vec2(textureSize(Builtin_AOMap, 0));
+  vec2 screenUV = gl_FragCoord.xy / Global_Resolution.xy; 
   float ssao = texture(Builtin_AOMap, screenUV).r;
 
   if (useOcclusion) {

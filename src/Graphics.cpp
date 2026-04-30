@@ -184,8 +184,11 @@ void SceneGraphics::UpdateScreenResolution(glm::vec2 newResolution) {
 		this->mainViewport->SetSize(newResolution);
 		this->transparentPassFramebuffer->SetSize(newResolution);
 		this->volumetricPassFramebuffer->SetSize(newResolution * 0.5f);
-        this->ssaoFramebuffer->SetSize(newResolution);
-        this->ssaoBlurFramebuffer->SetSize(newResolution);
+        
+        // SSAO
+        glm::vec2 ssaoResolution = glm::ceil(newResolution * this->ssaoSettings.resolutionScale);
+        this->ssaoFramebuffer->SetSize(ssaoResolution);
+        this->ssaoBlurFramebuffer->SetSize(ssaoResolution);
 
 		if (GetPostProcessing()) {
 			GetPostProcessing()->UpdateBufferResolution(newResolution);
@@ -671,7 +674,7 @@ void SceneGraphics::RenderSSAO(const RenderParams& params, Framebuffer* target) 
     int kernelLocation = glGetUniformLocation(shaderHandle, "samples");
     glUniform3fv(kernelLocation, 64, &this->ssaoKernel[0][0]);
 
-    glm::vec2 resolution = this->GetScreenResolution();
+    glm::vec2 resolution = target->GetSize();
     glUniform2fv(glGetUniformLocation(shaderHandle, "resolution"), 1, &resolution[0]);
 
     glUniform1i(glGetUniformLocation(shaderHandle, "kernelSize"), this->ssaoSettings.kernelSize);
@@ -1677,6 +1680,7 @@ void SceneGraphics::RenderCamera(Camera* camera, Viewport* renderTarget, const R
 	this->currentUniforms.Global_CameraFarPlane = camera->GetFarPlane();
 	this->currentUniforms.Global_CameraNearPlane = camera->GetNearPlane();
 	this->currentUniforms.Global_CameraFov = camera->GetFovRad();
+    this->currentUniforms.Global_Resolution = glm::vec4(this->mainViewport->GetSize().x, this->mainViewport->GetSize().y, 0.0f, 0.0f);
 
 	RenderParams activeParams((RenderPassType) 0, params.viewport, false, camera->GetLayerMask());
 
@@ -1760,6 +1764,23 @@ void SceneGraphics::DrawImGui() {
             ImGui::SliderFloat("Bias", &this->ssaoSettings.bias, 0.001f, 0.1f, "%.4f");
             ImGui::SliderFloat("Power", &this->ssaoSettings.power, 0.1f, 5.0f);
             ImGui::SliderInt("Blur Range", &this->ssaoSettings.blurRange, 1, 4);
+
+            // Scale 
+            const char* scaleNames[] = { "100%", "75%", "50%", "25%" };
+            float scaleValues[] = { 1.0f, 0.75f, 0.5f, 0.25f };
+
+            int currentScaleIndex = 0;
+            if (this->ssaoSettings.resolutionScale <= 0.25f) currentScaleIndex = 3;
+            else if (this->ssaoSettings.resolutionScale <= 0.5f) currentScaleIndex = 2;
+            else if (this->ssaoSettings.resolutionScale <= 0.75f) currentScaleIndex = 1;
+
+            if (ImGui::Combo("Resolution Scale", &currentScaleIndex, scaleNames, 4)) {
+                this->ssaoSettings.resolutionScale = scaleValues[currentScaleIndex];
+                
+                glm::vec2 ssaoResolution = glm::ceil(this->GetScreenResolution() * this->ssaoSettings.resolutionScale);
+                this->ssaoFramebuffer->SetSize(ssaoResolution);
+                this->ssaoBlurFramebuffer->SetSize(ssaoResolution);
+            }
 
             if (ImGui::Button("Reset")) {
                 ssaoSettings = {};
