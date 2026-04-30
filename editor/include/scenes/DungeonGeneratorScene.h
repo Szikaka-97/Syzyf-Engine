@@ -60,8 +60,6 @@
 
 namespace DungeonGeneratorScene {
 
-class EditorCameraTag : public GameObject {};
-
 class Mover : public GameObject, public ImGuiDrawable {
   private:
     float pitch;
@@ -538,9 +536,9 @@ inline void InitScene(Scene& mainScene) {
     // playerNode->AddObject<Physics::CharacterController>(characterSettings);
     // playerNode->AddObject<PhysicsMover>();
 
-    // auto cameraNode = mainScene.CreateNode(playerNode, "Camera");
-    // Camera* camera = cameraNode->AddObject<Camera>(
-    //     Camera::Perspective(40.0f, 16.0f / 9.0f, 0.5f, 200.0f));
+    auto cameraNode = mainScene.CreateNode("Camera");
+    Camera* camera = cameraNode->AddObject<Camera>(
+        Camera::Perspective(40.0f, 16.0f / 9.0f, 0.5f, 200.0f));
     // camera->GlobalTransform().Position() = glm::vec3(0.0f, 5.0f, -10.0f);
     //
     auto floorNode = mainScene.CreateNode("Floor");
@@ -643,10 +641,15 @@ inline void InitScene(Scene& mainScene) {
     // cameraNode->AddObject<Camera>(
     //     Camera::Perspective(25.0f, 16.0f / 9.0f, 0.1f, 200.0f));
     // cameraNode->AddObject<CameraSettings>(playerNode);
-    dungeon->AddObject<Bloom>();
-    dungeon->AddObject<Tonemapper>()->SetOperator(
+    auto* fog = cameraNode->AddObject<Fog>();
+    fog->fogType = Fog::Type::Atmospheric;
+    fog->density = 0.0042;
+    fog->fogColor = {0.2, 0.6, 0.9, 1.0};
+    auto* fog2 = cameraNode->AddObject<Fog>();
+    cameraNode->AddObject<Bloom>();
+    cameraNode->AddObject<Tonemapper>()->SetOperator(
         Tonemapper::TonemapperOperator::GranTurismo);
-    dungeon->AddObject<Fxaa>();
+    cameraNode->AddObject<Fxaa>();
 
     // JPH::Ref<JPH::CharacterVirtualSettings> characterSettings =
     //     new JPH::CharacterVirtualSettings();

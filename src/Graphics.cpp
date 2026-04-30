@@ -1384,46 +1384,34 @@ void SceneGraphics::RenderPostprocess() {
 		return;
 	}
 
-	Framebuffer* ping = GetMainFramebuffer();
+    Framebuffer* mainFramebuffer = GetMainFramebuffer();
+	Framebuffer* ping = mainFramebuffer;
 	Framebuffer* pong = postProcess->GetPostProcessBuffer();
 	
 	Texture2D* frameDepth = dynamic_cast<Texture2D*>(GetMainFramebuffer()->GetDepthTexture());
 
-	PostProcessParams postProcessParams;
-	postProcessParams.inputTexture = dynamic_cast<Texture2D*>(ping->GetColorTexture());
-	postProcessParams.outputTexture = dynamic_cast<Texture2D*>(pong->GetColorTexture());
-	postProcessParams.depthTexture = frameDepth;
-
-	glCopyImageSubData(
-		postProcessParams.inputTexture->GetHandle(),
-		GL_TEXTURE_2D,
-		0,
-		0,
-		0,
-		0,
-		postProcessParams.outputTexture->GetHandle(),
-		GL_TEXTURE_2D,
-		0,
-		0,
-		0,
-		0,
-		this->mainViewport->GetSize().x,
-		this->mainViewport->GetSize().y,
-		1
-	);
-
 	for (auto* effect : *postProcess->GetAllObjects()) {
-		effect->OnPostProcess(&postProcessParams);
+        PostProcessParams postProcessParams;
+        postProcessParams.inputTexture = dynamic_cast<Texture2D*>(ping->GetColorTexture());
+        postProcessParams.outputTexture = dynamic_cast<Texture2D*>(pong->GetColorTexture());
+        postProcessParams.depthTexture = frameDepth;
 
-		std::swap(ping, pong);
+        effect->OnPostProcess(&postProcessParams);
 
-		postProcessParams.inputTexture = dynamic_cast<Texture2D*>(ping->GetColorTexture());
-		postProcessParams.outputTexture = dynamic_cast<Texture2D*>(pong->GetColorTexture());
+        std::swap(ping, pong);
 	}
 
-	this->opaquePassFramebuffer = ping;
-	postProcess->SetPostProcessBuffer(pong);
-}
+    if (ping != mainFramebuffer) {
+        glCopyImageSubData(
+            ping->GetColorTexture()->GetHandle(),
+            GL_TEXTURE_2D, 0, 0, 0, 0,
+            mainFramebuffer->GetColorTexture()->GetHandle(),
+            GL_TEXTURE_2D, 0, 0, 0, 0,
+            this->mainViewport->GetSize().x,
+            this->mainViewport->GetSize().y,
+            1
+        );
+    }}
 
 void SceneGraphics::RenderCamera(Camera* camera, Viewport* renderTarget) {
 	assert(camera != nullptr);

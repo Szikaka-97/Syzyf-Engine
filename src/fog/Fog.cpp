@@ -1,55 +1,61 @@
 #include "fog/Fog.h"
-#include "Mesh.h"
+#include "LightSystem.h"
+#include "Graphics.h"
 #include "Shader.h"
-#include "Material.h"
 #include "imgui.h"
 
 Fog::Fog(Fog::Type fogType, float minDistance, float maxDistance, glm::vec4 fogColor) : minDistance(minDistance), maxDistance(maxDistance), fogColor(fogColor) {
-  this->shader = ShaderProgram::Build()
-    .WithVertexShader("./res/shaders/fullscreen.vert")
-    .WithPixelShader( "./res/shaders/fog/fog.frag")
-    .Link();
-
-  this->material = new Material(this->shader);
-
-  this->material->SetValue("fogColor", this->fogColor);
+  this->shader = new ComputeShaderProgram("./res/shaders/fog/fog.comp"); 
 }
 
 void Fog::OnPostProcess(const PostProcessParams* params) {
-  this->material->SetValue("fogColor", this->fogColor);
-  this->material->SetValue("minDistance", this->minDistance);
-  this->material->SetValue("maxDistance", this->maxDistance);
-  this->material->SetValue("density", this->density);
-  this->material->SetValue("fogType", (unsigned int)this->fogType);
-  this->material->SetValue("fogColor", this->fogColor);
+    glUseProgram(this->shader->GetHandle());
 
-  this->material->Bind();
+    glUniform1ui(glGetUniformLocation(this->shader->GetHandle(), "fogType"), static_cast<unsigned int>(this->fogType));
+    glUniform1f(glGetUniformLocation(this->shader->GetHandle(), "minDistance"), this->minDistance);
+    glUniform1f(glGetUniformLocation(this->shader->GetHandle(), "maxDistance"), this->maxDistance);
+    glUniform1f(glGetUniformLocation(this->shader->GetHandle(), "density"), this->density);
+    glUniform4fv(glGetUniformLocation(this->shader->GetHandle(), "fogColor"), 1, &this->fogColor[0]);
 
-  glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, params->inputTexture->GetHandle());
-  int location = glGetUniformLocation(this->shader->GetHandle(), "colorTex");
-  glUniform1i(location, 0);
+  if (this->fogType == Type::Atmospheric) {
+    glUniform1f(glGetUniformLocation(this->shader->GetHandle(), "fogHeightFalloff"), this->fogHeightFalloff);
+    glUniform1f(glGetUniformLocation(this->shader->GetHandle(), "inscatteringPower"), this->inscatteringPower);
 
-  glActiveTexture(GL_TEXTURE1);
-  glBindTexture(GL_TEXTURE_2D, params->depthTexture->GetHandle());
-  location = glGetUniformLocation(this->shader->GetHandle(), "depthTex");
-  glUniform1i(location, 1);
+    // Fallback
+    glm::vec3 sunDirection = glm::normalize(glm::vec3(0.5f, 0.8f, 0.2f));
+    glm::vec3 sunColor = glm::vec3(1.0f, 0.9f, 0.7f);
 
-  static Mesh* quadMesh = GetScene()->Resources()->Get<Mesh>("./res/models/fullscreenquad.obj");
+    LightSystem* lightSystem = GetScene()->GetComponent<LightSystem>();
+    if (lightSystem) {
+        std::vector<Light*>* lights = lightSystem->GetAllObjects();
+        if (lights) {
+            for (Light* light : *lights) {
+                if (light->GetType() == Light::LightType::Directional && light->IsEnabled()) {
+                    sunDirection = glm::normalize(-light->GlobalTransform().Forward());
+                    sunColor = light->GetColor() * light->GetIntensity();
+                    break;
+                }
+            }
+        }
+    }
 
-  glDisable(GL_DEPTH_TEST);
-  glBindVertexArray(quadMesh->SubMeshAt(0).GetVertexArrayHandle());
+        glUniform3fv(glGetUniformLocation(this->shader->GetHandle(), "sunDirection"), 1, &sunDirection[0]);
+        glUniform3fv(glGetUniformLocation(this->shader->GetHandle(), "sunColor"), 1, &sunColor[0]);
+    }
 
-  glDrawElements(GL_TRIANGLES, quadMesh->SubMeshAt(0).GetVertexCount(), GL_UNSIGNED_INT, nullptr);
+    glBindTextureUnit(0, params->inputTexture->GetHandle());
+    glBindTextureUnit(1, params->depthTexture->GetHandle());
 
-  glBindTexture(GL_TEXTURE_2D, 0);
-  glEnable(GL_DEPTH_TEST);
-  glBindVertexArray(0);
-  glUseProgram(0);
+    glBindImageTexture(0, params->outputTexture->GetHandle(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA16F);
+
+    glm::vec2 resolution = GetScene()->GetGraphics()->GetScreenResolution();
+    glDispatchCompute(std::ceil(resolution.x / 8.0f), std::ceil(resolution.y / 8.0f), 1);
+
+    glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 }
 
 void Fog::DrawImGui() {
-    const char* fogTypes[] = { "Linear", "Exponential", "Exponential Squared" };
+    const char* fogTypes[] = { "Linear", "Exponential", "Exponential Squared", "Atmospheric" };
     int currentType = (int) this->fogType;
     if (ImGui::Combo("FogType", &currentType, fogTypes, IM_ARRAYSIZE(fogTypes))) {
         this->fogType = (Type) currentType;
@@ -60,6 +66,10 @@ void Fog::DrawImGui() {
     if (this->fogType == Type::Linear) {
         ImGui::InputFloat("Min Distance", &this->minDistance);
         ImGui::InputFloat("Max Distance", &this->maxDistance);
+    } else if (this->fogType == Type::Atmospheric) {
+        ImGui::DragFloat("Density", &this->density, 0.001f, 0.0f, 1.0f);
+        ImGui::DragFloat("Height Falloff", &this->fogHeightFalloff, 0.01f, 0.0f, 5.0f);
+        ImGui::DragFloat("Inscattering Power", &this->inscatteringPower, 0.1f, 1.0f, 128.0f);
     } else {
         ImGui::DragFloat("Density", &this->density, 0.001f, 0.0f, 1.0f);
     }

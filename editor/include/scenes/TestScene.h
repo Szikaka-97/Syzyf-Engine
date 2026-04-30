@@ -4,6 +4,7 @@
 #include "EasingFunctions.h"
 #include "GltfImporter.h"
 #include "LightSystem.h"
+#include "fog/Fog.h"
 #include "game_scripts/AimingAid.h"
 #include "game_scripts/ThrowBottle.h"
 
@@ -53,8 +54,6 @@
 #include <physics/VirtualCharacterController.h>
 
 namespace TestScene {
-class EditorCameraTag : public GameObject {};
-
 class Mover : public GameObject, public ImGuiDrawable {
   private:
     float pitch;
@@ -245,6 +244,10 @@ inline void InitScene(Scene& mainScene) {
         Camera::Perspective(60.0f, 16.0f / 9.0f, 0.1f, 200.0f));
     cameraNode->AddObject<CameraSettings>(
         playerNode->GlobalTransform().Position());
+    auto* fog = cameraNode->AddObject<Fog>();
+    fog->fogType = Fog::Type::Atmospheric;
+    fog->density = 0.042;
+    fog->fogColor = {0.2, 0.6, 0.9, 1.0};
     cameraNode->AddObject<Bloom>();
     cameraNode->AddObject<Tonemapper>()->SetOperator(
         Tonemapper::TonemapperOperator::GranTurismo);
