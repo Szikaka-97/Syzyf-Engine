@@ -42,6 +42,7 @@ float m_AttackAnimationElapsed = 0.0f;
      
     int m_hp;
     float attackRange = 5.0f;
+    States currentState = States::PATROLLING;
    // void Update();
         void SetRoomID(int id) { m_RoomID = id; }
     int GetID() const { return m_RoomID; }

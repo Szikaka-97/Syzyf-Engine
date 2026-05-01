@@ -27,7 +27,6 @@ private:
 float m_StuckThreshold = 1.5f;       
 float m_MinMovementThreshold = 0.2f;  
        
-    void AstarChase();
 
 
     	void SearchWalkPoint();
@@ -45,6 +44,8 @@ float m_MinMovementThreshold = 0.2f;
 
 protected: 
     void EnsureBody();  
+        void AstarChase();
+    void DirectChase();
 
 public:
     AiSimplified();
@@ -74,6 +75,9 @@ float m_StuckTimer = 0.0f;
     void RotateNode(glm::vec3 dir);
         Surface* GetSurface() const {return m_Surface;}
     void SetPatrolPoints(const std::vector<glm::vec2>& points);
+
+    SceneNode* m_TargetNode = nullptr;
+void SetTargetNode(SceneNode* node) { m_TargetNode = node; }
 
    
 };

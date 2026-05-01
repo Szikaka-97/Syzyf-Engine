@@ -1,6 +1,8 @@
 #include <enemies/EnemyBase.h>
 #include <AiSimplified.h>
 #include <glm/glm.hpp>
+#include <Player.h>
+#include <Scene.h>
 
 class EnemySkeleton : public EnemyBase {
 	public:
@@ -19,6 +21,11 @@ class EnemySkeleton : public EnemyBase {
 		if (!m_TargetNode) return;
 	}*/
 			 EnsureBody();
+			// m_TargetPosition = GetObject<Player>()->GlobalTransform().Position();
+             if (m_TargetNode)
+    m_TargetPosition = m_TargetNode->GlobalTransform().Position();
+else
+    return;
 	if (!m_NavGrid) {
     auto grids = GetScene()->FindObjectsOfType<NavigationGrid>();
     if (!grids.empty()) m_NavGrid = grids[0];
@@ -51,45 +58,58 @@ class EnemySkeleton : public EnemyBase {
 
 	//bool playerInAttackRange = canSeePlayer && dist < attackRange;
 	UpdateAttackAnimation();
-
-if (m_InAttackAnimation) {
-    StopMoving();
-    return;
-}
-if (isPlayerInRoom) {
-    UpdateStuckDetection();
-}
-	if (isPlayerInRoom) {
-    float dist = glm::distance(currentPos, m_TargetPosition);
-    const float keepDist = attackRange;           
-    const float tolerance = 0.5f; 
-	if (m_hp <= 30) {
-		Flee();
-		Attack(); 
-	}
-	else {
-		if (dist > keepDist + tolerance) {
-        Chase();
-    }
-    else if (dist < keepDist - tolerance) {
-        glm::vec3 awayDir = currentPos - m_TargetPosition;   
-        if (glm::length(awayDir) > 0.001f) {
-            MoveInDirection(awayDir);
-            RotateNode(m_TargetPosition - currentPos);
-        }
-    }
-    else {
+	if (m_InAttackAnimation) {
         StopMoving();
-        Attack();                        
+        return;
     }
-	}
-    
-} else {
-		m_UsingAStar = false;
-m_Path.clear();
-m_StuckTimer = 0.0f;
-    Patrol();
-}
+	if (isPlayerInRoom) {
+        float dist = glm::distance(currentPos, m_TargetPosition);
+        if (m_hp <= 30) {
+            currentState = States::FLEEING;
+        } else if (dist <= attackRange) {
+            currentState = States::ATTACKING;
+        } else if (m_UsingAStar) {
+            currentState = States::AVOIDING_OBSTACLE;
+        } else {
+            currentState = States::CHASING;
+        }
+    } else {
+        currentState = States::PATROLLING;
+    }
+
+    // Wykrywanie utkniêcia tylko w stanie CHASING
+    if (currentState == States::CHASING) {
+        UpdateStuckDetection();
+    }
+
+    // Reset flagi A* przy opuszczaniu stanu unikania
+    if (currentState != States::AVOIDING_OBSTACLE) {
+        m_UsingAStar = false;
+        m_Path.clear();
+    }
+
+    // Wykonaj akcje przypisane do stanu
+    switch (currentState) {
+        case States::PATROLLING:
+            m_StuckTimer = 0.0f;
+            Patrol();
+            break;
+        case States::CHASING:
+            DirectChase();
+            break;
+        case States::ATTACKING:
+            StopMoving();
+            Attack();
+            break;
+        case States::FLEEING:
+            Flee();
+            Attack();   // wróg mo¿e strzelaæ w ucieczce?
+            break;
+        case States::AVOIDING_OBSTACLE:
+            AstarChase();
+            break;
+    }
+
 
 		DrawDebugView();
 		}

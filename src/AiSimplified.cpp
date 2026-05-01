@@ -239,6 +239,16 @@ void AiSimplified::MoveInDirection(const glm::vec3& direction) {
     } else {
         StopMoving();
     }}
+	void AiSimplified::DirectChase() {
+    EnsureBody();
+    glm::vec3 dir = m_TargetPosition - currentPos;
+    float distance = glm::length(dir);
+    if (distance > 0.1f) {
+        MoveInDirection(dir);
+    } else {
+        StopMoving();
+    }
+}
     void AiSimplified::AstarChase(){if (!m_NavGrid) return;
     
    

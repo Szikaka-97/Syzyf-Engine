@@ -303,7 +303,7 @@ inline void InitScene(Scene& mainScene) {
     enemyAi1->SetSurface(surface);
    // enemyAi1->GetSurface()->SetGroundHeight(0.0f);
     surface->AddEnemy(enemyAi1);
-    enemyAi1->SetTarget(player->GlobalTransform().Position());
+    enemyAi1->SetTargetNode(player->GetNode());
     surface->InformEnter(); // inform surface about player presence so it can
                             // assign the enemy to the correct room
     Mesh* cubeMesh = mainScene.Resources()->Get<Mesh>("./res/models/cube.obj");
