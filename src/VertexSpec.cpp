@@ -196,7 +196,7 @@ const VertexSpec VertexSpec::Line {
 const VertexSpec VertexSpec::Mesh {
 	{ VertexInputType::Position, 3 },
 	{ VertexInputType::Normal, 3},
-	{ VertexInputType::Tangent, 3},
+	{ VertexInputType::Tangent, 4},
 	{ VertexInputType::UV1, 2 },
 };
 
@@ -211,7 +211,7 @@ const VertexSpec VertexSpec::MeshFull {
 	{ VertexInputType::Position, 3 },
 	{ VertexInputType::Normal, 3},
 	{ VertexInputType::Binormal, 3},
-	{ VertexInputType::Tangent, 3},
+	{ VertexInputType::Tangent, 4},
 	{ VertexInputType::UV1, 2 },
 	{ VertexInputType::UV2, 2 },
 	{ VertexInputType::Color, 4 },
@@ -220,7 +220,7 @@ const VertexSpec VertexSpec::MeshFull {
 const VertexSpec VertexSpec::MeshSkinned {
   { VertexInputType::Position, 3 },
   { VertexInputType::Normal, 3 },
-  { VertexInputType::Tangent, 3 },
+  { VertexInputType::Tangent, 4 },
   { VertexInputType::UV1, 2 },
   { VertexInputType::Color, 4 },
   { VertexInputType::Joints, 4 },

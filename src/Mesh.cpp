@@ -1,7 +1,6 @@
 #include <Mesh.h>
 
 #include <vector>
-#include <map>
 #include <malloc.h>
 
 #include "VertexSpec.h"
