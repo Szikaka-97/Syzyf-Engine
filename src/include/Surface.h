@@ -5,9 +5,11 @@
 #include <glm/glm.hpp>
 #include "physics/DebugRenderer.h"
 #include <AiNode.h>
+#include "AiSimplified.h"
 
 class Mesh;
 class AiNode;
+class AiSimplified;
 
 class Surface : public GameObject {
 private:
@@ -18,7 +20,7 @@ private:
         glm::vec3 m_center;  
     glm::vec3 m_size;
     int m_RoomID;
-    std::vector<AiNode*> myEnemies;
+    std::vector<AiSimplified*> myEnemies;
 
     void CollectVertices();
     void CalculateBounds();   
@@ -42,12 +44,12 @@ public:
     glm::vec3 GetCenter() const { return m_center; }
     glm::vec3 GetSize()   const { return m_size; }
     int GetID() const { return m_RoomID; }
-    std::vector<AiNode*> GetEnemies() const {return myEnemies;};
+    std::vector<AiSimplified*> GetEnemies() const {return myEnemies;};
     void InformEnter() ; 
     void InformExit() ;
     void SetID(int id) { m_RoomID = id; }
-    void SetEnemies(const std::vector<AiNode*>& enemies) { myEnemies = enemies; }
-    void AddEnemy(AiNode* enemy) { myEnemies.push_back(enemy); }
+    void SetEnemies(const std::vector<AiSimplified*>& enemies) { myEnemies = enemies; }
+    void AddEnemy(AiSimplified* enemy) { myEnemies.push_back(enemy); }
     bool ContainsPoint (const glm::vec3& point, float margin) ;
     void DrawDebugSurface(Physics::DebugRenderer* debugRenderer, float pointSize = 0.1f, int step = 5) const;
 

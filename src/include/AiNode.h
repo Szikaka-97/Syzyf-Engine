@@ -38,14 +38,13 @@ private:
     NavigationGrid* m_NavGrid = nullptr;
     AnimationComponent* m_AttackAnimation = nullptr;
 
-    // AiNode.h – w sekcji private (dodaj obok istniej¹cych)
-glm::vec3 m_LastChasePosition;        // pozycja przy rozpoczêciu pomiaru utkniêcia
-float m_StuckTimer = 0.0f;            // czas bez znacz¹cego ruchu
-float m_StuckThreshold = 1.5f;        // po tym czasie uruchamiamy A*
-float m_MinMovementThreshold = 0.2f;  // próg "braku ruchu" (odleg³oœæ)
-bool m_UsingAStar = false;            // czy aktualnie pod¹¿a œcie¿k¹ A*
+glm::vec3 m_LastChasePosition;       
+float m_StuckTimer = 0.0f;           
+float m_StuckThreshold = 1.5f;       
+float m_MinMovementThreshold = 0.2f;  
+bool m_UsingAStar = false;          
 
-void UpdateStuckDetection();          // pomocnicza metoda sprawdzaj¹ca utkniêcie
+void UpdateStuckDetection();        
 
     void Patrol();
     void Chase();
@@ -69,7 +68,7 @@ void UpdateStuckDetection();          // pomocnicza metoda sprawdzaj¹ca utkniêci
 
      glm::vec3 walkPoint;
     bool walkPointSet;
-     float walkPointRange;
+     float walkPointRange; //unused
      float timeBetweenAttacks;
     bool alreadyAttacked;
     float sightRange = 10.0f;

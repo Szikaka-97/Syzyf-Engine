@@ -6,6 +6,8 @@
 #include <limits>
 #include <spdlog/spdlog.h>
 //#include "AiNode.h"
+#include "AiSimplified.h"
+#include "enemies/EnemyBase.h"
 
 #include <Jolt/Physics/Collision/RayCast.h>
 #include <Jolt/Physics/Collision/CastResult.h>
@@ -24,7 +26,7 @@ Surface::Surface(Mesh* floorMesh, float cellSize)
         return;
     }
 
-    std::vector<AiNode*> enemies = GetScene()->FindObjectsOfType<AiNode>();
+    std::vector<AiSimplified*> enemies = GetScene()->FindObjectsOfType<AiSimplified>();
     for (const auto& enemy : enemies) {
        if(enemy->GetID()== m_RoomID) {
            myEnemies.push_back(enemy);
@@ -174,7 +176,7 @@ void Surface::InformEnter() {
    // spdlog::warn("Player entered surface {}, informing {} enemies", GetID(), myEnemies.size());
     for (auto* enemy : myEnemies) {
         if (enemy) {
-            enemy->OnPlayerEnteredRoom();
+            enemy->GetObject<EnemyBase>()->OnPlayerEnteredRoom();
         }
     }
 }
@@ -183,7 +185,7 @@ void Surface::InformExit() {
    // spdlog::warn("Player exited surface {}, informing {} enemies", GetID(), myEnemies.size());
     for (auto* enemy : myEnemies) {
         if (enemy) {
-            enemy->OnPlayerExitedRoom();
+            enemy->GetObject<EnemyBase>()->OnPlayerExitedRoom();
         }
     }
 }

@@ -6,31 +6,74 @@
 #include <Surface.h>
 #include <vector>
 #include <glm/vec3.hpp>
+#include "astar/NavigationGrid.h"
+#include "physics/DebugRenderer.h"
+#include "Mesh.h"
+
+///pathfinding and movement
 
 
 class AiSimplified : public GameObject {
 private:
     float m_Speed;               
-    float m_RotationSpeed;      
-    glm::vec3 m_TargetPosition;    
-    SceneNode* myNode;
-    Physics::Body* m_Body;
-    Surface* m_Surface;
-    void MoveInDirection(const glm::vec3& direction);
-    void StopMoving();
-
-    void RotateNode(glm::vec3 dir);
-    
+    float m_RotationSpeed;  
     //float CalculateDistance(glm::vec3 current, glm::vec3 target);
-    
+    float m_PatrolTimeout;
+	std::vector <glm::vec3> patrolPoints;
+	int posIndex;
+     float m_PathUpdateTimer;
+    float m_ChasePathUpdateTimer = 0.0f;
+    glm::vec3 m_LastChasePosition;            
+float m_StuckThreshold = 1.5f;       
+float m_MinMovementThreshold = 0.2f;  
+       
+    void AstarChase();
+
+
+    	void SearchWalkPoint();
+	void LookForNextPoint();
+
+         glm::vec3 walkPoint;
+    bool walkPointSet;
+
+     int m_CurrentPathIndex = 0;
+     std::vector<glm::vec3> FindPath(const glm::vec3& start, const glm::vec3& target);
+     std::vector<glm::vec3> GetNeighbors(const glm::vec3& node);
+     float Heuristic(const glm::vec3& a, const glm::vec3& b);
+     bool IsWalkable(const glm::vec3& point);
+     glm::vec3 GetNearestWalkable(const glm::vec3& point, float radius = 3.0f);
+
+protected: 
+    void EnsureBody();  
 
 public:
     AiSimplified();
     virtual ~AiSimplified();
 
-    void Update(); 
-
+    //void Update(); 
+        void Patrol();
+    glm::vec3 m_TargetPosition;    
+    glm::vec3 currentPos;
+        Physics::Body* m_Body;
+    SceneNode* myNode;
+        Surface* m_Surface;
+        
+    NavigationGrid* m_NavGrid = nullptr;
+            void Flee();
+                void Chase();
     void SetTarget(glm::vec3 target);
     void SetSurface(Surface* surface);
+    void UpdateStuckDetection(); 
+        void MoveInDirection(const glm::vec3& direction);
+                    void StopMoving();
+                         std::vector<glm::vec3> m_Path;           //current
+                         bool m_UsingAStar = false;   
+                            
+float m_StuckTimer = 0.0f;   
+
+    void RotateNode(glm::vec3 dir);
+        Surface* GetSurface() const {return m_Surface;}
+    void SetPatrolPoints(const std::vector<glm::vec2>& points);
+
    
 };

@@ -42,6 +42,7 @@
 #include <physics/Water.h>
 #include <scatter/Spawner.h>
 #include <Player.h>
+#include <enemies/EnemySkeleton.cpp>
 
 #include "Jolt/Math/Vec3.h"
 #include <Jolt/Jolt.h>
@@ -297,12 +298,12 @@ inline void InitScene(Scene& mainScene) {
     Physics::Body* enemyBody1 = enemy1->AddObject<Physics::Body>(enemySettings);
     enemyBody1->SetRestitution(0.0f);
 
-    auto* enemyAi1 = enemy1->AddObject<AiNode>();
+    auto* enemyAi1 = enemy1->AddObject<EnemySkeleton>();
 
     enemyAi1->SetSurface(surface);
    // enemyAi1->GetSurface()->SetGroundHeight(0.0f);
     surface->AddEnemy(enemyAi1);
-    enemyAi1->SetTarget(player->GetNode());
+    enemyAi1->SetTarget(player->GlobalTransform().Position());
     surface->InformEnter(); // inform surface about player presence so it can
                             // assign the enemy to the correct room
     Mesh* cubeMesh = mainScene.Resources()->Get<Mesh>("./res/models/cube.obj");
