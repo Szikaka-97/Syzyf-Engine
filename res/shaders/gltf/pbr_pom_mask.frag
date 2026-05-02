@@ -99,9 +99,9 @@ void main() {
         ));
 
         texCoords = parallaxMapping(ps_in.texcoords, V_Tangent);
-        if (texCoords.x > 1.0 || texCoords.y > 1.0 || texCoords.x < 0.0 || texCoords.y < 0.0) {
-            discard;
-        }
+        // if (texCoords.x > 1.0 || texCoords.y > 1.0 || texCoords.x < 0.0 || texCoords.y < 0.0) {
+        //     discard;
+        // }
     }
 
     texCoords *= uvScale;

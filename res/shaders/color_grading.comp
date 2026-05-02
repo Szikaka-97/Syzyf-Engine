@@ -5,12 +5,26 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 layout(binding = 0) uniform sampler2D inputTex;
 layout(rgba16f, binding = 0) uniform writeonly image2D outputImg;
 
+#include "shared/shared.h"
+#include "shared/uniforms.h"
+
 uniform float brightness;
 uniform float contrast;
 uniform float saturation;
 
 uniform sampler2D curveTex; 
 uniform float useCurve; // wtf
+
+// Chromatic Aberration
+uniform vec3 chromaticAberrationOffsets;
+uniform float chromaticAberrationStrength;
+
+uniform float filmGrainStrength;
+uniform float vignetteStrength;
+
+float random(vec2 st) {
+    return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123);
+}
 
 void main() {
     ivec2 texCoord = ivec2(gl_GlobalInvocationID.xy);
@@ -20,7 +34,29 @@ void main() {
         return;
     }
 
-    vec4 color = texelFetch(inputTex, texCoord, 0);
+    vec2 uv = (vec2(texCoord) + 0.5) / vec2(size);
+    vec4 color;
+    // Chromatic Aberration
+    if (chromaticAberrationStrength > 0.0) {
+        float redOffset = chromaticAberrationOffsets.r * chromaticAberrationStrength;
+        float greenOffset = chromaticAberrationOffsets.g * chromaticAberrationStrength;
+        float blueOffset = chromaticAberrationOffsets.b * chromaticAberrationStrength;
+
+        // This might break mouse picking and other related stuff?
+        float maxOffset = max(abs(redOffset), max(abs(greenOffset), abs(blueOffset)));
+        float zoomFactor = 1.0 - (2.0 * maxOffset);
+        vec2 zoomedUv = (uv - 0.5) * zoomFactor + 0.5;
+
+        vec2 focusPoint = vec2(0.5, 0.5);
+        vec2 direction = zoomedUv - focusPoint;
+
+        color.r = textureLod(inputTex, zoomedUv + (direction * redOffset), 0.0).r;
+        color.g = textureLod(inputTex, zoomedUv + (direction * greenOffset), 0.0).g;
+        color.b = textureLod(inputTex, zoomedUv + (direction * blueOffset), 0.0).b;
+        color.a = textureLod(inputTex, zoomedUv, 0.0).a;
+    } else {
+        color = texelFetch(inputTex, texCoord, 0);
+    }
 
     // Doesn't work right if tonemapper is disabled
     //  will try to fix when i add a curve editor in imgui
@@ -36,6 +72,24 @@ void main() {
 
     float luminance = dot(color.rgb, vec3(0.2126, 0.7152, 0.0722));
     color.rgb = mix(vec3(luminance), color.rgb, saturation);
+
+    if (filmGrainStrength > 0.0) {
+        float randomIntensity = random(uv);
+
+        color.rgb += (filmGrainStrength * 0.2) * (randomIntensity - 0.5);
+    }
+
+    if (vignetteStrength > 0.0) {
+        float aspect = float(size.x) / float(size.y);
+        vec2 center = vec2(0.5 * aspect, 0.5);
+        vec2 aspectUv = vec2(uv.x * aspect, uv.y);
+
+        float dist = distance(aspectUv, center);
+
+        float vignette = smoothstep(0.4, 1.0, dist);
+
+        color.rgb *= 1.0 - (vignette * vignetteStrength);
+    }
 
     imageStore(outputImg, texCoord, vec4(color.rgb, color.a));
 }
