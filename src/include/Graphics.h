@@ -62,9 +62,26 @@ public:
         float bias = 0.025f;
         float power = 4.0f;
         int blurRange = 2;
-        float resolutionScale = 0.75f;
+        float resolutionScale = 1.0f;
     };
 private:
+    struct Shaders {
+        // Depth
+        ShaderProgram* depthOnlyShader;
+        ShaderProgram* depthOnlyAnimatedShader;
+        // Prepass
+        ShaderProgram* prepassShader;
+        ShaderProgram* prepassAnimatedShader;
+        ShaderProgram* prepassScatterShader;
+        ShaderProgram* prepassMaskShader;
+        ShaderProgram* prepassAnimatedMaskShader;
+        ShaderProgram* prepassScatterMaskShader;
+
+        // SSAO 
+        ShaderProgram* ssaoShader;
+        ShaderProgram* ssaoBlurShader;
+    };
+
 	struct RenderNode {
 		const Mesh::SubMesh* mesh;
 		const Material* material;
@@ -113,18 +130,8 @@ private:
 	Camera* mainCamera;
 
 	ShaderGlobalUniforms currentUniforms;
+    Shaders shaders;
 
-    // Depth
-    ShaderProgram* depthOnlyShader;
-    ShaderProgram* depthOnlyAnimatedShader;
-    // Prepass
-	ShaderProgram* prepassShader;
-    ShaderProgram* prepassAnimatedShader;
-    ShaderProgram* prepassScatterShader;
-
-    // SSAO 
-    ShaderProgram* ssaoShader;
-    ShaderProgram* ssaoBlurShader;
     SSAOSettings ssaoSettings;
     std::vector<glm::vec3> ssaoKernel;
     std::unique_ptr<Texture2D> ssaoNoiseTexture;
@@ -147,6 +154,7 @@ private:
 	void BindMaterialProperties(Material* mat);
 
     void GenerateSSAOKernelAndTexture();
+    void SetupShaders();
 public:
 	SceneGraphics(Scene* scene);
 	

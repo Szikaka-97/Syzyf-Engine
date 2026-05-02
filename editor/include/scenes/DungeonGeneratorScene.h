@@ -649,6 +649,7 @@ inline void InitScene(Scene& mainScene) {
     cameraNode->AddObject<Bloom>();
     cameraNode->AddObject<Tonemapper>()->SetOperator(
         Tonemapper::TonemapperOperator::GranTurismo);
+    cameraNode->AddObject<ColorGrading>();
     cameraNode->AddObject<Fxaa>();
 
     // JPH::Ref<JPH::CharacterVirtualSettings> characterSettings =

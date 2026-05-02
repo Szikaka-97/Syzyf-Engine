@@ -50,6 +50,7 @@ struct DungeonGeneratorSettings {
         {"./res/models/rooms/room_one.gltf", RoomShape::DeadEnd},
         {"./res/models/rooms/room_T.gltf", RoomShape::TShape},
         {"./res/models/rooms/room_X.gltf", RoomShape::Cross},
+        {"./res/models/rooms/room_T_Pom.glb", RoomShape::TShape},
     };
 };
 

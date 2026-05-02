@@ -5,6 +5,7 @@
 
 layout (IN_POSITION) in vec3 vPos;
 layout (IN_NORMAL) in vec3 vNormal;
+layout (IN_UV1) in vec2 vUVCoords;
 
 struct InstanceData {
     mat4 transform;
@@ -14,6 +15,7 @@ layout(std430, binding = 3) readonly buffer ScatterInstanceBuffer {
 };
 
 out vec3 viewNormal;
+out vec2 pTexCoords;
 
 void main() {
     mat4 instanceTransform = instances[gl_InstanceID].transform;
@@ -24,4 +26,6 @@ void main() {
     mat3 normalMatrix = mat3(finalModelMatrix);
     vec3 worldNormal = normalize(normalMatrix * vNormal);
     viewNormal = mat3(Global_ViewMatrix) * worldNormal;
+
+    pTexCoords = vUVCoords;
 }

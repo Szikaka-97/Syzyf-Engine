@@ -653,20 +653,38 @@ std::vector<Material*> GltfImporter::LoadMaterials(Scene* scene, fastgltf::Asset
   .WithVertexShader(vertexShaderPath)
   .WithPixelShader("./res/shaders/gltf/pbr_blend.frag")
   .Link();
+
+  auto* opaquePomProg = ShaderProgram::Build()
+      .WithVertexShader(vertexShaderPath)
+      .WithPixelShader("./res/shaders/gltf/pbr_pom.frag")
+      .Link();
+
+  // Could just use the regular one because it has a discard either way but w/e
+  auto* maskPomProg = ShaderProgram::Build()
+      .WithVertexShader(vertexShaderPath)
+      .WithPixelShader("./res/shaders/gltf/pbr_pom_mask.frag")
+      .Link();
+
+  auto* blendPomProg = ShaderProgram::Build()
+      .WithVertexShader(vertexShaderPath)
+      .WithPixelShader("./res/shaders/gltf/pbr_pom_blend.frag")
+      .Link();
   
   for (auto& gltfMaterial : asset.materials) {
     Material* material = nullptr;
 
+    bool usesPom = gltfMaterial.name.find("_POM") != std::string::npos;
+
     switch (gltfMaterial.alphaMode){
       case fastgltf::AlphaMode::Blend:
         spdlog::info("{} is using a blend program", gltfMaterial.name);
-        material = new Material(blendProg);
+        material = new Material(usesPom ? blendPomProg : blendProg);
         break;
       case fastgltf::AlphaMode::Opaque:
-        material = new Material(opaqueProg);
+        material = new Material(usesPom ? opaquePomProg : opaqueProg);
         break;
       case fastgltf::AlphaMode::Mask:
-        material = new Material(maskProg);
+        material = new Material(usesPom ? maskPomProg : maskProg);
         material->SetValue("alphaCutoff", gltfMaterial.alphaCutoff);
         break;
     }
@@ -775,11 +793,15 @@ std::vector<Material*> GltfImporter::LoadMaterials(Scene* scene, fastgltf::Asset
       material->SetValue("emissiveMap", defaultEmissive);
     }
 
-    // Default values for POM so they show up in imgui 
-    material->SetValue("heightScale", 0.0f);
+    // Default values for POM so they show up in imgui
+    if (usesPom) {
+        material->SetValue("heightScale", 0.003f);
+        material->SetValue("pomMinLayers", 8.0f);
+        material->SetValue("pomMaxLayers", 32.0f);
+    }
+
+    //  and also uv scale
     material->SetValue("uvScale", glm::vec2(1.0f, 1.0f));
-    material->SetValue("pomMinLayers", 8.0f);
-    material->SetValue("pomMaxLayers", 32.0f);
     
     materials.push_back(material);
   }
