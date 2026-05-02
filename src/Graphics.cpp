@@ -130,40 +130,7 @@ currentUniforms() {
 	this->volumetricPassFramebuffer = new Framebuffer(Framebuffer::Attachment::None, 0, 0);
 	this->volumetricPassFramebuffer->CreateColorAttachment(true, false);
 
-    // Added a shader for skinned meshes because i needed one for the prepass either way
-    this->depthOnlyShader = ShaderProgram::Build()
-        .WithVertexShader("./res/shaders/basic.vert")
-        .WithPixelShader("./res/shaders/basic.frag")
-        .Link();
-    this->depthOnlyAnimatedShader= ShaderProgram::Build()
-        .WithVertexShader("./res/shaders/prepass/prepass_animated.vert")
-        .WithPixelShader("./res/shaders/basic.frag")
-        .Link();
-
-    // None of these use normal maps
-	this->prepassShader = ShaderProgram::Build()
-	    .WithVertexShader("./res/shaders/prepass/prepass.vert")
-	    .WithPixelShader("./res/shaders/prepass/prepass.frag")
-	    .Link();
-    this->prepassAnimatedShader= ShaderProgram::Build()
-        .WithVertexShader("./res/shaders/prepass/prepass_animated.vert")
-        .WithPixelShader("./res/shaders/prepass/prepass.frag")
-        .Link();
-    // No support for opaque particles
-    this->prepassScatterShader = ShaderProgram::Build()
-        .WithVertexShader("./res/shaders/prepass/prepass_scatter.vert")
-        .WithPixelShader("./res/shaders/prepass/prepass.frag")
-        .Link();
-
-    // SSAO
-    this->ssaoShader = ShaderProgram::Build()
-        .WithVertexShader("./res/shaders/ssao/ssao.vert")
-        .WithPixelShader("./res/shaders/ssao/ssao.frag")
-        .Link();
-    this->ssaoBlurShader = ShaderProgram::Build()
-        .WithVertexShader("./res/shaders/ssao/ssao.vert")
-        .WithPixelShader("./res/shaders/ssao/ssao_blur.frag")
-        .Link();
+    this->SetupShaders();
     this->GenerateSSAOKernelAndTexture();
 
     TextureParams normalBufferParams = TextureParams {
@@ -580,24 +547,27 @@ void SceneGraphics::RenderPrepass(const ShaderGlobalUniforms& uniforms, const Re
 		glBufferData(GL_UNIFORM_BUFFER, sizeof(objectUniforms), &objectUniforms, GL_STREAM_DRAW);
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-        const ShaderProgram*  targetShader = this->prepassShader;
+        const ShaderProgram*  targetShader = this->shaders.prepassShader;
+        bool isMasked = render.material->GetShader()->HasPragma("alpha_mask");
 
         // Doesn't support opaque particles in the prepass !
         if (render.jointBufferOffset >= 0) {
-            targetShader = this->prepassAnimatedShader;
+            targetShader = isMasked ? this->shaders.prepassAnimatedMaskShader : this->shaders.prepassAnimatedShader;
         } else if (render.material->GetShader()->HasPragma("scatter")) {
-            targetShader = this->prepassScatterShader;
+            targetShader = isMasked ? this->shaders.prepassScatterMaskShader : this->shaders.prepassScatterShader;
         } else if (render.material->GetShader()->HasPragma("complex_vertex_shader")) {
             targetShader = render.material->GetShader();
+        } else if (isMasked) {
+            targetShader = this->shaders.prepassMaskShader;
         }
 
         if (currentProgram != targetShader) {
             currentProgram = targetShader;
             glUseProgram(currentProgram->GetHandle());
+        }
 
-            if (currentProgram == render.material->GetShader()) {
-                render.material->Bind();
-            }
+        if (isMasked || currentProgram == render.material->GetShader()) {
+            render.material->Bind();
         }
 
         if (render.jointBufferOffset >= 0) {
@@ -657,7 +627,7 @@ void SceneGraphics::RenderSSAO(const RenderParams& params, Framebuffer* target) 
 	glDisable(GL_DEPTH_TEST);
     glBindVertexArray(quadMesh->SubMeshAt(0).GetVertexArrayHandle());
     
-    GLuint shaderHandle = this->ssaoShader->GetHandle();
+    GLuint shaderHandle = this->shaders.ssaoShader->GetHandle();
     glUseProgram(shaderHandle);
 
     glUniform1i(glGetUniformLocation(shaderHandle, "depthTex"), 0);
@@ -697,14 +667,14 @@ void SceneGraphics::RenderSSAOBlur(const RenderParams& params, Framebuffer* targ
 
     glDisable(GL_DEPTH_TEST);
     glBindVertexArray(quadMesh->SubMeshAt(0).GetVertexArrayHandle());
-    glUseProgram(this->ssaoBlurShader->GetHandle());
+    glUseProgram(this->shaders.ssaoBlurShader->GetHandle());
 
-    glUniform1i(glGetUniformLocation(this->ssaoBlurShader->GetHandle(), "ssaoTex"), 0);
+    glUniform1i(glGetUniformLocation(this->shaders.ssaoBlurShader->GetHandle(), "ssaoTex"), 0);
     glActiveTexture(GL_TEXTURE0);
 
     glBindTexture(GL_TEXTURE_2D, this->ssaoFramebuffer->GetCustomAttachmentTexture(0)->GetHandle());
 
-    glUniform1i(glGetUniformLocation(this->ssaoBlurShader->GetHandle(), "blurRange"), this->ssaoSettings.blurRange);
+    glUniform1i(glGetUniformLocation(this->shaders.ssaoBlurShader->GetHandle(), "blurRange"), this->ssaoSettings.blurRange);
     
     glDrawElements(GL_TRIANGLES, quadMesh->SubMeshAt(0).GetVertexCount(), GL_UNSIGNED_INT, nullptr);
 
@@ -754,21 +724,26 @@ void SceneGraphics::RenderShadows(const ShaderGlobalUniforms& uniforms, const Re
 		objectUniforms.Object_MVPMatrix = uniforms.Global_VPMatrix * objectUniforms.Object_ModelMatrix;
 		objectUniforms.Object_NormalModelMatrix = glm::transpose(glm::inverse(glm::mat3(objectUniforms.Object_ModelMatrix)));
 
-        const ShaderProgram* targetShader = this->depthOnlyShader;
+        const ShaderProgram* targetShader = this->shaders.depthOnlyShader;
+        bool isMasked = render.material->GetShader()->HasPragma("alpha_mask");
 
         if (render.jointBufferOffset >= 0) {
-            targetShader = this->depthOnlyAnimatedShader;
+            targetShader = isMasked ? this->shaders.prepassAnimatedMaskShader : this->shaders.depthOnlyAnimatedShader;
+        } else if (render.material->GetShader()->HasPragma("scatter")) {
+            targetShader = isMasked ? this->shaders.prepassScatterMaskShader : this->shaders.prepassScatterShader;
         } else if (render.material->GetShader()->HasPragma("complex_vertex_shader")) {
             targetShader = render.material->GetShader();
+        } else if (isMasked) {
+            targetShader = this->shaders.prepassMaskShader;
         }
 
         if (currentProgram != targetShader) {
             currentProgram = targetShader;
             glUseProgram(currentProgram->GetHandle());
+        }
 
-            if (currentProgram == render.material->GetShader()) {
-                render.material->Bind();
-            }
+        if (isMasked || currentProgram == render.material->GetShader()) {
+            render.material->Bind();
         }
 
         if (render.jointBufferOffset >= 0) {
@@ -1841,4 +1816,56 @@ void SceneGraphics::GenerateSSAOKernelAndTexture() {
         4, 4,
         params
     ));
+}
+
+void SceneGraphics::SetupShaders() {
+    // Added a shader for skinned meshes because i needed one for the prepass either way
+    this->shaders.depthOnlyShader = ShaderProgram::Build()
+        .WithVertexShader("./res/shaders/basic.vert")
+        .WithPixelShader("./res/shaders/basic.frag")
+        .Link();
+    this->shaders.depthOnlyAnimatedShader= ShaderProgram::Build()
+        .WithVertexShader("./res/shaders/prepass/prepass_animated.vert")
+        .WithPixelShader("./res/shaders/basic.frag")
+        .Link();
+
+    // None of these use normal maps
+    // also shaders for materials using alpha mask are missing
+	this->shaders.prepassShader = ShaderProgram::Build()
+	    .WithVertexShader("./res/shaders/prepass/prepass.vert")
+	    .WithPixelShader("./res/shaders/prepass/prepass.frag")
+	    .Link();
+    this->shaders.prepassAnimatedShader= ShaderProgram::Build()
+        .WithVertexShader("./res/shaders/prepass/prepass_animated.vert")
+        .WithPixelShader("./res/shaders/prepass/prepass.frag")
+        .Link();
+    // No support for opaque particles
+    this->shaders.prepassScatterShader = ShaderProgram::Build()
+        .WithVertexShader("./res/shaders/prepass/prepass_scatter.vert")
+        .WithPixelShader("./res/shaders/prepass/prepass.frag")
+        .Link();
+    this->shaders.prepassMaskShader = ShaderProgram::Build()
+        .WithVertexShader("./res/shaders/prepass/prepass.vert")
+        .WithPixelShader("./res/shaders/prepass/prepass_mask.frag")
+        .Link();
+
+    this->shaders.prepassAnimatedMaskShader = ShaderProgram::Build()
+        .WithVertexShader("./res/shaders/prepass/prepass_animated.vert")
+        .WithPixelShader("./res/shaders/prepass/prepass_mask.frag")
+        .Link();
+
+    this->shaders.prepassScatterMaskShader = ShaderProgram::Build()
+        .WithVertexShader("./res/shaders/prepass/prepass_scatter.vert")
+        .WithPixelShader("./res/shaders/prepass/prepass_mask.frag")
+        .Link();
+
+    // SSAO
+    this->shaders.ssaoShader = ShaderProgram::Build()
+        .WithVertexShader("./res/shaders/ssao/ssao.vert")
+        .WithPixelShader("./res/shaders/ssao/ssao.frag")
+        .Link();
+    this->shaders.ssaoBlurShader = ShaderProgram::Build()
+        .WithVertexShader("./res/shaders/ssao/ssao.vert")
+        .WithPixelShader("./res/shaders/ssao/ssao_blur.frag")
+        .Link();
 }

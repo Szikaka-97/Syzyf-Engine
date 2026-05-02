@@ -37,6 +37,7 @@ uniform sampler2D emissiveMap;
 uniform samplerCube Builtin_EnvIrradianceMap;
 uniform samplerCube Builtin_EnvPrefilterMap;
 uniform sampler2D Builtin_BRDFConvolutionMap;
+uniform sampler2D Builtin_AOMap;
 
 float calcWeight(float alpha) {
 	return clamp(
@@ -71,10 +72,16 @@ void main() {
 	mat.metallic = arm.b * metallicFactor;
 	mat.roughness = arm.g * roughnessFactor;
 
+  // Ambient Occlusion
   float ao = 1.0f;
+
+  vec2 screenUV = gl_FragCoord.xy / Global_Resolution.xy; 
+  float ssao = texture(Builtin_AOMap, screenUV).r;
+
   if (useOcclusion) {
     ao = arm.r;
   }
+  ao = ao * ssao;
 
 	vec3 N = getNormalFromMap();
   vec3 V = normalize(Global_CameraWorldPos - ps_in.worldPos);

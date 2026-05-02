@@ -22,6 +22,12 @@ set(stb_include_SOURCE_DIR ${STB_INCLUDE_DIR} CACHE INTERNAL "")
 add_library(stb_include STATIC ${STB_INCLUDE_DIR}/stb_include.cpp)
 target_include_directories(stb_include PRIVATE ${STB_INCLUDE_DIR})
 
+# mikktspace
+set(MIKKTSPACE_DIR ${CMAKE_CURRENT_LIST_DIR}/mikktspace)
+set(mikktspace_SOURCE_DIR ${MIKKTSPACE_DIR} CACHE INTERNAL "")
+add_library(mikktspace STATIC ${MIKKTSPACE_DIR}/mikktspace.c)
+target_include_directories(mikktspace PRIVATE ${MIKKTSPACE_DIR})
+
 # fastnoiselite
 set(FASTNOISELITE_DIR ${CMAKE_CURRENT_LIST_DIR}/fastnoiselite CACHE INTERNAL "")
 
@@ -78,7 +84,8 @@ set_target_properties(glad
                       glfw 
                       glm 
                       imgui 
-                      spdlog PROPERTIES FOLDER "thirdparty")
+                      spdlog 
+                      mikktspace PROPERTIES FOLDER "thirdparty")
 
 if (TARGET zlibstatic)
     set_target_properties(zlibstatic PROPERTIES FOLDER "thirdparty")

@@ -7,8 +7,10 @@ layout (IN_POSITION) in vec3 vPos;
 layout (IN_NORMAL) in vec3 vNormal;
 layout (IN_JOINTS) in vec4 vJoints;
 layout (IN_WEIGHTS) in vec4 vWeights;
+layout (IN_UV1) in vec2 vUVCoords;
 
 out vec3 viewNormal;
+out vec2 pTexCoords;
 
 layout(std430, binding = 2) readonly buffer SkinningBuffer {
     mat4 jointMatrices[];
@@ -40,4 +42,6 @@ void main() {
     
     vec3 worldNormal = Object_NormalModelMatrix * totalNormal;
     viewNormal = mat3(Global_ViewMatrix) * worldNormal;
+
+    pTexCoords = vUVCoords;
 }
