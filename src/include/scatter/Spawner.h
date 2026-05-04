@@ -20,6 +20,14 @@ struct InstanceData {
     glm::mat4 transform;
 };
 
+struct DrawElementsIndirectCommand {
+    GLuint count;
+    GLuint instanceCount;
+    GLuint firstIndex;
+    GLuint baseVertex;
+    GLuint baseInstance;
+};
+
 using ModifierSettings = std::variant<ProjectionSettings, RelaxSettings, ArraySettings, TransformSettings>;
 
 struct Settings {
@@ -64,6 +72,11 @@ private:
 
     std::future<std::vector<InstanceData>> generationFuture;
     std::atomic<bool> isGenerating{false};
+
+    GLuint culledInstanceBuffer = 0;
+    GLuint indirectBuffer =0;
+
+    std::unique_ptr<ComputeShaderDispatch> cullDispatch;
 public:
     Spawner(Mesh* mesh, Material* material, Settings settings = {});
     ~Spawner();
@@ -76,6 +89,7 @@ public:
     void DrawImGui();
 private:
     void UploadToGPU();
+    void InitCulling();
     const char* GetModifierName(const ModifierSettings& modifier);
 };
 }

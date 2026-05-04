@@ -23,17 +23,22 @@ add_library(${PROJECT_NAME} ${HEADER_FILES} ${SOURCE_FILES} ${ASSETS_FILES}
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE LIBRARY_SUFFIX="")
 
-target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
-												  ${glad_SOURCE_DIR}
-												  ${stb_image_SOURCE_DIR}
-												  ${imgui_SOURCE_DIR}
-                          ${FASTNOISELITE_DIR})
-
-
+target_include_directories(
+	${PROJECT_NAME}
+	PUBLIC
+	${CMAKE_CURRENT_SOURCE_DIR}
+	${FASTNOISELITE_DIR}
+	${glad_SOURCE_DIR}
+	${stb_image_SOURCE_DIR}
+	${stb_include_SOURCE_DIR}
+	${imgui_SOURCE_DIR}
+    ${mikktspace_SOURCE_DIR}
+)
 
 target_link_libraries(${PROJECT_NAME} ${OPENGL_LIBRARIES})
 target_link_libraries(${PROJECT_NAME} glad)
 target_link_libraries(${PROJECT_NAME} stb_image)
+target_link_libraries(${PROJECT_NAME} stb_include)
 target_link_libraries(${PROJECT_NAME} assimp)
 target_link_libraries(${PROJECT_NAME} SDL3::SDL3)
 target_link_libraries(${PROJECT_NAME} imgui)
@@ -42,6 +47,7 @@ target_link_libraries(${PROJECT_NAME} fastgltf)
 target_link_libraries(${PROJECT_NAME} glm::glm)
 target_link_libraries(${PROJECT_NAME} nlohmann_json::nlohmann_json)
 target_link_libraries(${PROJECT_NAME} Jolt)
+target_link_libraries(${PROJECT_NAME} mikktspace)
 
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD 
 				   COMMAND ${CMAKE_COMMAND} -E create_symlink 

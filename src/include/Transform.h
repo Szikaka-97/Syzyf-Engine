@@ -33,6 +33,10 @@ public:
 		RotationAccess Rotation();
 		ScaleAccess Scale();
 
+		const PositionAccess Position() const;
+		const RotationAccess Rotation() const;
+		const ScaleAccess Scale() const;
+
 		glm::vec3 Forward() const;
 		glm::vec3 Backward() const;
 		glm::vec3 Up() const;
@@ -104,6 +108,9 @@ public:
 
 		glm::quat Value() const;
 		operator glm::quat() const;
+
+		glm::vec3 EulerAngles() const;
+		operator glm::vec3() const;
 		
 		RotationAccess& operator=(const glm::quat& rotation);
 		RotationAccess& operator*=(const glm::quat& rotation);

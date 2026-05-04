@@ -46,7 +46,9 @@ public:
 
 		PlayerController* player = GetScene()->FindObjectsOfType<PlayerController>()[0];
 
-		this->target = player->GlobalTransform().Position() + glm::normalize(player->targetOffset);
+	    float offsetLen = glm::length(player->targetOffset);
+        glm::vec3 normalizedOffset = offsetLen > 0.001f ? (player->targetOffset / offsetLen) : player->GlobalTransform().Forward();
+        this->target = player->GlobalTransform().Position() + normalizedOffset;	this->target = player->GlobalTransform().Position() + glm::normalize(player->targetOffset);
 
 		glm::vec3 playerPos = player->GlobalTransform().Position();
 		glm::vec3 dir = glm::angleAxis(glm::radians(angleY), glm::vec3(0, 1, 0)) * (glm::angleAxis(-glm::radians(angleX), glm::vec3(1, 0, 0)) * glm::vec3(0, 0, 1));
@@ -60,7 +62,13 @@ public:
 
 		GlobalTransform().Position() = pos;
 
-		GlobalTransform().Rotation() = glm::quatLookAt(glm::normalize(pos - playerPos), glm::vec3(0, 1, 0));
+        glm::vec3 lookDir = pos - playerPos;
+        if (glm::length(lookDir) > 0.001f) {
+            lookDir = glm::normalize(lookDir);
+            if (glm::abs(glm::dot(lookDir, glm::vec3(0, 1, 0))) < 0.999f) {
+                GlobalTransform().Rotation() = glm::quatLookAt(lookDir, glm::vec3(0, 1, 0));
+            }
+        }
 	}
 
 	void DrawImGui() override {

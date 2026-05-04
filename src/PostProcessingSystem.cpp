@@ -1,24 +1,22 @@
+#include "Framebuffer.h"
 #include <PostProcessingSystem.h>
+#include <glm/fwd.hpp>
+#include <glm/gtc/constants.hpp>
 
 PostProcessingSystem::PostProcessingSystem(Scene* scene):
-GameObjectSystem<PostProcessEffect>(scene) {
-	glGenTextures(1, &this->postProcessColorBuffer);
-	glBindTexture(GL_TEXTURE_2D, this->postProcessColorBuffer);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glBindTexture(GL_TEXTURE_2D, 0);
+GameObjectSystem<PostProcessEffect>(scene),
+postProcessFramebuffer() {
+	this->postProcessFramebuffer = new Framebuffer(Framebuffer::Attachment::HDRColor | Framebuffer::Attachment::Depth, glm::zero<glm::uvec2>());
 }
 
 void PostProcessingSystem::UpdateBufferResolution(glm::vec2 newResolution) {
-	glBindTexture(GL_TEXTURE_2D, this->postProcessColorBuffer);
-	
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, newResolution.x, newResolution.y, 0,  GL_RGBA, GL_FLOAT, nullptr);
-
-	glBindTexture(GL_TEXTURE_2D, 0);
+	this->postProcessFramebuffer->SetSize(newResolution);
 }
 
-GLuint PostProcessingSystem::GetPostProcessBuffer() {
-	return this->postProcessColorBuffer;
+Framebuffer* PostProcessingSystem::GetPostProcessBuffer() {
+	return this->postProcessFramebuffer;
+}
+
+void PostProcessingSystem::SetPostProcessBuffer(Framebuffer* val) {
+	this->postProcessFramebuffer = val;
 }

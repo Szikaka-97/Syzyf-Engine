@@ -11,11 +11,9 @@ VolumetricFog::VolumetricFog(
   float stepSize, float rayZFar, float scatteringDensity, float absorptionDensity, glm::vec3 scatteringColor, float k, float transmittanceThreshold
 ) : stepSize(stepSize), rayZFar(rayZFar), scatteringDensity(scatteringDensity), absorptionDensity(absorptionDensity), scatteringColor(scatteringColor), transmittanceThreshold(transmittanceThreshold) {
   this->shader = ShaderProgram::Build()
-    .WithVertexShader(
-      GetScene()->Resources()->Get<VertexShader>("./res/shaders/fullscreen.vert")
-    ).WithPixelShader(
-      GetScene()->Resources()->Get<PixelShader>("./res/shaders/fog/volumetric_fog.frag")
-    ).Link();
+  .WithVertexShader( "./res/shaders/fullscreen.vert")
+  .WithPixelShader( "./res/shaders/fog/volumetric_fog.frag")
+  .Link();
 
   this->material = new Material(this->shader);
 

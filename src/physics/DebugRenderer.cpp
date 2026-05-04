@@ -10,11 +10,6 @@ namespace Physics {
 void DebugRenderer::Init(ShaderProgram* debugShader) {
     shader = debugShader;
 
-    if (shader) {
-        shader->SetCastsShadows(false);
-        shader->SetIgnoresDepthPrepass(true);
-    }
-
     glGenVertexArrays(1, &vao);
     glGenBuffers(1, &vbo);
 

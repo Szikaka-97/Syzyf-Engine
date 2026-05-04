@@ -23,6 +23,8 @@ public:
   VirtualCharacterController(const JPH::Ref<JPH::CharacterVirtualSettings>& settings);
   virtual ~VirtualCharacterController();
 
+  JPH::Ref<JPH::CharacterVirtual> GetCharacter() const;
+
   void Move(const glm::vec3& velocity, float deltaTime);
 
   glm::vec3 GetPosition() const;

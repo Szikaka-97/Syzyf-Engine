@@ -1,5 +1,7 @@
 #version 460
 
+#pragma transparent
+
 in VS_OUT {
 	vec3 worldPos;
 	vec3 viewPos;
@@ -31,20 +33,11 @@ uniform uint proximityFadeMode;
 uniform float proximityFadeMin;
 uniform float proximityFadeMax;
 
-layout (location = 0) out vec4 accumValue;
-layout (location = 1) out float revealValue;
+out vec4 FragColor;
 
 float LinearizeDepth(float depth) {
     float z = depth * 2.0 - 1.0;
     return (2.0 * Global_CameraNearPlane * Global_CameraFarPlane) / (Global_CameraFarPlane + Global_CameraNearPlane - z * (Global_CameraFarPlane - Global_CameraNearPlane));
-}
-
-float calcWeight(float alpha) {
-	return clamp(
-		pow(min(1.0, alpha * 10.0) + 0.01, 3.0) * 1e8 * pow(1.0 - gl_FragCoord.z * 0.9, 3.0),
-		0.001,
-		3000.0
-	);
 }
 
 void main() {
@@ -77,11 +70,5 @@ void main() {
         alpha *= depthFade;
     }
 
-    if (alpha < 0.001) discard;
-	
-    const float weight = calcWeight(alpha);
-    const vec3 viewDir = normalize(Global_CameraWorldPos - ps_in.worldPos);
-    
-    accumValue = vec4(color.rgb * dot(viewDir, normalize(ps_in.normal)) * alpha, alpha) * weight;
-    revealValue = alpha;
+    FragColor = vec4(color.rgb, alpha);
 }

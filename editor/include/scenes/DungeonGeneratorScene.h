@@ -60,8 +60,6 @@
 
 namespace DungeonGeneratorScene {
 
-class EditorCameraTag : public GameObject {};
-
 class Mover : public GameObject, public ImGuiDrawable {
   private:
     float pitch;
@@ -404,54 +402,39 @@ class AutoRotator : public GameObject {
 inline void InitScene(Scene& mainScene) {
     mainScene.AddComponent<Physics::System>();
 
-    ShaderProgram* skyProg =
-        ShaderProgram::Build()
-            .WithVertexShader(mainScene.Resources()->Get<VertexShader>(
-                "./res/shaders/skybox.vert"))
-            .WithPixelShader(mainScene.Resources()->Get<PixelShader>(
-                "./res/shaders/skybox.frag"))
-            .Link();
+    ShaderProgram* skyProg = ShaderProgram::Build()
+                                 .WithVertexShader("./res/shaders/skybox.vert")
+                                 .WithPixelShader("./res/shaders/skybox.frag")
+                                 .Link();
 
     ShaderProgram* coloredProg =
         ShaderProgram::Build()
-            .WithVertexShader(mainScene.Resources()->Get<VertexShader>(
-                "./res/shaders/lit.vert"))
-            .WithPixelShader(mainScene.Resources()->Get<PixelShader>(
-                "./res/shaders/lambert color.frag"))
+            .WithVertexShader("./res/shaders/lit.vert")
+            .WithPixelShader("./res/shaders/lambert color.frag")
             .Link();
 
     ShaderProgram* diffuseTexProg =
         ShaderProgram::Build()
-            .WithVertexShader(mainScene.Resources()->Get<VertexShader>(
-                "./res/shaders/lit.vert"))
-            .WithPixelShader(mainScene.Resources()->Get<PixelShader>(
-                "./res/shaders/lambert.frag"))
+            .WithVertexShader("./res/shaders/lit.vert")
+            .WithPixelShader("./res/shaders/lambert.frag")
             .Link();
 
-    ShaderProgram* pbrProg =
-        ShaderProgram::Build()
-            .WithVertexShader(mainScene.Resources()->Get<VertexShader>(
-                "./res/shaders/lit.vert"))
-            .WithPixelShader(mainScene.Resources()->Get<PixelShader>(
-                "./res/shaders/pbr.frag"))
-            .Link();
+    ShaderProgram* pbrProg = ShaderProgram::Build()
+                                 .WithVertexShader("./res/shaders/lit.vert")
+                                 .WithPixelShader("./res/shaders/pbr.frag")
+                                 .Link();
 
     ShaderProgram* pbrRefractProg =
         ShaderProgram::Build()
-            .WithVertexShader(mainScene.Resources()->Get<VertexShader>(
-                "./res/shaders/lit.vert"))
-            .WithPixelShader(mainScene.Resources()->Get<PixelShader>(
-                "./res/shaders/pbr refract.frag"))
+            .WithVertexShader("./res/shaders/lit.vert")
+            .WithPixelShader("./res/shaders/pbr refract.frag")
             .Link();
 
     ShaderProgram* transparentProg =
         ShaderProgram::Build()
-            .WithVertexShader(mainScene.Resources()->Get<VertexShader>(
-                "./res/shaders/lit.vert"))
-            .WithPixelShader(mainScene.Resources()->Get<PixelShader>(
-                "./res/shaders/transparent.frag"))
+            .WithVertexShader("./res/shaders/lit.vert")
+            .WithPixelShader("./res/shaders/transparent.frag")
             .Link();
-    transparentProg->SetTransparent(true);
 
     Mesh* cannonMesh =
         mainScene.Resources()->Get<Mesh>("./res/models/cannon/cannon.obj");
@@ -553,9 +536,9 @@ inline void InitScene(Scene& mainScene) {
     // playerNode->AddObject<Physics::CharacterController>(characterSettings);
     // playerNode->AddObject<PhysicsMover>();
 
-    // auto cameraNode = mainScene.CreateNode(playerNode, "Camera");
-    // Camera* camera = cameraNode->AddObject<Camera>(
-    //     Camera::Perspective(40.0f, 16.0f / 9.0f, 0.5f, 200.0f));
+    auto cameraNode = mainScene.CreateNode("Camera");
+    Camera* camera = cameraNode->AddObject<Camera>(
+        Camera::Perspective(40.0f, 16.0f / 9.0f, 0.5f, 200.0f));
     // camera->GlobalTransform().Position() = glm::vec3(0.0f, 5.0f, -10.0f);
     //
     auto floorNode = mainScene.CreateNode("Floor");
@@ -640,13 +623,13 @@ inline void InitScene(Scene& mainScene) {
     // cameraNode->AddObject<Tonemapper>()->SetOperator(
     //     Tonemapper::TonemapperOperator::GranTurismo);
 
-    // SceneNode* dungeon = mainScene.CreateNode("Dungeon");
-    // dungeon->AddObject<DungeonGenerator>(
-    //     DungeonGeneratorSettings{.steps = 50,
-    //                              .numberOf2x2Rooms = 1,
-    //                              .numberOf3x3Rooms = 1,
-    //                              .margin = 0.0f});
-    // dungeon->GlobalTransform().Scale() = glm::vec3(25.0f);
+    SceneNode* dungeon = mainScene.CreateNode("Dungeon");
+    dungeon->AddObject<DungeonGenerator>(
+        DungeonGeneratorSettings{.steps = 12,
+                                 .mapColumns = 4,
+                                 .mapRows = 10,
+                                 .momentum = 2.0f,
+                                 .horizontalBias = 0.0f});
 
     // mainScene.AddComponent<DebugInspector>();
     // mainScene.AddComponent<AnimationSystem>();
@@ -658,11 +641,16 @@ inline void InitScene(Scene& mainScene) {
     // cameraNode->AddObject<Camera>(
     //     Camera::Perspective(25.0f, 16.0f / 9.0f, 0.1f, 200.0f));
     // cameraNode->AddObject<CameraSettings>(playerNode);
-    // playerNode->AddObject<Bloom>();
-    // playerNode->AddObject<Tonemapper>()->SetOperator(
-    //     Tonemapper::TonemapperOperator::GranTurismo);
-    // playerNode->AddObject<ColorGrading>();
-    // playerNode->AddObject<Fxaa>();
+    auto* fog = cameraNode->AddObject<Fog>();
+    fog->fogType = Fog::Type::Atmospheric;
+    fog->density = 0.0042;
+    fog->fogColor = {0.2, 0.6, 0.9, 1.0};
+    auto* fog2 = cameraNode->AddObject<Fog>();
+    cameraNode->AddObject<Bloom>();
+    cameraNode->AddObject<Tonemapper>()->SetOperator(
+        Tonemapper::TonemapperOperator::GranTurismo);
+    cameraNode->AddObject<ColorGrading>();
+    cameraNode->AddObject<Fxaa>();
 
     // JPH::Ref<JPH::CharacterVirtualSettings> characterSettings =
     //     new JPH::CharacterVirtualSettings();
@@ -676,18 +664,20 @@ inline void InitScene(Scene& mainScene) {
     //     playerNode->GlobalTransform().Position().Value());
 
     // auto mouseMarkerNode = mainScene.CreateNode("Mouse Marker");
-    // mouseMarkerNode->GlobalTransform().Scale() = glm::vec3(0.15f, 0.02f, 0.15f);
+    // mouseMarkerNode->GlobalTransform().Scale() = glm::vec3(0.15f, 0.02f,
+    // 0.15f);
 
     // auto* bottleThrower = playerNode->AddObject<ThrowBottle>();
     // bottleThrower->SetPoolSize(10);
-    // auto* controller = playerNode->AddObject<PlayerController>(mouseMarkerNode);
+    // auto* controller =
+    // playerNode->AddObject<PlayerController>(mouseMarkerNode);
     // controller->SetBottleThrower(bottleThrower);
 
     // SceneNode* playerMeshNode = mainScene.CreateNode(playerNode);
     // playerMeshNode->AddObject<MeshRenderer>(schnozMesh, reflectiveMat);
-    // playerMeshNode->GlobalTransform().Position() = glm::vec3(0.0f, 5.0f, 0.0f);
-    // playerMeshNode->GlobalTransform().Scale() = glm::vec3(0.5f, 0.5f, 0.5f);
-    // Mesh* cubeMesh =
+    // playerMeshNode->GlobalTransform().Position() = glm::vec3(0.0f, 5.0f,
+    // 0.0f); playerMeshNode->GlobalTransform().Scale() = glm::vec3(0.5f, 0.5f,
+    // 0.5f); Mesh* cubeMesh =
     //     mainScene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
     // bottleThrower->SetResources(cubeMesh, reflectiveMat);
 }

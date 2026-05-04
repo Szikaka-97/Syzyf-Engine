@@ -1,8 +1,10 @@
 #pragma once
 
+#include "DepthOfField.h"
 #include "EasingFunctions.h"
 #include "GltfImporter.h"
 #include "LightSystem.h"
+#include "fog/Fog.h"
 #include "game_scripts/AimingAid.h"
 #include "game_scripts/ThrowBottle.h"
 
@@ -54,8 +56,6 @@
 #include <physics/VirtualCharacterController.h>
 
 namespace TestScene {
-class EditorCameraTag : public GameObject {};
-
 class Mover : public GameObject, public ImGuiDrawable {
   private:
     float pitch;
@@ -172,10 +172,8 @@ inline void InitScene(Scene& mainScene) {
 
     ShaderProgram* skyProg =
         ShaderProgram::Build()
-            .WithVertexShader(mainScene.Resources()->Get<VertexShader>(
-                "./res/shaders/skybox.vert"))
-            .WithPixelShader(mainScene.Resources()->Get<PixelShader>(
-                "./res/shaders/skybox.frag"))
+            .WithVertexShader(("./res/shaders/skybox.vert"))
+            .WithPixelShader(("./res/shaders/skybox.frag"))
             .Link();
 
     Cubemap* skyCubemap = mainScene.Resources()->Get<Cubemap>(
@@ -339,9 +337,13 @@ inline void InitScene(Scene& mainScene) {
 
     SceneNode* cameraNode = mainScene.CreateNode("Camera Node");
     cameraNode->AddObject<Camera>(
-        Camera::Perspective(60.0f, 16.0f / 9.0f, 1.0f, 20.0f));
+        Camera::Perspective(60.0f, 16.0f / 9.0f, 0.1f, 200.0f));
     cameraNode->AddObject<CameraSettings>(
         playerNode->GlobalTransform().Position());
+    auto* fog = cameraNode->AddObject<Fog>();
+    fog->fogType = Fog::Type::Atmospheric;
+    fog->density = 0.042;
+    fog->fogColor = {0.2, 0.6, 0.9, 1.0};
     cameraNode->AddObject<Bloom>();
     cameraNode->AddObject<Tonemapper>()->SetOperator(
         Tonemapper::TonemapperOperator::GranTurismo);
@@ -350,20 +352,145 @@ inline void InitScene(Scene& mainScene) {
 
 #pragma endregion
 #pragma region Miscellaneous
+    SceneNode* sun = mainScene.CreateNode("Sun");
+    sun->AddObject<Light>(Light::DirectionalLight({1, 1, 1}, 2))
+        ->SetShadowCasting(true);
+    sun->GlobalTransform().Position() = {1, 2.2f, 0};
+    sun->GlobalTransform().Rotation() =
+        glm::quat(glm::radians(glm::vec3(50.0f, -20.0f, 0.0f)));
+    mainScene.GetComponent<LightSystem>()->SetAmbientLight(
+        {1.0f, 1.0f, 1.0f, 0.6f});
 
-    Mesh* mirrorMesh =
-        mainScene.Resources()->Get<Mesh>("./res/models/plane.obj");
-    SceneNode* mirrorNode = mainScene.CreateNode("Mirror");
-    SceneNode* mirrorMeshNode = mainScene.CreateNode(mirrorNode, "Mirror Mesh");
-    mirrorMeshNode->AddObject<Mirror>(mirrorMesh);
-    mirrorNode->GlobalTransform().Position() = {15.0f, 0.0f, 1.5f};
-    mirrorNode->GlobalTransform().Rotation() =
-        glm::quat(glm::radians(glm::vec3(0.0f, 0.0f, 0.0f)));
-    mirrorNode->GetObjectInChildren<MeshRenderer>()->GlobalTransform().Scale() =
-        {10.0f, 7.0f, 1.0f};
-    Physics::CreateCompoundShapeFromNode(
-        mirrorNode->GetObjectInChildren<MeshRenderer>()->GetNode(), false,
-        JPH::EMotionType::Static, Physics::Layers::NON_MOVING);
+    // Mesh* mirrorMesh =
+    //     mainScene.Resources()->Get<Mesh>("./res/models/plane.obj");
+    // SceneNode* mirrorNode = mainScene.CreateNode("Mirror");
+    // SceneNode* mirrorMeshNode = mainScene.CreateNode(mirrorNode, "Mirror
+    // Mesh"); mirrorMeshNode->AddObject<Mirror>(mirrorMesh);
+    // mirrorNode->GlobalTransform().Position() = {15.0f, 0.0f, 1.5f};
+    // mirrorNode->GlobalTransform().Rotation() =
+    //     glm::quat(glm::radians(glm::vec3(0.0f, 0.0f, 0.0f)));
+    // mirrorNode->GetObjectInChildren<MeshRenderer>()->GlobalTransform().Scale()
+    // =
+    //     {10.0f, 7.0f, 1.0f};
+    // Physics::CreateCompoundShapeFromNode(
+    //     mirrorNode->GetObjectInChildren<MeshRenderer>()->GetNode(), false,
+    //     JPH::EMotionType::Static, Physics::Layers::NON_MOVING);
+
+    SceneNode* fogVolume = mainScene.CreateNode("Fog Volume");
+    fogVolume->AddObject<FogVolume>();
+    fogVolume->GlobalTransform().Position() = {0.0f, 2.5f, 0.0f};
+    fogVolume->GlobalTransform().Scale() = {5.0f, 5.0f, 5.0f};
+
+    ShaderProgram* transparentProg =
+        ShaderProgram::Build()
+            .WithVertexShader("./res/shaders/lit.vert")
+            .WithPixelShader("./res/shaders/transparent.frag")
+            .Link();
+
+    Material* pinkTransparentMat = new Material(transparentProg);
+    pinkTransparentMat->SetValue("uColor", glm::vec4(1.0, 0.5, 0.5, 0.6));
+
+    Material* blueTransparentMat = new Material(transparentProg);
+    blueTransparentMat->SetValue("uColor", glm::vec4(0.5, 0.5, 1.0, 0.6));
+
+    Mesh* cubeMesh =
+        mainScene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
+
+    SceneNode* pinkTransparentCubeNode = mainScene.CreateNode("Pink Cube");
+    pinkTransparentCubeNode->AddObject<MeshRenderer>(cubeMesh,
+                                                     pinkTransparentMat);
+    pinkTransparentCubeNode->LocalTransform().Position() = {-3, 0, -3};
+
+    SceneNode* blueTransparentCubeNode = mainScene.CreateNode("Blue Cube");
+    blueTransparentCubeNode->AddObject<MeshRenderer>(cubeMesh,
+                                                     blueTransparentMat);
+    blueTransparentCubeNode->LocalTransform().Position() = {-3, 0, -5};
+
+    ShaderProgram* scatterProgram =
+        ShaderProgram::Build()
+            .WithVertexShader("./res/shaders/scatter/scatter.vert")
+            .WithPixelShader("./res/shaders/scatter/scatter.frag")
+            .Link();
+    auto scatterMaterial = new Material(scatterProgram);
+    scatterMaterial->SetValue("uColor", glm::vec3(0.2, 0.6, 0.9));
+    SceneNode* scatter = mainScene.CreateNode("Scatter");
+    Scatter::Settings scatterSettings =
+        Scatter::SettingsBuilder()
+            .WithInstanceCount(1000)
+            .WithAreaExtents(glm::vec3(50.0f, 50.0f, 50.0f))
+            .AddProjection({.raycastLength = 20.0f, .raycastOffset = -20.0f})
+            .AddTransform(
+                {.minRotation = {glm::radians(-15.0f), 0.0f,
+                                 glm::radians(-15.0f)},
+                 .maxRotation = {glm::radians(15.0f), glm::radians(360.0f),
+                                 glm::radians(15.0f)}})
+            .Build();
+    Scatter::Spawner* scatterSpawner = scatter->AddObject<Scatter::Spawner>(
+        cubeMesh, std::move(scatterMaterial), scatterSettings);
+
+    auto scatterMaterial2 = new Material(scatterProgram);
+    scatterMaterial2->SetValue("uColor", glm::vec3(0.2, 0.1, 0.9));
+    SceneNode* scatter2 = mainScene.CreateNode("Scatter");
+    Scatter::Settings scatterSettings2 =
+        Scatter::SettingsBuilder()
+            .WithInstanceCount(100)
+            .WithAreaExtents(glm::vec3(20.0f, 20.0f, 20.0f))
+            .AddTransform(
+                {.minRotation = {glm::radians(-15.0f), 0.0f,
+                                 glm::radians(-15.0f)},
+                 .maxRotation = {glm::radians(15.0f), glm::radians(360.0f),
+                                 glm::radians(15.0f)}})
+            .Build();
+    Mesh* schnozMesh =
+        mainScene.Resources()->Get<Mesh>("./res/models/schnoz/schnoz.obj");
+    Scatter::Spawner* scatterSpawner2 = scatter2->AddObject<Scatter::Spawner>(
+        schnozMesh, std::move(scatterMaterial2), scatterSettings2);
+
+    ShaderProgram* dustProgram =
+        ShaderProgram::Build()
+            .WithVertexShader("./res/shaders/particles/particles.vert")
+            .WithPixelShader("./res/shaders/particles/particles_blend.frag")
+            .Link();
+
+    auto dustMaterial = new Material(dustProgram);
+    dustMaterial->SetValue("colorTex", mainScene.Resources()->Get<Texture2D>(
+                                           "./res/textures/dust.png",
+                                           Texture2D::ColorTextureRGBA));
+    dustMaterial->SetValue("color", glm::vec4(200.0f, 200.0f, 200.0f, 1.0f));
+
+    cameraNode->AddObject<ParticleSpawner>(
+        mainScene.Resources()->Get<Mesh>("./res/models/fullscreenquad.obj"),
+        dustMaterial,
+        ParticleSpawnerSettings{.maxParticles = 8192,
+                                .areaExtents = glm::vec3(15.0f),
+                                .emissionShapeExtents = glm::vec3(15.0f),
+                                .minVelocity =
+                                    glm::vec3(-0.08f, -0.05f, -0.08f),
+                                .maxVelocity = glm::vec3(0.08f, 0.05f, 0.08f),
+                                .minInitialAngle = 0.0f,
+                                .maxInitialAngle = 6.28318f,
+                                .minAngularVelocity = -0.2f,
+                                .maxAngularVelocity = 0.2f,
+                                .rotateY = false,
+                                .enableLifetime = false,
+                                .minLifetime = 1.0f,
+                                .maxLifetime = 10000.0f,
+                                .minScale = 0.02f,
+                                .maxScale = 0.03f,
+                                .alphaMode = AlphaMode::Alpha,
+                                .enableProximityFade = true,
+                                .proximityFadeMin = 0.2f,
+                                .proximityFadeMax = 1.5f,
+                                .enableDistanceFade = true,
+                                .distanceFadeMin = 9.0f,
+                                .distanceFadeMax = 12.0f,
+                                .enableLifetimeFade = true,
+                                .enableDepthFade = true,
+                                .depthFadeDistance = 0.3f,
+                                .billboardMode = BillboardMode::Enabled,
+                                .wrapAround = true,
+                                .continuous = false,
+                                .useColorRamp = false});
 
 #pragma endregion
 

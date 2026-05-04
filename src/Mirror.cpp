@@ -28,11 +28,10 @@ Mirror::Mirror(Mesh* mesh) {
   uint32_t mask = ~0 & ~(1 << hiddenLayer);
   this->cameraNode->GetObject<Camera>()->SetLayerMask(mask);
 
-  ShaderProgram* shaderProgram = ShaderProgram::Build().WithVertexShader(
-    this->GetScene()->Resources()->Get<VertexShader>("./res/shaders/mirror/mirror.vert")
-  ).WithPixelShader(
-    this->GetScene()->Resources()->Get<PixelShader>("./res/shaders/mirror/mirror.frag")
-  ).Link();
+  ShaderProgram* shaderProgram = ShaderProgram::Build()
+  .WithVertexShader("./res/shaders/mirror/mirror.vert")
+  .WithPixelShader("./res/shaders/mirror/mirror.frag")
+  .Link();
 
   this->material = new Material(shaderProgram);
   this->material->SetValue("uColor", glm::vec3(1, 1, 1));

@@ -502,11 +502,13 @@ inline bool Rotate(vec3_t& cameraPos, quat_t& cameraRot, const vec3_t& pivot,
         vec3_t targetUp = -worldUp;
         // If dir is nearly parallel to worldUp, pick a different up to avoid
         // flipping
-        if (fabsf(GizmoMath::dot(dirNormalized, targetUp)) > 0.999f)
-            if (dirNormalized.y > 0.0f) // facing "up"
+        if (fabsf(GizmoMath::dot(dirNormalized, targetUp)) > 0.999f) {
+            if (dirNormalized.y > 0.0f) { // facing "up"
                 targetUp = worldForward;
-            else // facing "down"
+            } else { // facing "down"
                 targetUp = -worldForward;
+            }
+        }
 
         quat_t targetRotation = GizmoMath::quatLookAt(targetDir, targetUp);
 

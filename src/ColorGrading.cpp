@@ -3,19 +3,13 @@
 #include "Shader.h"
 #include "Graphics.h"
 #include "Scene.h"
-#include "Resources.h"
 
 #include <imgui.h>
 
 ColorGrading::ColorGrading() {
     this->colorGradingShader = new ComputeShaderDispatch(
-        GetScene()->Resources()->Get<ComputeShader>("./res/shaders/color_grading.comp")
+        new ComputeShaderProgram("./res/shaders/color_grading.comp")
     );
-
-    this->brightness = 1.0f;
-    this->contrast = 1.0f;
-    this->saturation = 1.0f;
-    this->curveTexture = nullptr;
 }
 
 void ColorGrading::OnPostProcess(const PostProcessParams* params) {
@@ -35,22 +29,17 @@ void ColorGrading::OnPostProcess(const PostProcessParams* params) {
         } else {
             data->SetValue("useCurve", 0.0f); // wtf
         }
+
+        data->SetValue("chromaticAberrationStrength", this->chromaticAberrationStrength);
+        data->SetValue("chromaticAberrationOffsets", this->chromaticAberrationOffsets);
+
+        data->SetValue("filmGrainStrength", this->filmGrainStrength);
+        data->SetValue("vignetteStrength", this->vignetteStrength);
+
     }
 
     glm::vec2 res = GetScene()->GetGraphics()->GetScreenResolution();
     this->colorGradingShader->Dispatch(std::ceil(res.x / 8.0f), std::ceil(res.y / 8.0f), 1);
-}
-
-void ColorGrading::SetBrightness(float brightness) {
-    this->brightness = brightness;
-}
-
-void ColorGrading::SetContrast(float contrast) {
-    this->contrast = contrast;
-}
-
-void ColorGrading::SetSaturation(float saturation) {
-    this->saturation = saturation;
 }
 
 void ColorGrading::SetCurveTexture(Texture2D* texture) {
@@ -64,11 +53,22 @@ void ColorGrading::DrawImGui() {
     ImGui::SliderFloat("Brightness", &this->brightness, 0.0f, 3.0f);
     ImGui::SliderFloat("Contrast", &this->contrast, 0.0f, 3.0f);
     ImGui::SliderFloat("Saturation", &this->saturation, 0.0f, 3.0f);
+    ImGui::Separator();
+    ImGui::TextUnformatted("Chromatic Aberration");
+    ImGui::InputFloat3("Offsets", &this->chromaticAberrationOffsets.x);
+    ImGui::SliderFloat("Strength", &this->chromaticAberrationStrength, 0.0f, 5.0f);
+    ImGui::Separator();
+    ImGui::SliderFloat("Film Grain", &this->filmGrainStrength, 0.0f, 1.0f);
+    ImGui::SliderFloat("Vignette", &this->vignetteStrength, 0.0f, 1.0f);
 
     if (ImGui::Button("Reset")) {
         this->brightness = 1.0f;
         this->contrast = 1.0f;
         this->saturation = 1.0f;
+        this->chromaticAberrationStrength = 0.0f;
+        this->chromaticAberrationOffsets = { 0.009f, 0.006f, -0.006f };
+        this->filmGrainStrength = 0.0f;
+        this->vignetteStrength = 0.0f;
     }
 
     if (this->curveTexture != nullptr) {

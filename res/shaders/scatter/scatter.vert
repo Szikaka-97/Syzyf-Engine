@@ -1,5 +1,7 @@
 #version 460 core
 
+#pragma scatter
+
 #include "shared/shared.h"
 #include "shared/uniforms.h"
 
@@ -37,3 +39,4 @@ void main() {
 
     vs_out.texcoords = vUVCoords;
 }
+

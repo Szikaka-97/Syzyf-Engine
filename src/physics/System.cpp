@@ -11,6 +11,7 @@
 #include "TimeSystem.h"
 #include "Scene.h"
 #include "physics/ICollisionReceiver.h"
+#include "physics/VirtualCharacterController.h"
 
 #include <Jolt/Core/Core.h>
 #include <Jolt/Physics/Collision/Shape/StaticCompoundShape.h>
@@ -364,6 +365,19 @@ void Physics::System::DrawPhysicsDebug(DebugRenderer* debugRenderer) {
 
         physicsSystem->DrawBodies(settings, debugRenderer, &debugRenderer->filter);
         physicsSystem->DrawConstraints(debugRenderer);
+
+        for (auto& characterObject : this->GetScene()->FindObjectsOfType<VirtualCharacterController>()) {
+            auto character = characterObject->GetCharacter();
+
+            character->GetShape()->Draw(
+                debugRenderer,
+                character->GetCenterOfMassTransform(),
+                JPH::Vec3::sReplicate(1.0f),
+                JPH::Color::sOrange,
+                false,
+                true
+            );
+        }
     }
 }
 

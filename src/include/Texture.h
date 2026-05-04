@@ -79,7 +79,7 @@ protected:
 	template<typename T>
 	struct TextureInfoBit {
 		T value = (T) 0;
-		bool dirty = false;
+		bool dirty = true;
 
 		TextureInfoBit() = default;
 	};
@@ -109,8 +109,8 @@ public:
 	static constexpr TextureParams TechnicalMapXYZW {TextureChannels::RGBA, TextureColor::Linear, TextureFormat::Ubyte};
 	static constexpr TextureParams DepthBuffer {TextureChannels::Depth, TextureColor::Linear, TextureFormat::Float};
 	static constexpr TextureParams DepthStencilBuffer {TextureChannels::DepthStencil, TextureColor::Linear, TextureFormat::PackedDepthStencil};
-	static constexpr TextureParams HDRColorBuffer {TextureChannels::RGBA, TextureColor::Linear, TextureFormat::Float};
-	static constexpr TextureParams LDRColorBuffer {TextureChannels::RGBA, TextureColor::Linear, TextureFormat::Ubyte};
+	static constexpr TextureParams HDRColorBuffer {TextureChannels::RGBA, TextureColor::Linear, TextureFormat::Float, TextureWrap::Clamp, TextureWrap::Clamp};
+	static constexpr TextureParams LDRColorBuffer {TextureChannels::RGBA, TextureColor::Linear, TextureFormat::Ubyte, TextureWrap::Clamp, TextureWrap::Clamp};
 
 	template <class T_Tex>
 		requires (std::derived_from<T_Tex, Texture>)

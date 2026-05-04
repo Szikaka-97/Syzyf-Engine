@@ -10,7 +10,7 @@
 
 ParticleSpawner::ParticleSpawner(Mesh* mesh, Material* material, ParticleSpawnerSettings settings) : mesh(mesh), material(material), settings(settings) {
     this->ditherTexture = this->GetScene()->Resources()->Get<Texture2D>(DITHER_TEXTURE_PATH, Texture::TechnicalMapXYZ);
-    ComputeShader* shader = this->GetScene()->Resources()->Get<ComputeShader>(COMPUTE_SHADER_PATH);
+    ComputeShaderProgram* shader = new ComputeShaderProgram(COMPUTE_SHADER_PATH);
     this->computeDispatch.reset(new ComputeShaderDispatch(shader));
 
     this->initialParticleData.reserve(settings.maxParticles);
@@ -65,11 +65,6 @@ ParticleSpawner::~ParticleSpawner() {
 void ParticleSpawner::Update() {
     if (this->material == nullptr) {
         return;
-    }
-
-    if (!this->particleBufferBoundToMaterial) {
-        this->material->BindStorageBuffer("ParticleBuffer", this->particleBuffer);
-        this->particleBufferBoundToMaterial = true;
     }
 
     // rename so either nothing has the 'u' prefix or every uniform has it
@@ -140,9 +135,10 @@ void ParticleSpawner::Render() {
         this->mesh,
         0,
         this->material,
-        this->GlobalTransform(),
+        this->GlobalTransform().Value(),
         this->settings.maxParticles,
         BoundingBox::CenterAndExtents(glm::vec3(0.0f), this->settings.areaExtents),
+        this->particleBuffer,
         Layer::Default
     );
 }

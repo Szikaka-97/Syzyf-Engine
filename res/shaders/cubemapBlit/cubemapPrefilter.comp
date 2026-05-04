@@ -107,7 +107,7 @@ void main() {
 		const float NdotL = max(dot(N, L), 0.0);
 
 		if (NdotL > 0.0) {
-			vec3 addColor = texture(environmentMap, L).rgb; // The environment map sometimes samples to NaN, we need to guard against it
+			vec3 addColor = texture(environmentMap, L).rgb;
 
 			prefilteredColor += addColor * NdotL;
 			totalWeight += NdotL;

@@ -12,8 +12,9 @@ in VS_OUT {
 #include "shared/shared.h"
 #include "shared/uniforms.h"
 
-layout (location = 0) out vec4 accumValue;
-layout (location = 1) out float revealValue;
+#pragma transparent
+
+out vec4 FragColor;
 
 #define SHADING_PBR
 
@@ -36,6 +37,7 @@ uniform sampler2D emissiveMap;
 uniform samplerCube Builtin_EnvIrradianceMap;
 uniform samplerCube Builtin_EnvPrefilterMap;
 uniform sampler2D Builtin_BRDFConvolutionMap;
+uniform sampler2D Builtin_AOMap;
 
 float calcWeight(float alpha) {
 	return clamp(
@@ -70,10 +72,16 @@ void main() {
 	mat.metallic = arm.b * metallicFactor;
 	mat.roughness = arm.g * roughnessFactor;
 
+  // Ambient Occlusion
   float ao = 1.0f;
+
+  vec2 screenUV = gl_FragCoord.xy / Global_Resolution.xy; 
+  float ssao = texture(Builtin_AOMap, screenUV).r;
+
   if (useOcclusion) {
     ao = arm.r;
   }
+  ao = ao * ssao;
 
 	vec3 N = getNormalFromMap();
   vec3 V = normalize(Global_CameraWorldPos - ps_in.worldPos);
@@ -113,9 +121,5 @@ void main() {
 
   finalColor.xyz += ambient + emissive;
 
-  const float weight = calcWeight(finalColor.a);
-  const vec3 viewDir = normalize(Global_CameraWorldPos - ps_in.worldPos);
-
-  accumValue = vec4(finalColor.rgb * finalColor.a, finalColor.a) * weight;
-  revealValue = finalColor.a;
+  FragColor = finalColor;
 }

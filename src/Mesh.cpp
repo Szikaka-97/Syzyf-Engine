@@ -1,7 +1,6 @@
 #include <Mesh.h>
 
 #include <vector>
-#include <map>
 #include <malloc.h>
 
 #include "VertexSpec.h"
@@ -166,6 +165,25 @@ unsigned int Mesh::GetSubMeshCount() const {
 
 std::vector<Mesh::SubMesh> Mesh::GetSubMeshes() const {
 	return this->subMeshes;
+}
+
+BoundingBox Mesh::GetBounds() const {
+    return this->bounds;
+}
+
+void Mesh::CalculateBounds() {
+    glm::vec3 minPoint(std::numeric_limits<float>::max());
+    glm::vec3 maxPoint(std::numeric_limits<float>::lowest());
+
+    for (int i = 0; i < this->GetSubMeshCount(); i++) {
+        auto bounds = this->GetSubMeshes()[i].GetBounds();
+        minPoint = glm::min(minPoint, bounds.center - bounds.GetExtents());
+        maxPoint = glm::max(maxPoint, bounds.center + bounds.GetExtents());
+    }
+
+    glm::vec3 combinedExtents = (maxPoint - minPoint) * 0.5f;
+
+    this->bounds = BoundingBox(minPoint, maxPoint);
 }
 
 unsigned int Mesh::GetVertexCount() const {
@@ -380,11 +398,10 @@ Mesh* Mesh::Load(fs::path modelPath, bool loadMaterials) {
 	std::vector<Material*> materials;
 
 	if (loadMaterials && loaded_scene->HasMaterials()) {
-		ShaderProgram* pbrProg = ShaderProgram::Build().WithVertexShader(
-			ResourceDatabase::Global->Get<VertexShader>("./res/shaders/lit.vert")
-		).WithPixelShader(
-			ResourceDatabase::Global->Get<PixelShader>("./res/shaders/pbr.frag")
-		).Link();
+		ShaderProgram* pbrProg = ShaderProgram::Build()
+		.WithVertexShader("./res/shaders/lit.vert")
+		.WithPixelShader("./res/shaders/pbr.frag")
+		.Link();
 
 		for (int matIndex = 0; matIndex < loaded_scene->mNumMaterials; matIndex++) {
 			auto meshMaterial = loaded_scene->mMaterials[matIndex];
@@ -430,6 +447,8 @@ Mesh* Mesh::Load(fs::path modelPath, bool loadMaterials) {
 
   loadedMesh->vertexData = vertexData;
   loadedMesh->vertexBuffer = loadedMesh->UploadToGpu(VertexSpec::Mesh);
+
+    loadedMesh->CalculateBounds();
 
 	return loadedMesh;
 }
