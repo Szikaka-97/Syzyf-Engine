@@ -364,10 +364,11 @@ void SceneViewPanel::HandleDrop(Context& context) {
                 SceneNode* modelNode = context.selectedScene->CreateNode();
 
                 if (mesh->GetDefaultMaterials().empty()) {
-                    ShaderProgram* defaultProg = ShaderProgram::Build()
-                    .WithVertexShader(   "./res/shaders/lit.vert")
-                    .WithPixelShader("./res/shaders/lambert color.frag")
-                    .Link();
+                    ShaderProgram* defaultProg =
+                        ShaderProgram::Build()
+                            .WithVertexShader("./res/shaders/lit.vert")
+                            .WithPixelShader("./res/shaders/lambert color.frag")
+                            .Link();
 
                     auto* defaultMaterial = new Material(defaultProg);
                     defaultMaterial->SetValue("uColor", glm::vec3(0.8));
