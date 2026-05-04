@@ -40,6 +40,7 @@ enum class RenderPassType {
 	Transparent = 32,
 	Additive = 64,
 	Volumetric = 128,
+    SSAO = 256,
 };
 
 struct RenderParams {
@@ -52,7 +53,35 @@ struct RenderParams {
 };
 
 class SceneGraphics : public GameObjectSystem<Camera> {
+public:
+    struct SSAOSettings {
+        bool enabled = true;
+        // max kernel size is hardcoded to 64
+        int kernelSize = 32;
+        float radius = 1.5f;
+        float bias = 0.025f;
+        float power = 4.0f;
+        int blurRange = 2;
+        float resolutionScale = 1.0f;
+    };
 private:
+    struct Shaders {
+        // Depth
+        ShaderProgram* depthOnlyShader;
+        ShaderProgram* depthOnlyAnimatedShader;
+        // Prepass
+        ShaderProgram* prepassShader;
+        ShaderProgram* prepassAnimatedShader;
+        ShaderProgram* prepassScatterShader;
+        ShaderProgram* prepassMaskShader;
+        ShaderProgram* prepassAnimatedMaskShader;
+        ShaderProgram* prepassScatterMaskShader;
+
+        // SSAO 
+        ShaderProgram* ssaoShader;
+        ShaderProgram* ssaoBlurShader;
+    };
+
 	struct RenderNode {
 		const Mesh::SubMesh* mesh;
 		const Material* material;
@@ -64,10 +93,15 @@ private:
 		BoundingBox bounds;
 		uint8_t layer;
 
-		RenderNode(const Mesh::SubMesh* mesh, const Material* material, unsigned int instanceCount, const glm::mat4& transformation, uint8_t layer);
-		RenderNode(const Mesh::SubMesh* mesh, const Material* material, unsigned int instanceCount, const glm::mat4& transformation, const BoundingBox& bounds, uint8_t layer);
-		RenderNode(const Mesh::SubMesh* mesh, const Material* material, bool ignoreDepth, const glm::mat4& transformation, uint8_t layer);
-		RenderNode(const Mesh::SubMesh* mesh, const Material* material, bool ignoreDepth, const glm::mat4& transformation, const BoundingBox& bounds, uint8_t layer);
+        int jointBufferOffset = -1;
+
+        GLuint indirectBuffer = 0;
+        GLuint indirectBufferOffset = 0;
+        GLuint instanceSSBO = 0;
+        bool isIndirect = false;
+
+        RenderNode(const Mesh::SubMesh* mesh, const Material* material, const glm::mat4& transformation, const BoundingBox& bounds, uint8_t layer, unsigned int instanceCount = 0, GLuint instanceSSBO = 0, bool ignoreDepth = false);
+        RenderNode(const Mesh::SubMesh* mesh, const Material* material, const glm::mat4& transformation, const BoundingBox& bounds, uint8_t layer, GLuint indirectBuffer, GLuint indirectBufferOffset, GLuint instanceSSBO);
 
 		bool operator<(const RenderNode& other) const;
 	};
@@ -85,6 +119,8 @@ private:
 	Framebuffer* opaquePassFramebuffer;
 	Framebuffer* transparentPassFramebuffer;
 	Framebuffer* volumetricPassFramebuffer;
+    Framebuffer* ssaoFramebuffer;
+    Framebuffer* ssaoBlurFramebuffer;
     float depthMult = 1.0f;
 
 	LightSystem* lightSystem;
@@ -94,7 +130,13 @@ private:
 	Camera* mainCamera;
 
 	ShaderGlobalUniforms currentUniforms;
-	ShaderProgram* depthOnlyShader;
+    Shaders shaders;
+
+    SSAOSettings ssaoSettings;
+    std::vector<glm::vec3> ssaoKernel;
+    std::unique_ptr<Texture2D> ssaoNoiseTexture;
+
+    float volumetricPassResolutionScale = 1.0f;
 
 	void RenderFullscreenFrameQuad();
 	void CompositeTransparentPass();
@@ -112,6 +154,9 @@ private:
 	void EnqueueVolumetric(const RenderNode& node);
 
 	void BindMaterialProperties(Material* mat);
+
+    void GenerateSSAOKernelAndTexture();
+    void SetupShaders();
 public:
 	SceneGraphics(Scene* scene);
 	
@@ -134,10 +179,12 @@ public:
 	void DrawMesh(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, uint8_t layer = Layer::Default);
 	void DrawMesh(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, const BoundingBox& bounds, uint8_t layer = Layer::Default);
 	
-	void DrawMeshInstanced(MeshRenderer* renderer, unsigned int instanceCount);
-	void DrawMeshInstanced(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, unsigned int instanceCount, uint8_t layer = Layer::Default);
-	void DrawMeshInstanced(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, unsigned int instanceCount, const BoundingBox& bounds, uint8_t layer = Layer::Default);
-	
+    void DrawMeshInstanced(MeshRenderer* renderer, unsigned int instanceCount);
+    void DrawMeshInstanced(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, unsigned int instanceCount, GLuint instanceSSBO = 0, uint8_t layer = Layer::Default);
+    void DrawMeshInstanced(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, unsigned int instanceCount, const BoundingBox& bounds, GLuint instanceSSBO = 0, uint8_t layer = Layer::Default);
+
+    void DrawMeshIndirect(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, GLuint indirectBuffer, GLuint indirectBufferOffset, GLuint instanceSSBO, const BoundingBox& bounds, uint8_t layer = Layer::Default);
+
 	void DrawGizmoMesh(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, bool ignoresDepth = false);
 	
 	void RenderCamera(Camera* camera, Viewport* renderTarget = nullptr);
@@ -146,6 +193,12 @@ public:
 	
 	void RenderPrepass(const RenderParams& params, Framebuffer* target);
 	void RenderPrepass(const ShaderGlobalUniforms& uniforms, const RenderParams& params, Framebuffer* target);
+
+	void RenderSSAO(const RenderParams& params, Framebuffer* target);
+	void RenderSSAO(const ShaderGlobalUniforms& uniforms, const RenderParams& params, Framebuffer* target);
+
+	void RenderSSAOBlur(const RenderParams& params, Framebuffer* target);
+	void RenderSSAOBlur(const ShaderGlobalUniforms& uniforms, const RenderParams& params, Framebuffer* target);
 
 	void RenderOpaque(const RenderParams& params, Framebuffer* target);
 	void RenderOpaque(const ShaderGlobalUniforms& uniforms, const RenderParams& params, Framebuffer* target);

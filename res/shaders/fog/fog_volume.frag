@@ -30,6 +30,7 @@ uniform float bias;
 uniform vec3 scatteringColor;
 uniform sampler2D colorRamp;
 uniform bool useColorRamp;
+uniform float resolutionScale;
 
 uniform int intersectingLightCount;
 uniform int intersectingLightIndices[128];
@@ -81,7 +82,7 @@ vec2 IntersectAABB(vec3 rayOrigin, vec3 rayDir, vec3 boxMin, vec3 boxMax) {
 
 void main() {
     // pass the texture size as uniform instead
-    vec2 texSize = vec2(textureSize(depthTex, 0)) * TEXTURE_SCALE;
+    vec2 texSize = vec2(textureSize(depthTex, 0)) * resolutionScale;
     vec2 screenUV = gl_FragCoord.xy / texSize;
 
     float z = texture(depthTex, screenUV).x;

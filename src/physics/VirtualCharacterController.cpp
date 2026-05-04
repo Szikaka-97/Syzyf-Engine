@@ -45,6 +45,10 @@ VirtualCharacterController::VirtualCharacterController(const JPH::Ref<JPH::Chara
 
 VirtualCharacterController::~VirtualCharacterController() {}
 
+JPH::Ref<JPH::CharacterVirtual> VirtualCharacterController::GetCharacter() const {
+    return this->character;
+}
+
 void VirtualCharacterController::Move(const glm::vec3& velocity, float deltaTime) {
   if (!MathHelpers::IsValid(velocity)) {
       spdlog::error("Physics::VirtualCharacterController: Attempted to move with NaN or Inf velocity");

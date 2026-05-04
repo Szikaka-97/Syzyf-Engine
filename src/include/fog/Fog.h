@@ -12,16 +12,21 @@ public:
         Linear = 0,
         Exp = 1,
         Exp2 = 2,
+        Atmospheric = 3
     };
 
   Type fogType;
+  
   float minDistance;
   float maxDistance;
   float density;
+
+  float fogHeightFalloff = 0.1f;
+  float inscatteringPower = 8.0f;
+
   glm::vec4 fogColor;
 private:
-  ShaderProgram* shader;
-  Material* material;
+  ComputeShaderProgram* shader;
 public:
   Fog(Type fogType = Type::Linear, float minDistance = 0.1, float maxDistance = 100.0, glm::vec4 fogColor = glm::vec4(0.4));
 

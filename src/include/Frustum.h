@@ -2,6 +2,8 @@
 
 #include <glm/glm.hpp>
 
+class BoundingBox;
+
 struct Plane {
 	glm::vec3 normal;
 	float distance;
@@ -27,3 +29,7 @@ struct Frustum {
 	        const Plane& farPlane
 	);
 };
+
+Frustum ComputeFrustum(const glm::mat4& projectionMatrix);
+bool TestPlane(const Plane& plane, const BoundingBox& bounds);
+bool TestFrustum(const Frustum& frustum, const BoundingBox& bounds);

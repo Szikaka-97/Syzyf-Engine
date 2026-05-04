@@ -1,0 +1,85 @@
+#version 460
+
+#include "shared/uniforms.h"
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+
+layout(binding = 0, rgba16f) writeonly uniform image2D outImage;
+
+layout(binding = 0) uniform sampler2D colorTex;
+layout(binding = 1) uniform sampler2D depthTex;
+
+uniform uint fogType;
+uniform float maxDistance;
+uniform float minDistance;
+uniform float density;
+uniform vec4 fogColor;
+
+uniform vec3 sunDirection;
+uniform vec3 sunColor;
+uniform float fogHeightFalloff;
+uniform float inscatteringPower;
+
+float LinearizeDepth(float rawDepth) {
+    float z = rawDepth * 2.0 - 1.0;
+    return (2.0 * Global_CameraNearPlane * Global_CameraFarPlane) / (Global_CameraFarPlane + Global_CameraNearPlane - z * (Global_CameraFarPlane - Global_CameraNearPlane));
+}
+
+void main() {
+    ivec2 texelCoord = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 imageSz = imageSize(outImage);
+    
+    if (texelCoord.x >= imageSz.x || texelCoord.y >= imageSz.y) {
+        return;
+    }
+
+    vec2 pUVCoords = (vec2(texelCoord) + 0.5) / vec2(imageSz);
+
+    vec4 color = texture(colorTex, pUVCoords);
+    float rawDepth = texture(depthTex, pUVCoords).x;
+    
+    float factor = 1.0;
+    vec4 fragColor = vec4(0.0);
+
+    if (fogType == 0) {
+        float depth = LinearizeDepth(rawDepth);
+        factor = (maxDistance - depth) / (maxDistance - minDistance);
+    } else if (fogType == 1) {
+        float depth = LinearizeDepth(rawDepth);
+        factor = exp(-density * depth);
+    } else if (fogType == 2) {
+        float depth = LinearizeDepth(rawDepth);
+        factor = exp(-pow(density * depth, 2.0));
+    } else if (fogType == 3) {
+        float depth = rawDepth * 2.0 - 1.0;
+        vec4 ndc = vec4(pUVCoords * 2.0 - 1.0, depth, 1.0);
+
+        vec4 viewPos = Global_InverseProjectionMatrix * ndc;
+        viewPos /= viewPos.w;
+
+        vec3 worldPos = (Global_InverseViewMatrix * viewPos).xyz;
+
+        vec3 viewDir = worldPos - Global_CameraWorldPos.xyz;
+        float realDist = length(viewDir);
+        viewDir = normalize(viewDir);
+
+        float dirY = sign(viewDir.y) * max(abs(viewDir.y), 0.001);
+
+        float fogAmount = (density / fogHeightFalloff) * exp(-Global_CameraWorldPos.y * fogHeightFalloff) * (1.0 - exp(-realDist * dirY * fogHeightFalloff)) / dirY;
+        fogAmount = clamp(fogAmount, 0.0, 1.0);
+
+        float sunAmount = max(dot(viewDir, sunDirection), 0.0);
+        sunAmount = pow(sunAmount, inscatteringPower);
+
+        vec3 finalFogColor = mix(fogColor.rgb, sunColor, sunAmount);
+
+        fragColor = vec4(mix(color.rgb, finalFogColor, fogAmount), 1.0);
+
+        imageStore(outImage, texelCoord, fragColor);
+        return;
+    }
+
+    factor = clamp(factor, 0.0, 1.0);
+    fragColor = mix(fogColor, color, factor);
+    imageStore(outImage, texelCoord, fragColor);
+}

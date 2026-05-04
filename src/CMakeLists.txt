@@ -32,6 +32,7 @@ target_include_directories(
 	${stb_image_SOURCE_DIR}
 	${stb_include_SOURCE_DIR}
 	${imgui_SOURCE_DIR}
+    ${mikktspace_SOURCE_DIR}
 )
 
 target_link_libraries(${PROJECT_NAME} ${OPENGL_LIBRARIES})
@@ -46,6 +47,7 @@ target_link_libraries(${PROJECT_NAME} fastgltf)
 target_link_libraries(${PROJECT_NAME} glm::glm)
 target_link_libraries(${PROJECT_NAME} nlohmann_json::nlohmann_json)
 target_link_libraries(${PROJECT_NAME} Jolt)
+target_link_libraries(${PROJECT_NAME} mikktspace)
 
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD 
 				   COMMAND ${CMAKE_COMMAND} -E create_symlink 

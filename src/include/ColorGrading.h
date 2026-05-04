@@ -7,22 +7,25 @@ class ComputeShaderDispatch;
 
 // Must run after the tonemapper
 class ColorGrading : public PostProcessEffect, public ImGuiDrawable {
+public:
+    float brightness = 1.0f;
+    float contrast = 1.0f;
+    float saturation = 1.0f;
+
+    float chromaticAberrationStrength = 0.0f;
+
+    float filmGrainStrength = 0.0f;
+    float vignetteStrength = 0.0f;
 private:
 	ComputeShaderDispatch* colorGradingShader;
+    Texture2D* curveTexture = nullptr;
 
-    float brightness;
-    float contrast;
-    float saturation;
-
-    Texture2D* curveTexture;
+    glm::vec3 chromaticAberrationOffsets { 0.009f, 0.006f, -0.006f };
 public:
 	ColorGrading();
 
     virtual void OnPostProcess(const PostProcessParams* params) override;
 
-    void SetBrightness(float brightness);
-    void SetContrast(float contrast);
-    void SetSaturation(float saturation);
     void SetCurveTexture(Texture2D* texture);
 
     virtual void DrawImGui() override;

@@ -1,7 +1,9 @@
 #include <Graphics.h>
 
+#include <cmath>
 #include <glad/glad.h>
 #include <glm/geometric.hpp>
+#include <random>
 #include <spdlog/spdlog.h>
 #include <glm/gtc/matrix_access.hpp>
 #include <imgui.h>
@@ -18,6 +20,8 @@
 #include <Frustum.h>
 #include <Viewport.h>
 #include <TimeSystem.h>
+#include "animation/SkeletonSystem.h"
+#include "animation/SkeletonComponent.h"
 
 #include "Scene.h"
 #include "include/Framebuffer.h"
@@ -27,97 +31,40 @@
 
 #define LIGHT_GRID_SIZE 16
 
-Frustum ComputeFrustum(const glm::mat4& projectionMatrix) {
-	Frustum result;
-
-	const glm::vec4 planeLeftParams = glm::normalize(-(glm::row(projectionMatrix, 3) + glm::row(projectionMatrix, 0)));
-	const glm::vec4 planeRightParams = glm::normalize(-(glm::row(projectionMatrix, 3) - glm::row(projectionMatrix, 0)));
-	const glm::vec4 planeBottomParams = glm::normalize(-(glm::row(projectionMatrix, 3) + glm::row(projectionMatrix, 1)));
-	const glm::vec4 planeTopParams = glm::normalize(-(glm::row(projectionMatrix, 3) - glm::row(projectionMatrix, 1)));
-	const glm::vec4 planeNearParams = glm::normalize(-(glm::row(projectionMatrix, 3) + glm::row(projectionMatrix, 2)));
-	const glm::vec4 planeFarParams = glm::normalize(-(glm::row(projectionMatrix, 3) - glm::row(projectionMatrix, 2)));
-
-	result.left = Plane(glm::vec3(planeLeftParams), planeLeftParams.w);
-	result.right = Plane(glm::vec3(planeRightParams), planeRightParams.w);
-	result.bottom = Plane(glm::vec3(planeBottomParams), planeBottomParams.w);
-	result.top = Plane(glm::vec3(planeTopParams), planeTopParams.w);
-	result.nearPlane = Plane(glm::vec3(planeNearParams), planeNearParams.w);
-	result.farPlane = Plane(glm::vec3(planeFarParams), planeFarParams.w);
-	
-	return result;
-}
-
-bool TestPlane(const Plane& plane, const BoundingBox& bounds) {
-	const glm::vec3 n = plane.normal;
-	const float d = plane.distance;
-
-	const glm::vec3 c = bounds.center;
-	const glm::vec3 h = bounds.GetExtents();
-
-	const float e = h.x * glm::abs(
-		glm::dot(n, glm::vec3(bounds.axisU))
-	) + h.y * glm::abs(
-		glm::dot(n, glm::vec3(bounds.axisV))
-	) + h.z * glm::abs(
-		glm::dot(n, glm::vec3(bounds.axisW))
-	);
-
-	const float s = glm::dot(c, n) + d;
-
-	return s - e <= 0;
-}
-
-bool TestFrustum(const Frustum& frustum, const BoundingBox& bounds) {
-	return (
-		TestPlane(frustum.left, bounds)
-		&&
-		TestPlane(frustum.right, bounds)
-		&&
-		TestPlane(frustum.bottom, bounds)
-		&&
-		TestPlane(frustum.top, bounds)
-		&&
-		TestPlane(frustum.farPlane, bounds)
-	);
-}
-
 RenderParams::RenderParams(RenderPassType pass, glm::vec4 viewport, bool clearDepth, LayerMask layers):
 pass(pass),
 viewport(viewport),
 clearDepth(clearDepth),
 layers(layers) { }
 
-SceneGraphics::RenderNode::RenderNode(const Mesh::SubMesh* mesh, const Material* material, unsigned int instanceCount, const glm::mat4& transformation, uint8_t layer):
+SceneGraphics::RenderNode::RenderNode(const Mesh::SubMesh* mesh, const Material* material, const glm::mat4& transformation, const BoundingBox& bounds, uint8_t layer, unsigned int instanceCount, GLuint instanceSSBO, bool ignoreDepth) :
 mesh(mesh),
 material(material),
-instanceCount(instanceCount),
-transformation(transformation),
-bounds(mesh->GetBounds()),
-layer(layer) { }
-
-SceneGraphics::RenderNode::RenderNode(const Mesh::SubMesh* mesh, const Material* material, unsigned int instanceCount, const glm::mat4& transformation, const BoundingBox& bounds, uint8_t layer):
-mesh(mesh),
-material(material),
-instanceCount(instanceCount),
 transformation(transformation),
 bounds(bounds),
-layer(layer) { }
+layer(layer),
+indirectBuffer(0),
+indirectBufferOffset(0),
+instanceSSBO(instanceSSBO),
+isIndirect(false) {
+    if (ignoreDepth) {
+        this->ignoreDepth = true;
+    } else {
+        this->instanceCount = instanceCount;
+    }
+}
 
-SceneGraphics::RenderNode::RenderNode(const Mesh::SubMesh* mesh, const Material* material, bool ignoreDepth, const glm::mat4& transformation, uint8_t layer):
+SceneGraphics::RenderNode::RenderNode(const Mesh::SubMesh* mesh, const Material* material, const glm::mat4& transformation, const BoundingBox& bounds, uint8_t layer, GLuint indirectBuffer, GLuint indirectBufferOffset, GLuint instanceSSBO) :
 mesh(mesh),
 material(material),
-ignoreDepth(ignoreDepth),
-transformation(transformation),
-bounds(mesh->GetBounds()),
-layer(layer) { }
-
-SceneGraphics::RenderNode::RenderNode(const Mesh::SubMesh* mesh, const Material* material, bool ignoreDepth, const glm::mat4& transformation, const BoundingBox& bounds, uint8_t layer):
-mesh(mesh),
-material(material),
-ignoreDepth(ignoreDepth),
+instanceCount(0),
 transformation(transformation),
 bounds(bounds),
-layer(layer) { }
+layer(layer),
+indirectBuffer(indirectBuffer),
+indirectBufferOffset(indirectBufferOffset),
+instanceSSBO(instanceSSBO),
+isIndirect(true) { }
 
 bool SceneGraphics::RenderNode::operator<(const SceneGraphics::RenderNode& other) const {
 	if (!this->material || !other.material) {
@@ -157,6 +104,17 @@ currentUniforms() {
 
 	this->opaquePassFramebuffer = this->mainViewport->GetFramebuffer();
 	this->transparentPassFramebuffer = new Framebuffer(Framebuffer::Attachment::None, 0, 0);
+
+    // SSAO Framebuffer
+    TextureParams ssaoParams = {
+        .channels = TextureChannels::Grayscale,
+        .colorSpace = TextureColor::Linear,
+        .format = TextureFormat::Ubyte
+    };
+    this->ssaoFramebuffer = new Framebuffer(Framebuffer::Attachment::None, 0, 0);
+    this->ssaoFramebuffer->CreateCustomAttachment(0, ssaoParams);
+    this->ssaoBlurFramebuffer = new Framebuffer(Framebuffer::Attachment::None, 0, 0);
+    this->ssaoBlurFramebuffer->CreateCustomAttachment(0, ssaoParams);
 	
 	this->opaquePassFramebuffer->CreateColorAttachment(true, false);
 	this->opaquePassFramebuffer->CreateDepthAttachment(false, false);
@@ -172,10 +130,15 @@ currentUniforms() {
 	this->volumetricPassFramebuffer = new Framebuffer(Framebuffer::Attachment::None, 0, 0);
 	this->volumetricPassFramebuffer->CreateColorAttachment(true, false);
 
-	this->depthOnlyShader = ShaderProgram::Build()
-	.WithVertexShader("./res/shaders/basic.vert")
-	.WithPixelShader("./res/shaders/basic.frag")
-	.Link();
+    this->SetupShaders();
+    this->GenerateSSAOKernelAndTexture();
+
+    TextureParams normalBufferParams = TextureParams {
+        .channels = TextureChannels::RGB,
+        .colorSpace = TextureColor::Linear,
+        .format = TextureFormat::Float
+    };
+    this->opaquePassFramebuffer->CreateCustomAttachment(0, normalBufferParams);
 }
 
 glm::vec2 SceneGraphics::GetScreenResolution() const {
@@ -187,7 +150,12 @@ void SceneGraphics::UpdateScreenResolution(glm::vec2 newResolution) {
 
 		this->mainViewport->SetSize(newResolution);
 		this->transparentPassFramebuffer->SetSize(newResolution);
-		this->volumetricPassFramebuffer->SetSize(newResolution * 0.5f);
+		this->volumetricPassFramebuffer->SetSize(newResolution * this->volumetricPassResolutionScale);
+        
+        // SSAO
+        glm::vec2 ssaoResolution = glm::ceil(newResolution * this->ssaoSettings.resolutionScale);
+        this->ssaoFramebuffer->SetSize(ssaoResolution);
+        this->ssaoBlurFramebuffer->SetSize(ssaoResolution);
 
 		if (GetPostProcessing()) {
 			GetPostProcessing()->UpdateBufferResolution(newResolution);
@@ -234,6 +202,9 @@ void SceneGraphics::BindUniformBuffers() {
 
 	glBindBufferBase(GL_UNIFORM_BUFFER, 1, objectUniformsBuffer);
 
+    if (auto* skeletonSystem = GetScene()->GetComponent<SkeletonSystem>()) {
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, skeletonSystem->GetSkinningBufferHandle());
+    }
 }
 
 void SceneGraphics::RenderFullscreenFrameQuad() {
@@ -347,73 +318,99 @@ void SceneGraphics::DrawGizmoMesh(const Mesh* mesh, int subMeshIndex, const Mate
 	EnqueueGizmo(RenderNode(
 		&mesh->SubMeshAt(subMeshIndex),
 		material,
-		ignoresDepth,
-		transformation,
-		Layer::Gizmos
+        transformation,
+        mesh->SubMeshAt(subMeshIndex).GetBounds(),
+		Layer::Gizmos,
+        0,
+        0,
+        ignoresDepth
 	));
 }
 
 void SceneGraphics::DrawMeshInstanced(MeshRenderer* renderer, unsigned int instanceCount) {
-	for (int i = 0; i < renderer->GetMesh()->GetSubMeshCount(); i++) {
-		const Mesh::SubMesh* mesh = &renderer->GetMesh()->SubMeshAt(i);
+    if (!renderer || !renderer->GetMesh()) return;
 
-		const Material* material = renderer->GetMaterial(mesh->GetMaterialIndex()); 
+    int skinningOffset = -1;
+    if (auto* skeleton = renderer->GetNode()->GetObject<SkeletonComponent>()) {
+        skinningOffset = skeleton->bufferOffset;
+    }
 
-		DrawMeshInstanced(
-			renderer->GetMesh(),
-			i,
-			material,
-			renderer->GlobalTransform(),
-			instanceCount,
-			renderer->GetNode()->GetLayer()
-		);
-	}
+    for (int i = 0; i < renderer->GetMesh()->GetSubMeshCount(); i++) {
+        const Mesh::SubMesh* mesh = &renderer->GetMesh()->SubMeshAt(i);
+        const Material* material = renderer->GetMaterial(mesh->GetMaterialIndex());
+
+        BoundingBox bounds = mesh->GetBounds();
+        if (skinningOffset >= 0) {
+            bounds = BoundingBox(glm::vec3(-100000.0f), glm::vec3(100000.0f));
+        }
+
+        RenderNode node = RenderNode(mesh, material, renderer->GlobalTransform().Value(), bounds, renderer->GetNode()->GetLayer());
+        node.jointBufferOffset = skinningOffset;
+
+        if (material->GetShader()->HasPragma("transparent")) {
+            EnqueueOrderedTransparent(node);
+        } else if (material->GetShader()->HasPragma("oit_transparent")) {
+            EnqueueOITransparent(node);
+        } else if (material->GetShader()->HasPragma("additive")) {
+            EnqueueAdditive(node);
+        } else if (material->GetShader()->HasPragma("volumetric")) {
+            EnqueueVolumetric(node);
+        } else {
+            EnqueueOpaque(node);
+        }
+    }
 }
 
-void SceneGraphics::DrawMeshInstanced(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, unsigned int instanceCount, uint8_t layer) {
-	DrawMeshInstanced(
-		mesh,
-		subMeshIndex,
-		material,
-		transformation,
-		instanceCount,
-		mesh->SubMeshAt(subMeshIndex).GetBounds(),
-		layer
-	);
+void SceneGraphics::DrawMeshInstanced(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, unsigned int instanceCount, GLuint instanceSSBO, uint8_t layer) {
+    DrawMeshInstanced(
+        mesh, subMeshIndex, material, transformation, instanceCount, 
+        mesh->SubMeshAt(subMeshIndex).GetBounds(), instanceSSBO, layer
+    );
 }
 
-void SceneGraphics::DrawMeshInstanced(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, unsigned int instanceCount, const BoundingBox& bounds, uint8_t layer) {
-	RenderNode node = RenderNode(
-		&mesh->SubMeshAt(subMeshIndex),
-		material,
-		instanceCount,
-		transformation,
-		bounds,
-		layer
-	);
+void SceneGraphics::DrawMeshInstanced(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, unsigned int instanceCount, const BoundingBox& bounds, GLuint instanceSSBO, uint8_t layer) {
+    
+    RenderNode node(&mesh->SubMeshAt(subMeshIndex), material, transformation, bounds, layer, instanceCount, instanceSSBO, false);
 
-	if (material->GetShader()->HasPragma("transparent")) {
+    if (material->GetShader()->HasPragma("transparent")) {
+        EnqueueOrderedTransparent(node);
+        return;
+    } else if (material->GetShader()->HasPragma("oit_transparent")) {
+        EnqueueOITransparent(node);
+        return;
+    } else if (material->GetShader()->HasPragma("additive")) {
+        EnqueueAdditive(node);
+        return;
+    } else if (material->GetShader()->HasPragma("volumetric")) {
+        EnqueueVolumetric(node);
+        return;
+    }
+
+    EnqueueOpaque(node);
+}
+
+void SceneGraphics::DrawMeshIndirect(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, GLuint indirectBuffer, GLuint indirectBufferOffset, GLuint instanceSSBO, const BoundingBox& bounds, uint8_t layer) {
+    RenderNode node = RenderNode(&mesh->SubMeshAt(subMeshIndex), material, transformation, bounds, layer, indirectBuffer, indirectBufferOffset, instanceSSBO);
+
+   	if (material->GetShader()->HasPragma("transparent")) {
 		EnqueueOrderedTransparent(node);
 
 		return;
-	}
-	else if (material->GetShader()->HasPragma("oit_transparent")) {
+	} else if (material->GetShader()->HasPragma("oit_transparent")) {
 		EnqueueOITransparent(node);
 
 		return;
-	}
-	else if (material->GetShader()->HasPragma("additive")) {
+	} else if (material->GetShader()->HasPragma("additive")) {
 		EnqueueAdditive(node);
 
 		return;
-	}
-	else if (material->GetShader()->HasPragma("volumetric")) {
+	} else if (material->GetShader()->HasPragma("volumetric")) {
 		EnqueueVolumetric(node);
 
 		return;
 	}
 
-	EnqueueOpaque(node);
+	EnqueueOpaque(node); 
 }
 
 void SceneGraphics::Render() {
@@ -431,8 +428,13 @@ void SceneGraphics::Render() {
 		RenderCamera(camera);
 	}
 
+    RenderPassType passType = RenderPassType::Color | RenderPassType::DepthPrepass | RenderPassType::Gizmos | RenderPassType::Transparent | RenderPassType::Volumetric;
+    if (this->ssaoSettings.enabled) {
+        passType = passType | RenderPassType::SSAO;
+    }
+
 	RenderCamera(this->mainCamera, this->mainViewport, RenderParams {
-		RenderPassType::Color | RenderPassType::DepthPrepass | RenderPassType::Gizmos | RenderPassType::Transparent | RenderPassType::Volumetric,
+        passType,
 		glm::vec4(
 			0,
 			0,
@@ -503,20 +505,22 @@ void SceneGraphics::RenderPrepass(const RenderParams& params, Framebuffer* targe
 }
 void SceneGraphics::RenderPrepass(const ShaderGlobalUniforms& uniforms, const RenderParams& params, Framebuffer* target) {
 	target->SetColorAttachmentEnabled(false);
+    target->SetCustomAttachmentEnabled(0, true);
+    target->Apply();
+
 	glBindFramebuffer(GL_FRAMEBUFFER, target->GetHandle());
 
 	glViewport(params.viewport.x, params.viewport.y, params.viewport.z, params.viewport.w);
 
 	glCullFace(GL_BACK);
 	glDepthFunc(GL_LESS);
-	glClear(GL_DEPTH_BUFFER_BIT);
+	glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 			
 	ShaderObjectUniforms objectUniforms;
 
 	Frustum viewFrustum = ComputeFrustum(uniforms.Global_VPMatrix);
 
-	bool genericShaderBound = true;
-	glUseProgram(this->depthOnlyShader->GetHandle());
+    const ShaderProgram* currentProgram = nullptr;
 
 	for (auto& render : this->opaqueRenders) {
 		if (!render.material || !render.mesh) {
@@ -542,19 +546,53 @@ void SceneGraphics::RenderPrepass(const ShaderGlobalUniforms& uniforms, const Re
 		glBindBuffer(GL_UNIFORM_BUFFER, objectUniformsBuffer);
 		glBufferData(GL_UNIFORM_BUFFER, sizeof(objectUniforms), &objectUniforms, GL_STREAM_DRAW);
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+        const ShaderProgram*  targetShader = this->shaders.prepassShader;
+        bool isMasked = render.material->GetShader()->HasPragma("alpha_mask");
+
+        // Doesn't support opaque particles in the prepass !
+        if (render.jointBufferOffset >= 0) {
+            targetShader = isMasked ? this->shaders.prepassAnimatedMaskShader : this->shaders.prepassAnimatedShader;
+        } else if (render.material->GetShader()->HasPragma("scatter")) {
+            targetShader = isMasked ? this->shaders.prepassScatterMaskShader : this->shaders.prepassScatterShader;
+        } else if (render.material->GetShader()->HasPragma("complex_vertex_shader")) {
+            targetShader = render.material->GetShader();
+        } else if (isMasked) {
+            targetShader = this->shaders.prepassMaskShader;
+        }
+
+        if (currentProgram != targetShader) {
+            currentProgram = targetShader;
+            glUseProgram(currentProgram->GetHandle());
+        }
+
+        if (isMasked || currentProgram == render.material->GetShader()) {
+            render.material->Bind();
+        }
+
+        if (render.jointBufferOffset >= 0) {
+            int offsetLocation = glGetUniformLocation(currentProgram->GetHandle(), "uBoneOffset");
+            if (offsetLocation >= 0) {
+                glUniform1i(offsetLocation, render.jointBufferOffset);
+            }
+        }
 		
-		if (render.material->GetShader()->HasPragma("complex_vertex_shader")) {
-			render.material->Bind();
-
-			genericShaderBound = false;
-		}
-		else if (!genericShaderBound) {
-			genericShaderBound = true;
-			glUseProgram(this->depthOnlyShader->GetHandle());
-		}
-
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, render.instanceSSBO);
 		glBindVertexArray(render.mesh->GetVertexArrayHandle());
 
+        if (render.isIndirect) {
+            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, render.indirectBuffer);
+
+            void* offsetPointer = (void*)(uintptr_t)render.indirectBufferOffset;
+
+            if (render.material->GetShader()->UsesPatches()) {
+                glPatchParameteri(GL_PATCH_VERTICES, (int)render.mesh->GetType());
+                glDrawElementsIndirect(GL_PATCHES, GL_UNSIGNED_INT, offsetPointer);
+            } else {
+                glDrawElementsIndirect(render.mesh->GetDrawMode(), GL_UNSIGNED_INT, offsetPointer);
+            }
+            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
+        }
 		if (render.material->GetShader()->UsesPatches()) {
 			glPatchParameteri(GL_PATCH_VERTICES, (int) render.mesh->GetType());
 
@@ -575,8 +613,74 @@ void SceneGraphics::RenderPrepass(const ShaderGlobalUniforms& uniforms, const Re
 		}
 	}
 
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, 0);
 	glBindVertexArray(0);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void SceneGraphics::RenderSSAO(const RenderParams& params, Framebuffer* target) {
+    glBindFramebuffer(GL_FRAMEBUFFER, target->GetHandle());
+    glViewport(0, 0, target->GetSize().x, target->GetSize().y);
+
+	static Mesh* quadMesh = GetScene()->Resources()->Get<Mesh>("./res/models/fullscreenquad.obj");
+
+	glDisable(GL_DEPTH_TEST);
+    glBindVertexArray(quadMesh->SubMeshAt(0).GetVertexArrayHandle());
+    
+    GLuint shaderHandle = this->shaders.ssaoShader->GetHandle();
+    glUseProgram(shaderHandle);
+
+    glUniform1i(glGetUniformLocation(shaderHandle, "depthTex"), 0);
+    glUniform1i(glGetUniformLocation(shaderHandle, "normalTex"), 1);
+    glUniform1i(glGetUniformLocation(shaderHandle, "noiseTex"), 2);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, this->GetMainFramebuffer()->GetDepthTexture()->GetHandle());
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, this->GetMainFramebuffer()->GetCustomAttachmentTexture(0)->GetHandle());
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_2D, this->ssaoNoiseTexture->GetHandle());
+
+    int kernelLocation = glGetUniformLocation(shaderHandle, "samples");
+    glUniform3fv(kernelLocation, 64, &this->ssaoKernel[0][0]);
+
+    glm::vec2 resolution = target->GetSize();
+    glUniform2fv(glGetUniformLocation(shaderHandle, "resolution"), 1, &resolution[0]);
+
+    glUniform1i(glGetUniformLocation(shaderHandle, "kernelSize"), this->ssaoSettings.kernelSize);
+    glUniform1f(glGetUniformLocation(shaderHandle, "radius"), this->ssaoSettings.radius);
+    glUniform1f(glGetUniformLocation(shaderHandle, "bias"), this->ssaoSettings.bias);
+    glUniform1f(glGetUniformLocation(shaderHandle, "power"), this->ssaoSettings.power);
+
+    glDrawElements(GL_TRIANGLES, quadMesh->SubMeshAt(0).GetVertexCount(), GL_UNSIGNED_INT, nullptr);
+
+    glEnable(GL_DEPTH_TEST);
+    glBindVertexArray(0);
+    glUseProgram(0);
+}
+
+void SceneGraphics::RenderSSAOBlur(const RenderParams& params, Framebuffer* target) {
+    glBindFramebuffer(GL_FRAMEBUFFER, target->GetHandle());
+    glViewport(0, 0, target->GetSize().x, target->GetSize().y);
+
+    static Mesh* quadMesh = GetScene()->Resources()->Get<Mesh>("./res/models/fullscreenquad.obj");
+
+    glDisable(GL_DEPTH_TEST);
+    glBindVertexArray(quadMesh->SubMeshAt(0).GetVertexArrayHandle());
+    glUseProgram(this->shaders.ssaoBlurShader->GetHandle());
+
+    glUniform1i(glGetUniformLocation(this->shaders.ssaoBlurShader->GetHandle(), "ssaoTex"), 0);
+    glActiveTexture(GL_TEXTURE0);
+
+    glBindTexture(GL_TEXTURE_2D, this->ssaoFramebuffer->GetCustomAttachmentTexture(0)->GetHandle());
+
+    glUniform1i(glGetUniformLocation(this->shaders.ssaoBlurShader->GetHandle(), "blurRange"), this->ssaoSettings.blurRange);
+    
+    glDrawElements(GL_TRIANGLES, quadMesh->SubMeshAt(0).GetVertexCount(), GL_UNSIGNED_INT, nullptr);
+
+    glEnable(GL_DEPTH_TEST);
+    glBindVertexArray(0);
+    glUseProgram(0);
 }
 
 void SceneGraphics::RenderShadows(const RenderParams& params, Framebuffer* target) {
@@ -595,11 +699,9 @@ void SceneGraphics::RenderShadows(const ShaderGlobalUniforms& uniforms, const Re
 	}
 			
 	ShaderObjectUniforms objectUniforms;
-
 	Frustum viewFrustum = ComputeFrustum(uniforms.Global_VPMatrix);
 
-	bool genericShaderBound = true;
-	glUseProgram(this->depthOnlyShader->GetHandle());
+    const ShaderProgram* currentProgram = nullptr;
 
 	for (auto& render : this->opaqueRenders) {
 		if (!render.material || !render.mesh) {
@@ -622,23 +724,56 @@ void SceneGraphics::RenderShadows(const ShaderGlobalUniforms& uniforms, const Re
 		objectUniforms.Object_MVPMatrix = uniforms.Global_VPMatrix * objectUniforms.Object_ModelMatrix;
 		objectUniforms.Object_NormalModelMatrix = glm::transpose(glm::inverse(glm::mat3(objectUniforms.Object_ModelMatrix)));
 
+        const ShaderProgram* targetShader = this->shaders.depthOnlyShader;
+        bool isMasked = render.material->GetShader()->HasPragma("alpha_mask");
+
+        if (render.jointBufferOffset >= 0) {
+            targetShader = isMasked ? this->shaders.prepassAnimatedMaskShader : this->shaders.depthOnlyAnimatedShader;
+        } else if (render.material->GetShader()->HasPragma("scatter")) {
+            targetShader = isMasked ? this->shaders.prepassScatterMaskShader : this->shaders.prepassScatterShader;
+        } else if (render.material->GetShader()->HasPragma("complex_vertex_shader")) {
+            targetShader = render.material->GetShader();
+        } else if (isMasked) {
+            targetShader = this->shaders.prepassMaskShader;
+        }
+
+        if (currentProgram != targetShader) {
+            currentProgram = targetShader;
+            glUseProgram(currentProgram->GetHandle());
+        }
+
+        if (isMasked || currentProgram == render.material->GetShader()) {
+            render.material->Bind();
+        }
+
+        if (render.jointBufferOffset >= 0) {
+            int offsetLocation = glGetUniformLocation(currentProgram->GetHandle(), "uBoneOffset");
+            if (offsetLocation >= 0) {
+                glUniform1i(offsetLocation, render.jointBufferOffset);
+            }
+        }
+
 		glBindBuffer(GL_UNIFORM_BUFFER, objectUniformsBuffer);
 		glBufferData(GL_UNIFORM_BUFFER, sizeof(objectUniforms), &objectUniforms, GL_STREAM_DRAW);
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
 		
-		if (render.material->GetShader()->HasPragma("complex_vertex_shader")) {
-			render.material->Bind();
-
-			genericShaderBound = false;
-		}
-		else if (!genericShaderBound) {
-			genericShaderBound = true;
-			glUseProgram(this->depthOnlyShader->GetHandle());
-		}
-
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, render.instanceSSBO);
 		glBindVertexArray(render.mesh->GetVertexArrayHandle());
 
-		if (render.material->GetShader()->UsesPatches()) {
+        if (render.isIndirect) {
+            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, render.indirectBuffer);
+
+            void* offsetPointer = (void*)(uintptr_t)render.indirectBufferOffset;
+
+            if (render.material->GetShader()->UsesPatches()) {
+                glPatchParameteri(GL_PATCH_VERTICES, (int)render.mesh->GetType());
+                glDrawElementsIndirect(GL_PATCHES, GL_UNSIGNED_INT, offsetPointer);
+            } else {
+                glDrawElementsIndirect(render.mesh->GetDrawMode(), GL_UNSIGNED_INT, offsetPointer);
+            }
+            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
+        }
+        else if (render.material->GetShader()->UsesPatches()) {
 			glPatchParameteri(GL_PATCH_VERTICES, (int) render.mesh->GetType());
 
 			if (render.instanceCount <= 0) {
@@ -647,8 +782,7 @@ void SceneGraphics::RenderShadows(const ShaderGlobalUniforms& uniforms, const Re
 			else {
 				glDrawElementsInstanced(GL_PATCHES, render.mesh->GetVertexCount(), GL_UNSIGNED_INT, nullptr, render.instanceCount);
 			}
-		}
-		else {
+		} else {
 			if (render.instanceCount <= 0) {
 				glDrawElements(render.mesh->GetDrawMode(), render.mesh->GetVertexCount(), GL_UNSIGNED_INT, nullptr);
 			}
@@ -677,8 +811,6 @@ void SceneGraphics::RenderVolumetric(const ShaderGlobalUniforms& uniforms, const
 	glDepthMask(GL_FALSE);
 	glEnable(GL_BLEND);
 	glBlendEquation(GL_FUNC_ADD);
-	// GL_ONE to use as lighting, i think
-	// glBlendFunc(GL_ONE, GL_SRC_ALPHA);
 	glBlendFuncSeparate(GL_ONE, GL_SRC_ALPHA, GL_ZERO, GL_SRC_ALPHA);
 
 	glEnable(GL_DEPTH_TEST);
@@ -719,7 +851,16 @@ void SceneGraphics::RenderVolumetric(const ShaderGlobalUniforms& uniforms, const
 			glUseProgram(currentProg->GetHandle());
 		}
 
+
 		render.material->Bind();
+        if (currentProg) {
+            if (int offsetLocation = glGetUniformLocation(currentProg->GetHandle(), "uBoneOffset"); offsetLocation >= 0) {
+                glUniform1i(offsetLocation, std::max(0, render.jointBufferOffset));
+            }
+
+
+            glUniform1f(glGetUniformLocation(currentProg->GetHandle(), "resolutionScale"), this->volumetricPassResolutionScale);
+        }
 
 		int shadowmaskUniformLocation = glGetUniformLocation(currentProg->GetHandle(), "Builtin_ShadowMask");
 
@@ -738,9 +879,23 @@ void SceneGraphics::RenderVolumetric(const ShaderGlobalUniforms& uniforms, const
 
 		glActiveTexture(GL_TEXTURE0);
 
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, render.instanceSSBO);
 		glBindVertexArray(render.mesh->GetVertexArrayHandle());
 
-		if (render.material->GetShader()->UsesPatches()) {
+        if (render.isIndirect) {
+            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, render.indirectBuffer);
+
+            void* offsetPointer = (void*)(uintptr_t)render.indirectBufferOffset;
+
+            if (render.material->GetShader()->UsesPatches()) {
+                glPatchParameteri(GL_PATCH_VERTICES, (int)render.mesh->GetType());
+                glDrawElementsIndirect(GL_PATCHES, GL_UNSIGNED_INT, offsetPointer);
+            } else {
+                glDrawElementsIndirect(render.mesh->GetDrawMode(), GL_UNSIGNED_INT, offsetPointer);
+            }
+            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
+        }
+        else if (render.material->GetShader()->UsesPatches()) {
 			glPatchParameteri(GL_PATCH_VERTICES, (int) render.mesh->GetType());
 
 			if (render.instanceCount <= 0) {
@@ -749,8 +904,7 @@ void SceneGraphics::RenderVolumetric(const ShaderGlobalUniforms& uniforms, const
 			else {
 				glDrawElementsInstanced(GL_PATCHES, render.mesh->GetVertexCount(), GL_UNSIGNED_INT, nullptr, render.instanceCount);
 			}
-		}
-		else {
+		} else {
 			if (render.instanceCount <= 0) {
 				glDrawElements(render.mesh->GetDrawMode(), render.mesh->GetVertexCount(), GL_UNSIGNED_INT, nullptr);
 			}
@@ -773,6 +927,9 @@ void SceneGraphics::RenderOpaque(const RenderParams& params, Framebuffer* target
 }
 void SceneGraphics::RenderOpaque(const ShaderGlobalUniforms& uniforms, const RenderParams& params, Framebuffer* target) {
 	target->SetColorAttachmentEnabled(true);
+    target->SetCustomAttachmentEnabled(0, false);
+    target->Apply();
+
 	glBindFramebuffer(GL_FRAMEBUFFER, target->GetHandle());
 
 	Skybox* sky = Skybox::GetCurrentSkybox();
@@ -825,6 +982,11 @@ void SceneGraphics::RenderOpaque(const ShaderGlobalUniforms& uniforms, const Ren
 		}
 
 		render.material->Bind();
+        if (currentProg) {
+            if (int offsetLocation = glGetUniformLocation(currentProg->GetHandle(), "uBoneOffset"); offsetLocation >= 0) {
+                glUniform1i(offsetLocation, std::max(0, render.jointBufferOffset));
+            }
+        }
 
 		int shadowmaskUniformLocation = glGetUniformLocation(currentProg->GetHandle(), "Builtin_ShadowMask");
 
@@ -862,9 +1024,36 @@ void SceneGraphics::RenderOpaque(const ShaderGlobalUniforms& uniforms, const Ren
 			}
 		}
 
+        int aoMapUniformLocation = glGetUniformLocation(currentProg->GetHandle(), "Builtin_AOMap");
+        if (aoMapUniformLocation >= 0) {
+            glActiveTexture(GL_TEXTURE27);
+            
+            if (this->ssaoSettings.enabled) {
+                glBindTexture(GL_TEXTURE_2D, this->ssaoBlurFramebuffer->GetCustomAttachmentTexture(0)->GetHandle());
+            } else {
+                static Texture2D* fallbackTexture = this->GetScene()->Resources()->Get<Texture2D>("./res/textures/default_color.png", Texture::ColorTextureRGB);
+                glBindTexture(GL_TEXTURE_2D, fallbackTexture->GetHandle());
+            }
+            glUniform1i(aoMapUniformLocation, 27);
+        }
+
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, render.instanceSSBO);
 		glBindVertexArray(render.mesh->GetVertexArrayHandle());
 
-		if (render.material->GetShader()->UsesPatches()) {
+        if (render.isIndirect) {
+            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, render.indirectBuffer);
+
+            void* offsetPointer = (void*)(uintptr_t)render.indirectBufferOffset;
+
+            if (render.material->GetShader()->UsesPatches()) {
+                glPatchParameteri(GL_PATCH_VERTICES, (int)render.mesh->GetType());
+                glDrawElementsIndirect(GL_PATCHES, GL_UNSIGNED_INT, offsetPointer);
+            } else {
+                glDrawElementsIndirect(render.mesh->GetDrawMode(), GL_UNSIGNED_INT, offsetPointer);
+            }
+            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
+        }
+        else if (render.material->GetShader()->UsesPatches()) {
 			glPatchParameteri(GL_PATCH_VERTICES, (int) render.mesh->GetType());
 
 			if (render.instanceCount <= 0) {
@@ -873,8 +1062,7 @@ void SceneGraphics::RenderOpaque(const ShaderGlobalUniforms& uniforms, const Ren
 			else {
 				glDrawElementsInstanced(GL_PATCHES, render.mesh->GetVertexCount(), GL_UNSIGNED_INT, nullptr, render.instanceCount);
 			}
-		}
-		else {
+		} else {
 			if (render.instanceCount <= 0) {
 				glDrawElements(render.mesh->GetDrawMode(), render.mesh->GetVertexCount(), GL_UNSIGNED_INT, nullptr);
 			}
@@ -942,6 +1130,11 @@ void SceneGraphics::RenderOrderedTransparent(const ShaderGlobalUniforms& uniform
 		}
 
 		render.material->Bind();
+        if (currentProg) {
+            if (int offsetLocation = glGetUniformLocation(currentProg->GetHandle(), "uBoneOffset"); offsetLocation >= 0) {
+                glUniform1i(offsetLocation, std::max(0, render.jointBufferOffset));
+            }
+        }
 
 		int shadowmaskUniformLocation = glGetUniformLocation(currentProg->GetHandle(), "Builtin_ShadowMask");
 
@@ -979,9 +1172,23 @@ void SceneGraphics::RenderOrderedTransparent(const ShaderGlobalUniforms& uniform
 			}
 		}
 
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, render.instanceSSBO);
 		glBindVertexArray(render.mesh->GetVertexArrayHandle());
 
-		if (render.material->GetShader()->UsesPatches()) {
+        if (render.isIndirect) {
+            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, render.indirectBuffer);
+
+            void* offsetPointer = (void*)(uintptr_t)render.indirectBufferOffset;
+
+            if (render.material->GetShader()->UsesPatches()) {
+                glPatchParameteri(GL_PATCH_VERTICES, (int)render.mesh->GetType());
+                glDrawElementsIndirect(GL_PATCHES, GL_UNSIGNED_INT, offsetPointer);
+            } else {
+                glDrawElementsIndirect(render.mesh->GetDrawMode(), GL_UNSIGNED_INT, offsetPointer);
+            }
+            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
+        }
+        else if (render.material->GetShader()->UsesPatches()) {
 			glPatchParameteri(GL_PATCH_VERTICES, (int) render.mesh->GetType());
 
 			if (render.instanceCount <= 0) {
@@ -990,8 +1197,7 @@ void SceneGraphics::RenderOrderedTransparent(const ShaderGlobalUniforms& uniform
 			else {
 				glDrawElementsInstanced(GL_PATCHES, render.mesh->GetVertexCount(), GL_UNSIGNED_INT, nullptr, render.instanceCount);
 			}
-		}
-		else {
+		} else {
 			if (render.instanceCount <= 0) {
 				glDrawElements(render.mesh->GetDrawMode(), render.mesh->GetVertexCount(), GL_UNSIGNED_INT, nullptr);
 			}
@@ -1058,6 +1264,11 @@ void SceneGraphics::RenderOITransparent(const ShaderGlobalUniforms& uniforms, co
 		}
 
 		render.material->Bind();
+        if (currentProg) {
+            if (int offsetLocation = glGetUniformLocation(currentProg->GetHandle(), "uBoneOffset"); offsetLocation >= 0) {
+                glUniform1i(offsetLocation, std::max(0, render.jointBufferOffset));
+            }
+        }
 
 		int shadowmaskUniformLocation = glGetUniformLocation(currentProg->GetHandle(), "Builtin_ShadowMask");
 
@@ -1095,9 +1306,23 @@ void SceneGraphics::RenderOITransparent(const ShaderGlobalUniforms& uniforms, co
 			}
 		}
 
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, render.instanceSSBO);
 		glBindVertexArray(render.mesh->GetVertexArrayHandle());
 
-		if (render.material->GetShader()->UsesPatches()) {
+        if (render.isIndirect) {
+            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, render.indirectBuffer);
+
+            void* offsetPointer = (void*)(uintptr_t)render.indirectBufferOffset;
+
+            if (render.material->GetShader()->UsesPatches()) {
+                glPatchParameteri(GL_PATCH_VERTICES, (int)render.mesh->GetType());
+                glDrawElementsIndirect(GL_PATCHES, GL_UNSIGNED_INT, offsetPointer);
+            } else {
+                glDrawElementsIndirect(render.mesh->GetDrawMode(), GL_UNSIGNED_INT, offsetPointer);
+            }
+            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
+        }
+        else if (render.material->GetShader()->UsesPatches()) {
 			glPatchParameteri(GL_PATCH_VERTICES, (int) render.mesh->GetType());
 
 			if (render.instanceCount <= 0) {
@@ -1106,8 +1331,7 @@ void SceneGraphics::RenderOITransparent(const ShaderGlobalUniforms& uniforms, co
 			else {
 				glDrawElementsInstanced(GL_PATCHES, render.mesh->GetVertexCount(), GL_UNSIGNED_INT, nullptr, render.instanceCount);
 			}
-		}
-		else {
+		} else {
 			if (render.instanceCount <= 0) {
 				glDrawElements(render.mesh->GetDrawMode(), render.mesh->GetVertexCount(), GL_UNSIGNED_INT, nullptr);
 			}
@@ -1176,6 +1400,11 @@ void SceneGraphics::RenderAdditive(const ShaderGlobalUniforms& uniforms, const R
 		}
 
 		render.material->Bind();
+        if (currentProg) {
+            if (int offsetLocation = glGetUniformLocation(currentProg->GetHandle(), "uBoneOffset"); offsetLocation >= 0) {
+                glUniform1i(offsetLocation, std::max(0, render.jointBufferOffset));
+            }
+        }
 
 		int shadowmaskUniformLocation = glGetUniformLocation(currentProg->GetHandle(), "Builtin_ShadowMask");
 
@@ -1213,9 +1442,23 @@ void SceneGraphics::RenderAdditive(const ShaderGlobalUniforms& uniforms, const R
 			}
 		}
 
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, render.instanceSSBO);
 		glBindVertexArray(render.mesh->GetVertexArrayHandle());
 
-		if (render.material->GetShader()->UsesPatches()) {
+        if (render.isIndirect) {
+            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, render.indirectBuffer);
+
+            void* offsetPointer = (void*)(uintptr_t)render.indirectBufferOffset;
+
+            if (render.material->GetShader()->UsesPatches()) {
+                glPatchParameteri(GL_PATCH_VERTICES, (int)render.mesh->GetType());
+                glDrawElementsIndirect(GL_PATCHES, GL_UNSIGNED_INT, offsetPointer);
+            } else {
+                glDrawElementsIndirect(render.mesh->GetDrawMode(), GL_UNSIGNED_INT, offsetPointer);
+            }
+            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
+        }
+        else if (render.material->GetShader()->UsesPatches()) {
 			glPatchParameteri(GL_PATCH_VERTICES, (int) render.mesh->GetType());
 
 			if (render.instanceCount <= 0) {
@@ -1224,8 +1467,7 @@ void SceneGraphics::RenderAdditive(const ShaderGlobalUniforms& uniforms, const R
 			else {
 				glDrawElementsInstanced(GL_PATCHES, render.mesh->GetVertexCount(), GL_UNSIGNED_INT, nullptr, render.instanceCount);
 			}
-		}
-		else {
+		} else {
 			if (render.instanceCount <= 0) {
 				glDrawElements(render.mesh->GetDrawMode(), render.mesh->GetVertexCount(), GL_UNSIGNED_INT, nullptr);
 			}
@@ -1299,14 +1541,27 @@ void SceneGraphics::RenderGizmos(const ShaderGlobalUniforms& uniforms, const Ren
 
 		render.material->Bind();
 
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, render.instanceSSBO);
 		glBindVertexArray(render.mesh->GetVertexArrayHandle());
 
-		if (render.material->GetShader()->UsesPatches()) {
+        if (render.isIndirect) {
+            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, render.indirectBuffer);
+
+            void* offsetPointer = (void*)(uintptr_t)render.indirectBufferOffset;
+
+            if (render.material->GetShader()->UsesPatches()) {
+                glPatchParameteri(GL_PATCH_VERTICES, (int)render.mesh->GetType());
+                glDrawElementsIndirect(GL_PATCHES, GL_UNSIGNED_INT, offsetPointer);
+            } else {
+                glDrawElementsIndirect(render.mesh->GetDrawMode(), GL_UNSIGNED_INT, offsetPointer);
+            }
+            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
+        }
+        else if (render.material->GetShader()->UsesPatches()) {
 			glPatchParameteri(GL_PATCH_VERTICES, (int) render.mesh->GetType());
 
 			glDrawElements(GL_PATCHES, render.mesh->GetVertexCount(), GL_UNSIGNED_INT, nullptr);
-		}
-		else {
+		} else {
 			glDrawElements(render.mesh->GetDrawMode(), render.mesh->GetVertexCount(), GL_UNSIGNED_INT, nullptr);
 		}
 
@@ -1326,46 +1581,34 @@ void SceneGraphics::RenderPostprocess() {
 		return;
 	}
 
-	Framebuffer* ping = GetMainFramebuffer();
+    Framebuffer* mainFramebuffer = GetMainFramebuffer();
+	Framebuffer* ping = mainFramebuffer;
 	Framebuffer* pong = postProcess->GetPostProcessBuffer();
 	
 	Texture2D* frameDepth = dynamic_cast<Texture2D*>(GetMainFramebuffer()->GetDepthTexture());
 
-	PostProcessParams postProcessParams;
-	postProcessParams.inputTexture = dynamic_cast<Texture2D*>(ping->GetColorTexture());
-	postProcessParams.outputTexture = dynamic_cast<Texture2D*>(pong->GetColorTexture());
-	postProcessParams.depthTexture = frameDepth;
-
-	glCopyImageSubData(
-		postProcessParams.inputTexture->GetHandle(),
-		GL_TEXTURE_2D,
-		0,
-		0,
-		0,
-		0,
-		postProcessParams.outputTexture->GetHandle(),
-		GL_TEXTURE_2D,
-		0,
-		0,
-		0,
-		0,
-		this->mainViewport->GetSize().x,
-		this->mainViewport->GetSize().y,
-		1
-	);
-
 	for (auto* effect : *postProcess->GetAllObjects()) {
-		effect->OnPostProcess(&postProcessParams);
+        PostProcessParams postProcessParams;
+        postProcessParams.inputTexture = dynamic_cast<Texture2D*>(ping->GetColorTexture());
+        postProcessParams.outputTexture = dynamic_cast<Texture2D*>(pong->GetColorTexture());
+        postProcessParams.depthTexture = frameDepth;
 
-		std::swap(ping, pong);
+        effect->OnPostProcess(&postProcessParams);
 
-		postProcessParams.inputTexture = dynamic_cast<Texture2D*>(ping->GetColorTexture());
-		postProcessParams.outputTexture = dynamic_cast<Texture2D*>(pong->GetColorTexture());
+        std::swap(ping, pong);
 	}
 
-	this->opaquePassFramebuffer = ping;
-	postProcess->SetPostProcessBuffer(pong);
-}
+    if (ping != mainFramebuffer) {
+        glCopyImageSubData(
+            ping->GetColorTexture()->GetHandle(),
+            GL_TEXTURE_2D, 0, 0, 0, 0,
+            mainFramebuffer->GetColorTexture()->GetHandle(),
+            GL_TEXTURE_2D, 0, 0, 0, 0,
+            this->mainViewport->GetSize().x,
+            this->mainViewport->GetSize().y,
+            1
+        );
+    }}
 
 void SceneGraphics::RenderCamera(Camera* camera, Viewport* renderTarget) {
 	assert(camera != nullptr);
@@ -1416,6 +1659,7 @@ void SceneGraphics::RenderCamera(Camera* camera, Viewport* renderTarget, const R
 	this->currentUniforms.Global_CameraFarPlane = camera->GetFarPlane();
 	this->currentUniforms.Global_CameraNearPlane = camera->GetNearPlane();
 	this->currentUniforms.Global_CameraFov = camera->GetFovRad();
+    this->currentUniforms.Global_Resolution = glm::vec4(this->mainViewport->GetSize().x, this->mainViewport->GetSize().y, 0.0f, 0.0f);
 
 	RenderParams activeParams((RenderPassType) 0, params.viewport, false, camera->GetLayerMask());
 
@@ -1428,8 +1672,16 @@ void SceneGraphics::RenderCamera(Camera* camera, Viewport* renderTarget, const R
 		RenderPrepass(activeParams, renderTarget->GetFramebuffer());
 	}
 
+    if ((params.pass & RenderPassType::SSAO) == RenderPassType::SSAO) {
+        activeParams.clearDepth = false;
+        activeParams.pass = RenderPassType::SSAO;
+
+        RenderSSAO(activeParams, this->ssaoFramebuffer);
+
+        RenderSSAOBlur(activeParams, this->ssaoBlurFramebuffer);
+    }
+
 	if ((params.pass & RenderPassType::Color) == RenderPassType::Color) {
-		activeParams.clearDepth = false;
 		activeParams.pass = RenderPassType(RenderPassType::Color);
 	
 		RenderOpaque(activeParams, renderTarget->GetFramebuffer());
@@ -1481,10 +1733,162 @@ void SceneGraphics::DrawImGui() {
 		ImGui::Text("Resolution: %i:%i", (int) this->mainViewport->GetSize().x, (int) this->mainViewport->GetSize().y);
 		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 
+        // SSAO
+        if (ImGui::TreeNode("SSAO Settings")) {
+            ImGui::Checkbox("Enable SSAO", &this->ssaoSettings.enabled);
+
+            ImGui::BeginDisabled(!this->ssaoSettings.enabled);
+            ImGui::SliderInt("Kernel Size", &this->ssaoSettings.kernelSize, 8, 64);
+            ImGui::SliderFloat("Radius", &this->ssaoSettings.radius, 0.1f, 5.0f);
+            ImGui::SliderFloat("Bias", &this->ssaoSettings.bias, 0.001f, 0.1f, "%.4f");
+            ImGui::SliderFloat("Power", &this->ssaoSettings.power, 0.1f, 5.0f);
+            ImGui::SliderInt("Blur Range", &this->ssaoSettings.blurRange, 1, 4);
+
+            // Scale 
+            const char* scaleNames[] = { "100%", "75%", "50%", "25%" };
+            float scaleValues[] = { 1.0f, 0.75f, 0.5f, 0.25f };
+
+            int currentScaleIndex = 0;
+            if (this->ssaoSettings.resolutionScale <= 0.25f) currentScaleIndex = 3;
+            else if (this->ssaoSettings.resolutionScale <= 0.5f) currentScaleIndex = 2;
+            else if (this->ssaoSettings.resolutionScale <= 0.75f) currentScaleIndex = 1;
+
+            if (ImGui::Combo("Resolution Scale", &currentScaleIndex, scaleNames, 4)) {
+                this->ssaoSettings.resolutionScale = scaleValues[currentScaleIndex];
+                
+                glm::vec2 ssaoResolution = glm::ceil(this->GetScreenResolution() * this->ssaoSettings.resolutionScale);
+                this->ssaoFramebuffer->SetSize(ssaoResolution);
+                this->ssaoBlurFramebuffer->SetSize(ssaoResolution);
+            }
+
+            if (ImGui::Button("Reset")) {
+                ssaoSettings = {};
+            }
+
+            ImGui::EndDisabled();
+
+            ImGui::TreePop();
+        }
+        // Volumetric
+        if (ImGui::TreeNode("Volumetric Settings")) {
+            const char* scaleNames[] = { "100%", "75%", "50%", "25%" };
+            float scaleValues[] = { 1.0f, 0.75f, 0.5f, 0.25f };
+
+            int currentScaleIndex = 0;
+            if (this->volumetricPassResolutionScale <= 0.25f) currentScaleIndex = 3;
+            else if (this->volumetricPassResolutionScale <= 0.5f) currentScaleIndex = 2;
+            else if (this->volumetricPassResolutionScale <= 0.75f) currentScaleIndex = 1;
+
+            if (ImGui::Combo("Resolution Scale", &currentScaleIndex, scaleNames, 4)) {
+                this->volumetricPassResolutionScale = scaleValues[currentScaleIndex];
+
+                glm::vec2 volumetricResolution = glm::ceil(this->GetScreenResolution() * this->volumetricPassResolutionScale);
+                this->volumetricPassFramebuffer->SetSize(volumetricResolution);
+            }
+
+            ImGui::TreePop();
+        } 
+
 		ImGui::TreePop();
 	}
 }
 
 int SceneGraphics::Order() {
 	return INT_MAX;
+}
+
+// Based on learnopengl.com
+void SceneGraphics::GenerateSSAOKernelAndTexture() {
+    // Kernel
+    std::uniform_real_distribution<float> randomFloats(0.0, 1.0); // random floats between [0.0, 1.0]
+    std::default_random_engine generator;
+    for (unsigned int i = 0; i < 64; ++i)
+    {
+        glm::vec3 sample(
+            randomFloats(generator) * 2.0 - 1.0, 
+            randomFloats(generator) * 2.0 - 1.0, 
+            randomFloats(generator)
+        );
+        sample  = glm::normalize(sample);
+        sample *= randomFloats(generator);
+        float scale = float(i) / 64.0f;
+
+        scale = std::lerp(0.1f, 1.0f, scale * scale);
+        sample *= scale;
+        this->ssaoKernel.push_back(sample);
+    }
+
+    // Texture
+    std::vector<glm::vec3> ssaoNoise;
+    for (unsigned int i = 0; i < 16; i++) {
+        glm::vec3 noise(randomFloats(generator) * 2.0 - 1.0, randomFloats(generator) * 2.0 - 1.0, 0.0f);
+        ssaoNoise.push_back(noise);
+    }
+
+    TextureParams params = TextureParams {
+        .channels = TextureChannels::RGB,
+        .colorSpace = TextureColor::Linear,
+        .format = TextureFormat::Float32,
+        .wrapU = TextureWrap::Repeat,
+        .wrapV = TextureWrap::Repeat,
+        .minFilter = TextureFilter::Nearest,
+        .magFilter = TextureFilter::Nearest,
+    };
+    this->ssaoNoiseTexture.reset(Texture2D::Create(
+        reinterpret_cast<unsigned char*>(ssaoNoise.data()),
+        4, 4,
+        params
+    ));
+}
+
+void SceneGraphics::SetupShaders() {
+    // Added a shader for skinned meshes because i needed one for the prepass either way
+    this->shaders.depthOnlyShader = ShaderProgram::Build()
+        .WithVertexShader("./res/shaders/basic.vert")
+        .WithPixelShader("./res/shaders/basic.frag")
+        .Link();
+    this->shaders.depthOnlyAnimatedShader= ShaderProgram::Build()
+        .WithVertexShader("./res/shaders/prepass/prepass_animated.vert")
+        .WithPixelShader("./res/shaders/basic.frag")
+        .Link();
+
+    // None of these use normal maps
+    // also shaders for materials using alpha mask are missing
+	this->shaders.prepassShader = ShaderProgram::Build()
+	    .WithVertexShader("./res/shaders/prepass/prepass.vert")
+	    .WithPixelShader("./res/shaders/prepass/prepass.frag")
+	    .Link();
+    this->shaders.prepassAnimatedShader= ShaderProgram::Build()
+        .WithVertexShader("./res/shaders/prepass/prepass_animated.vert")
+        .WithPixelShader("./res/shaders/prepass/prepass.frag")
+        .Link();
+    // No support for opaque particles
+    this->shaders.prepassScatterShader = ShaderProgram::Build()
+        .WithVertexShader("./res/shaders/prepass/prepass_scatter.vert")
+        .WithPixelShader("./res/shaders/prepass/prepass.frag")
+        .Link();
+    this->shaders.prepassMaskShader = ShaderProgram::Build()
+        .WithVertexShader("./res/shaders/prepass/prepass.vert")
+        .WithPixelShader("./res/shaders/prepass/prepass_mask.frag")
+        .Link();
+
+    this->shaders.prepassAnimatedMaskShader = ShaderProgram::Build()
+        .WithVertexShader("./res/shaders/prepass/prepass_animated.vert")
+        .WithPixelShader("./res/shaders/prepass/prepass_mask.frag")
+        .Link();
+
+    this->shaders.prepassScatterMaskShader = ShaderProgram::Build()
+        .WithVertexShader("./res/shaders/prepass/prepass_scatter.vert")
+        .WithPixelShader("./res/shaders/prepass/prepass_mask.frag")
+        .Link();
+
+    // SSAO
+    this->shaders.ssaoShader = ShaderProgram::Build()
+        .WithVertexShader("./res/shaders/ssao/ssao.vert")
+        .WithPixelShader("./res/shaders/ssao/ssao.frag")
+        .Link();
+    this->shaders.ssaoBlurShader = ShaderProgram::Build()
+        .WithVertexShader("./res/shaders/ssao/ssao.vert")
+        .WithPixelShader("./res/shaders/ssao/ssao_blur.frag")
+        .Link();
 }

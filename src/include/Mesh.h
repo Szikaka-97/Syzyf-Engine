@@ -69,6 +69,7 @@ private:
 	std::vector<SubMesh> subMeshes;
 	std::vector<Material*> materials;
 	// std::map<std::string, MeshPart> parts;
+    BoundingBox bounds;
   
   std::vector<glm::mat4> inverseBindMatrices;
 	
@@ -88,6 +89,8 @@ public:
 
 	unsigned int GetSubMeshCount() const;
 	std::vector<SubMesh> GetSubMeshes() const;
+    BoundingBox GetBounds() const;
+    void CalculateBounds();
 
   unsigned int GetVertexCount() const;
   unsigned int GetVertexStride() const;

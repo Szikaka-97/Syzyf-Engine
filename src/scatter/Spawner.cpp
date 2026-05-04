@@ -1,6 +1,8 @@
 #include "scatter/Spawner.h"
+#include "Frustum.h"
 #include "Layer.h"
 #include "Graphics.h"
+#include "Texture.h"
 #include "physics/System.h"
 #include "scatter/modifiers/ArrayModifier.h"
 #include "scatter/modifiers/IModifiers.h"
@@ -67,6 +69,7 @@ Spawner::~Spawner() {
 void Spawner::Generate() {
     if (this->isGenerating) {
         spdlog::warn("Scatter::Spawner::Generate: Already generating, returning");
+        return;
     }
 
     this->isGenerating = true;
@@ -157,24 +160,88 @@ void Spawner::Update() {
 }
 
 void Spawner::Render() {
-    if (!this->mesh || !this->material) {
+    if (!this->mesh || !this->material || this->instanceData.empty()) {
         return;
     }
 
-    this->GetScene()->GetGraphics()->DrawMeshInstanced(
-        this->mesh,
-        0,
-        this->material,
-        this->GlobalTransform(),
-        this->instanceData.size(),
-        BoundingBox::CenterAndExtents(glm::vec3(0.0f), this->settings.areaExtents),
-        Layer::Default
-    );
+    glBindBuffer(GL_DRAW_INDIRECT_BUFFER, this->indirectBuffer);
+    GLuint zero = 0;
+
+    for (int i = 0; i < this->mesh->GetSubMeshCount(); i++) {
+        GLuint offsetToInstanceCount = (i * sizeof(DrawElementsIndirectCommand)) + sizeof(GLuint);
+        glBufferSubData(GL_DRAW_INDIRECT_BUFFER, offsetToInstanceCount, sizeof(GLuint), &zero);
+    }
+    glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
+
+    const auto camera = GetScene()->GetGraphics()->GetMainCamera();
+    const Frustum frustum = ComputeFrustum(camera->ViewProjectionMatrix());
+
+    std::array<glm::vec4, 6> planes = {
+        glm::vec4(frustum.top.normal, frustum.top.distance),
+        glm::vec4(frustum.bottom.normal, frustum.bottom.distance),
+        glm::vec4(frustum.left.normal, frustum.left.distance),
+        glm::vec4(frustum.right.normal, frustum.right.distance),
+        glm::vec4(frustum.nearPlane.normal, frustum.nearPlane.distance),
+        glm::vec4(frustum.farPlane.normal, frustum.farPlane.distance)
+    };
+
+    ComputeDispatchData* dispatchData = this->cullDispatch->GetData();
+
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, this->instanceBuffer);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, this->culledInstanceBuffer);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, this->indirectBuffer);
+
+    dispatchData->SetValue("frustumTop", glm::vec4(frustum.top.normal, frustum.top.distance));
+    dispatchData->SetValue("frustumBottom", glm::vec4(frustum.bottom.normal, frustum.bottom.distance));
+    dispatchData->SetValue("frustumLeft", glm::vec4(frustum.left.normal, frustum.left.distance));
+    dispatchData->SetValue("frustumRight", glm::vec4(frustum.right.normal, frustum.right.distance));
+    dispatchData->SetValue("frustumNear", glm::vec4(frustum.nearPlane.normal, frustum.nearPlane.distance));
+    dispatchData->SetValue("frustumFar", glm::vec4(frustum.farPlane.normal, frustum.farPlane.distance));
+
+    dispatchData->SetValue("subMeshCount", static_cast<GLuint>(this->mesh->GetSubMeshCount()));
+    dispatchData->SetValue("totalInstances", static_cast<GLuint>(this->instanceData.size()));
+    dispatchData->SetValue("meshExtents", this->mesh->GetBounds().GetExtents());
+    dispatchData->SetValue("meshCenter", this->mesh->GetBounds().center);
+    dispatchData->SetValue("spawnerTransform", this->GlobalTransform().Value());
+
+    dispatchData->Bind();
+
+    GLuint workGroups = (this->instanceData.size() + 63) / 64;
+    this->cullDispatch->Dispatch(workGroups, 1, 1);
+
+    glMemoryBarrier(GL_COMMAND_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT);
+
+    // glBindBuffer(GL_DRAW_INDIRECT_BUFFER, this->indirectBuffer);
+    // DrawElementsIndirectCommand command;
+    // glGetBufferSubData(GL_DRAW_INDIRECT_BUFFER, 0, sizeof(DrawElementsIndirectCommand), &command);
+    //
+    // for (int i = 1; i < this->mesh->GetSubMeshCount(); i++) {
+    //     GLuint offsetToInstanceCount = (i * sizeof(DrawElementsIndirectCommand)) + offsetof(DrawElementsIndirectCommand, instanceCount);
+    //     glBufferSubData(GL_DRAW_INDIRECT_BUFFER, offsetToInstanceCount, sizeof(GLuint), &command.instanceCount);
+    // }
+    // glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
+
+    for (int i = 0; i < this->mesh->GetSubMeshCount(); i++) {
+        GLuint byteOffset = i * sizeof(DrawElementsIndirectCommand);
+
+        this->GetScene()->GetGraphics()->DrawMeshIndirect(
+            this->mesh,
+            i,
+            this->material,
+            this->GlobalTransform().Value(),
+            this->indirectBuffer,
+            byteOffset,
+            this->culledInstanceBuffer,
+            BoundingBox::CenterAndExtents(glm::vec3(0.0f), this->settings.areaExtents + this->mesh->GetBounds().GetExtents() * this->settings.maxScale),
+            Layer::Default
+        );
+    }
 }
 
 void Spawner::UploadToGPU() {
     if (this->instanceBuffer == 0) {
         glGenBuffers(1, &this->instanceBuffer);
+        InitCulling();
     }
 
     std::size_t count = this->instanceData.size();
@@ -182,12 +249,31 @@ void Spawner::UploadToGPU() {
     if (count > 0) {
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->instanceBuffer);
         glBufferData(GL_SHADER_STORAGE_BUFFER, count * sizeof(InstanceData), this->instanceData.data(), GL_STATIC_DRAW);
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
-        if (this->instanceBuffer != 0 && this->material) {
-            this->material->BindStorageBuffer("ScatterInstanceBuffer", this->instanceBuffer);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->culledInstanceBuffer);
+        glBufferData(GL_SHADER_STORAGE_BUFFER, count * sizeof(InstanceData), nullptr, GL_DYNAMIC_DRAW);
+
+        std::vector<DrawElementsIndirectCommand> commands(this->mesh->GetSubMeshCount());
+        for (int i = 0; i < this->mesh->GetSubMeshCount(); i++) {
+            commands[i].count = this->mesh->SubMeshAt(i).GetVertexCount();
+            commands[i].instanceCount = 0;
+            commands[i].firstIndex = 0;
+            commands[i].baseVertex = 0;
+            commands[i].baseInstance = 0;
         }
+
+        glBindBuffer(GL_DRAW_INDIRECT_BUFFER, this->indirectBuffer);
+        glBufferData(GL_DRAW_INDIRECT_BUFFER, commands.size() * sizeof(DrawElementsIndirectCommand), commands.data(), GL_DYNAMIC_DRAW);
+
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
     }
+}
+
+void Spawner::InitCulling() {
+    this->cullDispatch = std::make_unique<ComputeShaderDispatch>("./res/shaders/scatter/scatter_cull.comp");
+
+    glGenBuffers(1, &this->culledInstanceBuffer);
+    glGenBuffers(1, &this->indirectBuffer);
 }
 
 void Spawner::DrawImGui() {
@@ -359,3 +445,4 @@ const char* Spawner::GetModifierName(const ModifierSettings& modifier) {
     return "Unknown Modifier";
 }
 }
+

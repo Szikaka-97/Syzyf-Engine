@@ -464,14 +464,33 @@ void Body::SyncToNode() {
 
     if (scale != this->lastScale && this->originalShape != nullptr) {
         JPH::ShapeRefC newShape;
+
+        if (glm::abs(scale.x) < 0.001f) scale.x = scale.x < 0.0f ? -0.001f : 0.001f;
+        if (glm::abs(scale.y) < 0.001f) scale.y = scale.y < 0.0f ? -0.001f : 0.001f;
+        if (glm::abs(scale.z) < 0.001f) scale.z = scale.z < 0.0f ? -0.001f : 0.001f;
             
         if (scale == glm::vec3(1.0f)) {
             newShape = this->originalShape;
         } else {
-            newShape = new JPH::ScaledShape(
-                this->originalShape, 
-                JPH::Vec3(scale.x, scale.y, scale.z)
-            );
+            JPH::EShapeSubType subType = this->originalShape->GetSubType();
+
+            if (subType == JPH::EShapeSubType::Sphere || subType == JPH::EShapeSubType::Capsule) {
+                float maxScale = std::max({glm::abs(scale.x), glm::abs(scale.y), glm::abs(scale.z)});
+
+                if (glm::abs(scale.x - scale.y) > glm::epsilon<float>() || glm::abs(scale.y - scale.z) > glm::epsilon<float>()) {
+                    spdlog::warn("Physics::Body::SyncToNode: Forced uniform scale for Sphere/Capsule");  
+                }
+
+                newShape = new JPH::ScaledShape(
+                    this->originalShape,
+                    JPH::Vec3(maxScale, maxScale, maxScale)
+                );
+            } else {
+                newShape = new JPH::ScaledShape(
+                    this->originalShape,
+                    JPH::Vec3(scale.x, scale.y, scale.z)
+                );
+            }
         }
 
         if (Physics::System* system = this->GetScene()->GetComponent<Physics::System>()) {
@@ -517,12 +536,24 @@ if (bodyCreationSettings.GetShapeSettings() != nullptr) {
       this->originalShape = bodyCreationSettings.GetShape();
   }
 
+    if (glm::abs(nodeScale.x) < 0.001f) nodeScale.x = nodeScale.x < 0.0f ? -0.001f : 0.001f;
+    if (glm::abs(nodeScale.y) < 0.001f) nodeScale.y = nodeScale.y < 0.0f ? -0.001f : 0.001f;
+    if (glm::abs(nodeScale.z) < 0.001f) nodeScale.z = nodeScale.z < 0.0f ? -0.001f : 0.001f;
+
   JPH::ShapeRefC activeShape = this->originalShape;
   if (nodeScale != glm::vec3(1.0f)) {
-      if (glm::abs(nodeScale.x - nodeScale.y) > glm::epsilon<float>() || glm::abs(nodeScale.y - nodeScale.z) > glm::epsilon<float>()) {
-        spdlog::warn("PhysicsObject::Awake: Non-uniform scaling may not work on Sphere/Capsule shapes");
+      JPH::EShapeSubType subType = this->originalShape->GetSubType();
+
+      if (subType == JPH::EShapeSubType::Sphere || subType == JPH::EShapeSubType::Capsule) {
+          float maxScale = std::max({glm::abs(nodeScale.x), glm::abs(nodeScale.y), glm::abs(nodeScale.z)});
+          activeShape = new JPH::ScaledShape(this->originalShape, JPH::Vec3(maxScale, maxScale, maxScale));
+
+          if (glm::abs(nodeScale.x - nodeScale.y) > glm::epsilon<float>() || glm::abs(nodeScale.y - nodeScale.z) > glm::epsilon<float>()) {
+              spdlog::warn("PhysicsObject::Awake: Forced uniform scaling for Sphere/Capsule shape");
+          }
+      } else {
+          activeShape = new JPH::ScaledShape(this->originalShape, JPH::Vec3(nodeScale.x, nodeScale.y, nodeScale.z));
       }
-      activeShape = new JPH::ScaledShape(this->originalShape, JPH::Vec3(nodeScale.x, nodeScale.y, nodeScale.z));
   }
 
   bodyCreationSettings.SetShape(activeShape);
