@@ -623,11 +623,17 @@ inline void InitScene(Scene& mainScene) {
     // cameraNode->AddObject<Tonemapper>()->SetOperator(
     //     Tonemapper::TonemapperOperator::GranTurismo);
 
+  
+
     SceneNode* dungeon = mainScene.CreateNode("Dungeon");
     dungeon->AddObject<DungeonGenerator>(
-        DungeonGeneratorSettings{.steps = 12,
+        DungeonGeneratorSettings{
                                  .mapColumns = 4,
                                  .mapRows = 10,
+                                 .steps = 12, 
+                                 . numberOfBranches = 1,
+        . minBranchLength = 5,
+        . maxBranchLength = 5,
                                  .momentum = 2.0f,
                                  .horizontalBias = 0.0f});
 

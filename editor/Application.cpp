@@ -7,7 +7,7 @@
 #include "scenes/DungeonGeneratorScene.h"
 #include "scenes/TestScene.h"
 
-#include "scenes/DungeonGeneratorScene.h"
+#include "scenes/LevelShowcaseScene.h"
 #include "scenes/TestScene.h"
 #include "thirdparty/ImGuizmo.h"
 #include "thirdparty/ImViewGuizmo.h"
@@ -178,9 +178,8 @@ void Application::MainLoop() {
     this->context.selectedScene = Scene::CreateStandaloneScene();
     this->context.loadedScenes.push_back(this->context.selectedScene);
     TestScene::InitScene(*this->context.selectedScene);
-
     Scene* dungeonScene = Scene::CreateStandaloneScene();
-    DungeonGeneratorScene::InitScene(*dungeonScene);
+    LevelShowcaseScene::InitScene(*dungeonScene);
     this->context.loadedScenes.push_back(dungeonScene);
 
     for (auto* scene : this->context.loadedScenes) {

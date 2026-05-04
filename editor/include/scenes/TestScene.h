@@ -254,10 +254,10 @@ inline void InitScene(Scene& mainScene) {
         JPH::Quat::sZero(), JPH::EMotionType::Dynamic, Physics::Layers::MOVING);*/
     ShaderProgram* pbrProg =
         ShaderProgram::Build()
-            .WithVertexShader(mainScene.Resources()->Get<VertexShader>(
-                "./res/shaders/lit.vert"))
-            .WithPixelShader(mainScene.Resources()->Get<PixelShader>(
-                "./res/shaders/pbr.frag"))
+            .WithVertexShader(
+                "./res/shaders/lit.vert")
+            .WithPixelShader(
+                "./res/shaders/pbr.frag")
             .Link();
 
     Texture2D* reflectiveDiffuse = mainScene.Resources()->Get<Texture2D>(
@@ -393,8 +393,8 @@ inline void InitScene(Scene& mainScene) {
     Material* blueTransparentMat = new Material(transparentProg);
     blueTransparentMat->SetValue("uColor", glm::vec4(0.5, 0.5, 1.0, 0.6));
 
-    Mesh* cubeMesh =
-        mainScene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
+    //Mesh* cubeMesh =
+        //mainScene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
 
     SceneNode* pinkTransparentCubeNode = mainScene.CreateNode("Pink Cube");
     pinkTransparentCubeNode->AddObject<MeshRenderer>(cubeMesh,

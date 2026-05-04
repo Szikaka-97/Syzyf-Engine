@@ -395,14 +395,14 @@ public:
 
 		ShaderProgram* starProgram = ShaderProgram::Build()
 		.WithVertexShader(
-			GetScene()->Resources()->Get<VertexShader>("./res/shaders/star.vert")
+			"./res/shaders/star.vert"
 		).WithGeometryShader(
-			GetScene()->Resources()->Get<GeometryShader>("./res/shaders/star.geom")
+			"./res/shaders/star.geom"
 		).WithPixelShader(
-			GetScene()->Resources()->Get<PixelShader>("./res/shaders/star.frag")
+			"./res/shaders/star.frag"
 		).Link();
-		starProgram->SetIgnoresDepthPrepass(true);
-		starProgram->SetCastsShadows(false);
+		//starProgram->SetIgnoresDepthPrepass(true);
+		//starProgram->SetCastsShadows(false);
 
 		this->starMaterial = new Material(starProgram);
 		this->starCount = starCount;
@@ -574,27 +574,27 @@ void InitScene(Scene* mainScene) {
  // mainScene->AddComponent<Physics::DebugRenderer>();
 
 	ShaderProgram* skyProg = ShaderProgram::Build().WithVertexShader(
-		mainScene->Resources()->Get<VertexShader>("./res/shaders/skybox.vert")
+		"./res/shaders/skybox.vert"
 	).WithPixelShader(
-		mainScene->Resources()->Get<PixelShader>("./res/shaders/skybox.frag")
+		"./res/shaders/skybox.frag"
 	).Link();
 
 	ShaderProgram* coloredProg = ShaderProgram::Build().WithVertexShader(
-		mainScene->Resources()->Get<VertexShader>("./res/shaders/lit.vert")
+		"./res/shaders/lit.vert"
 	).WithPixelShader(
-		mainScene->Resources()->Get<PixelShader>("./res/shaders/lambert color.frag")
+		"./res/shaders/lambert color.frag"
 	).Link();
 
 	ShaderProgram* diffuseTexProg = ShaderProgram::Build().WithVertexShader(
-		mainScene->Resources()->Get<VertexShader>("./res/shaders/lit.vert")
+		"./res/shaders/lit.vert"
 	).WithPixelShader(
-		mainScene->Resources()->Get<PixelShader>("./res/shaders/lambert.frag")
+		"./res/shaders/lambert.frag"
 	).Link();
 
 	ShaderProgram* pbrProg = ShaderProgram::Build().WithVertexShader(
-		mainScene->Resources()->Get<VertexShader>("./res/shaders/lit.vert")
+		"./res/shaders/lit.vert"
 	).WithPixelShader(
-		mainScene->Resources()->Get<PixelShader>("./res/shaders/pbr.frag")
+		"./res/shaders/pbr.frag"
 	).Link();
 
 	Mesh* cubeMesh = mainScene->Resources()->Get<Mesh>("./res/models/not_cube.obj");
