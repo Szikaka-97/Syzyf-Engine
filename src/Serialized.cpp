@@ -4,20 +4,29 @@
 #include <nlohmann/json.hpp>
 
 std::vector<json> serializedObjects;
+std::vector<void *> deserializedObjects;
 
 void InternalStartObjectSerialization();
+void* InternalConstructObject(const std::string& objectName);
+volatile void* InternalDeserializeJson(volatile void* ptr, const json& data);
 
-// void Serialization::QueueSerializeNamedResource(const Resource* res, std::string typeName) {
-// 	spdlog::info("Serializing resource: {} of type {}", res->GetPath().string(), typeName);
+void* InternalDeserializeObject(const json& data) {
+	deserializedObjects.clear();
+	deserializedObjects.reserve(data.size());
 
-// 	serializedResources.push_back(res);
-// }
+	for (const auto& object : data) {
+		deserializedObjects.push_back(InternalConstructObject(object["_class_name"]));
+	}
 
-// std::vector<const Resource*> Serialization::GetSerializedResources() {
-// 	return serializedResources;
+	int i = 0;
+	for (const auto& object : data) {
+		InternalDeserializeJson(deserializedObjects[i], object);
 
-// 	serializedResources.clear();
-// }
+		i++;
+	}
+
+	return deserializedObjects[0];
+}
 
 void Serialization::StartObjectSerialization() {
 	serializedObjects.clear();

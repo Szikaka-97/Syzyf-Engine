@@ -34,6 +34,7 @@ class CppMethod:
 		self.return_type: CppType = CppType(data["return_type"])
 		self.argument_types: list[CppType] = [CppType(type_data) for type_data in data["argument_types"]]
 		self.is_virtual: bool = data["is_virtual"]
+		self.is_pure_virtual = data["is_pure_virtual"]
 		self.access: str = data["access"]
 
 
@@ -44,6 +45,8 @@ class CppClass:
 		self.enclosing_class: CppClass = None
 		self.fields: list[CppField] = [CppField(field_data) for field_data in data["fields"]]
 		self.methods: list[CppMethod] = [CppMethod(method_data) for method_data in data["methods"]]
+		self.constructors: list[CppMethod] = [CppMethod(constructor_data) for constructor_data in data["constructors"]]
+		self.destructor: CppMethod = CppMethod(data["destructor"]) if data["destructor"] else None
 		self.source: str = data["source"]
 		self.access: str = data["access"]
 	
@@ -55,9 +58,30 @@ class CppClass:
 		return self.enclosing_class.get_full_name() + "::" + self.name
 
 
-	def is_abstract(self) -> bool:
-		return any([met.is_virtual for met in self.methods])
+	def is_polymorphic(self) -> bool:
+		self_abstract = any([met.is_virtual for met in self.methods]) or (self.destructor and self.destructor.is_virtual)
+
+		return self_abstract or any([base.is_abstract() for base in self.base_classes])
 	
+
+	def _get_pure_virtual_methods(self) -> list[CppMethod]:
+		pure_methods = [method for method in self.methods if method.is_pure_virtual]
+
+		for base in self.base_classes:
+			pure_methods += base._get_pure_virtual_methods()
+
+		unimplemented_methods = []
+
+		for pure in pure_methods:
+			if not any([method for method in self.methods if method.name == pure.name and not method.is_pure_virtual]):
+				unimplemented_methods.append(pure)
+
+		return unimplemented_methods
+
+
+	def is_abstract(self) -> bool:
+		return len(self._get_pure_virtual_methods()) > 0
+
 
 	def get_class_hierarchy(self) -> list[Self]:
 		hierarchy = []

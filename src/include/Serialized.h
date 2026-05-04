@@ -22,6 +22,7 @@ class Mesh;
 class DoNotSerialize { };
 
 int InternalSerializeObject(const void* ptr, const std::type_info& objectType);
+void* InternalDeserializeObject(const json& data);
 
 namespace Serialization {
 	void StartObjectSerialization();
@@ -35,7 +36,10 @@ namespace Serialization {
 	json Serialize(const T* obj);
 
 	template<typename T>
-	T Deserialize(const json& json_node);
+	T Deserialize(const json& json_node) = delete;
+
+	template<typename T>
+	T* DeserializeObject(const json& json_node);
 
 	template<>
 	glm::vec2 Deserialize(const json& json_node);
@@ -80,4 +84,10 @@ json Serialization::Serialize(const T* obj) {
 	QueueObjectSerialization(obj);
 
 	return FinishObjectSerialization();
+}
+
+template<typename T>
+T* Serialization::DeserializeObject(const json& data) {
+	return reinterpret_cast<T*>(InternalDeserializeObject(data));
+
 }

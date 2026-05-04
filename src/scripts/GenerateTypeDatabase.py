@@ -120,7 +120,8 @@ class CppMethod:
 
 		self.argument_types = []
 
-		self.is_abstract = method_cursor.is_pure_virtual_method()
+		self.is_abstract = method_cursor.is_virtual_method()
+		self.is_pure_virtual = method_cursor.is_pure_virtual_method()
 
 		self.access = str_access_specifier(method_cursor.access_specifier)
 
@@ -128,7 +129,7 @@ class CppMethod:
 			self.argument_types.append(CppType(arg.get_canonical()))
 
 	def __json__(self):
-		return { "name": self.name, "return_type": self.return_type, "argument_types": self.argument_types, "is_virtual": self.is_abstract, "access": self.access }
+		return { "name": self.name, "return_type": self.return_type, "argument_types": self.argument_types, "is_virtual": self.is_abstract, "is_pure_virtual": self.is_pure_virtual, "access": self.access }
 
 
 class CppClass:
@@ -165,6 +166,8 @@ class CppClass:
 		self.fields: list[CppField] = []
 		self.methods: list[CppMethod] = []
 		self.parent_classes: list[Self] = []
+		self.constructors: list[CppMethod] = []
+		self.destructor: CppMethod = None
 
 		self.is_abstract = False
 
@@ -218,8 +221,12 @@ class CppClass:
 					self.parent_classes.append(CppClass.all_classes[class_part.spelling])
 			elif class_part.kind == clang.CursorKind.FIELD_DECL:
 				self.fields.append(CppField(class_part))
-			if class_part.kind == clang.CursorKind.CXX_METHOD:
+			elif class_part.kind == clang.CursorKind.CXX_METHOD:
 				self.methods.append(CppMethod(class_part))
+			elif class_part.kind == clang.CursorKind.CONSTRUCTOR:
+				self.constructors.append(CppMethod(class_part))
+			elif class_part.kind == clang.CursorKind.DESTRUCTOR:
+				self.destructor = CppMethod(class_part)
 	
 
 	def __json__(self):
@@ -230,6 +237,8 @@ class CppClass:
 		rep["enclosing_class"] = self.enclosing_class.get_full_name() if self.enclosing_class else ""
 		rep["fields"] = self.fields
 		rep["methods"] = self.methods
+		rep["constructors"] = self.constructors
+		rep["destructor"] = self.destructor
 		rep["source"] = self.cursor.location.file.name
 
 		rep["access"] = str_access_specifier(self.cursor.access_specifier)

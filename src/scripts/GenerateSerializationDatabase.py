@@ -219,19 +219,58 @@ def write_field_deserializer(writer: CodeWriter, field: CppField, lhs: str) -> N
 		writer.line(f"new(({field.type.full_name}*) (raw + {field.offset})) {field.type.full_name}{{Serialization::Deserialize<{field.type.full_name}>(data[\"{field.name}\"])}};")
 	elif not field.type.is_pointer:
 		if field.type.full_name in all_classes:
-			writer.line(f"InternalDeserializeOn(reinterpret_cast<volatile {field.type.full_name} *>(raw + {field.offset}), data[\"{field.name}\"]);")
+			writer.line(f"InternalDeserialize{sanitize_class_name(field.type.full_name)}On(reinterpret_cast<volatile {field.type.full_name} *>(raw + {field.offset}), data[\"{field.name}\"]);")
 		else:
 			print(f"WARN: Deserializing object of non-serializable type {field.type.full_name}")
 	else:
 		if field.type.full_name.removesuffix("*").removesuffix(" ") in all_classes:
-			# writer.line(lhs + f" = SerializeObject(*(const {field.type.full_name}*) (data + {field.offset}));")
-			writer.line("// Pointers deserialize: Not yet")
+			writer.line(f"*((void**) (raw + {field.offset})) = deserializedObjects[data[\"{field.name}\"].get<int>()];")
 		else:
 			print(f"WARN: Deserializing object of non-serializable type {field.type.full_name}")
 
 
 def write_array_deserializer(writer: CodeWriter, field: CppField, lhs: str) -> None:
-	writer.line("// Array deserialize: Not yet")
+	writer.line("{")
+	writer.more_indent()
+
+	element_type: CppType = field.type.template_args[0]
+
+	writer.line(f"std::vector<{element_type.full_name}>* dest = new((std::vector<{element_type.full_name}> *) (raw + {field.offset})) std::vector<{element_type.full_name}>(data[\"{field.name}\"].size());")
+	writer.line("int i = 0;")
+
+	writer.line()
+
+	writer.line(f"for (auto& element : data[\"{field.name}\"]) {{")
+	writer.more_indent()
+
+	if is_simple_type(element_type):
+		writer.line(f"dest->push_back(element);")
+	elif element_type.is_enum:
+		writer.line(f"dest->push_back(({get_enum_type(element_type)}) element);")
+	elif is_array_type(element_type):
+		# write_array_serializer(writer, field, lhs)
+		print(f"\tWARN: Nested arrays aren't supported yet: {field.name}")
+		pass
+	elif sanitize_class_name(element_type.full_name) in INTRINSIC_SERIALIZERS:
+		writer.line(f"dest->push_back(Serialization::Deserialize<{element_type.full_name}>(element));")
+	elif not element_type.is_pointer:
+		if element_type.full_name in all_classes:
+			writer.line(f"InternalDeserialize{sanitize_class_name(element_type.full_name)}On(&dest->operator[](i), data[\"{field.name}\"][i]);")
+		else:
+			print(f"WARN: Deserializing array of non-serializable type {element_type.full_name}")
+	else:
+		if field.type.full_name.removesuffix("*").removesuffix(" ") in all_classes:
+			writer.line(f"dest->push_back(reinterpret_cast<{element_type.full_name} *>(deserializedObjects[data[\"{field.name}\"][i].get<int>()]));")
+		else:
+			print(f"WARN: Deserializing array of non-serializable type {field.type.full_name}")
+
+	writer.line()
+	writer.line("i++;")
+	writer.less_indent()
+	writer.line("}")
+
+	writer.less_indent()
+	writer.line("}")
 
 
 def write_serialize_object(writer: CodeWriter, cls_name: str) -> None:
@@ -278,7 +317,7 @@ def write_internal_serialize(writer: CodeWriter, cls_name: str, cls: CppClass) -
 
 
 def write_internal_deserialize(writer: CodeWriter, cls_name: str, cls: CppClass) -> None:
-	writer.line(f"volatile {cls_name}* InternalDeserializeOn(volatile {cls_name}* ptr, json data) {{")
+	writer.line(f"volatile void* InternalDeserialize{sanitize_class_name(cls_name)}On(volatile void* ptr, const json& data) {{")
 	writer.more_indent()
 
 	writer.line("volatile uint8_t* raw = reinterpret_cast<volatile uint8_t*>(ptr);")
@@ -289,7 +328,7 @@ def write_internal_deserialize(writer: CodeWriter, cls_name: str, cls: CppClass)
 		if not is_serialized_class(base):
 			continue
 
-		writer.line(f"InternalDeserializeOn(dynamic_cast<volatile {base.get_full_name()} *>(ptr), data);")
+		writer.line(f"InternalDeserialize{sanitize_class_name(base.get_full_name())}On(dynamic_cast<volatile {base.get_full_name()} *>(reinterpret_cast<volatile {cls_name}*>(ptr)), data);")
 
 	writer.line()	
 
@@ -321,7 +360,7 @@ def main():
 	all_classes = {cls_name: cls for cls_name, cls in all_classes.items() if cls.access == "public" and is_serialized_class(cls)}
 
 	with CodeWriter(DEST_HEADER_FILE_PATH) as dest_header:
-		dest_header.line("#include <Serialized.h>")
+		dest_header.line("#pragma once")
 		dest_header.line()
 
 	with CodeWriter(DEST_SOURCE_FILE_PATH) as dest_impl:
@@ -346,6 +385,7 @@ def main():
 		dest_impl.line()
 
 		dest_impl.line("extern std::vector<json> serializedObjects;")
+		dest_impl.line("extern std::vector<void *> deserializedObjects;")
 
 		dest_impl.line()
 
@@ -367,7 +407,7 @@ def main():
 		for cls_name in all_classes:
 			dest_impl.line(f"json InternalSerialize{sanitize_class_name(cls_name)}(const void* ptr);")
 			dest_impl.line(f"int SerializeObject(const {cls_name}* ptr);")
-			dest_impl.line(f"volatile {cls_name}* InternalDeserializeOn(volatile {cls_name}* ptr, json data);")
+			dest_impl.line(f"volatile void* InternalDeserialize{sanitize_class_name(cls_name)}On(volatile void* ptr, const json& data);")
 
 		dest_impl.line()
 
@@ -377,6 +417,42 @@ def main():
 		index = 0
 		for cls_name in all_classes:
 			dest_impl.line(f"{{ \"{cls_name}\", (json (*)(const void*)) InternalSerialize{sanitize_class_name(cls_name)} }},")
+			index += 1
+
+		dest_impl.less_indent()
+		dest_impl.line("};")
+
+		dest_impl.line()
+
+		dest_impl.line("std::unordered_map<std::string, volatile void* (*)(volatile void*, const json&)> deserializationFunctionLookup {")
+		dest_impl.more_indent()
+
+		index = 0
+		for cls_name in all_classes:
+			dest_impl.line(f"{{ \"{cls_name}\", (volatile void* (*)(volatile void*, const json&)) InternalDeserialize{sanitize_class_name(cls_name)}On }},")
+			index += 1
+
+		dest_impl.less_indent()
+		dest_impl.line("};")
+
+		dest_impl.line()
+
+		dest_impl.line("std::unordered_map<std::string, void* (*)()> constructionFunctionLookup {")
+		dest_impl.more_indent()
+
+		index = 0
+		for cls_name, cls in all_classes.items():
+			if cls.is_abstract():
+				continue
+			
+			if cls.is_polymorphic():
+				if any([constructor for constructor in cls.constructors if len(constructor.argument_types) == 0 and constructor.access == "public"]):
+					dest_impl.line(f"{{ \"{cls_name}\", []() -> void* {{ return new {cls_name}(); }} }},")
+				else:
+					print(f"WARN: Class {cls_name} is polymorphic AND has no public default constructor, and so cannot be deserialized")
+			else:
+				dest_impl.line(f"{{ \"{cls_name}\", []() -> void* {{ return std::aligned_alloc(alignof({cls_name}), sizeof({cls_name})); }} }},")
+			
 			index += 1
 
 		dest_impl.less_indent()
@@ -428,6 +504,50 @@ def main():
 
 		dest_impl.less_indent()
 		dest_impl.line("}")
+
+		dest_impl.line()
+
+		dest_impl.line("void* InternalConstructObject(const std::string& objectName) {")
+		dest_impl.more_indent()
+
+		dest_impl.line("auto objectConstructorSearch = constructionFunctionLookup.find(objectName);")
+		dest_impl.line("if (objectConstructorSearch != constructionFunctionLookup.end()) {")
+		dest_impl.more_indent()
+
+		dest_impl.line("return objectConstructorSearch->second();")
+
+		dest_impl.less_indent()
+		dest_impl.line("}")
+
+		dest_impl.line("return nullptr;")
+
+		dest_impl.less_indent()
+		dest_impl.line("}")
+
+		dest_impl.line("volatile void* InternalDeserializeJson(volatile void* ptr, const json& data) {")
+		dest_impl.more_indent()
+
+		dest_impl.line("const std::string typeName = data[\"_class_name\"];")
+
+		dest_impl.line("auto deserializerSearch = deserializationFunctionLookup.find(typeName);")
+		dest_impl.line("if (deserializerSearch != deserializationFunctionLookup.end()) {")
+		dest_impl.more_indent()
+
+		dest_impl.line("deserializerSearch->second(ptr, data[\"_data\"]);")
+
+		dest_impl.line("return ptr;")
+
+		dest_impl.less_indent()
+		dest_impl.line("}")
+
+		dest_impl.line()
+
+		dest_impl.line("return nullptr;")
+
+		dest_impl.less_indent()
+		dest_impl.line("}")
+
+		dest_impl.line()
 
 		for cls_name, cls in all_classes.items():
 			write_serialize_object(dest_impl, cls_name)
