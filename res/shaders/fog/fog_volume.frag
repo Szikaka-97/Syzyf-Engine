@@ -28,6 +28,7 @@ uniform float transmittanceThreshold;
 uniform float bias;
 
 uniform vec3 scatteringColor;
+uniform float emissiveStrength;
 uniform sampler2D colorRamp;
 uniform bool useColorRamp;
 uniform float resolutionScale;
@@ -212,8 +213,10 @@ void main() {
 
             stepRadiance += Li;
         }
+        vec3 emission = color * localScattering * emissiveStrength;
+        stepRadiance += emission;
+        
         float density = localScattering + localAbsorption;
-
         transmittance *= AbsorptionFactor(density, finalStepSize);
         radiance += stepRadiance * transmittance * finalStepSize;
 

@@ -36,6 +36,7 @@ inline float GetSeamlessNoise(FastNoiseLite& noise, float x, float y, float z, f
 }
 
 inline Texture3D* Create3DNoiseTexture(FastNoiseLite& noise, float size, bool seamless = false) {
+  spdlog::info("Noise3D: Generating a {}x{}x{} 3D noise texture...", size, size, size);
   int bufferSize = size * size * size;
   unsigned char* noiseData = new unsigned char[bufferSize];
 

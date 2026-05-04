@@ -21,6 +21,7 @@ public:
     unsigned int maxSteps = 64;
 
     glm::vec3 scatteringColor = glm::vec3(1.0f);
+    float emissiveStrength = 0.0f;
     Texture2D* colorRamp = nullptr;
     
     Texture3D* noiseTexture = nullptr;
