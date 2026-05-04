@@ -34,6 +34,8 @@ float m_MinMovementThreshold = 0.2f;
 
          glm::vec3 walkPoint;
     bool walkPointSet;
+    float m_AvoidanceRadius = 0.6f;   // promieñ wykrywania
+float m_AvoidanceWeight = 0.7f;    // si³a unikania 
 
      int m_CurrentPathIndex = 0;
      std::vector<glm::vec3> FindPath(const glm::vec3& start, const glm::vec3& target);
@@ -41,7 +43,7 @@ float m_MinMovementThreshold = 0.2f;
      float Heuristic(const glm::vec3& a, const glm::vec3& b);
      bool IsWalkable(const glm::vec3& point);
      glm::vec3 GetNearestWalkable(const glm::vec3& point, float radius = 3.0f);
-
+     glm::vec3 ComputeSteeringDirection(glm::vec3 desiredDir, float speed);
 protected: 
     void EnsureBody();  
         void AstarChase();
