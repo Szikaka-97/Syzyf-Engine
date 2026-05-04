@@ -2,7 +2,7 @@
 
 #include <glm/glm.hpp>
 
-class BoundingBox;
+struct BoundingBox;
 
 struct Plane {
 	glm::vec3 normal;
