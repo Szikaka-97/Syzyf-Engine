@@ -1,4 +1,4 @@
-#include "fog/FogVolume.h"
+#include <fog/FogVolume.h>
 #include <Graphics.h>
 #include <Material.h>
 #include <Mesh.h>
@@ -6,7 +6,9 @@
 #include <Scene.h>
 #include <Shader.h>
 #include <imgui.h>
-#include "LightSystem.h"
+#include <LightSystem.h>
+
+#include "Texture.h"
 
 FogVolume::FogVolume() {
   this->mesh = GetScene()->Resources()->Get<Mesh>("./res/models/not_cube.obj");
@@ -24,11 +26,27 @@ void FogVolume::Render() {
   this->material->SetValue("scatteringDensity", this->scatteringDensity);
   this->material->SetValue("absorptionDensity", this->absorptionDensity);
   this->material->SetValue("scatteringColor", this->scatteringColor);
+  this->material->SetValue("emissiveStrength", this->emissiveStrength);
   this->material->SetValue("k", this->k);
   this->material->SetValue("transmittanceThreshold",
                            this->transmittanceThreshold);
+  this->material->SetValue("coverage", this->coverage);
+  this->material->SetValue("sharpness", this->sharpness);
   this->material->SetValue("bias", this->bias);
-  this->material->SetValue("maxSteps", this->maxSteps);
+  if (this->noiseTexture != nullptr) {
+      this->material->SetValue("useNoiseTex", true);
+      this->material->SetValue("noiseTex", this->noiseTexture);
+      this->material->SetValue("noiseScale", this->noiseScale);
+      this->material->SetValue("windDirection", this->windDirection);
+  } else {
+    this->material->SetValue("useNoiseTex", false);
+  }
+  if (this->colorRamp != nullptr) {
+      this->material->SetValue("useColorRamp", true);
+      this->material->SetValue("colorRamp", this->colorRamp);
+  } else {
+      this->material->SetValue("useColorRamp", false);
+  }
 
   std::vector<int> intersectingLightIndices;
   auto* lights = GetScene()->GetGraphics()->GetLightSystem()->GetAllObjects();
@@ -85,7 +103,13 @@ void FogVolume::DrawImGui() {
   ImGui::SliderFloat("Absorption Density", &this->absorptionDensity, 0.0f,
                      2.0f);
   ImGui::ColorEdit3("Scattering Color", &this->scatteringColor.x);
+  ImGui::SliderFloat("Emissive Strength", &this->emissiveStrength, 0.0, 5.0f);
   ImGui::SliderFloat("Anisotropy", &this->k, -0.99f, 0.99f);
   ImGui::InputFloat("Transmittance Threshold", &this->transmittanceThreshold);
   ImGui::InputFloat("Bias", &this->bias, -0.99f, 0.99f);
+  ImGui::InputFloat("Noise Scale", &this->noiseScale, 0.0f, 5.0f);
+  ImGui::InputFloat3("Wind Direction", &this->windDirection.x);
+
+  ImGui::InputFloat("Coverage", &this->coverage, -0.99f, 0.99f);
+  ImGui::InputFloat("Sharpness", &this->sharpness, -0.99f, 0.99f);
 }

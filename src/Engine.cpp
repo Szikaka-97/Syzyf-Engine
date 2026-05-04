@@ -113,7 +113,7 @@ bool Engine::InitProgram() {
 	float mainScale = SDL_GetDisplayContentScale(SDL_GetPrimaryDisplay());
 	SDL_WindowFlags windowFlags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN | SDL_WINDOW_HIGH_PIXEL_DENSITY;
 
-	window = SDL_CreateWindow("Syzyf Engine", (int) (mainScreenMode->w * mainScale), (int) (mainScreenMode->h * mainScale), windowFlags);
+	window = SDL_CreateWindow("Syzyf Engine", 1280, 720, windowFlags);
 	if (window == NULL) {
 		spdlog::error("Failed to create SDL Window!");
 
@@ -205,7 +205,7 @@ void Engine::Render() {
 	int display_w, display_h;
 	SDL_GetWindowSize(window, &display_w, &display_h);
 
-	rootScene->GetGraphics()->UpdateScreenResolution(glm::vec2(display_w, display_h));
+	rootScene->GetGraphics()->UpdateScreenResolution(glm::vec2(1280, 720));
 
 	rootScene->Render();
 }
