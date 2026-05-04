@@ -41,6 +41,7 @@ enum class RenderPassType {
 	Additive = 64,
 	Volumetric = 128,
     SSAO = 256,
+    Mask = 512,
 };
 
 struct RenderParams {
@@ -80,6 +81,8 @@ private:
         // SSAO 
         ShaderProgram* ssaoShader;
         ShaderProgram* ssaoBlurShader;
+
+        ShaderProgram* maskShader;
     };
 
 	struct RenderNode {
@@ -94,6 +97,10 @@ private:
 		uint8_t layer;
 
         int jointBufferOffset = -1;
+
+        // Perhaps there is a better way to mark these cause right now all objects will probably share the same color/effect, 
+        bool hasOutline = false;
+        bool hasXray = false;
 
         GLuint indirectBuffer = 0;
         GLuint indirectBufferOffset = 0;
@@ -112,6 +119,8 @@ private:
 	std::vector<RenderNode> oitTransparentRenders;
 	std::vector<RenderNode> additiveRenders;
 	std::vector<RenderNode> volumetricRenders;
+    std::vector<RenderNode> xrayRenders;
+    std::vector<RenderNode> outlineRenders;
 	GLuint globalUniformsBuffer;
 	GLuint objectUniformsBuffer;
 	
@@ -121,6 +130,7 @@ private:
 	Framebuffer* volumetricPassFramebuffer;
     Framebuffer* ssaoFramebuffer;
     Framebuffer* ssaoBlurFramebuffer;
+    Framebuffer* maskFramebuffer;
     float depthMult = 1.0f;
 
 	LightSystem* lightSystem;
@@ -152,6 +162,9 @@ private:
 	void EnqueueOITransparent(const RenderNode& node);
 	void EnqueueAdditive(const RenderNode& node);
 	void EnqueueVolumetric(const RenderNode& node);
+
+    void EnqueueOutline(const RenderNode& node);
+    void EnqueueXray(const RenderNode& node);
 
 	void BindMaterialProperties(Material* mat);
 
@@ -199,6 +212,9 @@ public:
 
 	void RenderSSAOBlur(const RenderParams& params, Framebuffer* target);
 	void RenderSSAOBlur(const ShaderGlobalUniforms& uniforms, const RenderParams& params, Framebuffer* target);
+
+    void RenderMask(const RenderParams& params, Framebuffer* target);
+    void RenderMask(const ShaderGlobalUniforms& uniforms, const RenderParams& params, Framebuffer* target);
 
 	void RenderOpaque(const RenderParams& params, Framebuffer* target);
 	void RenderOpaque(const ShaderGlobalUniforms& uniforms, const RenderParams& params, Framebuffer* target);

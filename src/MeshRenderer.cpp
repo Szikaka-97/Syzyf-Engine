@@ -70,6 +70,10 @@ void MeshRenderer::DrawImGui() {
 	if (ImGui::TreeNode(std::format("SubMesh count: {}", this->mesh->GetSubMeshCount()).c_str())) {
 		ImGui::TreePop();
 	}
+    
+    ImGui::Checkbox("Outline", &this->hasOutline);
+    ImGui::Checkbox("X-Ray", &this->hasXray);
+
 	if (ImGui::TreeNode(std::format("Material count: {}", this->materials.size()).c_str())) {
 		for (int i = 0; i < this->materials.size(); i++) {
 			Material* mat = this->materials[i];

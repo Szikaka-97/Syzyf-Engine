@@ -9,6 +9,9 @@ class Mesh;
 class Material;
 
 class MeshRenderer : public GameObject, public ImGuiDrawable {
+public:
+    bool hasOutline = false;
+    bool hasXray = false;
 private:
 	Mesh* mesh;
 	std::vector<Material*> materials;

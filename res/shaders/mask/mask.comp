@@ -1,0 +1,44 @@
+#version 460 core
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+
+layout(binding = 0) uniform sampler2D inputTex;
+layout(binding = 1) uniform sampler2D mainDepthTex;
+layout(binding = 2) uniform sampler2D maskTex;
+layout(binding = 3) uniform sampler2D customDepthTex;
+layout(rgba16f, binding = 0) uniform image2D outputImg;
+
+uniform vec3 xrayColor = vec3(1.0, 0.0, 0.0);
+uniform vec3 outlineColor = vec3(0.0, 1.0, 0.0);
+
+void main() {
+    ivec2 texCoord = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 size = textureSize(inputTex, 0);
+    if (texCoord.x >= size.x || texCoord.y >= size.y) return;
+
+    vec4 sceneColor = texelFetch(inputTex, texCoord, 0);
+    vec2 maskData = texelFetch(maskTex, texCoord, 0).rg;
+
+    float edgeStrength = 0.0;
+    edgeStrength += texelFetch(maskTex, texCoord + ivec2(1, 0), 0).g;
+    edgeStrength += texelFetch(maskTex, texCoord + ivec2(-1, 0), 0).g;
+    edgeStrength += texelFetch(maskTex, texCoord + ivec2(0, 1), 0).g;
+    edgeStrength += texelFetch(maskTex, texCoord + ivec2(0, -1), 0).g;
+    edgeStrength -= 4.0 * maskData.g;
+
+    bool isOutlineEdge = abs(edgeStrength) > 0.1;
+
+    float mainDepth = texelFetch(mainDepthTex, texCoord, 0).r;
+    float customDepth = texelFetch(customDepthTex, texCoord, 0).r;
+
+    bool isOccluded = (customDepth > mainDepth);
+    bool hasXRayMask = maskData.r > 0.1;
+
+    if (isOutlineEdge) {
+        imageStore(outputImg, texCoord, vec4(outlineColor, 1.0));
+    } else if (hasXRayMask && isOccluded) {
+        vec3 finalXray = mix(sceneColor.rgb, xrayColor, 0.8);
+        imageStore(outputImg, texCoord, vec4(finalXray, 1.0));
+    } else {
+        imageStore(outputImg, texCoord, sceneColor);
+    }
+}
