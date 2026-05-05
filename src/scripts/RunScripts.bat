@@ -34,4 +34,4 @@ if not %ERRORLEVEL% == 0 (
 	exit
 )
 
-python GenerateSerializationDatabase.py %cmake_source_dir%/codegen/type_database.json
+python GenerateSerializationDatabase.py %cmake_binary_dir%/codegen/type_database.json

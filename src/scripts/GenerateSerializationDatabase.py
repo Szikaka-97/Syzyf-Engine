@@ -77,7 +77,8 @@ SIMPLE_TYPES = [
 	"bool",
 	"float",
 	"double",
-	"std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>"
+	"std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char>>",
+	"std::basic_string<char, std::char_traits<char>, std::allocator<char>>"
 ]
 
 
@@ -367,6 +368,13 @@ def main():
 		dest_impl.line("#include \"SerializationDecls.h\"")
 		dest_impl.line()
 		dest_impl.line("#include <unordered_map>")
+		dest_impl.line()
+		dest_impl.line("#ifdef _WIN32")
+		dest_impl.line("#define alloc_aligned(size, align) _aligned_malloc(size, align)")
+		dest_impl.line("#else")
+		dest_impl.line("#define alloc_aligned(size, align) std::aligned_alloc(align, size)")
+		dest_impl.line("#endif")
+
 		dest_impl.line("#include <nlohmann/json.hpp>")
 		dest_impl.line()
 		dest_impl.line("#include <TypeInfo.h>")
@@ -451,7 +459,7 @@ def main():
 				else:
 					print(f"WARN: Class {cls_name} is polymorphic AND has no public default constructor, and so cannot be deserialized")
 			else:
-				dest_impl.line(f"{{ \"{cls_name}\", []() -> void* {{ return std::aligned_alloc(alignof({cls_name}), sizeof({cls_name})); }} }},")
+				dest_impl.line(f"{{ \"{cls_name}\", []() -> void* {{ return alloc_aligned(sizeof({cls_name}), alignof({cls_name})); }} }},")
 			
 			index += 1
 
