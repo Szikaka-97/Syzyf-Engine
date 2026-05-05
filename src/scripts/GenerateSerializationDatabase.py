@@ -100,15 +100,8 @@ def is_array_type(type: CppType) -> bool:
 	return type.full_name.startswith("std::vector")
 
 
-def is_serialized_class(cls: CppClass) -> bool:
-	if any([field for field in cls.fields if "__serialized__" in field.attributes]):
-		return True
-	
-	for base in cls.base_classes:
-		if is_serialized_class(base):
-			return True
-	
-	serialization_methods_present = any([
+def has_serialization_methods(cls: CppClass) -> bool:
+	return any([
 		method for method in cls.methods if (
 			method.name == "Serialize"
 			and
@@ -117,6 +110,8 @@ def is_serialized_class(cls: CppClass) -> bool:
 			not method.return_type.is_pointer
 			and
 			method.return_type.name == "basic_json"
+			and
+			method.is_const
 			and
 			len(method.argument_types) == 0
 		)
@@ -138,7 +133,16 @@ def is_serialized_class(cls: CppClass) -> bool:
 		)
 	])
 
-	return serialization_methods_present
+
+def is_serialized_class(cls: CppClass) -> bool:
+	if any([field for field in cls.fields if "__serialized__" in field.attributes]):
+		return True
+	
+	for base in cls.base_classes:
+		if is_serialized_class(base):
+			return True
+	
+	return has_serialization_methods(cls)
 
 
 def write_field_serializer(writer: CodeWriter, field: CppField, lhs: str) -> None:
@@ -302,12 +306,16 @@ def write_internal_serialize(writer: CodeWriter, cls_name: str, cls: CppClass) -
 			continue
 
 		writer.line(f"result.merge_patch(InternalSerialize{sanitize_class_name(base.get_full_name())}(dynamic_cast<const {base.name} *>(reinterpret_cast<const {cls_name} *>(ptr))));")
-		
-	for field in cls.fields:
-		if "__serialized__" not in field.attributes:
-			continue
+	
+	
+	if has_serialization_methods(cls):
+		writer.line(f"result = reinterpret_cast<const {cls_name} *>(ptr)->Serialize();")
+	else:
+		for field in cls.fields:
+			if "__serialized__" not in field.attributes:
+				continue
 
-		write_field_serializer(writer, field, f"result[\"{field.name}\"]")
+			write_field_serializer(writer, field, f"result[\"{field.name}\"]")
 
 	writer.line()
 
@@ -333,11 +341,14 @@ def write_internal_deserialize(writer: CodeWriter, cls_name: str, cls: CppClass)
 
 	writer.line()	
 
-	for field in cls.fields:
-		if "__serialized__" not in field.attributes:
-			continue
+	if has_serialization_methods(cls):
+		writer.line(f"const_cast<{cls_name} *>(reinterpret_cast<volatile {cls_name} *>(ptr))->Deserialize(data);")
+	else:
+		for field in cls.fields:
+			if "__serialized__" not in field.attributes:
+				continue
 
-		write_field_deserializer(writer, field, f"result[\"{field.name}\"]")
+			write_field_deserializer(writer, field, f"result[\"{field.name}\"]")
 
 	writer.line()
 

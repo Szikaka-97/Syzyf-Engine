@@ -125,11 +125,13 @@ class CppMethod:
 
 		self.access = str_access_specifier(method_cursor.access_specifier)
 
+		self.is_const = method_cursor.is_const_method()
+
 		for arg in method_cursor.type.argument_types():
 			self.argument_types.append(CppType(arg.get_canonical()))
 
 	def __json__(self):
-		return { "name": self.name, "return_type": self.return_type, "argument_types": self.argument_types, "is_virtual": self.is_abstract, "is_pure_virtual": self.is_pure_virtual, "access": self.access }
+		return { "name": self.name, "return_type": self.return_type, "argument_types": self.argument_types, "is_virtual": self.is_abstract, "is_pure_virtual": self.is_pure_virtual, "access": self.access, "is_const": self.is_const }
 
 
 class CppClass:

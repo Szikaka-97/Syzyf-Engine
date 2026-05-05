@@ -208,7 +208,7 @@ public:
 	static void operator delete(Scene* ptr, std::destroying_delete_t);
 
 	void Deserialize(const nlohmann::json& json_node);
-	nlohmann::json Serialize();
+	nlohmann::json Serialize() const;
 };
 
 #include <GameObject.h>

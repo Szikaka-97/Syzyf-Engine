@@ -526,7 +526,7 @@ void Scene::Deserialize(const nlohmann::json& json_node) {
 	}
 }
 
-nlohmann::json Scene::Serialize() {
+nlohmann::json Scene::Serialize() const {
 	json data;
 
 	std::vector<json> nodesData;

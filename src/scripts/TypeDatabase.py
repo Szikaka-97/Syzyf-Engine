@@ -35,6 +35,7 @@ class CppMethod:
 		self.argument_types: list[CppType] = [CppType(type_data) for type_data in data["argument_types"]]
 		self.is_virtual: bool = data["is_virtual"]
 		self.is_pure_virtual = data["is_pure_virtual"]
+		self.is_const = data["is_const"]
 		self.access: str = data["access"]
 
 
