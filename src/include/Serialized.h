@@ -28,9 +28,11 @@ namespace Serialization {
 	void StartObjectSerialization();
 
 	template<typename T>
-	void QueueObjectSerialization(const T* obj);
+	int QueueObjectSerialization(const T* obj);
 
 	json FinishObjectSerialization();
+
+	void* FetchDeserializedObject(int index);
 
 	template<typename T>
 	json Serialize(const T* obj);
@@ -73,8 +75,8 @@ namespace Serialization {
 };
 
 template <typename T>
-void Serialization::QueueObjectSerialization(const T* obj) {
-	InternalSerializeObject(obj, typeid(*obj));
+int Serialization::QueueObjectSerialization(const T* obj) {
+	return InternalSerializeObject(obj, typeid(*obj));
 }
 
 template <typename T>

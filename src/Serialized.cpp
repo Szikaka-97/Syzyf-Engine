@@ -43,6 +43,10 @@ json Serialization::FinishObjectSerialization() {
 	return result;
 }
 
+void* Serialization::FetchDeserializedObject(int index) {
+	return deserializedObjects[index];
+}
+
 template<>
 glm::vec2 Serialization::Deserialize(const json& json_node) {
 	glm::vec2 result;
