@@ -138,10 +138,11 @@ void SceneViewPanel::Draw(Context& context) {
             glm::mat4 nodeTransform =
                 context.selectedNode->GlobalTransform().Value();
 
-            ImGuizmo::Manipulate(glm::value_ptr(cameraView),
-                                 glm::value_ptr(cameraProjection),
-                                 context.currentGizmoOperation, ImGuizmo::WORLD,
-                                 glm::value_ptr(nodeTransform));
+            ImGuizmo::Manipulate(
+                glm::value_ptr(cameraView), glm::value_ptr(cameraProjection),
+                context.currentGizmoOperation,
+                this->isGizmoLocal ? ImGuizmo::LOCAL : ImGuizmo::WORLD,
+                glm::value_ptr(nodeTransform));
 
             if (ImGuizmo::IsUsing()) {
                 if (this->wasViewGuizmoUsed == false) {
@@ -170,49 +171,56 @@ void SceneViewPanel::Draw(Context& context) {
             }
         }
 
-        ImViewGuizmo::Style& viewStyle = ImViewGuizmo::GetStyle();
-        viewStyle.scale = 0.65f;
-        viewStyle.bigCircleColor = IM_COL32(30, 30, 30, 120);
+        if (!ImGuizmo::IsUsing()) { // Prevents accidental presses when using
+                                    // the other gizmo
+            ImViewGuizmo::Style& viewStyle = ImViewGuizmo::GetStyle();
+            viewStyle.scale = 0.65f;
+            viewStyle.bigCircleColor = IM_COL32(30, 30, 30, 120);
 
-        glm::vec3 cameraPosition =
-            context.mainCamera->GlobalTransform().Position();
-        glm::quat cameraRotation =
-            context.mainCamera->GlobalTransform().Rotation();
+            glm::vec3 cameraPosition =
+                context.mainCamera->GlobalTransform().Position();
+            glm::quat cameraRotation =
+                context.mainCamera->GlobalTransform().Rotation();
 
-        glm::vec3 pivot =
-            (context.selectedNode != nullptr)
-                ? context.selectedNode->GlobalTransform().Position().Value()
-                : glm::vec3(0.0f);
+            glm::vec3 pivot =
+                (context.selectedNode != nullptr)
+                    ? context.selectedNode->GlobalTransform().Position().Value()
+                    : glm::vec3(0.0f);
 
-        float gizmoRadius = 128.0f * viewStyle.scale;
-        ImVec2 viewGizmoCenter =
-            ImVec2(cursorScreenPosition.x + resX - gizmoRadius - 2.0f,
-                   cursorScreenPosition.y + gizmoRadius + 2.0f);
+            float gizmoRadius = 128.0f * viewStyle.scale;
+            ImVec2 viewGizmoCenter =
+                ImVec2(cursorScreenPosition.x + resX - gizmoRadius - 2.0f,
+                       cursorScreenPosition.y + gizmoRadius + 2.0f);
 
-        if (ImViewGuizmo::Rotate(cameraPosition, cameraRotation, pivot,
-                                 viewGizmoCenter)) {
-            context.mainCamera->GlobalTransform().Position() = cameraPosition;
-            context.mainCamera->GlobalTransform().Rotation() = cameraRotation;
-        }
+            if (ImViewGuizmo::Rotate(cameraPosition, cameraRotation, pivot,
+                                     viewGizmoCenter)) {
+                context.mainCamera->GlobalTransform().Position() =
+                    cameraPosition;
+                context.mainCamera->GlobalTransform().Rotation() =
+                    cameraRotation;
+            }
 
-        float toolButtonSize = viewStyle.toolButtonRadius * viewStyle.scale;
-        float spacing = 10.0f;
+            float toolButtonSize = viewStyle.toolButtonRadius * viewStyle.scale;
+            float spacing = 10.0f;
 
-        ImVec2 panPosition = ImVec2(
-            viewGizmoCenter.x - (toolButtonSize * 2.0f) - (spacing / 2.0f),
-            viewGizmoCenter.y + gizmoRadius + spacing);
+            ImVec2 panPosition = ImVec2(
+                viewGizmoCenter.x - (toolButtonSize * 2.0f) - (spacing / 2.0f),
+                viewGizmoCenter.y + gizmoRadius + spacing);
 
-        ImVec2 dollyPosition =
-            ImVec2(viewGizmoCenter.x + (spacing / 2.0f),
-                   viewGizmoCenter.y + gizmoRadius + spacing);
-        if (ImViewGuizmo::Pan(cameraPosition, cameraRotation, panPosition,
-                              0.05f)) {
-            context.mainCamera->GlobalTransform().Position() = cameraPosition;
-        }
+            ImVec2 dollyPosition =
+                ImVec2(viewGizmoCenter.x + (spacing / 2.0f),
+                       viewGizmoCenter.y + gizmoRadius + spacing);
+            if (ImViewGuizmo::Pan(cameraPosition, cameraRotation, panPosition,
+                                  0.05f)) {
+                context.mainCamera->GlobalTransform().Position() =
+                    cameraPosition;
+            }
 
-        if (ImViewGuizmo::Dolly(cameraPosition, cameraRotation, dollyPosition,
-                                0.2f)) {
-            context.mainCamera->GlobalTransform().Position() = cameraPosition;
+            if (ImViewGuizmo::Dolly(cameraPosition, cameraRotation,
+                                    dollyPosition, 0.2f)) {
+                context.mainCamera->GlobalTransform().Position() =
+                    cameraPosition;
+            }
         }
     }
 
@@ -364,10 +372,11 @@ void SceneViewPanel::HandleDrop(Context& context) {
                 SceneNode* modelNode = context.selectedScene->CreateNode();
 
                 if (mesh->GetDefaultMaterials().empty()) {
-                    ShaderProgram* defaultProg = ShaderProgram::Build()
-                    .WithVertexShader(   "./res/shaders/lit.vert")
-                    .WithPixelShader("./res/shaders/lambert color.frag")
-                    .Link();
+                    ShaderProgram* defaultProg =
+                        ShaderProgram::Build()
+                            .WithVertexShader("./res/shaders/lit.vert")
+                            .WithPixelShader("./res/shaders/lambert color.frag")
+                            .Link();
 
                     auto* defaultMaterial = new Material(defaultProg);
                     defaultMaterial->SetValue("uColor", glm::vec3(0.8));
@@ -399,6 +408,18 @@ void SceneViewPanel::DrawMenuBar(Context& context) {
     if (ImGui::RadioButton("Scale",
                            context.currentGizmoOperation == ImGuizmo::SCALE)) {
         context.currentGizmoOperation = ImGuizmo::SCALE;
+    }
+
+    // Local/Global Gizmo Mode
+    ImGui::SameLine();
+    ImGui::TextDisabled("|");
+    ImGui::SameLine();
+    if (ImGui::RadioButton("World", !this->isGizmoLocal)) {
+        this->isGizmoLocal = false;
+    }
+    ImGui::SameLine();
+    if (ImGui::RadioButton("Local", this->isGizmoLocal)) {
+        this->isGizmoLocal = true;
     }
 
     ImGuiStyle& style = ImGui::GetStyle();

@@ -21,8 +21,13 @@ class FilesPanel {
     const float THUMBNAIL_SIZE = 64.0f;
     const float CELL_SIZE = THUMBNAIL_SIZE + PADDING;
 
-    std::filesystem::path currentDirectory = "./res/";
+    // Preview Panel stuff
+    bool showPreviewPopup = false;
+    std::string previewFilePath;
+    std::string previewTextContent;
+    std::unique_ptr<Texture2D> previewTexture;
 
+    std::filesystem::path currentDirectory = "./res/";
     char searchBuffer[256] = "";
 
     std::unique_ptr<Texture2D> folderIcon;
@@ -35,6 +40,8 @@ class FilesPanel {
     std::vector<ThumbnailResult> pendingResults;
     std::unordered_set<std::string> loadingPaths;
     std::mutex resultsMutex;
+
+    void DrawPreviewPopup();
 
     Texture2D* GetOrCreateThumbnail(const std::filesystem::path& path);
     void RequestThumbnail(const std::filesystem::path& path);

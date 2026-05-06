@@ -23,6 +23,7 @@ class SceneViewPanel {
     };
 
     bool wasViewGuizmoUsed = false;
+    bool isGizmoLocal = false;
     glm::mat4 initialGlobalTransform;
     glm::mat4 initialLocalTransform;
 
