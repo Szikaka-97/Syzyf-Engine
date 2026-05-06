@@ -73,6 +73,7 @@ void MeshRenderer::DrawImGui() {
     
     ImGui::Checkbox("Outline", &this->hasOutline);
     ImGui::Checkbox("X-Ray", &this->hasXray);
+    ImGui::Checkbox("JFA Outline", &this->hasJfaOutline);
 
 	if (ImGui::TreeNode(std::format("Material count: {}", this->materials.size()).c_str())) {
 		for (int i = 0; i < this->materials.size(); i++) {

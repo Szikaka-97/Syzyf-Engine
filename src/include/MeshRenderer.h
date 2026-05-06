@@ -12,6 +12,7 @@ class MeshRenderer : public GameObject, public ImGuiDrawable {
 public:
     bool hasOutline = false;
     bool hasXray = false;
+    bool hasJfaOutline = false;
 private:
 	Mesh* mesh;
 	std::vector<Material*> materials;
