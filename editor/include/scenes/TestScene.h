@@ -304,7 +304,7 @@ inline void InitScene(Scene& mainScene) {
     enemyAi1->SetTargetNode(player->GetNode());
     surface->InformEnter(); // inform surface about player presence so it can
                             // assign the enemy to the correct room
-    Mesh* cubeMesh = mainScene.Resources()->Get<Mesh>("./res/models/cube.obj");
+    Mesh* cubeMesh = mainScene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
     enemyAi1->SetProjectileResources(cubeMesh, enemyMat);
     enemyAi1->SetAttackCooldown(1.2f);
     enemyAi1->SetRoomID(1);
