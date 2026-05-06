@@ -625,9 +625,9 @@ inline void InitScene(Scene& mainScene) {
 
     SceneNode* dungeon = mainScene.CreateNode("Dungeon");
     dungeon->AddObject<DungeonGenerator>(
-        DungeonGeneratorSettings{.steps = 12,
-                                 .mapColumns = 4,
+        DungeonGeneratorSettings{.mapColumns = 4,
                                  .mapRows = 10,
+                                 .steps = 12,
                                  .momentum = 2.0f,
                                  .horizontalBias = 0.0f});
 
