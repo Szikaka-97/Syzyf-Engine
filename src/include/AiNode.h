@@ -8,10 +8,11 @@
 #include <glm/vec3.hpp>
 #include "astar/NavigationGrid.h"
 #include "physics/DebugRenderer.h"
+#include "Mesh.h"
 
 class Material;
 class NavigationGrid;
-
+class AnimationComponent;
 
 class AiNode : public GameObject {
 private:
@@ -35,6 +36,15 @@ private:
     Material* m_ProjectileMaterial; 
     int m_hp;
     NavigationGrid* m_NavGrid = nullptr;
+    AnimationComponent* m_AttackAnimation = nullptr;
+
+glm::vec3 m_LastChasePosition;       
+float m_StuckTimer = 0.0f;           
+float m_StuckThreshold = 1.5f;       
+float m_MinMovementThreshold = 0.2f;  
+bool m_UsingAStar = false;          
+
+void UpdateStuckDetection();        
 
     void Patrol();
     void Chase();
@@ -53,12 +63,12 @@ private:
 	void SearchWalkPoint();
     void RotateNode(glm::vec3 dir);
 	void LookForNextPoint();
-    float CalculateDistance(glm::vec3 current, glm::vec3 target);
+    //float CalculateDistance(glm::vec3 current, glm::vec3 target);
     
 
      glm::vec3 walkPoint;
     bool walkPointSet;
-     float walkPointRange;
+     float walkPointRange; //unused
      float timeBetweenAttacks;
     bool alreadyAttacked;
     float sightRange = 10.0f;
@@ -66,6 +76,13 @@ private:
      bool playerInSightRange, playerInAttackRange;
      std::vector<glm::vec3> m_Path;           //current
      int m_CurrentPathIndex = 0;
+     bool isPlayerInRoom = false;   
+     int m_RoomID;
+     std::string m_CurrentAnimation;   
+     bool m_InAttackAnimation = false;
+float m_AttackAnimationDuration = 1.0f;
+float m_AttackAnimationElapsed = 0.0f;
+
 
      std::vector<glm::vec3> FindPath(const glm::vec3& start, const glm::vec3& target);
      std::vector<glm::vec3> GetNeighbors(const glm::vec3& node);
@@ -73,7 +90,9 @@ private:
      bool IsWalkable(const glm::vec3& point);
      glm::vec3 GetNearestWalkable(const glm::vec3& point, float radius = 3.0f);
 
-
+     void UpdateAttackAnimation();
+     void SetAnimation(const std::string& name);
+     bool CanSeePlayer() const;
 public:
     AiNode();
     virtual ~AiNode();
@@ -82,11 +101,19 @@ public:
 
     void SetTarget(SceneNode* target);
     void SetSurface(Surface* surface);
+    void SetRoomID(int id) { m_RoomID = id; }
+    int GetID() const { return m_RoomID; }
+    Surface* GetSurface() const {return m_Surface;}
     void SetPatrolPoints(const std::vector<glm::vec2>& points);
     void SetProjectileResources(Mesh* mesh, Material* material);
     void SetAttackCooldown(float cooldown);
+    void SetAttackAnimation(AnimationComponent* anim);
+    void PlayAttackAnimation(std::string name);
 
-    void DrawDebugView(Physics::DebugRenderer* debugRenderer);
+    void OnPlayerEnteredRoom();
+    void OnPlayerExitedRoom();
+
+    void DrawDebugView();
 
     void TakeDamage(int damage);
 };

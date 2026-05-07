@@ -7,7 +7,7 @@
 #include "scenes/DungeonGeneratorScene.h"
 #include "scenes/TestScene.h"
 
-#include "scenes/DungeonGeneratorScene.h"
+#include "scenes/LevelShowcaseScene.h"
 #include "scenes/TestScene.h"
 #include "thirdparty/ImGuizmo.h"
 #include "thirdparty/ImViewGuizmo.h"
@@ -29,6 +29,7 @@
 #include <Graphics.h>
 #include <physics/Jolt.h>
 #include <physics/System.h>
+
 
 namespace Editor {
 bool Application::InitProgram() {
@@ -251,7 +252,7 @@ void Application::DrawPanels(bool& shouldClose) {
     this->inspectorPanel.Draw(this->context);
     this->filesPanel.Draw();
     this->consolePanel.Draw(this->context);
-    this->textureToolPanel.Draw(this->context);
+   // this->textureToolPanel.Draw(this->context);
     this->sceneViewPanel.Draw(this->context);
     // this->statusBar.Draw(); a bit broken
 }

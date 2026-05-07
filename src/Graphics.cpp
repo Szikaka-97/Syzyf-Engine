@@ -346,7 +346,7 @@ void SceneGraphics::DrawMeshInstanced(MeshRenderer* renderer, unsigned int insta
 
         RenderNode node = RenderNode(mesh, material, renderer->GlobalTransform().Value(), bounds, renderer->GetNode()->GetLayer());
         node.jointBufferOffset = skinningOffset;
-
+		
         if (material->GetShader()->HasPragma("transparent")) {
             EnqueueOrderedTransparent(node);
         } else if (material->GetShader()->HasPragma("oit_transparent")) {

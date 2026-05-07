@@ -626,6 +626,8 @@ inline void InitScene(Scene& mainScene) {
     // cameraNode->AddObject<Tonemapper>()->SetOperator(
     //     Tonemapper::TonemapperOperator::GranTurismo);
 
+  
+
     SceneNode* dungeon = mainScene.CreateNode("Dungeon");
     dungeon->AddObject<DungeonGenerator>(
         DungeonGeneratorSettings{.mapColumns = 4,

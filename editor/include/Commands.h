@@ -1,6 +1,9 @@
-#include "CommandHistory.h"
+﻿#include "CommandHistory.h"
 
 #include <Scene.h>
+#include <Scene.h>                 // ✅ SceneNode
+#include <glm/glm.hpp>             // ✅ glm::mat4, glm::vec3
+#include <glm/gtc/quaternion.hpp>  // ✅ glm::quat
 
 namespace Editor {
 

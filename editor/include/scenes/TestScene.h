@@ -44,6 +44,8 @@
 #include <physics/System.h>
 #include <physics/Water.h>
 #include <scatter/Spawner.h>
+#include <Player.h>
+#include <enemies/EnemySkeleton.cpp>
 
 #include "Jolt/Math/Vec3.h"
 #include <Jolt/Jolt.h>
@@ -186,7 +188,7 @@ inline void InitScene(Scene& mainScene) {
     skyMat->SetValue("skyboxTexture", skyCubemap);
 
     auto floorNode =
-        GltfImporter::LoadScene(&mainScene, "./res/models/floor.glb", "Floor");
+        GltfImporter::LoadScene(&mainScene, "./res/models/floor2804.glb", "Floor");
     floorNode->AddObject<Skybox>(skyMat);
     MeshRenderer* floorMeshRenderer =
         floorNode->GetObjectInChildren<MeshRenderer>();
@@ -196,6 +198,11 @@ inline void InitScene(Scene& mainScene) {
             JPH::RVec3::sZero(), JPH::Quat::sZero(), JPH::EMotionType::Static,
             Physics::Layers::NON_MOVING});
     floorNode->AddObject<Surface>(floorMeshRenderer->GetMesh(), 1.0f);
+    //floorNode->GetObject<Surface>()->DrawDebugSurface();
+    floorNode->GetObject<Surface>()->SetID(0);
+    auto* navGrid = floorNode->AddObject<NavigationGrid>();
+    navGrid->Build(floorNode->GetObject<Surface>(), 2.0f, 45.0f);
+    
 
     SceneNode* monkey = GltfImporter::LoadScene(
         &mainScene, "./res/models/big_monkey.glb", "Monkey", floorNode);
@@ -236,6 +243,95 @@ inline void InitScene(Scene& mainScene) {
     aimingAid->crosshair->SetParent(aimingAid->GetNode());
 
     player->aim = aimingAid;
+
+    player->AddObject<Player>();
+   // player->GetObjectA<Player>()->SetRoomID(); default is 0 
+
+#pragma endregion
+
+#pragma region Enemy
+    /*JPH::BodyCreationSettings enemyShapeSettings = JPH::BodyCreationSettings(
+        Physics::MeshShape(floorMeshRenderer->GetMesh()), JPH::RVec3::sZero(),
+        JPH::Quat::sZero(), JPH::EMotionType::Dynamic, Physics::Layers::MOVING);*/
+    ShaderProgram* pbrProg =
+        ShaderProgram::Build()
+            .WithVertexShader(
+                "./res/shaders/lit.vert")
+            .WithPixelShader(
+                "./res/shaders/pbr.frag")
+            .Link();
+
+    Texture2D* reflectiveDiffuse = mainScene.Resources()->Get<Texture2D>(
+        "./res/textures/material_preview/worn-shiny-metal-albedo.png",
+        Texture::ColorTextureRGB);
+    Texture2D* reflectiveNormal = mainScene.Resources()->Get<Texture2D>(
+        "./res/textures/material_preview/worn-shiny-metal-Normal-ogl.png",
+        Texture::TechnicalMapXYZ);
+    Texture2D* reflectiveARM = mainScene.Resources()->Get<Texture2D>(
+        "./res/textures/material_preview/worn-shiny-metal-arm.png",
+        Texture::TechnicalMapXYZ);
+
+    Material* reflectiveMat = new Material(pbrProg);
+    reflectiveMat->SetValue("albedoMap", reflectiveDiffuse);
+    reflectiveMat->SetValue("normalMap", reflectiveNormal);
+    reflectiveMat->SetValue("armMap", reflectiveARM);
+
+
+    auto enemyRoom = mainScene.FindNode("Floor");
+    auto* surface = enemyRoom->GetObject<Surface>();
+    SceneNode* enemy1 = mainScene.CreateNode("Enemy 1");
+    /*Mesh* enemyMesh =
+        mainScene.Resources()->Get<Mesh>("./res/models/jake_tangents.glb");*/
+    Material* enemyMat =
+        mainScene.Resources()->Get<Material>("./res/materials/jake.mat");
+   // enemy1->AddObject<MeshRenderer>(enemyMesh, reflectiveMat);
+    enemy1->GlobalTransform().Position() = glm::vec3(10.5f, 0.0f, -5.0f);
+    enemy1->GlobalTransform().Scale() = glm::vec3(0.5f, 0.5f, 0.5f);
+    //auto* enemyBody1 = enemy1->AddObject<Physics::Body>(enemyShapeSettings);
+    JPH::ShapeRefC enemyShape =
+        new JPH::CapsuleShape(0.5f, 1.0f); 
+    JPH::BodyCreationSettings enemySettings(
+        enemyShape, JPH::RVec3(10.5f, 2.0f, 2.0f), 
+        JPH::Quat::sIdentity(), JPH::EMotionType::Dynamic,
+        Physics::Layers::MOVING);
+    Physics::Body* enemyBody1 = enemy1->AddObject<Physics::Body>(enemySettings);
+    enemyBody1->SetRestitution(0.0f);
+
+    auto* enemyAi1 = enemy1->AddObject<EnemySkeleton>();
+
+    enemyAi1->SetSurface(surface);
+   // enemyAi1->GetSurface()->SetGroundHeight(0.0f);
+    surface->AddEnemy(enemyAi1);
+    enemyAi1->SetTargetNode(player->GetNode());
+    surface->InformEnter(); // inform surface about player presence so it can
+                            // assign the enemy to the correct room
+    Mesh* cubeMesh = mainScene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
+    enemyAi1->SetProjectileResources(cubeMesh, enemyMat);
+    enemyAi1->SetAttackCooldown(1.2f);
+    enemyAi1->SetRoomID(1);
+    //enemyAi1->DrawDebugView();
+
+    SceneNode* enemyModel = GltfImporter::LoadScene(
+        &mainScene, "./res/models/szkielet6.glb", "EnemyModel");
+    enemyModel->SetParent(enemy1);
+    enemyModel->GlobalTransform().Scale() = glm::vec3(0.1,0.1,0.1);
+
+    // Pobierz AnimationComponent z zaimportowanego modelu
+    auto* animComp = enemyModel->GetObjectInChildren<AnimationComponent>();
+    if (animComp) {
+        spdlog::info(
+            "Found AnimationComponent in enemy model, animations count: {}",
+            animComp->animations.size());
+    } else {
+        spdlog::warn("No AnimationComponent found in enemy model");
+    }
+
+    if (animComp) {
+        enemyAi1->SetAttackAnimation(animComp);
+        // Opcjonalnie sprawdŸ dostêpne animacje i wybierz odpowiedni¹
+        // animComp->animations – lista dostêpnych animacji
+    }
+
 
 #pragma endregion
 #pragma region Camera
@@ -314,8 +410,8 @@ inline void InitScene(Scene& mainScene) {
     Material* blueTransparentMat = new Material(transparentProg);
     blueTransparentMat->SetValue("uColor", glm::vec4(0.5, 0.5, 1.0, 0.6));
 
-    Mesh* cubeMesh =
-        mainScene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
+    //Mesh* cubeMesh =
+        //mainScene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
 
     SceneNode* pinkTransparentCubeNode = mainScene.CreateNode("Pink Cube");
     pinkTransparentCubeNode->AddObject<MeshRenderer>(cubeMesh,

@@ -152,6 +152,22 @@ public:
 		this->bottle = GltfImporter::LoadScene(GetScene(), "./res/models/crosshair.glb", "bottle visual");
 	}
 
+	PlayerController(SceneNode* markerNode) {
+		this->throwingArm = GetNode()->FindNode("Bimberman/root/Torso/Arm R");
+		this->throwPoint = GetNode()->FindNode("Bimberman/root/Torso/Arm R/Throw Point");
+
+		spdlog::warn(this->throwPoint != nullptr);
+
+		this->aim->SetStretch(-1);
+
+		this->baseArmRotation = this->throwingArm->LocalTransform().Rotation();
+
+		this->throwStrengthAccum = 0;
+		this->throwStrengthCache = 0;
+
+		this->bottle = GltfImporter::LoadScene(GetScene(), "./res/models/crosshair.glb", "bottle visual");
+	}
+
 
 	void Update() {
 		TryInitController();
