@@ -1591,27 +1591,28 @@ void SceneGraphics::RenderPostprocess() {
         if (!effect->IsEnabled())
             continue;
 
-        PostProcessParams postProcessParams;
-        postProcessParams.inputTexture = dynamic_cast<Texture2D*>(ping->GetColorTexture());
-        postProcessParams.outputTexture = dynamic_cast<Texture2D*>(pong->GetColorTexture());
-        postProcessParams.depthTexture = frameDepth;
+		PostProcessParams postProcessParams;
+		postProcessParams.inputTexture = dynamic_cast<Texture2D*>(ping->GetColorTexture());
+		postProcessParams.outputTexture = dynamic_cast<Texture2D*>(pong->GetColorTexture());
+		postProcessParams.depthTexture = frameDepth;
 
-        effect->OnPostProcess(&postProcessParams);
+		effect->OnPostProcess(&postProcessParams);
 
-        std::swap(ping, pong);
+		std::swap(ping, pong);
 	}
 
-    if (ping != mainFramebuffer) {
-        glCopyImageSubData(
-            ping->GetColorTexture()->GetHandle(),
-            GL_TEXTURE_2D, 0, 0, 0, 0,
-            mainFramebuffer->GetColorTexture()->GetHandle(),
-            GL_TEXTURE_2D, 0, 0, 0, 0,
-            this->mainViewport->GetSize().x,
-            this->mainViewport->GetSize().y,
-            1
-        );
-    }}
+	if (ping != mainFramebuffer) {
+		glCopyImageSubData(
+			ping->GetColorTexture()->GetHandle(),
+			GL_TEXTURE_2D, 0, 0, 0, 0,
+			mainFramebuffer->GetColorTexture()->GetHandle(),
+			GL_TEXTURE_2D, 0, 0, 0, 0,
+			this->mainViewport->GetSize().x,
+			this->mainViewport->GetSize().y,
+			1
+		);
+	}
+}
 
 void SceneGraphics::RenderCamera(Camera* camera, Viewport* renderTarget) {
 	assert(camera != nullptr);
