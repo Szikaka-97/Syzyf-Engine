@@ -143,6 +143,8 @@ private:
 	void ChangeNodeParentInternal(SceneNode* node, SceneNode* newParent);
 	void AttachSceneToNodeInternal(SceneNode* node, Scene* scene);
 	void DetachSceneFromNodeInternal(SceneNode* node, Scene* scene);
+
+	void AddObjectToSystems(GameObject* obj);
 public:
 	static Scene* CreateStandaloneScene();
 
@@ -214,7 +216,7 @@ public:
 };
 
 #include <GameObject.h>
-#include <GameObjectSystem.h>
+#include <SceneComponent.h>
 
 template<class T_GO, typename... T_Param>
 	requires std::derived_from<T_GO, GameObject>
@@ -331,13 +333,7 @@ T_GO* Scene::CreateObjectOn(SceneNode* node, T_Param&&... params) {
 
 	this->messageTree.AddMessageReceiver(created, node);
 
-	for (SceneComponent* component : this->components) {
-		GameObjectSystemBase* sys = dynamic_cast<GameObjectSystemBase*>(component);
-
-		if (sys && sys->ValidObject(created)) {
-			sys->RegisterObject(created);
-		}
-	}
+	AddObjectToSystems(created);
 
 	created->id = this->nextGameObjectID++;
 

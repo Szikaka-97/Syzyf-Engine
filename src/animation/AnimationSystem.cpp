@@ -37,8 +37,7 @@ AnimationSystem::AnimationSystem(Scene* scene): GameObjectSystem<AnimationCompon
 void AnimationSystem::OnPreUpdate() {
   const float deltaTime = Time::Delta(); 
 
-  auto objects = *GetAllObjects();
-  for (auto* object : objects) {
+  for (auto* object : IterateObjects()) {
     for (auto& animation : object->animations) {
       if (!animation.playing)
         continue;

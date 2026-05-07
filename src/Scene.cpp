@@ -336,6 +336,16 @@ void Scene::DetachSceneFromNodeInternal(SceneNode* node, Scene* scene) {
     this->messageTree.RemoveMessageReceiver(scene, node);
 }
 
+void Scene::AddObjectToSystems(GameObject* obj) {
+    for (SceneComponent* component : this->components) {
+		GameObjectSystemBase* sys = dynamic_cast<GameObjectSystemBase*>(component);
+
+		if (sys && sys->ValidObject(obj)) {
+			sys->RegisterObject(obj);
+		}
+	}
+}
+
 SceneNode* Scene::CreateNode() {
     return CreateNode(this->root, "");
 }

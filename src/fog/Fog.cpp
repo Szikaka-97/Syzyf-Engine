@@ -27,14 +27,11 @@ void Fog::OnPostProcess(const PostProcessParams* params) {
 
     LightSystem* lightSystem = GetScene()->GetComponent<LightSystem>();
     if (lightSystem) {
-        std::vector<Light*>* lights = lightSystem->GetAllObjects();
-        if (lights) {
-            for (Light* light : *lights) {
-                if (light->GetType() == Light::LightType::Directional && light->IsEnabled()) {
-                    sunDirection = glm::normalize(-light->GlobalTransform().Forward());
-                    sunColor = light->GetColor() * light->GetIntensity();
-                    break;
-                }
+        for (Light* light : lightSystem->IterateObjects()) {
+            if (light->GetType() == Light::LightType::Directional) {
+                sunDirection = glm::normalize(-light->GlobalTransform().Forward());
+                sunColor = light->GetColor() * light->GetIntensity();
+                break;
             }
         }
     }

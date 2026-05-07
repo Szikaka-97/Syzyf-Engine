@@ -252,7 +252,7 @@ void LightSystem::OnPostRender() {
 	int shadowmapTexturesCount = 0;
 
 	int lightIndex = 0;
-	for (const auto& l : *GetAllObjects()) {
+	for (const auto& l : IterateObjects()) {
 		if (lightIndex >= MAX_NUM_LIGHTS) {
 			break;
 		}
@@ -283,7 +283,7 @@ void LightSystem::OnPostRender() {
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->lightsBuffer);
 
 	if (sizeDivisor > 0) {
-		for (const auto& l : *GetAllObjects()) {
+		for (const auto& l : IterateObjects()) {
 			if (lightIndex >= MAX_NUM_LIGHTS) {
 				break;
 			}
@@ -338,7 +338,7 @@ void LightSystem::OnPostRender() {
 
 		shadowMapIndex = 0;
 		lightIndex = 0;
-		for (const auto& l : *GetAllObjects()) {
+		for (const auto& l : IterateObjects()) {
 			if (lightIndex >= MAX_NUM_LIGHTS) {
 				break;
 			}

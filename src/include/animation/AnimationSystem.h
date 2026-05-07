@@ -1,6 +1,6 @@
 #pragma once
 
-#include "SceneComponent.h"
+#include "GameObjectSystem.h"
 #include "animation/AnimationComponent.h"
 
 class AnimationSystem : public GameObjectSystem<AnimationComponent> {

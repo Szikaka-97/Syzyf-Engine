@@ -75,7 +75,7 @@ void ReflectionProbeSystem::RecalculateSkyboxIBL() {
 }
 
 void ReflectionProbeSystem::InvalidateAll() {
-	for (ReflectionProbe* probe : *GetAllObjects()) {
+	for (ReflectionProbe* probe : IterateObjects(true)) {
 		probe->Regenerate();
 	}
 }
@@ -84,7 +84,7 @@ ReflectionProbe* ReflectionProbeSystem::GetClosestProbe(glm::vec3 position) {
 	ReflectionProbe* closest = nullptr;
 	float closestDistance = INFINITY;
 
-	for (ReflectionProbe* probe : *GetAllObjects()) {
+	for (ReflectionProbe* probe : IterateObjects()) {
 		if (probe->dirty || !probe->IsEnabled() || probe == this->skyboxProbe) {
 			continue;
 		}
@@ -124,7 +124,7 @@ void ReflectionProbeSystem::OnPostRender() {
 		return;
 	}
 
-	for (ReflectionProbe* probe : *GetAllObjects()) {
+	for (ReflectionProbe* probe : IterateObjects()) {
 		if (!probe->dirty || !probe->IsEnabled()) {
 			continue;
 		}

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <GameObjectSystem.h>
 #include "animation/SkeletonComponent.h"
 
 #include <glad/glad.h>
