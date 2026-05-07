@@ -1588,6 +1588,9 @@ void SceneGraphics::RenderPostprocess() {
 	Texture2D* frameDepth = dynamic_cast<Texture2D*>(GetMainFramebuffer()->GetDepthTexture());
 
 	for (auto* effect : *postProcess->GetAllObjects()) {
+        if (!effect->IsEnabled())
+            continue;
+
         PostProcessParams postProcessParams;
         postProcessParams.inputTexture = dynamic_cast<Texture2D*>(ping->GetColorTexture());
         postProcessParams.outputTexture = dynamic_cast<Texture2D*>(pong->GetColorTexture());
