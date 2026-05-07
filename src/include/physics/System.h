@@ -29,6 +29,13 @@ namespace Physics {
 
 class DebugRenderer;
 
+struct RayCastPayload {
+  bool hasHit = false;
+  SceneNode* node = nullptr;
+  glm::vec3 position{0.0f};
+  float fraction = 1.0f; // Distance along the ray
+};
+
 struct SystemSettings {
   JPH::uint maxBodies = 9024;
   JPH::uint numBodyMutexes = 0;
@@ -94,7 +101,7 @@ public:
 public:
   void OptimizeBroadPhase();
 
-  SceneNode* CastRay(
+  RayCastPayload CastRay(
     glm::vec3 origin,
     glm::vec3 direction,
     const JPH::BroadPhaseLayerFilter& broadPhaseLayerFilter = {},

@@ -159,7 +159,7 @@ bool Surface::IsPointBlocked(const glm::vec3& point) const {
     if (!physics) return false;
 
     glm::vec3 start = point + glm::vec3(0.0f, 0.1f, 0.0f);
-    SceneNode* hit = physics->CastRay(start, glm::vec3(0.0f, 1.0f, 0.0f) * 2.0f);
+    SceneNode* hit = physics->CastRay(start, glm::vec3(0.0f, 1.0f, 0.0f) * 2.0f).node;
     if (hit && hit->GetName() != "Floor")  
         return true;
     return false;

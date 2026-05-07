@@ -26,12 +26,9 @@
 #include <cmath>
 #include "AimingAid.h"
 #include "Jolt/Math/MathTypes.h"
-#include "Jolt/Math/Real.h"
 #include "Jolt/Math/Vec3.h"
 #include "Jolt/Physics/Body/BodyCreationSettings.h"
 #include "Jolt/Physics/Body/MotionType.h"
-#include "Jolt/Physics/Collision/Shape/Shape.h"
-#include "game_scripts/CameraSettings.h"
 #include "physics/Body.h"
 #include "physics/Helpers.h"
 #include "physics/System.h"

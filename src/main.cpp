@@ -291,7 +291,7 @@ public:
         {},
         {},
         bodyFilter
-      );
+      ).node;
 
       if (result) {
       //  spdlog::info("Raycast hit");

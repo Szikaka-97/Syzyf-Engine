@@ -4,7 +4,9 @@
 #include <algorithm>
 #include <cctype>
 #include <filesystem>
+#include <fstream>
 #include <imgui.h>
+#include <sstream>
 #include <stb_image.h>
 #include <stb_image_resize2.h>
 
@@ -54,9 +56,29 @@ void FilesPanel::Draw() {
 
     if (ImGui::BeginTable("FileBrowserGrid", columnCount)) {
         if (fs::exists(this->currentDirectory)) {
-            for (auto& directoryEntry :
-                 fs::directory_iterator(this->currentDirectory)) {
 
+            std::vector<fs::directory_entry> directoryEntries;
+            for (const auto& entry :
+                 fs::directory_iterator(this->currentDirectory)) {
+                directoryEntries.push_back(entry);
+            }
+
+            std::sort(
+                directoryEntries.begin(), directoryEntries.end(),
+                [](const fs::directory_entry& a, const fs::directory_entry& b) {
+                    bool aIsDir = a.is_directory();
+                    bool bIsDir = b.is_directory();
+
+                    if (aIsDir && !bIsDir)
+                        return true;
+                    if (!aIsDir && bIsDir)
+                        return false;
+
+                    return a.path().filename().string() <
+                           b.path().filename().string();
+                });
+
+            for (auto& directoryEntry : directoryEntries) {
                 const auto& path = directoryEntry.path();
                 std::string filenameString = path.filename().string();
 
@@ -116,6 +138,41 @@ void FilesPanel::Draw() {
                         this->currentDirectory /= path.filename();
                         ImGui::PopID();
                         break;
+                    } else {
+                        this->showPreviewPopup = true;
+                        this->previewFilePath = path.filename().string();
+
+                        std::string extension = path.extension().string();
+                        std::transform(extension.begin(), extension.end(),
+                                       extension.begin(), ::tolower);
+
+                        if (extension == ".png" || extension == ".jpg" ||
+                            extension == ".jpeg" || extension == ".bmp" ||
+                            extension == ".hdr") {
+                            this->previewTexture.reset(Texture2D::Load(
+                                path.string(), Texture::ColorTextureRGBA,
+                                false));
+                            this->previewTextContent.clear();
+                        } else if (extension == ".vert" ||
+                                   extension == ".frag" ||
+                                   extension == ".comp" ||
+                                   extension == ".geom" ||
+                                   extension == ".tess_eval" ||
+                                   extension == ".tess_ctrl" ||
+                                   extension == ".txt") {
+                            std::ifstream fileStream(path);
+                            if (fileStream.is_open()) {
+                                std::stringstream buffer;
+                                buffer << fileStream.rdbuf();
+                                this->previewTextContent = buffer.str();
+                            } else {
+                                this->previewTextContent =
+                                    "Failed to open the file.";
+                            }
+                        } else {
+                            this->previewTexture.reset();
+                            this->showPreviewPopup = false;
+                        }
                     }
                 }
 
@@ -146,7 +203,60 @@ void FilesPanel::Draw() {
         ImGui::EndTable();
     }
 
+    this->DrawPreviewPopup();
+
     ImGui::End();
+}
+
+void FilesPanel::DrawPreviewPopup() {
+    // Preview popup
+    if (this->showPreviewPopup) {
+        ImGui::OpenPopup("File Preview");
+        this->showPreviewPopup = false;
+    }
+
+    ImGui::SetNextWindowSize(ImVec2(600, 600), ImGuiCond_FirstUseEver);
+    if (ImGui::BeginPopupModal("File Preview", nullptr,
+                               ImGuiWindowFlags_NoSavedSettings)) {
+        ImGui::Text("Previewing: %s", this->previewFilePath.c_str());
+        ImGui::Separator();
+
+        if (this->previewTexture) {
+            ImVec2 availableSize = ImGui::GetContentRegionAvail();
+            availableSize.y -= 30;
+
+            float aspect =
+                static_cast<float>(this->previewTexture->GetWidth()) /
+                static_cast<float>(this->previewTexture->GetHeight());
+            ImVec2 imageSize =
+                ImVec2(availableSize.x, availableSize.x / aspect);
+            if (imageSize.y > availableSize.y) {
+                imageSize.y = availableSize.y;
+                imageSize.x = availableSize.y * aspect;
+            }
+
+            ImGui::Image(
+                (ImTextureID)(intptr_t)this->previewTexture->GetHandle(),
+                imageSize);
+        } else {
+            ImVec2 availableSize = ImGui::GetContentRegionAvail();
+            availableSize.y -= 30;
+
+            ImGui::InputTextMultiline("##source", &this->previewTextContent[0],
+                                      this->previewTextContent.size(),
+                                      availableSize,
+                                      ImGuiInputTextFlags_ReadOnly |
+                                          ImGuiInputTextFlags_AllowTabInput);
+        }
+
+        ImGui::Separator();
+        if (ImGui::Button("Close", ImVec2(120, 0))) {
+            ImGui::CloseCurrentPopup();
+            this->previewTexture.reset();
+            this->previewTextContent.clear();
+        }
+        ImGui::EndPopup();
+    }
 }
 
 Texture2D* FilesPanel::GetOrCreateThumbnail(const fs::path& path) {

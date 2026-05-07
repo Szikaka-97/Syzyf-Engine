@@ -111,7 +111,7 @@ bool EnemyBase::CanSeePlayer() const {
   Physics::LayerMaskFilter filter({}, false);
   filter.IgnoreBody(m_Body->GetBodyID());
 
-  SceneNode* hit = physics->CastRay(origin, dir * dist, {}, {}, filter);
+  SceneNode* hit = physics->CastRay(origin, dir * dist, {}, {}, filter).node;
   if (!hit) return true;
   return (glm::vec3(hit->GlobalTransform().Position()) == m_TargetPosition);
 }

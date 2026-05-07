@@ -32,4 +32,11 @@ bool CommandHistory::CanUndo() const { return this->currentIndex >= 0; }
 bool CommandHistory::CanRedo() const {
     return this->currentIndex < static_cast<int>(history.size()) - 1;
 }
+
+const std::vector<std::unique_ptr<ICommand>>&
+CommandHistory::GetHistorY() const {
+    return this->history;
+}
+
+int CommandHistory::GetCurrentIndex() const { return this->currentIndex; }
 } // namespace Editor

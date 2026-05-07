@@ -8,6 +8,7 @@
 #include "game_scripts/AimingAid.h"
 #include "game_scripts/ThrowBottle.h"
 
+#include "Noise3D.h"
 #include <AiNode.h>
 #include <Bloom.h>
 #include <Camera.h>
@@ -376,10 +377,26 @@ inline void InitScene(Scene& mainScene) {
     //     mirrorNode->GetObjectInChildren<MeshRenderer>()->GetNode(), false,
     //     JPH::EMotionType::Static, Physics::Layers::NON_MOVING);
 
+    FastNoiseLite noise;
+    noise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
+    noise.SetFractalType(FastNoiseLite::FractalType_FBm);
+    noise.SetFractalOctaves(4);
+    noise.SetFrequency(0.02f);
+    Texture3D* noiseTexture = Noise3D::Create3DNoiseTexture(noise, 128, true);
     SceneNode* fogVolume = mainScene.CreateNode("Fog Volume");
-    fogVolume->AddObject<FogVolume>();
-    fogVolume->GlobalTransform().Position() = {0.0f, 2.5f, 0.0f};
-    fogVolume->GlobalTransform().Scale() = {5.0f, 5.0f, 5.0f};
+    FogVolume* fogVolumeObject = fogVolume->AddObject<FogVolume>();
+    fogVolumeObject->scatteringColor = {0.0f, 0.8f, 0.1f};
+    fogVolumeObject->emissiveStrength = 5.0f;
+    fogVolumeObject->stepSize = 0.03f;
+    fogVolumeObject->scatteringDensity = 2.0f;
+    fogVolumeObject->absorptionDensity = 0.0f;
+    fogVolumeObject->noiseScale = 0.04f;
+    fogVolumeObject->windDirection = {0.001f, 0.04f, 0.0f};
+    fogVolumeObject->coverage = 0.4f;
+    fogVolumeObject->sharpness = 6.0f;
+    fogVolume->GlobalTransform().Position() = {0.0f, 0.6f, 3.0f};
+    fogVolume->GlobalTransform().Scale() = {20.0f, 1.0f, 20.0f};
+    fogVolumeObject->noiseTexture = noiseTexture;
 
     ShaderProgram* transparentProg =
         ShaderProgram::Build()
