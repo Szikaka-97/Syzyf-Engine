@@ -23,6 +23,8 @@ class TransformCommand : public ICommand {
     void Undo() override {
         this->target->LocalTransform() = this->oldLocalTransform;
     }
+
+    std::string GetName() const override { return "Transform"; }
 };
 
 class TranslateCommand : public ICommand {
@@ -43,6 +45,8 @@ class TranslateCommand : public ICommand {
     void Undo() override {
         this->target->GlobalTransform().Position() = this->oldPosition;
     }
+
+    std::string GetName() const override { return "Translate"; }
 };
 
 class RotateCommand : public ICommand {
@@ -63,6 +67,8 @@ class RotateCommand : public ICommand {
     void Undo() override {
         this->target->GlobalTransform().Rotation() = this->oldRotation;
     }
+
+    std::string GetName() const override { return "Rotate"; }
 };
 
 class ScaleCommand : public ICommand {
@@ -82,5 +88,7 @@ class ScaleCommand : public ICommand {
     void Undo() override {
         this->target->GlobalTransform().Scale() = this->oldScale;
     }
+
+    std::string GetName() const override { return "Scale"; }
 };
 } // namespace Editor

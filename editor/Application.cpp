@@ -247,6 +247,7 @@ void Application::DrawPanels(bool& shouldClose) {
     this->mainMenuBar.Draw(this->context, shouldClose, this->settings);
     this->graphPanel.Draw(this->context);
     this->systemsDebugPanel.Draw(this->context);
+    this->commandHistoryPanel.Draw(this->context);
     this->inspectorPanel.Draw(this->context);
     this->filesPanel.Draw();
     this->consolePanel.Draw(this->context);

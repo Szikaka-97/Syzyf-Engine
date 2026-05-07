@@ -2,6 +2,7 @@
 
 #include "CommandHistory.h"
 #include "Settings.h"
+#include "panels/CommandHistoryPanel.h"
 #include "panels/ConsolePanel.h"
 #include "panels/FilesPanel.h"
 #include "panels/GraphPanel.h"
@@ -61,6 +62,7 @@ class Application {
     GraphPanel graphPanel;
     SceneViewPanel sceneViewPanel;
     SystemsDebugPanel systemsDebugPanel; // Rename
+    CommandHistoryPanel commandHistoryPanel;
     StatusBar statusBar;
 
   public:

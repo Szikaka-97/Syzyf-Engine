@@ -78,6 +78,29 @@ void GraphPanel::DrawGraphNode(Context& context, SceneNode& node) {
     bool nodeOpen = ImGui::TreeNodeEx((void*)(intptr_t)node.GetID(), flags,
                                       "%s", treeHeader.c_str());
 
+    // Reparenting
+    if (ImGui::BeginDragDropSource()) {
+        SceneNode* nodePtr = &node;
+        ImGui::SetDragDropPayload("GRAPH_SCENE_NODE", &nodePtr,
+                                  sizeof(SceneNode*));
+        ImGui::Text("Move %s", treeHeader.c_str());
+        ImGui::EndDragDropSource();
+    }
+    if (ImGui::BeginDragDropTarget()) {
+        if (const ImGuiPayload* payload =
+                ImGui::AcceptDragDropPayload("GRAPH_SCENE_NODE")) {
+            SceneNode* droppedNode = *(SceneNode**)payload->Data;
+
+            // TODO
+            // fix when setting a parent works
+            if (droppedNode != &node && !node.IsChildOf(droppedNode)) {
+                droppedNode->SetParent(&node);
+            } else {
+            }
+        }
+        ImGui::EndDragDropTarget();
+    }
+
     if ((ImGui::IsItemClicked(ImGuiMouseButton_Left) ||
          ImGui::IsItemClicked(ImGuiMouseButton_Right)) &&
         !ImGui::IsItemToggledOpen()) {
@@ -133,6 +156,10 @@ void GraphPanel::DrawContextMenu(Context& context) {
         if (context.selectedNode != nullptr) {
             if (ImGui::MenuItem("Rename Node")) {
                 drawRenamePopup = true;
+            }
+            if (ImGui::MenuItem("Delete Node")) {
+                // TODO
+                // add when deleting works
             }
         }
         ImGui::EndPopup();

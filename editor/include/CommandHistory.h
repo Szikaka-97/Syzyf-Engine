@@ -9,6 +9,8 @@ class ICommand {
     virtual ~ICommand() = default;
     virtual void Execute() = 0;
     virtual void Undo() = 0;
+
+    virtual std::string GetName() const = 0;
 };
 
 class CommandHistory {
@@ -24,5 +26,8 @@ class CommandHistory {
 
     bool CanUndo() const;
     bool CanRedo() const;
+
+    const std::vector<std::unique_ptr<ICommand>>& GetHistorY() const;
+    int GetCurrentIndex() const;
 };
 } // namespace Editor

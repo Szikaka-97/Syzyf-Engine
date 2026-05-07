@@ -321,10 +321,13 @@ class PhysicsMover : public GameObject,
             bodyFilter.IgnoreBody(this->character->GetBodyID());
             bodyFilter.IgnoreBody(this->floorId);
 
-            SceneNode* result = physics->CastRay(
-                this->cameraNode->GlobalTransform().Position(),
-                this->cameraNode->GlobalTransform().Forward() * 100.0f, {}, {},
-                bodyFilter);
+            SceneNode* result =
+                physics
+                    ->CastRay(this->cameraNode->GlobalTransform().Position(),
+                              this->cameraNode->GlobalTransform().Forward() *
+                                  100.0f,
+                              {}, {}, bodyFilter)
+                    .node;
 
             if (result) {
                 if (auto* object = result->GetObject<Physics::Body>()) {

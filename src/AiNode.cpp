@@ -16,7 +16,6 @@
 #include <algorithm>
 #include <limits>
 #include <functional>
-#include <map>
 #include <MeshRenderer.h>
 #include "astar/NavigationGrid.h"
 
@@ -26,9 +25,6 @@
 #include <Jolt/Physics/Collision/RayCast.h>
 #include <Jolt/Physics/Body/BodyFilter.h>
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
-#include "Jolt/Physics/Body/BodyID.h"
-#include "Jolt/Physics/Collision/Shape/CapsuleShape.h"
-#include "physics/CharacterController.h"
 #include "physics/ICollisionReceiver.h"
 #include "physics/System.h"
 #include "physics/DebugRenderer.h"

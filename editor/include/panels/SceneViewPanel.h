@@ -22,6 +22,9 @@ class SceneViewPanel {
         }
     };
 
+    bool isFullscreen = false;
+    bool isBarHidden = false;
+
     bool wasViewGuizmoUsed = false;
     bool isGizmoLocal = false;
     glm::mat4 initialGlobalTransform;
