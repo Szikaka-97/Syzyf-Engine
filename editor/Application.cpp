@@ -222,6 +222,8 @@ void Application::MainLoop() {
 
         this->DrawPanels(shouldClose);
 
+        this->context.selectedScene->FlushQueues();
+
         ImGui::Render();
         ImGuiIO& io = ImGui::GetIO();
         glViewport(0, 0, (int)io.DisplaySize.x, (int)io.DisplaySize.y);

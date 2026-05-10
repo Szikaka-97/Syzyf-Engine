@@ -276,3 +276,15 @@ void AnimationSystem::OnPreUpdate() {
     }
   }
 };
+
+void AnimationSystem::UnregisterObjectForced(GameObject* obj) {
+  //TODO: Make it a bit more efficient
+
+  for (auto* object : IterateObjects()) {
+    for (auto& animation : object->animations) {
+      std::erase_if(animation.data.tracks, [obj](auto track) -> bool {
+        return track.target = obj->GetNode();
+      });
+    }
+  }
+}

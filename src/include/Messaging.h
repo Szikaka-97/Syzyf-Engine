@@ -2,14 +2,13 @@
 
 #include <vector>
 #include <concepts>
-#include <unordered_map>
 #include <assert.h>
 
 #define DEFINE_MESSAGE(MessageName) \
 template<class T> \
 concept MessageName##Receiver = requires (T a) { \
 	{ a.MessageName() } -> std::same_as<void>; \
-} && std::derived_from<T, MessageReceiver>;\
+} && std::derived_from<T, GameObject>;\
 \
 namespace Message { \
 	struct MessageName : public MessageTag { constexpr static int id = LOCAL_COUNTER; }; \
@@ -17,29 +16,29 @@ namespace Message { \
 
 #define DEFINE_MESSAGE_CREATOR(MessageName) \
 template<class T> \
-	requires std::derived_from<T, MessageReceiver> \
+	requires std::derived_from<T, GameObject> \
 inline void Add##MessageName(MessageNode* node, T* object) { } \
 template<class T> \
-	requires std::derived_from<T, MessageReceiver> && MessageName##Receiver<T> \
+	requires std::derived_from<T, GameObject> && MessageName##Receiver<T> \
 inline void Add##MessageName(MessageNode* node, T* object) { \
 	AddMessageReceiverInternal(node, { object, reinterpret_cast<MessageHandle>(&T::MessageName) }, Message::MessageName::id); \
 } \
 
-class MessageReceiver {
-public: virtual ~MessageReceiver() = default;
-};
+class GameObject;
+
 class MessageTag { };
 
 enum { COUNTER_BASE = __COUNTER__ };
 
 #define LOCAL_COUNTER (__COUNTER__ - COUNTER_BASE)
 
-typedef void (MessageReceiver::*MessageHandle)();
+typedef void (GameObject::*MessageHandle)();
 
 class SceneNode;
 class Scene;
 
 DEFINE_MESSAGE(Update);
+DEFINE_MESSAGE(FixedUpdate);
 DEFINE_MESSAGE(Render);
 DEFINE_MESSAGE(DrawGizmos);
 DEFINE_MESSAGE(OnEnable);
@@ -47,14 +46,14 @@ DEFINE_MESSAGE(OnDisable);
 DEFINE_MESSAGE(Awake);
 
 struct Messenger {
-	MessageReceiver* receiver;
+	GameObject* receiver;
 	MessageHandle message;
 
 	void Call();
 };
 
 class MessageTree {
-private:
+public:
 	struct MessageNode {
 		MessageNode* parent;
 		int type;
@@ -71,24 +70,24 @@ private:
 
 	MessageNode* root;
 
-	std::unordered_map<int, MessageNode*> quickLookup;
-
 	bool TryFindNode(SceneNode* sceneNode, MessageNode** result);
+	bool TryFindObjectNode(GameObject* obj, MessageNode** result);
 
 	void PropagateMessageInternal(SceneNode* startNode, int messageId);
 	
-	void SendMessageInternal(MessageReceiver* obj, SceneNode* owner, int messageId);
+	void SendMessageInternal(GameObject* obj, int messageId);
 
 	void RemoveNode(MessageNode* node);
 
 	void AddMessageReceiverInternal(MessageNode* node, Messenger msg, int type);
 
 	DEFINE_MESSAGE_CREATOR(Update);
+	DEFINE_MESSAGE_CREATOR(FixedUpdate);
 	DEFINE_MESSAGE_CREATOR(Render);
 	DEFINE_MESSAGE_CREATOR(DrawGizmos);
 	DEFINE_MESSAGE_CREATOR(OnEnable);
 	DEFINE_MESSAGE_CREATOR(OnDisable);
-  DEFINE_MESSAGE_CREATOR(Awake);
+	DEFINE_MESSAGE_CREATOR(Awake);
 public:
 	MessageTree();
 	~MessageTree();
@@ -99,7 +98,7 @@ public:
 
 	template<typename T>
 		requires std::derived_from<T, MessageTag>
-	void MessageObject(MessageReceiver* obj, SceneNode* owner);
+	void MessageObject(GameObject* obj);
 
 	void AddNode(SceneNode* node);
 
@@ -108,12 +107,10 @@ public:
 	void MoveNode(SceneNode* node, SceneNode* newParent);
 
 	template<typename T>
-		requires std::derived_from<T, MessageReceiver>
-	void AddMessageReceiver(T* obj, SceneNode* owner);
+		requires std::derived_from<T, GameObject>
+	void AddMessageReceiver(T* obj);
 
-	void RemoveMessageReceiver(MessageReceiver* obj, SceneNode* owner);
-
-	void SwapNode(SceneNode* current, SceneNode* changed);
+	void RemoveMessageReceiver(GameObject* obj);
 };
 
 template<typename TMessage>
@@ -124,26 +121,26 @@ void MessageTree::PropagateMessage(SceneNode* startNode) {
 
 template<typename TMessage>
 		requires std::derived_from<TMessage, MessageTag>
-void MessageTree::MessageObject(MessageReceiver* obj, SceneNode* owner) {
-	SendMessageInternal(obj, owner, TMessage::id);
+void MessageTree::MessageObject(GameObject* obj) {
+	SendMessageInternal(obj, TMessage::id);
 }
 
 template<typename T>
-	requires std::derived_from<T, MessageReceiver>
-void MessageTree::AddMessageReceiver(T* obj, SceneNode* owner) {
+	requires std::derived_from<T, GameObject>
+void MessageTree::AddMessageReceiver(T* obj) {
 	assert(obj != nullptr);
-	assert(owner != nullptr);
 
 	MessageNode* ownerNode = nullptr;
 
-	if (!TryFindNode(owner, &ownerNode)) {
+	if (!TryFindObjectNode(obj, &ownerNode)) {
 		return;
 	}
 
 	AddUpdate(ownerNode, obj);
+	AddFixedUpdate(ownerNode, obj);
 	AddRender(ownerNode, obj);
 	AddDrawGizmos(ownerNode, obj);
 	AddOnEnable(ownerNode, obj);
 	AddOnDisable(ownerNode, obj);
-  AddAwake(ownerNode, obj);
+	AddAwake(ownerNode, obj);
 }

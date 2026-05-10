@@ -9,9 +9,8 @@
 
 
 #include <Scene.h>
-#include <Messaging.h>
 
-class GameObject : public MessageReceiver {
+class GameObject {
 	friend class Scene;
 private:
 	int id;

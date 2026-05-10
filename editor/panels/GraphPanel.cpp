@@ -158,8 +158,9 @@ void GraphPanel::DrawContextMenu(Context& context) {
                 drawRenamePopup = true;
             }
             if (ImGui::MenuItem("Delete Node")) {
-                // TODO
-                // add when deleting works
+                delete context.selectedNode;
+
+                context.selectedNode = nullptr;
             }
         }
         ImGui::EndPopup();
