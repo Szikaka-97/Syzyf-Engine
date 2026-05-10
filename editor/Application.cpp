@@ -4,11 +4,13 @@
 #include "MousePickingBodySystem.h"
 #include "Themes.h"
 #include "panels/ConsolePanel.h"
+
 #include "scenes/DungeonGeneratorScene.h"
 #include "scenes/TestScene.h"
-
 #include "scenes/LevelShowcaseScene.h"
 #include "scenes/TestScene.h"
+#include "scenes/CraftingScene.h"
+
 #include "thirdparty/ImGuizmo.h"
 #include "thirdparty/ImViewGuizmo.h"
 #include <imgui.h>
@@ -179,6 +181,11 @@ void Application::MainLoop() {
     this->context.selectedScene = Scene::CreateStandaloneScene();
     this->context.loadedScenes.push_back(this->context.selectedScene);
     TestScene::InitScene(*this->context.selectedScene);
+
+    Scene* craftingScene = Scene::CreateStandaloneScene();
+    this->context.loadedScenes.push_back(craftingScene);
+    this->context.selectedScene = craftingScene;
+    CraftingScene::InitScene(*craftingScene);
 
     // Scene* dungeonScene = Scene::CreateStandaloneScene();
     // DungeonGeneratorScene::InitScene(*dungeonScene);
