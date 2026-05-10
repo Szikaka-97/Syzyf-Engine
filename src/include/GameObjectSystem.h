@@ -90,8 +90,8 @@ public:
 	public:
 		ForLoop(GameObjectSystem<T_GO>* source, bool includeInactive):
 		source(source),
-		guard(&source->objects[source->objects.size()], &guard, includeInactive),
-		current(&source->objects[0], &guard, includeInactive),
+		guard(source->objects.data() + source->objects.size(), &guard, includeInactive),
+		current(source->objects.data(), &guard, includeInactive),
 		includeInactive(includeInactive) { }
 
 		iterator begin();
