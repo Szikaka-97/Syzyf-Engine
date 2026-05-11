@@ -84,7 +84,7 @@ void MessageTree::PropagateMessageInternal(SceneNode* startNode, int messageId) 
 		MessageNode* top = nodeStack.top();
 		nodeStack.pop();
 
-		if (!top->content.node->IsEnabled()) {
+		if (!top->content.node->EnabledSelf()) {
 			continue;
 		}
 
@@ -100,6 +100,7 @@ void MessageTree::PropagateMessageInternal(SceneNode* startNode, int messageId) 
 
 	while (!messengers.empty()) {
 		messengers.top().Call();
+		
 		messengers.pop();
 	}
 }

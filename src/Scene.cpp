@@ -17,7 +17,7 @@ SceneNode::SceneNode(Scene* scene)
       transform(),
       children(),
       parent(nullptr),
-      enabled(true),
+      disabledState(0),
       layer(Layer::Default),
       name("") {
     this->transform.parent = this;
@@ -102,15 +102,19 @@ Scene* SceneNode::GetScene() {
 }
 
 bool SceneNode::IsEnabled() const {
-    return this->enabled;
+    return this->disabledState == 0;
+}
+
+bool SceneNode::EnabledSelf() const {
+    return (this->disabledState & 1) == 0;
 }
 void SceneNode::SetEnabled(bool value) {
-    if (this->enabled != value) {
-        this->enabled = true;
+    if ((this->disabledState & 1) == value) {
+        this->disabledState &= 2;
 
         GetScene()->SetNodeEnabledInternal(this, value);
 
-        this->enabled = value;
+        this->disabledState |= !value;
     }
 }
 
@@ -263,11 +267,32 @@ void Scene::DeleteNodeInternal(SceneNode* node) {
     }
 }
 
+void Scene::SetNodeEnabledInTreeInternal(SceneNode* node, bool enabled) {
+    if (enabled) {
+        node->disabledState &= 1;
+    }
+    else {
+        node->disabledState |= 2;
+    }
+
+    if (!node->EnabledSelf()) {
+        return;
+    }
+
+    for (auto child : node->children) {
+        SetNodeEnabledInTreeInternal(child, enabled);
+    }
+}
+
 void Scene::SetNodeEnabledInternal(SceneNode* node, bool enabled) {
     if (enabled) {
         this->messageTree.PropagateMessage<Message::OnEnable>(node);
     } else {
         this->messageTree.PropagateMessage<Message::OnDisable>(node);
+    }
+
+    for (auto child : node->children) {
+        SetNodeEnabledInTreeInternal(child, enabled);
     }
 }
 

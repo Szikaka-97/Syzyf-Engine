@@ -30,7 +30,7 @@ private:
 	int id;
 	std::string name;
 
-	uint8_t enabled;
+	uint8_t disabledState;
 	uint8_t layer;
 
 	Scene* const scene;
@@ -58,6 +58,8 @@ public:
 	Scene* GetScene();
 
 	bool IsEnabled() const;
+
+	bool EnabledSelf() const;
 	void SetEnabled(bool value);
 
 	const std::vector<SceneNode*> GetChildren();
@@ -134,6 +136,7 @@ public:
 	void SetNodeEnabledInternal(SceneNode* node, bool enabled);
 	void SetGameObjectEnabledInternal(GameObject* obj, bool enabled);
 	void ChangeNodeParentInternal(SceneNode* node, SceneNode* newParent);
+	void SetNodeEnabledInTreeInternal(SceneNode* node, bool enabled);
 
 	void AddObjectToSystems(GameObject* obj);
 public:
