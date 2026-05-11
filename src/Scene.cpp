@@ -145,9 +145,13 @@ void SceneNode::SetParent(SceneNode* newParent) {
 }
 
 bool SceneNode::IsChildOf(const SceneNode* node) {
+    if (this->GetScene()->GetRootNode() == this) {
+        return false;
+    }
     if (this->parent == node) {
         return true;
     }
+
     return this->parent->IsChildOf(node);
 }
 

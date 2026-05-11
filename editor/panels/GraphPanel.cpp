@@ -91,11 +91,9 @@ void GraphPanel::DrawGraphNode(Context& context, SceneNode& node) {
                 ImGui::AcceptDragDropPayload("GRAPH_SCENE_NODE")) {
             SceneNode* droppedNode = *(SceneNode**)payload->Data;
 
-            // TODO
-            // fix when setting a parent works
-            if (droppedNode != &node && !node.IsChildOf(droppedNode)) {
+            if (droppedNode != droppedNode->GetScene()->GetRootNode() &&
+                !node.IsChildOf(droppedNode)) {
                 droppedNode->SetParent(&node);
-            } else {
             }
         }
         ImGui::EndDragDropTarget();
