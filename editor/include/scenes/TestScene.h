@@ -1,12 +1,9 @@
 #pragma once
 
-#include "DepthOfField.h"
-#include "EasingFunctions.h"
 #include "GltfImporter.h"
 #include "LightSystem.h"
 #include "fog/Fog.h"
 #include "game_scripts/AimingAid.h"
-#include "game_scripts/ThrowBottle.h"
 
 #include "Noise3D.h"
 #include <AiNode.h>
@@ -46,6 +43,8 @@
 #include <physics/System.h>
 #include <physics/Water.h>
 #include <scatter/Spawner.h>
+#include <ui/UiInteractable.h>
+#include <ui/UiInteractableSystem.h>
 #include <ui/UiLayout.h>
 #include <ui/UiLayoutSystem.h>
 #include <ui/UiVisual.h>
@@ -170,6 +169,7 @@ inline void InitScene(Scene& mainScene) {
     mainScene.AddComponent<DebugInspector>();
     mainScene.AddComponent<UiLayoutSystem>();
     mainScene.AddComponent<UiRenderSystem>();
+    mainScene.AddComponent<UiInteractableSystem>();
     mainScene.AddComponent<AnimationSystem>();
     auto* tweenSystem = mainScene.AddComponent<TweenSystem>();
 
@@ -377,26 +377,26 @@ inline void InitScene(Scene& mainScene) {
     //     mirrorNode->GetObjectInChildren<MeshRenderer>()->GetNode(), false,
     //     JPH::EMotionType::Static, Physics::Layers::NON_MOVING);
 
-    FastNoiseLite noise;
-    noise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
-    noise.SetFractalType(FastNoiseLite::FractalType_FBm);
-    noise.SetFractalOctaves(4);
-    noise.SetFrequency(0.02f);
-    Texture3D* noiseTexture = Noise3D::Create3DNoiseTexture(noise, 128, true);
-    SceneNode* fogVolume = mainScene.CreateNode("Fog Volume");
-    FogVolume* fogVolumeObject = fogVolume->AddObject<FogVolume>();
-    fogVolumeObject->scatteringColor = {0.0f, 0.8f, 0.1f};
-    fogVolumeObject->emissiveStrength = 5.0f;
-    fogVolumeObject->stepSize = 0.03f;
-    fogVolumeObject->scatteringDensity = 2.0f;
-    fogVolumeObject->absorptionDensity = 0.0f;
-    fogVolumeObject->noiseScale = 0.04f;
-    fogVolumeObject->windDirection = {0.001f, 0.04f, 0.0f};
-    fogVolumeObject->coverage = 0.4f;
-    fogVolumeObject->sharpness = 6.0f;
-    fogVolume->GlobalTransform().Position() = {0.0f, 0.6f, 3.0f};
-    fogVolume->GlobalTransform().Scale() = {20.0f, 1.0f, 20.0f};
-    fogVolumeObject->noiseTexture = noiseTexture;
+    // FastNoiseLite noise;
+    // noise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
+    // noise.SetFractalType(FastNoiseLite::FractalType_FBm);
+    // noise.SetFractalOctaves(4);
+    // noise.SetFrequency(0.02f);
+    // Texture3D* noiseTexture = Noise3D::Create3DNoiseTexture(noise, 128,
+    // true); SceneNode* fogVolume = mainScene.CreateNode("Fog Volume");
+    // FogVolume* fogVolumeObject = fogVolume->AddObject<FogVolume>();
+    // fogVolumeObject->scatteringColor = {0.0f, 0.8f, 0.1f};
+    // fogVolumeObject->emissiveStrength = 5.0f;
+    // fogVolumeObject->stepSize = 0.03f;
+    // fogVolumeObject->scatteringDensity = 2.0f;
+    // fogVolumeObject->absorptionDensity = 0.0f;
+    // fogVolumeObject->noiseScale = 0.04f;
+    // fogVolumeObject->windDirection = {0.001f, 0.04f, 0.0f};
+    // fogVolumeObject->coverage = 0.4f;
+    // fogVolumeObject->sharpness = 6.0f;
+    // fogVolume->GlobalTransform().Position() = {0.0f, 0.6f, 3.0f};
+    // fogVolume->GlobalTransform().Scale() = {20.0f, 1.0f, 20.0f};
+    // fogVolumeObject->noiseTexture = noiseTexture;
 
     ShaderProgram* transparentProg =
         ShaderProgram::Build()
@@ -513,10 +513,14 @@ inline void InitScene(Scene& mainScene) {
 
     SceneNode* uiNode = mainScene.CreateNode("Ui Node");
     uiNode->AddObject<UiLayout>(glm::uvec2(200, 200), glm::uvec2(0, 0));
-    uiNode->AddObject<UiVisual>(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-                                mainScene.Resources()->Get<Texture2D>(
-                                    "./res/textures/1147437805040054272.png",
-                                    Texture2D::ColorTextureRGBA));
+    auto* uiVisual = uiNode->AddObject<UiVisual>(
+        glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+        mainScene.Resources()->Get<Texture2D>(
+            "./res/textures/1147437805040054272.png",
+            Texture2D::ColorTextureRGBA));
+    uiVisual->colorHovered = {1.0f, 0.0f, 0.0f, 1.0f};
+    uiVisual->colorClicked = {0.0f, 1.0f, 0.0f, 1.0f};
+    uiNode->AddObject<UiInteractable>();
 
     return;
 }

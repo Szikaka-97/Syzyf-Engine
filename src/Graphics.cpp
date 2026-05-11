@@ -515,7 +515,6 @@ void SceneGraphics::EnqueueVolumetric(const RenderNode& node) {
 
 void SceneGraphics::EnqueueUi(const UiRenderNode& node) {
     this->uiRenders.push_back(node);
-    std::sort(this->uiRenders.begin(), this->uiRenders.end());
 }
 
 void SceneGraphics::RenderPrepass(const RenderParams& params, Framebuffer* target) {
@@ -1634,6 +1633,8 @@ void SceneGraphics::RenderUi(const RenderParams& params, Framebuffer* target) {
 }
 
 void SceneGraphics::RenderUi(const ShaderGlobalUniforms& uniforms, const RenderParams& params, Framebuffer* target) {
+    std::sort(this->uiRenders.begin(), this->uiRenders.end());
+
     target->SetColorAttachmentEnabled(true);
     glBindFramebuffer(GL_FRAMEBUFFER, target->GetHandle());
 
