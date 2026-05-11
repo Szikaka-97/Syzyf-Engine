@@ -130,6 +130,8 @@ currentUniforms() {
 	this->volumetricPassFramebuffer = new Framebuffer(Framebuffer::Attachment::None, 0, 0);
 	this->volumetricPassFramebuffer->CreateColorAttachment(true, false);
 
+    this->uiQuadMesh = this->GetScene()->Resources()->Get<Mesh>("./res/models/uiQuad.obj");
+
     this->SetupShaders();
     this->GenerateSSAOKernelAndTexture();
 
@@ -413,6 +415,16 @@ void SceneGraphics::DrawMeshIndirect(const Mesh* mesh, int subMeshIndex, const M
 	EnqueueOpaque(node); 
 }
 
+void SceneGraphics::DrawUi(const glm::vec4& finalRectangle, int zIndex, const glm::vec4& color, Texture2D* texture) {
+    UiRenderNode node;
+    node.finalRectangle = finalRectangle;
+    node.zIndex = zIndex;
+    node.color = color;
+    node.texture = texture;
+
+    EnqueueUi(node);
+}
+
 void SceneGraphics::Render() {
 	std::sort(GetAllObjects()->begin(), GetAllObjects()->end(), [](auto a, auto b) -> bool {
 		return a->GetPriority() > b->GetPriority();
@@ -448,7 +460,7 @@ void SceneGraphics::Render() {
 	glViewport(0, 0, this->mainViewport->GetSize().x, this->mainViewport->GetSize().y);
 
 	RenderCamera(this->mainCamera, this->mainViewport, RenderParams {
-		RenderPassType::PostProcessing,
+		(RenderPassType)(RenderPassType::PostProcessing | RenderPassType::UI),
 		glm::vec4(
 			0,
 			0,
@@ -464,6 +476,7 @@ void SceneGraphics::Render() {
 	this->oitTransparentRenders.clear();
 	this->gizmoRenders.clear();
 	this->volumetricRenders.clear();
+    this->uiRenders.clear();
 }
 
 void SceneGraphics::EnqueueOpaque(const RenderNode& node) {
@@ -498,6 +511,11 @@ void SceneGraphics::EnqueueAdditive(const RenderNode& node) {
 }
 void SceneGraphics::EnqueueVolumetric(const RenderNode& node) {
 	this->volumetricRenders.push_back(node);
+}
+
+void SceneGraphics::EnqueueUi(const UiRenderNode& node) {
+    this->uiRenders.push_back(node);
+    std::sort(this->uiRenders.begin(), this->uiRenders.end());
 }
 
 void SceneGraphics::RenderPrepass(const RenderParams& params, Framebuffer* target) {
@@ -1611,6 +1629,65 @@ void SceneGraphics::RenderPostprocess() {
 	}
 }
 
+void SceneGraphics::RenderUi(const RenderParams& params, Framebuffer* target) {
+    RenderUi(this->currentUniforms, params, target);
+}
+
+void SceneGraphics::RenderUi(const ShaderGlobalUniforms& uniforms, const RenderParams& params, Framebuffer* target) {
+    target->SetColorAttachmentEnabled(true);
+    glBindFramebuffer(GL_FRAMEBUFFER, target->GetHandle());
+
+    glViewport(params.viewport.x, params.viewport.y, params.viewport.z, params.viewport.w);
+
+    glDisable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    glDisable(GL_CULL_FACE);
+
+    GLuint shaderHandle = this->shaders.uiShader->GetHandle();
+    glUseProgram(shaderHandle);
+
+    glm::mat4 projection = glm::ortho(0.0f, params.viewport.z, params.viewport.w, 0.0f, -1.0f, 1.0f);
+
+    glBindVertexArray(this->uiQuadMesh->SubMeshAt(0).GetVertexArrayHandle());
+
+    int modelLocation = glGetUniformLocation(shaderHandle, "model");
+    int projectionLocation = glGetUniformLocation(shaderHandle, "projection");
+    int colorLocation = glGetUniformLocation(shaderHandle, "color");
+    int hasTextureLocation = glGetUniformLocation(shaderHandle, "hasTexture");
+    int textureLocation = glGetUniformLocation(shaderHandle, "tex");
+
+    glUniformMatrix4fv(projectionLocation, 1, GL_FALSE, &projection[0][0]);
+
+    for (const auto& render : this->uiRenders) {
+        glm::mat4 model = glm::mat4(1.0f);
+
+        model = glm::translate(model, glm::vec3(render.finalRectangle.x, render.finalRectangle.y, 0.0f));
+        model = glm::scale(model, glm::vec3(render.finalRectangle.z, render.finalRectangle.w, 1.0f));
+
+        glUniformMatrix4fv(modelLocation, 1, GL_FALSE, &model[0][0]);
+        glUniform4fv(colorLocation, 1, &render.color[0]);
+
+        if (render.texture) {
+            glUniform1i(hasTextureLocation, 1);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, render.texture->GetHandle());
+            glUniform1i(textureLocation, 0);
+        } else {
+            glUniform1i(hasTextureLocation, 0);
+        }
+
+        glDrawElements(GL_TRIANGLES, this->uiQuadMesh->SubMeshAt(0).GetVertexCount(), GL_UNSIGNED_INT, nullptr);
+    }
+
+    glBindVertexArray(0);
+    glUseProgram(0);
+    glEnable(GL_DEPTH_TEST);
+    glDisable(GL_BLEND);
+    glEnable(GL_CULL_FACE);
+}
+
 void SceneGraphics::RenderCamera(Camera* camera, Viewport* renderTarget) {
 	assert(camera != nullptr);
 
@@ -1720,6 +1797,11 @@ void SceneGraphics::RenderCamera(Camera* camera, Viewport* renderTarget, const R
 	if ((params.pass & RenderPassType::PostProcessing) == RenderPassType::PostProcessing) {
 		RenderPostprocess();
 	}
+
+    if ((params.pass & RenderPassType::UI) == RenderPassType::UI) {
+        activeParams.pass = RenderPassType(RenderPassType::UI);
+        RenderUi(activeParams, renderTarget->GetFramebuffer());
+    }
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
@@ -1891,5 +1973,11 @@ void SceneGraphics::SetupShaders() {
     this->shaders.ssaoBlurShader = ShaderProgram::Build()
         .WithVertexShader("./res/shaders/ssao/ssao.vert")
         .WithPixelShader("./res/shaders/ssao/ssao_blur.frag")
+        .Link();
+
+    // UI
+    this->shaders.uiShader = ShaderProgram::Build()
+        .WithVertexShader("./res/shaders/ui/ui.vert")
+        .WithPixelShader("./res/shaders/ui/ui.frag")
         .Link();
 }

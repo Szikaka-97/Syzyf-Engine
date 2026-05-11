@@ -41,6 +41,7 @@ enum class RenderPassType {
 	Additive = 64,
 	Volumetric = 128,
     SSAO = 256,
+    UI = 512,
 };
 
 struct RenderParams {
@@ -65,6 +66,7 @@ public:
         float resolutionScale = 1.0f;
     };
 private:
+    // this should all be using unique ptrs
     struct Shaders {
         // Depth
         ShaderProgram* depthOnlyShader;
@@ -80,6 +82,8 @@ private:
         // SSAO 
         ShaderProgram* ssaoShader;
         ShaderProgram* ssaoBlurShader;
+
+        ShaderProgram* uiShader;
     };
 
 	struct RenderNode {
@@ -106,12 +110,24 @@ private:
 		bool operator<(const RenderNode& other) const;
 	};
 
+    struct UiRenderNode {
+        glm::vec4 finalRectangle{0.0f};
+        int zIndex = 0;
+        glm::vec4 color{1.0f};
+        Texture2D* texture = nullptr;
+
+        bool operator<(const UiRenderNode& other) const {
+            return zIndex < other.zIndex;
+        }
+    };
+
 	std::vector<RenderNode> opaqueRenders;
 	std::vector<RenderNode> gizmoRenders;
 	std::vector<RenderNode> transparentRenders;
 	std::vector<RenderNode> oitTransparentRenders;
 	std::vector<RenderNode> additiveRenders;
 	std::vector<RenderNode> volumetricRenders;
+    std::vector<UiRenderNode> uiRenders;
 	GLuint globalUniformsBuffer;
 	GLuint objectUniformsBuffer;
 	
@@ -138,6 +154,8 @@ private:
 
     float volumetricPassResolutionScale = 1.0f;
 
+    Mesh* uiQuadMesh;
+
 	void RenderFullscreenFrameQuad();
 	void CompositeTransparentPass();
 	void CompositeVolumetricPass();
@@ -152,6 +170,7 @@ private:
 	void EnqueueOITransparent(const RenderNode& node);
 	void EnqueueAdditive(const RenderNode& node);
 	void EnqueueVolumetric(const RenderNode& node);
+    void EnqueueUi(const UiRenderNode& node);
 
 	void BindMaterialProperties(Material* mat);
 
@@ -184,6 +203,8 @@ public:
     void DrawMeshInstanced(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, unsigned int instanceCount, const BoundingBox& bounds, GLuint instanceSSBO = 0, uint8_t layer = Layer::Default);
 
     void DrawMeshIndirect(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, GLuint indirectBuffer, GLuint indirectBufferOffset, GLuint instanceSSBO, const BoundingBox& bounds, uint8_t layer = Layer::Default);
+
+    void DrawUi(const glm::vec4& finalRectangle, int zIndex, const glm::vec4& color, Texture2D* texture = nullptr);
 
 	void DrawGizmoMesh(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, bool ignoresDepth = false);
 	
@@ -220,6 +241,10 @@ public:
 	
 	void RenderVolumetric(const RenderParams& params, Framebuffer* target);
 	void RenderVolumetric(const ShaderGlobalUniforms& uniforms, const RenderParams& params, Framebuffer* target);
+
+    void RenderUi(const RenderParams& params, Framebuffer* target);
+
+    void RenderUi(const ShaderGlobalUniforms& uniforms, const RenderParams& params, Framebuffer* target);
 
 	virtual void OnPostRender();
 
