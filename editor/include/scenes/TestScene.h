@@ -522,6 +522,14 @@ inline void InitScene(Scene& mainScene) {
     uiVisual->colorClicked = {0.0f, 1.0f, 0.0f, 1.0f};
     uiNode->AddObject<UiInteractable>();
 
+    SceneNode* childUiNode = mainScene.CreateNode(uiNode, "Child Ui Node");
+    childUiNode->AddObject<UiLayout>(glm::uvec2(20, 20), glm::uvec2(0, 0));
+    childUiNode->AddObject<UiVisual>(
+        glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+        mainScene.Resources()->Get<Texture2D>(
+            "./res/textures/1147437805040054272.png",
+            Texture2D::ColorTextureRGBA));
+
     return;
 }
 } // namespace TestScene

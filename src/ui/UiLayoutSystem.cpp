@@ -16,45 +16,65 @@ void UiLayoutSystem::OnPreRender() {
         float scaledOffsetX = uiLayout->offset.x * scaleFactor;
         float scaledOffsetY = uiLayout->offset.y * scaleFactor;
 
+        // Hierarchy
+        //  This might break when moving the parent, dont care for now
+        UiLayout* parentLayout = nullptr;
+        SceneNode* parentNode = uiLayout->GetNode()->GetParent();
+        if (parentNode) {
+            parentLayout = parentNode->GetObject<UiLayout>();
+        }
+
+        float refX = 0.0f;
+        float refY = 0.0f;
+        float refWidth = resolution.x;
+        float refHeight = resolution.y;
+
+        if (parentLayout) {
+            refX = parentLayout->finalRectangle.x;
+            refY = parentLayout->finalRectangle.y;
+            refWidth = parentLayout->finalRectangle.z;
+            refHeight = parentLayout->finalRectangle.w;
+        }
+
         float baseX = 0.0f;
         float baseY = 0.0f;
         switch (uiLayout->anchorPoint) {
             case AnchorPoint::TopLeft:
                 break;
             case AnchorPoint::TopCenter:
-                baseX = (resolution.x * 0.5f) - (scaledWidth * 0.5f);
+                baseX = (refWidth * 0.5f) - (scaledWidth * 0.5f);
                 break;
             case AnchorPoint::TopRight:
-                baseX = resolution.x - scaledWidth;
+                baseX = refWidth - scaledWidth;
                 break;
             case AnchorPoint::CenterLeft:
-                baseY = (resolution.y * 0.5f) - (scaledHeight * 0.5f);
+                baseY = (refHeight * 0.5f) - (scaledHeight * 0.5f);
                 break;
             case AnchorPoint::Center:
-                baseX = (resolution.x * 0.5f) - (scaledWidth * 0.5f);
-                baseY = (resolution.y * 0.5f) - (scaledHeight * 0.5f);
+                baseX = (refWidth * 0.5f) - (scaledWidth * 0.5f);
+                baseY = (refHeight * 0.5f) - (scaledHeight * 0.5f);
                 break;
             case AnchorPoint::CenterRight:
-                baseX = resolution.x - scaledWidth;
-                baseY = (resolution.y * 0.5f) - (scaledHeight * 0.5f);
+                baseX = refWidth - scaledWidth;
+                baseY = (refHeight * 0.5f) - (scaledHeight * 0.5f);
                 break;
             case AnchorPoint::BottomLeft:
-                baseY = resolution.y - scaledHeight;
+                baseY = refHeight - scaledHeight;
                 break;
             case AnchorPoint::BottomCenter:
-                baseX = (resolution.x * 0.5f) - (scaledWidth * 0.5f);
-                baseY = resolution.y - scaledHeight;
+                baseX = (refWidth * 0.5f) - (scaledWidth * 0.5f);
+                baseY = refHeight - scaledHeight;
                 break;
             case AnchorPoint::BottomRight:
-                baseX = resolution.x - scaledWidth;
-                baseY = resolution.y - scaledHeight;
+                baseX = refWidth - scaledWidth;
+                baseY = refHeight - scaledHeight;
                 break;
             default:
                 break;
         }
 
-        float finalX = baseX + scaledOffsetX;
-        float finalY = baseY + scaledOffsetY;
+        float finalX = refX + baseX + scaledOffsetX;
+        float finalY = refY + baseY + scaledOffsetY;
 
         uiLayout->finalRectangle = {
             finalX,
