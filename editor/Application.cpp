@@ -30,7 +30,6 @@
 #include <physics/Jolt.h>
 #include <physics/System.h>
 
-
 namespace Editor {
 bool Application::InitProgram() {
     if (!SDL_Init(SDL_INIT_VIDEO)) {
@@ -190,6 +189,7 @@ void Application::MainLoop() {
         scene->AddComponent<MousePickingBodySystem>();
         SceneNode* cameraNode = scene->CreateNode();
         cameraNode->AddObject<CameraController>();
+        cameraNode->GlobalTransform().Position() = {0.0f, 1.0f, 0.0f};
 
         if (scene == this->context.selectedScene) {
             this->context.mainCamera = cameraNode->GetObject<Camera>();
@@ -254,7 +254,7 @@ void Application::DrawPanels(bool& shouldClose) {
     this->inspectorPanel.Draw(this->context);
     this->filesPanel.Draw();
     this->consolePanel.Draw(this->context);
-   // this->textureToolPanel.Draw(this->context);
+    // this->textureToolPanel.Draw(this->context);
     this->sceneViewPanel.Draw(this->context);
     // this->statusBar.Draw(); a bit broken
 }

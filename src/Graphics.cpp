@@ -415,9 +415,10 @@ void SceneGraphics::DrawMeshIndirect(const Mesh* mesh, int subMeshIndex, const M
 	EnqueueOpaque(node); 
 }
 
-void SceneGraphics::DrawUi(const glm::vec4& finalRectangle, int zIndex, const glm::vec4& color, Texture2D* texture, Material* customMaterial) {
+void SceneGraphics::DrawUi(const glm::mat4& worldMatrix, const glm::vec2& size, int zIndex, const glm::vec4& color, Texture2D* texture, Material* customMaterial) {
     UiRenderNode node;
-    node.finalRectangle = finalRectangle;
+    node.worldMatrix = worldMatrix;
+    node.size = size;
     node.zIndex = zIndex;
     node.color = color;
     node.texture = texture;
@@ -426,9 +427,10 @@ void SceneGraphics::DrawUi(const glm::vec4& finalRectangle, int zIndex, const gl
     EnqueueUi(node);
 }
 
-void SceneGraphics::DrawUiText(const glm::vec4& finalRectangle, int zIndex, const glm::vec4& color, Texture2D* texture, const glm::vec4& uvRectangle, float pxRange) {
+void SceneGraphics::DrawUiText(const glm::mat4& worldMatrix, const glm::vec2& size, int zIndex, const glm::vec4& color, Texture2D* texture, const glm::vec4& uvRectangle, float pxRange) {
     UiRenderNode node;
-    node.finalRectangle = finalRectangle;
+    node.worldMatrix = worldMatrix;
+    node.size = size;
     node.zIndex = zIndex;
     node.color = color;
     node.texture = texture;
@@ -1681,9 +1683,9 @@ void SceneGraphics::RenderUi(const ShaderGlobalUniforms& uniforms, const RenderP
             glUniformMatrix4fv(projectionLocation, 1, GL_FALSE, &projection[0][0]);
         }
 
-        glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(render.finalRectangle.x, render.finalRectangle.y, 0.0f));
-        model = glm::scale(model, glm::vec3(render.finalRectangle.z, render.finalRectangle.w, 1.0f));
+        glm::mat4 model = render.worldMatrix;
+        model = glm::scale(model, glm::vec3(render.size.x, render.size.y, 1.0f));
+        model = glm::translate(model, glm::vec3(-0.5f, -0.5f, 0.0f));
 
         int modelLocation = glGetUniformLocation(currentProgram->GetHandle(), "model");
         if (modelLocation >= 0) {

@@ -12,4 +12,6 @@ public:
 
     // Preupdate doesnt work for whatever reason, fix
     virtual void OnPreRender() override;
+private:
+    glm::vec2 CalculateLocalAnchorPosition(AnchorPoint anchor, glm::vec2 parentSize, glm::vec2 childSize, glm::vec2 offset);
 };

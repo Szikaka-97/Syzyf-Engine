@@ -2,12 +2,16 @@
 #include "Graphics.h"
 #include "ui/objects/UiInteractable.h"
 #include "ui/objects/UiLayout.h"
+#include "ui/systems/UiLayoutSystem.h"
 
 UiRenderSystem::UiRenderSystem(Scene* scene) : GameObjectSystem(scene) {}
 
 void UiRenderSystem::OnPreRender() {
     auto* graphics = GetScene()->GetGraphics();
     if (!graphics) return;
+
+    glm::vec2 resolution = graphics->GetScreenResolution();
+    float scaleFactor = resolution.y / UiLayoutSystem::VIRTUAL_RESOLUTION.y;
 
     for (auto* visual : this->IterateObjects()) {
         UiLayout* layout = visual->GetNode()->GetObject<UiLayout>();
@@ -43,8 +47,12 @@ void UiRenderSystem::OnPreRender() {
             visual->customMaterial->SetValue("interactionState", interactionState);
         }
 
+        glm::mat4 worldMatrix = layout->GlobalTransform().Value();
+        glm::vec2 scaledSize = static_cast<glm::vec2>(layout->size) * scaleFactor;
+
         graphics->DrawUi(
-            layout->finalRectangle,
+            worldMatrix,
+            scaledSize,
             layout->zIndex,
             finalColor,
             finalTexture,

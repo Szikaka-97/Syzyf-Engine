@@ -2,6 +2,7 @@
 
 #include "GameObjectSystem.h"
 #include "Graphics.h"
+#include "Transform.h"
 #include "ui/objects/UiLayout.h"
 
 UiLayoutSystem::UiLayoutSystem(Scene* scene) : GameObjectSystem<UiLayout>(scene) {}
@@ -11,76 +12,65 @@ void UiLayoutSystem::OnPreRender() {
     float scaleFactor = resolution.y / UiLayoutSystem::VIRTUAL_RESOLUTION.y;
 
     for (auto& uiLayout : this->IterateObjects()) {
-        float scaledWidth = uiLayout->size.x * scaleFactor;
-        float scaledHeight = uiLayout->size.y * scaleFactor;
-        float scaledOffsetX = uiLayout->offset.x * scaleFactor;
-        float scaledOffsetY = uiLayout->offset.y * scaleFactor;
+        glm::vec2 scaledSize = static_cast<glm::vec2>(uiLayout->size) * scaleFactor;
+        glm::vec2 scaledOffset = static_cast<glm::vec2>(uiLayout->offset) * scaleFactor;
 
-        // Hierarchy
-        //  This might break when moving the parent, dont care for now
-        UiLayout* parentLayout = nullptr;
-        SceneNode* parentNode = uiLayout->GetNode()->GetParent();
-        if (parentNode) {
-            parentLayout = parentNode->GetObject<UiLayout>();
+        bool isRoot = true;
+        glm::vec2 parentSize = resolution;
+        if (SceneNode* parentNode = uiLayout->GetNode()->GetParent()) {
+            if (auto* parentLayout = parentNode->GetObject<UiLayout>()) {
+                parentSize = static_cast<glm::vec2>(parentLayout->size) * scaleFactor;
+                isRoot = false;
+            }
         }
 
-        float refX = 0.0f;
-        float refY = 0.0f;
-        float refWidth = resolution.x;
-        float refHeight = resolution.y;
+        glm::vec2 localPosition = CalculateLocalAnchorPosition(uiLayout->anchorPoint, parentSize, scaledSize, scaledOffset);
 
-        if (parentLayout) {
-            refX = parentLayout->finalRectangle.x;
-            refY = parentLayout->finalRectangle.y;
-            refWidth = parentLayout->finalRectangle.z;
-            refHeight = parentLayout->finalRectangle.w;
+        if (isRoot) {
+            localPosition += resolution * 0.5f;
         }
 
-        float baseX = 0.0f;
-        float baseY = 0.0f;
-        switch (uiLayout->anchorPoint) {
-            case AnchorPoint::TopLeft:
-                break;
-            case AnchorPoint::TopCenter:
-                baseX = (refWidth * 0.5f) - (scaledWidth * 0.5f);
-                break;
-            case AnchorPoint::TopRight:
-                baseX = refWidth - scaledWidth;
-                break;
-            case AnchorPoint::CenterLeft:
-                baseY = (refHeight * 0.5f) - (scaledHeight * 0.5f);
-                break;
-            case AnchorPoint::Center:
-                baseX = (refWidth * 0.5f) - (scaledWidth * 0.5f);
-                baseY = (refHeight * 0.5f) - (scaledHeight * 0.5f);
-                break;
-            case AnchorPoint::CenterRight:
-                baseX = refWidth - scaledWidth;
-                baseY = (refHeight * 0.5f) - (scaledHeight * 0.5f);
-                break;
-            case AnchorPoint::BottomLeft:
-                baseY = refHeight - scaledHeight;
-                break;
-            case AnchorPoint::BottomCenter:
-                baseX = (refWidth * 0.5f) - (scaledWidth * 0.5f);
-                baseY = refHeight - scaledHeight;
-                break;
-            case AnchorPoint::BottomRight:
-                baseX = refWidth - scaledWidth;
-                baseY = refHeight - scaledHeight;
-                break;
-            default:
-                break;
-        }
+        uiLayout->LocalTransform().Position() = { localPosition.x, localPosition.y, 0.0f };
+    }
+}
 
-        float finalX = refX + baseX + scaledOffsetX;
-        float finalY = refY + baseY + scaledOffsetY;
+glm::vec2 UiLayoutSystem::CalculateLocalAnchorPosition(AnchorPoint anchor, glm::vec2 parentSize, glm::vec2 childSize, glm::vec2 offset) {
+    float halfParentWidth = parentSize.x * 0.5f;
+    float halfParentHeight = parentSize.y * 0.5f;
+    float halfChildWidth = childSize.x * 0.5f;
+    float halfChildHeight = childSize.y * 0.5f;
 
-        uiLayout->finalRectangle = {
-            finalX,
-            finalY,
-            scaledWidth,
-            scaledHeight,
-        };
-    };
+    glm::vec2 basePosition{0.0f};
+
+    switch (anchor) {
+        case AnchorPoint::TopLeft:
+            basePosition = { -halfParentWidth + halfChildWidth, -halfParentHeight + halfChildHeight };
+            break;
+        case AnchorPoint::TopCenter:
+            basePosition = { 0.0f, -halfParentHeight + halfChildHeight };
+            break;
+        case AnchorPoint::TopRight:
+            basePosition = { halfParentWidth - halfChildWidth, -halfParentHeight + halfChildHeight };
+            break;
+        case AnchorPoint::CenterLeft:
+            basePosition = { -halfParentWidth + halfChildWidth, 0.0f };
+            break;
+        case AnchorPoint::Center:
+            basePosition = { 0.0f, 0.0f };
+            break;
+        case AnchorPoint::CenterRight:
+            basePosition = { halfParentWidth - halfChildWidth, 0.0f };
+            break;
+        case AnchorPoint::BottomLeft:
+            basePosition = { -halfParentWidth + halfChildWidth,  halfParentHeight - halfChildHeight };
+            break;
+        case AnchorPoint::BottomCenter:
+            basePosition = { 0.0f, halfParentHeight - halfChildHeight };
+            break;
+        case AnchorPoint::BottomRight:
+            basePosition = { halfParentWidth - halfChildWidth, halfParentHeight - halfChildHeight }; 
+            break;
+    }
+
+    return basePosition + offset;
 }

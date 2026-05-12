@@ -2,7 +2,9 @@
 #include "InputSystem.h"
 #include "imgui.h"
 #include "ui/objects/UiInteractable.h"
+#include "Graphics.h"
 #include "ui/objects/UiLayout.h"
+#include "ui/systems/UiLayoutSystem.h"
 
 UiInteractableSystem::UiInteractableSystem(Scene* scene) : GameObjectSystem<UiInteractable>(scene) {}
 
@@ -14,6 +16,9 @@ void UiInteractableSystem::OnPreUpdate() {
     bool mouseDown = input->ButtonDown(MouseButton::Left);
     bool mousePressed = input->ButtonPressed(MouseButton::Left);
     bool mouseReleased = input->ButtonUp(MouseButton::Left);
+
+    const glm::vec2 resolution = this->GetScene()->GetGraphics()->GetScreenResolution();
+    const float scaleFactor = resolution.y / UiLayoutSystem::VIRTUAL_RESOLUTION.y;
 
     std::vector<UiInteractable*> active;
     for (auto& interactable : this->IterateObjects()) {
@@ -39,14 +44,22 @@ void UiInteractableSystem::OnPreUpdate() {
         auto layout = interactable->GetNode()->GetObject<UiLayout>();
         if (!layout) continue;
 
-        glm::vec4 rectangle = layout->finalRectangle;
-
         bool wasHovered = interactable->isHovered;
         bool wasPressed = interactable->isPressed;
 
-        bool isMouseOver = !inputConsumed &&
-            mousePosition.x >= rectangle.x && mousePosition.x <= rectangle.x + rectangle.z &&
-            mousePosition.y >= rectangle.y && mousePosition.y <= rectangle.y + rectangle.w;
+        const glm::mat4 worldMatrix = layout->GlobalTransform().Value();
+        const glm::vec2 scaledSize = static_cast<glm::vec2>(layout->size) * scaleFactor;
+
+        glm::mat4 modelMatrix = glm::scale(worldMatrix, glm::vec3(scaledSize.x, scaledSize.y, 1.0f));
+        modelMatrix = glm::translate(modelMatrix, glm::vec3(-0.5f, -0.5f, 0.0f));
+
+        const glm::mat4 inverseModel = glm::inverse(modelMatrix);
+
+        const glm::vec4 localMouse = inverseModel * glm::vec4(mousePosition.x, mousePosition.y, 0.0f, 1.0f);
+
+        const bool isMouseOver = !inputConsumed &&
+            localMouse.x >= 0.0f && localMouse.x <= 1.0f &&
+            localMouse.y >= 0.0f && localMouse.y <= 1.0f;
 
         if (isMouseOver) {
             interactable->isHovered = true;

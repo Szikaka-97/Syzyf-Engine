@@ -29,12 +29,17 @@ void UiTextRenderSystem::OnPreRender() {
 
         const float scale = (text->fontSize * scaleFactor) / static_cast<float>(font->emSize);
 
-        float cursorX = layout->finalRectangle.x;
-        float cursorY = layout->finalRectangle.y + (static_cast<float>(font->ascender) * scale);
+        const float localStartX = -(layout->size.x * scaleFactor) * 0.5f;
+        const float localStartY = -(layout->size.y * scaleFactor) * 0.5f + (static_cast<float>(font->ascender) * scale);
+
+        float cursorX = localStartX;
+        float cursorY = localStartY;
+
+        glm::mat4 baseWorldMatrix = text->GlobalTransform().Value();
 
         for (const char c : text->text) {
             if (c == '\n') {
-                cursorX = layout->finalRectangle.x;
+                cursorX = localStartX;
                 cursorY += static_cast<float>(font->lineHeight) * scale;
                 continue;
             }
@@ -53,16 +58,23 @@ void UiTextRenderSystem::OnPreRender() {
                 float x1 = cursorX + (glyph.planeBounds.z * scale);
                 float y1 = cursorY - (glyph.planeBounds.w * scale);
 
-                glm::vec4 quadRectangle(x0, y0, x1 - x0, y1 - y0);
+                const float width = x1 - x0;
+                const float height = y1 - y0;
 
-                float u0 = glyph.atlasBounds.x / textureWidth;
-                float v0 = glyph.atlasBounds.y / textureHeight;
-                float u1 = glyph.atlasBounds.z / textureWidth;
-                float v1 = glyph.atlasBounds.w / textureHeight;
+                const float localCenterX = x0 + (width * 0.5f);
+                const float localCenterY = y0 + (height * 0.5f);
 
-                glm::vec4 uvRectangle(u0, v0, u1 - u0, v1 - v0);
+                glm::mat4 letterMatrix = glm::translate(baseWorldMatrix, glm::vec3(localCenterX, localCenterY, 0.0f));
+                glm::vec2 letterSize(width, height);
 
-                this->GetScene()->GetGraphics()->DrawUiText(quadRectangle, layout->zIndex, text->color, font->atlasTexture, uvRectangle, static_cast<float>(font->distanceRange));
+                const float u0 = glyph.atlasBounds.x / textureWidth;
+                const float v0 = glyph.atlasBounds.y / textureHeight;
+                const float u1 = glyph.atlasBounds.z / textureWidth;
+                const float v1 = glyph.atlasBounds.w / textureHeight;
+
+                glm::vec4 uvRectangle(u0, v0, u1 - u0, v1 -v0);
+
+                this->GetScene()->GetGraphics()->DrawUiText(letterMatrix, letterSize, layout->zIndex, text->color, font->atlasTexture, uvRectangle, static_cast<float>(font->distanceRange));
             }
 
             cursorX += static_cast<float>(glyph.advance) * scale;

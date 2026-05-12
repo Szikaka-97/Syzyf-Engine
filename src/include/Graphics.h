@@ -1,5 +1,6 @@
 #pragma once
 
+#include <glm/fwd.hpp>
 #include <queue>
 #include <vector>
 #include <glad/glad.h>
@@ -113,7 +114,8 @@ private:
 	};
 
     struct UiRenderNode {
-        glm::vec4 finalRectangle{0.0f};
+        glm::mat4 worldMatrix;
+        glm::vec2 size;
         int zIndex = 0;
         glm::vec4 color{1.0f};
         Texture2D* texture = nullptr;
@@ -211,8 +213,8 @@ public:
 
     void DrawMeshIndirect(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, GLuint indirectBuffer, GLuint indirectBufferOffset, GLuint instanceSSBO, const BoundingBox& bounds, uint8_t layer = Layer::Default);
 
-    void DrawUi(const glm::vec4& finalRectangle, int zIndex, const glm::vec4& color, Texture2D* texture = nullptr, Material* customMaterial = nullptr);
-    void DrawUiText(const glm::vec4& finalRectangle, int zIndex, const glm::vec4& color, Texture2D* texture, const glm::vec4& uvRectangle, float pxRange);
+    void DrawUi(const glm::mat4& worldMatrix, const glm::vec2& size, int zIndex, const glm::vec4& color, Texture2D* texture = nullptr, Material* customMaterial = nullptr);
+    void DrawUiText(const glm::mat4& worldMatrix, const glm::vec2& size, int zIndex, const glm::vec4& color, Texture2D* texture, const glm::vec4& uvRectangle, float pxRange);
 
 	void DrawGizmoMesh(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, bool ignoresDepth = false);
 	
