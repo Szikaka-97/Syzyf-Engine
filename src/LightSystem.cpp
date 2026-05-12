@@ -279,7 +279,7 @@ void LightSystem::RebuildLightGridBuffers() {
 
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->lightIndexList);
 
-	glBufferData(GL_SHADER_STORAGE_BUFFER, totalLightGridSize * LIGHTS_PER_CLUSTER * sizeof(uint) + sizeof(glm::vec4), nullptr, GL_DYNAMIC_DRAW);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, totalLightGridSize * LIGHTS_PER_CLUSTER * sizeof(unsigned int) + sizeof(glm::vec4), nullptr, GL_DYNAMIC_DRAW);
 
 	glm::uvec4 gridSize = glm::uvec4(this->lightGridSize, 0);
 
@@ -334,7 +334,7 @@ void LightSystem::CullLights() {
 
 	unsigned int zero = 0;
 
-	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(uint), &zero, GL_DYNAMIC_DRAW);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(unsigned int), &zero, GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 	glUseProgram(lightCullingProg->GetHandle());

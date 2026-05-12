@@ -74,7 +74,7 @@ inline void InitScene(Scene& mainScene) {
 	srand(0);
 
 	mainScene.AddComponent<DebugInspector>();
-	
+	mainScene.AddComponent<Physics::System>();
 
 #pragma region World
 
@@ -125,8 +125,6 @@ inline void InitScene(Scene& mainScene) {
 			// float l = 0.471f;
 
 			glm::vec3 rgb = hsl2rgb({h, s, l});
-
-			spdlog::info(glm::vec3(h, s, l));
 
 			lightNode->AddObject<Light>(Light::PointLight(rgb, 3, 5, 2));
 		}
