@@ -415,12 +415,13 @@ void SceneGraphics::DrawMeshIndirect(const Mesh* mesh, int subMeshIndex, const M
 	EnqueueOpaque(node); 
 }
 
-void SceneGraphics::DrawUi(const glm::vec4& finalRectangle, int zIndex, const glm::vec4& color, Texture2D* texture) {
+void SceneGraphics::DrawUi(const glm::vec4& finalRectangle, int zIndex, const glm::vec4& color, Texture2D* texture, Material* customMaterial) {
     UiRenderNode node;
     node.finalRectangle = finalRectangle;
     node.zIndex = zIndex;
     node.color = color;
     node.texture = texture;
+    node.customMaterial = customMaterial;
 
     EnqueueUi(node);
 }
@@ -1646,37 +1647,52 @@ void SceneGraphics::RenderUi(const ShaderGlobalUniforms& uniforms, const RenderP
 
     glDisable(GL_CULL_FACE);
 
-    GLuint shaderHandle = this->shaders.uiShader->GetHandle();
-    glUseProgram(shaderHandle);
-
     glm::mat4 projection = glm::ortho(0.0f, params.viewport.z, params.viewport.w, 0.0f, -1.0f, 1.0f);
-
     glBindVertexArray(this->uiQuadMesh->SubMeshAt(0).GetVertexArrayHandle());
 
-    int modelLocation = glGetUniformLocation(shaderHandle, "model");
-    int projectionLocation = glGetUniformLocation(shaderHandle, "projection");
-    int colorLocation = glGetUniformLocation(shaderHandle, "color");
-    int hasTextureLocation = glGetUniformLocation(shaderHandle, "hasTexture");
-    int textureLocation = glGetUniformLocation(shaderHandle, "tex");
-
-    glUniformMatrix4fv(projectionLocation, 1, GL_FALSE, &projection[0][0]);
+    const ShaderProgram* currentProgram = nullptr;
 
     for (const auto& render : this->uiRenders) {
-        glm::mat4 model = glm::mat4(1.0f);
+        const ShaderProgram* targetProgram = render.customMaterial ? render.customMaterial->GetShader() : this->shaders.uiShader;
 
+        if (currentProgram != targetProgram) {
+            currentProgram = targetProgram;
+            glUseProgram(currentProgram->GetHandle());
+        }
+        
+        if (render.customMaterial) {
+            render.customMaterial->Bind();
+        }
+
+        int projectionLocation = glGetUniformLocation(currentProgram->GetHandle(), "projection");
+        if (projectionLocation >= 0) {
+            glUniformMatrix4fv(projectionLocation, 1, GL_FALSE, &projection[0][0]);
+        }
+
+        glm::mat4 model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(render.finalRectangle.x, render.finalRectangle.y, 0.0f));
         model = glm::scale(model, glm::vec3(render.finalRectangle.z, render.finalRectangle.w, 1.0f));
 
-        glUniformMatrix4fv(modelLocation, 1, GL_FALSE, &model[0][0]);
-        glUniform4fv(colorLocation, 1, &render.color[0]);
+        int modelLocation = glGetUniformLocation(currentProgram->GetHandle(), "model");
+        if (modelLocation >= 0) {
+            glUniformMatrix4fv(modelLocation, 1, GL_FALSE, &model[0][0]);
+        }
 
-        if (render.texture) {
-            glUniform1i(hasTextureLocation, 1);
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, render.texture->GetHandle());
-            glUniform1i(textureLocation, 0);
-        } else {
-            glUniform1i(hasTextureLocation, 0);
+        if (!render.customMaterial) {
+            int colorLocation = glGetUniformLocation(currentProgram->GetHandle(), "color");
+            int hasTextureLocation = glGetUniformLocation(currentProgram->GetHandle(), "hasTexture");
+            int textureLocation = glGetUniformLocation(currentProgram->GetHandle(), "tex");
+
+            if (colorLocation >= 0) glUniform4fv(colorLocation, 1, &render.color[0]);
+            
+            if (render.texture) {
+                if (hasTextureLocation >= 0) glUniform1i(hasTextureLocation, 1);
+                glActiveTexture(GL_TEXTURE0);
+                glBindTexture(GL_TEXTURE_2D, render.texture->GetHandle());
+                if (textureLocation >= 0) glUniform1i(textureLocation, 0);
+            } else {
+                if (hasTextureLocation >= 0) glUniform1i(hasTextureLocation, 0);
+            }
         }
 
         glDrawElements(GL_TRIANGLES, this->uiQuadMesh->SubMeshAt(0).GetVertexCount(), GL_UNSIGNED_INT, nullptr);

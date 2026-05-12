@@ -29,7 +29,7 @@
 #include <TweenSystem.h>
 #include <Viewport.h>
 #include <animation/AnimationSystem.h>
-#include <enemies/EnemySkeleton.cpp>
+#include <enemies/EnemySkeleton.h>
 #include <fog/FogVolume.h>
 #include <game_scripts/CameraSettings.h>
 #include <game_scripts/PlayerController.h>
@@ -51,6 +51,7 @@
 
 #include "Jolt/Math/Vec3.h"
 #include "ui/UiRenderSystem.h"
+#include "ui/custom/UiCircularBar.h"
 #include <Jolt/Jolt.h>
 #include <Jolt/Physics/Body/MotionType.h>
 #include <Jolt/Physics/Character/CharacterVirtual.h>
@@ -511,8 +512,10 @@ inline void InitScene(Scene& mainScene) {
 
 #pragma endregion
 
+    // UiNode
     SceneNode* uiNode = mainScene.CreateNode("Ui Node");
-    uiNode->AddObject<UiLayout>(glm::uvec2(200, 200), glm::uvec2(0, 0));
+    uiNode->AddObject<UiLayout>(glm::uvec2(200, 200), glm::uvec2(0, 0), 0,
+                                AnchorPoint::BottomCenter);
     auto* uiVisual = uiNode->AddObject<UiVisual>(
         glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
         mainScene.Resources()->Get<Texture2D>(
@@ -522,14 +525,40 @@ inline void InitScene(Scene& mainScene) {
     uiVisual->colorClicked = {0.0f, 1.0f, 0.0f, 1.0f};
     uiNode->AddObject<UiInteractable>();
 
+    // Child UiNode
     SceneNode* childUiNode = mainScene.CreateNode(uiNode, "Child Ui Node");
-    childUiNode->AddObject<UiLayout>(glm::uvec2(20, 20), glm::uvec2(0, 0));
-    childUiNode->AddObject<UiVisual>(
+    childUiNode->AddObject<UiLayout>(glm::uvec2(80), glm::uvec2(0, 0), 1,
+                                     AnchorPoint::BottomRight);
+    childUiNode->AddObject<UiInteractable>();
+    auto* childUiVisual = childUiNode->AddObject<UiVisual>(
         glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
         mainScene.Resources()->Get<Texture2D>(
             "./res/textures/1147437805040054272.png",
             Texture2D::ColorTextureRGBA));
+    childUiVisual->colorHovered = {0.0f, 0.0f, 1.0f, 1.0f};
+    childUiVisual->colorClicked = {0.2f, 0.5f, 0.7f, 1.0f};
 
-    return;
+    // Custom Material Ui Node
+    ShaderProgram* customUiProgram =
+        ShaderProgram::Build()
+            .WithVertexShader("./res/shaders/ui/ui.vert")
+            .WithPixelShader("./res/shaders/ui/custom/circular_bar.frag")
+            .Link();
+    Material* customUiMaterial = new Material(customUiProgram);
+    customUiMaterial->SetValue("highColor", glm::vec4(0.2f, 0.9f, 0.2f, 1.0f));
+    customUiMaterial->SetValue("lowColor", glm::vec4(0.9f, 0.1f, 0.1f, 1.0f));
+    customUiMaterial->SetValue("backgroundColor",
+                               glm::vec4(0.1f, 0.1f, 0.1f, 0.6f));
+    customUiMaterial->SetValue("level", 1.0f);
+
+    SceneNode* customUiNode = mainScene.CreateNode("Custom Ui Node");
+    customUiNode->AddObject<UiLayout>(glm::uvec2(150), glm::uvec2(-50), 2,
+                                      AnchorPoint::BottomRight);
+    auto* uiCustomVisual =
+        customUiNode->AddObject<UiVisual>(glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
+    uiCustomVisual->customMaterial = customUiMaterial;
+    customUiNode->AddObject<UiInteractable>();
+    auto* circularBar = customUiNode->AddObject<UiCircularBar>();
+    circularBar->material = customUiMaterial;
 }
 } // namespace TestScene

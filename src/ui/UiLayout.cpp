@@ -1,7 +1,7 @@
 #include "ui/UiLayout.h"
 #include "imgui.h"
 
-UiLayout::UiLayout(glm::ivec2 size, glm::ivec2 offset, int zIndex, AnchorPoint anchorPoint) : size(size), offset(offset), anchorPoint(anchorPoint) {}
+UiLayout::UiLayout(glm::ivec2 size, glm::ivec2 offset, int zIndex, AnchorPoint anchorPoint) : size(size), offset(offset), zIndex(zIndex), anchorPoint(anchorPoint) {}
 
 void UiLayout::DrawImGui() {
     ImGui::InputInt2("Offset", &this->offset[0]);

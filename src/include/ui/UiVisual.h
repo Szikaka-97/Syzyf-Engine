@@ -2,6 +2,7 @@
 
 #include "GameObject.h"
 #include "Debug.h"
+#include "Material.h"
 
 class Texture2D;
 
@@ -16,6 +17,8 @@ public:
     Texture2D* textureHovered = nullptr;
     std::optional<glm::vec4> colorClicked;
     Texture2D* textureClicked = nullptr;
+
+    Material* customMaterial = nullptr;
 
     UiVisual(glm::vec4 color = { 1.0f, 1.0f, 1.0f, 1.0f}, Texture2D* texture = nullptr);
 
