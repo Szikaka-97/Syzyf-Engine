@@ -43,15 +43,15 @@
 #include <physics/System.h>
 #include <physics/Water.h>
 #include <scatter/Spawner.h>
-#include <ui/UiInteractable.h>
-#include <ui/UiInteractableSystem.h>
-#include <ui/UiLayout.h>
-#include <ui/UiLayoutSystem.h>
-#include <ui/UiVisual.h>
+#include <text/Font.h>
+#include <ui/objects/UiInteractable.h>
+#include <ui/objects/UiLayout.h>
+#include <ui/objects/UiText.h>
+#include <ui/objects/UiVisual.h>
+#include <ui/objects/custom/UiCircularBar.h>
+#include <ui/systems/UiSystem.h>
 
 #include "Jolt/Math/Vec3.h"
-#include "ui/UiRenderSystem.h"
-#include "ui/custom/UiCircularBar.h"
 #include <Jolt/Jolt.h>
 #include <Jolt/Physics/Body/MotionType.h>
 #include <Jolt/Physics/Character/CharacterVirtual.h>
@@ -168,9 +168,7 @@ class Mover : public GameObject, public ImGuiDrawable {
 inline void InitScene(Scene& mainScene) {
     mainScene.AddComponent<Physics::System>();
     mainScene.AddComponent<DebugInspector>();
-    mainScene.AddComponent<UiLayoutSystem>();
-    mainScene.AddComponent<UiRenderSystem>();
-    mainScene.AddComponent<UiInteractableSystem>();
+    mainScene.AddComponent<UiSystem>();
     mainScene.AddComponent<AnimationSystem>();
     auto* tweenSystem = mainScene.AddComponent<TweenSystem>();
 
@@ -194,8 +192,8 @@ inline void InitScene(Scene& mainScene) {
     Material* skyMat = new Material(skyProg);
     skyMat->SetValue("skyboxTexture", skyCubemap);
 
-    auto floorNode = GltfImporter::LoadScene(
-        &mainScene, "./res/models/floor2804.glb", "Floor");
+    auto floorNode =
+        GltfImporter::LoadScene(&mainScene, "./res/models/floor.glb", "Floor");
     floorNode->AddObject<Skybox>(skyMat);
     MeshRenderer* floorMeshRenderer =
         floorNode->GetObjectInChildren<MeshRenderer>();
@@ -560,5 +558,40 @@ inline void InitScene(Scene& mainScene) {
     customUiNode->AddObject<UiInteractable>();
     auto* circularBar = customUiNode->AddObject<UiCircularBar>();
     circularBar->material = customUiMaterial;
+
+    // UiText
+    TextureParams fontTextureParams = {.channels = TextureChannels::RGB,
+                                       .colorSpace = TextureColor::Linear,
+                                       .format = TextureFormat::Ubyte,
+                                       .wrapU = TextureWrap::Clamp,
+                                       .wrapV = TextureWrap::Clamp,
+                                       .minFilter = TextureFilter::Linear,
+                                       .magFilter = TextureFilter::Linear};
+
+    Texture2D* openSansFontAtlasTexture = mainScene.Resources()->Get<Texture2D>(
+        "./res/fonts/OpenSans-Regular/OpenSans-Regular.png", fontTextureParams);
+    Font* openSansRegularFont = mainScene.Resources()->Get<Font>(
+        "./res/fonts/OpenSans-Regular/OpenSans-Regular.json",
+        openSansFontAtlasTexture);
+    // Texture2D* jetBrainsMonoFontAtlasTexture =
+    //     mainScene.Resources()->Get<Texture2D>(
+    //         "./res/fonts/JetBrainsMono-Regular/JetBrainsMono-Regular.png",
+    //         fontTextureParams);
+    // Font* jetBrainsMonoFont = mainScene.Resources()->Get<Font>(
+    //     "./res/fonts/JetBrainsMono-Regular/JetBrainsMono-Regular.json",
+    //     jetBrainsMonoFontAtlasTexture);
+
+    SceneNode* uiTextRootNode = mainScene.CreateNode("UiTextRoot");
+    uiTextRootNode->AddObject<UiVisual>(glm::vec4(0.0f, 0.0f, 0.0f, 0.5f));
+    uiTextRootNode->AddObject<UiLayout>(glm::ivec2(140.0f, 100.0f),
+                                        glm::ivec2(20.0f));
+
+    SceneNode* uiTextNode = mainScene.CreateNode(uiTextRootNode, "UiText");
+    uiTextNode->AddObject<UiLayout>(glm::ivec2(100.0f), glm::ivec2(2.0f, -5.0f),
+                                    1);
+    auto* uiText =
+        uiTextNode->AddObject<UiText>("Pooga\nSchnoz", openSansRegularFont);
+    uiText->fontSize = 40.0f;
+    uiText->color = glm::vec4(1.0f, 0.8f, 0.2f, 1.0f);
 }
 } // namespace TestScene

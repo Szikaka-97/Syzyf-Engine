@@ -1,5 +1,5 @@
-#include "ui/UiVisual.h"
-#include "imgui.h"
+#include "ui/objects/UiVisual.h"
+#include <imgui.h>
 
 UiVisual::UiVisual(glm::vec4 color, Texture2D* texture) : color(color), texture(texture) {}
 

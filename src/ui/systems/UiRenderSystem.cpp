@@ -1,7 +1,7 @@
-#include "ui/UiRenderSystem.h"
+#include "ui/systems/UiRenderSystem.h"
 #include "Graphics.h"
-#include "ui/UiInteractable.h"
-#include "ui/UiLayout.h"
+#include "ui/objects/UiInteractable.h"
+#include "ui/objects/UiLayout.h"
 
 UiRenderSystem::UiRenderSystem(Scene* scene) : GameObjectSystem(scene) {}
 

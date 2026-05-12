@@ -1,8 +1,8 @@
-#include "ui/UiInteractableSystem.h"
+#include "ui/systems/UiInteractableSystem.h"
 #include "InputSystem.h"
 #include "imgui.h"
-#include "ui/UiInteractable.h"
-#include "ui/UiLayout.h"
+#include "ui/objects/UiInteractable.h"
+#include "ui/objects/UiLayout.h"
 
 UiInteractableSystem::UiInteractableSystem(Scene* scene) : GameObjectSystem<UiInteractable>(scene) {}
 

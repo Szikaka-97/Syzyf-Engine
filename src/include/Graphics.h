@@ -83,7 +83,9 @@ private:
         ShaderProgram* ssaoShader;
         ShaderProgram* ssaoBlurShader;
 
+        // UI
         ShaderProgram* uiShader;
+        ShaderProgram* uiTextShader;
     };
 
 	struct RenderNode {
@@ -116,6 +118,10 @@ private:
         glm::vec4 color{1.0f};
         Texture2D* texture = nullptr;
         Material* customMaterial = nullptr;
+
+        bool isText = false;
+        glm::vec4 uvRectangle{0.0f, 0.0f, 1.0f, 1.0f};
+        float pxRange = 4.0f;
 
         bool operator<(const UiRenderNode& other) const {
             return zIndex < other.zIndex;
@@ -206,6 +212,7 @@ public:
     void DrawMeshIndirect(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, GLuint indirectBuffer, GLuint indirectBufferOffset, GLuint instanceSSBO, const BoundingBox& bounds, uint8_t layer = Layer::Default);
 
     void DrawUi(const glm::vec4& finalRectangle, int zIndex, const glm::vec4& color, Texture2D* texture = nullptr, Material* customMaterial = nullptr);
+    void DrawUiText(const glm::vec4& finalRectangle, int zIndex, const glm::vec4& color, Texture2D* texture, const glm::vec4& uvRectangle, float pxRange);
 
 	void DrawGizmoMesh(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, bool ignoresDepth = false);
 	

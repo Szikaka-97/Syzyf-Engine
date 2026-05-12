@@ -1,11 +1,12 @@
-#include "ui/UiLayout.h"
-#include "imgui.h"
+#include "ui/objects/UiLayout.h"
+#include <imgui.h>
 
 UiLayout::UiLayout(glm::ivec2 size, glm::ivec2 offset, int zIndex, AnchorPoint anchorPoint) : size(size), offset(offset), zIndex(zIndex), anchorPoint(anchorPoint) {}
 
 void UiLayout::DrawImGui() {
     ImGui::InputInt2("Offset", &this->offset[0]);
     ImGui::InputInt2("Size", &this->size[0]);
+    ImGui::InputInt("zIndex", &this->zIndex);
 
     ImGui::Separator();
 

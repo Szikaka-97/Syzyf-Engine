@@ -426,6 +426,19 @@ void SceneGraphics::DrawUi(const glm::vec4& finalRectangle, int zIndex, const gl
     EnqueueUi(node);
 }
 
+void SceneGraphics::DrawUiText(const glm::vec4& finalRectangle, int zIndex, const glm::vec4& color, Texture2D* texture, const glm::vec4& uvRectangle, float pxRange) {
+    UiRenderNode node;
+    node.finalRectangle = finalRectangle;
+    node.zIndex = zIndex;
+    node.color = color;
+    node.texture = texture;
+    node.uvRectangle = uvRectangle;
+    node.pxRange = pxRange;
+    node.isText = true;
+
+    EnqueueUi(node);
+}
+
 void SceneGraphics::Render() {
 	std::sort(GetAllObjects()->begin(), GetAllObjects()->end(), [](auto a, auto b) -> bool {
 		return a->GetPriority() > b->GetPriority();
@@ -1644,7 +1657,6 @@ void SceneGraphics::RenderUi(const ShaderGlobalUniforms& uniforms, const RenderP
     glDisable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
     glDisable(GL_CULL_FACE);
 
     glm::mat4 projection = glm::ortho(0.0f, params.viewport.z, params.viewport.w, 0.0f, -1.0f, 1.0f);
@@ -1653,7 +1665,7 @@ void SceneGraphics::RenderUi(const ShaderGlobalUniforms& uniforms, const RenderP
     const ShaderProgram* currentProgram = nullptr;
 
     for (const auto& render : this->uiRenders) {
-        const ShaderProgram* targetProgram = render.customMaterial ? render.customMaterial->GetShader() : this->shaders.uiShader;
+        const ShaderProgram* targetProgram = render.isText ? this->shaders.uiTextShader : (render.customMaterial ? render.customMaterial->GetShader() : this->shaders.uiShader);
 
         if (currentProgram != targetProgram) {
             currentProgram = targetProgram;
@@ -1678,7 +1690,24 @@ void SceneGraphics::RenderUi(const ShaderGlobalUniforms& uniforms, const RenderP
             glUniformMatrix4fv(modelLocation, 1, GL_FALSE, &model[0][0]);
         }
 
-        if (!render.customMaterial) {
+        if (render.isText) {
+            if (int uvRectangleLocation = glGetUniformLocation(currentProgram->GetHandle(), "uvRectangle"); uvRectangleLocation >= 0) {
+                glUniform4fv(uvRectangleLocation, 1, &render.uvRectangle[0]);
+            }
+            if (int pxRangeLocation = glGetUniformLocation(currentProgram->GetHandle(), "pxRange"); pxRangeLocation >= 0) {
+                glUniform1f(pxRangeLocation, render.pxRange);
+            }
+            if (int colorLocation = glGetUniformLocation(currentProgram->GetHandle(), "textColor"); colorLocation >= 0) {
+                glUniform4fv(colorLocation, 1, &render.color[0]);
+            }
+            if (render.texture) {
+                glActiveTexture(GL_TEXTURE0);
+                glBindTexture(GL_TEXTURE_2D, render.texture->GetHandle());
+                if (int texLoc = glGetUniformLocation(currentProgram->GetHandle(), "msdfAtlas"); texLoc >= 0) {
+                    glUniform1i(texLoc, 0);
+                }
+            }
+        } else if (!render.customMaterial) {
             int colorLocation = glGetUniformLocation(currentProgram->GetHandle(), "color");
             int hasTextureLocation = glGetUniformLocation(currentProgram->GetHandle(), "hasTexture");
             int textureLocation = glGetUniformLocation(currentProgram->GetHandle(), "tex");
@@ -1996,5 +2025,9 @@ void SceneGraphics::SetupShaders() {
     this->shaders.uiShader = ShaderProgram::Build()
         .WithVertexShader("./res/shaders/ui/ui.vert")
         .WithPixelShader("./res/shaders/ui/ui.frag")
+        .Link();
+    this->shaders.uiTextShader = ShaderProgram::Build()
+        .WithVertexShader("./res/shaders/ui/ui_text.vert")
+        .WithPixelShader("./res/shaders/ui/ui_text.frag")
         .Link();
 }

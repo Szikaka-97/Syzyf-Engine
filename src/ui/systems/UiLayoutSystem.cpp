@@ -1,14 +1,14 @@
-#include "ui/UiLayoutSystem.h"
+#include "ui/systems/UiLayoutSystem.h"
 
 #include "GameObjectSystem.h"
 #include "Graphics.h"
-#include "ui/UiLayout.h"
+#include "ui/objects/UiLayout.h"
 
 UiLayoutSystem::UiLayoutSystem(Scene* scene) : GameObjectSystem<UiLayout>(scene) {}
 
 void UiLayoutSystem::OnPreRender() {
     glm::vec2 resolution = this->GetScene()->GetGraphics()->GetScreenResolution();
-    float scaleFactor = resolution.y / this->VIRTUAL_RESOLUTION.y;
+    float scaleFactor = resolution.y / UiLayoutSystem::VIRTUAL_RESOLUTION.y;
 
     for (auto& uiLayout : this->IterateObjects()) {
         float scaledWidth = uiLayout->size.x * scaleFactor;
