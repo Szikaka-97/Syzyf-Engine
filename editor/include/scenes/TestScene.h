@@ -7,6 +7,7 @@
 #include "fog/Fog.h"
 #include "game_scripts/AimingAid.h"
 #include "game_scripts/ThrowBottle.h"
+#include "MotionBlur.h"
 
 #include <AiNode.h>
 #include <Bloom.h>
@@ -349,6 +350,7 @@ inline void InitScene(Scene& mainScene) {
         Tonemapper::TonemapperOperator::GranTurismo);
     cameraNode->AddObject<ColorGrading>();
     cameraNode->AddObject<Fxaa>();
+    cameraNode->AddObject<MotionBlur>();
 
 #pragma endregion
 #pragma region Miscellaneous
