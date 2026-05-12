@@ -6,16 +6,23 @@
 
 // #include "shared/shared.h"
 
-layout (std430, binding = 1) buffer LightInfo {
+layout (std430, binding = 0) restrict buffer ShadowmapInfo {
+	ShadowMapRegion Light_ShadowMapRegions[];
+};
+
+layout (std430, binding = 1) restrict buffer LightInfo {
 	vec4 Light_AmbientLight;
 	int Light_LightCount;
 	int Light_DirectionalLightCascadeCount;
 	Light Light_LightsList[];
 };
 
-layout (std430, binding = 0) buffer ShadowmapInfo {
-	ShadowMapRegion Light_ShadowMapRegions[];
+layout (std430, binding = 2) restrict buffer LightIndexList {
+	uvec4 Light_LightGridSize;
+	uint Light_LightIndexList[];
 };
+
+layout(rg32ui) readonly uniform uimage3D Light_LightGrid;
 
 uniform sampler2D Builtin_ShadowMask;
 
@@ -36,8 +43,22 @@ vec3 shade(in Material mat, in vec3 worldPos, in vec3 normal, in vec3 tangent) {
 #else
 	vec3 result = vec3(0, 0, 0);
 #endif
-	for (int lightIndex = 0; lightIndex < Light_LightCount; lightIndex++) {
-		Light l = Light_LightsList[lightIndex];
+	const vec3 viewPos = (Global_ViewMatrix * vec4(worldPos, 1.0)).xyz;
+
+	const uint zTile = uint((log(abs(viewPos.z) / Global_CameraNearPlane) * Light_LightGridSize.z) / log(Global_CameraFarPlane / Global_CameraNearPlane));
+	const vec2 tileSize = Global_Resolution.xy / Light_LightGridSize.xy;
+
+	const ivec3 tile = ivec3(gl_FragCoord.xy / tileSize, zTile);
+
+	const uvec2 lightData = imageLoad(Light_LightGrid, tile).xy;
+	
+	const uint lightStartIndex = lightData.x;
+	const uint lightCount = lightData.y;
+
+	for (int lightIndex = 0; lightIndex < lightCount; lightIndex++) {
+		Light l = Light_LightsList[Light_LightIndexList[lightStartIndex + lightIndex]];
+	// for (int lightIndex = 0; lightIndex < Light_LightCount; lightIndex++) {
+	// 	Light l = Light_LightsList[lightIndex];
 
 		if (l.intensity <= 0) {
 			continue;
