@@ -12,8 +12,6 @@
 
 #include "../res/shaders/shared/shared.h"
 #include "../res/shaders/shared/uniforms.h"
-#include "Material.h"
-#include "Texture.h"
 
 constexpr int MAX_NUM_LIGHTS = 4096;
 constexpr int LIGHTS_PER_CLUSTER = 100;
@@ -292,13 +290,14 @@ void LightSystem::RebuildLightGridBuffers() {
 	}
 
 	if (!this->lightGrid) {
-		glCreateTextures(GL_TEXTURE_3D, 1, &this->lightGrid);
+		glCreateBuffers(1, &this->lightGrid);
 	}
 
-	glBindTexture(GL_TEXTURE_3D, this->lightGrid);
-	glTexImage3D(GL_TEXTURE_3D, 0, GL_RG32UI, this->lightGridSize.x, this->lightGridSize.y, this->lightGridSize.z, 0, GL_RG_INTEGER, GL_UNSIGNED_INT, nullptr);
-	glBindTexture(GL_TEXTURE_3D, 0);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->lightGrid);
 
+	glBufferData(GL_SHADER_STORAGE_BUFFER, totalLightGridSize * sizeof(glm::uvec2), nullptr, GL_DYNAMIC_DRAW);
+
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 void LightSystem::CalculateLightClusters() {
 	static ComputeShaderProgram* clusterCalculationProg = new ComputeShaderProgram("./res/shaders/forwardplus/computeClusters.comp");
@@ -343,9 +342,7 @@ void LightSystem::CullLights() {
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, GetLightsBufferHandle());
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, this->lightIndexList);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, this->lightIndexCounter);
-
-	glActiveTexture(GL_TEXTURE0);
-	glBindImageTexture(0, this->lightGrid, 0, true, 0, GL_WRITE_ONLY, GL_RG32UI);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, this->lightGrid);
 
 	glm::mat4 viewMatrix = cam->ViewMatrix();
 
@@ -354,6 +351,12 @@ void LightSystem::CullLights() {
 	glDispatchCompute(this->lightGridSize.x, this->lightGridSize.y, this->lightGridSize.z);
 
 	glMemoryBarrier(GL_ALL_BARRIER_BITS);
+
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, 0);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, 0);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, 0);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, 0);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, 0);
 }
 
 void LightSystem::OnPostRender() {	
@@ -512,8 +515,7 @@ void LightSystem::OnPostRender() {
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, this->lightIndexList);
-	
-	glBindImageTexture(0, this->lightGrid, 0, true, 0, GL_READ_ONLY, GL_RG32UI);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, this->lightGrid);
 }
 
 int LightSystem::Order() {

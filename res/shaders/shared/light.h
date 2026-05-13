@@ -22,7 +22,9 @@ layout (std430, binding = 2) restrict buffer LightIndexList {
 	uint Light_LightIndexList[];
 };
 
-layout(rg32ui) readonly uniform uimage3D Light_LightGrid;
+layout (std430, binding = 5) restrict buffer LightGrid {
+	uvec2 Light_LightGrid[];
+};
 
 uniform sampler2D Builtin_ShadowMask;
 
@@ -50,7 +52,9 @@ vec3 shade(in Material mat, in vec3 worldPos, in vec3 normal, in vec3 tangent) {
 
 	const ivec3 tile = ivec3(gl_FragCoord.xy / tileSize, zTile);
 
-	const uvec2 lightData = imageLoad(Light_LightGrid, tile).xy;
+	const uint clusterIndex = uint(dot(tile, vec3(1, Light_LightGridSize.x, Light_LightGridSize.x * Light_LightGridSize.y)));
+
+	const uvec2 lightData = Light_LightGrid[clusterIndex];
 	
 	const uint lightStartIndex = lightData.x;
 	const uint lightCount = lightData.y;
