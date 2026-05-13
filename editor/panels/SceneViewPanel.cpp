@@ -111,7 +111,7 @@ void SceneViewPanel::Draw(Context& context) {
                         tabFlags |= ImGuiTabItemFlags_SetSelected;
                     }
 
-                    if (ImGui::BeginTabItem(tabName.c_str(), nullptr,
+                    if (ImGui::BeginTabItem(tabName.c_str(), &isOpen,
                                             tabFlags)) {
                         if (!requiresTabSync &&
                             context.selectedScene != scene) {
