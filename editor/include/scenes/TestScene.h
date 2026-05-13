@@ -45,7 +45,9 @@
 #include <physics/Water.h>
 #include <scatter/Spawner.h>
 #include <Player.h>
-#include <enemies/EnemySkeleton.cpp>
+#include <enemies/EnemySkeleton.h>
+#include <enemies/EnemyBeetroot.h>
+#include <enemies/EnemyPotato.h>
 
 #include "Jolt/Math/Vec3.h"
 #include <Jolt/Jolt.h>
@@ -279,44 +281,33 @@ inline void InitScene(Scene& mainScene) {
 
     auto enemyRoom = mainScene.FindNode("Floor");
     auto* surface = enemyRoom->GetObject<Surface>();
-    SceneNode* enemy1 = mainScene.CreateNode("Enemy 1");
-    /*Mesh* enemyMesh =
-        mainScene.Resources()->Get<Mesh>("./res/models/jake_tangents.glb");*/
+    JPH::ShapeRefC enemyShape = new JPH::CapsuleShape(0.5f, 1.0f);
+    JPH::BodyCreationSettings enemySettings(
+        enemyShape, JPH::RVec3(10.5f, 2.0f, 2.0f), JPH::Quat::sIdentity(),
+        JPH::EMotionType::Dynamic, Physics::Layers::MOVING);
     Material* enemyMat =
         mainScene.Resources()->Get<Material>("./res/materials/jake.mat");
-   // enemy1->AddObject<MeshRenderer>(enemyMesh, reflectiveMat);
-    enemy1->GlobalTransform().Position() = glm::vec3(10.5f, 0.0f, -5.0f);
+    Mesh* cubeMesh =
+        mainScene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
+    
+
+    SceneNode* enemy1 = mainScene.CreateNode("Enemy 1");
+   // enemy1->GlobalTransform().Position() = glm::vec3(10.5f, 0.0f, -5.0f);
     enemy1->GlobalTransform().Scale() = glm::vec3(0.5f, 0.5f, 0.5f);
-    //auto* enemyBody1 = enemy1->AddObject<Physics::Body>(enemyShapeSettings);
-    JPH::ShapeRefC enemyShape =
-        new JPH::CapsuleShape(0.5f, 1.0f); 
-    JPH::BodyCreationSettings enemySettings(
-        enemyShape, JPH::RVec3(10.5f, 2.0f, 2.0f), 
-        JPH::Quat::sIdentity(), JPH::EMotionType::Dynamic,
-        Physics::Layers::MOVING);
     Physics::Body* enemyBody1 = enemy1->AddObject<Physics::Body>(enemySettings);
     enemyBody1->SetRestitution(0.0f);
-
     auto* enemyAi1 = enemy1->AddObject<EnemySkeleton>();
-
     enemyAi1->SetSurface(surface);
-   // enemyAi1->GetSurface()->SetGroundHeight(0.0f);
-    surface->AddEnemy(enemyAi1);
     enemyAi1->SetTargetNode(player->GetNode());
-    surface->InformEnter(); // inform surface about player presence so it can
-                            // assign the enemy to the correct room
-    Mesh* cubeMesh = mainScene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
     enemyAi1->SetProjectileResources(cubeMesh, enemyMat);
     enemyAi1->SetAttackCooldown(1.2f);
     enemyAi1->SetRoomID(1);
-    //enemyAi1->DrawDebugView();
 
     SceneNode* enemyModel = GltfImporter::LoadScene(
         &mainScene, "./res/models/szkielet6.glb", "EnemyModel");
     enemyModel->SetParent(enemy1);
     enemyModel->GlobalTransform().Scale() = glm::vec3(0.1,0.1,0.1);
 
-    // Pobierz AnimationComponent z zaimportowanego modelu
     auto* animComp = enemyModel->GetObjectInChildren<AnimationComponent>();
     if (animComp) {
         spdlog::info(
@@ -328,10 +319,68 @@ inline void InitScene(Scene& mainScene) {
 
     if (animComp) {
         enemyAi1->SetAttackAnimation(animComp);
-        // Opcjonalnie sprawdŸ dostêpne animacje i wybierz odpowiedni¹
-        // animComp->animations – lista dostêpnych animacji
     }
 
+    SceneNode* enemy2 = mainScene.CreateNode("Enemy 2");
+    //enemy2->GlobalTransform().Position() = glm::vec3(12.0f, 0.0f, -5.0f);
+    enemy2->GlobalTransform().Scale() = glm::vec3(0.5f, 0.5f, 0.5f);
+    Physics::Body* enemyBody2 = enemy2->AddObject<Physics::Body>(enemySettings);
+    enemyBody2->SetRestitution(0.0f);
+    auto* enemyAi2 = enemy2->AddObject<EnemyBeetroot>();
+    enemyAi2->SetSurface(surface);
+    enemyAi2->SetTargetNode(player->GetNode());
+    enemyAi2->SetProjectileResources(cubeMesh, enemyMat);
+    enemyAi2->SetAttackCooldown(1.2f);
+    enemyAi2->SetRoomID(1);
+
+    SceneNode* enemyModel2 = GltfImporter::LoadScene(
+        &mainScene, "./res/models/enemies/ziemniak_remake.glb", "EnemyModel2");
+    enemyModel2->SetParent(enemy2);
+    //enemyModel2->GlobalTransform().Scale() = glm::vec3(0.1, 0.1, 0.1);
+    auto* animComp2 = enemyModel2->GetObjectInChildren<AnimationComponent>();
+    if (animComp2) {
+        spdlog::info(
+            "Found AnimationComponent in enemy model 2, animations count: {}",
+            animComp2->animations.size());
+    } else {
+        spdlog::warn("No AnimationComponent found in enemy model 2");
+    }
+    if (animComp2) {
+        enemyAi2->SetAttackAnimation(animComp2);
+    }
+
+    SceneNode* enemy3 = mainScene.CreateNode("Enemy 3");
+    //enemy3->GlobalTransform().Position() = glm::vec3(13.5f, 0.0f, -5.0f);
+    //enemy3->GlobalTransform().Scale() = glm::vec3(0.5f, 0.5f, 0.5f);
+    Physics::Body* enemyBody3 = enemy3->AddObject<Physics::Body>(enemySettings);
+    enemyBody3->SetRestitution(0.0f);
+    auto* enemyAi3 = enemy3->AddObject<EnemyPotato>();
+    enemyAi3->SetSurface(surface);
+    enemyAi3->SetTargetNode(player->GetNode());
+    enemyAi3->SetProjectileResources(cubeMesh, enemyMat);
+    enemyAi3->SetAttackCooldown(1.2f);
+    enemyAi3->SetRoomID(1);
+
+    SceneNode* enemyModel3 = GltfImporter::LoadScene(
+        &mainScene, "./res/models/enemies/burak_macki2.glb", "EnemyModel3");
+    enemyModel3->SetParent(enemy3);
+    //enemyModel3->GlobalTransform().Scale() = glm::vec3(0.1, 0.1, 0.1);
+    auto* animComp3 = enemyModel3->GetObjectInChildren<AnimationComponent>();
+    if (animComp3) {
+        spdlog::info(
+            "Found AnimationComponent in enemy model 3, animations count: {}",
+            animComp3->animations.size());
+    } else {
+        spdlog::warn("No AnimationComponent found in enemy model 3");
+    }   
+    if (animComp3) {
+        enemyAi3->SetAttackAnimation(animComp3);
+    }
+
+    surface->AddEnemy(enemyAi1);
+    surface->AddEnemy(enemyAi2);
+    surface->AddEnemy(enemyAi3);
+    surface->InformEnter(); 
 
 #pragma endregion
 #pragma region Camera
@@ -350,7 +399,7 @@ inline void InitScene(Scene& mainScene) {
         Tonemapper::TonemapperOperator::GranTurismo);
     cameraNode->AddObject<ColorGrading>();
     cameraNode->AddObject<Fxaa>();
-    cameraNode->AddObject<MotionBlur>();
+    //cameraNode->AddObject<MotionBlur>();
 
 #pragma endregion
 #pragma region Miscellaneous
