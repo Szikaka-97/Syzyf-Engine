@@ -130,6 +130,8 @@ currentUniforms() {
 	this->volumetricPassFramebuffer = new Framebuffer(Framebuffer::Attachment::None, 0, 0);
 	this->volumetricPassFramebuffer->CreateColorAttachment(true, false);
 
+    this->uiQuadMesh = this->GetScene()->Resources()->Get<Mesh>("./res/models/uiQuad.obj");
+
     this->SetupShaders();
     this->GenerateSSAOKernelAndTexture();
 
@@ -413,6 +415,32 @@ void SceneGraphics::DrawMeshIndirect(const Mesh* mesh, int subMeshIndex, const M
 	EnqueueOpaque(node); 
 }
 
+void SceneGraphics::DrawUi(const glm::mat4& worldMatrix, const glm::vec2& size, int zIndex, const glm::vec4& color, Texture2D* texture, Material* customMaterial) {
+    UiRenderNode node;
+    node.worldMatrix = worldMatrix;
+    node.size = size;
+    node.zIndex = zIndex;
+    node.color = color;
+    node.texture = texture;
+    node.customMaterial = customMaterial;
+
+    EnqueueUi(node);
+}
+
+void SceneGraphics::DrawUiText(const glm::mat4& worldMatrix, const glm::vec2& size, int zIndex, const glm::vec4& color, Texture2D* texture, const glm::vec4& uvRectangle, float pxRange) {
+    UiRenderNode node;
+    node.worldMatrix = worldMatrix;
+    node.size = size;
+    node.zIndex = zIndex;
+    node.color = color;
+    node.texture = texture;
+    node.uvRectangle = uvRectangle;
+    node.pxRange = pxRange;
+    node.isText = true;
+
+    EnqueueUi(node);
+}
+
 void SceneGraphics::Render() {
 	std::sort(GetAllObjects()->begin(), GetAllObjects()->end(), [](auto a, auto b) -> bool {
 		return a->GetPriority() > b->GetPriority();
@@ -448,7 +476,7 @@ void SceneGraphics::Render() {
 	glViewport(0, 0, this->mainViewport->GetSize().x, this->mainViewport->GetSize().y);
 
 	RenderCamera(this->mainCamera, this->mainViewport, RenderParams {
-		RenderPassType::PostProcessing,
+		(RenderPassType)(RenderPassType::PostProcessing | RenderPassType::UI),
 		glm::vec4(
 			0,
 			0,
@@ -464,6 +492,7 @@ void SceneGraphics::Render() {
 	this->oitTransparentRenders.clear();
 	this->gizmoRenders.clear();
 	this->volumetricRenders.clear();
+    this->uiRenders.clear();
 }
 
 void SceneGraphics::EnqueueOpaque(const RenderNode& node) {
@@ -498,6 +527,10 @@ void SceneGraphics::EnqueueAdditive(const RenderNode& node) {
 }
 void SceneGraphics::EnqueueVolumetric(const RenderNode& node) {
 	this->volumetricRenders.push_back(node);
+}
+
+void SceneGraphics::EnqueueUi(const UiRenderNode& node) {
+    this->uiRenders.push_back(node);
 }
 
 void SceneGraphics::RenderPrepass(const RenderParams& params, Framebuffer* target) {
@@ -1611,6 +1644,98 @@ void SceneGraphics::RenderPostprocess() {
 	}
 }
 
+void SceneGraphics::RenderUi(const RenderParams& params, Framebuffer* target) {
+    RenderUi(this->currentUniforms, params, target);
+}
+
+void SceneGraphics::RenderUi(const ShaderGlobalUniforms& uniforms, const RenderParams& params, Framebuffer* target) {
+    std::sort(this->uiRenders.begin(), this->uiRenders.end());
+
+    target->SetColorAttachmentEnabled(true);
+    glBindFramebuffer(GL_FRAMEBUFFER, target->GetHandle());
+
+    glViewport(params.viewport.x, params.viewport.y, params.viewport.z, params.viewport.w);
+
+    glDisable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glDisable(GL_CULL_FACE);
+
+    glm::mat4 projection = glm::ortho(0.0f, params.viewport.z, params.viewport.w, 0.0f, -1.0f, 1.0f);
+    glBindVertexArray(this->uiQuadMesh->SubMeshAt(0).GetVertexArrayHandle());
+
+    const ShaderProgram* currentProgram = nullptr;
+
+    for (const auto& render : this->uiRenders) {
+        const ShaderProgram* targetProgram = render.isText ? this->shaders.uiTextShader : (render.customMaterial ? render.customMaterial->GetShader() : this->shaders.uiShader);
+
+        if (currentProgram != targetProgram) {
+            currentProgram = targetProgram;
+            glUseProgram(currentProgram->GetHandle());
+        }
+        
+        if (render.customMaterial) {
+            render.customMaterial->Bind();
+        }
+
+        int projectionLocation = glGetUniformLocation(currentProgram->GetHandle(), "projection");
+        if (projectionLocation >= 0) {
+            glUniformMatrix4fv(projectionLocation, 1, GL_FALSE, &projection[0][0]);
+        }
+
+        glm::mat4 model = render.worldMatrix;
+        model = glm::scale(model, glm::vec3(render.size.x, render.size.y, 1.0f));
+        model = glm::translate(model, glm::vec3(-0.5f, -0.5f, 0.0f));
+
+        int modelLocation = glGetUniformLocation(currentProgram->GetHandle(), "model");
+        if (modelLocation >= 0) {
+            glUniformMatrix4fv(modelLocation, 1, GL_FALSE, &model[0][0]);
+        }
+
+        if (render.isText) {
+            if (int uvRectangleLocation = glGetUniformLocation(currentProgram->GetHandle(), "uvRectangle"); uvRectangleLocation >= 0) {
+                glUniform4fv(uvRectangleLocation, 1, &render.uvRectangle[0]);
+            }
+            if (int pxRangeLocation = glGetUniformLocation(currentProgram->GetHandle(), "pxRange"); pxRangeLocation >= 0) {
+                glUniform1f(pxRangeLocation, render.pxRange);
+            }
+            if (int colorLocation = glGetUniformLocation(currentProgram->GetHandle(), "textColor"); colorLocation >= 0) {
+                glUniform4fv(colorLocation, 1, &render.color[0]);
+            }
+            if (render.texture) {
+                glActiveTexture(GL_TEXTURE0);
+                glBindTexture(GL_TEXTURE_2D, render.texture->GetHandle());
+                if (int texLoc = glGetUniformLocation(currentProgram->GetHandle(), "msdfAtlas"); texLoc >= 0) {
+                    glUniform1i(texLoc, 0);
+                }
+            }
+        } else if (!render.customMaterial) {
+            int colorLocation = glGetUniformLocation(currentProgram->GetHandle(), "color");
+            int hasTextureLocation = glGetUniformLocation(currentProgram->GetHandle(), "hasTexture");
+            int textureLocation = glGetUniformLocation(currentProgram->GetHandle(), "tex");
+
+            if (colorLocation >= 0) glUniform4fv(colorLocation, 1, &render.color[0]);
+            
+            if (render.texture) {
+                if (hasTextureLocation >= 0) glUniform1i(hasTextureLocation, 1);
+                glActiveTexture(GL_TEXTURE0);
+                glBindTexture(GL_TEXTURE_2D, render.texture->GetHandle());
+                if (textureLocation >= 0) glUniform1i(textureLocation, 0);
+            } else {
+                if (hasTextureLocation >= 0) glUniform1i(hasTextureLocation, 0);
+            }
+        }
+
+        glDrawElements(GL_TRIANGLES, this->uiQuadMesh->SubMeshAt(0).GetVertexCount(), GL_UNSIGNED_INT, nullptr);
+    }
+
+    glBindVertexArray(0);
+    glUseProgram(0);
+    glEnable(GL_DEPTH_TEST);
+    glDisable(GL_BLEND);
+    glEnable(GL_CULL_FACE);
+}
+
 void SceneGraphics::RenderCamera(Camera* camera, Viewport* renderTarget) {
 	assert(camera != nullptr);
 
@@ -1720,6 +1845,11 @@ void SceneGraphics::RenderCamera(Camera* camera, Viewport* renderTarget, const R
 	if ((params.pass & RenderPassType::PostProcessing) == RenderPassType::PostProcessing) {
 		RenderPostprocess();
 	}
+
+    if ((params.pass & RenderPassType::UI) == RenderPassType::UI) {
+        activeParams.pass = RenderPassType(RenderPassType::UI);
+        RenderUi(activeParams, renderTarget->GetFramebuffer());
+    }
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
@@ -1891,5 +2021,15 @@ void SceneGraphics::SetupShaders() {
     this->shaders.ssaoBlurShader = ShaderProgram::Build()
         .WithVertexShader("./res/shaders/ssao/ssao.vert")
         .WithPixelShader("./res/shaders/ssao/ssao_blur.frag")
+        .Link();
+
+    // UI
+    this->shaders.uiShader = ShaderProgram::Build()
+        .WithVertexShader("./res/shaders/ui/ui.vert")
+        .WithPixelShader("./res/shaders/ui/ui.frag")
+        .Link();
+    this->shaders.uiTextShader = ShaderProgram::Build()
+        .WithVertexShader("./res/shaders/ui/ui_text.vert")
+        .WithPixelShader("./res/shaders/ui/ui_text.frag")
         .Link();
 }

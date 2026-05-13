@@ -116,6 +116,8 @@ class Scene {
 	friend class SceneNode;
 	friend class GameObject;
 public:
+    std::string name = "";
+
 	int nextSceneNodeID;
 	int nextGameObjectID;
 

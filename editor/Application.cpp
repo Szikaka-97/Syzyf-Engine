@@ -2,6 +2,7 @@
 #include "CameraController.h"
 #include "ComponentRegistry.h"
 #include "MousePickingBodySystem.h"
+#include "SceneRegistry.h"
 #include "Themes.h"
 #include "panels/ConsolePanel.h"
 #include "scenes/DungeonGeneratorScene.h"
@@ -9,6 +10,7 @@
 
 #include "scenes/LevelShowcaseScene.h"
 #include "scenes/TestScene.h"
+#include "scenes/examples/ui.h"
 #include "thirdparty/ImGuizmo.h"
 #include "thirdparty/ImViewGuizmo.h"
 #include <imgui.h>
@@ -29,7 +31,6 @@
 #include <Graphics.h>
 #include <physics/Jolt.h>
 #include <physics/System.h>
-
 
 namespace Editor {
 bool Application::InitProgram() {
@@ -136,6 +137,7 @@ bool Application::InitImGui() {
 bool Application::Setup() {
     this->settings.Load();
     this->InitSpdlog();
+    SceneRegistry::RegisterScenes();
     ComponentRegistry::RegisterComponents();
 
     return this->InitProgram() && this->InitImGui();
@@ -166,8 +168,7 @@ void Application::Terminate() {
 }
 
 void Application::MainLoop() {
-    // temporary
-
+    // Move this somewhere else, or remove completely
     ShaderProgram* debugShader =
         ShaderProgram::Build()
             .WithVertexShader("./res/shaders/physics_debug/physics_debug.vert")
@@ -180,16 +181,13 @@ void Application::MainLoop() {
     this->context.loadedScenes.push_back(this->context.selectedScene);
     TestScene::InitScene(*this->context.selectedScene);
 
-    // Scene* dungeonScene = Scene::CreateStandaloneScene();
-    // DungeonGeneratorScene::InitScene(*dungeonScene);
-    // this->context.loadedScenes.push_back(dungeonScene);
-
     for (auto* scene : this->context.loadedScenes) {
         scene->GetGraphics()->UpdateScreenResolution(
             glm::vec2(1024.0f, 576.0f)); // this doesnt do anything anymore ?
         scene->AddComponent<MousePickingBodySystem>();
         SceneNode* cameraNode = scene->CreateNode();
         cameraNode->AddObject<CameraController>();
+        cameraNode->GlobalTransform().Position() = {0.0f, 1.0f, 0.0f};
 
         if (scene == this->context.selectedScene) {
             this->context.mainCamera = cameraNode->GetObject<Camera>();
@@ -222,7 +220,9 @@ void Application::MainLoop() {
 
         this->DrawPanels(shouldClose);
 
-        this->context.selectedScene->FlushQueues();
+        if (this->context.selectedScene != nullptr) {
+            this->context.selectedScene->FlushQueues();
+        }
 
         ImGui::Render();
         ImGuiIO& io = ImGui::GetIO();
@@ -254,7 +254,7 @@ void Application::DrawPanels(bool& shouldClose) {
     this->inspectorPanel.Draw(this->context);
     this->filesPanel.Draw();
     this->consolePanel.Draw(this->context);
-   // this->textureToolPanel.Draw(this->context);
+    // this->textureToolPanel.Draw(this->context);
     this->sceneViewPanel.Draw(this->context);
     // this->statusBar.Draw(); a bit broken
 }
