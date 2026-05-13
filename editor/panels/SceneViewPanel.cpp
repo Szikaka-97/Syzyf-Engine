@@ -5,6 +5,7 @@
 #include "Commands.h"
 #include "MousePickingBodySystem.h"
 #include "ParticleSpawner.h"
+#include "SceneRegistry.h"
 #include "physics/Body.h"
 #include "physics/DebugRenderer.h"
 
@@ -79,40 +80,113 @@ void SceneViewPanel::Draw(Context& context) {
     }
 
     if (drawContent) {
-        if (context.loadedScenes.empty()) {
-            if (startedAsPopup)
-                ImGui::EndPopup();
-            else
-                ImGui::End();
-            return;
-        }
-
         if (!this->isBarHidden) {
             if (context.state == State::Game) {
                 ImGui::BeginDisabled();
             }
-            if (ImGui::BeginTabBar("SceneTabBar", ImGuiTabBarFlags_None)) {
+            if (ImGui::BeginTabBar("SceneTabBar",
+                                   ImGuiTabBarFlags_AutoSelectNewTabs |
+                                       ImGuiTabBarFlags_Reorderable)) {
+                std::vector<Scene*> scenesToClose;
+
                 for (std::size_t i = 0; i < context.loadedScenes.size(); ++i) {
                     Scene* scene = context.loadedScenes[i];
 
-                    std::string tabName = "Scene " + std::to_string(i + 1);
+                    std::string displayName =
+                        scene->name.empty() ? "Scene " + std::to_string(i + 1)
+                                            : scene->name;
+                    std::string tabName =
+                        displayName + "###" +
+                        std::to_string(reinterpret_cast<uintptr_t>(scene));
 
-                    if (ImGui::BeginTabItem(tabName.c_str())) {
+                    bool isOpen = true;
+
+                    if (ImGui::BeginTabItem(tabName.c_str(), &isOpen)) {
                         if (context.selectedScene != scene) {
                             context.selectedScene = scene;
-
                             context.selectedNode = nullptr;
+
                             context.mainCamera =
                                 scene->FindObjectsOfType<CameraController>()
                                     .front()
                                     ->GetObject<Camera>();
                             context.mainCamera->SetAsMainCamera();
                         }
+
                         ImGui::EndTabItem();
                     }
+
+                    if (!isOpen) {
+                        scenesToClose.push_back(scene);
+                    }
                 }
+
+                if (ImGui::TabItemButton("+",
+                                         ImGuiTabItemFlags_Trailing |
+                                             ImGuiTabItemFlags_NoTooltip)) {
+                    ImGui::OpenPopup("AddScenePopup");
+                }
+
+                if (ImGui::BeginPopup("AddScenePopup")) {
+                    ImGui::TextDisabled("Available Scenes:");
+                    ImGui::Separator();
+
+                    for (const auto& [name, initFunc] :
+                         SceneRegistry::GetRegistry()) {
+                        if (ImGui::Selectable(name.c_str())) {
+                            Scene* newScene = Scene::CreateStandaloneScene();
+
+                            newScene->name = name;
+
+                            initFunc(*newScene);
+
+                            newScene->AddComponent<MousePickingBodySystem>();
+
+                            SceneNode* cameraNode = newScene->CreateNode();
+                            cameraNode->AddObject<CameraController>();
+                            cameraNode->GlobalTransform().Position() = {
+                                0.0f, 1.0f, 0.0f};
+
+                            context.loadedScenes.push_back(newScene);
+
+                            context.selectedScene = newScene;
+                            context.selectedNode = nullptr;
+                            context.mainCamera =
+                                cameraNode->GetObject<Camera>();
+                            context.mainCamera->SetAsMainCamera();
+                        }
+                    }
+                    ImGui::EndPopup();
+                }
+
                 ImGui::EndTabBar();
+
+                // Closing scenes
+                for (Scene* sceneToClose : scenesToClose) {
+                    std::erase(context.loadedScenes, sceneToClose);
+
+                    if (context.selectedScene == sceneToClose) {
+                        context.selectedScene = nullptr;
+                        context.selectedNode = nullptr;
+                        context.mainCamera = nullptr;
+
+                        if (!context.loadedScenes.empty()) {
+                            context.selectedScene = context.loadedScenes.back();
+                            auto cameras =
+                                context.selectedScene
+                                    ->FindObjectsOfType<CameraController>();
+                            if (!cameras.empty()) {
+                                context.mainCamera =
+                                    cameras.front()->GetObject<Camera>();
+                                context.mainCamera->SetAsMainCamera();
+                            }
+                        }
+                    }
+
+                    delete sceneToClose;
+                }
             }
+
             if (context.state == State::Game) {
                 ImGui::EndDisabled();
             }
@@ -343,7 +417,7 @@ void SceneViewPanel::UpdateAndRenderScene(Context& context) {
     if (context.state != State::Game) {
         for (auto* aiNode :
              context.selectedScene->FindObjectsOfType<AiNode>()) {
-           // aiNode->DrawDebugView(context.physicsDebugRenderer.get());
+            // aiNode->DrawDebugView(context.physicsDebugRenderer.get());
         }
 
         context.physicsDebugRenderer->Render();

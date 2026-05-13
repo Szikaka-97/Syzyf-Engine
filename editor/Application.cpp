@@ -2,6 +2,7 @@
 #include "CameraController.h"
 #include "ComponentRegistry.h"
 #include "MousePickingBodySystem.h"
+#include "SceneRegistry.h"
 #include "Themes.h"
 #include "panels/ConsolePanel.h"
 #include "scenes/DungeonGeneratorScene.h"
@@ -9,6 +10,7 @@
 
 #include "scenes/LevelShowcaseScene.h"
 #include "scenes/TestScene.h"
+#include "scenes/examples/ui.h"
 #include "thirdparty/ImGuizmo.h"
 #include "thirdparty/ImViewGuizmo.h"
 #include <imgui.h>
@@ -135,6 +137,7 @@ bool Application::InitImGui() {
 bool Application::Setup() {
     this->settings.Load();
     this->InitSpdlog();
+    SceneRegistry::RegisterScenes();
     ComponentRegistry::RegisterComponents();
 
     return this->InitProgram() && this->InitImGui();
@@ -165,8 +168,7 @@ void Application::Terminate() {
 }
 
 void Application::MainLoop() {
-    // temporary
-
+    // Move this somewhere else, or remove completely
     ShaderProgram* debugShader =
         ShaderProgram::Build()
             .WithVertexShader("./res/shaders/physics_debug/physics_debug.vert")
@@ -178,10 +180,6 @@ void Application::MainLoop() {
     this->context.selectedScene = Scene::CreateStandaloneScene();
     this->context.loadedScenes.push_back(this->context.selectedScene);
     TestScene::InitScene(*this->context.selectedScene);
-
-    // Scene* dungeonScene = Scene::CreateStandaloneScene();
-    // DungeonGeneratorScene::InitScene(*dungeonScene);
-    // this->context.loadedScenes.push_back(dungeonScene);
 
     for (auto* scene : this->context.loadedScenes) {
         scene->GetGraphics()->UpdateScreenResolution(
@@ -222,7 +220,9 @@ void Application::MainLoop() {
 
         this->DrawPanels(shouldClose);
 
-        this->context.selectedScene->FlushQueues();
+        if (this->context.selectedScene != nullptr) {
+            this->context.selectedScene->FlushQueues();
+        }
 
         ImGui::Render();
         ImGuiIO& io = ImGui::GetIO();

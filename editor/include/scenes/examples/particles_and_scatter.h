@@ -5,8 +5,6 @@
 #include "fog/Fog.h"
 #include "game_scripts/AimingAid.h"
 
-#include "Noise3D.h"
-#include <AiNode.h>
 #include <Bloom.h>
 #include <Camera.h>
 #include <ColorGrading.h>
@@ -58,9 +56,156 @@
 #include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
 #include <Jolt/Physics/Collision/Shape/Shape.h>
 #include <imgui.h>
+#include <memory>
 #include <physics/VirtualCharacterController.h>
 
-namespace TestScene {
+namespace ExampleParticlesAndScatter {
+
+class Tornado : public GameObject, public ImGuiDrawable {
+  private:
+    Mesh* tornadoMesh;
+    std::unique_ptr<ShaderProgram> tornadoShader;
+    std::unique_ptr<Material> tornadoMaterial;
+    SceneNode* tornadoNode;
+
+    Mesh* particlesMesh;
+    std::unique_ptr<ShaderProgram> particlesShader;
+    std::unique_ptr<Material> particlesBottomMaterial;
+    std::unique_ptr<Material> particlesTopMaterial;
+    SceneNode* particlesBottom;
+    SceneNode* particleTop;
+
+    float rotationSpeed = 10.0f;
+    float opacity = 0.7f;
+    float intensity = 5.5f;
+    glm::vec2 uvSpeed = {2.0f, 1.0f};
+
+  public:
+    Tornado() {
+        this->tornadoMesh = this->GetScene()->Resources()->Get<Mesh>(
+            "./res/models/tornado/tornado.obj");
+        this->tornadoShader.reset(
+            ShaderProgram::Build()
+                .WithVertexShader("./res/shaders/lit.vert")
+                .WithPixelShader("./res/shaders/tornado.frag")
+                .Link());
+        this->tornadoMaterial =
+            std::make_unique<Material>(this->tornadoShader.get());
+        this->tornadoMaterial->SetValue("uOpacity", this->opacity);
+        this->tornadoMaterial->SetValue("uSpeed", this->uvSpeed);
+        this->tornadoMaterial->SetValue("uIntensity", this->intensity);
+
+        this->tornadoMaterial->SetValue(
+            "uNoiseTexture", this->GetScene()->Resources()->Get<Texture2D>(
+                                 "./res/textures/noise/T_Noise_HU85k.png",
+                                 Texture::TechnicalMapXYZ));
+        this->tornadoMaterial->SetValue(
+            "uColorGradientTexture",
+            this->GetScene()->Resources()->Get<Texture2D>(
+                "./res/textures/inkpink-alpha.png", Texture::ColorTextureRGBA));
+        this->tornadoMaterial->SetValue(
+            "uSubtractionTexture",
+            this->GetScene()->Resources()->Get<Texture2D>(
+                "./res/textures/subtraction.png", Texture::TechnicalMapXYZ));
+
+        this->tornadoNode =
+            this->GetScene()->CreateNode(this->GetNode(), "Tornado");
+        this->tornadoNode->AddObject<MeshRenderer>(this->tornadoMesh,
+                                                   this->tornadoMaterial.get());
+
+        this->particlesBottom = this->GetScene()->CreateNode(
+            this->GetNode(), "Tornado Particles Bottom");
+        this->particlesMesh = this->GetScene()->Resources()->Get<Mesh>(
+            "./res/models/tornado/tornado_base.obj");
+        this->particlesShader.reset(
+            ShaderProgram::Build()
+                .WithVertexShader("./res/shaders/particles/particles.vert")
+                .WithPixelShader("./res/shaders/particles/tornado_base.frag")
+                .Link());
+
+        this->particlesBottomMaterial =
+            std::make_unique<Material>(this->particlesShader.get());
+        this->particlesTopMaterial =
+            std::make_unique<Material>(this->particlesShader.get());
+
+        this->particlesBottomMaterial->SetValue(
+            "colorTex", this->GetScene()->Resources()->Get<Texture2D>(
+                            "./res/textures/noise/T_FirePanningCyl45.png",
+                            Texture::TechnicalMapXYZ));
+
+        Texture2D* colorRampTex = this->GetScene()->Resources()->Get<Texture2D>(
+            "./res/textures/inkpink-32x.png", Texture::ColorTextureRGB);
+        this->particlesBottomMaterial->SetValue("colorRamp", colorRampTex);
+
+        ParticleSpawnerSettings particleSettings = {
+            .maxParticles = 8,
+            .emissionShapeExtents = glm::vec3(0.01f),
+
+            .minVelocity = {0.0f, 0.0f, 0.0f},
+            .maxVelocity = {0.0f, 0.2f, 0.0f},
+
+            .minInitialAngle = glm::radians(-180.0f),
+            .maxInitialAngle = glm::radians(180.0f),
+            .minAngularVelocity = -4.0f,
+            .maxAngularVelocity = 8.0f,
+            .rotateY = true,
+
+            .enableLifetime = true,
+            .minLifetime = 2.0f,
+            .maxLifetime = 3.0f,
+
+            .minScale = 1.5f,
+            .maxScale = 1.8f,
+
+            .alphaMode = AlphaMode::Alpha,
+            .lifetimeFadeIn = {0.0f, 0.1f},
+            .lifetimeFadeOut = {0.9f, 1.0f},
+
+            .wrapAround = false,
+            .continuous = true,
+            .useColorRamp = true,
+        };
+
+        this->particlesBottom->AddObject<ParticleSpawner>(
+            this->particlesMesh, particlesBottomMaterial.get(),
+            particleSettings);
+
+        this->particleTop = this->GetScene()->CreateNode(
+            this->GetNode(), "Tornado Particles Top");
+        this->particlesTopMaterial->SetValue(
+            "colorTex", this->GetScene()->Resources()->Get<Texture2D>(
+                            "./res/textures/noise/T_FirePanningCyl45.png",
+                            Texture::TechnicalMapXYZ));
+        this->particlesTopMaterial->SetValue("colorRamp", colorRampTex);
+
+        particleSettings.minScale = 3.5f;
+        particleSettings.maxScale = 4.0f;
+        this->particleTop->AddObject<ParticleSpawner>(
+            this->particlesMesh, particlesTopMaterial.get(), particleSettings);
+        this->particleTop->LocalTransform().Position() = {0.0f, 4.8f, 0.0f};
+    }
+
+    void Update() {
+        glm::quat rotation = glm::angleAxis(glm::radians(this->rotationSpeed),
+                                            glm::vec3(0.0f, 1.0f, 0.0f));
+
+        this->tornadoNode->LocalTransform().Rotation() *= rotation;
+    }
+
+    virtual void DrawImGui() {
+        ImGui::SliderFloat("Rotation Speed", &this->rotationSpeed, 0.0f, 50.0f);
+        if (ImGui::SliderFloat("Opacity", &this->opacity, 0.0f, 1.0f)) {
+            this->tornadoMaterial->SetValue("uOpacity", this->opacity);
+        }
+        if (ImGui::InputFloat2("UV Speed", &this->uvSpeed[0])) {
+            this->tornadoMaterial->SetValue("uSpeed", this->uvSpeed);
+        }
+        if (ImGui::SliderFloat("Intensity", &this->intensity, 0.0f, 10.0f)) {
+            this->tornadoMaterial->SetValue("uIntensity", this->intensity);
+        }
+    }
+};
+
 class Mover : public GameObject, public ImGuiDrawable {
   private:
     float pitch;
@@ -170,10 +315,7 @@ inline void InitScene(Scene& mainScene) {
     mainScene.AddComponent<DebugInspector>();
     mainScene.AddComponent<UiSystem>();
     mainScene.AddComponent<AnimationSystem>();
-    auto* tweenSystem = mainScene.AddComponent<TweenSystem>();
 
-// If Visual Studio doesn't like this I'm going to give up and force you guys to
-// switch to GCC
 #pragma region World
 
     ShaderProgram* skyProg =
@@ -202,19 +344,6 @@ inline void InitScene(Scene& mainScene) {
             Physics::MeshShape(floorMeshRenderer->GetMesh()),
             JPH::RVec3::sZero(), JPH::Quat::sZero(), JPH::EMotionType::Static,
             Physics::Layers::NON_MOVING});
-    floorNode->AddObject<Surface>(floorMeshRenderer->GetMesh(), 1.0f);
-    // floorNode->GetObject<Surface>()->DrawDebugSurface();
-    floorNode->GetObject<Surface>()->SetID(0);
-    auto* navGrid = floorNode->AddObject<NavigationGrid>();
-    navGrid->Build(floorNode->GetObject<Surface>(), 2.0f, 45.0f);
-
-    SceneNode* monkey = GltfImporter::LoadScene(
-        &mainScene, "./res/models/big_monkey.glb", "Monkey", floorNode);
-    JPH::ShapeRefC monkeyShape = Physics::CreateCompoundShapeFromNode(
-        monkey, false, JPH::EMotionType::Static, Physics::Layers::NON_MOVING);
-    monkey->AddObject<Physics::Body>(JPH::BodyCreationSettings{
-        monkeyShape, JPH::Vec3::sZero(), JPH::Quat::sIdentity(),
-        JPH::EMotionType::Static, Physics::Layers::MOVING});
 
 #pragma endregion
 #pragma region Player
@@ -249,90 +378,9 @@ inline void InitScene(Scene& mainScene) {
     player->aim = aimingAid;
 
     player->AddObject<Player>();
-    // player->GetObjectA<Player>()->SetRoomID(); default is 0
 
 #pragma endregion
 
-#pragma region Enemy
-    /*JPH::BodyCreationSettings enemyShapeSettings = JPH::BodyCreationSettings(
-        Physics::MeshShape(floorMeshRenderer->GetMesh()), JPH::RVec3::sZero(),
-        JPH::Quat::sZero(), JPH::EMotionType::Dynamic,
-       Physics::Layers::MOVING);*/
-    ShaderProgram* pbrProg = ShaderProgram::Build()
-                                 .WithVertexShader("./res/shaders/lit.vert")
-                                 .WithPixelShader("./res/shaders/pbr.frag")
-                                 .Link();
-
-    Texture2D* reflectiveDiffuse = mainScene.Resources()->Get<Texture2D>(
-        "./res/textures/material_preview/worn-shiny-metal-albedo.png",
-        Texture::ColorTextureRGB);
-    Texture2D* reflectiveNormal = mainScene.Resources()->Get<Texture2D>(
-        "./res/textures/material_preview/worn-shiny-metal-Normal-ogl.png",
-        Texture::TechnicalMapXYZ);
-    Texture2D* reflectiveARM = mainScene.Resources()->Get<Texture2D>(
-        "./res/textures/material_preview/worn-shiny-metal-arm.png",
-        Texture::TechnicalMapXYZ);
-
-    Material* reflectiveMat = new Material(pbrProg);
-    reflectiveMat->SetValue("albedoMap", reflectiveDiffuse);
-    reflectiveMat->SetValue("normalMap", reflectiveNormal);
-    reflectiveMat->SetValue("armMap", reflectiveARM);
-
-    auto enemyRoom = mainScene.FindNode("Floor");
-    auto* surface = enemyRoom->GetObject<Surface>();
-    SceneNode* enemy1 = mainScene.CreateNode("Enemy 1");
-    /*Mesh* enemyMesh =
-        mainScene.Resources()->Get<Mesh>("./res/models/jake_tangents.glb");*/
-    Material* enemyMat =
-        mainScene.Resources()->Get<Material>("./res/materials/jake.mat");
-    // enemy1->AddObject<MeshRenderer>(enemyMesh, reflectiveMat);
-    enemy1->GlobalTransform().Position() = glm::vec3(10.5f, 0.0f, -5.0f);
-    enemy1->GlobalTransform().Scale() = glm::vec3(0.5f, 0.5f, 0.5f);
-    // auto* enemyBody1 = enemy1->AddObject<Physics::Body>(enemyShapeSettings);
-    JPH::ShapeRefC enemyShape = new JPH::CapsuleShape(0.5f, 1.0f);
-    JPH::BodyCreationSettings enemySettings(
-        enemyShape, JPH::RVec3(10.5f, 2.0f, 2.0f), JPH::Quat::sIdentity(),
-        JPH::EMotionType::Dynamic, Physics::Layers::MOVING);
-    Physics::Body* enemyBody1 = enemy1->AddObject<Physics::Body>(enemySettings);
-    enemyBody1->SetRestitution(0.0f);
-
-    auto* enemyAi1 = enemy1->AddObject<EnemySkeleton>();
-
-    enemyAi1->SetSurface(surface);
-    // enemyAi1->GetSurface()->SetGroundHeight(0.0f);
-    surface->AddEnemy(enemyAi1);
-    enemyAi1->SetTargetNode(player->GetNode());
-    surface->InformEnter(); // inform surface about player presence so it can
-                            // assign the enemy to the correct room
-    Mesh* cubeMesh =
-        mainScene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
-    enemyAi1->SetProjectileResources(cubeMesh, enemyMat);
-    enemyAi1->SetAttackCooldown(1.2f);
-    enemyAi1->SetRoomID(1);
-    // enemyAi1->DrawDebugView();
-
-    SceneNode* enemyModel = GltfImporter::LoadScene(
-        &mainScene, "./res/models/szkielet6.glb", "EnemyModel");
-    enemyModel->SetParent(enemy1);
-    enemyModel->GlobalTransform().Scale() = glm::vec3(0.1, 0.1, 0.1);
-
-    // Pobierz AnimationComponent z zaimportowanego modelu
-    auto* animComp = enemyModel->GetObjectInChildren<AnimationComponent>();
-    if (animComp) {
-        spdlog::info(
-            "Found AnimationComponent in enemy model, animations count: {}",
-            animComp->animations.size());
-    } else {
-        spdlog::warn("No AnimationComponent found in enemy model");
-    }
-
-    if (animComp) {
-        enemyAi1->SetAttackAnimation(animComp);
-        // Opcjonalnie sprawd� dost�pne animacje i wybierz odpowiedni�
-        // animComp->animations � lista dost�pnych animacji
-    }
-
-#pragma endregion
 #pragma region Camera
 
     SceneNode* cameraNode = mainScene.CreateNode("Camera Node");
@@ -340,10 +388,6 @@ inline void InitScene(Scene& mainScene) {
         Camera::Perspective(60.0f, 16.0f / 9.0f, 0.1f, 200.0f));
     cameraNode->AddObject<CameraSettings>(
         playerNode->GlobalTransform().Position());
-    auto* fog = cameraNode->AddObject<Fog>();
-    fog->fogType = Fog::Type::Atmospheric;
-    fog->density = 0.042;
-    fog->fogColor = {0.2, 0.6, 0.9, 1.0};
     cameraNode->AddObject<Bloom>();
     cameraNode->AddObject<Tonemapper>()->SetOperator(
         Tonemapper::TonemapperOperator::GranTurismo);
@@ -351,6 +395,7 @@ inline void InitScene(Scene& mainScene) {
     cameraNode->AddObject<Fxaa>();
 
 #pragma endregion
+
 #pragma region Miscellaneous
     SceneNode* sun = mainScene.CreateNode("Sun");
     sun->AddObject<Light>(Light::DirectionalLight({1, 1, 1}, 2))
@@ -361,66 +406,11 @@ inline void InitScene(Scene& mainScene) {
     mainScene.GetComponent<LightSystem>()->SetAmbientLight(
         {1.0f, 1.0f, 1.0f, 0.6f});
 
-    // Mesh* mirrorMesh =
-    //     mainScene.Resources()->Get<Mesh>("./res/models/plane.obj");
-    // SceneNode* mirrorNode = mainScene.CreateNode("Mirror");
-    // SceneNode* mirrorMeshNode = mainScene.CreateNode(mirrorNode, "Mirror
-    // Mesh"); mirrorMeshNode->AddObject<Mirror>(mirrorMesh);
-    // mirrorNode->GlobalTransform().Position() = {15.0f, 0.0f, 1.5f};
-    // mirrorNode->GlobalTransform().Rotation() =
-    //     glm::quat(glm::radians(glm::vec3(0.0f, 0.0f, 0.0f)));
-    // mirrorNode->GetObjectInChildren<MeshRenderer>()->GlobalTransform().Scale()
-    // =
-    //     {10.0f, 7.0f, 1.0f};
-    // Physics::CreateCompoundShapeFromNode(
-    //     mirrorNode->GetObjectInChildren<MeshRenderer>()->GetNode(), false,
-    //     JPH::EMotionType::Static, Physics::Layers::NON_MOVING);
+#pragma endregion
 
-    // FastNoiseLite noise;
-    // noise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
-    // noise.SetFractalType(FastNoiseLite::FractalType_FBm);
-    // noise.SetFractalOctaves(4);
-    // noise.SetFrequency(0.02f);
-    // Texture3D* noiseTexture = Noise3D::Create3DNoiseTexture(noise, 128,
-    // true); SceneNode* fogVolume = mainScene.CreateNode("Fog Volume");
-    // FogVolume* fogVolumeObject = fogVolume->AddObject<FogVolume>();
-    // fogVolumeObject->scatteringColor = {0.0f, 0.8f, 0.1f};
-    // fogVolumeObject->emissiveStrength = 5.0f;
-    // fogVolumeObject->stepSize = 0.03f;
-    // fogVolumeObject->scatteringDensity = 2.0f;
-    // fogVolumeObject->absorptionDensity = 0.0f;
-    // fogVolumeObject->noiseScale = 0.04f;
-    // fogVolumeObject->windDirection = {0.001f, 0.04f, 0.0f};
-    // fogVolumeObject->coverage = 0.4f;
-    // fogVolumeObject->sharpness = 6.0f;
-    // fogVolume->GlobalTransform().Position() = {0.0f, 0.6f, 3.0f};
-    // fogVolume->GlobalTransform().Scale() = {20.0f, 1.0f, 20.0f};
-    // fogVolumeObject->noiseTexture = noiseTexture;
-
-    ShaderProgram* transparentProg =
-        ShaderProgram::Build()
-            .WithVertexShader("./res/shaders/lit.vert")
-            .WithPixelShader("./res/shaders/transparent.frag")
-            .Link();
-
-    Material* pinkTransparentMat = new Material(transparentProg);
-    pinkTransparentMat->SetValue("uColor", glm::vec4(1.0, 0.5, 0.5, 0.6));
-
-    Material* blueTransparentMat = new Material(transparentProg);
-    blueTransparentMat->SetValue("uColor", glm::vec4(0.5, 0.5, 1.0, 0.6));
-
-    // Mesh* cubeMesh =
-    // mainScene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
-
-    SceneNode* pinkTransparentCubeNode = mainScene.CreateNode("Pink Cube");
-    pinkTransparentCubeNode->AddObject<MeshRenderer>(cubeMesh,
-                                                     pinkTransparentMat);
-    pinkTransparentCubeNode->LocalTransform().Position() = {-3, 0, -3};
-
-    SceneNode* blueTransparentCubeNode = mainScene.CreateNode("Blue Cube");
-    blueTransparentCubeNode->AddObject<MeshRenderer>(cubeMesh,
-                                                     blueTransparentMat);
-    blueTransparentCubeNode->LocalTransform().Position() = {-3, 0, -5};
+#pragma region Scatter
+    Mesh* cubeMesh =
+        mainScene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
 
     ShaderProgram* scatterProgram =
         ShaderProgram::Build()
@@ -461,6 +451,10 @@ inline void InitScene(Scene& mainScene) {
         mainScene.Resources()->Get<Mesh>("./res/models/schnoz/schnoz.obj");
     Scatter::Spawner* scatterSpawner2 = scatter2->AddObject<Scatter::Spawner>(
         schnozMesh, std::move(scatterMaterial2), scatterSettings2);
+
+#pragma endregion
+
+#pragma region Particles
 
     ShaderProgram* dustProgram =
         ShaderProgram::Build()
@@ -508,6 +502,10 @@ inline void InitScene(Scene& mainScene) {
                                 .continuous = false,
                                 .useColorRamp = false});
 
+    SceneNode* tornadoNode = mainScene.CreateNode("Tornado Node");
+    tornadoNode->AddObject<Tornado>();
+    tornadoNode->GlobalTransform().Position() = {5.0f, 0.0f, 0.0f};
+
 #pragma endregion
 }
-} // namespace TestScene
+} // namespace ExampleParticlesAndScatter
