@@ -15,23 +15,35 @@ private:
 
 	GLuint lightsBuffer;
 	GLuint shadowmapsBuffer;
+	GLuint clustersBuffer;
+	GLuint lightIndexList;
+	GLuint lightIndexCounter;
+	GLuint lightGrid;
 
 	int shadowmapAtlasSize;
 	int directionalLightCascadeCount;
 
     glm::vec4 ambientLight;
 
+	glm::uvec3 lightGridSize;
+
 	void ChangeShadowAtlasResolution(int newResolution);
 
 	void DoSpotLightShadowmap(Light* light, ShadowMapRegion& shadowmapRect);
 	void DoDirectionalLightShadowmap(Light* light, ShadowMapRegion* shadowmapRects);
 	void DoPointLightShadowmap(Light* light, ShadowMapRegion* shadowmapRects);
+
+	void RebuildLightGridBuffers();
+	void CalculateLightClusters();
+	void CullLights();
 public:
 	LightSystem(Scene* scene);
 
 	GLuint GetLightsBufferHandle();
 	GLuint GetShadowmapsBufferHandle();
 	Framebuffer* GetShadowAtlasFramebuffer();
+	GLuint GetLightGridHandle();
+	GLuint GetLightIndexListHandle();
 
     glm::vec4 GetAmbientLight() const;
     void SetAmbientLight(glm::vec4 ambientLight);

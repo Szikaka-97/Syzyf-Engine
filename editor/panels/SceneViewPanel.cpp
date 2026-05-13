@@ -31,6 +31,10 @@
 
 namespace Editor {
 void SceneViewPanel::Draw(Context& context) {
+    bool requiresTabSync =
+        (this->previousFullscreenState != this->isFullscreen);
+    this->previousFullscreenState = this->isFullscreen;
+
     bool drawContent = false;
     bool startedAsPopup = this->isFullscreen;
 
@@ -93,13 +97,22 @@ void SceneViewPanel::Draw(Context& context) {
                 ImGui::BeginDisabled();
             }
             if (ImGui::BeginTabBar("SceneTabBar", ImGuiTabBarFlags_None)) {
+                Scene* targetScene = context.selectedScene;
+
                 for (std::size_t i = 0; i < context.loadedScenes.size(); ++i) {
                     Scene* scene = context.loadedScenes[i];
 
                     std::string tabName = "Scene " + std::to_string(i + 1);
 
-                    if (ImGui::BeginTabItem(tabName.c_str())) {
-                        if (context.selectedScene != scene) {
+                    ImGuiTabItemFlags tabFlags = ImGuiTabItemFlags_None;
+                    if (requiresTabSync && targetScene == scene) {
+                        tabFlags |= ImGuiTabItemFlags_SetSelected;
+                    }
+
+                    if (ImGui::BeginTabItem(tabName.c_str(), nullptr,
+                                            tabFlags)) {
+                        if (!requiresTabSync &&
+                            context.selectedScene != scene) {
                             context.selectedScene = scene;
 
                             context.selectedNode = nullptr;
@@ -350,7 +363,7 @@ void SceneViewPanel::UpdateAndRenderScene(Context& context) {
     if (context.state != State::Game) {
         for (auto* aiNode :
              context.selectedScene->FindObjectsOfType<AiNode>()) {
-           // aiNode->DrawDebugView(context.physicsDebugRenderer.get());
+            // aiNode->DrawDebugView(context.physicsDebugRenderer.get());
         }
 
         context.physicsDebugRenderer->Render();

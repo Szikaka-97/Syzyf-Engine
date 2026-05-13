@@ -22,6 +22,9 @@ class SceneViewPanel {
         }
     };
 
+    // For synchronizing the fullscreen so it displays the same scene when
+    // opened
+    bool previousFullscreenState = false;
     bool isFullscreen = false;
     bool isBarHidden = false;
 

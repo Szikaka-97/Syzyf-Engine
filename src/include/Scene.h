@@ -2,7 +2,6 @@
 
 #include <concepts>
 #include <vector>
-#include <typeinfo>
 #include <queue>
 
 #include <spdlog/spdlog.h>
@@ -31,12 +30,11 @@ private:
 	int id;
 	std::string name;
 
-	bool enabled;
+	uint8_t disabledState;
 	uint8_t layer;
 
 	Scene* const scene;
 	std::vector<GameObject*> objects;
-	std::vector<Scene*> attachedScenes;
 
 	std::vector<SceneNode*> children;
 	SceneTransform transform;
@@ -60,6 +58,8 @@ public:
 	Scene* GetScene();
 
 	bool IsEnabled() const;
+
+	bool EnabledSelf() const;
 	void SetEnabled(bool value);
 
 	const std::vector<SceneNode*> GetChildren();
@@ -109,18 +109,13 @@ public:
 
 	void DeleteObject(GameObject* obj);
 
-	void AttachScene(Scene* scene);
-	void DetachScene(Scene* scene);
-
-	std::vector<Scene*> GetAttachedScenes() const;
-
 	static void operator delete(SceneNode* ptr, std::destroying_delete_t);
 };
 
-class Scene : public MessageReceiver{
+class Scene {
 	friend class SceneNode;
 	friend class GameObject;
-private:
+public:
 	int nextSceneNodeID;
 	int nextGameObjectID;
 
@@ -133,7 +128,7 @@ private:
 	InputSystem* inputSystem;
 	SceneGraphics* graphics;
 
-	std::queue<MessageReceiver*> deletedReceiversQueue;
+	std::queue<GameObject*> deletedObjectsQueue;
 	std::queue<SceneNode*> deletedNodesQueue;
 
 	void DeleteObjectInternal(GameObject* obj);
@@ -141,8 +136,7 @@ private:
 	void SetNodeEnabledInternal(SceneNode* node, bool enabled);
 	void SetGameObjectEnabledInternal(GameObject* obj, bool enabled);
 	void ChangeNodeParentInternal(SceneNode* node, SceneNode* newParent);
-	void AttachSceneToNodeInternal(SceneNode* node, Scene* scene);
-	void DetachSceneFromNodeInternal(SceneNode* node, Scene* scene);
+	void SetNodeEnabledInTreeInternal(SceneNode* node, bool enabled);
 
 	void AddObjectToSystems(GameObject* obj);
 public:
@@ -202,7 +196,6 @@ public:
 
 	void QueueDelete(SceneNode* node);
 	void QueueDelete(GameObject* object);
-	void QueueDelete(Scene* scene);
 
 	void Update();
 	void Render();
@@ -331,7 +324,7 @@ T_GO* Scene::CreateObjectOn(SceneNode* node, T_Param&&... params) {
 	
 	node->objects.push_back(created);
 
-	this->messageTree.AddMessageReceiver(created, node);
+	this->messageTree.AddMessageReceiver(created);
 
 	AddObjectToSystems(created);
 
@@ -339,8 +332,8 @@ T_GO* Scene::CreateObjectOn(SceneNode* node, T_Param&&... params) {
 
 	created->enabled = true;
 
-  this->messageTree.MessageObject<Message::Awake>(created, node);
-  this->messageTree.MessageObject<Message::OnEnable>(created, node);
+	this->messageTree.MessageObject<Message::Awake>(created);
+	this->messageTree.MessageObject<Message::OnEnable>(created);
 
 	return created;
 }

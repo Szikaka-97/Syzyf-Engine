@@ -328,8 +328,8 @@ inline void InitScene(Scene& mainScene) {
 
     if (animComp) {
         enemyAi1->SetAttackAnimation(animComp);
-        // Opcjonalnie sprawdŸ dostêpne animacje i wybierz odpowiedni¹
-        // animComp->animations – lista dostêpnych animacji
+        // Opcjonalnie sprawdï¿½ dostï¿½pne animacje i wybierz odpowiedniï¿½
+        // animComp->animations ï¿½ lista dostï¿½pnych animacji
     }
 
 

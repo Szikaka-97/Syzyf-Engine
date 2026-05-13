@@ -88,7 +88,7 @@ public:
 
 	bool IsDirty() const;
 
-	void DrawGizmos();
+	// void DrawGizmos();
 
 	virtual void DrawImGui();
 	

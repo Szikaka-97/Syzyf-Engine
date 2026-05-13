@@ -9,4 +9,6 @@ public:
   virtual ~AnimationSystem() = default;
 
   virtual void OnPreUpdate();
+
+  virtual void UnregisterObjectForced(GameObject* obj);
 };

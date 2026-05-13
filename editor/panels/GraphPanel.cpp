@@ -91,11 +91,9 @@ void GraphPanel::DrawGraphNode(Context& context, SceneNode& node) {
                 ImGui::AcceptDragDropPayload("GRAPH_SCENE_NODE")) {
             SceneNode* droppedNode = *(SceneNode**)payload->Data;
 
-            // TODO
-            // fix when setting a parent works
-            if (droppedNode != &node && !node.IsChildOf(droppedNode)) {
+            if (droppedNode != droppedNode->GetScene()->GetRootNode() &&
+                !node.IsChildOf(droppedNode)) {
                 droppedNode->SetParent(&node);
-            } else {
             }
         }
         ImGui::EndDragDropTarget();
@@ -119,8 +117,8 @@ void GraphPanel::DrawGraphNode(Context& context, SceneNode& node) {
                               ImVec4(0.4f, 0.4f, 0.4f, 1.0f));
     }
 
-    if (ImGui::Button("E", ImVec2(24, ImGui::GetFrameHeight()))) {
-        node.SetEnabled(!node.IsEnabled());
+    if (ImGui::Button(node.EnabledSelf() ? "X" : " ", ImVec2(24, ImGui::GetFrameHeight()))) {
+        node.SetEnabled(!node.EnabledSelf());
     }
 
     if (!isEnabled)
@@ -158,8 +156,9 @@ void GraphPanel::DrawContextMenu(Context& context) {
                 drawRenamePopup = true;
             }
             if (ImGui::MenuItem("Delete Node")) {
-                // TODO
-                // add when deleting works
+                delete context.selectedNode;
+
+                context.selectedNode = nullptr;
             }
         }
         ImGui::EndPopup();
