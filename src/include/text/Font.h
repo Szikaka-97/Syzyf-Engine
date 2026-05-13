@@ -24,5 +24,5 @@ public:
     double emSize = 1.0;
     double distanceRange = 4.0;
 
-    static Font* Load(const std::string& jsonPath, Texture2D* atlasTexture);
+    static Font* Load(const std::filesystem::path& jsonPath, Texture2D* atlasTexture);
 };

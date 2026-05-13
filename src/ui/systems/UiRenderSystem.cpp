@@ -26,7 +26,7 @@ void UiRenderSystem::OnPreRender() {
         Texture2D* finalTexture = visual->texture;
 
         // 0 -> Normal, 1 -> Hovered, 2 -> Pressed, 3 -> Disabled
-        uint interactionState = 0;
+        unsigned int interactionState = 0;
         if (interactable) {
             if (!interactable->isInteractable) {
                 interactionState = 3;

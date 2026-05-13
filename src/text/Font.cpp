@@ -6,7 +6,7 @@
 
 using json = nlohmann::json;
 
-Font* Font::Load(const std::string& jsonPath, Texture2D* atlasTexture) {
+Font* Font::Load(const std::filesystem::path& jsonPath, Texture2D* atlasTexture) {
     std::ifstream file(jsonPath);
     if (!file.is_open()) return nullptr;
 
