@@ -2098,6 +2098,8 @@ void SceneGraphics::SetupShaders() {
     this->shaders.maskShader = ShaderProgram::Build()
         .WithVertexShader("./res/shaders/basic.vert")
         .WithPixelShader("./res/shaders/mask/mask.frag")
+        .Link();
+
     // UI
     this->shaders.uiShader = ShaderProgram::Build()
         .WithVertexShader("./res/shaders/ui/ui.vert")

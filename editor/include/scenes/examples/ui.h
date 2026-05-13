@@ -75,6 +75,13 @@ inline void InitScene(Scene& mainScene) {
     circularBar->material = customUiMaterial;
 
     // UiText
+    // To use .ttf fonts here, first they need to be converted using
+    // msdf-atlas-gen github.com/Chlumsky/msdf-atlas-gen
+    // using this command:
+    // msdf-atlas-gen -font
+    // msdf-atlas-gen ./OpenSans-Regular.ttf -type
+    // msdf -format png -imageout ./OpenSans-Regular.png -json
+    // ./OpenSans-Regular.json -size 32 -pxrange 4
     TextureParams fontTextureParams = {.channels = TextureChannels::RGB,
                                        .colorSpace = TextureColor::Linear,
                                        .format = TextureFormat::Ubyte,
