@@ -6,6 +6,7 @@
 #include "DepthOfField.h"
 #include "Fxaa.h"
 #include "Light.h"
+#include "MaskEffects.h"
 #include "MeshRenderer.h"
 #include "ParticleSpawner.h"
 #include "ReflectionProbe.h"
@@ -82,6 +83,9 @@ class ComponentRegistry {
         });
         registry.Register("FXAA",
                           [](SceneNode* node) { node->AddObject<Fxaa>(); });
+        registry.Register("Mask Effects", [](SceneNode* node) {
+            node->AddObject<MaskEffects>();
+        });
 
         // Physics
         registry.Register("Physics Body", [](SceneNode* node) {

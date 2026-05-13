@@ -8,7 +8,16 @@
 class Mesh;
 class Material;
 
+enum MaskEffectBits : uint8_t {
+    None = 0,
+    XRay = 1,
+    Outline = 1 << 1,
+    Jfa = 1 << 2, 
+};
+
 class MeshRenderer : public GameObject, public ImGuiDrawable {
+public:
+    uint8_t maskFlags = MaskEffectBits::None;
 private:
 	Mesh* mesh;
 	std::vector<Material*> materials;

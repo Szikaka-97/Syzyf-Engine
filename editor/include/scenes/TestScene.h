@@ -1,12 +1,10 @@
 #pragma once
 
-#include "DepthOfField.h"
-#include "EasingFunctions.h"
 #include "GltfImporter.h"
+#include "JfaOutline.h"
 #include "LightSystem.h"
 #include "fog/Fog.h"
 #include "game_scripts/AimingAid.h"
-#include "game_scripts/ThrowBottle.h"
 
 #include "Noise3D.h"
 #include <AiNode.h>
@@ -17,11 +15,13 @@
 #include <Fxaa.h>
 #include <InputSystem.h>
 #include <Light.h>
+#include <MaskEffects.h>
 #include <Material.h>
 #include <Mesh.h>
 #include <MeshRenderer.h>
 #include <Mirror.h>
 #include <ParticleSpawner.h>
+#include <Player.h>
 #include <ReflectionProbe.h>
 #include <Scene.h>
 #include <Shader.h>
@@ -31,6 +31,7 @@
 #include <TweenSystem.h>
 #include <Viewport.h>
 #include <animation/AnimationSystem.h>
+#include <enemies/EnemySkeleton.h>
 #include <fog/FogVolume.h>
 #include <game_scripts/CameraSettings.h>
 #include <game_scripts/PlayerController.h>
@@ -44,8 +45,13 @@
 #include <physics/System.h>
 #include <physics/Water.h>
 #include <scatter/Spawner.h>
-#include <Player.h>
-#include <enemies/EnemySkeleton.cpp>
+#include <text/Font.h>
+#include <ui/objects/UiInteractable.h>
+#include <ui/objects/UiLayout.h>
+#include <ui/objects/UiText.h>
+#include <ui/objects/UiVisual.h>
+#include <ui/objects/custom/UiCircularBar.h>
+#include <ui/systems/UiSystem.h>
 
 #include "Jolt/Math/Vec3.h"
 #include <Jolt/Jolt.h>
@@ -164,6 +170,7 @@ class Mover : public GameObject, public ImGuiDrawable {
 inline void InitScene(Scene& mainScene) {
     mainScene.AddComponent<Physics::System>();
     mainScene.AddComponent<DebugInspector>();
+    mainScene.AddComponent<UiSystem>();
     mainScene.AddComponent<AnimationSystem>();
     auto* tweenSystem = mainScene.AddComponent<TweenSystem>();
 
@@ -188,7 +195,7 @@ inline void InitScene(Scene& mainScene) {
     skyMat->SetValue("skyboxTexture", skyCubemap);
 
     auto floorNode =
-        GltfImporter::LoadScene(&mainScene, "./res/models/floor2804.glb", "Floor");
+        GltfImporter::LoadScene(&mainScene, "./res/models/floor.glb", "Floor");
     floorNode->AddObject<Skybox>(skyMat);
     MeshRenderer* floorMeshRenderer =
         floorNode->GetObjectInChildren<MeshRenderer>();
@@ -198,11 +205,10 @@ inline void InitScene(Scene& mainScene) {
             JPH::RVec3::sZero(), JPH::Quat::sZero(), JPH::EMotionType::Static,
             Physics::Layers::NON_MOVING});
     floorNode->AddObject<Surface>(floorMeshRenderer->GetMesh(), 1.0f);
-    //floorNode->GetObject<Surface>()->DrawDebugSurface();
+    // floorNode->GetObject<Surface>()->DrawDebugSurface();
     floorNode->GetObject<Surface>()->SetID(0);
     auto* navGrid = floorNode->AddObject<NavigationGrid>();
     navGrid->Build(floorNode->GetObject<Surface>(), 2.0f, 45.0f);
-    
 
     SceneNode* monkey = GltfImporter::LoadScene(
         &mainScene, "./res/models/big_monkey.glb", "Monkey", floorNode);
@@ -211,6 +217,10 @@ inline void InitScene(Scene& mainScene) {
     monkey->AddObject<Physics::Body>(JPH::BodyCreationSettings{
         monkeyShape, JPH::Vec3::sZero(), JPH::Quat::sIdentity(),
         JPH::EMotionType::Static, Physics::Layers::MOVING});
+
+    for (auto* renderer : monkey->GetAllObjectsInChildren<MeshRenderer>()) {
+        renderer->maskFlags |= MaskEffectBits::XRay;
+    }
 
 #pragma endregion
 #pragma region Player
@@ -226,6 +236,9 @@ inline void InitScene(Scene& mainScene) {
     SceneNode* bimberman = GltfImporter::LoadScene(
         &mainScene, "./res/models/bimbermann_throwing.glb", "Bimberman");
     bimberman->SetParent(playerNode);
+    for (auto* renderer : bimberman->GetAllObjectsInChildren<MeshRenderer>()) {
+        renderer->maskFlags |= MaskEffectBits::Jfa;
+    }
 
     auto* virtualCharacter =
         playerNode->AddObject<Physics::VirtualCharacterController>(
@@ -245,21 +258,19 @@ inline void InitScene(Scene& mainScene) {
     player->aim = aimingAid;
 
     player->AddObject<Player>();
-   // player->GetObjectA<Player>()->SetRoomID(); default is 0 
+    // player->GetObjectA<Player>()->SetRoomID(); default is 0
 
 #pragma endregion
 
 #pragma region Enemy
     /*JPH::BodyCreationSettings enemyShapeSettings = JPH::BodyCreationSettings(
         Physics::MeshShape(floorMeshRenderer->GetMesh()), JPH::RVec3::sZero(),
-        JPH::Quat::sZero(), JPH::EMotionType::Dynamic, Physics::Layers::MOVING);*/
-    ShaderProgram* pbrProg =
-        ShaderProgram::Build()
-            .WithVertexShader(
-                "./res/shaders/lit.vert")
-            .WithPixelShader(
-                "./res/shaders/pbr.frag")
-            .Link();
+        JPH::Quat::sZero(), JPH::EMotionType::Dynamic,
+       Physics::Layers::MOVING);*/
+    ShaderProgram* pbrProg = ShaderProgram::Build()
+                                 .WithVertexShader("./res/shaders/lit.vert")
+                                 .WithPixelShader("./res/shaders/pbr.frag")
+                                 .Link();
 
     Texture2D* reflectiveDiffuse = mainScene.Resources()->Get<Texture2D>(
         "./res/textures/material_preview/worn-shiny-metal-albedo.png",
@@ -276,7 +287,6 @@ inline void InitScene(Scene& mainScene) {
     reflectiveMat->SetValue("normalMap", reflectiveNormal);
     reflectiveMat->SetValue("armMap", reflectiveARM);
 
-
     auto enemyRoom = mainScene.FindNode("Floor");
     auto* surface = enemyRoom->GetObject<Surface>();
     SceneNode* enemy1 = mainScene.CreateNode("Enemy 1");
@@ -284,37 +294,36 @@ inline void InitScene(Scene& mainScene) {
         mainScene.Resources()->Get<Mesh>("./res/models/jake_tangents.glb");*/
     Material* enemyMat =
         mainScene.Resources()->Get<Material>("./res/materials/jake.mat");
-   // enemy1->AddObject<MeshRenderer>(enemyMesh, reflectiveMat);
+    // enemy1->AddObject<MeshRenderer>(enemyMesh, reflectiveMat);
     enemy1->GlobalTransform().Position() = glm::vec3(10.5f, 0.0f, -5.0f);
     enemy1->GlobalTransform().Scale() = glm::vec3(0.5f, 0.5f, 0.5f);
-    //auto* enemyBody1 = enemy1->AddObject<Physics::Body>(enemyShapeSettings);
-    JPH::ShapeRefC enemyShape =
-        new JPH::CapsuleShape(0.5f, 1.0f); 
+    // auto* enemyBody1 = enemy1->AddObject<Physics::Body>(enemyShapeSettings);
+    JPH::ShapeRefC enemyShape = new JPH::CapsuleShape(0.5f, 1.0f);
     JPH::BodyCreationSettings enemySettings(
-        enemyShape, JPH::RVec3(10.5f, 2.0f, 2.0f), 
-        JPH::Quat::sIdentity(), JPH::EMotionType::Dynamic,
-        Physics::Layers::MOVING);
+        enemyShape, JPH::RVec3(10.5f, 2.0f, 2.0f), JPH::Quat::sIdentity(),
+        JPH::EMotionType::Dynamic, Physics::Layers::MOVING);
     Physics::Body* enemyBody1 = enemy1->AddObject<Physics::Body>(enemySettings);
     enemyBody1->SetRestitution(0.0f);
 
     auto* enemyAi1 = enemy1->AddObject<EnemySkeleton>();
 
     enemyAi1->SetSurface(surface);
-   // enemyAi1->GetSurface()->SetGroundHeight(0.0f);
+    // enemyAi1->GetSurface()->SetGroundHeight(0.0f);
     surface->AddEnemy(enemyAi1);
     enemyAi1->SetTargetNode(player->GetNode());
     surface->InformEnter(); // inform surface about player presence so it can
                             // assign the enemy to the correct room
-    Mesh* cubeMesh = mainScene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
+    Mesh* cubeMesh =
+        mainScene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
     enemyAi1->SetProjectileResources(cubeMesh, enemyMat);
     enemyAi1->SetAttackCooldown(1.2f);
     enemyAi1->SetRoomID(1);
-    //enemyAi1->DrawDebugView();
+    // enemyAi1->DrawDebugView();
 
     SceneNode* enemyModel = GltfImporter::LoadScene(
         &mainScene, "./res/models/szkielet6.glb", "EnemyModel");
     enemyModel->SetParent(enemy1);
-    enemyModel->GlobalTransform().Scale() = glm::vec3(0.1,0.1,0.1);
+    enemyModel->GlobalTransform().Scale() = glm::vec3(0.1, 0.1, 0.1);
 
     // Pobierz AnimationComponent z zaimportowanego modelu
     auto* animComp = enemyModel->GetObjectInChildren<AnimationComponent>();
@@ -332,7 +341,6 @@ inline void InitScene(Scene& mainScene) {
         // animComp->animations � lista dost�pnych animacji
     }
 
-
 #pragma endregion
 #pragma region Camera
 
@@ -346,6 +354,8 @@ inline void InitScene(Scene& mainScene) {
     fog->density = 0.042;
     fog->fogColor = {0.2, 0.6, 0.9, 1.0};
     cameraNode->AddObject<Bloom>();
+    cameraNode->AddObject<MaskEffects>();
+    cameraNode->AddObject<JfaOutline>();
     cameraNode->AddObject<Tonemapper>()->SetOperator(
         Tonemapper::TonemapperOperator::GranTurismo);
     cameraNode->AddObject<ColorGrading>();
@@ -377,26 +387,26 @@ inline void InitScene(Scene& mainScene) {
     //     mirrorNode->GetObjectInChildren<MeshRenderer>()->GetNode(), false,
     //     JPH::EMotionType::Static, Physics::Layers::NON_MOVING);
 
-    FastNoiseLite noise;
-    noise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
-    noise.SetFractalType(FastNoiseLite::FractalType_FBm);
-    noise.SetFractalOctaves(4);
-    noise.SetFrequency(0.02f);
-    Texture3D* noiseTexture = Noise3D::Create3DNoiseTexture(noise, 128, true);
-    SceneNode* fogVolume = mainScene.CreateNode("Fog Volume");
-    FogVolume* fogVolumeObject = fogVolume->AddObject<FogVolume>();
-    fogVolumeObject->scatteringColor = {0.0f, 0.8f, 0.1f};
-    fogVolumeObject->emissiveStrength = 5.0f;
-    fogVolumeObject->stepSize = 0.03f;
-    fogVolumeObject->scatteringDensity = 2.0f;
-    fogVolumeObject->absorptionDensity = 0.0f;
-    fogVolumeObject->noiseScale = 0.04f;
-    fogVolumeObject->windDirection = {0.001f, 0.04f, 0.0f};
-    fogVolumeObject->coverage = 0.4f;
-    fogVolumeObject->sharpness = 6.0f;
-    fogVolume->GlobalTransform().Position() = {0.0f, 0.6f, 3.0f};
-    fogVolume->GlobalTransform().Scale() = {20.0f, 1.0f, 20.0f};
-    fogVolumeObject->noiseTexture = noiseTexture;
+    // FastNoiseLite noise;
+    // noise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
+    // noise.SetFractalType(FastNoiseLite::FractalType_FBm);
+    // noise.SetFractalOctaves(4);
+    // noise.SetFrequency(0.02f);
+    // Texture3D* noiseTexture = Noise3D::Create3DNoiseTexture(noise, 128,
+    // true); SceneNode* fogVolume = mainScene.CreateNode("Fog Volume");
+    // FogVolume* fogVolumeObject = fogVolume->AddObject<FogVolume>();
+    // fogVolumeObject->scatteringColor = {0.0f, 0.8f, 0.1f};
+    // fogVolumeObject->emissiveStrength = 5.0f;
+    // fogVolumeObject->stepSize = 0.03f;
+    // fogVolumeObject->scatteringDensity = 2.0f;
+    // fogVolumeObject->absorptionDensity = 0.0f;
+    // fogVolumeObject->noiseScale = 0.04f;
+    // fogVolumeObject->windDirection = {0.001f, 0.04f, 0.0f};
+    // fogVolumeObject->coverage = 0.4f;
+    // fogVolumeObject->sharpness = 6.0f;
+    // fogVolume->GlobalTransform().Position() = {0.0f, 0.6f, 3.0f};
+    // fogVolume->GlobalTransform().Scale() = {20.0f, 1.0f, 20.0f};
+    // fogVolumeObject->noiseTexture = noiseTexture;
 
     ShaderProgram* transparentProg =
         ShaderProgram::Build()
@@ -410,12 +420,12 @@ inline void InitScene(Scene& mainScene) {
     Material* blueTransparentMat = new Material(transparentProg);
     blueTransparentMat->SetValue("uColor", glm::vec4(0.5, 0.5, 1.0, 0.6));
 
-    //Mesh* cubeMesh =
-        //mainScene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
+    // Mesh* cubeMesh =
+    // mainScene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
 
     SceneNode* pinkTransparentCubeNode = mainScene.CreateNode("Pink Cube");
-    pinkTransparentCubeNode->AddObject<MeshRenderer>(cubeMesh,
-                                                     pinkTransparentMat);
+    auto* pinkCubeRenderer = pinkTransparentCubeNode->AddObject<MeshRenderer>(
+        cubeMesh, pinkTransparentMat);
     pinkTransparentCubeNode->LocalTransform().Position() = {-3, 0, -3};
 
     SceneNode* blueTransparentCubeNode = mainScene.CreateNode("Blue Cube");
@@ -510,7 +520,5 @@ inline void InitScene(Scene& mainScene) {
                                 .useColorRamp = false});
 
 #pragma endregion
-
-    return;
 }
 } // namespace TestScene

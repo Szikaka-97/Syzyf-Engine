@@ -1,5 +1,7 @@
 #version 460
 
+#pragma oit_transparent
+
 in VS_OUT {
 	vec3 worldPos;
 	vec3 viewPos;

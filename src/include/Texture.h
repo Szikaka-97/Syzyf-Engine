@@ -23,7 +23,8 @@ enum class TextureChannels {
 	RGB = 2,
 	RGBA = 3,
 	Depth = 4,
-	DepthStencil = 5
+	DepthStencil = 5,
+    GrayscaleInteger = 6
 };
 
 enum class TextureColor {

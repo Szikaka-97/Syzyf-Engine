@@ -1,3 +1,5 @@
+#pragma once
+
 #include <AiSimplified.h>
 #include <Player.h>
 #include <Scene.h>
