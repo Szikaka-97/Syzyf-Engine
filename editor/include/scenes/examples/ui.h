@@ -119,8 +119,8 @@ inline void InitScene(Scene& mainScene) {
 
     // 3D Text and Pixelart fonts
     // To use pixelart fonts the command above must be run with "-type hardmask"
-    // instead of msdf a flag must be set to false when loading the font and the
-    // texture filter must be set to nearest as well
+    // instead of msdf, a flag must be set to false when loading the font and
+    // the texture filter must be set to nearest as well
     TextureParams texParamsNearest = fontTextureParams;
     texParamsNearest.magFilter = TextureFilter::Nearest;
     texParamsNearest.minFilter = TextureFilter::Nearest;

@@ -553,6 +553,7 @@ void SceneGraphics::EnqueueUi(const UiRenderNode& node) {
     this->uiRenders.push_back(node);
 }
 
+// i didnt add no cull and ignore depth pragmas handling here yet
 void SceneGraphics::RenderPrepass(const RenderParams& params, Framebuffer* target) {
 	RenderPrepass(this->currentUniforms, params, target);
 }
@@ -1071,6 +1072,18 @@ void SceneGraphics::RenderOpaque(const ShaderGlobalUniforms& uniforms, const Ren
 			currentProg = render.material->GetShader();
 
 			glUseProgram(currentProg->GetHandle());
+
+        if (currentProg->HasPragma("no_cull")) {
+                glDisable(GL_CULL_FACE);
+            } else {
+                glEnable(GL_CULL_FACE);
+            }
+
+            if (currentProg->HasPragma("ignore_depth")) {
+                glDisable(GL_DEPTH_TEST);
+            } else {
+                glEnable(GL_DEPTH_TEST);
+            }
 		}
 
 		render.material->Bind();
@@ -1170,6 +1183,8 @@ void SceneGraphics::RenderOpaque(const ShaderGlobalUniforms& uniforms, const Ren
 		glDrawElements(GL_TRIANGLES, sky->GetSkyMesh()->SubMeshAt(0).GetVertexCount(), GL_UNSIGNED_INT, nullptr);
 	}
 
+    glEnable(GL_CULL_FACE);
+    glEnable(GL_DEPTH_TEST);
 	glBindVertexArray(0);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
@@ -1219,6 +1234,18 @@ void SceneGraphics::RenderOrderedTransparent(const ShaderGlobalUniforms& uniform
 			currentProg = render.material->GetShader();
 
 			glUseProgram(currentProg->GetHandle());
+
+        if (currentProg->HasPragma("no_cull")) {
+                glDisable(GL_CULL_FACE);
+            } else {
+                glEnable(GL_CULL_FACE);
+            }
+
+            if (currentProg->HasPragma("ignore_depth")) {
+                glDisable(GL_DEPTH_TEST);
+            } else {
+                glEnable(GL_DEPTH_TEST);
+            }
 		}
 
 		render.material->Bind();
@@ -1299,6 +1326,8 @@ void SceneGraphics::RenderOrderedTransparent(const ShaderGlobalUniforms& uniform
 		}
 	}
 
+    glEnable(GL_CULL_FACE);
+    glEnable(GL_DEPTH_TEST);
 	glDisable(GL_BLEND);
 	glDepthMask(true);
 }
@@ -1353,6 +1382,18 @@ void SceneGraphics::RenderOITransparent(const ShaderGlobalUniforms& uniforms, co
 			currentProg = render.material->GetShader();
 
 			glUseProgram(currentProg->GetHandle());
+
+        if (currentProg->HasPragma("no_cull")) {
+                glDisable(GL_CULL_FACE);
+            } else {
+                glEnable(GL_CULL_FACE);
+            }
+
+            if (currentProg->HasPragma("ignore_depth")) {
+                glDisable(GL_DEPTH_TEST);
+            } else {
+                glEnable(GL_DEPTH_TEST);
+            }
 		}
 
 		render.material->Bind();
@@ -1433,6 +1474,7 @@ void SceneGraphics::RenderOITransparent(const ShaderGlobalUniforms& uniforms, co
 		}
 	}
 
+    glEnable(GL_CULL_FACE);
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
 	glDepthMask(true);
@@ -1489,6 +1531,18 @@ void SceneGraphics::RenderAdditive(const ShaderGlobalUniforms& uniforms, const R
 			currentProg = render.material->GetShader();
 
 			glUseProgram(currentProg->GetHandle());
+
+        if (currentProg->HasPragma("no_cull")) {
+                glDisable(GL_CULL_FACE);
+            } else {
+                glEnable(GL_CULL_FACE);
+            }
+
+            if (currentProg->HasPragma("ignore_depth")) {
+                glDisable(GL_DEPTH_TEST);
+            } else {
+                glEnable(GL_DEPTH_TEST);
+            }
 		}
 
 		render.material->Bind();
@@ -1569,6 +1623,7 @@ void SceneGraphics::RenderAdditive(const ShaderGlobalUniforms& uniforms, const R
 		}
 	}
 
+    glEnable(GL_CULL_FACE);
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
 	glDepthMask(true);
