@@ -1808,6 +1808,7 @@ void SceneGraphics::RenderCamera(Camera* camera, Viewport* renderTarget, const R
     }
 
 	if ((params.pass & RenderPassType::Color) == RenderPassType::Color) {
+        activeParams.clearDepth = false;
 		activeParams.pass = RenderPassType(RenderPassType::Color);
 	
 		RenderOpaque(activeParams, renderTarget->GetFramebuffer());
