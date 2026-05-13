@@ -208,7 +208,7 @@ inline void InitScene(Scene& mainScene) {
         JPH::EMotionType::Static, Physics::Layers::MOVING});
 
     for (auto* renderer : monkey->GetAllObjectsInChildren<MeshRenderer>()) {
-        renderer->hasXray = true;
+        renderer->maskFlags |= MaskEffectBits::XRay;
     }
 
 #pragma endregion
@@ -226,7 +226,7 @@ inline void InitScene(Scene& mainScene) {
         &mainScene, "./res/models/bimbermann_throwing.glb", "Bimberman");
     bimberman->SetParent(playerNode);
     for (auto* renderer : bimberman->GetAllObjectsInChildren<MeshRenderer>()) {
-        renderer->hasOutline = true;
+        renderer->maskFlags |= MaskEffectBits::Jfa;
     }
 
     auto* virtualCharacter =
@@ -331,7 +331,6 @@ inline void InitScene(Scene& mainScene) {
     SceneNode* pinkTransparentCubeNode = mainScene.CreateNode("Pink Cube");
     auto* pinkCubeRenderer = pinkTransparentCubeNode->AddObject<MeshRenderer>(
         cubeMesh, pinkTransparentMat);
-    pinkCubeRenderer->hasOutline = true;
     pinkTransparentCubeNode->LocalTransform().Position() = {-3, 0, -3};
 
     SceneNode* blueTransparentCubeNode = mainScene.CreateNode("Blue Cube");

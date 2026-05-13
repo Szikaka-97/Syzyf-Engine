@@ -38,7 +38,8 @@ GLenum ToGL(TextureChannels channels) {
 		GL_RGB,
 		GL_RGBA,
 		GL_DEPTH_COMPONENT,
-		GL_DEPTH_STENCIL
+		GL_DEPTH_STENCIL,
+        GL_RED_INTEGER,
 	};
 
 	return values[(int) channels];
@@ -138,6 +139,11 @@ GLenum Texture::CalcInternalFormat(TextureColor colorSpace, TextureFormat format
 	int index = 4 * 2 * (int) format + 2 * numChannels + srgb;
 
 	GLenum result;
+
+    if (channels == TextureChannels::GrayscaleInteger) {
+        if (format == TextureFormat::Ubyte) return GL_R8UI;
+        if (format == TextureFormat::Uint) return GL_R32UI;
+    }
 
 	if (channels == TextureChannels::Depth) {
 		result = GL_DEPTH_COMPONENT;

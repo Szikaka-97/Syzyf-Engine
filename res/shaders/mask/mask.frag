@@ -1,7 +1,8 @@
 #version 460
-layout (location = 1) out vec4 outColor;
-uniform vec4 uMaskColor;
+layout (location = 1) out uint outMask;
+
+uniform uint maskFlags;
 
 void main() {
-    outColor = uMaskColor;
+    outMask = maskFlags;
 }

@@ -132,9 +132,11 @@ currentUniforms() {
 
     this->maskFramebuffer = new Framebuffer(Framebuffer::Attachment::Depth, 0, 0);
     this->maskFramebuffer->CreateCustomAttachment(0, TextureParams {
-            .channels = TextureChannels::RGB,
+            .channels = TextureChannels::GrayscaleInteger,
             .colorSpace = TextureColor::Linear,
-            .format = TextureFormat::Ubyte
+            .format = TextureFormat::Ubyte,
+            .minFilter = TextureFilter::Nearest,
+            .magFilter = TextureFilter::Nearest
     });
 
     this->SetupShaders();
@@ -368,15 +370,9 @@ void SceneGraphics::DrawMeshInstanced(MeshRenderer* renderer, unsigned int insta
             EnqueueOpaque(node);
         }
 
-        // replace with something better
-        if (renderer->hasOutline) {
-            EnqueueOutline(node);
-        }
-        if (renderer->hasXray) {
-            EnqueueXray(node);
-        }
-        if (renderer->hasJfaOutline) {
-            EnqueueJfaOutline(node);
+        node.maskFlags = renderer->maskFlags;
+        if (node.maskFlags != 0) {
+            EnqueueMask(node);
         }
     }
 }
@@ -484,9 +480,7 @@ void SceneGraphics::Render() {
 	this->oitTransparentRenders.clear();
 	this->gizmoRenders.clear();
 	this->volumetricRenders.clear();
-    this->outlineRenders.clear();
-    this->xrayRenders.clear();
-    this->jfaOutlineRenders.clear();
+    this->maskRenders.clear();
 }
 
 void SceneGraphics::EnqueueOpaque(const RenderNode& node) {
@@ -522,14 +516,8 @@ void SceneGraphics::EnqueueAdditive(const RenderNode& node) {
 void SceneGraphics::EnqueueVolumetric(const RenderNode& node) {
 	this->volumetricRenders.push_back(node);
 }
-void SceneGraphics::EnqueueOutline(const RenderNode& node) {
-	this->outlineRenders.push_back(node);
-}
-void SceneGraphics::EnqueueXray(const RenderNode& node) {
-	this->xrayRenders.push_back(node);
-}
-void SceneGraphics::EnqueueJfaOutline(const RenderNode& node) {
-	this->jfaOutlineRenders.push_back(node);
+void SceneGraphics::EnqueueMask(const RenderNode& node) {
+	this->maskRenders.push_back(node);
 }
 
 void SceneGraphics::RenderPrepass(const RenderParams& params, Framebuffer* target) {
@@ -720,23 +708,21 @@ void SceneGraphics::RenderMask(const RenderParams& params, Framebuffer* target) 
     glBindFramebuffer(GL_FRAMEBUFFER, target->GetHandle());
     glViewport(params.viewport.x, params.viewport.y, params.viewport.z, params.viewport.w);
 
-    glClearBufferfv(GL_COLOR, 1, &glm::zero<glm::vec4>()[0]);
+    GLuint clearColor[4] = { 0, 0, 0, 0 };
+    glClearBufferuiv(GL_COLOR, 1, clearColor);
     glClear(GL_DEPTH_BUFFER_BIT);
 
     glEnable(GL_DEPTH_TEST);
     glDepthMask(GL_TRUE);
     glDepthFunc(GL_LEQUAL);
 
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_ONE, GL_ONE);
-    glBlendEquation(GL_FUNC_ADD);
+    glDisable(GL_BLEND);
 
     ShaderObjectUniforms objectUniforms;
     // add the animated shaders and other custom depth ones idasjadjsa
     glUseProgram(this->shaders.maskShader->GetHandle());
 
-    glUniform4f(glGetUniformLocation(this->shaders.maskShader->GetHandle(), "uMaskColor"), 1.0f, 0.0f, 0.0f, 1.0f);
-    for (const auto& render : this->xrayRenders) {
+    for (const auto& render : this->maskRenders) {
         objectUniforms.Object_ModelMatrix = render.transformation;
         objectUniforms.Object_MVPMatrix = this->currentUniforms.Global_VPMatrix * render.transformation;
 
@@ -744,40 +730,15 @@ void SceneGraphics::RenderMask(const RenderParams& params, Framebuffer* target) 
         glBufferData(GL_UNIFORM_BUFFER, sizeof(objectUniforms), &objectUniforms, GL_STREAM_DRAW);
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-        glBindVertexArray(render.mesh->GetVertexArrayHandle());
-        glDrawElements(render.mesh->GetDrawMode(), render.mesh->GetVertexCount(), GL_UNSIGNED_INT, nullptr);
-    }
-
-    glUniform4f(glGetUniformLocation(this->shaders.maskShader->GetHandle(), "uMaskColor"), 0.0f, 1.0f, 0.0f, 1.0f);
-    for (const auto& render : this->outlineRenders) {
-        objectUniforms.Object_ModelMatrix = render.transformation;
-        objectUniforms.Object_MVPMatrix = this->currentUniforms.Global_VPMatrix * render.transformation;
-
-        glBindBuffer(GL_UNIFORM_BUFFER, objectUniformsBuffer);
-        glBufferData(GL_UNIFORM_BUFFER, sizeof(objectUniforms), &objectUniforms, GL_STREAM_DRAW);
-        glBindBuffer(GL_UNIFORM_BUFFER, 0);
+        glUniform1ui(glGetUniformLocation(this->shaders.maskShader->GetHandle(), "maskFlags"), render.maskFlags);
 
         glBindVertexArray(render.mesh->GetVertexArrayHandle());
         glDrawElements(render.mesh->GetDrawMode(), render.mesh->GetVertexCount(), GL_UNSIGNED_INT, nullptr);
-    }
-
-    glUniform4f(glGetUniformLocation(this->shaders.maskShader->GetHandle(), "uMaskColor"), 0.0f, 0.0f, 1.0f, 1.0f);
-    for (const auto& render : this->jfaOutlineRenders) {
-        objectUniforms.Object_ModelMatrix = render.transformation;
-        objectUniforms.Object_MVPMatrix = this->currentUniforms.Global_VPMatrix * render.transformation;
-
-        glBindBuffer(GL_UNIFORM_BUFFER, objectUniformsBuffer);
-        glBufferData(GL_UNIFORM_BUFFER, sizeof(objectUniforms), &objectUniforms, GL_STREAM_DRAW);
-        glBindBuffer(GL_UNIFORM_BUFFER, 0);
-
-        glBindVertexArray(render.mesh->GetVertexArrayHandle());
-        glDrawElements(render.mesh->GetDrawMode(), render.mesh->GetVertexCount(), GL_UNSIGNED_INT, nullptr);
+        
     }
 
     glBindVertexArray(0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    glDisable(GL_BLEND);
     glDepthFunc(GL_LESS);
 }
 

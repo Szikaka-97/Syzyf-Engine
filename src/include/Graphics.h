@@ -98,10 +98,7 @@ private:
 
         int jointBufferOffset = -1;
 
-        // Perhaps there is a better way to mark these cause right now all objects will probably share the same color/effect, 
-        bool hasOutline = false;
-        bool hasXray = false;
-        bool hasJfaOutline = false;
+        uint8_t maskFlags = 0;
 
         GLuint indirectBuffer = 0;
         GLuint indirectBufferOffset = 0;
@@ -120,9 +117,7 @@ private:
 	std::vector<RenderNode> oitTransparentRenders;
 	std::vector<RenderNode> additiveRenders;
 	std::vector<RenderNode> volumetricRenders;
-    std::vector<RenderNode> xrayRenders;
-    std::vector<RenderNode> outlineRenders;
-    std::vector<RenderNode> jfaOutlineRenders;
+    std::vector<RenderNode> maskRenders;
 	GLuint globalUniformsBuffer;
 	GLuint objectUniformsBuffer;
 	
@@ -165,9 +160,7 @@ private:
 	void EnqueueAdditive(const RenderNode& node);
 	void EnqueueVolumetric(const RenderNode& node);
 
-    void EnqueueOutline(const RenderNode& node);
-    void EnqueueXray(const RenderNode& node);
-    void EnqueueJfaOutline(const RenderNode& node);
+    void EnqueueMask(const RenderNode& node);
 
 	void BindMaterialProperties(Material* mat);
 

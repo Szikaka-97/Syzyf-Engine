@@ -3,28 +3,28 @@
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
 layout(binding = 0) uniform sampler2D inputTex;
-layout(binding = 1) uniform sampler2D maskTex;
+layout(binding = 1) uniform usampler2D maskTex;
 layout(rgba16f, binding = 0) uniform image2D jfaImg;
 layout(rgba16f, binding = 1) uniform image2D outputImg;
 
 uniform vec3 outlineColor;
 uniform float outlineThickness;
-
 uniform bool drawInnerLines;
 
 void main() {
     ivec2 texCoord = ivec2(gl_GlobalInvocationID.xy);
     ivec2 size = textureSize(inputTex, 0);
-if (texCoord.x >= size.x || texCoord.y >= size.y) return;
+
+    if (texCoord.x >= size.x || texCoord.y >= size.y) return;
 
     vec4 color = texelFetch(inputTex, texCoord, 0);
-    vec4 maskData = texelFetch(maskTex, texCoord, 0);
+    uint maskData = texelFetch(maskTex, texCoord, 0).r;
     vec2 closestSeed = imageLoad(jfaImg, texCoord).xy;
 
     float dist = distance(closestSeed, vec2(texCoord));
 
     if (closestSeed.x > -999.0 && dist > 0 && dist < outlineThickness) {
-        if (!drawInnerLines && maskData.b > 0.1) {
+        if (!drawInnerLines && ((maskData & 4u) != 0u)) {
             imageStore(outputImg, texCoord, color);
         } else {
             imageStore(outputImg, texCoord, vec4(outlineColor, 1.0));

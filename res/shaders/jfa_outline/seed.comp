@@ -3,7 +3,7 @@
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
 layout(binding = 0) uniform sampler2D mainDepthTex;
-layout(binding = 1) uniform sampler2D maskTex;
+layout(binding = 1) uniform usampler2D maskTex;
 layout(binding = 2) uniform sampler2D customDepthTex;
 layout(rgba16f, binding = 0) uniform image2D outputImg;
 
@@ -14,9 +14,9 @@ void main() {
     ivec2 size = textureSize(mainDepthTex, 0);
     if (texCoord.x >= size.x || texCoord.y >= size.y) return;
 
-    vec4 maskData = texelFetch(maskTex, texCoord, 0);
+    uint maskData = texelFetch(maskTex, texCoord, 0).r;
 
-    if (maskData.b < 0.1) {
+    if ((maskData & 4u) == 0u) {
         imageStore(outputImg, texCoord, vec4(-1000.0));
         return;
     }

@@ -71,9 +71,23 @@ void MeshRenderer::DrawImGui() {
 		ImGui::TreePop();
 	}
     
-    ImGui::Checkbox("Outline", &this->hasOutline);
-    ImGui::Checkbox("X-Ray", &this->hasXray);
-    ImGui::Checkbox("JFA Outline", &this->hasJfaOutline);
+    bool hasOutline = (this->maskFlags & MaskEffectBits::Outline) != 0;
+    if (ImGui::Checkbox("Outline", &hasOutline)) {
+        if (hasOutline) this->maskFlags |= MaskEffectBits::Outline;
+        else this->maskFlags &= ~MaskEffectBits::Outline;
+    }
+
+    bool hasXray = (this->maskFlags & MaskEffectBits::XRay) != 0;
+    if (ImGui::Checkbox("X-Ray", &hasXray)) {
+        if (hasXray) this->maskFlags |= MaskEffectBits::XRay;
+        else this->maskFlags &= ~MaskEffectBits::XRay;
+    }
+
+    bool hasJfaOutline = (this->maskFlags & MaskEffectBits::Jfa) != 0;
+    if (ImGui::Checkbox("JFA Outline", &hasJfaOutline)) {
+        if (hasJfaOutline) this->maskFlags |= MaskEffectBits::Jfa;
+        else this->maskFlags &= ~MaskEffectBits::Jfa;
+    }
 
 	if (ImGui::TreeNode(std::format("Material count: {}", this->materials.size()).c_str())) {
 		for (int i = 0; i < this->materials.size(); i++) {
