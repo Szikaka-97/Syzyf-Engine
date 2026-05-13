@@ -41,8 +41,9 @@ enum class RenderPassType {
 	Transparent = 32,
 	Additive = 64,
 	Volumetric = 128,
-    SSAO = 256,
-    UI = 512,
+  SSAO = 256,
+  Mask = 512,
+  UI = 1024,
 };
 
 struct RenderParams {
@@ -84,6 +85,8 @@ private:
         ShaderProgram* ssaoShader;
         ShaderProgram* ssaoBlurShader;
 
+        // Mask
+        ShaderProgram* maskShader;
         // UI
         ShaderProgram* uiShader;
         ShaderProgram* uiTextShader;
@@ -101,6 +104,8 @@ private:
 		uint8_t layer;
 
         int jointBufferOffset = -1;
+
+        uint8_t maskFlags = 0;
 
         GLuint indirectBuffer = 0;
         GLuint indirectBufferOffset = 0;
@@ -136,6 +141,7 @@ private:
 	std::vector<RenderNode> oitTransparentRenders;
 	std::vector<RenderNode> additiveRenders;
 	std::vector<RenderNode> volumetricRenders;
+    std::vector<RenderNode> maskRenders;
     std::vector<UiRenderNode> uiRenders;
 	GLuint globalUniformsBuffer;
 	GLuint objectUniformsBuffer;
@@ -146,6 +152,7 @@ private:
 	Framebuffer* volumetricPassFramebuffer;
     Framebuffer* ssaoFramebuffer;
     Framebuffer* ssaoBlurFramebuffer;
+    Framebuffer* maskFramebuffer;
     float depthMult = 1.0f;
 
 	LightSystem* lightSystem;
@@ -180,6 +187,8 @@ private:
 	void EnqueueAdditive(const RenderNode& node);
 	void EnqueueVolumetric(const RenderNode& node);
     void EnqueueUi(const UiRenderNode& node);
+
+    void EnqueueMask(const RenderNode& node);
 
 	void BindMaterialProperties(Material* mat);
 
@@ -230,6 +239,9 @@ public:
 
 	void RenderSSAOBlur(const RenderParams& params, Framebuffer* target);
 	void RenderSSAOBlur(const ShaderGlobalUniforms& uniforms, const RenderParams& params, Framebuffer* target);
+
+    void RenderMask(const RenderParams& params, Framebuffer* target);
+    void RenderMask(const ShaderGlobalUniforms& uniforms, const RenderParams& params, Framebuffer* target);
 
 	void RenderOpaque(const RenderParams& params, Framebuffer* target);
 	void RenderOpaque(const ShaderGlobalUniforms& uniforms, const RenderParams& params, Framebuffer* target);

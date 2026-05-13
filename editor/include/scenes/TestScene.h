@@ -1,6 +1,7 @@
 #pragma once
 
 #include "GltfImporter.h"
+#include "JfaOutline.h"
 #include "LightSystem.h"
 #include "fog/Fog.h"
 #include "game_scripts/AimingAid.h"
@@ -14,6 +15,7 @@
 #include <Fxaa.h>
 #include <InputSystem.h>
 #include <Light.h>
+#include <MaskEffects.h>
 #include <Material.h>
 #include <Mesh.h>
 #include <MeshRenderer.h>
@@ -216,6 +218,10 @@ inline void InitScene(Scene& mainScene) {
         monkeyShape, JPH::Vec3::sZero(), JPH::Quat::sIdentity(),
         JPH::EMotionType::Static, Physics::Layers::MOVING});
 
+    for (auto* renderer : monkey->GetAllObjectsInChildren<MeshRenderer>()) {
+        renderer->maskFlags |= MaskEffectBits::XRay;
+    }
+
 #pragma endregion
 #pragma region Player
 
@@ -230,6 +236,9 @@ inline void InitScene(Scene& mainScene) {
     SceneNode* bimberman = GltfImporter::LoadScene(
         &mainScene, "./res/models/bimbermann_throwing.glb", "Bimberman");
     bimberman->SetParent(playerNode);
+    for (auto* renderer : bimberman->GetAllObjectsInChildren<MeshRenderer>()) {
+        renderer->maskFlags |= MaskEffectBits::Jfa;
+    }
 
     auto* virtualCharacter =
         playerNode->AddObject<Physics::VirtualCharacterController>(
@@ -345,6 +354,8 @@ inline void InitScene(Scene& mainScene) {
     fog->density = 0.042;
     fog->fogColor = {0.2, 0.6, 0.9, 1.0};
     cameraNode->AddObject<Bloom>();
+    cameraNode->AddObject<MaskEffects>();
+    cameraNode->AddObject<JfaOutline>();
     cameraNode->AddObject<Tonemapper>()->SetOperator(
         Tonemapper::TonemapperOperator::GranTurismo);
     cameraNode->AddObject<ColorGrading>();
@@ -413,8 +424,8 @@ inline void InitScene(Scene& mainScene) {
     // mainScene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
 
     SceneNode* pinkTransparentCubeNode = mainScene.CreateNode("Pink Cube");
-    pinkTransparentCubeNode->AddObject<MeshRenderer>(cubeMesh,
-                                                     pinkTransparentMat);
+    auto* pinkCubeRenderer = pinkTransparentCubeNode->AddObject<MeshRenderer>(
+        cubeMesh, pinkTransparentMat);
     pinkTransparentCubeNode->LocalTransform().Position() = {-3, 0, -3};
 
     SceneNode* blueTransparentCubeNode = mainScene.CreateNode("Blue Cube");

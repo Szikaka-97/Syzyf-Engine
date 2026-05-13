@@ -8,6 +8,8 @@ struct PostProcessParams {
 	Texture2D* inputTexture;
 	Texture2D* outputTexture;
 	Texture2D* depthTexture;
+    Texture2D* maskTexture;
+    Texture2D* maskDepthTexture;
 };
 
 class PostProcessEffect : public GameObject {

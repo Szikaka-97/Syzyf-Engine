@@ -13,7 +13,7 @@ MousePickingBody* MousePickingBody::CreateFromMesh(SceneNode* node,
                       "a valid mesh");
         return nullptr;
     }
-    JPH::ShapeRefC shape = Physics::ConvexHullMeshShape(mesh);
+    JPH::ShapeRefC shape = Physics::MeshShape(mesh);
     if (!shape)
         return nullptr;
 

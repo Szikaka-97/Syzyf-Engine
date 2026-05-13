@@ -130,6 +130,14 @@ currentUniforms() {
 	this->volumetricPassFramebuffer = new Framebuffer(Framebuffer::Attachment::None, 0, 0);
 	this->volumetricPassFramebuffer->CreateColorAttachment(true, false);
 
+    this->maskFramebuffer = new Framebuffer(Framebuffer::Attachment::Depth, 0, 0);
+    this->maskFramebuffer->CreateCustomAttachment(0, TextureParams {
+            .channels = TextureChannels::GrayscaleInteger,
+            .colorSpace = TextureColor::Linear,
+            .format = TextureFormat::Ubyte,
+            .minFilter = TextureFilter::Nearest,
+            .magFilter = TextureFilter::Nearest
+    });
     this->uiQuadMesh = this->GetScene()->Resources()->Get<Mesh>("./res/models/uiQuad.obj");
 
     this->SetupShaders();
@@ -162,6 +170,8 @@ void SceneGraphics::UpdateScreenResolution(glm::vec2 newResolution) {
 		if (GetPostProcessing()) {
 			GetPostProcessing()->UpdateBufferResolution(newResolution);
 		}
+
+        this->maskFramebuffer->SetSize(newResolution);
 	}
 }
 
@@ -360,6 +370,11 @@ void SceneGraphics::DrawMeshInstanced(MeshRenderer* renderer, unsigned int insta
         } else {
             EnqueueOpaque(node);
         }
+
+        node.maskFlags = renderer->maskFlags;
+        if (node.maskFlags != 0) {
+            EnqueueMask(node);
+        }
     }
 }
 
@@ -456,7 +471,7 @@ void SceneGraphics::Render() {
 		RenderCamera(camera);
 	}
 
-    RenderPassType passType = RenderPassType::Color | RenderPassType::DepthPrepass | RenderPassType::Gizmos | RenderPassType::Transparent | RenderPassType::Volumetric;
+    RenderPassType passType = RenderPassType::Color | RenderPassType::DepthPrepass | RenderPassType::Gizmos | RenderPassType::Transparent | RenderPassType::Volumetric | RenderPassType::Mask;
     if (this->ssaoSettings.enabled) {
         passType = passType | RenderPassType::SSAO;
     }
@@ -492,6 +507,7 @@ void SceneGraphics::Render() {
 	this->oitTransparentRenders.clear();
 	this->gizmoRenders.clear();
 	this->volumetricRenders.clear();
+    this->maskRenders.clear();
     this->uiRenders.clear();
 }
 
@@ -527,6 +543,9 @@ void SceneGraphics::EnqueueAdditive(const RenderNode& node) {
 }
 void SceneGraphics::EnqueueVolumetric(const RenderNode& node) {
 	this->volumetricRenders.push_back(node);
+}
+void SceneGraphics::EnqueueMask(const RenderNode& node) {
+	this->maskRenders.push_back(node);
 }
 
 void SceneGraphics::EnqueueUi(const UiRenderNode& node) {
@@ -625,8 +644,7 @@ void SceneGraphics::RenderPrepass(const ShaderGlobalUniforms& uniforms, const Re
                 glDrawElementsIndirect(render.mesh->GetDrawMode(), GL_UNSIGNED_INT, offsetPointer);
             }
             glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
-        }
-		if (render.material->GetShader()->UsesPatches()) {
+        } else if (render.material->GetShader()->UsesPatches()) {
 			glPatchParameteri(GL_PATCH_VERTICES, (int) render.mesh->GetType());
 
 			if (render.instanceCount <= 0) {
@@ -635,8 +653,7 @@ void SceneGraphics::RenderPrepass(const ShaderGlobalUniforms& uniforms, const Re
 			else {
 				glDrawElementsInstanced(GL_PATCHES, render.mesh->GetVertexCount(), GL_UNSIGNED_INT, nullptr, render.instanceCount);
 			}
-		}
-		else {
+		} else {
 			if (render.instanceCount <= 0) {
 				glDrawElements(render.mesh->GetDrawMode(), render.mesh->GetVertexCount(), GL_UNSIGNED_INT, nullptr);
 			}
@@ -714,6 +731,47 @@ void SceneGraphics::RenderSSAOBlur(const RenderParams& params, Framebuffer* targ
     glEnable(GL_DEPTH_TEST);
     glBindVertexArray(0);
     glUseProgram(0);
+}
+
+// Replace with a bitmask or IDs to allow for more effects, right now it's just two
+void SceneGraphics::RenderMask(const RenderParams& params, Framebuffer* target) {
+    target->SetCustomAttachmentEnabled(0, true);
+    target->Apply();
+    glBindFramebuffer(GL_FRAMEBUFFER, target->GetHandle());
+    glViewport(params.viewport.x, params.viewport.y, params.viewport.z, params.viewport.w);
+
+    GLuint clearColor[4] = { 0, 0, 0, 0 };
+    glClearBufferuiv(GL_COLOR, 1, clearColor);
+    glClear(GL_DEPTH_BUFFER_BIT);
+
+    glEnable(GL_DEPTH_TEST);
+    glDepthMask(GL_TRUE);
+    glDepthFunc(GL_LEQUAL);
+
+    glDisable(GL_BLEND);
+
+    ShaderObjectUniforms objectUniforms;
+    // add the animated shaders and other custom depth ones idasjadjsa
+    glUseProgram(this->shaders.maskShader->GetHandle());
+
+    for (const auto& render : this->maskRenders) {
+        objectUniforms.Object_ModelMatrix = render.transformation;
+        objectUniforms.Object_MVPMatrix = this->currentUniforms.Global_VPMatrix * render.transformation;
+
+        glBindBuffer(GL_UNIFORM_BUFFER, objectUniformsBuffer);
+        glBufferData(GL_UNIFORM_BUFFER, sizeof(objectUniforms), &objectUniforms, GL_STREAM_DRAW);
+        glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+        glUniform1ui(glGetUniformLocation(this->shaders.maskShader->GetHandle(), "maskFlags"), render.maskFlags);
+
+        glBindVertexArray(render.mesh->GetVertexArrayHandle());
+        glDrawElements(render.mesh->GetDrawMode(), render.mesh->GetVertexCount(), GL_UNSIGNED_INT, nullptr);
+        
+    }
+
+    glBindVertexArray(0);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glDepthFunc(GL_LESS);
 }
 
 void SceneGraphics::RenderShadows(const RenderParams& params, Framebuffer* target) {
@@ -1620,13 +1678,18 @@ void SceneGraphics::RenderPostprocess() {
 	
 	Texture2D* frameDepth = dynamic_cast<Texture2D*>(GetMainFramebuffer()->GetDepthTexture());
 
-	for (auto* effect : postProcess->IterateObjects()) {
-		PostProcessParams postProcessParams;
-		postProcessParams.inputTexture = dynamic_cast<Texture2D*>(ping->GetColorTexture());
-		postProcessParams.outputTexture = dynamic_cast<Texture2D*>(pong->GetColorTexture());
-		postProcessParams.depthTexture = frameDepth;
+  Texture2D* maskTexture = dynamic_cast<Texture2D*>(this->maskFramebuffer->GetCustomAttachmentTexture(0));
+  Texture2D* maskDepthTexture = dynamic_cast<Texture2D*>(this->maskFramebuffer->GetDepthTexture());
 
-		effect->OnPostProcess(&postProcessParams);
+	for (auto* effect : postProcess->IterateObjects()) {
+        PostProcessParams postProcessParams;
+        postProcessParams.inputTexture = dynamic_cast<Texture2D*>(ping->GetColorTexture());
+        postProcessParams.outputTexture = dynamic_cast<Texture2D*>(pong->GetColorTexture());
+        postProcessParams.depthTexture = frameDepth;
+        postProcessParams.maskTexture = maskTexture;
+        postProcessParams.maskDepthTexture = maskDepthTexture;
+
+		 effect->OnPostProcess(&postProcessParams);
 
 		std::swap(ping, pong);
 	}
@@ -1796,6 +1859,13 @@ void SceneGraphics::RenderCamera(Camera* camera, Viewport* renderTarget, const R
 		activeParams.pass = RenderPassType::DepthPrepass;
 
 		RenderPrepass(activeParams, renderTarget->GetFramebuffer());
+	}
+
+	if ((params.pass & RenderPassType::Mask) == RenderPassType::Mask) {
+		activeParams.clearDepth = true;
+		activeParams.pass = RenderPassType::Mask;
+
+		RenderMask(activeParams, this->maskFramebuffer);
 	}
 
     if ((params.pass & RenderPassType::SSAO) == RenderPassType::SSAO) {
@@ -2024,6 +2094,10 @@ void SceneGraphics::SetupShaders() {
         .WithPixelShader("./res/shaders/ssao/ssao_blur.frag")
         .Link();
 
+    // Mask
+    this->shaders.maskShader = ShaderProgram::Build()
+        .WithVertexShader("./res/shaders/basic.vert")
+        .WithPixelShader("./res/shaders/mask/mask.frag")
     // UI
     this->shaders.uiShader = ShaderProgram::Build()
         .WithVertexShader("./res/shaders/ui/ui.vert")
