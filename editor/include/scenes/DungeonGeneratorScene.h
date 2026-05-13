@@ -321,10 +321,13 @@ class PhysicsMover : public GameObject,
             bodyFilter.IgnoreBody(this->character->GetBodyID());
             bodyFilter.IgnoreBody(this->floorId);
 
-            SceneNode* result = physics->CastRay(
-                this->cameraNode->GlobalTransform().Position(),
-                this->cameraNode->GlobalTransform().Forward() * 100.0f, {}, {},
-                bodyFilter);
+            SceneNode* result =
+                physics
+                    ->CastRay(this->cameraNode->GlobalTransform().Position(),
+                              this->cameraNode->GlobalTransform().Forward() *
+                                  100.0f,
+                              {}, {}, bodyFilter)
+                    .node;
 
             if (result) {
                 if (auto* object = result->GetObject<Physics::Body>()) {
@@ -623,11 +626,13 @@ inline void InitScene(Scene& mainScene) {
     // cameraNode->AddObject<Tonemapper>()->SetOperator(
     //     Tonemapper::TonemapperOperator::GranTurismo);
 
+  
+
     SceneNode* dungeon = mainScene.CreateNode("Dungeon");
     dungeon->AddObject<DungeonGenerator>(
-        DungeonGeneratorSettings{.steps = 12,
-                                 .mapColumns = 4,
+        DungeonGeneratorSettings{.mapColumns = 4,
                                  .mapRows = 10,
+                                 .steps = 12,
                                  .momentum = 2.0f,
                                  .horizontalBias = 0.0f});
 

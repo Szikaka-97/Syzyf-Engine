@@ -6,6 +6,7 @@
 #include <glm/glm.hpp>       
 #include <glm/gtc/constants.hpp>
 #include <spdlog/spdlog.h>
+#include <Jolt/Physics/Collision/Shape/SphereShape.h>
 
 void NavigationGrid::Build(Surface* surface, float cellSize, float maxSlopeDeg) {
         if (!surface) return;
@@ -31,7 +32,9 @@ void NavigationGrid::Build(Surface* surface, float cellSize, float maxSlopeDeg) 
             float groundY = m_surface->GetGroundHeight(node.worldPos.x, node.worldPos.z);
             node.worldPos.y = groundY;
             
-            node.walkable = m_surface->IsOnSurface(glm::vec3(node.worldPos.x, groundY + 0.1f, node.worldPos.z));
+            //node.walkable = m_surface->IsOnSurface(glm::vec3(node.worldPos.x, groundY + 0.1f, node.worldPos.z));
+            node.walkable = m_surface->IsOnSurface(glm::vec3(node.worldPos.x, groundY + 0.1f, node.worldPos.z))
+                && !IsBlockedByObstacle(glm::vec3(node.worldPos.x, groundY + 0.1f, node.worldPos.z));
         }
     }
 
@@ -143,6 +146,25 @@ std::vector<glm::vec3> NavigationGrid::FindPath(const glm::vec3& start, const gl
 
     spdlog::warn("NavigationGrid::FindPath - no path found");
     return {};
+}
+
+bool NavigationGrid::IsBlockedByObstacle(const glm::vec3& point) const {
+    auto* scene = m_surface ? m_surface->GetScene() : nullptr;
+    if (!scene) return false;
+    auto* physics = scene->GetComponent<Physics::System>();
+    if (!physics) return false;
+
+    JPH::ShapeRefC shape = new JPH::SphereShape(0.5f);
+    glm::vec3 origin = point + glm::vec3(0.0f, 0.5f, 0.0f);
+    glm::vec3 direction(0.0f, -1.0f, 0.0f);
+    float maxDist = 1.0f;
+
+    std::vector<SceneNode*> hits = physics->CastShape(origin, direction * maxDist, shape, {}, {}, {});
+    for (SceneNode* hit : hits) {
+        if (hit && hit->GetName() != "Floor") 
+            return true;
+    }
+    return false;
 }
 
 glm::vec3 NavigationGrid::GetRandomWalkablePosition( glm::vec3 point, float radius) const {

@@ -43,8 +43,8 @@ void UniformSpec::CreateFrom(GLuint programHandle) {
 
 	glGetProgramiv(programHandle, GL_ACTIVE_UNIFORMS, &uniformCount);
 
-	GLuint uniforms[uniformCount];
-	GLint params[uniformCount];
+	std::vector<GLuint> uniforms(uniformCount);
+	std::vector<GLint> params(uniformCount);
 
 	std::vector<GLuint> shaderUniforms;
 
@@ -52,7 +52,7 @@ void UniformSpec::CreateFrom(GLuint programHandle) {
 		uniforms[i] = i;
 	}
 
-	glGetActiveUniformsiv(programHandle, uniformCount, uniforms, GL_UNIFORM_BLOCK_INDEX, params);
+	glGetActiveUniformsiv(programHandle, uniformCount, uniforms.data(), GL_UNIFORM_BLOCK_INDEX, params.data());
 
 	for (int i = 0; i < uniformCount; i++) {
 		if (params[i] < 0) {
@@ -64,7 +64,7 @@ void UniformSpec::CreateFrom(GLuint programHandle) {
 
 	this->variables.resize(uniformCount);
 
-	glGetActiveUniformsiv(programHandle, uniformCount, shaderUniforms.data(), GL_UNIFORM_TYPE, params);
+	glGetActiveUniformsiv(programHandle, uniformCount, shaderUniforms.data(), GL_UNIFORM_TYPE, params.data());
 
 	int currentOffset = 0;
 
@@ -79,7 +79,7 @@ void UniformSpec::CreateFrom(GLuint programHandle) {
 		currentOffset += typeInfo.size;
 	}
 
-	glGetActiveUniformsiv(programHandle, uniformCount, shaderUniforms.data(), GL_UNIFORM_NAME_LENGTH, params);
+	glGetActiveUniformsiv(programHandle, uniformCount, shaderUniforms.data(), GL_UNIFORM_NAME_LENGTH, params.data());
 
 	for (int i = 0; i < uniformCount; i++) {
 		this->variables[i].name.resize(params[i] - 1);

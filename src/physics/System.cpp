@@ -154,13 +154,15 @@ namespace Physics {
     }
   }
 
-  SceneNode* System::CastRay(
+  RayCastPayload System::CastRay(
     glm::vec3 origin,
     glm::vec3 direction,
     const JPH::BroadPhaseLayerFilter& broadPhaseLayerFilter,
     const JPH::ObjectLayerFilter& objectLayerFilter,
     const JPH::BodyFilter& bodyFilter
   ) {
+    RayCastPayload payload;
+
     JPH::RRayCast ray(
       JPH::RVec3(origin.x, origin.y, origin.z),
       JPH::Vec3(direction.x, direction.y, direction.z)
@@ -174,15 +176,21 @@ namespace Physics {
       objectLayerFilter,
       bodyFilter
     )) {
+      payload.hasHit = true;
+      payload.fraction = result.mFraction;
+
+      JPH::RVec3 joltPos = ray.GetPointOnRay(result.mFraction);
+      payload.position = glm::vec3(joltPos.GetX(), joltPos.GetY(), joltPos.GetZ());
+
       JPH::BodyID id = result.mBodyID;
       uint64_t userData = physicsSystem->GetBodyInterface().GetUserData(id);
       // maybe it would be better to use id as userData if it gets added
       GameObject* object = reinterpret_cast<GameObject*>(userData);
       if (object) {
-        return object->GetNode();
+        payload.node = object->GetNode();
       }
     } 
-    return nullptr;
+    return payload;
   }
 
   std::vector<SceneNode*> System::CastShape(

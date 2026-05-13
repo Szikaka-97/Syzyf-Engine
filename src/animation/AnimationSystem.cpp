@@ -37,8 +37,7 @@ AnimationSystem::AnimationSystem(Scene* scene): GameObjectSystem<AnimationCompon
 void AnimationSystem::OnPreUpdate() {
   const float deltaTime = Time::Delta(); 
 
-  auto objects = *GetAllObjects();
-  for (auto* object : objects) {
+  for (auto* object : IterateObjects()) {
     for (auto& animation : object->animations) {
       if (!animation.playing)
         continue;
@@ -277,3 +276,15 @@ void AnimationSystem::OnPreUpdate() {
     }
   }
 };
+
+void AnimationSystem::UnregisterObjectForced(GameObject* obj) {
+  //TODO: Make it a bit more efficient
+
+  for (auto* object : IterateObjects()) {
+    for (auto& animation : object->animations) {
+      std::erase_if(animation.data.tracks, [obj](auto track) -> bool {
+        return track.target = obj->GetNode();
+      });
+    }
+  }
+}

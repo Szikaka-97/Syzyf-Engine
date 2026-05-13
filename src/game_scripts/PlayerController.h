@@ -26,12 +26,9 @@
 #include <cmath>
 #include "AimingAid.h"
 #include "Jolt/Math/MathTypes.h"
-#include "Jolt/Math/Real.h"
 #include "Jolt/Math/Vec3.h"
 #include "Jolt/Physics/Body/BodyCreationSettings.h"
 #include "Jolt/Physics/Body/MotionType.h"
-#include "Jolt/Physics/Collision/Shape/Shape.h"
-#include "game_scripts/CameraSettings.h"
 #include "physics/Body.h"
 #include "physics/Helpers.h"
 #include "physics/System.h"
@@ -140,6 +137,22 @@ public:
 	}
 public:
 	PlayerController() {
+		this->throwingArm = GetNode()->FindNode("Bimberman/root/Torso/Arm R");
+		this->throwPoint = GetNode()->FindNode("Bimberman/root/Torso/Arm R/Throw Point");
+
+		spdlog::warn(this->throwPoint != nullptr);
+
+		this->aim->SetStretch(-1);
+
+		this->baseArmRotation = this->throwingArm->LocalTransform().Rotation();
+
+		this->throwStrengthAccum = 0;
+		this->throwStrengthCache = 0;
+
+		this->bottle = GltfImporter::LoadScene(GetScene(), "./res/models/crosshair.glb", "bottle visual");
+	}
+
+	PlayerController(SceneNode* markerNode) {
 		this->throwingArm = GetNode()->FindNode("Bimberman/root/Torso/Arm R");
 		this->throwPoint = GetNode()->FindNode("Bimberman/root/Torso/Arm R/Throw Point");
 

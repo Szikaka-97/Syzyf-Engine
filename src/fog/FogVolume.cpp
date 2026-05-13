@@ -57,12 +57,7 @@ void FogVolume::Render() {
   glm::vec3 boxMax = position + (scale * 0.5f);
 
   int lightIndex = 0;
-  for (const auto& light : *lights) {
-    if (!light->IsEnabled()) {
-      lightIndex++;
-      continue;
-    }
-
+  for (const auto& light : GetScene()->GetGraphics()->GetLightSystem()->IterateObjects()) {
     if (light->GetType() == Light::LightType::Directional) {
       intersectingLightIndices.push_back(lightIndex);
     } else if (light->GetType() == Light::LightType::Point || light->GetType() == Light::LightType::Spot) {

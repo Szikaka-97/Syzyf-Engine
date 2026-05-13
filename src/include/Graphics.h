@@ -1,5 +1,6 @@
 #pragma once
 
+#include <glm/fwd.hpp>
 #include <queue>
 #include <vector>
 #include <glad/glad.h>
@@ -40,8 +41,9 @@ enum class RenderPassType {
 	Transparent = 32,
 	Additive = 64,
 	Volumetric = 128,
-    SSAO = 256,
-    Mask = 512,
+  SSAO = 256,
+  Mask = 512,
+  UI = 1024,
 };
 
 struct RenderParams {
@@ -66,6 +68,7 @@ public:
         float resolutionScale = 1.0f;
     };
 private:
+    // this should all be using unique ptrs
     struct Shaders {
         // Depth
         ShaderProgram* depthOnlyShader;
@@ -82,7 +85,11 @@ private:
         ShaderProgram* ssaoShader;
         ShaderProgram* ssaoBlurShader;
 
+        // Mask
         ShaderProgram* maskShader;
+        // UI
+        ShaderProgram* uiShader;
+        ShaderProgram* uiTextShader;
     };
 
 	struct RenderNode {
@@ -111,6 +118,23 @@ private:
 		bool operator<(const RenderNode& other) const;
 	};
 
+    struct UiRenderNode {
+        glm::mat4 worldMatrix;
+        glm::vec2 size;
+        int zIndex = 0;
+        glm::vec4 color{1.0f};
+        Texture2D* texture = nullptr;
+        Material* customMaterial = nullptr;
+
+        bool isText = false;
+        glm::vec4 uvRectangle{0.0f, 0.0f, 1.0f, 1.0f};
+        float pxRange = 4.0f;
+
+        bool operator<(const UiRenderNode& other) const {
+            return zIndex < other.zIndex;
+        }
+    };
+
 	std::vector<RenderNode> opaqueRenders;
 	std::vector<RenderNode> gizmoRenders;
 	std::vector<RenderNode> transparentRenders;
@@ -118,6 +142,7 @@ private:
 	std::vector<RenderNode> additiveRenders;
 	std::vector<RenderNode> volumetricRenders;
     std::vector<RenderNode> maskRenders;
+    std::vector<UiRenderNode> uiRenders;
 	GLuint globalUniformsBuffer;
 	GLuint objectUniformsBuffer;
 	
@@ -145,6 +170,8 @@ private:
 
     float volumetricPassResolutionScale = 1.0f;
 
+    Mesh* uiQuadMesh;
+
 	void RenderFullscreenFrameQuad();
 	void CompositeTransparentPass();
 	void CompositeVolumetricPass();
@@ -159,6 +186,7 @@ private:
 	void EnqueueOITransparent(const RenderNode& node);
 	void EnqueueAdditive(const RenderNode& node);
 	void EnqueueVolumetric(const RenderNode& node);
+    void EnqueueUi(const UiRenderNode& node);
 
     void EnqueueMask(const RenderNode& node);
 
@@ -193,6 +221,9 @@ public:
     void DrawMeshInstanced(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, unsigned int instanceCount, const BoundingBox& bounds, GLuint instanceSSBO = 0, uint8_t layer = Layer::Default);
 
     void DrawMeshIndirect(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, GLuint indirectBuffer, GLuint indirectBufferOffset, GLuint instanceSSBO, const BoundingBox& bounds, uint8_t layer = Layer::Default);
+
+    void DrawUi(const glm::mat4& worldMatrix, const glm::vec2& size, int zIndex, const glm::vec4& color, Texture2D* texture = nullptr, Material* customMaterial = nullptr);
+    void DrawUiText(const glm::mat4& worldMatrix, const glm::vec2& size, int zIndex, const glm::vec4& color, Texture2D* texture, const glm::vec4& uvRectangle, float pxRange);
 
 	void DrawGizmoMesh(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, bool ignoresDepth = false);
 	
@@ -232,6 +263,10 @@ public:
 	
 	void RenderVolumetric(const RenderParams& params, Framebuffer* target);
 	void RenderVolumetric(const ShaderGlobalUniforms& uniforms, const RenderParams& params, Framebuffer* target);
+
+    void RenderUi(const RenderParams& params, Framebuffer* target);
+
+    void RenderUi(const ShaderGlobalUniforms& uniforms, const RenderParams& params, Framebuffer* target);
 
 	virtual void OnPostRender();
 

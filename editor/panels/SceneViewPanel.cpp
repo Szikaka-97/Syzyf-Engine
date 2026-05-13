@@ -5,6 +5,7 @@
 #include "Commands.h"
 #include "MousePickingBodySystem.h"
 #include "ParticleSpawner.h"
+#include "SceneRegistry.h"
 #include "physics/Body.h"
 #include "physics/DebugRenderer.h"
 
@@ -30,49 +31,191 @@
 
 namespace Editor {
 void SceneViewPanel::Draw(Context& context) {
-    ImGui::SetNextWindowSize(ImVec2(1024, 576), ImGuiCond_FirstUseEver);
-    ImGui::Begin("Scene View", nullptr);
+    bool requiresTabSync =
+        (this->previousFullscreenState != this->isFullscreen);
+    this->previousFullscreenState = this->isFullscreen;
 
-    if (context.loadedScenes.empty()) {
-        ImGui::End();
-        return;
-    }
+    bool drawContent = false;
+    bool startedAsPopup = this->isFullscreen;
 
-    if (context.state == State::Game) {
-        ImGui::BeginDisabled();
-    }
-    if (ImGui::BeginTabBar("SceneTabBar", ImGuiTabBarFlags_None)) {
-        for (std::size_t i = 0; i < context.loadedScenes.size(); ++i) {
-            Scene* scene = context.loadedScenes[i];
+    if (startedAsPopup) {
+        ImGuiViewport* viewport = ImGui::GetMainViewport();
+        ImGui::SetNextWindowPos(viewport->Pos);
+        ImGui::SetNextWindowSize(viewport->Size);
 
-            std::string tabName = "Scene " + std::to_string(i + 1);
+        if (!ImGui::IsPopupOpen("Fullscreen Scene View")) {
+            ImGui::OpenPopup("Fullscreen Scene View");
+        }
 
-            if (ImGui::BeginTabItem(tabName.c_str())) {
-                if (context.selectedScene != scene) {
-                    context.selectedScene = scene;
+        ImGuiWindowFlags popupFlags =
+            ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove |
+            ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings;
+        if (ImGui::BeginPopupModal("Fullscreen Scene View", nullptr,
+                                   popupFlags)) {
+            drawContent = true;
 
-                    context.selectedNode = nullptr;
-                    context.mainCamera =
-                        scene->FindObjectsOfType<CameraController>()
-                            .front()
-                            ->GetObject<Camera>();
-                    context.mainCamera->SetAsMainCamera();
-                }
-                ImGui::EndTabItem();
+            if (ImGui::IsKeyPressed(ImGuiKey_F11)) {
+                this->isFullscreen = false;
+                this->isBarHidden = false;
+                ImGui::CloseCurrentPopup();
+            }
+
+            if (ImGui::IsKeyPressed(ImGuiKey_LeftAlt) ||
+                ImGui::IsKeyPressed(ImGuiKey_RightAlt)) {
+                this->isBarHidden = !this->isBarHidden;
             }
         }
-        ImGui::EndTabBar();
-    }
-    if (context.state == State::Game) {
-        ImGui::EndDisabled();
-    }
 
-    if (context.selectedScene == nullptr) {
+        ImGui::Begin("Scene View", nullptr);
+        ImGui::TextDisabled("Scene View is currently in Fullscreen mode.");
+        if (ImGui::Button("Exit Fullscreen (F11)")) {
+            this->isFullscreen = false;
+            this->isBarHidden = false;
+        }
         ImGui::End();
-        return;
+    } else {
+        ImGui::SetNextWindowSize(ImVec2(1024, 576), ImGuiCond_FirstUseEver);
+        drawContent = ImGui::Begin("Scene View", nullptr);
+
+        if (ImGui::IsKeyPressed(ImGuiKey_F11) &&
+            ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows)) {
+            this->isFullscreen = true;
+        }
     }
 
-    this->DrawMenuBar(context);
+    if (drawContent) {
+        if (!this->isBarHidden) {
+            if (context.state == State::Game) {
+                ImGui::BeginDisabled();
+            }
+
+            if (ImGui::BeginTabBar("SceneTabBar",
+                                   ImGuiTabBarFlags_AutoSelectNewTabs |
+                                       ImGuiTabBarFlags_Reorderable)) {
+                std::vector<Scene*> scenesToClose;
+                Scene* targetScene = context.selectedScene;
+
+                for (std::size_t i = 0; i < context.loadedScenes.size(); ++i) {
+                    Scene* scene = context.loadedScenes[i];
+
+                    std::string displayName =
+                        scene->name.empty() ? "Scene " + std::to_string(i + 1)
+                                            : scene->name;
+                    std::string tabName =
+                        displayName + "###" +
+                        std::to_string(reinterpret_cast<uintptr_t>(scene));
+
+                    bool isOpen = true;
+                    ImGuiTabItemFlags tabFlags = ImGuiTabItemFlags_None;
+                    if (requiresTabSync && targetScene == scene) {
+                        tabFlags |= ImGuiTabItemFlags_SetSelected;
+                    }
+
+                    if (ImGui::BeginTabItem(tabName.c_str(), &isOpen,
+                                            tabFlags)) {
+                        if (!requiresTabSync &&
+                            context.selectedScene != scene) {
+                            context.selectedScene = scene;
+                            context.selectedNode = nullptr;
+
+                            context.mainCamera =
+                                scene->FindObjectsOfType<CameraController>()
+                                    .front()
+                                    ->GetObject<Camera>();
+                            context.mainCamera->SetAsMainCamera();
+                        }
+
+                        ImGui::EndTabItem();
+                    }
+
+                    if (!isOpen) {
+                        scenesToClose.push_back(scene);
+                    }
+                }
+
+                if (ImGui::TabItemButton("+",
+                                         ImGuiTabItemFlags_Trailing |
+                                             ImGuiTabItemFlags_NoTooltip)) {
+                    ImGui::OpenPopup("AddScenePopup");
+                }
+
+                if (ImGui::BeginPopup("AddScenePopup")) {
+                    ImGui::TextDisabled("Available Scenes:");
+                    ImGui::Separator();
+
+                    for (const auto& [name, initFunc] :
+                         SceneRegistry::GetRegistry()) {
+                        if (ImGui::Selectable(name.c_str())) {
+                            Scene* newScene = Scene::CreateStandaloneScene();
+
+                            newScene->name = name;
+
+                            initFunc(*newScene);
+
+                            newScene->AddComponent<MousePickingBodySystem>();
+
+                            SceneNode* cameraNode = newScene->CreateNode();
+                            cameraNode->AddObject<CameraController>();
+                            cameraNode->GlobalTransform().Position() = {
+                                0.0f, 1.0f, 0.0f};
+
+                            context.loadedScenes.push_back(newScene);
+
+                            context.selectedScene = newScene;
+                            context.selectedNode = nullptr;
+                            context.mainCamera =
+                                cameraNode->GetObject<Camera>();
+                            context.mainCamera->SetAsMainCamera();
+                        }
+                    }
+                    ImGui::EndPopup();
+                }
+
+                ImGui::EndTabBar();
+
+                // Closing scenes
+                for (Scene* sceneToClose : scenesToClose) {
+                    std::erase(context.loadedScenes, sceneToClose);
+
+                    if (context.selectedScene == sceneToClose) {
+                        context.selectedScene = nullptr;
+                        context.selectedNode = nullptr;
+                        context.mainCamera = nullptr;
+
+                        if (!context.loadedScenes.empty()) {
+                            context.selectedScene = context.loadedScenes.back();
+                            auto cameras =
+                                context.selectedScene
+                                    ->FindObjectsOfType<CameraController>();
+                            if (!cameras.empty()) {
+                                context.mainCamera =
+                                    cameras.front()->GetObject<Camera>();
+                                context.mainCamera->SetAsMainCamera();
+                            }
+                        }
+                    }
+
+                    delete sceneToClose;
+                }
+            }
+
+            if (context.state == State::Game) {
+                ImGui::EndDisabled();
+            }
+        }
+
+        if (context.selectedScene == nullptr) {
+            if (startedAsPopup)
+                ImGui::EndPopup();
+            else
+                ImGui::End();
+            return;
+        }
+    }
+
+    if (!this->isBarHidden) {
+        this->DrawMenuBar(context);
+    }
 
     ImVec2 cursorScreenPosition = ImGui::GetCursorScreenPos();
 
@@ -127,6 +270,13 @@ void SceneViewPanel::Draw(Context& context) {
                 if (ImGui::Shortcut(ImGuiKey_C)) {
                     context.currentGizmoOperation = ImGuizmo::SCALE;
                 }
+
+                if (ImGui::IsKeyPressed(ImGuiKey_Delete)) {
+                    // context.selectedScene->DeleteNode(context.selectedNode);
+                    // context.selectedNode = nullptr;
+
+                    // TODO uncomment when deleting doesnt crash the game
+                }
             }
 
             ImGuizmo::SetDrawlist();
@@ -138,10 +288,17 @@ void SceneViewPanel::Draw(Context& context) {
             glm::mat4 nodeTransform =
                 context.selectedNode->GlobalTransform().Value();
 
-            ImGuizmo::Manipulate(glm::value_ptr(cameraView),
-                                 glm::value_ptr(cameraProjection),
-                                 context.currentGizmoOperation, ImGuizmo::WORLD,
-                                 glm::value_ptr(nodeTransform));
+            bool isSnapping = ImGui::IsKeyDown(ImGuiKey_LeftCtrl);
+            float snapValue =
+                (context.currentGizmoOperation == ImGuizmo::ROTATE) ? 45.0f
+                                                                    : 1.0f;
+            std::array<float, 3> snapValues{snapValue, snapValue, snapValue};
+            ImGuizmo::Manipulate(
+                glm::value_ptr(cameraView), glm::value_ptr(cameraProjection),
+                context.currentGizmoOperation,
+                this->isGizmoLocal ? ImGuizmo::LOCAL : ImGuizmo::WORLD,
+                glm::value_ptr(nodeTransform), nullptr,
+                isSnapping ? snapValues.data() : nullptr);
 
             if (ImGuizmo::IsUsing()) {
                 if (this->wasViewGuizmoUsed == false) {
@@ -170,53 +327,64 @@ void SceneViewPanel::Draw(Context& context) {
             }
         }
 
-        ImViewGuizmo::Style& viewStyle = ImViewGuizmo::GetStyle();
-        viewStyle.scale = 0.65f;
-        viewStyle.bigCircleColor = IM_COL32(30, 30, 30, 120);
+        if (!ImGuizmo::IsUsing()) { // Prevents accidental presses when using
+                                    // the other gizmo
+            ImViewGuizmo::Style& viewStyle = ImViewGuizmo::GetStyle();
+            viewStyle.scale = 0.65f;
+            viewStyle.bigCircleColor = IM_COL32(30, 30, 30, 120);
 
-        glm::vec3 cameraPosition =
-            context.mainCamera->GlobalTransform().Position();
-        glm::quat cameraRotation =
-            context.mainCamera->GlobalTransform().Rotation();
+            glm::vec3 cameraPosition =
+                context.mainCamera->GlobalTransform().Position();
+            glm::quat cameraRotation =
+                context.mainCamera->GlobalTransform().Rotation();
 
-        glm::vec3 pivot =
-            (context.selectedNode != nullptr)
-                ? context.selectedNode->GlobalTransform().Position().Value()
-                : glm::vec3(0.0f);
+            glm::vec3 pivot =
+                (context.selectedNode != nullptr)
+                    ? context.selectedNode->GlobalTransform().Position().Value()
+                    : glm::vec3(0.0f);
 
-        float gizmoRadius = 128.0f * viewStyle.scale;
-        ImVec2 viewGizmoCenter =
-            ImVec2(cursorScreenPosition.x + resX - gizmoRadius - 2.0f,
-                   cursorScreenPosition.y + gizmoRadius + 2.0f);
+            float gizmoRadius = 128.0f * viewStyle.scale;
+            ImVec2 viewGizmoCenter =
+                ImVec2(cursorScreenPosition.x + resX - gizmoRadius - 2.0f,
+                       cursorScreenPosition.y + gizmoRadius + 2.0f);
 
-        if (ImViewGuizmo::Rotate(cameraPosition, cameraRotation, pivot,
-                                 viewGizmoCenter)) {
-            context.mainCamera->GlobalTransform().Position() = cameraPosition;
-            context.mainCamera->GlobalTransform().Rotation() = cameraRotation;
-        }
+            if (ImViewGuizmo::Rotate(cameraPosition, cameraRotation, pivot,
+                                     viewGizmoCenter)) {
+                context.mainCamera->GlobalTransform().Position() =
+                    cameraPosition;
+                context.mainCamera->GlobalTransform().Rotation() =
+                    cameraRotation;
+            }
 
-        float toolButtonSize = viewStyle.toolButtonRadius * viewStyle.scale;
-        float spacing = 10.0f;
+            float toolButtonSize = viewStyle.toolButtonRadius * viewStyle.scale;
+            float spacing = 10.0f;
 
-        ImVec2 panPosition = ImVec2(
-            viewGizmoCenter.x - (toolButtonSize * 2.0f) - (spacing / 2.0f),
-            viewGizmoCenter.y + gizmoRadius + spacing);
+            ImVec2 panPosition = ImVec2(
+                viewGizmoCenter.x - (toolButtonSize * 2.0f) - (spacing / 2.0f),
+                viewGizmoCenter.y + gizmoRadius + spacing);
 
-        ImVec2 dollyPosition =
-            ImVec2(viewGizmoCenter.x + (spacing / 2.0f),
-                   viewGizmoCenter.y + gizmoRadius + spacing);
-        if (ImViewGuizmo::Pan(cameraPosition, cameraRotation, panPosition,
-                              0.05f)) {
-            context.mainCamera->GlobalTransform().Position() = cameraPosition;
-        }
+            ImVec2 dollyPosition =
+                ImVec2(viewGizmoCenter.x + (spacing / 2.0f),
+                       viewGizmoCenter.y + gizmoRadius + spacing);
+            if (ImViewGuizmo::Pan(cameraPosition, cameraRotation, panPosition,
+                                  0.05f)) {
+                context.mainCamera->GlobalTransform().Position() =
+                    cameraPosition;
+            }
 
-        if (ImViewGuizmo::Dolly(cameraPosition, cameraRotation, dollyPosition,
-                                0.2f)) {
-            context.mainCamera->GlobalTransform().Position() = cameraPosition;
+            if (ImViewGuizmo::Dolly(cameraPosition, cameraRotation,
+                                    dollyPosition, 0.2f)) {
+                context.mainCamera->GlobalTransform().Position() =
+                    cameraPosition;
+            }
         }
     }
 
-    ImGui::End();
+    if (startedAsPopup) {
+        ImGui::EndPopup();
+    } else {
+        ImGui::End();
+    }
 }
 
 void SceneViewPanel::UpdateAndRenderScene(Context& context) {
@@ -261,7 +429,7 @@ void SceneViewPanel::UpdateAndRenderScene(Context& context) {
     if (context.state != State::Game) {
         for (auto* aiNode :
              context.selectedScene->FindObjectsOfType<AiNode>()) {
-            aiNode->DrawDebugView(context.physicsDebugRenderer.get());
+            // aiNode->DrawDebugView(context.physicsDebugRenderer.get());
         }
 
         context.physicsDebugRenderer->Render();
@@ -321,9 +489,11 @@ void SceneViewPanel::HandleMousePicking(Context& context, float resX,
                     float maxDistance = 1000.0f;
                     glm::vec3 ray = rayDirection * maxDistance;
 
-                    SceneNode* hitNode = physicsSystem->CastRay(
+                    Physics::RayCastPayload hit = physicsSystem->CastRay(
                         rayOrigin, ray, JPH::BroadPhaseLayerFilter(),
                         this->filter);
+                    SceneNode* hitNode = hit.node;
+
                     if (hitNode != nullptr) {
                         context.selectedNode = hitNode;
                         if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl)) {
@@ -345,41 +515,122 @@ void SceneViewPanel::HandleMousePicking(Context& context, float resX,
 }
 
 void SceneViewPanel::HandleDrop(Context& context) {
-    if (const ImGuiPayload* payload =
-            ImGui::AcceptDragDropPayload("DND_FILE_PATH")) {
+    if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(
+            "DND_FILE_PATH", ImGuiDragDropFlags_AcceptBeforeDelivery)) {
+
         const char* droppedFilePath = (const char*)payload->Data;
         std::string filePathStr(droppedFilePath);
         std::filesystem::path droppedPath(filePathStr);
         std::string normalizedPath = droppedPath.generic_string();
 
-        if (droppedPath.extension() == ".glb" ||
-            droppedPath.extension() == ".gltf") {
-            GltfImporter::LoadScene(context.selectedScene,
-                                    normalizedPath.c_str());
-        }
-        if (droppedPath.extension() == ".obj" ||
-            droppedPath.extension() == ".fbx") {
-            if (Mesh* mesh = context.selectedScene->Resources()->Get<Mesh>(
-                    normalizedPath, true)) {
-                SceneNode* modelNode = context.selectedScene->CreateNode();
+        glm::vec3 spawnPosition(0.0f);
+        bool hasValidSpawnPosition = false;
 
-                if (mesh->GetDefaultMaterials().empty()) {
-                    ShaderProgram* defaultProg =
-                        ShaderProgram::Build()
-                            .WithVertexShader("./res/shaders/lit.vert")
-                            .WithPixelShader("./res/shaders/lambert color.frag")
-                            .Link();
+        ImVec2 mousePosition = ImGui::GetMousePos();
 
-                    auto* defaultMaterial = new Material(defaultProg);
-                    defaultMaterial->SetValue("uColor", glm::vec3(0.8));
-                    modelNode->AddObject<MeshRenderer>(mesh, defaultMaterial);
-                } else {
-                    modelNode->AddObject<MeshRenderer>(
-                        mesh, mesh->GetDefaultMaterials());
+        ImVec2 viewportMin = ImGui::GetItemRectMin();
+        ImVec2 viewportSize = ImGui::GetItemRectSize();
+
+        float resX = std::max(1.0f, viewportSize.x);
+        float resY = std::max(1.0f, viewportSize.y);
+
+        float mouseX = mousePosition.x - viewportMin.x;
+        float mouseY = mousePosition.y - viewportMin.y;
+
+        if (context.mainCamera != nullptr && mouseX >= 0.0f && mouseX <= resX &&
+            mouseY >= 0.0f && mouseY <= resY) {
+            float ndcX = (2.0f * mouseX) / resX - 1.0f;
+            float ndcY = 1.0f - (2.0f * mouseY) / resY;
+
+            glm::mat4 projection = context.mainCamera->ProjectionMatrix();
+            glm::mat4 view = context.mainCamera->ViewMatrix();
+
+            glm::vec4 clipSpacePosition(ndcX, ndcY, -1.0f, 1.0f);
+            glm::vec4 viewSpacePosition =
+                glm::inverse(projection) * clipSpacePosition;
+            viewSpacePosition.z = -1.0f;
+            viewSpacePosition.w = 0.0f;
+
+            glm::vec3 rayDirection = glm::normalize(
+                glm::vec3(glm::inverse(view) * viewSpacePosition));
+            glm::vec3 rayOrigin =
+                context.mainCamera->GlobalTransform().Position().Value();
+
+            if (auto* physicsSystem =
+                    context.selectedScene->GetComponent<Physics::System>()) {
+                float maxDistance = 1000.0f;
+                glm::vec3 rayExtent = rayDirection * maxDistance;
+
+                Physics::RayCastPayload hit = physicsSystem->CastRay(
+                    rayOrigin, rayExtent, JPH::BroadPhaseLayerFilter(),
+                    this->filter);
+
+                if (hit.hasHit) {
+                    spawnPosition = hit.position;
+                    hasValidSpawnPosition = true;
                 }
-            } else {
-                spdlog::error("Editor::SceneViewPanel::HandleDrop: Failed to "
-                              "load an .obj or .fbx file");
+            }
+
+            if (!hasValidSpawnPosition && rayDirection.y < 0.0f) {
+                float t = -rayOrigin.y / rayDirection.y;
+                spawnPosition = rayOrigin + rayDirection * t;
+                hasValidSpawnPosition = true;
+            }
+        }
+
+        // TODO make it so you can see the model when previewing
+        if (payload->IsPreview()) {
+            if (hasValidSpawnPosition) {
+                ImGui::SetTooltip("Drop to spawn at: (%.1f, %1.f, %1.f)",
+                                  spawnPosition.x, spawnPosition.y,
+                                  spawnPosition.z);
+            }
+        }
+
+        if (payload->IsDelivery()) {
+            if (droppedPath.extension() == ".glb" ||
+                droppedPath.extension() == ".gltf") {
+                SceneNode* node = GltfImporter::LoadScene(
+                    context.selectedScene, normalizedPath.c_str());
+
+                if (hasValidSpawnPosition) {
+                    node->LocalTransform().Position() = spawnPosition;
+                }
+                context.selectedNode = node;
+            }
+            if (droppedPath.extension() == ".obj" ||
+                droppedPath.extension() == ".fbx") {
+                if (Mesh* mesh = context.selectedScene->Resources()->Get<Mesh>(
+                        normalizedPath, true)) {
+                    SceneNode* modelNode = context.selectedScene->CreateNode();
+
+                    if (hasValidSpawnPosition) {
+                        modelNode->LocalTransform().Position() = spawnPosition;
+                    }
+
+                    if (mesh->GetDefaultMaterials().empty()) {
+                        ShaderProgram* defaultProg =
+                            ShaderProgram::Build()
+                                .WithVertexShader("./res/shaders/lit.vert")
+                                .WithPixelShader(
+                                    "./res/shaders/lambert color.frag")
+                                .Link();
+
+                        auto* defaultMaterial = new Material(defaultProg);
+                        defaultMaterial->SetValue("uColor", glm::vec3(0.8));
+                        modelNode->AddObject<MeshRenderer>(mesh,
+                                                           defaultMaterial);
+                    } else {
+                        modelNode->AddObject<MeshRenderer>(
+                            mesh, mesh->GetDefaultMaterials());
+                    }
+
+                    context.selectedNode = modelNode;
+                } else {
+                    spdlog::error(
+                        "Editor::SceneViewPanel::HandleDrop: Failed to "
+                        "load an .obj or .fbx file");
+                }
             }
         }
     }
@@ -402,6 +653,18 @@ void SceneViewPanel::DrawMenuBar(Context& context) {
         context.currentGizmoOperation = ImGuizmo::SCALE;
     }
 
+    // Local/Global Gizmo Mode
+    ImGui::SameLine();
+    ImGui::TextDisabled("|");
+    ImGui::SameLine();
+    if (ImGui::RadioButton("World", !this->isGizmoLocal)) {
+        this->isGizmoLocal = false;
+    }
+    ImGui::SameLine();
+    if (ImGui::RadioButton("Local", this->isGizmoLocal)) {
+        this->isGizmoLocal = true;
+    }
+
     ImGuiStyle& style = ImGui::GetStyle();
 
     float buttonWidth =
@@ -411,14 +674,24 @@ void SceneViewPanel::DrawMenuBar(Context& context) {
                         ImGui::CalcTextSize("Editor").x;
     float gameWidth = ImGui::GetFrameHeight() + style.ItemInnerSpacing.x +
                       ImGui::CalcTextSize("Game").x;
-
+    float fullScreenBtnWidth =
+        ImGui::CalcTextSize("Fullscreen").x + style.FramePadding.x * 2.0f;
     float rightPadding = 10.0f;
 
     float totalWidth = editorWidth + style.ItemSpacing.x + gameWidth +
                        style.ItemSpacing.x + buttonWidth + style.ItemSpacing.x +
-                       buttonWidth + rightPadding;
+                       buttonWidth + style.ItemSpacing.x + fullScreenBtnWidth +
+                       rightPadding;
 
     ImGui::SameLine(ImGui::GetWindowWidth() - totalWidth);
+
+    if (ImGui::Button(this->isFullscreen ? "Minimize" : "Fullscreen")) {
+        this->isFullscreen = !this->isFullscreen;
+        if (!this->isFullscreen) {
+            ImGui::CloseCurrentPopup();
+        }
+    }
+    ImGui::SameLine();
 
     if (ImGui::RadioButton("Editor", context.state == State::Editor)) {
         if (context.state != State::Editor) {

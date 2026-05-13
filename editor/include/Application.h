@@ -2,6 +2,7 @@
 
 #include "CommandHistory.h"
 #include "Settings.h"
+#include "panels/CommandHistoryPanel.h"
 #include "panels/ConsolePanel.h"
 #include "panels/FilesPanel.h"
 #include "panels/GraphPanel.h"
@@ -10,6 +11,7 @@
 #include "panels/SceneViewPanel.h"
 #include "panels/StatusBar.h"
 #include "panels/SystemsDebugPanel.h"
+// #include "panels/TextureToolPanel.h"
 #include "thirdparty/ImGuizmo.h"
 
 #include <SDL3/SDL_video.h>
@@ -59,8 +61,10 @@ class Application {
     MainMenuBar mainMenuBar;
     InspectorPanel inspectorPanel;
     GraphPanel graphPanel;
+    // TextureToolPanel textureToolPanel;
     SceneViewPanel sceneViewPanel;
     SystemsDebugPanel systemsDebugPanel; // Rename
+    CommandHistoryPanel commandHistoryPanel;
     StatusBar statusBar;
 
   public:

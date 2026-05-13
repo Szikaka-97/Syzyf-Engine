@@ -78,6 +78,27 @@ void GraphPanel::DrawGraphNode(Context& context, SceneNode& node) {
     bool nodeOpen = ImGui::TreeNodeEx((void*)(intptr_t)node.GetID(), flags,
                                       "%s", treeHeader.c_str());
 
+    // Reparenting
+    if (ImGui::BeginDragDropSource()) {
+        SceneNode* nodePtr = &node;
+        ImGui::SetDragDropPayload("GRAPH_SCENE_NODE", &nodePtr,
+                                  sizeof(SceneNode*));
+        ImGui::Text("Move %s", treeHeader.c_str());
+        ImGui::EndDragDropSource();
+    }
+    if (ImGui::BeginDragDropTarget()) {
+        if (const ImGuiPayload* payload =
+                ImGui::AcceptDragDropPayload("GRAPH_SCENE_NODE")) {
+            SceneNode* droppedNode = *(SceneNode**)payload->Data;
+
+            if (droppedNode != droppedNode->GetScene()->GetRootNode() &&
+                !node.IsChildOf(droppedNode)) {
+                droppedNode->SetParent(&node);
+            }
+        }
+        ImGui::EndDragDropTarget();
+    }
+
     if ((ImGui::IsItemClicked(ImGuiMouseButton_Left) ||
          ImGui::IsItemClicked(ImGuiMouseButton_Right)) &&
         !ImGui::IsItemToggledOpen()) {
@@ -96,8 +117,8 @@ void GraphPanel::DrawGraphNode(Context& context, SceneNode& node) {
                               ImVec4(0.4f, 0.4f, 0.4f, 1.0f));
     }
 
-    if (ImGui::Button("E", ImVec2(24, ImGui::GetFrameHeight()))) {
-        node.SetEnabled(!node.IsEnabled());
+    if (ImGui::Button(node.EnabledSelf() ? "X" : " ", ImVec2(24, ImGui::GetFrameHeight()))) {
+        node.SetEnabled(!node.EnabledSelf());
     }
 
     if (!isEnabled)
@@ -133,6 +154,11 @@ void GraphPanel::DrawContextMenu(Context& context) {
         if (context.selectedNode != nullptr) {
             if (ImGui::MenuItem("Rename Node")) {
                 drawRenamePopup = true;
+            }
+            if (ImGui::MenuItem("Delete Node")) {
+                delete context.selectedNode;
+
+                context.selectedNode = nullptr;
             }
         }
         ImGui::EndPopup();
