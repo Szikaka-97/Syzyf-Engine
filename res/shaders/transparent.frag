@@ -11,10 +11,14 @@ in VS_OUT {
 #include "shared/shared.h"
 #include "shared/uniforms.h"
 
+#pragma transparent
+
 uniform vec4 uColor;
 
-layout (location = 0) out vec4 accumValue;
-layout (location = 1) out float revealValue;
+// layout (location = 0) out vec4 accumValue;
+// layout (location = 1) out float revealValue;
+
+out vec4 FragColor;
 
 float calcWeight(float alpha) {
 	return clamp(
@@ -25,11 +29,13 @@ float calcWeight(float alpha) {
 }
 
 void main() {
-	const float weight = calcWeight(uColor.a);
+	// const float weight = calcWeight(uColor.a);
 
 	const vec3 viewDir = normalize(Global_CameraWorldPos - ps_in.worldPos);
 
-	accumValue = vec4(uColor.rgb * dot(viewDir, normalize(ps_in.normal)) * uColor.a, uColor.a) * weight;
+	// accumValue = vec4(uColor.rgb * dot(viewDir, normalize(ps_in.normal)) * uColor.a, uColor.a) * weight;
 
-	revealValue = uColor.a;
+	// revealValue = uColor.a;
+
+	FragColor = vec4(uColor.rgb * dot(viewDir, normalize(ps_in.normal)), uColor.a);
 }

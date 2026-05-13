@@ -1,7 +1,5 @@
 #pragma once
 
-#include <concepts>
-
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
@@ -35,6 +33,10 @@ public:
 		RotationAccess Rotation();
 		ScaleAccess Scale();
 
+		const PositionAccess Position() const;
+		const RotationAccess Rotation() const;
+		const ScaleAccess Scale() const;
+
 		glm::vec3 Forward() const;
 		glm::vec3 Backward() const;
 		glm::vec3 Up() const;
@@ -52,6 +54,7 @@ public:
 	class PositionAccess {
 	private:
 		TransformAccess& source;
+        glm::vec3 initialValue;
 	public:
 		union {
 			struct {
@@ -88,6 +91,7 @@ public:
 	class RotationAccess {
 	private:
 		TransformAccess& source;
+        glm::quat initialValue;
 	public:
 		union {
 			struct {
@@ -104,6 +108,9 @@ public:
 
 		glm::quat Value() const;
 		operator glm::quat() const;
+
+		glm::vec3 EulerAngles() const;
+		operator glm::vec3() const;
 		
 		RotationAccess& operator=(const glm::quat& rotation);
 		RotationAccess& operator*=(const glm::quat& rotation);
@@ -114,6 +121,7 @@ public:
 	class ScaleAccess {
 	private:
 		TransformAccess& source;
+        glm::vec3 initialValue;
 	public:
 		union {
 			struct {

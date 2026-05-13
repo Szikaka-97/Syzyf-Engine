@@ -8,20 +8,36 @@ in VS_OUT {
     vec3 worldPos;
 } ps_in;
 
+#pragma volumetric
+
 uniform sampler2D depthTex;
+uniform sampler3D noiseTex;
+
+uniform bool useNoiseTex;
+uniform float noiseScale;
+uniform vec3 windDirection;
+
+uniform float coverage;
+uniform float sharpness;
 
 uniform float stepSize;
 uniform float scatteringDensity;
 uniform float absorptionDensity;
-uniform vec3 scatteringColor;
 uniform float k;
 uniform float transmittanceThreshold;
 uniform float bias;
+
+uniform vec3 scatteringColor;
+uniform float emissiveStrength;
+uniform sampler2D colorRamp;
+uniform bool useColorRamp;
+uniform float resolutionScale;
 
 uniform int intersectingLightCount;
 uniform int intersectingLightIndices[128];
 
 const float PI = 3.14159265359;
+const float TEXTURE_SCALE = 0.5; // hardcoded
 
 out vec4 fragColor;
 
@@ -67,7 +83,7 @@ vec2 IntersectAABB(vec3 rayOrigin, vec3 rayDir, vec3 boxMin, vec3 boxMax) {
 
 void main() {
     // pass the texture size as uniform instead
-    vec2 texSize = vec2(textureSize(depthTex, 0)) * 0.5;
+    vec2 texSize = vec2(textureSize(depthTex, 0)) * resolutionScale;
     vec2 screenUV = gl_FragCoord.xy / texSize;
 
     float z = texture(depthTex, screenUV).x;
@@ -114,13 +130,33 @@ void main() {
     float transmittance = 1.0;
 
     for (float l = 0; l < rayDistance; l += finalStepSize) {
+        float rawNoise = 1.0f;
+        if (useNoiseTex) {
+          rawNoise = texture(noiseTex, (marchPos * noiseScale) + (windDirection * Global_Time)).r;
+        }
+
+        float noiseValue = max(0.0, rawNoise - coverage) * sharpness;
+
+        float localScattering = scatteringDensity * noiseValue;
+        float localAbsorption = absorptionDensity * noiseValue;
+
+        if (noiseValue <= 0.01) {
+            marchPos += deltaStep;
+            continue;
+        }
+
+        vec3 color = scatteringColor;
+        if (useColorRamp) {
+            color = texture(colorRamp, vec2(noiseValue, 0.5)).rgb;
+        }
+
         vec3 stepRadiance = vec3(0.0);
 
         float viewZ = viewRayOrigin.z + viewRayDir.z * l;
         float pixelDepth = max(0.0, -viewZ / Global_CameraFarPlane);
         uint dirCascadeIndex = uint(floor(sqrt(pixelDepth) * Light_DirectionalLightCascadeCount));
 
-        for (int i = 0; i < intersectingLightCount; i++) {
+        for (uint i = 0; i < intersectingLightCount; i++) {
             int lightIndex = intersectingLightIndices[i];
 
             Light light = Light_LightsList[lightIndex];
@@ -173,11 +209,15 @@ void main() {
             vec3 lightStrength = getLightStrength(light, marchPos);
 
             vec3 Lin = AbsorptionFactor(absorptionDensity, lightDistance) * lightStrength * visibility;
-            vec3 Li = Lin * scatteringDensity * scatteringColor * PhaseFunction_Schlick(normalize(lightToPos), fragToCameraNorm);
+            vec3 Li = Lin * localScattering * color * PhaseFunction_Schlick(normalize(lightToPos), fragToCameraNorm);
 
             stepRadiance += Li;
         }
-        transmittance *= AbsorptionFactor(scatteringDensity + absorptionDensity, finalStepSize);
+        vec3 emission = color * localScattering * emissiveStrength;
+        stepRadiance += emission;
+        
+        float density = localScattering + localAbsorption;
+        transmittance *= AbsorptionFactor(density, finalStepSize);
         radiance += stepRadiance * transmittance * finalStepSize;
 
         if (transmittance < transmittanceThreshold) {

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Debug.h"
-#include "Mesh.h"
 #include "GameObject.h"
 
 #include <Jolt/Jolt.h>
@@ -14,27 +13,24 @@
 #include <spdlog/spdlog.h>
 
 namespace Physics {
+// Consider adding a scale function
+//  remember not to use it continuously
 class Body : public GameObject, public ImGuiDrawable {
 private:
-  static constexpr float defaultConvexRadius = 0.05f;
-
   JPH::BodyID bodyID;
   JPH::BodyCreationSettings bodyCreationSettings;
+  
+  JPH::ShapeRefC originalShape = nullptr;
+  glm::vec3 lastScale = glm::vec3(1.0f);
 
   uint32_t collisionLayer = 1;
-  uint32_t collisionMask = 1;
+  uint32_t collisionMask = 0xFFFFFFFF;
 
   bool bodyCreated = false;
   bool addedToWorld = false;
 public:
+  Body();
   Body(const JPH::BodyCreationSettings& settings);
-
-  static JPH::BodyCreationSettings Sphere(float radius, const JPH::EMotionType type, const JPH::ObjectLayer layer);
-  static JPH::BodyCreationSettings Box(glm::vec3 halfExtent, const JPH::EMotionType type, const JPH::ObjectLayer layer);
-  static JPH::BodyCreationSettings Capsule(float halfHeight, float radius, const JPH::EMotionType type, const JPH::ObjectLayer layer);
-  static JPH::BodyCreationSettings Plane(glm::vec3 normal, const JPH::EMotionType type, const JPH::ObjectLayer layer);
-  static JPH::BodyCreationSettings ConvexHullMesh(const Mesh* mesh, const JPH::EMotionType type, const JPH::ObjectLayer layer);
-  static JPH::BodyCreationSettings Mesh(const Mesh* mesh, const JPH::EMotionType type, const JPH::ObjectLayer layer);
 
   virtual ~Body();
 
@@ -84,13 +80,12 @@ public:
   void ApplyTorque(const glm::vec3& torque);
   void ApplyAngularImpulse(const glm::vec3& impulse);
 
+  void SyncToNode();
+
   void Awake();
   void OnEnable();
   void OnDisable();
 
   void DrawImGui();
-
-  private:
-  Body();
 };
 }

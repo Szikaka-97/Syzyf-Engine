@@ -1,9 +1,8 @@
 #include "physics/CharacterController.h"
-#include "Jolt/Math/Math.h"
-#include "Jolt/Physics/Body/Body.h"
 #include "Jolt/Physics/Body/BodyID.h"
 #include "Jolt/Physics/Character/Character.h"
-#include "Jolt/Physics/Collision/Shape/SphereShape.h"
+#include "Jolt/Physics/Collision/Shape/ScaledShape.h"
+#include "Jolt/Physics/Collision/Shape/Shape.h"
 #include "Jolt/Physics/EActivation.h"
 #include "physics/System.h"
 #include <spdlog/spdlog.h>
@@ -160,30 +159,50 @@ void CharacterController::SetCollisionLayerAndMask(std::initializer_list<uint32_
 }
 
 void CharacterController::AddImpulse(const glm::vec3& impulse) {
+  if (!MathHelpers::IsValid(impulse)) {
+      spdlog::error("Physics::CharacterController: Attempted to add NaN or Inf impulse");
+      return;
+  }
   if (this->character) {
     this->character->AddImpulse(JPH::Vec3(impulse.x, impulse.y, impulse.z));
   }
 }
 
 void CharacterController::SetLinearVelocity(const glm::vec3& velocity) {
+  if (!MathHelpers::IsValid(velocity)) {
+      spdlog::error("Physics::CharacterController: Attempted to set NaN or Inf velocity");
+      return;
+  }
   if (this->character) {
     this->character->SetLinearVelocity(JPH::Vec3(velocity.x, velocity.y, velocity.z));
   }
 }
 
 void CharacterController::AddLinearVelocity(const glm::vec3& velocity) {
+  if (!MathHelpers::IsValid(velocity)) {
+      spdlog::error("Physics::CharacterController: Attempted to add NaN or Inf velocity");
+      return;
+  }
   if (this->character) {
     this->character->AddLinearVelocity(JPH::Vec3(velocity.x, velocity.y, velocity.z));
   }
 }
 
 void CharacterController::SetPosition(const glm::vec3& position) {
+  if (!MathHelpers::IsValid(position)) {
+      spdlog::error("Physics::CharacterController: Attempted to set NaN or Inf position");
+      return;
+  }
   if (this->character) {
     this->character->SetPosition(JPH::RVec3(position.x, position.y, position.z));
   }
 }
 
 void CharacterController::SetRotation(const glm::quat& rotation) {
+  if (!MathHelpers::IsValid(rotation)) {
+      spdlog::error("Physics::CharacterController: Attempted to set NaN or Inf rotation");
+      return;
+  }
   if (this->character) {
     this->character->SetRotation(JPH::Quat(rotation.x, rotation.y, rotation.z, rotation.w));
   }
@@ -198,6 +217,10 @@ void CharacterController::SetGravityFactor(float factor) {
 }
 
 void CharacterController::SetUp(const glm::vec3& up) {
+  if (!MathHelpers::IsValid(up)) {
+      spdlog::error("Physics::CharacterController: Attempted to set NaN or Inf up vector");
+      return;
+  }
   if (this->character) {
     this->character->SetUp(JPH::Vec3(up.x, up.y, up.z));
   }
@@ -213,6 +236,50 @@ bool CharacterController::SetShape(const JPH::RefConst<JPH::Shape>& shape, float
   return false;
 }
 
+// Syncs the node when moving it in the editor
+void CharacterController::SyncToNode() {
+    glm::vec3 position = this->GetTransform().GlobalTransform().Position().Value();
+    glm::quat rotation = this->GetTransform().GlobalTransform().Rotation().Value();
+    glm::vec3 scale = this->GetTransform().GlobalTransform().Scale().Value();
+
+    if (!MathHelpers::IsValid(position) || !MathHelpers::IsValid(rotation) || !MathHelpers::IsValid(scale)) {
+        spdlog::error("Physics::CharacterController::SyncToNode: Node has invalid NaN or Inf transform. Skipping sync.");
+        return;
+    }
+
+    this->SetPosition(position);
+    this->SetRotation(rotation);
+
+    if (scale != this->lastScale && this->originalShape != nullptr) {
+        JPH::ShapeRefC newShape;
+
+        if (glm::abs(scale.x) < 0.001f) scale.x = scale.x < 0.0f ? -0.001f : 0.001f;
+        if (glm::abs(scale.y) < 0.001f) scale.y = scale.y < 0.0f ? -0.001f : 0.001f;
+        if (glm::abs(scale.z) < 0.001f) scale.z = scale.z < 0.0f ? -0.001f : 0.001f;
+
+        if (scale == glm::vec3(1.0f)) {
+            newShape = this->originalShape;
+        } else {
+            JPH::EShapeSubType subType = this->originalShape->GetSubType();
+
+            if (subType == JPH::EShapeSubType::Sphere || subType == JPH::EShapeSubType::Capsule) {
+                float maxScale = std::max({glm::abs(scale.x), glm::abs(scale.y), glm::abs(scale.z)});
+                newShape = new JPH::ScaledShape(this->originalShape, JPH::Vec3(maxScale, maxScale, maxScale));
+
+                if (glm::abs(scale.x - scale.y) > glm::epsilon<float>() || glm::abs(scale.y - scale.z) > glm::epsilon<float>()) {
+                    spdlog::warn("Physics::CharacterController::SyncToNode: Forced uniform scaling for Sphere/Capsule shape.");                 
+                }
+            } else {
+                newShape = new JPH::ScaledShape(this->originalShape, JPH::Vec3(scale.x, scale.y, scale.z));
+            }
+        }
+
+        if (this->character) {
+            this->character->SetShape(newShape, 1.0e-4f);
+        }
+        this->lastScale = scale;
+    }
+}
 void CharacterController::Awake() {
   System* physics = this->GetScene()->GetComponent<System>();
   if (physics == nullptr) {
@@ -220,13 +287,41 @@ void CharacterController::Awake() {
     return;
   }
 
-  glm::vec3 nodePosition = this->GetTransform().GlobalTransform().Position();
-  glm::quat nodeRotation = this->GetTransform().GlobalTransform().Rotation();
+  glm::vec3 nodePosition = this->GetTransform().GlobalTransform().Position().Value();
+  glm::quat nodeRotation = this->GetTransform().GlobalTransform().Rotation().Value();
+  glm::vec3 nodeScale = this->GetTransform().GlobalTransform().Scale().Value();
 
   JPH::RVec3 position = JPH::RVec3(nodePosition.x, nodePosition.y, nodePosition.z);
   JPH::Quat rotation = JPH::Quat(nodeRotation.x, nodeRotation.y, nodeRotation.z, nodeRotation.w);
 
-  this->character = new JPH::Character(this->characterSettings, position, rotation, 0, &physics->GetSystem());
+  if (this->originalShape == nullptr) {
+      this->originalShape = this->characterSettings->mShape;
+  }
+
+        if (glm::abs(nodeScale.x) < 0.001f) nodeScale.x = nodeScale.x < 0.0f ? -0.001f : 0.001f;
+        if (glm::abs(nodeScale.y) < 0.001f) nodeScale.y = nodeScale.y < 0.0f ? -0.001f : 0.001f;
+        if (glm::abs(nodeScale.z) < 0.001f) nodeScale.z = nodeScale.z < 0.0f ? -0.001f : 0.001f;
+
+  JPH::ShapeRefC activeShape = this->originalShape;
+  if (nodeScale != glm::vec3(1.0f)) {
+      JPH::EShapeSubType subType = this->originalShape->GetSubType();
+
+      if (subType == JPH::EShapeSubType::Sphere || subType == JPH::EShapeSubType::Capsule) {
+          float maxScale = std::max({glm::abs(nodeScale.x), glm::abs(nodeScale.y), glm::abs(nodeScale.z)});
+          activeShape = new JPH::ScaledShape(this->originalShape, JPH::Vec3(maxScale, maxScale, maxScale));
+
+          if (glm::abs(nodeScale.x - nodeScale.y) > glm::epsilon<float>() || glm::abs(nodeScale.y - nodeScale.z) > glm::epsilon<float>()) {
+              spdlog::warn("Physics::CharacterController::Awake: Forced uniform scaling for Sphere/Capsule shape.");
+          }
+      } else {
+          activeShape = new JPH::ScaledShape(this->originalShape, JPH::Vec3(nodeScale.x, nodeScale.y, nodeScale.z));
+      }
+  }
+
+  this->characterSettings->mShape = activeShape;
+  this->lastScale = nodeScale;
+
+  this->character = new JPH::Character(this->characterSettings, position, rotation, 0, physics->GetJoltSystem());
 
   JPH::CollisionGroup group(physics->GetLayerGroupFilter(), collisionLayer, collisionMask);
   physics->GetBodyInterface().SetCollisionGroup(this->character->GetBodyID(), group);

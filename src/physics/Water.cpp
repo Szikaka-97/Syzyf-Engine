@@ -17,7 +17,7 @@ void Water::Update() {
   if (submergedNodes.empty()) return;
 
   auto* physicsSystem = this->GetScene()->GetComponent<Physics::System>();
-  JPH::BodyInterface& bodyInterface = physicsSystem->GetSystem().GetBodyInterface();
+  JPH::BodyInterface& bodyInterface = physicsSystem->GetJoltSystem()->GetBodyInterface();
 
   if (!this->GetObject<Physics::Body>()->IsSensor()) {
     this->GetObject<Physics::Body>()->SetIsSensor(true);

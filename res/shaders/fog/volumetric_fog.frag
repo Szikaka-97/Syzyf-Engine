@@ -18,6 +18,7 @@ uniform float k;
 uniform float transmittanceThreshold;
 
 const float PI = 3.14159265359;
+const float TEXTURE_SCALE = 0.5;
 
 out vec4 fragColor;
 
@@ -128,8 +129,8 @@ void main() {
                 float bias = 0.005;
 
                 vec2 uvLocal = clamp(vec2(
-                            (lightViewPos.x + 1) * 0.5,
-                            (lightViewPos.y + 1) * 0.5
+                            (lightViewPos.x + 1) * TEXTURE_SCALE,
+                            (lightViewPos.y + 1) * TEXTURE_SCALE,
                         ), 0, 1);
 
 

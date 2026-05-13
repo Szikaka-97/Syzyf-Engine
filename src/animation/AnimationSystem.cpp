@@ -37,8 +37,7 @@ AnimationSystem::AnimationSystem(Scene* scene): GameObjectSystem<AnimationCompon
 void AnimationSystem::OnPreUpdate() {
   const float deltaTime = Time::Delta(); 
 
-  auto objects = *GetAllObjects();
-  for (auto* object : objects) {
+  for (auto* object : IterateObjects()) {
     for (auto& animation : object->animations) {
       if (!animation.playing)
         continue;
@@ -138,10 +137,10 @@ void AnimationSystem::OnPreUpdate() {
                     track.outputs[upperIndex * 4 + 6],
                   };
 
-                  glm::quat previousTangent = deltaTime * lowerOutputTangent;
-                  glm::quat nextTangent = deltaTime * upperInputTangent;
+                  glm::quat previousTangent = keyFrameDuration * lowerOutputTangent;
+                  glm::quat nextTangent = keyFrameDuration * upperInputTangent;
 
-                  rotation = cubicSpline(lowerValue, previousTangent, upperValue, nextTangent, interpolationValue);
+                  rotation = glm::normalize(cubicSpline(lowerValue, previousTangent, upperValue, nextTangent, interpolationValue));
                   break;
                 }
               track.target->LocalTransform().Rotation() = rotation;
@@ -199,8 +198,8 @@ void AnimationSystem::OnPreUpdate() {
                     track.outputs[upperIndex * 3 + 5],
                   };
 
-                  glm::vec3 previousTangent = deltaTime * lowerOutputTangent;
-                  glm::vec3 nextTangent = deltaTime * upperInputTangent;
+                  glm::vec3 previousTangent = keyFrameDuration * lowerOutputTangent;
+                  glm::vec3 nextTangent = keyFrameDuration * upperInputTangent;
 
                   position = cubicSpline(lowerValue, previousTangent, upperValue, nextTangent, interpolationValue);
                   break;
@@ -260,8 +259,8 @@ void AnimationSystem::OnPreUpdate() {
                     track.outputs[upperIndex * 3 + 5],
                   };
 
-                  glm::vec3 previousTangent = deltaTime * lowerOutputTangent;
-                  glm::vec3 nextTangent = deltaTime * upperInputTangent;
+                  glm::vec3 previousTangent = keyFrameDuration * lowerOutputTangent;
+                  glm::vec3 nextTangent = keyFrameDuration * upperInputTangent;
 
                   scale = cubicSpline(lowerValue, previousTangent, upperValue, nextTangent, interpolationValue);
                   break;
@@ -277,3 +276,15 @@ void AnimationSystem::OnPreUpdate() {
     }
   }
 };
+
+void AnimationSystem::UnregisterObjectForced(GameObject* obj) {
+  //TODO: Make it a bit more efficient
+
+  for (auto* object : IterateObjects()) {
+    for (auto& animation : object->animations) {
+      std::erase_if(animation.data.tracks, [obj](auto track) -> bool {
+        return track.target = obj->GetNode();
+      });
+    }
+  }
+}

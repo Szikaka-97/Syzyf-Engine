@@ -3,10 +3,21 @@
 #include <vector>
 
 #include <GameObject.h>
-#include <Mesh.h>
-#include <Material.h>
+#include <Debug.h>
 
-class MeshRenderer : public GameObject {
+class Mesh;
+class Material;
+
+enum MaskEffectBits : uint8_t {
+    None = 0,
+    XRay = 1,
+    Outline = 1 << 1,
+    Jfa = 1 << 2, 
+};
+
+class MeshRenderer : public GameObject, public ImGuiDrawable {
+public:
+    uint8_t maskFlags = MaskEffectBits::None;
 private:
 	Mesh* mesh;
 	std::vector<Material*> materials;
@@ -20,9 +31,13 @@ public:
 	Mesh* GetMesh();
 	void SetMesh(Mesh* newMesh);
 
+	int GetMaterialCount() const;
+
 	Material* GetMaterial(int materialIndex = 0);
 
 	void SetMaterial(Material* newMaterial, int materialIndex = 0);
 
 	void Render() const;
+
+	virtual void DrawImGui();
 };

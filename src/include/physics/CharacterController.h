@@ -8,6 +8,8 @@
 #include <Jolt/Physics/Character/Character.h>
 
 namespace Physics {
+// Consider adding a scale function
+//  remember not to use it continuously
 class CharacterController : public GameObject, public ImGuiDrawable {
 public:
   float maxSeparationDistance = 1.0e-4f;
@@ -17,6 +19,9 @@ private:
   
   JPH::Character* character = nullptr;
   JPH::Ref<JPH::CharacterSettings> characterSettings;
+
+  JPH::ShapeRefC originalShape = nullptr;
+  glm::vec3 lastScale = glm::vec3(1.0f);
 public:
   CharacterController(const JPH::Ref<JPH::CharacterSettings>& settings);
   virtual ~CharacterController();
@@ -58,6 +63,8 @@ public:
 
   void SetUp(const glm::vec3& up);
   bool SetShape(const JPH::RefConst<JPH::Shape>& shape, float maxPenetrationDepth = 1.0e-4f);
+
+  void SyncToNode();
 
   void Awake();
   void OnEnable();

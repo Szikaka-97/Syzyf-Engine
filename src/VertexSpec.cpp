@@ -196,7 +196,7 @@ const VertexSpec VertexSpec::Line {
 const VertexSpec VertexSpec::Mesh {
 	{ VertexInputType::Position, 3 },
 	{ VertexInputType::Normal, 3},
-	{ VertexInputType::Tangent, 3},
+	{ VertexInputType::Tangent, 4},
 	{ VertexInputType::UV1, 2 },
 };
 

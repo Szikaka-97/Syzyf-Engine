@@ -16,14 +16,28 @@ set(stb_image_SOURCE_DIR ${STB_IMAGE_DIR} CACHE INTERNAL "")
 add_library(stb_image STATIC ${STB_IMAGE_DIR}/stb_image.cpp)
 target_include_directories(stb_image PRIVATE ${STB_IMAGE_DIR})
 
+# stb_include
+set(STB_INCLUDE_DIR ${CMAKE_CURRENT_LIST_DIR}/stb_include)
+set(stb_include_SOURCE_DIR ${STB_INCLUDE_DIR} CACHE INTERNAL "")
+add_library(stb_include STATIC ${STB_INCLUDE_DIR}/stb_include.cpp)
+target_include_directories(stb_include PRIVATE ${STB_INCLUDE_DIR})
+
+# mikktspace
+set(MIKKTSPACE_DIR ${CMAKE_CURRENT_LIST_DIR}/mikktspace)
+set(mikktspace_SOURCE_DIR ${MIKKTSPACE_DIR} CACHE INTERNAL "")
+add_library(mikktspace STATIC ${MIKKTSPACE_DIR}/mikktspace.c)
+target_include_directories(mikktspace PRIVATE ${MIKKTSPACE_DIR})
+
 # fastnoiselite
 set(FASTNOISELITE_DIR ${CMAKE_CURRENT_LIST_DIR}/fastnoiselite CACHE INTERNAL "")
 
 # other
 CPMAddPackage("gh:assimp/assimp@6.0.4")
+CPMAddPackage("gh:glfw/glfw#3.4")
 CPMAddPackage("gh:g-truc/glm#1.0.3")
-CPMAddPackage("gh:ocornut/imgui@1.92.5")
+CPMAddPackage("gh:ocornut/imgui#v1.92.5-docking")
 CPMAddPackage("gh:gabime/spdlog@1.17.0")
+CPMAddPackage("gh:nlohmann/json@3.12.0")
 CPMAddPackage(
     NAME fastgltf
     GITHUB_REPOSITORY spnda/fastgltf
@@ -62,18 +76,16 @@ add_library(imgui STATIC ${imgui_SOURCE_DIR}/imgui.cpp
 					     ${imgui_SOURCE_DIR}/imgui_draw.cpp
 					     ${imgui_SOURCE_DIR}/imgui_tables.cpp
 					     ${imgui_SOURCE_DIR}/imgui_widgets.cpp)
-
+						 
 set_target_properties(glad
                       stb_image
-                      assimp
-                      SDL3-static
-                      glm
-                      imgui
-                      spdlog
-                      fastgltf
-                      imgui
-                      Jolt
-                      spdlog PROPERTIES FOLDER "thirdparty")
+                      stb_include
+                      assimp 
+                      glfw 
+                      glm 
+                      imgui 
+                      spdlog 
+                      mikktspace PROPERTIES FOLDER "thirdparty")
 
 if (TARGET zlibstatic)
     set_target_properties(zlibstatic PROPERTIES FOLDER "thirdparty")

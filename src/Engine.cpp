@@ -32,7 +32,7 @@ extern "C" {
 #include <TimeSystem.h>
 #include <Graphics.h>
 
-const char*   glsl_version     = "#version 460";
+const char* glsl_version = "#version 460";
 constexpr int32_t GL_VERSION_MAJOR = 4;
 constexpr int32_t GL_VERSION_MINOR = 6;
 
@@ -50,7 +50,7 @@ static void APIENTRY glDebugOutput(
 	const void *userParam
 ) {
 	// ignore non-significant error/warning codes
-	if(id == 131169 || id == 131185 || id == 131218 || id == 131204) return;
+	if (id == 131169 || id == 131185 || id == 131218 || id == 131204) return;
 
 	std::string sourceString;
 
@@ -78,7 +78,16 @@ static void APIENTRY glDebugOutput(
 	}
 
 	switch (severity) {
-		case GL_DEBUG_SEVERITY_HIGH:         spdlog::error("GL {} {}: {} ({})", sourceString, typeString, message, id); throw 1; break;
+		case GL_DEBUG_SEVERITY_HIGH:
+			if (source != GL_DEBUG_SOURCE_SHADER_COMPILER) { // Shader errors handled separately
+				spdlog::error("GL {} {}: {} ({})", sourceString, typeString, message, id);
+			
+				//asm("INT3");
+
+				throw 1;
+			}
+
+			break;
 		case GL_DEBUG_SEVERITY_MEDIUM:
 		case GL_DEBUG_SEVERITY_LOW:          spdlog::warn("GL {} {}: {} ({})", sourceString, typeString, message, id); break;
 		case GL_DEBUG_SEVERITY_NOTIFICATION: spdlog::info("GL {} {}: {} ({})", sourceString, typeString, message, id); break;
@@ -104,7 +113,7 @@ bool Engine::InitProgram() {
 	float mainScale = SDL_GetDisplayContentScale(SDL_GetPrimaryDisplay());
 	SDL_WindowFlags windowFlags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN | SDL_WINDOW_HIGH_PIXEL_DENSITY;
 
-	window = SDL_CreateWindow("Syzyf Engine", (int) (mainScreenMode->w * mainScale), (int) (mainScreenMode->h * mainScale), windowFlags);
+	window = SDL_CreateWindow("Syzyf Engine", 1280, 720, windowFlags);
 	if (window == NULL) {
 		spdlog::error("Failed to create SDL Window!");
 
@@ -196,7 +205,7 @@ void Engine::Render() {
 	int display_w, display_h;
 	SDL_GetWindowSize(window, &display_w, &display_h);
 
-	rootScene->GetGraphics()->UpdateScreenResolution(glm::vec2(display_w, display_h));
+	rootScene->GetGraphics()->UpdateScreenResolution(glm::vec2(1280, 720));
 
 	rootScene->Render();
 }

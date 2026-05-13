@@ -1,7 +1,6 @@
 #include <UniformSpec.h>
 
 #include <glad/glad.h>
-#include <cmath>
 #include <malloc.h>
 
 #include <Shader.h>
@@ -13,6 +12,7 @@ struct UniformTypeInfo {
 
 UniformTypeInfo GetUniformInfo(GLenum type) {
 	const static std::map<GLenum, UniformTypeInfo> dict {
+    { GL_BOOL, { UniformSpec::UniformType::Bool, 1 * sizeof(GLint)} },
 		{ GL_FLOAT, { UniformSpec::UniformType::Float1, 1 * sizeof(GLfloat)} },
 		{ GL_FLOAT_VEC2, { UniformSpec::UniformType::Float2, 2 * sizeof(GLfloat)} },
 		{ GL_FLOAT_VEC3, { UniformSpec::UniformType::Float3, 3 * sizeof(GLfloat)} },
@@ -24,6 +24,7 @@ UniformTypeInfo GetUniformInfo(GLenum type) {
 		{ GL_FLOAT_MAT3, { UniformSpec::UniformType::Matrix3x3, 9 * sizeof(GLfloat)} },
 		{ GL_FLOAT_MAT4, { UniformSpec::UniformType::Matrix4x4, 16 * sizeof(GLfloat)} },
 		{ GL_SAMPLER_2D, { UniformSpec::UniformType::Sampler2D, sizeof(UniformSpec::TextureUniform<Texture2D>)} },
+		{ GL_SAMPLER_3D, { UniformSpec::UniformType::Sampler3D, sizeof(UniformSpec::TextureUniform<Texture3D>)} },
 		{ GL_SAMPLER_CUBE, { UniformSpec::UniformType::Cubemap, sizeof(UniformSpec::TextureUniform<Cubemap>)} },
 		{ GL_IMAGE_2D, { UniformSpec::UniformType::Image2D, sizeof(UniformSpec::TextureUniform<Texture2D>)} },
 		{ GL_UNSIGNED_INT_IMAGE_2D, { UniformSpec::UniformType::UImage2D, sizeof(UniformSpec::TextureUniform<Texture2D>)} },
@@ -37,212 +38,68 @@ UniformTypeInfo GetUniformInfo(GLenum type) {
 	return { UniformSpec::UniformType::Unsupported, 0 };
 }
 
-void UniformSpec::CreateFrom(GLuint programHandle) {
-	int uniformBufferCount = 0;
-	int uniformVariablesCount = 0;
-	int storageBufferCount = 0;
-	glGetProgramInterfaceiv(programHandle, GL_UNIFORM_BLOCK, GL_ACTIVE_RESOURCES, &uniformBufferCount);
-	glGetProgramInterfaceiv(programHandle, GL_UNIFORM, GL_ACTIVE_RESOURCES, &uniformVariablesCount);
-	glGetProgramInterfaceiv(programHandle, GL_SHADER_STORAGE_BLOCK, GL_ACTIVE_RESOURCES, &storageBufferCount);
+void UniformSpec::CreateFrom(GLuint programHandle) {	
+	int uniformCount = 0;
 
-	int uniformNameBufferSize = 0;
-	glGetProgramiv(programHandle, GL_ACTIVE_UNIFORM_MAX_LENGTH, &uniformNameBufferSize);
-	char* uniformName = (char*) alloca(sizeof(char) * uniformNameBufferSize);
+	glGetProgramiv(programHandle, GL_ACTIVE_UNIFORMS, &uniformCount);
 
-	// spdlog::info("┬─Uniform buffer count = {}", uniformBufferCount);
-	// spdlog::info("├─Uniform variable count = {}", uniformVariablesCount);
-	// spdlog::info("├─Storage buffer count = {}", storageBufferCount);
+	std::vector<GLuint> uniforms(uniformCount);
+	std::vector<GLint> params(uniformCount);
 
-	bool* freeUniforms = (bool*) alloca(sizeof(bool) * uniformVariablesCount);
-	for (int i = 0; i < uniformVariablesCount; i++) {
-		freeUniforms[i] = true;
+	std::vector<GLuint> shaderUniforms;
+
+	for (int i = 0; i < uniformCount; i++) {
+		uniforms[i] = i;
 	}
 
-//	spdlog::info("┬┬─Uniform buffers [{}]:", uniformBufferCount);
-	for (int uniformBufferIndex = 0; uniformBufferIndex < uniformBufferCount; uniformBufferIndex++) {
-		struct {
-			int nameLength;
-			int bufferSize;
-			int computeBuffer;
-			int binding;
-			int variablesCount;
-		} propValues;
+	glGetActiveUniformsiv(programHandle, uniformCount, uniforms.data(), GL_UNIFORM_BLOCK_INDEX, params.data());
 
-		GLenum bufferProps[] {
-			GL_NAME_LENGTH,
-			GL_BUFFER_DATA_SIZE,
-			GL_REFERENCED_BY_COMPUTE_SHADER,
-			GL_BUFFER_BINDING,
-			GL_NUM_ACTIVE_VARIABLES
-		};
+	for (int i = 0; i < uniformCount; i++) {
+		if (params[i] < 0) {
+			shaderUniforms.push_back(i);
+		}
+	}
 
-		glGetProgramResourceiv(programHandle, GL_UNIFORM_BLOCK, uniformBufferIndex, sizeof(bufferProps) / sizeof(GLenum), bufferProps, sizeof(bufferProps) / sizeof(GLenum), nullptr, (int*) &propValues);
+	uniformCount = shaderUniforms.size();
+
+	this->variables.resize(uniformCount);
+
+	glGetActiveUniformsiv(programHandle, uniformCount, shaderUniforms.data(), GL_UNIFORM_TYPE, params.data());
+
+	int currentOffset = 0;
+
+	for (int i = 0; i < uniformCount; i++) {
+		this->variables[i].binding = shaderUniforms[i];
 		
-		char* nameBuf = (char*) alloca(sizeof(char) * propValues.nameLength);
+		auto typeInfo = GetUniformInfo(params[i]);
 
-		glGetProgramResourceName(programHandle, GL_UNIFORM_BLOCK, uniformBufferIndex, propValues.nameLength, nullptr, nameBuf);
-
-		bool isLast = uniformBufferIndex == uniformBufferCount - 1;
-
-//		spdlog::info("│{}┬─Buffer no {} : {}", isLast ? "└" : "├", uniformBufferIndex, std::string(nameBuf));
-//		spdlog::info("│{}├──Size = {}", isLast ? " " : "│", propValues.bufferSize);
-//		spdlog::info("│{}├──In compute shader = {}", isLast ? " " : "│", (bool) propValues.computeBuffer);
-//		spdlog::info("│{}├──Binding = {}", isLast ? " " : "│", propValues.binding);
-//		spdlog::info("│{}└┬─Variables count = {}", isLast ? " " : "│", propValues.variablesCount);
-
-		GLint* bufferVariables = (GLint*) alloca(sizeof(GLint) * propValues.variablesCount);
-		GLenum variableProp = GL_ACTIVE_VARIABLES;
-
-		glGetProgramResourceiv(programHandle, GL_UNIFORM_BLOCK, uniformBufferIndex, 1, &variableProp, propValues.variablesCount, nullptr, bufferVariables);
-
-		for (int bufferVariableIndex = 0; bufferVariableIndex < propValues.variablesCount; bufferVariableIndex++) {
-			GLint bufferVariable = bufferVariables[bufferVariableIndex];
-
-			freeUniforms[bufferVariable] = false;
-
-			int uniformSize = 0;
-			GLenum uniformType;
-			glGetActiveUniform(programHandle, bufferVariable, uniformNameBufferSize, nullptr, &uniformSize, &uniformType, uniformName);
-
-			bool isLastVariable = bufferVariableIndex == propValues.variablesCount - 1;
-
-//			spdlog::info("│{} {}┬─Uniform variable no {} : {}", isLast ? " " : "│", isLastVariable ? "└" : "├", bufferVariableIndex, std::string(uniformName));
-//			spdlog::info("│{} {}├──Type: {:x}", isLast ? " " : "│", isLastVariable ? " " : "│", uniformType);
-//			spdlog::info("│{} {}└──Size: {:x}", isLast ? " " : "│", isLastVariable ? " " : "│", uniformSize);
-		}
-
-		if (propValues.computeBuffer || uniformBufferIndex >= 2) {
-			this->uniformBuffers.push_back({ std::string(nameBuf), propValues.binding, propValues.bufferSize });
-		}
+		this->variables[i].offset = currentOffset;
+		this->variables[i].type = typeInfo.type;
+		
+		currentOffset += typeInfo.size;
 	}
 
-	this->variablesBufferLength = 0;
-//	spdlog::info("├┬─Uniform variables [{}]:", uniformVariablesCount);
-	for (int uniformVariableIndex = 0; uniformVariableIndex < uniformVariablesCount; uniformVariableIndex++) {
-		if (!freeUniforms[uniformVariableIndex]) {
-			continue;
-		}
+	glGetActiveUniformsiv(programHandle, uniformCount, shaderUniforms.data(), GL_UNIFORM_NAME_LENGTH, params.data());
 
-		int uniformSize = 0;
-		GLenum uniformType;
-		glGetActiveUniform(programHandle, uniformVariableIndex, uniformNameBufferSize, nullptr, &uniformSize, &uniformType, uniformName);
-
-		bool isLast = uniformVariableIndex == uniformVariablesCount - 1;
-
-//		spdlog::info("│{}┬─Uniform variable no {} : {}", isLast ? "└" : "├", uniformVariableIndex, std::string(uniformName));
-//		spdlog::info("│{}├──Type: {:x}", isLast ? " " : "│", uniformType);
-//		spdlog::info("│{}├──Bind: {}", isLast ? " " : "│", glGetUniformLocation(programHandle, uniformName));
-//		spdlog::info("│{}└──Size: {}", isLast ? " " : "│", uniformSize);
-
-		UniformTypeInfo info = GetUniformInfo(uniformType);
-
-		this->variables.push_back({ info.type, this->variablesBufferLength, glGetUniformLocation(programHandle, uniformName), uniformName });
-	
-		this->variablesBufferLength += info.size;
+	for (int i = 0; i < uniformCount; i++) {
+		this->variables[i].name.resize(params[i] - 1);
+		glGetActiveUniformName(programHandle, this->variables[i].binding, params[i], &params[i], this->variables[i].name.data());
+		
+		this->variables[i].binding = glGetUniformLocation(programHandle, this->variables[i].name.c_str());
 	}
 
-//	spdlog::info("└{}─Storage buffers [{}]:", storageBufferCount ? "┬" : "─", storageBufferCount);
-	for (int storageBufferIndex = 0; storageBufferIndex < storageBufferCount; storageBufferIndex++) {
-		struct {
-			int nameLength;
-			int bufferVariableCount;
-			int binding;
-		} propValues;
-
-		GLenum bufferProps[] {
-			GL_NAME_LENGTH,
-			GL_NUM_ACTIVE_VARIABLES,
-			GL_BUFFER_BINDING,
-		};
-
-		glGetProgramResourceiv(programHandle, GL_SHADER_STORAGE_BLOCK, storageBufferIndex, 3, bufferProps, 3, nullptr, (int*) &propValues);
-
-		char* nameBuf = (char*) alloca(sizeof(char) * propValues.nameLength);
-		glGetProgramResourceName(programHandle, GL_SHADER_STORAGE_BLOCK, storageBufferIndex, propValues.nameLength, nullptr, nameBuf);
-
-		bool isLast = storageBufferIndex == storageBufferCount - 1;
-
-//		spdlog::info(" {}┬─Buffer no {} : {}", isLast ? "└" : "├", storageBufferIndex, std::string(nameBuf));
-
-		GLint* bufferVars = (GLint*) alloca(sizeof(GLint) * propValues.bufferVariableCount);
-		GLenum variableProp = GL_ACTIVE_VARIABLES;
-
-		glGetProgramResourceiv(programHandle, GL_SHADER_STORAGE_BLOCK, storageBufferIndex, 1, &variableProp, propValues.bufferVariableCount, nullptr, bufferVars);
-
-		struct {
-			int nameLength;
-			int offset;
-			int arraySize;
-			int arrayStride;
-			int topLevelArrayStride;
-		} varPropValues;
-		GLenum variableProps[] {
-			GL_NAME_LENGTH,
-			GL_OFFSET,
-			GL_ARRAY_SIZE,
-			GL_ARRAY_STRIDE,
-			GL_TOP_LEVEL_ARRAY_STRIDE
-		};
-
-		for (int bufVarIndex = 0; bufVarIndex <  propValues.bufferVariableCount; bufVarIndex++) {
-			glGetProgramResourceiv(programHandle, GL_BUFFER_VARIABLE, bufferVars[bufVarIndex], sizeof(variableProps) / sizeof(GLenum), variableProps, sizeof(variableProps) / sizeof(GLenum), nullptr, (int*) &varPropValues);
-
-			char* varNameBuf = (char*) alloca(sizeof(char) * varPropValues.nameLength);
-			
-			glGetProgramResourceName(programHandle, GL_BUFFER_VARIABLE, bufferVars[bufVarIndex], varPropValues.nameLength, nullptr, varNameBuf);
-
-			bool isLastVariable = bufVarIndex == propValues.bufferVariableCount - 1;
-
-//			spdlog::info(" {}{}┬─Variable {} : {}", isLast ? " " : "│", isLastVariable ? "└" : "├", bufVarIndex, std::string(varNameBuf));
-//			spdlog::info(" {}{}├──Offset: {}", isLast ? " " : "│", isLastVariable ? " " : "│", varPropValues.offset);
-//			spdlog::info(" {}{}├──Array size: {}", isLast ? " " : "│", isLastVariable ? " " : "│", varPropValues.arraySize);
-//			spdlog::info(" {}{}├──Array stride: {}", isLast ? " " : "│", isLastVariable ? " " : "│", varPropValues.arrayStride);
-//			spdlog::info(" {}{}└──Top level array stride: {}", isLast ? " " : "│", isLastVariable ? " " : "│", varPropValues.topLevelArrayStride);
-		}
-
-		this->storageBuffers.push_back({ std::string(nameBuf), propValues.binding, 0 });
-	}
+	this->variablesBufferLength = currentOffset;
 }
 
-// void UniformSpec::CreateFrom(GLuint programHandle) {
-// 		struct {
-// 			int nameLength;
-// 			int offset;
-// 			int arraySize;
-// 			int arrayStride;
-// 			int topLevelArrayStride;
-// 		} varPropValues;
-// 		GLenum variableProps[] {
-// 			GL_NAME_LENGTH,
-// 			GL_OFFSET,
-// 			GL_ARRAY_SIZE,
-// 			GL_ARRAY_STRIDE,
-// 			GL_TOP_LEVEL_ARRAY_STRIDE
-// 		};
-
-// 		for (int varIndex = 0; varIndex < propValues.bufferVariableCount; varIndex++) {
-// 			glGetProgramResourceiv(programHandle, GL_BUFFER_VARIABLE, bufferVars[varIndex], 5, variableProps, 5, nullptr, (int*) &varPropValues);
-
-// 			char varNameBuf[varPropValues.nameLength];
-			
-// 			glGetProgramResourceName(programHandle, GL_BUFFER_VARIABLE, bufferVars[varIndex], varPropValues.nameLength, nullptr, varNameBuf);
-
-// 			spdlog::info(" variable {}: name {}, index {}, offset {}, arraySize {}, arrayStride {}", 
-// 				varIndex, std::string(varNameBuf), bufferVars[varIndex], varPropValues.offset, varPropValues.arraySize, varPropValues.arraySize == 0 ? varPropValues.arrayStride : varPropValues.topLevelArrayStride
-// 			);
-// 		}
-// 	}
-// }
-
-UniformSpec::UniformSpec() { }
-
-UniformSpec::UniformSpec(const ShaderProgram* program) {
+UniformSpec::UniformSpec(const ShaderProgram* program):
+UniformSpec() {
 	GLuint handle = program->GetHandle();
 
 	CreateFrom(handle);
 }
 
-UniformSpec::UniformSpec(const ComputeShaderProgram* program) {
+UniformSpec::UniformSpec(const ComputeShaderProgram* program):
+UniformSpec() {
 	GLuint handle = program->GetHandle();
 
 	CreateFrom(handle);

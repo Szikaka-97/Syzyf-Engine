@@ -38,7 +38,8 @@ GLenum ToGL(TextureChannels channels) {
 		GL_RGB,
 		GL_RGBA,
 		GL_DEPTH_COMPONENT,
-		GL_DEPTH_STENCIL
+		GL_DEPTH_STENCIL,
+        GL_RED_INTEGER,
 	};
 
 	return values[(int) channels];
@@ -138,6 +139,11 @@ GLenum Texture::CalcInternalFormat(TextureColor colorSpace, TextureFormat format
 	int index = 4 * 2 * (int) format + 2 * numChannels + srgb;
 
 	GLenum result;
+
+    if (channels == TextureChannels::GrayscaleInteger) {
+        if (format == TextureFormat::Ubyte) return GL_R8UI;
+        if (format == TextureFormat::Uint) return GL_R32UI;
+    }
 
 	if (channels == TextureChannels::Depth) {
 		result = GL_DEPTH_COMPONENT;
@@ -262,6 +268,7 @@ bool Texture::IsDirty() const {
 void Texture::Update() {
 	GLenum glTexType[] {
 		GL_TEXTURE_2D,
+        GL_TEXTURE_3D,
 		GL_TEXTURE_CUBE_MAP
 	};
 
@@ -395,11 +402,13 @@ Texture2D* Texture2D::Create(unsigned char* textureData, int width, int height, 
 	
 	Texture2D* result = new Texture2D(width, height, loadParams, textureHandle);
 
+    result->Update();
+
 	return result;
 }
 
-Texture2D* Texture2D::Load(const unsigned char* data, const int length, const TextureParams loadParams) {
-  stbi_set_flip_vertically_on_load(false);
+Texture2D* Texture2D::Load(const unsigned char* data, const int length, const TextureParams loadParams, bool flip) {
+  stbi_set_flip_vertically_on_load(flip);
 
   int width, height, nrChannels;
   unsigned char* textureData = nullptr;
@@ -421,8 +430,8 @@ Texture2D* Texture2D::Load(const unsigned char* data, const int length, const Te
   return texture;
 }
 
-Texture2D* Texture2D::Load(const fs::path& texturePath, const TextureParams& loadParams) {
-	stbi_set_flip_vertically_on_load(true);
+Texture2D* Texture2D::Load(const fs::path& texturePath, const TextureParams& loadParams, bool flip) {
+	stbi_set_flip_vertically_on_load(flip);
 	
 	fs::directory_entry textureFile(texturePath);
 
@@ -529,7 +538,7 @@ Cubemap* Cubemap::Load(const fs::path& texturePath, const TextureParams& loadPar
 }
 
 Cubemap* Cubemap::LoadEquirectangular(const fs::path& texturePath, const TextureParams& loadParams) {
-	static ComputeShaderDispatch* cubemapBlitProg = new ComputeShaderDispatch(ResourceDatabase::Global->Get<ComputeShader>("./res/shaders/cubemapBlit/cubemapFromEqu.comp"));
+	static ComputeShaderDispatch* cubemapBlitProg = new ComputeShaderDispatch("./res/shaders/cubemapBlit/cubemapFromEqu.comp");
 
 	Texture2D* equTex = Texture2D::Load(texturePath, loadParams);
 	
@@ -657,7 +666,7 @@ Cubemap* Cubemap::LoadParts(const fs::path& texturePath, const TextureParams& lo
 }
 
 Cubemap* Cubemap::GenerateIrradianceMap() {
-	static ComputeShaderDispatch* irradianceProg = new ComputeShaderDispatch(ResourceDatabase::Global->Get<ComputeShader>("./res/shaders/cubemapBlit/cubemapIrradiance.comp"));
+	static ComputeShaderDispatch* irradianceProg = new ComputeShaderDispatch("./res/shaders/cubemapBlit/cubemapIrradiance.comp");
 
 	TextureParams creationParams {
 		.channels = TextureChannels::RGBA,
@@ -703,7 +712,7 @@ Cubemap* Cubemap::GenerateIrradianceMap() {
 }
 
 Cubemap* Cubemap::GeneratePrefilterIBLMap() {
-	static ComputeShaderDispatch* cubemapPrefilterProg = new ComputeShaderDispatch(ResourceDatabase::Global->Get<ComputeShader>("./res/shaders/cubemapBlit/cubemapPrefilter.comp"));
+	static ComputeShaderDispatch* cubemapPrefilterProg = new ComputeShaderDispatch("./res/shaders/cubemapBlit/cubemapPrefilter.comp");
 
 	TextureParams creationParams {
 		.channels = TextureChannels::RGBA,
@@ -772,3 +781,109 @@ void Cubemap::SetWrapModeW(TextureWrap wrapMode) {
 	this->wrapW.dirty = true;
 	this->dirty = true;
 }
+
+Texture3D* Texture3D::Create(unsigned char* textureData, int width, int height, int depth, const TextureParams& loadParams) {
+    GLuint textureHandle;
+    glGenTextures(1, &textureHandle);
+
+    glBindTexture(GL_TEXTURE_3D, textureHandle);
+
+    GLenum internalFormat = CalcInternalFormat(loadParams);
+    GLenum format = ToGL(loadParams.channels);
+    GLenum textureType = ToGL(loadParams.format);
+
+    glTexImage3D(GL_TEXTURE_3D, 0, internalFormat, width, height, depth, 0, format, textureType, textureData);
+    glBindTexture(GL_TEXTURE_3D, 0);
+
+    Texture3D* result = new Texture3D(width, height, depth, loadParams, textureHandle);
+
+    return result;
+}
+
+void Texture3D::Create() {
+	if (this->width > 0 && this->height > 0 && this->depth > 0) {
+		GLenum internalFormat = CalcInternalFormat(this->colorSpace, this->format, this->channels);
+		GLenum texFormat = ToGL(this->channels);
+		GLenum textureType = ToGL(this->format);
+		
+		if (!this->handle) {
+			glCreateTextures(GL_TEXTURE_3D, 1, &this->handle);
+		}
+		
+        glTexImage3D(
+            GL_TEXTURE_3D, 0,
+            internalFormat, this->width, this->height, this->depth, 0, texFormat, textureType, nullptr
+        );
+
+		this->Update();
+	
+		glBindTexture(GL_TEXTURE_3D, 0);
+	}
+}
+
+Texture3D::Texture3D(unsigned int width, unsigned int height, unsigned int depth, const TextureParams& creationParams) {
+	this->format = creationParams.format;
+	this->channels = creationParams.channels;
+	this->colorSpace = creationParams.colorSpace;
+	this->owning = true;
+	this->handle = 0;
+	this->width = width;
+	this->height = height;
+    this->depth = depth;
+	this->dirty = true;
+
+	this->mipmapped = TextureInfoBit<bool>();
+	this->wrapU = TextureInfoBit<TextureWrap>();
+	this->wrapV = TextureInfoBit<TextureWrap>();
+	this->wrapW = TextureInfoBit<TextureWrap>();
+	this->minFilter = TextureInfoBit<TextureFilter>();
+	this->magFilter = TextureInfoBit<TextureFilter>();
+	
+	this->SetWrapModeU(creationParams.wrapU);
+	this->SetWrapModeV(creationParams.wrapV);
+	this->SetWrapModeW(creationParams.wrapW);
+	this->SetMinFilter(creationParams.minFilter);
+	this->SetMagFilter(creationParams.magFilter);
+
+	Create();
+}
+
+Texture3D::Texture3D(unsigned int width, unsigned int height, unsigned int depth, const TextureParams& creationParams, GLuint handle) {
+	this->format = creationParams.format;
+	this->channels = creationParams.channels;
+	this->colorSpace = creationParams.colorSpace;
+	this->owning = true;
+	this->handle = handle;
+	this->width = width;
+	this->height = height;
+	this->dirty = true;
+
+	this->mipmapped = TextureInfoBit<bool>();
+	this->wrapU = TextureInfoBit<TextureWrap>();
+	this->wrapV = TextureInfoBit<TextureWrap>();
+	this->wrapW = TextureInfoBit<TextureWrap>();
+	
+	this->SetWrapModeU(creationParams.wrapU);
+	this->SetWrapModeV(creationParams.wrapV);
+	this->SetWrapModeW(creationParams.wrapW);
+	this->SetMinFilter(creationParams.minFilter);
+	this->SetMagFilter(creationParams.magFilter);
+
+	this->Update();
+}
+
+TextureWrap Texture3D::GetWrapModeW() const {
+    return this->wrapW.value;
+}
+
+void Texture3D::SetWrapModeW(TextureWrap wrapMode) {
+	if (this->wrapW.value == wrapMode) {
+		return;
+	}
+
+	this->wrapW.value = wrapMode;
+	
+	this->wrapW.dirty = true;
+	this->dirty = true;
+}
+

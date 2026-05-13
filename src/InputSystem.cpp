@@ -615,6 +615,10 @@ void InputSystem::SetMouseLocked(bool locked) {
 	this->mouseLocked = locked;
 }
 
+void InputSystem::SetViewportOffset(const glm::vec2& offset) {
+    this->viewportOffset = offset;
+}
+
 glm::vec2 InputSystem::GetMouseMovement() {
 	if (this->mouseLocked) {
 		return this->prevMouseMovement;
@@ -658,7 +662,7 @@ void InputSystem::OnPreUpdate() {
 
 	
 	if (!this->mouseLocked) {
-		this->prevMouseMovement = glm::vec2(xpos, ypos);
+		this->prevMouseMovement = glm::vec2(xpos, ypos) - this->viewportOffset;
 	}
 }
 

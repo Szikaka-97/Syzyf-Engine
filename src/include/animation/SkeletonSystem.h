@@ -1,5 +1,6 @@
 #pragma once
 
+#include <GameObjectSystem.h>
 #include "animation/SkeletonComponent.h"
 
 #include <glad/glad.h>
@@ -7,6 +8,7 @@
 class SkeletonSystem : public GameObjectSystem<SkeletonComponent> {
 private:
   GLuint skinningBuffer;
+  std::size_t currentBufferSize = 0;
 public:
   SkeletonSystem(Scene* scene);
 

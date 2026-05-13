@@ -8,9 +8,12 @@
 
 #include <glm/fwd.hpp>
 namespace Physics {
+// Consider adding some way of changing the size of the shape, (or the shape)
 class VirtualCharacterController : public GameObject, public ImGuiDrawable {
 private:
   uint32_t collisionLayer = 1;
+  uint32_t collisionMask = 0xFFFFFFFF;
+
   float gravityFactor = 1.0f;
 
   JPH::Ref<JPH::CharacterVirtual> character;
@@ -19,6 +22,8 @@ private:
 public:
   VirtualCharacterController(const JPH::Ref<JPH::CharacterVirtualSettings>& settings);
   virtual ~VirtualCharacterController();
+
+  JPH::Ref<JPH::CharacterVirtual> GetCharacter() const;
 
   void Move(const glm::vec3& velocity, float deltaTime);
 
@@ -35,12 +40,15 @@ public:
   JPH::CharacterBase::EGroundState GetGroundState() const;
   bool IsSupported() const;
 
-  void SetCollisionLayer(uint32_t layer);
-  void SetCollisionLayer(std::initializer_list<uint32_t> layers);
+  void SetCollisionLayerAndMask(uint32_t layer, uint32_t mask);
+  void SetCollisionLayerAndMask(std::initializer_list<uint32_t> layers, uint32_t mask = 0xFFFFFFFF);
+  void SetCollisionLayerAndMask(std::initializer_list<uint32_t> layers, std::initializer_list<uint32_t> collideWithLayers);
 
   void SetPosition(const glm::vec3& position);
   void SetRotation(const glm::quat& rotation);
   void SetGravityFactor(float factor);
+
+  void SyncToNode();
 
   void Awake();
 

@@ -45,6 +45,7 @@ concept TextureClass = (
 class UniformSpec {
 public:
 	enum class UniformType {
+    Bool,
 		Float1,
 		Float2,
 		Float3,
@@ -56,6 +57,7 @@ public:
 		Matrix3x3,
 		Matrix4x4,
 		Sampler2D,
+    Sampler3D,
 		Cubemap,
 		Image2D,
 		UImage2D,
@@ -68,12 +70,16 @@ public:
 		int offset;
 		int binding;
 		std::string name;
+
+		UniformVariableSpec() = default;
 	};
 	
 	struct UniformBufferSpec {
 		std::string name;
 		int binding;
 		int size;
+
+		UniformBufferSpec() = default;
 	};
 	
 	struct ShaderStorageBufferSpec {
@@ -94,7 +100,7 @@ private:
 	std::vector<ShaderStorageBufferSpec> storageBuffers;
 	void CreateFrom(GLuint programHandle);
 public:
-	UniformSpec();
+	UniformSpec() = default;
 	UniformSpec(const ShaderProgram* program);
 	UniformSpec(const ComputeShaderProgram* program);
 

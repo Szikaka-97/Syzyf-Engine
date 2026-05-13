@@ -9,9 +9,8 @@
 
 
 #include <Scene.h>
-#include <Messaging.h>
 
-class GameObject : public MessageReceiver {
+class GameObject {
 	friend class Scene;
 private:
 	int id;
@@ -85,3 +84,5 @@ bool GameObject::TryGetObject(T_GO*& target) const {
 // template <class T_Required>
 // 	requires std::derived_from<T_Required, GameObject>
 // class Requires { };
+
+std::string DemangleTypeName(const char* mangledName);

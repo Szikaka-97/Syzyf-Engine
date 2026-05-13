@@ -2,7 +2,6 @@
 
 #include <concepts>
 #include <vector>
-#include <typeinfo>
 #include <queue>
 
 #include <spdlog/spdlog.h>
@@ -31,12 +30,11 @@ private:
 	int id;
 	std::string name;
 
-	bool enabled;
+	uint8_t disabledState;
 	uint8_t layer;
 
 	Scene* const scene;
 	std::vector<GameObject*> objects;
-	std::vector<Scene*> attachedScenes;
 
 	std::vector<SceneNode*> children;
 	SceneTransform transform;
@@ -60,6 +58,8 @@ public:
 	Scene* GetScene();
 
 	bool IsEnabled() const;
+
+	bool EnabledSelf() const;
 	void SetEnabled(bool value);
 
 	const std::vector<SceneNode*> GetChildren();
@@ -81,7 +81,7 @@ public:
 	
 	template<class T_GO, typename... T_Param>
 		requires std::derived_from<T_GO, GameObject>
-	T_GO* AddObject(T_Param... params);
+	T_GO* AddObject(T_Param&&... params);
 
 	template<class T_GO>
 		requires std::derived_from<T_GO, GameObject>
@@ -109,18 +109,15 @@ public:
 
 	void DeleteObject(GameObject* obj);
 
-	void AttachScene(Scene* scene);
-	void DetachScene(Scene* scene);
-
-	std::vector<Scene*> GetAttachedScenes() const;
-
 	static void operator delete(SceneNode* ptr, std::destroying_delete_t);
 };
 
-class Scene : public MessageReceiver{
+class Scene {
 	friend class SceneNode;
 	friend class GameObject;
-private:
+public:
+    std::string name = "";
+
 	int nextSceneNodeID;
 	int nextGameObjectID;
 
@@ -133,7 +130,7 @@ private:
 	InputSystem* inputSystem;
 	SceneGraphics* graphics;
 
-	std::queue<MessageReceiver*> deletedReceiversQueue;
+	std::queue<GameObject*> deletedObjectsQueue;
 	std::queue<SceneNode*> deletedNodesQueue;
 
 	void DeleteObjectInternal(GameObject* obj);
@@ -141,8 +138,9 @@ private:
 	void SetNodeEnabledInternal(SceneNode* node, bool enabled);
 	void SetGameObjectEnabledInternal(GameObject* obj, bool enabled);
 	void ChangeNodeParentInternal(SceneNode* node, SceneNode* newParent);
-	void AttachSceneToNodeInternal(SceneNode* node, Scene* scene);
-	void DetachSceneFromNodeInternal(SceneNode* node, Scene* scene);
+	void SetNodeEnabledInTreeInternal(SceneNode* node, bool enabled);
+
+	void AddObjectToSystems(GameObject* obj);
 public:
 	static Scene* CreateStandaloneScene();
 
@@ -167,10 +165,12 @@ public:
 
 	template<class T_GO, typename... T_Param>
 		requires std::derived_from<T_GO, GameObject>
-	T_GO* CreateObjectOn(SceneNode* node, T_Param... params);
+	T_GO* CreateObjectOn(SceneNode* node, T_Param&&... params);
 
 	void DeleteObject(GameObject* obj);
 	void DeleteNode(SceneNode* node);
+
+    void FlushQueues();
 
 	template<class T_GO>
 		requires std::derived_from<T_GO, GameObject>
@@ -198,7 +198,6 @@ public:
 
 	void QueueDelete(SceneNode* node);
 	void QueueDelete(GameObject* object);
-	void QueueDelete(Scene* scene);
 
 	void Update();
 	void Render();
@@ -212,12 +211,12 @@ public:
 };
 
 #include <GameObject.h>
-#include <GameObjectSystem.h>
+#include <SceneComponent.h>
 
 template<class T_GO, typename... T_Param>
 	requires std::derived_from<T_GO, GameObject>
-T_GO* SceneNode::AddObject(T_Param... params) {
-	return this->scene->CreateObjectOn<T_GO>(this, params...);
+T_GO* SceneNode::AddObject(T_Param&&... params) {
+	return this->scene->CreateObjectOn<T_GO>(this, std::forward<T_Param>(params)...);
 }
 
 template<class T_GO>
@@ -313,36 +312,30 @@ std::vector<T_GO*> SceneNode::GetAllObjectsInChildren() const {
 
 template<class T_GO, typename... T_Param>
 	requires std::derived_from<T_GO, GameObject>
-T_GO* Scene::CreateObjectOn(SceneNode* node, T_Param... params) {
+T_GO* Scene::CreateObjectOn(SceneNode* node, T_Param&&... params) {
 	alignas(T_GO) unsigned char* dataBuf = new unsigned char[sizeof(T_GO)];
 	memset(dataBuf, 0, sizeof(T_GO));
 	volatile T_GO* bufAsObjPtr = reinterpret_cast<T_GO*>(dataBuf);
 
 	bufAsObjPtr->node = node;
 
-	T_GO* created = new(const_cast<T_GO*>(bufAsObjPtr)) T_GO(params...);
+	T_GO* created = new(const_cast<T_GO*>(bufAsObjPtr)) T_GO(std::forward<T_Param>(params)...);
 	
 	created->node = node;
 	created->runtimeTypeInfo = &typeid(T_GO);
 	
 	node->objects.push_back(created);
 
-	this->messageTree.AddMessageReceiver(created, node);
+	this->messageTree.AddMessageReceiver(created);
 
-	for (SceneComponent* component : this->components) {
-		GameObjectSystemBase* sys = dynamic_cast<GameObjectSystemBase*>(component);
-
-		if (sys && sys->ValidObject(created)) {
-			sys->RegisterObject(created);
-		}
-	}
+	AddObjectToSystems(created);
 
 	created->id = this->nextGameObjectID++;
 
 	created->enabled = true;
 
-  this->messageTree.MessageObject<Message::Awake>(created, node);
-  this->messageTree.MessageObject<Message::OnEnable>(created, node);
+	this->messageTree.MessageObject<Message::Awake>(created);
+	this->messageTree.MessageObject<Message::OnEnable>(created);
 
 	return created;
 }
