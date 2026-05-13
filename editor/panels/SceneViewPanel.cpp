@@ -31,6 +31,10 @@
 
 namespace Editor {
 void SceneViewPanel::Draw(Context& context) {
+    bool requiresTabSync =
+        (this->previousFullscreenState != this->isFullscreen);
+    this->previousFullscreenState = this->isFullscreen;
+
     bool drawContent = false;
     bool startedAsPopup = this->isFullscreen;
 
@@ -84,10 +88,12 @@ void SceneViewPanel::Draw(Context& context) {
             if (context.state == State::Game) {
                 ImGui::BeginDisabled();
             }
+
             if (ImGui::BeginTabBar("SceneTabBar",
                                    ImGuiTabBarFlags_AutoSelectNewTabs |
                                        ImGuiTabBarFlags_Reorderable)) {
                 std::vector<Scene*> scenesToClose;
+                Scene* targetScene = context.selectedScene;
 
                 for (std::size_t i = 0; i < context.loadedScenes.size(); ++i) {
                     Scene* scene = context.loadedScenes[i];
@@ -100,9 +106,15 @@ void SceneViewPanel::Draw(Context& context) {
                         std::to_string(reinterpret_cast<uintptr_t>(scene));
 
                     bool isOpen = true;
+                    ImGuiTabItemFlags tabFlags = ImGuiTabItemFlags_None;
+                    if (requiresTabSync && targetScene == scene) {
+                        tabFlags |= ImGuiTabItemFlags_SetSelected;
+                    }
 
-                    if (ImGui::BeginTabItem(tabName.c_str(), &isOpen)) {
-                        if (context.selectedScene != scene) {
+                    if (ImGui::BeginTabItem(tabName.c_str(), nullptr,
+                                            tabFlags)) {
+                        if (!requiresTabSync &&
+                            context.selectedScene != scene) {
                             context.selectedScene = scene;
                             context.selectedNode = nullptr;
 
