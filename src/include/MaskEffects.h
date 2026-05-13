@@ -6,8 +6,10 @@ class ComputeShaderProgram;
 
 class MaskEffects : public PostProcessEffect, public ImGuiDrawable {
 public:
-    glm::vec3 xrayColor = glm::vec3(1.0f, 0.0f, 0.0f);
-    glm::vec3 outlineColor = glm::vec3(1.0f, 0.5f, 0.0f);
+    glm::vec4 xrayColor = glm::vec4(1.0f, 0.0f, 0.0f, 0.8f);
+    float xrayIntensity = 1.0f;
+    glm::vec4 outlineColor = glm::vec4(1.0f, 0.5f, 0.0f, 1.0f);
+    float outlineIntensity = 1.0f;
 private:
     ComputeShaderProgram* shader;
 public:

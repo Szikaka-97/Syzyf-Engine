@@ -353,9 +353,9 @@ inline void InitScene(Scene& mainScene) {
     fog->fogType = Fog::Type::Atmospheric;
     fog->density = 0.042;
     fog->fogColor = {0.2, 0.6, 0.9, 1.0};
-    cameraNode->AddObject<Bloom>();
     cameraNode->AddObject<MaskEffects>();
     cameraNode->AddObject<JfaOutline>();
+    cameraNode->AddObject<Bloom>();
     cameraNode->AddObject<Tonemapper>()->SetOperator(
         Tonemapper::TonemapperOperator::GranTurismo);
     cameraNode->AddObject<ColorGrading>();

@@ -17,8 +17,10 @@ void MaskEffects::OnPostProcess(const PostProcessParams* params) {
 
     glUseProgram(this->shader->GetHandle());
 
-    glUniform3fv(glGetUniformLocation(this->shader->GetHandle(), "xrayColor"), 1, &this->xrayColor[0]);
-    glUniform3fv(glGetUniformLocation(this->shader->GetHandle(), "outlineColor"), 1, &this->outlineColor[0]);
+    glUniform4fv(glGetUniformLocation(this->shader->GetHandle(), "xrayColor"), 1, &this->xrayColor[0]);
+    glUniform1f(glGetUniformLocation(this->shader->GetHandle(), "xrayIntensity"), this->xrayIntensity);
+    glUniform4fv(glGetUniformLocation(this->shader->GetHandle(), "outlineColor"), 1, &this->outlineColor[0]);
+    glUniform1f(glGetUniformLocation(this->shader->GetHandle(), "outlineIntensity"), this->outlineIntensity);
 
     glBindTextureUnit(0, params->inputTexture->GetHandle());
 
@@ -38,6 +40,9 @@ void MaskEffects::OnPostProcess(const PostProcessParams* params) {
 void MaskEffects::DrawImGui() {
     ImGui::Text("Mask Effects");
     ImGui::Spacing();
-    ImGui::ColorEdit3("X-Ray Color", &this->xrayColor[0]);
-    ImGui::ColorEdit3("Outline Color", &this->outlineColor[0]);
+    ImGui::ColorEdit4("X-Ray Color", &this->xrayColor[0]);
+    ImGui::InputFloat("X-Ray Intensity", &this->xrayIntensity);
+    ImGui::Separator();
+    ImGui::ColorEdit4("Outline Color", &this->outlineColor[0]);
+    ImGui::InputFloat("Outline Intensity", &this->outlineIntensity);
 }
