@@ -50,7 +50,7 @@ void UiTextRenderSystem::OnPreRender() {
                 continue;
             }
 
-            const MsdfGlyph& glyph = it->second;
+            const Glyph& glyph = it->second;
 
             if (glyph.planeBounds.z > glyph.planeBounds.x) {
                 float x0 = cursorX + (glyph.planeBounds.x * scale);
@@ -74,7 +74,7 @@ void UiTextRenderSystem::OnPreRender() {
 
                 glm::vec4 uvRectangle(u0, v0, u1 - u0, v1 -v0);
 
-                this->GetScene()->GetGraphics()->DrawUiText(letterMatrix, letterSize, layout->zIndex, text->color, font->atlasTexture, uvRectangle, static_cast<float>(font->distanceRange));
+                this->GetScene()->GetGraphics()->DrawUiText(letterMatrix, letterSize, layout->zIndex, text->color, font->atlasTexture, uvRectangle, static_cast<float>(font->distanceRange), font->useMsdf);
             }
 
             cursorX += static_cast<float>(glyph.advance) * scale;

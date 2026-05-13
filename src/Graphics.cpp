@@ -442,7 +442,7 @@ void SceneGraphics::DrawUi(const glm::mat4& worldMatrix, const glm::vec2& size, 
     EnqueueUi(node);
 }
 
-void SceneGraphics::DrawUiText(const glm::mat4& worldMatrix, const glm::vec2& size, int zIndex, const glm::vec4& color, Texture2D* texture, const glm::vec4& uvRectangle, float pxRange) {
+void SceneGraphics::DrawUiText(const glm::mat4& worldMatrix, const glm::vec2& size, int zIndex, const glm::vec4& color, Texture2D* texture, const glm::vec4& uvRectangle, float pxRange, bool useMsdf) {
     UiRenderNode node;
     node.worldMatrix = worldMatrix;
     node.size = size;
@@ -452,6 +452,7 @@ void SceneGraphics::DrawUiText(const glm::mat4& worldMatrix, const glm::vec2& si
     node.uvRectangle = uvRectangle;
     node.pxRange = pxRange;
     node.isText = true;
+    node.useMsdf = useMsdf;
 
     EnqueueUi(node);
 }
@@ -1765,10 +1766,13 @@ void SceneGraphics::RenderUi(const ShaderGlobalUniforms& uniforms, const RenderP
             if (int colorLocation = glGetUniformLocation(currentProgram->GetHandle(), "textColor"); colorLocation >= 0) {
                 glUniform4fv(colorLocation, 1, &render.color[0]);
             }
+            if (int useMsdfLocation = glGetUniformLocation(currentProgram->GetHandle(), "useMsdf"); useMsdfLocation >= 0) {
+                glUniform1i(useMsdfLocation, render.useMsdf);
+            }
             if (render.texture) {
                 glActiveTexture(GL_TEXTURE0);
                 glBindTexture(GL_TEXTURE_2D, render.texture->GetHandle());
-                if (int texLoc = glGetUniformLocation(currentProgram->GetHandle(), "msdfAtlas"); texLoc >= 0) {
+                if (int texLoc = glGetUniformLocation(currentProgram->GetHandle(), "fontAtlas"); texLoc >= 0) {
                     glUniform1i(texLoc, 0);
                 }
             }

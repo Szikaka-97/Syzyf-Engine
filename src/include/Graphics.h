@@ -41,9 +41,9 @@ enum class RenderPassType {
 	Transparent = 32,
 	Additive = 64,
 	Volumetric = 128,
-  SSAO = 256,
-  Mask = 512,
-  UI = 1024,
+    SSAO = 256,
+    Mask = 512,
+    UI = 1024,
 };
 
 struct RenderParams {
@@ -127,6 +127,8 @@ private:
         Material* customMaterial = nullptr;
 
         bool isText = false;
+        bool useMsdf = false;
+
         glm::vec4 uvRectangle{0.0f, 0.0f, 1.0f, 1.0f};
         float pxRange = 4.0f;
 
@@ -223,7 +225,7 @@ public:
     void DrawMeshIndirect(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, GLuint indirectBuffer, GLuint indirectBufferOffset, GLuint instanceSSBO, const BoundingBox& bounds, uint8_t layer = Layer::Default);
 
     void DrawUi(const glm::mat4& worldMatrix, const glm::vec2& size, int zIndex, const glm::vec4& color, Texture2D* texture = nullptr, Material* customMaterial = nullptr);
-    void DrawUiText(const glm::mat4& worldMatrix, const glm::vec2& size, int zIndex, const glm::vec4& color, Texture2D* texture, const glm::vec4& uvRectangle, float pxRange);
+    void DrawUiText(const glm::mat4& worldMatrix, const glm::vec2& size, int zIndex, const glm::vec4& color, Texture2D* texture, const glm::vec4& uvRectangle, float pxRange, bool useMsdf = true);
 
 	void DrawGizmoMesh(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, bool ignoresDepth = false);
 	

@@ -75,6 +75,7 @@ void MeshRenderer::DrawImGui() {
         for (unsigned int i = 0; i < 8; i++) {
             DrawMaskEffectCheckbox((MaskEffectBits)(MaskEffectBits::XRay << i));
         }
+        ImGui::TreePop();
     }
 
 	if (ImGui::TreeNode(std::format("Material count: {}", this->materials.size()).c_str())) {

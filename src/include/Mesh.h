@@ -15,6 +15,7 @@ class Material;
 
 class Mesh : public Resource {
 friend class GltfImporter;
+friend class Text3D;
 public:
 	enum class MeshType {
 		Points = 1,
@@ -24,7 +25,8 @@ public:
 
 	class SubMesh {
 		friend class Mesh;
-    friend class GltfImporter;
+        friend class GltfImporter;
+        friend class Text3D;
 	private:
 		unsigned int faceCount;
 		unsigned int* indexData;

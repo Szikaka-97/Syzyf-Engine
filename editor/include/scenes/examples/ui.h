@@ -11,6 +11,7 @@
 #include <fog/FogVolume.h>
 #include <physics/System.h>
 #include <text/Font.h>
+#include <text/Text3D.h>
 #include <ui/objects/UiInteractable.h>
 #include <ui/objects/UiLayout.h>
 #include <ui/objects/UiText.h>
@@ -115,6 +116,29 @@ inline void InitScene(Scene& mainScene) {
         uiTextNode->AddObject<UiText>("Pooga\nSchnoz", openSansRegularFont);
     uiText->fontSize = 40.0f;
     uiText->color = glm::vec4(1.0f, 0.8f, 0.2f, 1.0f);
+
+    // 3D Text and Pixelart fonts
+    // To use pixelart fonts the command above must be run with "-type hardmask"
+    // instead of msdf a flag must be set to false when loading the font and the
+    // texture filter must be set to nearest as well
+    TextureParams texParamsNearest = fontTextureParams;
+    texParamsNearest.magFilter = TextureFilter::Nearest;
+    texParamsNearest.minFilter = TextureFilter::Nearest;
+
+    Texture2D* dougenzakaAtlasTexture = mainScene.Resources()->Get<Texture2D>(
+        "./res/fonts/khdotfont-20150527/KH-Dot-Dougenzaka-16.png",
+        texParamsNearest);
+    Font* dougenzakaFont = mainScene.Resources()->Get<Font>(
+        "./res/fonts/khdotfont-20150527/KH-Dot-Dougenzaka-16.json",
+        dougenzakaAtlasTexture, false);
+
+    SceneNode* text3dNode = mainScene.CreateNode("Text 3D");
+    text3dNode->LocalTransform().Position() = {0.0f, 0.0f, 3.0f};
+    text3dNode->GlobalTransform().Scale() = glm::vec3(0.2f);
+    auto* textObject = text3dNode->AddObject<Text3D>(
+        "Lvl 2 Niebieski Glodny Alfa Krasnolud", dougenzakaFont);
+    textObject->color = {1.2f, 0.0f, 0.0f, 1.0f};
+    textObject->billboardMode = BillboardMode::Z;
 #pragma endregion
 
 #pragma region Camera

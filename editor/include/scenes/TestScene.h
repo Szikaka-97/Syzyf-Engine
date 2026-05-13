@@ -54,6 +54,7 @@
 #include <ui/systems/UiSystem.h>
 
 #include "Jolt/Math/Vec3.h"
+#include "text/Text3D.h"
 #include <Jolt/Jolt.h>
 #include <Jolt/Physics/Body/MotionType.h>
 #include <Jolt/Physics/Character/CharacterVirtual.h>
@@ -349,10 +350,6 @@ inline void InitScene(Scene& mainScene) {
         Camera::Perspective(60.0f, 16.0f / 9.0f, 0.1f, 200.0f));
     cameraNode->AddObject<CameraSettings>(
         playerNode->GlobalTransform().Position());
-    auto* fog = cameraNode->AddObject<Fog>();
-    fog->fogType = Fog::Type::Atmospheric;
-    fog->density = 0.042;
-    fog->fogColor = {0.2, 0.6, 0.9, 1.0};
     cameraNode->AddObject<MaskEffects>();
     cameraNode->AddObject<JfaOutline>();
     cameraNode->AddObject<Bloom>();
