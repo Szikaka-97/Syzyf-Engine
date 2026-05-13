@@ -47,7 +47,7 @@ void EnemyBase::Die() {
 }
 void EnemyBase::SpawnProjectile(const glm::vec3& targetPos) {
   if (!m_ProjectileMesh || !m_ProjectileMaterial) {
-    spdlog::warn("AiNode: Projectile resources not set!");
+    spdlog::warn("AiNode: Projectile resources not set!"+ GetNode()->GetName());
     return;
   }
 
