@@ -20,6 +20,8 @@ uniform float separation;
 uniform float minThreshold;
 uniform float maxThreshold;
 
+uniform float finalMixFactor;
+
 float LinearizeDepth(float rawDepth) {
     float z = rawDepth * 2.0 - 1.0;
     return (2.0 * Global_CameraNearPlane * Global_CameraFarPlane) / (Global_CameraFarPlane + Global_CameraNearPlane - z * (Global_CameraFarPlane - Global_CameraNearPlane));
@@ -74,6 +76,12 @@ void main() {
     float blur = smoothstep(minDistance, maxDistance, abs(linearDepth - focusDistance));
 
     vec3 result = mix(focusColor, blurColor, blur);
+
+    // ! Shouldn't be here, ideally the blur should be it's own effect, adding this so I can use it in the radial menu
+    if (finalMixFactor < 1.0f) {
+        result = mix(focusColor, result, finalMixFactor);
+    }
+    // ! ------ !
 
 	imageStore(outputImg, pixelCoord, vec4(result, 1.0));
 }

@@ -65,8 +65,11 @@ public:
         float bias = 0.025f;
         float power = 4.0f;
         int blurRange = 2;
+        // Should be private but i dnt care
         float resolutionScale = 1.0f;
     };
+
+    SSAOSettings ssaoSettings;
 private:
     // this should all be using unique ptrs
     struct Shaders {
@@ -166,7 +169,6 @@ private:
 	ShaderGlobalUniforms currentUniforms;
     Shaders shaders;
 
-    SSAOSettings ssaoSettings;
     std::vector<glm::vec3> ssaoKernel;
     std::unique_ptr<Texture2D> ssaoNoiseTexture;
 

@@ -696,6 +696,9 @@ void SceneViewPanel::DrawMenuBar(Context& context) {
     if (ImGui::RadioButton("Editor", context.state == State::Editor)) {
         if (context.state != State::Editor) {
             context.state = State::Editor;
+
+            ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+
             context.mainCamera =
                 context.selectedScene->FindObjectsOfType<CameraController>()
                     .front()
@@ -707,6 +710,8 @@ void SceneViewPanel::DrawMenuBar(Context& context) {
     if (ImGui::RadioButton("Game", context.state == State::Game)) {
         if (context.state != State::Game) {
             context.state = State::Game;
+
+            ImGui::GetIO().ConfigFlags &= ~ImGuiConfigFlags_NavEnableKeyboard;
 
             bool changedCamera = false;
             for (auto* camera :
