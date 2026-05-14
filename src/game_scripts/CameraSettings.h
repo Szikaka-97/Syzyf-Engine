@@ -16,6 +16,7 @@ public:
 	float angleY = 0;
 	float angleX = 45;
 	float lerpAmount = 0.0f;
+	bool enabled = true;
 public:
 	CameraSettings(glm::vec3 target, float height = 5, float angleY = 0, float angleX = 45):
 	target(target),
@@ -24,7 +25,7 @@ public:
 	angleX(angleX) { }
 
 	CameraSettings(SceneNode* targetNode) : target(0), height(5), angleY(0), angleX(45), lerpAmount(0) {
-		
+
 	}
 
 	float RayPlaneIntersection(float height, glm::vec3 start, glm::vec3 direction) {
@@ -42,7 +43,9 @@ public:
 	}
 
 	void Update() {
-		// asm("INT3");
+		if (!enabled){
+			return;
+		}
 
 		SceneNode* player = GetScene()->FindNode("Player");
 

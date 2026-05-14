@@ -10,19 +10,34 @@
 #include "Scene.h"
 #include "Shader.h"
 #include "Tonemapper.h"
+#include <TimeSystem.h>
+#include <TweenSystem.h>
 
+#include "game_scripts/AimingAid.h"
+#include "game_scripts/CameraSettings.h"
 #include "game_scripts/crafting/CraftingDragInteractor.h"
 #include "game_scripts/crafting/DraggableCraftingItem.h"
+#include "game_scripts/crafting/CraftingStation.h"
+
+#include <Player.h>
+#include <game_scripts/PlayerController.h>
+#include <physics/VirtualCharacterController.h>
+
+#include <animation/AnimationSystem.h>
+#include <ui/systems/UiSystem.h>
 
 #include <physics/Body.h>
 #include <physics/Helpers.h>
 #include <physics/System.h>
 
 #include <Jolt/Jolt.h>
+#include <Jolt/Physics/Character/CharacterVirtual.h>
+#include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
 #include <Jolt/Physics/Body/MotionType.h>
 
 #include <glm/glm.hpp>
+#include <glm/geometric.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <spdlog/spdlog.h>
 
@@ -94,36 +109,78 @@ namespace CraftingScene{
         return item;
     }
 
+    inline SceneNode* CreatePlayer(Scene& scene, SceneNode* parent, SceneNode* floorNode){
+        JPH::Ref<JPH::CharacterVirtualSettings> characterSettings =
+            new JPH::CharacterVirtualSettings();
+
+        characterSettings->mShape = new JPH::CapsuleShape(0.5f, 0.5f);
+        characterSettings->mShapeOffset = JPH::Vec3(0, 1, 0);
+        characterSettings->mMaxSlopeAngle = JPH::DegreesToRadians(45.0f);
+
+        SceneNode* playerNode = scene.CreateNode("Player");
+        playerNode->GlobalTransform().Position() = glm::vec3(-2.0f, 0.0f, 0.0f);
+
+        SceneNode* bimberman = GltfImporter::LoadScene(
+            &scene,
+            "./res/models/bimbermann_throwing.glb",
+            "Bimberman"
+        );
+
+        if (bimberman){
+            bimberman->SetParent(playerNode);
+        }else{
+            spdlog::warn("CraftingScene: failed to load Bimberman model.");
+        }
+
+        auto* virtualCharacter =
+            playerNode->AddObject<Physics::VirtualCharacterController>(
+                characterSettings);
+
+        virtualCharacter->SetPosition(
+            playerNode->GlobalTransform().Position().Value());
+
+        virtualCharacter->SetGravityFactor(0);
+        virtualCharacter->SetCollisionLayerAndMask({0}, 0);
+
+        auto* player = playerNode->AddObject<PlayerController>();
+
+        auto* aimingAid =
+            scene.CreateNode("AimingAid")->AddObject<AimingAid>();
+
+        aimingAid->crosshair = GltfImporter::LoadScene(
+            &scene,
+            "./res/models/crosshair.glb",
+            "crosshair",
+            floorNode);
+
+        if (aimingAid->crosshair){
+            aimingAid->crosshair->SetParent(aimingAid->GetNode());
+        }else{
+            spdlog::warn("CraftingScene: failed to load crosshair.");
+        }
+
+        player->aim = aimingAid;
+
+        player->AddObject<Player>();
+
+        spdlog::info("CraftingScene: PlayerController player created.");
+
+        return playerNode;
+    }
+
     inline void InitScene(Scene& scene){
         spdlog::info("Initializing Crafting Scene");
 
         scene.AddComponent<Physics::System>();
         scene.AddComponent<LightSystem>();
+        scene.AddComponent<UiSystem>();
+        scene.AddComponent<AnimationSystem>();
+        scene.AddComponent<TweenSystem>();
 
         SceneNode* rootNode = scene.CreateNode("Crafting Root");
 
         SceneNode* craftingRootNode = scene.CreateNode(rootNode, "Root");
         craftingRootNode->GlobalTransform().Position() = glm::vec3(0.0f, 0.0f, 0.0f);
-
-        SceneNode* cameraNode = scene.CreateNode(rootNode, "Crafting Camera");
-
-        auto* camera = cameraNode->AddObject<Camera>(
-            Camera::Perspective(
-                60.0f,
-                16.0f / 9.0f,
-                0.1f,
-                200.0f
-            )
-        );
-
-        camera->SetAsMainCamera();
-
-        cameraNode->GlobalTransform().Position() = glm::vec3(4.0f, 2.0f, 0.0f);
-        cameraNode->GlobalTransform().Rotation() =
-            glm::quat(glm::radians(glm::vec3(20.0f, -90.0f, 0.0f)));
-
-        cameraNode->AddObject<Tonemapper>()
-            ->SetOperator(Tonemapper::TonemapperOperator::GranTurismo);
 
         SceneNode* dragInteractorNode =
             scene.CreateNode(craftingRootNode, "Crafting Drag Interactor");
@@ -150,6 +207,26 @@ namespace CraftingScene{
             spdlog::warn("CraftingScene: floor mesh renderer was not found.");
         }
 
+        SceneNode* playerNode = CreatePlayer(scene, rootNode, floorNode);
+
+        SceneNode* cameraNode = scene.CreateNode("Camera Node");
+
+        cameraNode->AddObject<Camera>(
+            Camera::Perspective(60.0f, 16.0f / 9.0f, 0.1f, 200.0f));
+
+        cameraNode->GetObject<Camera>()->SetAsMainCamera();
+
+        auto* cameraSettings = cameraNode->AddObject<CameraSettings>(
+            playerNode->GlobalTransform().Position());
+
+        cameraSettings->height = 5.0f;
+        cameraSettings->angleY = 0.0f;
+        cameraSettings->angleX = 45.0f;
+        cameraSettings->lerpAmount = 0.0f;
+
+        cameraNode->AddObject<Tonemapper>()
+            ->SetOperator(Tonemapper::TonemapperOperator::GranTurismo);
+
         SceneNode* bimberMachineNode = GltfImporter::LoadScene(
             &scene,
             "./res/models/bimberMACHINAWIP.glb",
@@ -164,6 +241,12 @@ namespace CraftingScene{
             bimberMachineNode->LocalTransform().Scale() = glm::vec3(1.0f);
 
             AddStaticPhysicsFromModel(bimberMachineNode);
+
+            auto* craftingStation = bimberMachineNode->AddObject<Crafting::CraftingStation>();
+            craftingStation->interactionRadius = 3.0f;
+            craftingStation->stationCameraPosition = glm::vec3(4.0f, 2.0f, 0.0f);
+            craftingStation->stationCameraRotation =
+                glm::quat(glm::radians(glm::vec3(20.0f, -90.0f, 0.0f)));
         }else{
             spdlog::error("CraftingScene: failed to load bimberMachine");
         }

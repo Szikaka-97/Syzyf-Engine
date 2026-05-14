@@ -182,7 +182,7 @@ void Application::MainLoop() {
 
     this->context.selectedScene = Scene::CreateStandaloneScene();
     this->context.loadedScenes.push_back(this->context.selectedScene);
-    LightingTestScene::InitScene(*this->context.selectedScene);
+    TestScene::InitScene(*this->context.selectedScene);
 
     Scene* craftingScene = Scene::CreateStandaloneScene();
     this->context.loadedScenes.push_back(craftingScene);
