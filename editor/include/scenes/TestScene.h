@@ -49,11 +49,13 @@
 #include <physics/Water.h>
 #include <scatter/Spawner.h>
 #include <text/Font.h>
+#include <ui/objects/UiCursor.h>
 #include <ui/objects/UiInteractable.h>
 #include <ui/objects/UiLayout.h>
 #include <ui/objects/UiText.h>
 #include <ui/objects/UiVisual.h>
 #include <ui/objects/custom/UiCircularBar.h>
+#include <ui/objects/custom/UiRadialWheel.h>
 #include <ui/systems/UiSystem.h>
 
 #include "Jolt/Math/Vec3.h"
@@ -178,7 +180,7 @@ inline void InitScene(Scene& mainScene) {
     // Move this into the wheel system
     SceneNode* uiNode = mainScene.CreateNode("Ui Node");
     uiNode->AddObject<WheelTag>();
-    uiNode->AddObject<UiLayout>(glm::uvec2(400, 400), glm::uvec2(300, 0), 0,
+    uiNode->AddObject<UiLayout>(glm::uvec2(400, 400), glm::uvec2(150, 0), 0,
                                 AnchorPoint::CenterLeft);
     auto* uiVisual = uiNode->AddObject<UiVisual>(
         glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
@@ -189,5 +191,38 @@ inline void InitScene(Scene& mainScene) {
     uiVisual->colorHovered = {1.0f, 0.0f, 0.0f, 1.0f};
     uiVisual->colorClicked = {0.0f, 1.0f, 0.0f, 1.0f};
     uiNode->AddObject<UiInteractable>();
+
+    SceneNode* cursorNode = mainScene.CreateNode("Cursor");
+    cursorNode->AddObject<UiLayout>(glm::uvec2(64, 64), glm::uvec2(0, 0), 9999);
+
+    cursorNode->AddObject<UiVisual>(
+        glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+        mainScene.Resources()->Get<Texture2D>(
+            "./res/textures/1147437805040054272.png",
+            Texture2D::ColorTextureRGBA));
+    cursorNode->AddObject<UiCursor>();
+
+    ShaderProgram* customUiProgram =
+        ShaderProgram::Build()
+            .WithVertexShader("./res/shaders/ui/ui.vert")
+            .WithPixelShader("./res/shaders/ui/custom/radial_wheel.frag")
+            .Link();
+    Material* customUiMaterial = new Material(customUiProgram);
+    SceneNode* radialWheelNode = mainScene.CreateNode("Radial Wheel");
+    radialWheelNode->AddObject<UiLayout>(
+        glm::uvec2(500, 500), glm::uvec2(-150, 0), 0, AnchorPoint::CenterRight);
+    auto* customVisual =
+        radialWheelNode->AddObject<UiVisual>(glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
+    customVisual->customMaterial = customUiMaterial;
+    auto* radialWheel = radialWheelNode->AddObject<UiRadialWheel>();
+    radialWheel->AddObject<WheelTag>();
+    radialWheel->material.reset(customUiMaterial);
+    radialWheel->SetItemModels({
+        "./res/models/butelka.glb",
+        "./res/models/butelka.glb",
+        "./res/models/butelka.glb",
+        "./res/models/butelka.glb",
+        "./res/models/butelka.glb",
+    });
 }
 } // namespace TestScene

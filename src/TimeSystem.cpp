@@ -20,7 +20,7 @@ TimePoint Time::startup;
 TimePoint Time::now;
 float Time::applicationTime;
 float Time::deltaTime;
-float Time::timeScale;
+float Time::timeScale = 1.0f;
 float Time::unscaledDeltaTime;
 
 void Time::Update() {

@@ -1831,7 +1831,7 @@ void SceneGraphics::RenderUi(const ShaderGlobalUniforms& uniforms, const RenderP
                     glUniform1i(texLoc, 0);
                 }
             }
-        } else if (!render.customMaterial) {
+        } else {
             int colorLocation = glGetUniformLocation(currentProgram->GetHandle(), "color");
             int hasTextureLocation = glGetUniformLocation(currentProgram->GetHandle(), "hasTexture");
             int textureLocation = glGetUniformLocation(currentProgram->GetHandle(), "tex");
