@@ -24,6 +24,7 @@ namespace Crafting{
 
       private:
         bool isActive = false;
+        bool playerWasEnabled = true;
 
       public:
         void Awake(){
@@ -76,6 +77,10 @@ namespace Crafting{
             return GetScene()->FindNode("Camera Node");
         }
 
+        SceneNode* GetIngredientsRootNode(){
+            return GetScene()->FindNode("Crafting Root/Root/Crafting Ingredients");
+        }
+
         bool IsPlayerNear(){
             if (!GetScene() || !GetNode()){
                 return false;
@@ -94,6 +99,36 @@ namespace Crafting{
                 GetNode()->GlobalTransform().Position().Value();
 
             return glm::distance(playerPos, stationPos) <= interactionRadius;
+        }
+
+        void SetIngredientsEnabled(bool enabled){
+            SceneNode* ingredientsRootNode = GetIngredientsRootNode();
+
+            if (ingredientsRootNode){
+                ingredientsRootNode->SetEnabled(enabled);
+            }
+        }
+
+        void DisablePlayer(){
+            SceneNode* playerNode = GetPlayerNode();
+
+            if (!playerNode){
+                return;
+            }
+
+            playerWasEnabled = playerNode->EnabledSelf();
+
+            playerNode->SetEnabled(false);
+        }
+
+        void EnablePlayer(){
+            SceneNode* playerNode = GetPlayerNode();
+
+            if (!playerNode){
+                return;
+            }
+
+            playerNode->SetEnabled(playerWasEnabled);
         }
 
         void EnterStation(){
@@ -123,6 +158,9 @@ namespace Crafting{
 
             camera->SetAsMainCamera();
 
+            DisablePlayer();
+            SetIngredientsEnabled(true);
+
             isActive = true;
 
             GetScene()->Input()->SetMouseLocked(false);
@@ -137,6 +175,9 @@ namespace Crafting{
                 spdlog::warn("CraftingStation: Camera Node not found.");
                 return;
             }
+
+            EnablePlayer();
+            SetIngredientsEnabled(false);
 
             if (auto* cameraSettings = cameraNode->GetObject<CameraSettings>()){
                 cameraSettings->enabled = true;

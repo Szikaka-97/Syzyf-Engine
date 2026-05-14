@@ -259,9 +259,14 @@ namespace CraftingScene{
         Material* waterMaterial =
             CreateColorMaterial(glm::vec4(0.2f, 0.45f, 1.0f, 1.0f));
 
+        SceneNode* ingredientsRootNode =
+            scene.CreateNode(craftingRootNode, "Crafting Ingredients");
+
+        ingredientsRootNode->SetEnabled(false);
+
         CreateDraggableCube(
             scene,
-            craftingRootNode,
+            ingredientsRootNode,
             "Sugar Ingredient",
             cubeMesh,
             sugarMaterial,
@@ -273,7 +278,7 @@ namespace CraftingScene{
 
         CreateDraggableCube(
             scene,
-            craftingRootNode,
+            ingredientsRootNode,
             "Water Ingredient",
             cubeMesh,
             waterMaterial,
