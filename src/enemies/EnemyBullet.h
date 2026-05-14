@@ -5,7 +5,10 @@ class EnemyBase;
 
 class EnemyBullet : public GameObject {
 public:
-    EnemyBase* owner = nullptr;  /
+    EnemyBullet();
+
+    EnemyBase* owner = nullptr;  
+    SceneNode*   myNode = nullptr;
 
     void BulletInTornadoAction(SceneNode* tornadoNode,
                                float      orbitRadius,

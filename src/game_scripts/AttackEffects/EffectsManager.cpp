@@ -1,8 +1,9 @@
-#include "PotionEffects.h"
-#include "EnemyBullet.h"
+#include "EffectBase.h"
+#include "enemies/EnemyBullet.h"
 #include <TimeSystem.h>
 #include <glm/glm.hpp>
 #include <spdlog/spdlog.h>
+#include "EffectsManager.h"
 
 void EffectFire::OnApplySpecials() {
     if (special1) damage *= modifier;

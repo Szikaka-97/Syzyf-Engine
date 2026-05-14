@@ -3,6 +3,12 @@
 #include <glm/gtc/constants.hpp>
 #include <spdlog/spdlog.h>
 
+#include "physics/Body.h"
+//#include <Jolt/Physics/Body/BodyFilter.h>
+EnemyBullet::EnemyBullet() {
+    myNode = GetNode();
+}
+
 void EnemyBullet::BulletInTornadoAction(SceneNode* tornadoNode,
                                         float      orbitRadius,
                                         float      rotationSpeed) {

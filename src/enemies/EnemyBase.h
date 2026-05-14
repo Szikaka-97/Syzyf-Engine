@@ -43,6 +43,7 @@ private:
     struct ConfuseState {
         bool  active        = false;
         float remainingTime = 0.0f;
+        bool  isPrecise     = false;
     } m_Confuse;
  
 protected:
@@ -84,7 +85,7 @@ public:
  
     void ApplyPetrify(float slowFactor, float duration);
  
-    void ApplyConfuse(float duration);
+    void ApplyConfuse(float duration, bool isPrecise);
  
     bool IsPetrified() const { return m_Petrify.active; }
     bool IsBurning()   const { return m_Burn.active;    }

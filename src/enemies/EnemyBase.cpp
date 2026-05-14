@@ -238,9 +238,10 @@ void EnemyBase::ApplyPetrify(float slowFactor, float duration) {
                  slowFactor, duration);
 }
  
-void EnemyBase::ApplyConfuse(float duration) {
+void EnemyBase::ApplyConfuse(float duration, bool isPrecise) {
     m_Confuse.active        = true;
     m_Confuse.remainingTime = duration;
+    m_Confuse.isPrecise     = isPrecise;
     spdlog::info("EnemyBase: confuse applied (duration={:.1f}s)", duration);
 }
  
