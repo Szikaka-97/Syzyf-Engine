@@ -71,6 +71,8 @@ int Random::ValueInt() {
 	int val = rand();
 
 	this->state = val;
+
+	return val;
 }
 int Random::ValueInt(int maxValue) {
 	srand(this->state);
