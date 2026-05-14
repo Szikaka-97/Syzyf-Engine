@@ -88,6 +88,10 @@ int Random::ValueInt(int minValue, int maxValue) {
 		std::swap(minValue, maxValue);
 	}
 
+	if (minValue == maxValue) {
+		return minValue;
+	}
+
 	srand(this->state);
 
 	int val = rand();
