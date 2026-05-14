@@ -1,11 +1,12 @@
 #pragma once
 
+#include "Debug.h"
 #include <queue>
 
 #include <GameObject.h>
 #include <Random.h>
 
-class DungeonGenerator : public GameObject {
+class DungeonGenerator : public GameObject, public ImGuiDrawable {
 private:
 	enum class RoomShape {
 		DeadEnd,
@@ -35,9 +36,12 @@ private:
 	SceneNode* PlaceRoom();
 public:
 	float gridSize = 40;
-	int initialStrideLength = 5;
+
+	int seed = 1 << 31;
+	
+	int initialStrideLength = 3;
 	int maxFirstShelfOverhang = 3;
-	int secondStrideLength = 5;
+	int secondStrideLength = 3;
 	int secondStrideLegs = 3;
 	int maxSecondShelfOverhang = 3;
 	int lastStretchLength = 3;
@@ -45,6 +49,8 @@ public:
 	void RemakeDungeon();
 
 	void Render();
+
+	virtual void DrawImGui() override;
 };
 
 // #pragma once

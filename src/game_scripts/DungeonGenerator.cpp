@@ -4,6 +4,7 @@
 
 #include <GltfImporter.h>
 #include <Formatters.h>
+#include <imgui.h>
 
 SceneNode* DungeonGenerator::PlaceRoom() {
 	return nullptr;
@@ -143,29 +144,32 @@ void DungeonGenerator::RemakeDungeon() {
 			placedRooms[legPosition] = PlacedRoom{ legPosition, RoomShape::Corridor, 0 };
 		}
 	}
+
+	int secondShelfOverhangLeft = firstShelfOverhangLeft;
+	int secondShelfOverhangRight = firstShelfOverhangRight;
 	
+	if (this->secondStrideLength > 0) {
+		int secondShelfOverhangLeft = rng.ValueInt(1, this->maxSecondShelfOverhang);
+		int secondShelfOverhangRight = rng.ValueInt(1, this->maxSecondShelfOverhang);
 	
-	int secondShelfOverhangLeft = rng.ValueInt(1, this->maxSecondShelfOverhang);
-	int secondShelfOverhangRight = rng.ValueInt(1, this->maxSecondShelfOverhang);
-
-	currentPosition += vec_right * (float) longestStride.x + vec_forward * (float) (longestStride.y + 1);
-
-	currentPosition -= vec_right * (float) secondShelfOverhangLeft;
-
-	for (int i = 0; i < secondShelfOverhangLeft + secondShelfOverhangRight + 1; i++) {
-		if (placedRooms.contains(currentPosition - vec_forward)) {
-			placedRooms[currentPosition] = PlacedRoom{ currentPosition, RoomShape::TShape, 2 };
+		currentPosition += vec_right * (float) longestStride.x + vec_forward * (float) (longestStride.y + 1);
+	
+		currentPosition -= vec_right * (float) secondShelfOverhangLeft;
+	
+		for (int i = 0; i < secondShelfOverhangLeft + secondShelfOverhangRight + 1; i++) {
+			if (placedRooms.contains(currentPosition - vec_forward)) {
+				placedRooms[currentPosition] = PlacedRoom{ currentPosition, RoomShape::TShape, 2 };
+			}
+			else {
+				placedRooms[currentPosition] = PlacedRoom{ currentPosition, i == 0 ? RoomShape::DeadEnd : RoomShape::Corridor, 1 };
+			}
+	
+			currentPosition += vec_right;
 		}
-		else {
-			placedRooms[currentPosition] = PlacedRoom{ currentPosition, i == 0 ? RoomShape::DeadEnd : RoomShape::Corridor, 1 };
-		}
-
-		currentPosition += vec_right;
+	
+		placedRooms[currentPosition] = PlacedRoom{ currentPosition, RoomShape::DeadEnd, 3 };
 	}
-
-	placedRooms[currentPosition] = PlacedRoom{ currentPosition, RoomShape::DeadEnd, 3 };
 	
-
 	int lastStretchX = rng.ValueInt(1, secondShelfOverhangLeft + secondShelfOverhangRight + 1);
 
 	int lastStretchY = rng.ValueInt(1, this->lastStretchLength + 1);
@@ -232,6 +236,34 @@ void DungeonGenerator::Render() {
 			spdlog::info("Room coords: {}", room.position);
 			spawnedRoom->GlobalTransform().Position() = GlobalTransform().Position() + glm::vec3(room.position.y, 0, room.position.x) * glm::vec3(this->gridSize);
 			spawnedRoom->GlobalTransform().Rotation() = glm::vec3(0, glm::radians(-90.0f * room.orientation), 0);
+
+			this->dungeonRooms.push_back(spawnedRoom);
 		}
+	}
+}
+
+void DungeonGenerator::DrawImGui() {
+	ImGui::InputFloat("Grid Size", &this->gridSize, 1);
+
+	ImGui::InputInt("Max Initial Stride Length", &this->initialStrideLength);
+	ImGui::InputInt("Max First Shelf Overhang", &this->maxFirstShelfOverhang);
+	ImGui::InputInt("Max Secondary Stride Length", &this->secondStrideLength);
+	ImGui::InputInt("Max Second Stride Legs Count", &this->secondStrideLegs);
+	ImGui::InputInt("Max Second Shelf Overhang", &this->maxSecondShelfOverhang);
+	ImGui::InputInt("Max Last Stretch Length", &this->lastStretchLength);
+
+	bool enableSeed = !(this->seed & (1 << 31));
+
+	ImGui::Checkbox("Enable Seed", &enableSeed);
+	
+	if (enableSeed) {
+		ImGui::InputInt("Seed", &this->seed);
+	}
+	else {
+		this->seed |= 1 << 31;
+	}
+	
+	if (ImGui::Button("Remake Dungeon")) {
+		RemakeDungeon();
 	}
 }
