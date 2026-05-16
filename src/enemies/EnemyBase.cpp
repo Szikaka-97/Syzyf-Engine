@@ -5,6 +5,7 @@
 #include <physics/LayerMaskFilter.h>
 
 #include "EnemyBase.h"
+#include "EnemyBullet.h"    
 
 EnemyBase::EnemyBase()
     : fov(glm::radians(180.0f)),
@@ -74,6 +75,9 @@ void EnemyBase::SpawnProjectile(const glm::vec3& targetPos) {
   body->SetRestitution(0.3f);
   body->SetFriction(0.5f);
   // body->Awake();
+
+  auto* bullet = projectileNode->AddObject<EnemyBullet>();
+    bullet->owner = this;
 }
 
 void EnemyBase::UpdateAttackAnimation() {

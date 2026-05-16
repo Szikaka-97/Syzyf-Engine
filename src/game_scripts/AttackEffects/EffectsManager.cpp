@@ -5,6 +5,12 @@
 #include <spdlog/spdlog.h>
 #include "EffectsManager.h"
 
+EffectFire::EffectFire() = default;
+EffectPetrify::EffectPetrify() = default;
+EffectTornado::EffectTornado() = default;
+EffectConfuse::EffectConfuse() = default;
+
+
 void EffectFire::OnApplySpecials() {
     if (special1) damage *= modifier;
     if (special2) dotRemainingTime *= static_cast<float>(modifier);
@@ -94,4 +100,26 @@ void EffectConfuse::OnApplyToEnemy(EnemyBase* enemy) {
 
     spdlog::debug("ConfuseEffect: confused enemy (dur={:.1f}s, attackPrecisely={})",
                   confuseRemainingTime, attackPrecisely);
+}
+
+void EffectExplosion::OnApplySpecials() {
+    // Set visual node scale to GetRange() — mirrors:
+    //   this.explosionRenderer.transform.localScale = Vector3.one * GetRange()
+    if (myNode)
+        myNode->GlobalTransform().Scale() = glm::vec3(GetRange());
+ 
+    // Explosion speed in the original is 30 (lifetime += dt * 30)
+    speed = 30.0f;
+ 
+    spdlog::info("EffectExplosion: range={:.1f}, damage={:.1f}",
+                 GetRange(), GetDamage());
+}
+ 
+void EffectExplosion::OnApplyToEnemy(EnemyBase* enemy) {
+    enemy->TakeDamage(static_cast<int>(GetDamage()));
+ 
+    spdlog::debug("EffectExplosion: hit enemy for {:.0f} damage", GetDamage());
+}
+ 
+void EffectExplosion::OnUpdate() {
 }

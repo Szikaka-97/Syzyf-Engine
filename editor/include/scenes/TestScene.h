@@ -56,6 +56,8 @@
 #include <imgui.h>
 #include <physics/VirtualCharacterController.h>
 
+#include "game_scripts/AttackEffects/EffectsManager.h"
+
 namespace TestScene {
 class Mover : public GameObject, public ImGuiDrawable {
   private:
@@ -246,6 +248,23 @@ inline void InitScene(Scene& mainScene) {
 
     player->AddObject<Player>();
    // player->GetObjectA<Player>()->SetRoomID(); default is 0 
+
+    //EffectFire* playerEffect = new EffectFire();
+    //Material* effectMaterial =
+    //    mainScene.Resources()->Get<Material>("./res/materials/jake.mat");
+    //Mesh* effectMesh =
+    //    mainScene.Resources()->Get<Mesh>("./res/models/jake_tangents.glb");
+
+    ////playerEffect->SetEffectRenderer(effectMesh, effectMaterial);
+    //playerEffect->Init();
+    //player->SetEffect(playerEffect);
+    auto* fxNode = mainScene.CreateNode("FireEffect");
+    fxNode->SetEnabled(false); // ukryty do momentu uderzenia
+    auto* fx = fxNode->AddObject<EffectFire>();
+    fx->damage = 40.0f;
+    fx->radius = 5.0f;
+    player->SetEffect(fx);
+
 
 #pragma endregion
 

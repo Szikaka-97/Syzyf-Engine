@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "enemies/EnemyBase.h"
+#include <MeshRenderer.h>
 
 class EffectBase : public GameObject {
 public:
@@ -18,17 +19,28 @@ public:
     bool  special1        = false;
     bool  special2        = false;
 
-    void SetEffectMaterial(Material* mat) { m_EffectMaterial = mat; }
+    void SetEffectRenderer(Mesh* mesh, Material* mat);
 
     void Init();
 
     void Update();
 
+    virtual EffectBase* Clone() const { return nullptr; }
+
+    EffectBase() = default;
+
+    //EffectBase(const EffectBase& other)
+    //: radius(other.radius), speed(other.speed), modifier(other.modifier),
+    //  ingredientCount(other.ingredientCount), special1(other.special1), special2(other.special2),
+    //  m_Lifetime(0.0f), myNode(nullptr), m_EffectRenderer(nullptr) {}
+
+    virtual ~EffectBase() = default;
+
 protected:
 
     virtual void OnApplySpecials() {}
 
-    virtual void OnApplyToEnemy(EnemyBase* enemy) = 0;
+    virtual void OnApplyToEnemy(EnemyBase* enemy) {};
 
     virtual void OnUpdate() {}
 
@@ -43,7 +55,7 @@ protected:
     SceneNode* myNode = nullptr; 
 
 private:
-    Material* m_EffectMaterial = nullptr;
+    MeshRenderer* m_EffectRenderer = nullptr;
 
     void UpdateShaderVisual();
 };

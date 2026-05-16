@@ -3,6 +3,8 @@
 #include <cmath>
 #include <spdlog/spdlog.h>
 
+
+
 void EffectBase::Init() {
     OnApplySpecials();   
 
@@ -27,10 +29,10 @@ void EffectBase::Update() {
 }
 
 void EffectBase::UpdateShaderVisual() {
-    if (!m_EffectMaterial) return;
+    if (!m_EffectRenderer) return;
     float t      = (radius > 0.0f) ? (m_Lifetime / radius) : 0.0f;
     float factor = std::sin(t * glm::half_pi<float>());
-    m_EffectMaterial->SetValue("_ExplosionTime", factor * radius);
+   // m_EffectMaterial->SetValue("_ExplosionTime", factor * radius);
 }
 
 std::vector<EnemyBase*> EffectBase::ScanEnemiesInRadius() const {
@@ -44,6 +46,15 @@ std::vector<EnemyBase*> EffectBase::ScanEnemiesInRadius() const {
             result.push_back(enemy);
     }
     return result;
+}
+
+void EffectBase::SetEffectRenderer(Mesh* mesh, Material* mat) {
+    SceneNode* node = GetNode();
+    if (node) {
+        node->AddObject<MeshRenderer>(mesh, mat);
+    } else {
+        spdlog::error("EffectBase::SetEffectRenderer: GetNode() is null – effect not attached to any node");
+    }
 }
 
 glm::vec3 EffectBase::GetPosition() const {

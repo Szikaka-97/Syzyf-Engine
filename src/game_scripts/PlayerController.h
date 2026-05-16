@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 // glm::mix doesn't clamp the alpha operant. I don't know how it'll affect the game
 
@@ -36,6 +36,9 @@
 #include "physics/Helpers.h"
 #include "physics/System.h"
 
+#include "game_scripts/AttackEffects/EffectsManager.h"
+#include "game_scripts/AttackEffects/BottleEffectDelivery.h"
+
 class PlayerController : public GameObject, public ImGuiDrawable {
 public:
 	float wobbliness = 1;
@@ -61,9 +64,42 @@ public:
 	float wobblinessAccum = 0;
 
 	SceneNode* bottle = nullptr;
+	EffectBase* currentEffect = nullptr;
+	//MeshRenderer* bottleRenderer = nullptr;
 
 	Physics::VirtualCharacterController* virtualController = nullptr;
 	glm::vec3 velocity = glm::vec3(0.0f);
+
+	void SetEffect(EffectBase* effect) {
+		this->currentEffect = effect;
+
+		    ShaderProgram* pbrProg =
+        ShaderProgram::Build()
+            .WithVertexShader(
+                "./res/shaders/lit.vert")
+            .WithPixelShader(
+                "./res/shaders/pbr.frag")
+            .Link();
+			Scene* mainScene = GetScene();
+    Texture2D* reflectiveDiffuse = mainScene->Resources()->Get<Texture2D>(
+        "./res/textures/material_preview/worn-shiny-metal-albedo.png",
+        Texture::ColorTextureRGB);
+    Texture2D* reflectiveNormal = mainScene->Resources()->Get<Texture2D>(
+        "./res/textures/material_preview/worn-shiny-metal-Normal-ogl.png",
+        Texture::TechnicalMapXYZ);
+    Texture2D* reflectiveARM = mainScene->Resources()->Get<Texture2D>(
+        "./res/textures/material_preview/worn-shiny-metal-arm.png",
+        Texture::TechnicalMapXYZ);
+
+    Material* reflectiveMat = new Material(pbrProg);
+    reflectiveMat->SetValue("albedoMap", reflectiveDiffuse);
+    reflectiveMat->SetValue("normalMap", reflectiveNormal);
+    reflectiveMat->SetValue("armMap", reflectiveARM);
+
+		currentEffect -> SetEffectRenderer(
+			GetScene()->Resources()->Get<Mesh>("./res/models/jake_tangents.glb"),
+			reflectiveMat);
+	}
 
 	glm::vec3 GetMousePointOnGround(Camera* camera) {
 		glm::vec2 mousePos = GetScene()->Input()->GetMousePosition();
@@ -271,8 +307,28 @@ public:
 				thrownBottle->AddObject<Physics::Body>(JPH::BodyCreationSettings(Physics::SphereShape(0.1f), JPH::Vec3::sZero(), JPH::Quat::sIdentity(), JPH::EMotionType::Dynamic, Physics::Layers::MOVING));
 				thrownBottle->GetObject<Physics::Body>()->SetCollisionLayerAndMask({0}, 0);
 
+				//currentEffect->Init();
+				//thrownBottle->AddObject<EffectBase>(currentEffect);
+					/*auto* bullet = projectileNode->AddObject<EnemyBullet>();
+bullet->owner = this;
+
+
 				this->bottle->SetParent(thrownBottle);
-				this->bottle->LocalTransform().Position() = glm::zero<glm::vec3>();
+				this->bottle->LocalTransform().Position() = glm::zero<glm::vec3>();*/
+
+				//if (currentEffect) {
+    //                auto* delivery = thrownBottle->AddObject<BottleEffectDelivery>();
+    //                delivery->SetEffect(currentEffect);
+    //               // currentEffect = nullptr;   
+    //            }
+				 if (currentEffect) {
+					auto* effectCopy = currentEffect->Clone();          // ✅ klon
+					auto* delivery = thrownBottle->AddObject<BottleEffectDelivery>();
+					delivery->SetEffect(effectCopy);
+					// currentEffect pozostaje bez zmian
+				}
+                bottle->SetParent(thrownBottle);
+                bottle->LocalTransform().Position() = glm::zero<glm::vec3>();
 
 				// Fill up thrownBottle
 
