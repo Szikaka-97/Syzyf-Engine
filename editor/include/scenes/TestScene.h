@@ -249,36 +249,10 @@ inline void InitScene(Scene& mainScene) {
     player->AddObject<Player>();
    // player->GetObjectA<Player>()->SetRoomID(); default is 0 
 
-    //EffectFire* playerEffect = new EffectFire();
-    //Material* effectMaterial =
-    //    mainScene.Resources()->Get<Material>("./res/materials/jake.mat");
-    //Mesh* effectMesh =
-    //    mainScene.Resources()->Get<Mesh>("./res/models/jake_tangents.glb");
-
-    ////playerEffect->SetEffectRenderer(effectMesh, effectMaterial);
-    //playerEffect->Init();
-    //player->SetEffect(playerEffect);
-    auto* fxNode = mainScene.CreateNode("FireEffect");
-    fxNode->SetEnabled(false); // ukryty do momentu uderzenia
-    auto* fx = fxNode->AddObject<EffectFire>();
-    fx->damage = 40.0f;
-    fx->radius = 5.0f;
-    player->SetEffect(fx);
-
-
-#pragma endregion
-
-#pragma region Enemy
-    /*JPH::BodyCreationSettings enemyShapeSettings = JPH::BodyCreationSettings(
-        Physics::MeshShape(floorMeshRenderer->GetMesh()), JPH::RVec3::sZero(),
-        JPH::Quat::sZero(), JPH::EMotionType::Dynamic, Physics::Layers::MOVING);*/
-    ShaderProgram* pbrProg =
-        ShaderProgram::Build()
-            .WithVertexShader(
-                "./res/shaders/lit.vert")
-            .WithPixelShader(
-                "./res/shaders/pbr.frag")
-            .Link();
+     ShaderProgram* pbrProg = ShaderProgram::Build()
+                                 .WithVertexShader("./res/shaders/lit.vert")
+                                 .WithPixelShader("./res/shaders/pbr.frag")
+                                 .Link();
 
     Texture2D* reflectiveDiffuse = mainScene.Resources()->Get<Texture2D>(
         "./res/textures/material_preview/worn-shiny-metal-albedo.png",
@@ -294,6 +268,45 @@ inline void InitScene(Scene& mainScene) {
     reflectiveMat->SetValue("albedoMap", reflectiveDiffuse);
     reflectiveMat->SetValue("normalMap", reflectiveNormal);
     reflectiveMat->SetValue("armMap", reflectiveARM);
+
+    //EffectFire* playerEffect = new EffectFire();
+    Mesh* effectMesh =
+        mainScene.Resources()->Get<Mesh>("./res/models/jake_tangents.glb");
+
+    ////playerEffect->SetEffectRenderer(effectMesh, effectMaterial);
+    //playerEffect->Init();
+    //player->SetEffect(playerEffect);
+    //auto* fxNode = mainScene.CreateNode("FireEffect");
+    //fxNode->SetEnabled(false); // wy³¹czony do uderzenia
+    //auto* fx =
+    //    fxNode->AddObject<EffectFire>(); // AddObject<T> — jedyna poprawna forma
+    //fx->damage = 40.0f;
+    //fx->radius = 5.0f;
+    //fx->SetEffectRenderer(effectMesh, reflectiveMat);
+    //player->SetEffect(fx); // tylko wskaŸnik, wêze³ nale¿y do sceny
+    //  Ustaw fabrykê — lambda kopiuje wskaŸniki do zasobów przez wartoœæ
+    player->SetBottleResources(
+        mainScene.Resources()->Get<Mesh>("./res/models/crosshair.glb"),
+        reflectiveMat);
+
+    // Usuñ te¿ liniê:
+    // this->bottle = GltfImporter::LoadScene(...)
+    // lub zostaw bottle tylko jako crosshair wizualny gracza (nie rzucany)
+    player->SetEffectFactory([effectMesh, reflectiveMat](SceneNode* node) {
+        auto* fx = node->AddObject<EffectFire>();
+        fx->damage = 40.0f;
+        fx->radius = 5.0f;
+        fx->SetEffectRenderer(effectMesh, reflectiveMat);
+        // Init() wywo³a BottleEffectDelivery automatycznie po tej lambdzie
+    });
+
+#pragma endregion
+
+#pragma region Enemy
+    /*JPH::BodyCreationSettings enemyShapeSettings = JPH::BodyCreationSettings(
+        Physics::MeshShape(floorMeshRenderer->GetMesh()), JPH::RVec3::sZero(),
+        JPH::Quat::sZero(), JPH::EMotionType::Dynamic, Physics::Layers::MOVING);*/
+   
 
 
     auto enemyRoom = mainScene.FindNode("Floor");

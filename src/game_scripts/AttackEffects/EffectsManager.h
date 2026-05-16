@@ -7,7 +7,7 @@ public:
     float damage           = 25.0f;  
     float timeInterval     = 1.0f;  
     EffectFire();
-    EffectBase* Clone() const { return new EffectFire(*this); }  
+   // EffectBase* Clone() const { return new EffectFire(*this); }  
 protected:
     void OnApplySpecials() override;
     void OnApplyToEnemy(EnemyBase* enemy) override;
@@ -18,7 +18,7 @@ class EffectPetrify : public EffectBase {
 public:
     float petrifyRemainingTime = 5.0f;
     EffectPetrify();
-    EffectBase* Clone() const { return new EffectPetrify(*this); }  
+    //EffectBase* Clone() const { return new EffectPetrify(*this); }  
 
 protected:
     void OnApplySpecials() override;
@@ -32,7 +32,7 @@ public:
     float damage               = 25.0f;
     float damageInterval       = 1.0f;   
     EffectTornado();
-    EffectBase* Clone() const { return new EffectTornado(*this); }  
+   // EffectBase* Clone() const { return new EffectTornado(*this); }  
 
 protected:
     void  OnApplySpecials() override;
@@ -51,7 +51,7 @@ public:
     float confuseRemainingTime = 5.0f;
     int   damage               = 25; 
     EffectConfuse();
-    EffectBase* Clone() const { return new EffectConfuse(*this); }
+  //  EffectBase* Clone() const { return new EffectConfuse(*this); }
 protected:
     void OnApplySpecials() override;
     void OnApplyToEnemy(EnemyBase* enemy) override;
@@ -63,7 +63,7 @@ public:
     float maxRange  = 10.0f;
     float maxDamage = 50.0f;
     EffectExplosion();
-    EffectBase* Clone() const { return new EffectExplosion(*this); }
+   // EffectBase* Clone() const { return new EffectExplosion(*this); }
     float GetRange()  const { return strength * maxRange;  }
     float GetDamage() const { return strength * maxDamage; }
  

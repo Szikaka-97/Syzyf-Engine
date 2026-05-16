@@ -66,6 +66,12 @@ public:
 	SceneNode* bottle = nullptr;
 	EffectBase* currentEffect = nullptr;
 	//MeshRenderer* bottleRenderer = nullptr;
+	std::function<void(SceneNode*)> m_EffectFactory;
+
+	Mesh*     bottleMesh     = nullptr;
+Material* bottleMaterial = nullptr;
+
+
 
 	Physics::VirtualCharacterController* virtualController = nullptr;
 	glm::vec3 velocity = glm::vec3(0.0f);
@@ -73,33 +79,14 @@ public:
 	void SetEffect(EffectBase* effect) {
 		this->currentEffect = effect;
 
-		    ShaderProgram* pbrProg =
-        ShaderProgram::Build()
-            .WithVertexShader(
-                "./res/shaders/lit.vert")
-            .WithPixelShader(
-                "./res/shaders/pbr.frag")
-            .Link();
-			Scene* mainScene = GetScene();
-    Texture2D* reflectiveDiffuse = mainScene->Resources()->Get<Texture2D>(
-        "./res/textures/material_preview/worn-shiny-metal-albedo.png",
-        Texture::ColorTextureRGB);
-    Texture2D* reflectiveNormal = mainScene->Resources()->Get<Texture2D>(
-        "./res/textures/material_preview/worn-shiny-metal-Normal-ogl.png",
-        Texture::TechnicalMapXYZ);
-    Texture2D* reflectiveARM = mainScene->Resources()->Get<Texture2D>(
-        "./res/textures/material_preview/worn-shiny-metal-arm.png",
-        Texture::TechnicalMapXYZ);
-
-    Material* reflectiveMat = new Material(pbrProg);
-    reflectiveMat->SetValue("albedoMap", reflectiveDiffuse);
-    reflectiveMat->SetValue("normalMap", reflectiveNormal);
-    reflectiveMat->SetValue("armMap", reflectiveARM);
-
-		currentEffect -> SetEffectRenderer(
-			GetScene()->Resources()->Get<Mesh>("./res/models/jake_tangents.glb"),
-			reflectiveMat);
 	}
+	void SetEffectFactory(std::function<void(SceneNode*)> factory) {
+    m_EffectFactory = std::move(factory);
+}
+	void SetBottleResources(Mesh* mesh, Material* mat) {
+    bottleMesh     = mesh;
+    bottleMaterial = mat;
+}
 
 	glm::vec3 GetMousePointOnGround(Camera* camera) {
 		glm::vec2 mousePos = GetScene()->Input()->GetMousePosition();
@@ -301,34 +288,57 @@ public:
 
 			this->throwStrengthAccum = MoveTowards(this->throwStrengthAccum, 0, Time::Delta() * 10);
 
-			if (this->throwStrengthCache > 0 && this->throwStrengthAccum < 0.7f) {
-				SceneNode* thrownBottle = GetScene()->CreateNode("Thrown Bottle");
-				thrownBottle->GlobalTransform().Position() = this->throwPoint->GlobalTransform().Position().Value();
-				thrownBottle->AddObject<Physics::Body>(JPH::BodyCreationSettings(Physics::SphereShape(0.1f), JPH::Vec3::sZero(), JPH::Quat::sIdentity(), JPH::EMotionType::Dynamic, Physics::Layers::MOVING));
-				thrownBottle->GetObject<Physics::Body>()->SetCollisionLayerAndMask({0}, 0);
+if (this->throwStrengthCache > 0 && this->throwStrengthAccum < 0.7f) {
+    SceneNode* thrownBottle = GetScene()->CreateNode("Thrown Bottle");
+    thrownBottle->GlobalTransform().Position() =
+        throwPoint->GlobalTransform().Position().Value();
 
-				//currentEffect->Init();
-				//thrownBottle->AddObject<EffectBase>(currentEffect);
-					/*auto* bullet = projectileNode->AddObject<EnemyBullet>();
-bullet->owner = this;
+    thrownBottle->AddObject<Physics::Body>(
+        JPH::BodyCreationSettings(
+            Physics::SphereShape(0.1f),
+            JPH::Vec3::sZero(),
+            JPH::Quat::sIdentity(),
+            JPH::EMotionType::Dynamic,
+            Physics::Layers::MOVING));
+    thrownBottle->GetObject<Physics::Body>()->SetCollisionLayerAndMask({0}, 0);
+
+    // Visual jako TOP-LEVEL węzeł — NIE dziecko butelki
+    SceneNode* visual = nullptr;
+    if (bottleMesh && bottleMaterial) {
+        visual = GetScene()->CreateNode("BottleVisual");
+        // Pozycja synchronizowana przez BottleEffectDelivery::Update()
+        visual->GlobalTransform().Position() =
+            thrownBottle->GlobalTransform().Position().Value();
+        visual->AddObject<MeshRenderer>(bottleMesh, bottleMaterial);
+    }
+
+    if (m_EffectFactory) {
+        auto* delivery = thrownBottle->AddObject<BottleEffectDelivery>();
+        delivery->SetEffectFactory(m_EffectFactory);
+        delivery->SetVisualNode(visual);  // delivery zarządza jego życiem
+    }
 
 
-				this->bottle->SetParent(thrownBottle);
-				this->bottle->LocalTransform().Position() = glm::zero<glm::vec3>();*/
+    //// Visual jako TOP-LEVEL węzeł — NIE dziecko butelki
+    //SceneNode* visual = nullptr;
+    //if (bottleMesh && bottleMaterial) {
+    //    visual = GetScene()->CreateNode("BottleVisual");
+    //    // Pozycja synchronizowana przez BottleEffectDelivery::Update()
+    //    visual->GlobalTransform().Position() =
+    //        thrownBottle->GlobalTransform().Position().Value();
+    //    visual->AddObject<MeshRenderer>(bottleMesh, bottleMaterial);
+    //}
 
-				//if (currentEffect) {
-    //                auto* delivery = thrownBottle->AddObject<BottleEffectDelivery>();
-    //                delivery->SetEffect(currentEffect);
-    //               // currentEffect = nullptr;   
-    //            }
-				 if (currentEffect) {
-					auto* effectCopy = currentEffect->Clone();          // ✅ klon
-					auto* delivery = thrownBottle->AddObject<BottleEffectDelivery>();
-					delivery->SetEffect(effectCopy);
-					// currentEffect pozostaje bez zmian
-				}
-                bottle->SetParent(thrownBottle);
-                bottle->LocalTransform().Position() = glm::zero<glm::vec3>();
+    //if (m_EffectFactory) {
+    //    auto* delivery = thrownBottle->AddObject<BottleEffectDelivery>();
+    //    delivery->SetEffectFactory(m_EffectFactory);
+    //    delivery->SetVisualNode(visual);  // delivery zarządza jego życiem
+    //}
+
+    // ... obliczenia prędkości bez zmian ...
+    throwStrengthCache = -1;
+
+    // ... reszta obliczeń prędkości bez zmian ...
 
 				// Fill up thrownBottle
 

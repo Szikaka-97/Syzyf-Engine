@@ -1,63 +1,60 @@
-#pragma once
+﻿#pragma once
 
 #include <GameObject.h>
 #include <physics/ICollisionReceiver.h>
 #include <Scene.h>
-
+#include <functional>
 #include "game_scripts/AttackEffects/EffectBase.h"
 
 class BottleEffectDelivery : public GameObject,
-                              public Physics::ICollisionReceiver {
+                             public Physics::ICollisionReceiver {
 public:
-    void SetEffect(EffectBase* effect) { m_Effect = effect; }
+    void SetEffectFactory(std::function<void(SceneNode*)> factory) {
+        m_Factory = std::move(factory);
+    }
 
-    /*void OnCollisionEnter(SceneNode* other) override {
-        if (!m_Effect || m_Triggered) return;
+    // Visual node śledzony osobno — NIE jako dziecko butelki
+    void SetVisualNode(SceneNode* visual) { m_Visual = visual; }
+
+    void Update() {
+        // Ręczna synchronizacja pozycji zamiast SetParent
+        SceneNode* self = GetNode();
+        if (!m_Visual || !self || m_Triggered) return;
+        m_Visual->GlobalTransform().Position() = self->GlobalTransform().Position().Value();
+        m_Visual->GlobalTransform().Rotation() = self->GlobalTransform().Rotation().Value();
+    }
+
+    void OnCollisionEnter(SceneNode* other) override {
+        if (!m_Factory || m_Triggered) return;
         m_Triggered = true;
 
-        glm::vec3 hitPos = myNode
-                           ? glm::vec3(myNode->GlobalTransform().Position())
+        SceneNode* self = GetNode();
+        glm::vec3 hitPos = self
+                           ? glm::vec3(self->GlobalTransform().Position())
                            : glm::vec3(0.0f);
 
-        SceneNode* fxNode = m_Effect->GetNode();
-        if (fxNode) {
-            fxNode->GlobalTransform().Position() = hitPos;
-            fxNode->SetEnabled(true);
+        // Usuń visual bezpośrednio — nie jest dzieckiem, więc brak kaskady
+        if (m_Visual) {
+            GetScene()->QueueDelete(m_Visual);
+            m_Visual = nullptr;
         }
 
-        m_Effect->Init();
+        // Utwórz węzeł efektu
+        SceneNode* fxNode = GetScene()->CreateNode("EffectNode");
+        fxNode->GlobalTransform().Position() = hitPos;
+        m_Factory(fxNode);
 
-        if (myNode) GetScene()->QueueDelete(myNode);
-    }*/
-void OnCollisionEnter(SceneNode* other) override {  
-   if (!m_Effect || m_Triggered) return;  
-   m_Triggered = true;  
+        if (auto* effect = fxNode->GetObject<EffectBase>())
+            effect->Init();
 
-   glm::vec3 hitPos = myNode  
-                      ? glm::vec3(myNode->GlobalTransform().Position())  
-                      : glm::vec3(0.0f);  
-
-   // Clone() creates a new instance of the effect with its own node  
-   EffectBase* cloned = m_Effect->Clone();  
-   if (!cloned) { spdlog::error("BottleEffectDelivery: Clone() returned nullptr"); return; }  
-
-   SceneNode* fxNode = GetScene()->CreateNode("EffectNode");  
-   fxNode->GlobalTransform().Position() = hitPos;  
-
-   // Use AddObject<EffectBase> with the cloned object  
-   fxNode->AddObject<EffectBase>(cloned);  
-
-   cloned->Init();  
-   fxNode->SetEnabled(true);  
-
-   if (myNode) GetScene()->QueueDelete(myNode);  
-}
-
+        // Usuń butelkę — nie ma dzieci, brak kaskady → brak crashu
+        if (self) GetScene()->QueueDelete(self);
+    }
 
     void OnCollisionExit(SceneNode*) override {}
 
 private:
-    EffectBase* m_Effect    = nullptr;
-    SceneNode*   myNode     = GetNode();
-    bool        m_Triggered = false;
+    std::function<void(SceneNode*)> m_Factory;
+    SceneNode* m_Visual    = nullptr;
+    bool       m_Triggered = false;
 };

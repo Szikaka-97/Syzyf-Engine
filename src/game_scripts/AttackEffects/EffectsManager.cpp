@@ -9,6 +9,7 @@ EffectFire::EffectFire() = default;
 EffectPetrify::EffectPetrify() = default;
 EffectTornado::EffectTornado() = default;
 EffectConfuse::EffectConfuse() = default;
+EffectExplosion::EffectExplosion() = default;
 
 
 void EffectFire::OnApplySpecials() {

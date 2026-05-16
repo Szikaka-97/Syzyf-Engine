@@ -25,7 +25,7 @@ public:
 
     void Update();
 
-    virtual EffectBase* Clone() const { return nullptr; }
+    //virtual EffectBase* Clone() const { return nullptr; }
 
     EffectBase() = default;
 
