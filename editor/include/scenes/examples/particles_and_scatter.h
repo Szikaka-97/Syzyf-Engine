@@ -42,12 +42,6 @@
 #include <physics/Water.h>
 #include <scatter/Spawner.h>
 #include <text/Font.h>
-#include <ui/objects/UiInteractable.h>
-#include <ui/objects/UiLayout.h>
-#include <ui/objects/UiText.h>
-#include <ui/objects/UiVisual.h>
-#include <ui/objects/custom/UiCircularBar.h>
-#include <ui/systems/UiSystem.h>
 
 #include "Jolt/Math/Vec3.h"
 #include <Jolt/Jolt.h>

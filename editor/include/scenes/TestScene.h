@@ -7,7 +7,7 @@
 #include "LightSystem.h"
 #include "fog/Fog.h"
 #include "game_scripts/AimingAid.h"
-#include "ui/wheel/UiWheel.h"
+#include "ui/custom/wheel/UiWheel.h"
 
 #include <AiNode.h>
 #include <Bloom.h>
@@ -49,14 +49,15 @@
 #include <physics/Water.h>
 #include <scatter/Spawner.h>
 #include <text/Font.h>
+#include <ui/custom/UiCircularBar.h>
+#include <ui/custom/wheel/UiRadialWheel.h>
 #include <ui/objects/UiCursor.h>
 #include <ui/objects/UiInteractable.h>
 #include <ui/objects/UiLayout.h>
+#include <ui/objects/UiScrollableGrid.h>
 #include <ui/objects/UiText.h>
 #include <ui/objects/UiVisual.h>
-#include <ui/objects/custom/UiCircularBar.h>
 #include <ui/systems/UiSystem.h>
-#include <ui/wheel/UiRadialWheel.h>
 
 #include "Jolt/Math/Vec3.h"
 #include "text/Text3D.h"
@@ -176,9 +177,10 @@ inline void InitScene(Scene& mainScene) {
         {1.0f, 1.0f, 1.0f, 0.6f});
 
 #pragma endregion
+    SceneNode* uiRoot = mainScene.CreateNode("UI");
 
     // Move this into the wheel system
-    SceneNode* uiNode = mainScene.CreateNode("Ui Node");
+    SceneNode* uiNode = mainScene.CreateNode(uiRoot, "Ui Node");
     uiNode->AddObject<WheelTag>();
     uiNode->AddObject<UiLayout>(glm::uvec2(400, 400), glm::uvec2(150, 0), 0,
                                 AnchorPoint::CenterLeft);
@@ -192,7 +194,7 @@ inline void InitScene(Scene& mainScene) {
     uiVisual->colorClicked = {0.0f, 1.0f, 0.0f, 1.0f};
     uiNode->AddObject<UiInteractable>();
 
-    SceneNode* cursorNode = mainScene.CreateNode("Cursor");
+    SceneNode* cursorNode = mainScene.CreateNode(uiRoot, "Cursor");
     cursorNode->AddObject<UiLayout>(glm::uvec2(64, 64), glm::uvec2(0, 0), 9999);
 
     cursorNode->AddObject<UiVisual>(
@@ -208,7 +210,7 @@ inline void InitScene(Scene& mainScene) {
             .WithPixelShader("./res/shaders/ui/custom/radial_wheel.frag")
             .Link();
     Material* customUiMaterial = new Material(customUiProgram);
-    SceneNode* radialWheelNode = mainScene.CreateNode("Radial Wheel");
+    SceneNode* radialWheelNode = mainScene.CreateNode(uiRoot, "Radial Wheel");
     radialWheelNode->AddObject<UiLayout>(
         glm::uvec2(600, 600), glm::uvec2(-150, 0), 0, AnchorPoint::CenterRight);
     auto* customVisual =
@@ -224,5 +226,31 @@ inline void InitScene(Scene& mainScene) {
         "./res/models/butelka.glb",
         "./res/models/butelka.glb",
     });
+
+    SceneNode* gridRoot = mainScene.CreateNode(uiRoot, "Grid");
+    gridRoot->AddObject<UiLayout>(glm::uvec2(360, 475), glm::uvec2(50, 50), 0,
+                                  AnchorPoint::TopLeft);
+    gridRoot->AddObject<UiVisual>(glm::vec4(0.2f, 0.2f, 0.2f, 0.8f));
+    gridRoot->AddObject<WheelTag>();
+    SceneNode* gridContainer = mainScene.CreateNode(gridRoot, "Grid Container");
+    auto* gridLayout = gridContainer->AddObject<UiLayout>(
+        glm::uvec2(330, 445), glm::uvec2(0, 0), 0, AnchorPoint::Center);
+    // gridContainer->AddObject<UiVisual>(glm::vec4(0.2f, 0.2f, 0.2f, 0.8f));
+    gridContainer->AddObject<UiInteractable>();
+
+    auto* grid = gridContainer->AddObject<UiScrollableGrid>();
+    for (int i = 0; i < 20; i++) {
+        SceneNode* itemNode =
+            mainScene.CreateNode(uiRoot, "Item_" + std::to_string(i));
+        itemNode->SetParent(gridContainer);
+
+        auto* layout = itemNode->AddObject<UiLayout>(
+            glm::uvec2(100, 100), glm::uvec2(0, 0), 1, AnchorPoint::Center);
+
+        auto* visual =
+            itemNode->AddObject<UiVisual>(glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
+        itemNode->AddObject<UiInteractable>();
+        itemNode->AddObject<WheelTag>();
+    }
 }
 } // namespace TestScene

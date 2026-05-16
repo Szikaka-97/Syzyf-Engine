@@ -10,7 +10,7 @@
 #include "MeshRenderer.h"
 #include "TweenSystem.h"
 #include "Viewport.h"
-#include "ui/wheel/UiWheel.h"
+#include "ui/custom/wheel/UiWheel.h"
 #include "ui/objects/UiLayout.h"
 #include "ui/objects/UiText.h"
 #include "ui/objects/UiVisual.h"

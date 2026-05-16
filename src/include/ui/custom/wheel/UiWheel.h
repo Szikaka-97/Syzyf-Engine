@@ -14,6 +14,7 @@ class WheelTag : public GameObject {};
 
 class WheelSystem : public GameObjectSystem<WheelTag> {
   private:
+      std::unordered_map<UiVisual*, float> baseAlphas;
     const float BLUR_DURATION = 0.2f;
 
     InputSystem* inputSystem = nullptr;
@@ -52,6 +53,10 @@ class WheelSystem : public GameObjectSystem<WheelTag> {
 
             for (WheelTag* object : IterateObjects()) {
                 if (auto* uiVisual = object->GetObject<UiVisual>()) {
+                    if (this->baseAlphas.find(uiVisual) == this->baseAlphas.end()) {
+                        this->baseAlphas[uiVisual] = uiVisual->color.a;
+                    }
+
                     uiVisual->SetEnabled(true);
                     uiVisual->color.a = 0.0f;
                 }
@@ -82,12 +87,13 @@ class WheelSystem : public GameObjectSystem<WheelTag> {
                             }
                             for (auto* object : this->IterateObjects()) {
                                 if (auto* visual = object->GetObject<UiVisual>()) {
-                                    // This wouldn't work if the ui didn't start with 1.0f alpha
-                                    //  maybe add an override field or sth
-                                    visual->color.a = newValue;
-                                    if (visual->colorClicked.has_value()) visual->colorClicked->a = newValue;
-                                    if (visual->colorDisabled.has_value()) visual->colorDisabled->a = newValue;
-                                    if (visual->colorHovered.has_value()) visual->colorHovered->a = newValue;
+                                    float baseA = this->baseAlphas.count(visual) ? this->baseAlphas[visual] : 1.0f;
+                                    float finalAlpha = newValue * baseA;
+
+                                    visual->color.a = finalAlpha;
+                                    if (visual->colorClicked.has_value()) visual->colorClicked->a = finalAlpha;
+                                    if (visual->colorDisabled.has_value()) visual->colorDisabled->a = finalAlpha;
+                                    if (visual->colorHovered.has_value()) visual->colorHovered->a = finalAlpha;
                                 }
                             }
                         }));
@@ -118,10 +124,13 @@ class WheelSystem : public GameObjectSystem<WheelTag> {
                             }
                             for (auto* object : this->IterateObjects()) {
                                 if (auto* visual = object->GetObject<UiVisual>()) {
-                                    visual->color.a = newValue;
-                                    if (visual->colorClicked.has_value()) visual->colorClicked->a = newValue;
-                                    if (visual->colorDisabled.has_value()) visual->colorDisabled->a = newValue;
-                                    if (visual->colorHovered.has_value()) visual->colorHovered->a = newValue;
+                                    float baseA = this->baseAlphas.count(visual) ? this->baseAlphas[visual] : 1.0f;
+                                    float finalAlpha = newValue * baseA;
+
+                                    visual->color.a = finalAlpha;
+                                    if (visual->colorClicked.has_value()) visual->colorClicked->a = finalAlpha;
+                                    if (visual->colorDisabled.has_value()) visual->colorDisabled->a = finalAlpha;
+                                    if (visual->colorHovered.has_value()) visual->colorHovered->a = finalAlpha;
                                 }
                             }
                         })

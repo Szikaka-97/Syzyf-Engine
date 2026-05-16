@@ -1,9 +1,11 @@
 #include "ui/systems/UiTextRenderSystem.h"
 #include "ui/objects/UiLayout.h"
+#include "ui/objects/UiVisual.h"
 #include "ui/systems/UiLayoutSystem.h"
 #include "ui/objects/UiText.h"
 #include "Graphics.h"
 #include "Texture.h"
+#include <optional>
 
 UiTextRenderSystem::UiTextRenderSystem(Scene* scene) : GameObjectSystem<UiText>(scene) {}
 
@@ -89,7 +91,10 @@ void UiTextRenderSystem::OnPreRender() {
 
                 glm::vec4 uvRectangle(u0, v0, u1 - u0, v1 -v0);
 
-                this->GetScene()->GetGraphics()->DrawUiText(letterMatrix, letterSize, layout->zIndex, text->color, font->atlasTexture, uvRectangle, static_cast<float>(font->distanceRange), font->useMsdf);
+                auto* visual = text->GetObject<UiVisual>();
+                auto clipRectangle = visual ? visual->clipRectangle : std::nullopt; 
+
+                this->GetScene()->GetGraphics()->DrawUiText(letterMatrix, letterSize, layout->zIndex, text->color, font->atlasTexture, uvRectangle, static_cast<float>(font->distanceRange), font->useMsdf, clipRectangle);
             }
 
             cursorX += static_cast<float>(glyph.advance) * scale;

@@ -12,11 +12,11 @@
 #include <physics/System.h>
 #include <text/Font.h>
 #include <text/Text3D.h>
+#include <ui/custom/UiCircularBar.h>
 #include <ui/objects/UiInteractable.h>
 #include <ui/objects/UiLayout.h>
 #include <ui/objects/UiText.h>
 #include <ui/objects/UiVisual.h>
-#include <ui/objects/custom/UiCircularBar.h>
 #include <ui/systems/UiSystem.h>
 
 namespace ExampleUi {
