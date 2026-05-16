@@ -37,7 +37,9 @@ void UiTextRenderSystem::OnPreRender() {
 
         glm::mat4 baseWorldMatrix = text->GlobalTransform().Value();
 
-        for (const char c : text->text) {
+        for (size_t i = 0; i < text->text.length(); ++i) {
+            char c = text->text[i];
+
             if (c == '\n') {
                 cursorX = localStartX;
                 cursorY += static_cast<float>(font->lineHeight) * scale;
@@ -51,6 +53,19 @@ void UiTextRenderSystem::OnPreRender() {
             }
 
             const Glyph& glyph = it->second;
+            
+            if (c == ' ' && text->maxWidth.has_value()) {
+                float scaledMaxWidth = text->maxWidth.value() * scaleFactor;
+                float nextWordWidth = MeasureWordWidth(text, i + 1, scale);
+                float spaceAdvance = static_cast<float>(glyph.advance) * scale;
+
+                float currentLineWidth = cursorX - localStartX;
+                if (currentLineWidth + spaceAdvance + nextWordWidth > scaledMaxWidth) {
+                    cursorX = localStartX;
+                    cursorY += static_cast<float>(font->lineHeight) * scale;
+                    continue;
+                }
+            }
 
             if (glyph.planeBounds.z > glyph.planeBounds.x) {
                 float x0 = cursorX + (glyph.planeBounds.x * scale);
@@ -80,4 +95,18 @@ void UiTextRenderSystem::OnPreRender() {
             cursorX += static_cast<float>(glyph.advance) * scale;
         }
     }
+}
+
+float UiTextRenderSystem::MeasureWordWidth(const UiText* text, size_t startIndex, float scale) {
+    float width = 0.0f;
+    for (size_t i = startIndex; i < text->text.length(); ++i) {
+        char c = text->text[i];
+        if (c == ' ' || c == '\n') break;
+
+        auto glyphIt = text->font->glyphs.find(static_cast<uint32_t>(c));
+        if (glyphIt != text->font->glyphs.end()) {
+            width += static_cast<float>(glyphIt->second.advance) * scale;
+        }
+    }
+    return width;
 }

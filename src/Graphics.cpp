@@ -1768,7 +1768,12 @@ void SceneGraphics::RenderUi(const RenderParams& params, Framebuffer* target) {
 }
 
 void SceneGraphics::RenderUi(const ShaderGlobalUniforms& uniforms, const RenderParams& params, Framebuffer* target) {
-    std::sort(this->uiRenders.begin(), this->uiRenders.end());
+    std::stable_sort(this->uiRenders.begin(), this->uiRenders.end(), [](const auto& a, const auto& b) {
+        if (a.zIndex == b.zIndex) {
+            return a.isText < b.isText;
+        }
+        return a.zIndex < b.zIndex;
+    });
 
     target->SetColorAttachmentEnabled(true);
     glBindFramebuffer(GL_FRAMEBUFFER, target->GetHandle());

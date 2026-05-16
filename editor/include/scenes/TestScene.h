@@ -7,7 +7,7 @@
 #include "LightSystem.h"
 #include "fog/Fog.h"
 #include "game_scripts/AimingAid.h"
-#include "ui/Wheel.h"
+#include "ui/wheel/UiWheel.h"
 
 #include <AiNode.h>
 #include <Bloom.h>
@@ -55,8 +55,8 @@
 #include <ui/objects/UiText.h>
 #include <ui/objects/UiVisual.h>
 #include <ui/objects/custom/UiCircularBar.h>
-#include <ui/objects/custom/UiRadialWheel.h>
 #include <ui/systems/UiSystem.h>
+#include <ui/wheel/UiRadialWheel.h>
 
 #include "Jolt/Math/Vec3.h"
 #include "text/Text3D.h"
@@ -210,7 +210,7 @@ inline void InitScene(Scene& mainScene) {
     Material* customUiMaterial = new Material(customUiProgram);
     SceneNode* radialWheelNode = mainScene.CreateNode("Radial Wheel");
     radialWheelNode->AddObject<UiLayout>(
-        glm::uvec2(500, 500), glm::uvec2(-150, 0), 0, AnchorPoint::CenterRight);
+        glm::uvec2(600, 600), glm::uvec2(-150, 0), 0, AnchorPoint::CenterRight);
     auto* customVisual =
         radialWheelNode->AddObject<UiVisual>(glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
     customVisual->customMaterial = customUiMaterial;
