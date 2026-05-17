@@ -36,6 +36,7 @@ public:
 
     virtual ~EffectBase() = default;
 
+
 protected:
 
     virtual void OnApplySpecials() {}

@@ -32,7 +32,7 @@
 #include <fog/VolumetricFog.h>
 #include <game_scripts/CameraSettings.h>
 #include <game_scripts/PlayerController.h>
-#include <game_scripts/ThrowBottle.h>
+//#include <game_scripts/ThrowBottle.h>
 #include <glm/fwd.hpp>
 #include <glm/geometric.hpp>
 #include <glm/trigonometric.hpp>

@@ -656,9 +656,9 @@ void InitScene(Scene* mainScene) {
 	mouseMarkerNode->AddObject<MeshRenderer>(cubeMesh, reflectiveMat);
 	mouseMarkerNode->GlobalTransform().Scale() = glm::vec3(0.15f, 0.02f, 0.15f);
 
-	auto* bottleThrower = playerNode->AddObject<ThrowBottle>();
-	bottleThrower->SetPoolSize(1);
-	bottleThrower->SetResources(cubeMesh, reflectiveMat);
+	//auto* bottleThrower = playerNode->AddObject<ThrowBottle>();
+	//bottleThrower->SetPoolSize(1);
+	//bottleThrower->SetResources(cubeMesh, reflectiveMat);
 
 	auto* controller = playerNode->AddObject<PlayerController>(mouseMarkerNode);
 	//controller->SetBottleThrower(bottleThrower);

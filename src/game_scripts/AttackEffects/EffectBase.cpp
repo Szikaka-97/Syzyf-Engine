@@ -15,6 +15,8 @@ void EffectBase::Init() {
                   radius, GetMaxLifetime());
 
     myNode = GetNode();
+
+
 }
 
 void EffectBase::Update() {

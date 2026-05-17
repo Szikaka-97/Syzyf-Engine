@@ -8,7 +8,7 @@
 #include <InputSystem.h>
 #include <Graphics.h>
 #include <Camera.h>
-#include <game_scripts/ThrowBottle.h>
+//#include <game_scripts/ThrowBottle.h>
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/ext/quaternion_trigonometric.hpp>
 #include <glm/fwd.hpp>
@@ -26,18 +26,17 @@
 #include <cmath>
 #include "AimingAid.h"
 #include "Jolt/Math/MathTypes.h"
-#include "Jolt/Math/Real.h"
 #include "Jolt/Math/Vec3.h"
 #include "Jolt/Physics/Body/BodyCreationSettings.h"
 #include "Jolt/Physics/Body/MotionType.h"
-#include "Jolt/Physics/Collision/Shape/Shape.h"
-#include "game_scripts/CameraSettings.h"
 #include "physics/Body.h"
 #include "physics/Helpers.h"
 #include "physics/System.h"
+#include <TimeSystem.h>
+#include "ThrowableObject.h"
+#include "./AttackEffects/EffectBase.h"
+#include "./AttackEffects/EffectsManager.h"	
 
-#include "game_scripts/AttackEffects/EffectsManager.h"
-#include "game_scripts/AttackEffects/BottleEffectDelivery.h"
 
 class PlayerController : public GameObject, public ImGuiDrawable {
 public:
@@ -64,29 +63,9 @@ public:
 	float wobblinessAccum = 0;
 
 	SceneNode* bottle = nullptr;
-	EffectBase* currentEffect = nullptr;
-	//MeshRenderer* bottleRenderer = nullptr;
-	std::function<void(SceneNode*)> m_EffectFactory;
-
-	Mesh*     bottleMesh     = nullptr;
-Material* bottleMaterial = nullptr;
-
-
 
 	Physics::VirtualCharacterController* virtualController = nullptr;
 	glm::vec3 velocity = glm::vec3(0.0f);
-
-	void SetEffect(EffectBase* effect) {
-		this->currentEffect = effect;
-
-	}
-	void SetEffectFactory(std::function<void(SceneNode*)> factory) {
-    m_EffectFactory = std::move(factory);
-}
-	void SetBottleResources(Mesh* mesh, Material* mat) {
-    bottleMesh     = mesh;
-    bottleMaterial = mat;
-}
 
 	glm::vec3 GetMousePointOnGround(Camera* camera) {
 		glm::vec2 mousePos = GetScene()->Input()->GetMousePosition();
@@ -288,57 +267,22 @@ public:
 
 			this->throwStrengthAccum = MoveTowards(this->throwStrengthAccum, 0, Time::Delta() * 10);
 
-if (this->throwStrengthCache > 0 && this->throwStrengthAccum < 0.7f) {
-    SceneNode* thrownBottle = GetScene()->CreateNode("Thrown Bottle");
-    thrownBottle->GlobalTransform().Position() =
-        throwPoint->GlobalTransform().Position().Value();
+			if (this->throwStrengthCache > 0 && this->throwStrengthAccum < 0.7f) {
+				SceneNode* thrownBottle = GetScene()->CreateNode("Thrown Bottle");
+				thrownBottle->GlobalTransform().Position() = this->throwPoint->GlobalTransform().Position().Value();
+				thrownBottle->AddObject<Physics::Body>(JPH::BodyCreationSettings(Physics::SphereShape(0.1f), JPH::Vec3::sZero(), JPH::Quat::sIdentity(), JPH::EMotionType::Dynamic, Physics::Layers::MOVING));
+				thrownBottle->GetObject<Physics::Body>()->SetCollisionLayerAndMask({0}, 0);
 
-    thrownBottle->AddObject<Physics::Body>(
-        JPH::BodyCreationSettings(
-            Physics::SphereShape(0.1f),
-            JPH::Vec3::sZero(),
-            JPH::Quat::sIdentity(),
-            JPH::EMotionType::Dynamic,
-            Physics::Layers::MOVING));
-    thrownBottle->GetObject<Physics::Body>()->SetCollisionLayerAndMask({0}, 0);
+				this->bottle->SetParent(thrownBottle);
+				this->bottle->LocalTransform().Position() = glm::zero<glm::vec3>();
+				auto* throwable = thrownBottle->AddObject<ThrowableObject>();
+throwable->SetEffect<EffectFire>([](EffectFire* e) {
+    e->radius  = 3.0f;
+    e->damage  = 40.0f;
+    e->special1 = true;   // podwaja obrażenia
+});
+//throwable->SetVisual(bottleMesh, bottleMat); 
 
-    // Visual jako TOP-LEVEL węzeł — NIE dziecko butelki
-    SceneNode* visual = nullptr;
-    if (bottleMesh && bottleMaterial) {
-        visual = GetScene()->CreateNode("BottleVisual");
-        // Pozycja synchronizowana przez BottleEffectDelivery::Update()
-        visual->GlobalTransform().Position() =
-            thrownBottle->GlobalTransform().Position().Value();
-        visual->AddObject<MeshRenderer>(bottleMesh, bottleMaterial);
-    }
-
-    if (m_EffectFactory) {
-        auto* delivery = thrownBottle->AddObject<BottleEffectDelivery>();
-        delivery->SetEffectFactory(m_EffectFactory);
-        delivery->SetVisualNode(visual);  // delivery zarządza jego życiem
-    }
-
-
-    //// Visual jako TOP-LEVEL węzeł — NIE dziecko butelki
-    //SceneNode* visual = nullptr;
-    //if (bottleMesh && bottleMaterial) {
-    //    visual = GetScene()->CreateNode("BottleVisual");
-    //    // Pozycja synchronizowana przez BottleEffectDelivery::Update()
-    //    visual->GlobalTransform().Position() =
-    //        thrownBottle->GlobalTransform().Position().Value();
-    //    visual->AddObject<MeshRenderer>(bottleMesh, bottleMaterial);
-    //}
-
-    //if (m_EffectFactory) {
-    //    auto* delivery = thrownBottle->AddObject<BottleEffectDelivery>();
-    //    delivery->SetEffectFactory(m_EffectFactory);
-    //    delivery->SetVisualNode(visual);  // delivery zarządza jego życiem
-    //}
-
-    // ... obliczenia prędkości bez zmian ...
-    throwStrengthCache = -1;
-
-    // ... reszta obliczeń prędkości bez zmian ...
 
 				// Fill up thrownBottle
 

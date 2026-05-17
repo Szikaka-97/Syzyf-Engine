@@ -6,7 +6,7 @@
 #include "LightSystem.h"
 #include "fog/Fog.h"
 #include "game_scripts/AimingAid.h"
-#include "game_scripts/ThrowBottle.h"
+//#include "game_scripts/ThrowBottle.h"
 #include "MotionBlur.h"
 
 #include <AiNode.h>
@@ -34,7 +34,7 @@
 #include <fog/FogVolume.h>
 #include <game_scripts/CameraSettings.h>
 #include <game_scripts/PlayerController.h>
-#include <game_scripts/ThrowBottle.h>
+//#include <game_scripts/ThrowBottle.h>
 #include <glm/fwd.hpp>
 #include <glm/geometric.hpp>
 #include <glm/trigonometric.hpp>
@@ -249,56 +249,8 @@ inline void InitScene(Scene& mainScene) {
     player->AddObject<Player>();
    // player->GetObjectA<Player>()->SetRoomID(); default is 0 
 
-     ShaderProgram* pbrProg = ShaderProgram::Build()
-                                 .WithVertexShader("./res/shaders/lit.vert")
-                                 .WithPixelShader("./res/shaders/pbr.frag")
-                                 .Link();
-
-    Texture2D* reflectiveDiffuse = mainScene.Resources()->Get<Texture2D>(
-        "./res/textures/material_preview/worn-shiny-metal-albedo.png",
-        Texture::ColorTextureRGB);
-    Texture2D* reflectiveNormal = mainScene.Resources()->Get<Texture2D>(
-        "./res/textures/material_preview/worn-shiny-metal-Normal-ogl.png",
-        Texture::TechnicalMapXYZ);
-    Texture2D* reflectiveARM = mainScene.Resources()->Get<Texture2D>(
-        "./res/textures/material_preview/worn-shiny-metal-arm.png",
-        Texture::TechnicalMapXYZ);
-
-    Material* reflectiveMat = new Material(pbrProg);
-    reflectiveMat->SetValue("albedoMap", reflectiveDiffuse);
-    reflectiveMat->SetValue("normalMap", reflectiveNormal);
-    reflectiveMat->SetValue("armMap", reflectiveARM);
-
-    //EffectFire* playerEffect = new EffectFire();
-    Mesh* effectMesh =
-        mainScene.Resources()->Get<Mesh>("./res/models/jake_tangents.glb");
-
-    ////playerEffect->SetEffectRenderer(effectMesh, effectMaterial);
-    //playerEffect->Init();
-    //player->SetEffect(playerEffect);
-    //auto* fxNode = mainScene.CreateNode("FireEffect");
-    //fxNode->SetEnabled(false); // wy³¹czony do uderzenia
-    //auto* fx =
-    //    fxNode->AddObject<EffectFire>(); // AddObject<T> — jedyna poprawna forma
-    //fx->damage = 40.0f;
-    //fx->radius = 5.0f;
-    //fx->SetEffectRenderer(effectMesh, reflectiveMat);
-    //player->SetEffect(fx); // tylko wskaŸnik, wêze³ nale¿y do sceny
-    //  Ustaw fabrykê — lambda kopiuje wskaŸniki do zasobów przez wartoœæ
-    player->SetBottleResources(
-        mainScene.Resources()->Get<Mesh>("./res/models/crosshair.glb"),
-        reflectiveMat);
-
-    // Usuñ te¿ liniê:
-    // this->bottle = GltfImporter::LoadScene(...)
-    // lub zostaw bottle tylko jako crosshair wizualny gracza (nie rzucany)
-    player->SetEffectFactory([effectMesh, reflectiveMat](SceneNode* node) {
-        auto* fx = node->AddObject<EffectFire>();
-        fx->damage = 40.0f;
-        fx->radius = 5.0f;
-        fx->SetEffectRenderer(effectMesh, reflectiveMat);
-        // Init() wywo³a BottleEffectDelivery automatycznie po tej lambdzie
-    });
+     
+   
 
 #pragma endregion
 
