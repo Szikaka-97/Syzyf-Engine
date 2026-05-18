@@ -19,7 +19,7 @@ set cmake_include_dir=%2
 set cmake_binary_dir=%3
 
 if not exist %cmake_binary_dir%/codegen (
-	mkdir %cmake_binary_dir%/codegen
+	mkdir "%cmake_binary_dir%/codegen"
 )
 
 python GenerateTypeDatabase.py %cmake_binary_dir% %cmake_include_dir% %cmake_binary_dir%/../compile_commands.json
