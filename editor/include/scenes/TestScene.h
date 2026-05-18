@@ -6,8 +6,11 @@
 #include "JfaOutline.h"
 #include "LightSystem.h"
 #include "fog/Fog.h"
-#include "game_scripts/AimingAid.h"
+#include "game_scripts/player/PickableItemSystem.h"
 #include "ui/custom/wheel/UiWheel.h"
+#include <game_scripts/player/AimingAid.h>
+#include <game_scripts/player/Player.h>
+#include <game_scripts/player/PlayerController.h>
 
 #include <AiNode.h>
 #include <Bloom.h>
@@ -24,7 +27,6 @@
 #include <MeshRenderer.h>
 #include <Mirror.h>
 #include <ParticleSpawner.h>
-#include <Player.h>
 #include <ReflectionProbe.h>
 #include <Scene.h>
 #include <Shader.h>
@@ -36,9 +38,9 @@
 #include <animation/AnimationSystem.h>
 #include <enemies/EnemySkeleton.h>
 #include <fog/FogVolume.h>
-#include <game_scripts/CameraSettings.h>
-#include <game_scripts/PlayerController.h>
-#include <game_scripts/ThrowBottle.h>
+#include <game_scripts/player/CameraSettings.h>
+#include <game_scripts/player/PlayerController.h>
+#include <game_scripts/player/ThrowBottle.h>
 #include <glm/fwd.hpp>
 #include <glm/geometric.hpp>
 #include <glm/trigonometric.hpp>
@@ -76,6 +78,7 @@ inline void InitScene(Scene& mainScene) {
     mainScene.AddComponent<DebugInspector>();
     mainScene.AddComponent<UiSystem>();
     mainScene.AddComponent<AnimationSystem>();
+    mainScene.AddComponent<PickableItemSystem>();
     auto* tweenSystem = mainScene.AddComponent<TweenSystem>();
     mainScene.AddComponent<WheelSystem>();
 
@@ -146,6 +149,25 @@ inline void InitScene(Scene& mainScene) {
 
     player->AddObject<Player>();
 
+    // Pickable objects
+    auto* schnozMesh = mainScene.Resources()->Get<Mesh>(
+        "./res/models/schnoz/schnoz.obj", true);
+    JPH::ShapeRefC schnozShape = Physics::ConvexHullMeshShape(schnozMesh);
+    JPH::BodyCreationSettings schnozSettings(
+        schnozShape, JPH::RVec3::sZero(), JPH::Quat::sIdentity(),
+        JPH::EMotionType::Dynamic, Physics::Layers::MOVING);
+
+    for (int i = 0; i < 10; i++) {
+        auto* item = mainScene.CreateNode("PickableSchnoz");
+        item->AddObject<MeshRenderer>(schnozMesh,
+                                      schnozMesh->GetDefaultMaterials());
+        item->AddObject<PickableItem>();
+        item->AddObject<Physics::Body>(schnozSettings);
+
+        item->GlobalTransform().Scale() = glm::vec3(0.2f);
+        item->GlobalTransform().Position() = {2.0f, 2.0f + i * 0.5f, 2.0f};
+    }
+
 #pragma endregion
 
 #pragma region Camera
@@ -156,7 +178,9 @@ inline void InitScene(Scene& mainScene) {
     cameraNode->AddObject<CameraSettings>(
         playerNode->GlobalTransform().Position());
     cameraNode->AddObject<MaskEffects>();
-    cameraNode->AddObject<JfaOutline>();
+    auto* jfa = cameraNode->AddObject<JfaOutline>();
+    jfa->outlineThickness = 4.0f;
+    jfa->outlineColor = {1.0f, 29.0f / 255.0f, 29.0f / 255.0f};
     auto* dof = cameraNode->AddObject<DepthOfField>();
     dof->SetEnabled(false);
     cameraNode->AddObject<Bloom>();
@@ -214,7 +238,8 @@ inline void InitScene(Scene& mainScene) {
     radialWheelNode->AddObject<UiLayout>(
         glm::uvec2(600, 600), glm::uvec2(-150, 0), 0, AnchorPoint::CenterRight);
     auto* customVisual =
-        radialWheelNode->AddObject<UiVisual>(glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
+        radialWheelNode->AddObject<UiVisual>(glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+    customVisual->SetEnabled(false);
     customVisual->customMaterial = customUiMaterial;
     auto* radialWheel = radialWheelNode->AddObject<UiRadialWheel>();
     radialWheel->AddObject<WheelTag>();
@@ -230,7 +255,9 @@ inline void InitScene(Scene& mainScene) {
     SceneNode* gridRoot = mainScene.CreateNode(uiRoot, "Grid");
     gridRoot->AddObject<UiLayout>(glm::uvec2(360, 475), glm::uvec2(50, 50), 0,
                                   AnchorPoint::TopLeft);
-    gridRoot->AddObject<UiVisual>(glm::vec4(0.2f, 0.2f, 0.2f, 0.8f));
+    auto* gridRootVisual =
+        gridRoot->AddObject<UiVisual>(glm::vec4(0.2f, 0.2f, 0.2f, 0.8f));
+    gridRootVisual->SetEnabled(false);
     gridRoot->AddObject<WheelTag>();
     SceneNode* gridContainer = mainScene.CreateNode(gridRoot, "Grid Container");
     auto* gridLayout = gridContainer->AddObject<UiLayout>(
@@ -249,6 +276,7 @@ inline void InitScene(Scene& mainScene) {
 
         auto* visual =
             itemNode->AddObject<UiVisual>(glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
+        visual->SetEnabled(false);
         itemNode->AddObject<UiInteractable>();
         itemNode->AddObject<WheelTag>();
     }

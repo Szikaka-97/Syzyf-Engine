@@ -8,7 +8,7 @@
 #include <InputSystem.h>
 #include <Graphics.h>
 #include <Camera.h>
-#include <game_scripts/ThrowBottle.h>
+#include <game_scripts/player/ThrowBottle.h>
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/ext/quaternion_trigonometric.hpp>
 #include <glm/fwd.hpp>

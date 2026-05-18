@@ -131,7 +131,8 @@ public:
             slot.uiNode->AddObject<WheelTag>();
             UiVisual* visual = slot.uiNode->AddObject<UiVisual>();
             visual->texture = (Texture2D*)slot.viewport->GetFramebuffer()->GetColorTexture();
-            visual->color.a = 0.0f;
+            visual->color.a = 1.0f;
+            visual->SetEnabled(false);
 
             UiLayout* layout = slot.uiNode->AddObject<UiLayout>();
             layout->size = glm::ivec2(150, 150);
@@ -165,7 +166,12 @@ public:
         float scaledInnerRadius = innerRadius * scaleFactor;
         float scaledOuterRadius = outerRadius * scaleFactor;
 
-        if (distance >= scaledInnerRadius && distance <= scaledOuterRadius) {
+        bool isWheelVisible = false;
+        if (auto* visual = GetNode()->GetObject<UiVisual>()) {
+            isWheelVisible = visual->IsEnabled() && visual->color.a > 0.0f;
+        }
+
+        if (isWheelVisible && distance >= scaledInnerRadius && distance <= scaledOuterRadius) {
             float angle = std::atan2(-relativeMouse.y, relativeMouse.x);
 
             if (angle < 0.0f) {

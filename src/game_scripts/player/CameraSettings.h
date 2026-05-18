@@ -1,6 +1,6 @@
 #pragma once
 
-#include "game_scripts/PlayerController.h"
+#include "game_scripts/player/PlayerController.h"
 #include <GameObject.h>
 #include <Scene.h>
 #include <glm/ext/quaternion_geometric.hpp>
