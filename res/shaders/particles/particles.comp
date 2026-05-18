@@ -1,11 +1,19 @@
 #version 460 core
 
+#include "shared/shared.h"
 #include "shared/uniforms.h"
 
 struct ParticleData {
     vec4 position;
     vec4 velocity;
     vec4 lifetime;
+};
+
+layout (std430, binding = 1) restrict buffer LightInfo {
+	vec4 Light_AmbientLight;
+	int Light_LightCount;
+	int Light_DirectionalLightCascadeCount;
+	Light Light_LightsList[];
 };
 
 layout(std430, binding = 3) buffer ParticleBuffer {
@@ -39,6 +47,13 @@ float random(inout uint state) {
 void main() {
     uint index = gl_GlobalInvocationID.x;
     if (index >= particles.length()) return;
+
+    if (index == 0) {
+		Light_LightCount = particles.length();
+	}
+
+    groupMemoryBarrier();
+	barrier();
 
     bool justSpawned = false;
 
@@ -76,4 +91,13 @@ void main() {
             particles[index].position.xyz = uAreaCenter + localPosition;
         }
     }
+
+    Light_LightsList[index].position = particles[index].position.xyz;
+    Light_LightsList[index].type = POINT_LIGHT;
+    Light_LightsList[index].range = 1f;
+    Light_LightsList[index].color = vec3(1, 1, 1);
+    Light_LightsList[index].intensity = 2.0f;
+    Light_LightsList[index].linearAttenuation = 1.0f;
+    Light_LightsList[index].quadraticAttenuation = 60.0f;
+    Light_LightsList[index].shadowAtlasIndex = -1;
 }

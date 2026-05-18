@@ -123,7 +123,7 @@ bool Engine::InitProgram() {
 	glContext = SDL_GL_CreateContext(window);
 
 	SDL_GL_MakeCurrent(window, glContext);
-	SDL_GL_SetSwapInterval(1);
+	SDL_GL_SetSwapInterval(0);
 	SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
 	SDL_ShowWindow(window);
 

@@ -13,7 +13,7 @@
 #include "../res/shaders/shared/shared.h"
 #include "../res/shaders/shared/uniforms.h"
 
-constexpr int MAX_NUM_LIGHTS = 4096;
+constexpr int MAX_NUM_LIGHTS = 8192;
 constexpr int LIGHTS_PER_CLUSTER = 100;
 
 struct alignas(16) Cluster {

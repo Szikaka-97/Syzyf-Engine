@@ -61,7 +61,7 @@ vec3 shade(in Material mat, in vec3 worldPos, in vec3 normal, in vec3 tangent) {
 
 	for (int lightIndex = 0; lightIndex < lightCount; lightIndex++) {
 		Light l = Light_LightsList[Light_LightIndexList[lightStartIndex + lightIndex]];
-	// for (int lightIndex = 0; lightIndex < Light_LightCount; lightIndex++) {
+	// for (int lightIndex = 0; lightIndex < 8192; lightIndex++) {
 	// 	Light l = Light_LightsList[lightIndex];
 
 		if (l.intensity <= 0) {
