@@ -28,6 +28,7 @@ out VS_OUT {
 	vec2 texcoords;
     float alpha;
     float lifetime;
+    flat uint index;
 } vs_out;
 
 uniform vec3 areaCenter;
@@ -121,7 +122,8 @@ void main() {
 	vs_out.viewPos = (Global_ViewMatrix * vec4(vs_out.worldPos, 1.0)).xyz;
 	vs_out.tangent = Object_NormalModelMatrix * vTangent;
 	vs_out.texcoords = vUVCoords;
-
+	vs_out.index = gl_InstanceID;
+	
     // Distance fade
 
     vs_out.alpha = 1.0;

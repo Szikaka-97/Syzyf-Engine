@@ -72,9 +72,9 @@ bool ConeIntersectsCluster(Cone c) {
 }
 
 void AppendLight(uint lightIndex) {
-	uint index = atomicAdd(localLightCount, 1);
-
-	if (index < MAX_LIGHTS_PER_TILE) {
+	if (localLightCount < MAX_LIGHTS_PER_TILE - 1) {
+		uint index = atomicAdd(localLightCount, 1);
+		
 		localLightList[index] = lightIndex;
 	}
 }
@@ -141,6 +141,8 @@ void main() {
 		};
 	}
 
+	memoryBarrierWithSync();
+
 	if (gl_LocalInvocationIndex == 0) {
 		lightIndexStartOffset = atomicAdd(lightIndexCounter, localLightCount);
 
@@ -149,7 +151,9 @@ void main() {
 
 	memoryBarrierWithSync();
 
-	for (uint i = gl_LocalInvocationID.x; i < localLightCount; i += LIGHTS_STRIDE) {
+	uint localLowestPowerOverCount = localLightCount + LIGHTS_STRIDE - (localLightCount % LIGHTS_STRIDE);
+	
+	for (uint i = gl_LocalInvocationID.x; i < localLowestPowerOverCount; i += LIGHTS_STRIDE) {
 		if (i >= localLightCount) {
 			continue;
 		}

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ColorGrading.h"
 #include "Debug.h"
 #include "GameObject.h"
 #include "GltfImporter.h"
@@ -20,12 +21,12 @@
 #include <Graphics.h>
 #include <InputSystem.h>
 #include <ParticleSpawner.h>
+#include <Bloom.h>
+#include <Tonemapper.h>
+
 #include <glm/ext/scalar_common.hpp>
 #include <glm/gtc/constants.hpp>
 #include <glm/matrix.hpp>
-
-#include "../../res/shaders/shared/shared.h"
-#include "../../res/shaders/shared/uniforms.h"
 
 namespace LightingTestScene {
 
@@ -112,6 +113,8 @@ inline void InitScene(Scene& mainScene) {
 	monkey->GlobalTransform().Position() = glm::vec3(30, 15, -40);
 	
 	SceneNode* lightsRoot = mainScene.CreateNode("Lights root");
+	lightsRoot->GlobalTransform().Position() = glm::vec3(0, 20, 0);
+	lightsRoot->AddObject<Light>(Light::PointLight(glm::vec3(1.0, 0.6, 0.8), 100, 0.5, 0, 0));
 
 	// for (float x = -48; x <= 48; x += 2) {
 	// 	for (float y = -48; y <= 48; y += 2) {
@@ -137,6 +140,12 @@ inline void InitScene(Scene& mainScene) {
 	cameraNode->GlobalTransform().Position() = glm::vec3(0, 50, 0);
 	cameraNode->GlobalTransform().Rotation() = glm::quatLookAt(glm::vec3(0, 1, 0), glm::vec3(0, 0, 1));
 	cameraNode->AddObject<Camera>(Camera::Perspective(90, 1, 1, 100));
+	cameraNode->AddObject<Bloom>();
+	auto colorGrading = cameraNode->AddObject<ColorGrading>();
+	cameraNode->AddObject<Tonemapper>()->SetOperator(Tonemapper::TonemapperOperator::GranTurismo);
+
+	colorGrading->contrast = 1.09;
+	colorGrading->chromaticAberrationStrength = 0.1;
 
 	ShaderProgram* dustProgram = ShaderProgram::Build()
 	.WithVertexShader("./res/shaders/particles/particles.vert")
@@ -150,10 +159,10 @@ inline void InitScene(Scene& mainScene) {
 	dustMaterial->SetValue("color", glm::vec4(200.0f, 200.0f, 200.0f, 1.0f));
 
 	floorNode->AddObject<ParticleSpawner>(
-		mainScene.Resources()->Get<Mesh>("./res/models/fullscreenquad.obj"),
+		mainScene.Resources()->Get<Mesh>("./res/models/star.obj"),
 		dustMaterial,
 		ParticleSpawnerSettings{
-			.maxParticles = 8192,
+			.maxParticles = 6144,
 			.areaExtents = glm::vec3(20.0f, 3.0f, 20.0f),
 			.emissionShapeExtents = glm::vec3(20.0f, 3.0f, 20.0f),
 			.minVelocity = glm::vec3(-0.08f, -0.05f, -0.08f),

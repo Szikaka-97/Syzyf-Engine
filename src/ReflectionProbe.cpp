@@ -44,7 +44,7 @@ void ReflectionProbe::DrawGizmos() {
 
 	this->gizmoMaterial->SetValue("cubemap", this->prefilterMap);
 
-	GetScene()->GetGraphics()->DrawGizmoMesh(cubemapGizmoMesh, 0, this->gizmoMaterial, GlobalTransform().Value());
+	// GetScene()->GetGraphics()->DrawGizmoMesh(cubemapGizmoMesh, 0, this->gizmoMaterial, GlobalTransform().Value());
 }
 
 void ReflectionProbe::DrawImGui() {

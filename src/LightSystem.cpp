@@ -13,8 +13,8 @@
 #include "../res/shaders/shared/shared.h"
 #include "../res/shaders/shared/uniforms.h"
 
-constexpr int MAX_NUM_LIGHTS = 8192;
-constexpr int LIGHTS_PER_CLUSTER = 100;
+constexpr int MAX_NUM_LIGHTS = 16384;
+constexpr int LIGHTS_PER_CLUSTER = 256;
 
 struct alignas(16) Cluster {
 	glm::vec4 minPoint;
@@ -40,6 +40,7 @@ ambientLight(1.0f, 1.0f, 1.0f, 0.001f) {
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->lightsBuffer);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, 32 + sizeof(ShaderLightRep) * MAX_NUM_LIGHTS, nullptr, GL_DYNAMIC_DRAW);
 
+	
 	glGenBuffers(1, &this->shadowmapsBuffer);
 
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);

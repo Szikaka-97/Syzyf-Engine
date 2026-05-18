@@ -26,6 +26,16 @@ layout (std430, binding = 5) restrict buffer LightGrid {
 	uvec2 Light_LightGrid[];
 };
 
+void Light_AddLight(Light l) {
+	if (Light_LightCount >= Light_LightsList.length()) {
+		return;
+	}
+	
+	uint lightIndex = atomicAdd(Light_LightCount, 1);
+
+	Light_LightsList[lightIndex] = l;
+}
+
 uniform sampler2D Builtin_ShadowMask;
 
 vec3 getLightStrength(in Light light, in vec3 worldPos) {
