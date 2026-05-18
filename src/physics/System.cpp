@@ -277,8 +277,8 @@ namespace Physics {
     }
     for (const auto& collision : currentCollisions) {
 
-      GameObject* object1;
-      GameObject* object2;
+      GameObject* object1 = nullptr;
+      GameObject* object2 = nullptr;
       
       {
         JPH::BodyLockRead lock1(physicsSystem->GetBodyLockInterface(), collision.body1);

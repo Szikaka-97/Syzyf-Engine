@@ -28,30 +28,30 @@ void SetEffect(std::function<void(TEffect*)> configure = nullptr) {
         if (configure) configure(effect);
         effect->Init();
 
-        //ShaderProgram* pbrProg = ShaderProgram::Build()
-        //                             .WithVertexShader("./res/shaders/lit.vert")
-        //                             .WithPixelShader("./res/shaders/pbr.frag")
-        //                             .Link();
+        ShaderProgram* pbrProg = ShaderProgram::Build()
+                                     .WithVertexShader("./res/shaders/lit.vert")
+                                     .WithPixelShader("./res/shaders/pbr.frag")
+                                     .Link();
 
-        //Scene* scene = this->GetScene();  // jawnie this-> i wywołanie nieconst
-        //Texture2D* reflectiveDiffuse = scene->Resources()->Get<Texture2D>(
-        //    "./res/textures/material_preview/worn-shiny-metal-albedo.png",
-        //    Texture::ColorTextureRGB);
-        //Texture2D* reflectiveNormal = scene->Resources()->Get<Texture2D>(
-        //    "./res/textures/material_preview/worn-shiny-metal-Normal-ogl.png",
-        //    Texture::TechnicalMapXYZ);
-        //Texture2D* reflectiveARM = scene->Resources()->Get<Texture2D>(
-        //    "./res/textures/material_preview/worn-shiny-metal-arm.png",
-        //    Texture::TechnicalMapXYZ);
+        Scene* scene = this->GetScene(); 
+        Texture2D* reflectiveDiffuse = scene->Resources()->Get<Texture2D>(
+            "./res/textures/material_preview/worn-shiny-metal-albedo.png",
+            Texture::ColorTextureRGB);
+        Texture2D* reflectiveNormal = scene->Resources()->Get<Texture2D>(
+            "./res/textures/material_preview/worn-shiny-metal-Normal-ogl.png",
+            Texture::TechnicalMapXYZ);
+        Texture2D* reflectiveARM = scene->Resources()->Get<Texture2D>(
+            "./res/textures/material_preview/worn-shiny-metal-arm.png",
+            Texture::TechnicalMapXYZ);
 
-        //Material* reflectiveMat = new Material(pbrProg);
-        //reflectiveMat->SetValue("albedoMap", reflectiveDiffuse);
-        //reflectiveMat->SetValue("normalMap", reflectiveNormal);
-        //reflectiveMat->SetValue("armMap", reflectiveARM);
+        Material* reflectiveMat = new Material(pbrProg);
+        reflectiveMat->SetValue("albedoMap", reflectiveDiffuse);
+        reflectiveMat->SetValue("normalMap", reflectiveNormal);
+        reflectiveMat->SetValue("armMap", reflectiveARM);
 
-        //Mesh* effectMesh = scene->Resources()->Get<Mesh>("./res/models/jake_tangents.glb");
+        Mesh* effectMesh = scene->Resources()->Get<Mesh>("./res/models/jake_tangents.glb");
 
-        //effect->SetEffectRenderer(effectMesh, reflectiveMat);
+        effect->SetEffectRenderer(effectMesh, reflectiveMat);
         return effect;
     };
 }
