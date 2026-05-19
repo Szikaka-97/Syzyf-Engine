@@ -117,6 +117,10 @@ inline void InitScene(Scene& mainScene) {
 
     floorBody->SetCollisionLayerAndMask({0}, 0xFFFFFFFF);
 
+    auto* room = GltfImporter::LoadScene(
+        &mainScene, "./res/models/rooms/room_I.gltf", "Room");
+    room->GlobalTransform().Position() += {0.0f, 0.01f, 0.0f};
+
 #pragma endregion
 #pragma region Player
 
@@ -146,6 +150,8 @@ inline void InitScene(Scene& mainScene) {
     aimingAid->crosshair = GltfImporter::LoadScene(
         &mainScene, "./res/models/crosshair.glb", "crosshair", floorNode);
     aimingAid->crosshair->SetParent(aimingAid->GetNode());
+    aimingAid->GetNode()->GetObjectInChildren<MeshRenderer>()->maskFlags |=
+        MaskEffectBits::XRay;
 
     player->aim = aimingAid;
 
@@ -226,9 +232,8 @@ inline void InitScene(Scene& mainScene) {
 
     cursorNode->AddObject<UiVisual>(
         glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-        mainScene.Resources()->Get<Texture2D>(
-            "./res/textures/1147437805040054272.png",
-            Texture2D::ColorTextureRGBA));
+        mainScene.Resources()->Get<Texture2D>("./res/textures/cursor.png",
+                                              Texture2D::ColorTextureRGBA));
     cursorNode->AddObject<UiCursor>();
 
     ShaderProgram* customUiProgram =

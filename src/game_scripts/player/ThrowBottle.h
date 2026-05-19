@@ -12,7 +12,6 @@
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
-#include <algorithm>
 #include <vector>
 #include <TimeSystem.h>
 
@@ -39,7 +38,7 @@ private:
         //float flightDuration = 0.8f;
       //  float arcHeight = 3.0f;
         float timer = 0.0f;
-        const float maxLifetime = 5.0f;
+        const float maxLifetime = 60.0f;
     };
 
     std::vector<BottleInstance> bottles;
@@ -47,7 +46,7 @@ private:
     Mesh* bottleMesh = nullptr;
     Material* bottleMaterial = nullptr;
 
-    int poolSize = 16;
+    int poolSize = 50;
     glm::vec3 hiddenPosition = glm::vec3(0.0f, -1000.0f, 0.0f);
 
     void CreatePoolIfNeeded()
@@ -61,7 +60,7 @@ private:
         for (int i = 0; i < poolSize; ++i) {
             SceneNode* bottleNode = GetScene()->CreateNode("Thrown Bottle");
             bottleNode->AddObject<MeshRenderer>(bottleMesh, bottleMaterial);
-            bottleNode->GlobalTransform().Scale() = glm::vec3(0.3f);
+            bottleNode->GlobalTransform().Scale() = glm::vec3(1.0f);
             bottleNode->GlobalTransform().Position() = hiddenPosition;
             bottleNode->SetEnabled(false);
 
@@ -132,7 +131,7 @@ public:
 
                 bottle.node->SetEnabled(true);
                 bottle.node->GlobalTransform().Position() = startPos;
-                bottle.node->GlobalTransform().Scale() = glm::vec3(0.3f);
+                bottle.node->GlobalTransform().Scale() = glm::vec3(1.0f);
 
                JPH::BodyCreationSettings bottleSettings(
                     new JPH::SphereShape(0.2f),
@@ -144,7 +143,7 @@ public:
                 bottle.body = bottle.node->AddObject<Physics::Body>(bottleSettings);
                 bottle.body->SetRestitution(0.3f);
                 bottle.body->SetFriction(0.5f);
-                bottle.body->SetCollisionLayerAndMask({2}, {0});
+                bottle.body->SetCollisionLayerAndMask({2}, 0xFFFFFFFF);
 
                 float gravity = 9.81f;
                 glm::vec3 displacement = targetPos - startPos;

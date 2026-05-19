@@ -16,7 +16,6 @@
 #include "physics/LayerMaskFilter.h"
 #include "physics/System.h"
 #include "Graphics.h"
-#include "physics/VirtualCharacterController.h"
 
 class Player : public GameObject {
 private: 
@@ -31,6 +30,9 @@ private:
     Physics::System* physics = nullptr;
 public:
     Player() : m_RoomID(0) {
+    }
+
+    void Awake() {
         rooms = GetScene()->FindObjectsOfType<Surface>();  
         spdlog::info("Player found {} rooms in the scene", rooms.size());
     }
