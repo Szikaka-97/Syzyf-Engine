@@ -7,22 +7,27 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/norm.hpp>
 #include <Jolt/Jolt.h>
+#include "Jolt/Physics/Body/BodyFilter.h"
 #include "MeshRenderer.h"
 #include "Scene.h"
 #include "Surface.h"
 #include "game_scripts/player/PickableItemSystem.h"
 #include "InputSystem.h"
+#include "physics/LayerMaskFilter.h"
 #include "physics/System.h"
 #include "Graphics.h"
+#include "physics/VirtualCharacterController.h"
 
 class Player : public GameObject {
 private: 
     int m_RoomID;
     std::vector<Surface*> rooms;
 
-    PickableItemSystem* pickableItemSystem = nullptr;
+    // Item interaction stuff
     float itemHighlightRadius = 2.0f;
     PickableItem* highlightedItem = nullptr;
+    //  Cached systems
+    PickableItemSystem* pickableItemSystem = nullptr;
     Physics::System* physics = nullptr;
 public:
     Player() : m_RoomID(0) {
@@ -39,6 +44,8 @@ public:
     }
 
 private:
+    // Highlights the item hovered by a cursor, if no item is found falls back to finding the closest item to the Player
+    //  pressing a button picks the item up
     void HandleItemInteraction() {
         if (!this->pickableItemSystem) {
             this->pickableItemSystem = this->GetScene()->GetComponent<PickableItemSystem>();
@@ -47,6 +54,7 @@ private:
 
         PickableItem* newItem = nullptr;
 
+        // Mouse cursor raycast
         if (!this->physics) {
             this->physics = this->GetScene()->GetComponent<Physics::System>();
         } else if (auto* camera = this->GetScene()->GetGraphics()->GetMainCamera()) {
@@ -71,17 +79,22 @@ private:
 
             glm::vec3 rayDirection = glm::normalize(rayTarget - rayOrigin) * 100.0f;
 
-            Physics::RayCastPayload hit = this->physics->CastRay(rayOrigin, rayDirection);
+            // Includes only the items (layer 2)
+            Physics::LayerMaskFilter layerFilter({2}, true);
+
+            Physics::RayCastPayload hit = this->physics->CastRay(rayOrigin, rayDirection, {}, {}, layerFilter);
 
             if (hit.hasHit && hit.node) {
                 newItem = hit.node->GetObject<PickableItem>();
             }
         }
 
+        // Closest item fallback
         if (newItem == nullptr) {
             newItem = pickableItemSystem->GetClosestItem(this->GlobalTransform().Position().Value(), this->itemHighlightRadius);
         }
 
+        // Highlighting logic
         if (newItem != this->highlightedItem) {
             if (this->highlightedItem) {
                 if (auto* renderer = this->highlightedItem->GetObject<MeshRenderer>()) {
@@ -96,6 +109,7 @@ private:
             this->highlightedItem = newItem;
         }
 
+        // On interact
         if (this->GetScene()->Input()->KeyDown(Key::E) && this->highlightedItem != nullptr) {
             this->highlightedItem->OnPickUp();
             delete this->highlightedItem->GetNode();

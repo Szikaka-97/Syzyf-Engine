@@ -228,7 +228,7 @@ private:
             this->isTooltipVisible = shouldBeVisible;
 
             if (this->tweenSystem) {
-                this->tooltipTween.SetPlaying(false);
+                if (this->tweenSystem->IsValid(this->tooltipTween)) this->tooltipTween.SetPlaying(false);
 
                 float targetAlpha = shouldBeVisible ? 1.0f : 0.0f;
 

@@ -66,7 +66,7 @@ class WheelSystem : public GameObjectSystem<WheelTag> {
 
                 dof->SetEnabled(true);
 
-                this->unblurTween.SetPlaying(false);
+                if (tweenSystem->IsValid(this->unblurTween)) this->unblurTween.SetPlaying(false);
                 float currentValue = dof->finalMixFactor;
 
                 float diff = (1.0f - currentValue);
@@ -104,7 +104,7 @@ class WheelSystem : public GameObjectSystem<WheelTag> {
             Time::SetTimeScale(1.0f);
 
             for (WheelTag* object : IterateObjects()) {
-                this->blurTween.SetPlaying(false);
+                if (tweenSystem->IsValid(this->blurTween)) this->blurTween.SetPlaying(false);
 
                 float currentValue = this->dof->finalMixFactor;
                 float duration = BLUR_DURATION * currentValue;

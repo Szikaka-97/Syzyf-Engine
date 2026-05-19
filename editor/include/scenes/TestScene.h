@@ -109,11 +109,13 @@ inline void InitScene(Scene& mainScene) {
     floorNode->AddObject<Skybox>(skyMat);
     MeshRenderer* floorMeshRenderer =
         floorNode->GetObjectInChildren<MeshRenderer>();
-    floorMeshRenderer->GetNode()->AddObject<Physics::Body>(
+    auto* floorBody = floorMeshRenderer->GetNode()->AddObject<Physics::Body>(
         JPH::BodyCreationSettings{
             Physics::MeshShape(floorMeshRenderer->GetMesh()),
             JPH::RVec3::sZero(), JPH::Quat::sZero(), JPH::EMotionType::Static,
             Physics::Layers::NON_MOVING});
+
+    floorBody->SetCollisionLayerAndMask({0}, 0xFFFFFFFF);
 
 #pragma endregion
 #pragma region Player
@@ -133,10 +135,10 @@ inline void InitScene(Scene& mainScene) {
     auto* virtualCharacter =
         playerNode->AddObject<Physics::VirtualCharacterController>(
             characterSettings);
+    virtualCharacter->SetCollisionLayerAndMask({1}, 0xFFFFFFFF);
     virtualCharacter->SetPosition(
         playerNode->GlobalTransform().Position().Value());
-    virtualCharacter->SetGravityFactor(0);
-    virtualCharacter->SetCollisionLayerAndMask({0}, 0);
+    virtualCharacter->SetGravityFactor(1);
     auto* player = playerNode->AddObject<PlayerController>();
 
     auto* aimingAid = mainScene.CreateNode("AimingAid")->AddObject<AimingAid>();
@@ -162,7 +164,8 @@ inline void InitScene(Scene& mainScene) {
         item->AddObject<MeshRenderer>(schnozMesh,
                                       schnozMesh->GetDefaultMaterials());
         item->AddObject<PickableItem>();
-        item->AddObject<Physics::Body>(schnozSettings);
+        auto* itemBody = item->AddObject<Physics::Body>(schnozSettings);
+        itemBody->SetCollisionLayerAndMask({2}, 0xFFFFFFFF);
 
         item->GlobalTransform().Scale() = glm::vec3(0.2f);
         item->GlobalTransform().Position() = {2.0f, 2.0f + i * 0.5f, 2.0f};
