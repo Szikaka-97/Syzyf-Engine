@@ -116,6 +116,8 @@ void SceneViewPanel::Draw(Context& context) {
                         if (!requiresTabSync &&
                             context.selectedScene != scene) {
                             context.selectedScene = scene;
+                            // Otherwise the editor crashes if you delete an
+                            // object while in game
                             context.selectedNode = nullptr;
 
                             context.mainCamera =
@@ -282,10 +284,8 @@ void SceneViewPanel::Draw(Context& context) {
                 }
 
                 if (ImGui::IsKeyPressed(ImGuiKey_Delete)) {
-                    // context.selectedScene->DeleteNode(context.selectedNode);
-                    // context.selectedNode = nullptr;
-
-                    // TODO uncomment when deleting doesnt crash the game
+                    context.selectedScene->DeleteNode(context.selectedNode);
+                    context.selectedNode = nullptr;
                 }
             }
 
@@ -720,6 +720,7 @@ void SceneViewPanel::DrawMenuBar(Context& context) {
     if (ImGui::RadioButton("Game", context.state == State::Game)) {
         if (context.state != State::Game) {
             context.state = State::Game;
+            context.selectedNode = nullptr;
 
             ImGui::GetIO().ConfigFlags &= ~ImGuiConfigFlags_NavEnableKeyboard;
 
