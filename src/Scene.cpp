@@ -229,6 +229,17 @@ void SceneNode::operator delete(SceneNode* ptr, std::destroying_delete_t) {
 	ptr->GetScene()->QueueDelete(ptr);
 }
 
+void SceneNode::Deserialize(const nlohmann::json& data) {
+	spdlog::info("Scene Node Serialize");
+}
+nlohmann::json SceneNode::Serialize() const {
+	nlohmann::json data;
+
+	data["id"] = this->id;
+
+	return data;
+}
+
 Scene* Scene::CreateStandaloneScene() {
 	Scene* created = new Scene();
 
@@ -529,45 +540,7 @@ void Scene::Deserialize(const nlohmann::json& json_node) {
 nlohmann::json Scene::Serialize() const {
 	json data;
 
-	std::vector<json> nodesData;
-
-	std::stack<SceneNode*> nodes;
-	nodes.push(this->root);
-
-	while (!nodes.empty()) {
-		SceneNode* current = nodes.top();
-		nodes.pop();
-
-		json nodeRep;
-
-		nodeRep["id"] = current->id;
-		nodeRep["name"] = current->name;
-		nodeRep["parent"] = current->parent ? current->parent->id : -1;
-
-		nodeRep["transform"] = Serialization::Serialize(current->LocalTransform().Value());
-
-		std::vector<nlohmann::json> gameObjectData;
-		for (GameObject* obj : current->objects) {
-			// gameObjectData.push_back(Serialization::SerializeGameObject(obj));
-		}
-		nodeRep["objects"] = gameObjectData;
-
-		for (auto child : current->children) {
-			nodes.push(child);
-		}
-
-		nodesData.push_back(nodeRep);
-	}
-
-	data["nodes"] = nodesData;
-
-	json resources;
-
-	// for (auto res : Serialization::GetSerializedResources()) {
-	// 	resources[std::to_string((intptr_t) res)] = Serialization::Serialize(res);
-	// }
-
-	data["resources"] = resources;
+	data["root"] = Serialization::Serialize(this->root);
 
 	return data;
 }

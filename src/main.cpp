@@ -339,9 +339,9 @@ void InitScene(Scene* mainScene) {
 
 	std::ofstream destJson("sceneDump.json");
 
-	// nlohmann::json sceneDump = Serialization::Serialize(mainScene);
+	nlohmann::json sceneDump = Serialization::Serialize(mainScene);
 
-	// destJson << sceneDump.dump(4) << "\n";
+	destJson << sceneDump.dump(4) << "\n";
 
 	destJson.close();
 
@@ -364,53 +364,10 @@ void LoadScene(Scene* mainScene) {
 #include <TypeInfo.h>
 
 int main(int, char**) {
-	// if (!Engine::Setup(InitScene)) {
-	// 	spdlog::error("Failed to initialize project!");
-	// 	return EXIT_FAILURE;
-	// }
-
-	// spdlog::info("");
-	
-	// auto shader = ShaderProgram::Build()
-	// .WithVertexShader("./res/shaders/lit.vert")
-	// .WithPixelShader("./res/shaders/lambert.frag")
-	// .WithKeyword("KEY", 0)
-	// .Link();
-
-	// int uniformCount = 0;
-
-	// glGetProgramiv(shader->GetHandle(), GL_ACTIVE_UNIFORMS, &uniformCount);
-
-	// spdlog::warn(uniformCount);
-
-	// for (int i = 0; i < uniformCount; i++) {
-	// 	char buf[512];
-	// 	int len;
-
-	// 	glGetActiveUniformName(shader->GetHandle(), i, 511, &len, buf);
-
-	// 	spdlog::warn("{} - {}", i, std::string(buf));
-	// }
-
-	// spdlog::info(shader->HasPragma("poop"));
-	
-	// return 0;
-	spdlog::info("FUCK.");
-
-	json one;
-	one["thing"] = "bep";
-
-	json two;
-	two["something"] = "raf";
-
-	one.merge_patch(two);
-
-	spdlog::info("\n{}", one.dump(2));
-
-	// spdlog::info(TypeInfo::GetTypeInfo("SceneComponent").name);
-	// spdlog::info(TypeInfo::GetTypeInfo("SceneComponent").size);
-
-	// Engine::MainLoop();
+	if (!Engine::Setup(InitScene)) {
+		spdlog::error("Failed to initialize project!");
+		return EXIT_FAILURE;
+	}
 
 	return 0;
 }

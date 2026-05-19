@@ -69,6 +69,9 @@ public:
 	const UniformSpec* GetUniforms() const;
 
 	void RefreshVariables();
+
+	nlohmann::json Serialize() const;
+	void Deserialize(const nlohmann::json& data);
 };
 
 class Material : public Resource {
@@ -134,7 +137,7 @@ public:
 	virtual uint64_t GetHash() const;
 
 	void Deserialize(const nlohmann::json& json_node);
-	nlohmann::json Serialize();
+	nlohmann::json Serialize() const;
 };
 
 class ComputeDispatchData {

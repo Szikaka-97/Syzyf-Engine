@@ -1,4 +1,3 @@
-import clang.cindex as clang
 import sys
 import os
 import os.path
@@ -8,7 +7,6 @@ import json
 import re as regex
 from TypeDatabase import *
 
-all_classes: dict[str, CppClass] = {}
 data: dict[str, dict] = None
 
 SOURCE_TYPE_DATABASE = sys.argv[1]
@@ -46,24 +44,6 @@ class CodeWriter:
 		self.indent = max(self.indent, 0)
 
 
-
-def load_class(class_name, cls_data) -> CppClass:
-	if class_name in all_classes:
-		return all_classes[class_name]
-	else:
-		cls = CppClass(cls_data)
-
-		base_classes = []
-
-		if "enclosing_class" in cls_data and cls_data["enclosing_class"] != "":
-			cls.enclosing_class = load_class(cls_data["enclosing_class"], data[cls_data["enclosing_class"]])
-
-		for base in cls_data["base_classes"]:
-			base_classes.append(load_class(base, data[base]))
-
-		all_classes[class_name] = cls
-
-
 def main():
 	global all_classes, data
 
@@ -72,8 +52,7 @@ def main():
 	with open(SOURCE_TYPE_DATABASE) as json_file:
 		data = json.load(json_file)
 
-		for class_name, cls_data in data.items():
-			load_class(class_name, cls_data)
+		CppType.load_types(data)
 
 	with CodeWriter(DEST_SOURCE_FILE_PATH) as dest_impl:
 		dest_impl.line("#include <TypeInfo.h>")
@@ -84,9 +63,11 @@ def main():
 
 		include_files = []
 
-		for cls_name, cls in all_classes.items():
-			if cls.source not in include_files:
-				include_files.append(cls.source)
+		CppType.all_types = {type_name: tp for type_name, tp in CppType.all_types.items() if tp.projects_own and tp.access == "public" and not tp.enclosing_class}
+
+		for type_name, tp in CppType.all_types.items():
+			if tp.source not in include_files:
+				include_files.append(tp.source)
 		
 		for include_file in include_files:
 			dest_impl.line(f"#include \"{include_file}\"")
@@ -95,9 +76,8 @@ def main():
 		dest_impl.line("TypeInfo allTypeInfos[] {")
 		dest_impl.more_indent()
 
-		for cls_name, cls in all_classes.items():
-			if cls.access == "public":
-				dest_impl.line(f"{{ .name = \"{cls_name}\", .size = sizeof({cls_name}) }},")
+		for type_name, tp in CppType.all_types.items():
+			dest_impl.line(f"{{ .name = \"{type_name}\", .size = sizeof({type_name}) }},")
 
 		dest_impl.less_indent()
 		dest_impl.line("};")
@@ -106,10 +86,9 @@ def main():
 		dest_impl.more_indent()
 
 		index = 0
-		for cls_name, cls in all_classes.items():
-			if cls.access == "public":
-				dest_impl.line(f"{{ \"{cls_name}\", {index} }},")
-				index += 1
+		for type_name in CppType.all_types:
+			dest_impl.line(f"{{ \"{type_name}\", {index} }},")
+			index += 1
 
 		dest_impl.less_indent()
 		dest_impl.line("};")
@@ -118,12 +97,11 @@ def main():
 		dest_impl.more_indent()
 
 		index = 0
-		for cls_name, cls in all_classes.items():
-			if cls.access == "public":
-				dest_impl.line(f"{{ typeid({cls_name}), {index} }},")
-				dest_impl.line(f"{{ typeid({cls_name} *), {index} }},")
-				dest_impl.line(f"{{ typeid(const {cls_name} *), {index} }},")
-				index += 1
+		for type_name in CppType.all_types:
+			dest_impl.line(f"{{ typeid({type_name}), {index} }},")
+			dest_impl.line(f"{{ typeid({type_name} *), {index} }},")
+			dest_impl.line(f"{{ typeid(const {type_name} *), {index} }},")
+			index += 1
 
 		dest_impl.less_indent()
 		dest_impl.line("};")

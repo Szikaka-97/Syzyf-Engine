@@ -259,6 +259,21 @@ void ShaderVariableStorage::RefreshVariables() {
 	this->dataBuffer = newBuffer;
 }
 
+void ShaderVariableStorage::Deserialize(const nlohmann::json& json_node) {
+	// this->shader = ShaderProgram::Load(json_node["shader"].get<std::string>());
+
+	// for (const auto& uniform : json_node["values"]) {
+
+	// }
+
+	spdlog::info("Material Serialize");
+}
+nlohmann::json ShaderVariableStorage::Serialize() const {
+	spdlog::info("Material Serialize");
+
+	return nlohmann::json{};
+}
+
 Material::Material():
 shader(nullptr),
 shaderVariables(),
@@ -332,7 +347,7 @@ void Material::Deserialize(const nlohmann::json& json_node) {
 
 	spdlog::info("Material Serialize");
 }
-nlohmann::json Material::Serialize() {
+nlohmann::json Material::Serialize() const {
 	spdlog::info("Material Serialize");
 
 	return nlohmann::json{};

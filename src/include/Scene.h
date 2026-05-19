@@ -112,6 +112,9 @@ public:
 	std::vector<Scene*> GetAttachedScenes() const;
 
 	static void operator delete(SceneNode* ptr, std::destroying_delete_t);
+
+	json Serialize() const;
+	void Deserialize(const json& data);
 };
 
 class Scene : public MessageReceiver{
