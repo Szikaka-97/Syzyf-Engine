@@ -7,6 +7,7 @@
 #include "LightSystem.h"
 #include "fog/Fog.h"
 #include "game_scripts/player/PickableItemSystem.h"
+#include "ui/custom/UiHealthBar.h"
 #include "ui/custom/wheel/UiWheel.h"
 #include <game_scripts/player/AimingAid.h>
 #include <game_scripts/player/Player.h>
@@ -179,6 +180,15 @@ inline void InitScene(Scene& mainScene) {
 
 #pragma endregion
 
+#pragma region Enemy
+
+    SceneNode* enemy =
+        GltfImporter::LoadScene(&mainScene, "./res/models/szkielet6.glb");
+    enemy->GlobalTransform().Position() = {3.0f, 1.0f, 0.0f};
+    enemy->GlobalTransform().Scale() = glm::vec3(0.1f);
+
+#pragma endregion
+
 #pragma region Camera
 
     SceneNode* cameraNode = mainScene.CreateNode("Camera Node");
@@ -217,14 +227,6 @@ inline void InitScene(Scene& mainScene) {
     uiNode->AddObject<WheelTag>();
     uiNode->AddObject<UiLayout>(glm::uvec2(400, 400), glm::uvec2(150, 0), 0,
                                 AnchorPoint::CenterLeft);
-    auto* uiVisual = uiNode->AddObject<UiVisual>(
-        glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-        mainScene.Resources()->Get<Texture2D>(
-            "./res/textures/1147437805040054272.png",
-            Texture2D::ColorTextureRGBA));
-    uiVisual->SetEnabled(false);
-    uiVisual->colorHovered = {1.0f, 0.0f, 0.0f, 1.0f};
-    uiVisual->colorClicked = {0.0f, 1.0f, 0.0f, 1.0f};
     uiNode->AddObject<UiInteractable>();
 
     SceneNode* cursorNode = mainScene.CreateNode(uiRoot, "Cursor");
@@ -244,7 +246,7 @@ inline void InitScene(Scene& mainScene) {
     Material* customUiMaterial = new Material(customUiProgram);
     SceneNode* radialWheelNode = mainScene.CreateNode(uiRoot, "Radial Wheel");
     radialWheelNode->AddObject<UiLayout>(
-        glm::uvec2(600, 600), glm::uvec2(-150, 0), 0, AnchorPoint::CenterRight);
+        glm::uvec2(600, 600), glm::uvec2(-50, 0), 0, AnchorPoint::CenterRight);
     auto* customVisual =
         radialWheelNode->AddObject<UiVisual>(glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
     customVisual->SetEnabled(false);
@@ -261,7 +263,7 @@ inline void InitScene(Scene& mainScene) {
     });
 
     SceneNode* gridRoot = mainScene.CreateNode(uiRoot, "Grid");
-    gridRoot->AddObject<UiLayout>(glm::uvec2(360, 475), glm::uvec2(50, 50), 0,
+    gridRoot->AddObject<UiLayout>(glm::uvec2(360, 240), glm::uvec2(50, 300), 0,
                                   AnchorPoint::TopLeft);
     auto* gridRootVisual =
         gridRoot->AddObject<UiVisual>(glm::vec4(0.2f, 0.2f, 0.2f, 0.8f));
@@ -269,11 +271,35 @@ inline void InitScene(Scene& mainScene) {
     gridRoot->AddObject<WheelTag>();
     SceneNode* gridContainer = mainScene.CreateNode(gridRoot, "Grid Container");
     auto* gridLayout = gridContainer->AddObject<UiLayout>(
-        glm::uvec2(330, 445), glm::uvec2(0, 0), 0, AnchorPoint::Center);
-    // gridContainer->AddObject<UiVisual>(glm::vec4(0.2f, 0.2f, 0.2f, 0.8f));
+        glm::uvec2(330, 210), glm::uvec2(0, 0), 0, AnchorPoint::Center);
     gridContainer->AddObject<UiInteractable>();
 
     auto* grid = gridContainer->AddObject<UiScrollableGrid>();
+
+    // Up Button
+    SceneNode* gridUpButton = mainScene.CreateNode(gridRoot, "Grid Up Button");
+    gridUpButton->AddObject<UiLayout>(glm::uvec2(125, 70), glm::uvec2(115, -80),
+                                      3, AnchorPoint::TopLeft);
+    gridUpButton->AddObject<UiVisual>(glm::vec4(0.2f, 0.2f, 0.2f, 0.8f))
+        ->SetEnabled(false);
+    gridUpButton->AddObject<WheelTag>();
+    // scary
+    gridUpButton->AddObject<UiInteractable>()->OnClick = [grid]() {
+        grid->ScrollUp();
+    };
+
+    // Down Button
+    SceneNode* gridDownButton =
+        mainScene.CreateNode(gridRoot, "Grid Down Button");
+    gridDownButton->AddObject<UiLayout>(
+        glm::uvec2(125, 70), glm::uvec2(115, 250), 3, AnchorPoint::TopLeft);
+    gridDownButton->AddObject<UiVisual>(glm::vec4(0.2f, 0.2f, 0.2f, 0.8f))
+        ->SetEnabled(false);
+    gridDownButton->AddObject<WheelTag>();
+    gridDownButton->AddObject<UiInteractable>()->OnClick = [grid]() {
+        grid->ScrollDown();
+    };
+
     for (int i = 0; i < 20; i++) {
         SceneNode* itemNode =
             mainScene.CreateNode(uiRoot, "Item_" + std::to_string(i));
@@ -288,5 +314,34 @@ inline void InitScene(Scene& mainScene) {
         itemNode->AddObject<UiInteractable>();
         itemNode->AddObject<WheelTag>();
     }
+
+    SceneNode* healthBarOutline =
+        mainScene.CreateNode(uiRoot, "HealthBar Outline");
+    auto* healthBarOutlineLayout = healthBarOutline->AddObject<UiLayout>(
+        glm::uvec2(365, 60), glm::uvec2(50, 50), 0, AnchorPoint::TopLeft);
+    healthBarOutline->AddObject<UiVisual>(glm::vec4(0.0f, 0.0f, 0.0f, 0.5f));
+
+    // Health bar
+    SceneNode* healthBarBackground =
+        mainScene.CreateNode(healthBarOutline, "HealthBar Background");
+    auto* healthBarBackgroundLayout = healthBarBackground->AddObject<UiLayout>(
+        glm::uvec2(335, 30), glm::uvec2(0, 0), 1, AnchorPoint::Center);
+    auto* bgVisual = healthBarBackground->AddObject<UiVisual>(
+        glm::vec4(0.15f, 0.15f, 0.15f, 1.0f));
+
+    SceneNode* healthBarFill =
+        mainScene.CreateNode(healthBarBackground, "HealthBar Fill");
+    auto* healthBarFillLayout = healthBarFill->AddObject<UiLayout>(
+        glm::uvec2(335, 30), glm::uvec2(0, 0), 2, AnchorPoint::CenterLeft);
+    auto* fillVisual =
+        healthBarFill->AddObject<UiVisual>(glm::vec4(0.8f, 0.1f, 0.1f, 1.0f));
+
+    auto* healthBarLogic = healthBarOutline->AddObject<UiHealthBar>();
+    healthBarLogic->fillLayout = healthBarFillLayout;
+    healthBarLogic->maxWidth = 335;
+    healthBarLogic->playerNode = playerNode;
+    healthBarLogic->mockEnemyNode = enemy;
+    healthBarLogic->fillVisual = fillVisual;
+    healthBarLogic->bgVisual = bgVisual;
 }
 } // namespace TestScene

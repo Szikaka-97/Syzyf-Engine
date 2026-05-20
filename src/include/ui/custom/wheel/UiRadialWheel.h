@@ -93,7 +93,7 @@ public:
             openSansFontAtlasTexture
         );
         text->font = openSansRegularFont;
-        text->text = "Pooga Pooga Pogaaadskadskdsakjdjsa Poooga pooooooga poooga poooga poasdopsada. POOOOOOga podaooga. Poga pooooga";
+        text->text = "Tooltip, tooltip tooltip tooltiptooltip. TooltipTooltip tooltip tooltip";
     } 
 
     void SetItemModels(const std::vector<fs::path>& gltfPaths) {

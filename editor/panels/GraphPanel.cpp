@@ -14,6 +14,10 @@ void GraphPanel::Draw(Context& context) {
         return;
     }
 
+    if (context.state == State::Game) {
+        ImGui::BeginDisabled();
+    }
+
     SceneNode* root = context.selectedScene->GetRootNode();
 
     if (root != nullptr) {
@@ -38,6 +42,10 @@ void GraphPanel::Draw(Context& context) {
     }
 
     this->DrawContextMenu(context);
+
+    if (context.state == State::Game) {
+        ImGui::EndDisabled();
+    }
 
     ImGui::End();
 }

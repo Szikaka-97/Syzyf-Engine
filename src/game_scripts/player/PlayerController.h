@@ -188,6 +188,8 @@ public:
         Camera* camera = GetScene()->GetGraphics()->GetMainCamera();
         if (!camera) return;
 
+        if (this->GetScene()->Input()->KeyPressed(Key::Tab)) return;
+
         glm::vec3 forward = camera->GlobalTransform().Forward();
         forward.y = 0.0f;
 
