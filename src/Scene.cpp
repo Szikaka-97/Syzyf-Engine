@@ -4,6 +4,7 @@
 #include <algorithm>
 
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/matrix_access.hpp>
 #include <glm/gtc/quaternion.hpp>
 
 #include <GameObject.h>
@@ -11,6 +12,7 @@
 #include <InputSystem.h>
 #include <Layer.h>
 #include <spdlog/spdlog.h>
+#include <Formatters.h>
 
 SceneNode::SceneNode(Scene* scene)
     : scene(scene),
@@ -47,27 +49,21 @@ SceneNode::~SceneNode() {
 }
 
 void SceneNode::RecalculateTransform() {
-    if (this->transform.LocalTransform().IsDirty()) {
-        if (this->parent) {
-            this->transform.GlobalTransform() =
-                this->parent->GlobalTransform().Value() *
-                this->transform.LocalTransform().Value();
-        } else {
-            this->transform.GlobalTransform() =
-                this->transform.LocalTransform().Value();
-        }
-    } else if (this->transform.GlobalTransform().IsDirty()) {
-        if (this->parent) {
-            this->transform.LocalTransform() =
-                this->transform.GlobalTransform().Value() *
-                glm::inverse(this->parent->GlobalTransform().Value());
-        } else {
-            this->transform.LocalTransform() =
-                this->transform.GlobalTransform().Value();
-        }
-    }
+	if (this->transform.GlobalTransform().IsDirty()) {
+		if (this->parent) {
+			this->transform.LocalTransform() = glm::inverse(this->parent->GlobalTransform().Value()) * this->transform.GlobalTransform().Value();
+		} else {
+			this->transform.LocalTransform() = this->transform.GlobalTransform().Value();
+		}
+	} else if (this->transform.LocalTransform().IsDirty()) {
+		if (this->parent) {
+			this->transform.GlobalTransform() = this->parent->GlobalTransform().Value() * this->transform.LocalTransform().Value();
+		} else {
+			this->transform.GlobalTransform() = this->transform.LocalTransform().Value();
+		}
+	}
 
-    this->transform.ClearDirty();
+	this->transform.ClearDirty();
 }
 
 SceneTransform& SceneNode::GetTransform() {

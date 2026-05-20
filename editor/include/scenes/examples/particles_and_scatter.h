@@ -363,13 +363,13 @@ inline void InitScene(Scene& mainScene) {
     virtualCharacter->SetCollisionLayerAndMask({0}, 0);
     auto* player = playerNode->AddObject<PlayerController>();
 
-    auto* aimingAid = mainScene.CreateNode("AimingAid")->AddObject<AimingAid>();
+    // auto* aimingAid = mainScene.CreateNode("AimingAid")->AddObject<AimingAid>();
 
-    aimingAid->crosshair = GltfImporter::LoadScene(
-        &mainScene, "./res/models/crosshair.glb", "crosshair", floorNode);
-    aimingAid->crosshair->SetParent(aimingAid->GetNode());
+    // aimingAid->crosshair = GltfImporter::LoadScene(
+    //     &mainScene, "./res/models/crosshair.glb", "crosshair", floorNode);
+    // aimingAid->crosshair->SetParent(aimingAid->GetNode());
 
-    player->aim = aimingAid;
+    // player->aim = aimingAid;
 
     player->AddObject<Player>();
 

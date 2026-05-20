@@ -24,6 +24,7 @@ class Scene;
 
 class SceneNode {
 	friend class Scene;
+	friend class SceneTransform;
 private:
 	SceneNode* parent;
 

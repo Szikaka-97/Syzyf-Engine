@@ -8,7 +8,7 @@
 #include "fog/Fog.h"
 #include "game_scripts/PickableItemSystem.h"
 #include "ui/custom/wheel/UiWheel.h"
-#include <game_scripts/AimingAid.h>
+#include <game_scripts/AimCrosshair.h>
 #include <game_scripts/Player.h>
 #include <game_scripts/PlayerController.h>
 
@@ -44,6 +44,7 @@
 #include <glm/fwd.hpp>
 #include <glm/geometric.hpp>
 #include <glm/trigonometric.hpp>
+#include <glm/gtc/matrix_access.hpp>
 #include <physics/Body.h>
 #include <physics/DebugRenderer.h>
 #include <physics/Helpers.h>
@@ -60,6 +61,7 @@
 #include <ui/objects/UiText.h>
 #include <ui/objects/UiVisual.h>
 #include <ui/systems/UiSystem.h>
+#include <Formatters.h>
 
 #include "Jolt/Math/Vec3.h"
 #include "text/Text3D.h"
@@ -139,37 +141,11 @@ inline void InitScene(Scene& mainScene) {
     virtualCharacter->SetPosition(
         playerNode->GlobalTransform().Position().Value());
     virtualCharacter->SetGravityFactor(1);
+    
+    auto* aimingAid = GltfImporter::LoadScene(&mainScene, "./res/models/crosshair.glb", "Aim Reticle", playerNode)->AddObject<AimCrosshair>();
+        
     auto* player = playerNode->AddObject<PlayerController>();
-
-    auto* aimingAid = mainScene.CreateNode("AimingAid")->AddObject<AimingAid>();
-
-    aimingAid->crosshair = GltfImporter::LoadScene(
-        &mainScene, "./res/models/crosshair.glb", "crosshair", floorNode);
-    aimingAid->crosshair->SetParent(aimingAid->GetNode());
-
-    player->aim = aimingAid;
-
-    player->AddObject<Player>();
-
-    // Pickable objects
-    auto* schnozMesh = mainScene.Resources()->Get<Mesh>(
-        "./res/models/schnoz/schnoz.obj", true);
-    JPH::ShapeRefC schnozShape = Physics::ConvexHullMeshShape(schnozMesh);
-    JPH::BodyCreationSettings schnozSettings(
-        schnozShape, JPH::RVec3::sZero(), JPH::Quat::sIdentity(),
-        JPH::EMotionType::Dynamic, Physics::Layers::MOVING);
-
-    for (int i = 0; i < 10; i++) {
-        auto* item = mainScene.CreateNode("PickableSchnoz");
-        item->AddObject<MeshRenderer>(schnozMesh,
-                                      schnozMesh->GetDefaultMaterials());
-        item->AddObject<PickableItem>();
-        auto* itemBody = item->AddObject<Physics::Body>(schnozSettings);
-        itemBody->SetCollisionLayerAndMask({2}, 0xFFFFFFFF);
-
-        item->GlobalTransform().Scale() = glm::vec3(0.2f);
-        item->GlobalTransform().Position() = {2.0f, 2.0f + i * 0.5f, 2.0f};
-    }
+    // player->aim = aimingAid;
 
 #pragma endregion
 
