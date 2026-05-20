@@ -4,7 +4,6 @@
 #include "EasingFunctions.h"
 #include "GltfImporter.h"
 #include "LightSystem.h"
-#include "game_scripts/AimingAid.h"
 #include "game_scripts/ThrowBottle.h"
 #include <game_scripts/DungeonGenerator.h>
 

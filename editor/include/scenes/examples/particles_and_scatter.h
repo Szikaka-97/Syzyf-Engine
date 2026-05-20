@@ -3,7 +3,6 @@
 #include "GltfImporter.h"
 #include "LightSystem.h"
 #include "fog/Fog.h"
-#include "game_scripts/AimingAid.h"
 
 #include <Bloom.h>
 #include <Camera.h>
