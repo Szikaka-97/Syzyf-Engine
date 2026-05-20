@@ -48,7 +48,7 @@ void EnemyBase::Die() {
 }
 void EnemyBase::SpawnProjectile(const glm::vec3& targetPos) {
   if (!m_ProjectileMesh || !m_ProjectileMaterial) {
-    spdlog::warn("AiNode: Projectile resources not set!");
+    spdlog::warn("AiNode: Projectile resources not set!"+ GetNode()->GetName());
     return;
   }
 
@@ -115,7 +115,7 @@ bool EnemyBase::CanSeePlayer() const {
   Physics::LayerMaskFilter filter({}, false);
   filter.IgnoreBody(m_Body->GetBodyID());
 
-  SceneNode* hit = physics->CastRay(origin, dir * dist, {}, {}, filter);
+  SceneNode* hit = physics->CastRay(origin, dir * dist, {}, {}, filter).node;
   if (!hit) return true;
   return (glm::vec3(hit->GlobalTransform().Position()) == m_TargetPosition);
 }

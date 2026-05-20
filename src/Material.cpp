@@ -15,6 +15,9 @@ void ShaderVariableStorage::Bind() const {
 		int offset = this->uniformSpec->VariableAt(i).offset;
 
 		switch (this->uniformSpec->VariableAt(i).type) {
+    case UniformSpec::UniformType::Bool:
+      glUniform1i(this->uniformSpec->VariableAt(i).binding, GetValue<bool>(i));
+      break;
 		case UniformSpec::UniformType::Float1:
 			glUniform1f(this->uniformSpec->VariableAt(i).binding, GetValue<float>(i));
 			break;
@@ -61,6 +64,28 @@ void ShaderVariableStorage::Bind() const {
 			
 			glActiveTexture(GL_TEXTURE0 + samplerIndex);
 			glBindTexture(GL_TEXTURE_2D, imageTexHandle);
+			glUniform1i(this->uniformSpec->VariableAt(i).binding, samplerIndex);
+
+			samplerIndex++;
+
+			break;
+		}
+		case UniformSpec::UniformType::Sampler3D:
+		{
+			UniformSpec::TextureUniform<Texture3D> imageTex = GetValue<Texture3D>(i);
+
+			GLuint imageTexHandle = 0;
+
+			if (imageTex.tex) {
+				if (imageTex.tex->IsDirty()) {
+					imageTex.tex->Update();
+				}
+				
+				imageTexHandle = imageTex.tex->GetHandle();
+			}
+			
+			glActiveTexture(GL_TEXTURE0 + samplerIndex);
+			glBindTexture(GL_TEXTURE_3D, imageTexHandle);
 			glUniform1i(this->uniformSpec->VariableAt(i).binding, samplerIndex);
 
 			samplerIndex++;

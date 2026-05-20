@@ -136,6 +136,8 @@ private:
     std::vector<glm::vec3> ssaoKernel;
     std::unique_ptr<Texture2D> ssaoNoiseTexture;
 
+    float volumetricPassResolutionScale = 1.0f;
+
 	void RenderFullscreenFrameQuad();
 	void CompositeTransparentPass();
 	void CompositeVolumetricPass();

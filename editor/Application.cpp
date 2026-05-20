@@ -30,6 +30,7 @@
 #include <physics/Jolt.h>
 #include <physics/System.h>
 
+
 namespace Editor {
 bool Application::InitProgram() {
     if (!SDL_Init(SDL_INIT_VIDEO)) {
@@ -178,9 +179,10 @@ void Application::MainLoop() {
     this->context.selectedScene = Scene::CreateStandaloneScene();
     this->context.loadedScenes.push_back(this->context.selectedScene);
     TestScene::InitScene(*this->context.selectedScene);
-    Scene* dungeonScene = Scene::CreateStandaloneScene();
-    LevelShowcaseScene::InitScene(*dungeonScene);
-    this->context.loadedScenes.push_back(dungeonScene);
+
+    // Scene* dungeonScene = Scene::CreateStandaloneScene();
+    // DungeonGeneratorScene::InitScene(*dungeonScene);
+    // this->context.loadedScenes.push_back(dungeonScene);
 
     for (auto* scene : this->context.loadedScenes) {
         scene->GetGraphics()->UpdateScreenResolution(
@@ -246,9 +248,11 @@ void Application::DrawPanels(bool& shouldClose) {
     this->mainMenuBar.Draw(this->context, shouldClose, this->settings);
     this->graphPanel.Draw(this->context);
     this->systemsDebugPanel.Draw(this->context);
+    this->commandHistoryPanel.Draw(this->context);
     this->inspectorPanel.Draw(this->context);
     this->filesPanel.Draw();
     this->consolePanel.Draw(this->context);
+   // this->textureToolPanel.Draw(this->context);
     this->sceneViewPanel.Draw(this->context);
     // this->statusBar.Draw(); a bit broken
 }

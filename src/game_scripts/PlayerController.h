@@ -67,6 +67,8 @@ public:
 	Physics::VirtualCharacterController* virtualController = nullptr;
 	glm::vec3 velocity = glm::vec3(0.0f);
 
+	float m_hp = 100.0f;
+
 	glm::vec3 GetMousePointOnGround(Camera* camera) {
 		glm::vec2 mousePos = GetScene()->Input()->GetMousePosition();
 		glm::vec2 screenSize = GetScene()->GetGraphics()->GetScreenResolution();
@@ -139,6 +141,10 @@ public:
 				return current;
 			}
 		}
+	}
+
+	void Die() {
+		delete this;
 	}
 public:
 	PlayerController() {
@@ -279,7 +285,7 @@ public:
 throwable->SetEffect<EffectFire>([](EffectFire* e) {
     e->radius  = 3.0f;
     e->damage  = 40.0f;
-    e->special1 = true;   // podwaja obrażenia
+    e->special1 = true;   // podwaja obra�enia
 });
 //throwable->SetVisual(bottleMesh, bottleMat); 
 
@@ -401,5 +407,14 @@ throwable->SetEffect<EffectFire>([](EffectFire* e) {
 	void DrawImGui() override {
 		// ImGui::InputFloat("Player move speed", &moveSpeed);
 		// ImGui::InputFloat("Jump speed", &jumpSpeed);
+	}
+
+	void TakeDamage(float amount) {
+		spdlog::info("Player took {} damage!", amount);
+		m_hp-= amount;
+		if(m_hp <= 0){
+			spdlog::info("Player died!");
+			Die();
+		}
 	}
 };

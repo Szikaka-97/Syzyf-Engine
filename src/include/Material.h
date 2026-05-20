@@ -471,6 +471,9 @@ void ComputeDispatchData::SetUniformBuffer(int uniformBufferBinding, const T_Buf
 
 #pragma endregion
 
+template<> inline bool IsUniformOfRightType<bool>(UniformSpec::UniformType type) {
+  return type == UniformSpec::UniformType::Bool;
+}
 template<> inline bool IsUniformOfRightType<float>(UniformSpec::UniformType type) {
 	return type == UniformSpec::UniformType::Float1;
 }
@@ -503,6 +506,9 @@ template<> inline bool IsUniformOfRightType<glm::mat4>(UniformSpec::UniformType 
 }
 template<> inline bool IsUniformOfRightType<Texture2D>(UniformSpec::UniformType type) {
 	return type == UniformSpec::UniformType::Sampler2D || type == UniformSpec::UniformType::Image2D || type == UniformSpec::UniformType::UImage2D;
+}
+template<> inline bool IsUniformOfRightType<Texture3D>(UniformSpec::UniformType type) {
+	return type == UniformSpec::UniformType::Sampler3D;
 }
 template<> inline bool IsUniformOfRightType<Cubemap>(UniformSpec::UniformType type) {
 	return type == UniformSpec::UniformType::Cubemap || type == UniformSpec::UniformType::ImageCube;

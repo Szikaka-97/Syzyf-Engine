@@ -150,7 +150,7 @@ void SceneGraphics::UpdateScreenResolution(glm::vec2 newResolution) {
 
 		this->mainViewport->SetSize(newResolution);
 		this->transparentPassFramebuffer->SetSize(newResolution);
-		this->volumetricPassFramebuffer->SetSize(newResolution * 0.5f);
+		this->volumetricPassFramebuffer->SetSize(newResolution * this->volumetricPassResolutionScale);
         
         // SSAO
         glm::vec2 ssaoResolution = glm::ceil(newResolution * this->ssaoSettings.resolutionScale);
@@ -851,11 +851,15 @@ void SceneGraphics::RenderVolumetric(const ShaderGlobalUniforms& uniforms, const
 			glUseProgram(currentProg->GetHandle());
 		}
 
+
 		render.material->Bind();
         if (currentProg) {
             if (int offsetLocation = glGetUniformLocation(currentProg->GetHandle(), "uBoneOffset"); offsetLocation >= 0) {
                 glUniform1i(offsetLocation, std::max(0, render.jointBufferOffset));
             }
+
+
+            glUniform1f(glGetUniformLocation(currentProg->GetHandle(), "resolutionScale"), this->volumetricPassResolutionScale);
         }
 
 		int shadowmaskUniformLocation = glGetUniformLocation(currentProg->GetHandle(), "Builtin_ShadowMask");
@@ -1584,6 +1588,9 @@ void SceneGraphics::RenderPostprocess() {
 	Texture2D* frameDepth = dynamic_cast<Texture2D*>(GetMainFramebuffer()->GetDepthTexture());
 
 	for (auto* effect : *postProcess->GetAllObjects()) {
+        if (!effect->IsEnabled())
+            continue;
+
         PostProcessParams postProcessParams;
         postProcessParams.inputTexture = dynamic_cast<Texture2D*>(ping->GetColorTexture());
         postProcessParams.outputTexture = dynamic_cast<Texture2D*>(pong->GetColorTexture());
@@ -1765,6 +1772,25 @@ void SceneGraphics::DrawImGui() {
 
             ImGui::TreePop();
         }
+        // Volumetric
+        if (ImGui::TreeNode("Volumetric Settings")) {
+            const char* scaleNames[] = { "100%", "75%", "50%", "25%" };
+            float scaleValues[] = { 1.0f, 0.75f, 0.5f, 0.25f };
+
+            int currentScaleIndex = 0;
+            if (this->volumetricPassResolutionScale <= 0.25f) currentScaleIndex = 3;
+            else if (this->volumetricPassResolutionScale <= 0.5f) currentScaleIndex = 2;
+            else if (this->volumetricPassResolutionScale <= 0.75f) currentScaleIndex = 1;
+
+            if (ImGui::Combo("Resolution Scale", &currentScaleIndex, scaleNames, 4)) {
+                this->volumetricPassResolutionScale = scaleValues[currentScaleIndex];
+
+                glm::vec2 volumetricResolution = glm::ceil(this->GetScreenResolution() * this->volumetricPassResolutionScale);
+                this->volumetricPassFramebuffer->SetSize(volumetricResolution);
+            }
+
+            ImGui::TreePop();
+        } 
 
 		ImGui::TreePop();
 	}
