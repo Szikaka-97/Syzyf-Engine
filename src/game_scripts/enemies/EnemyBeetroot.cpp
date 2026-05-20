@@ -1,5 +1,5 @@
-﻿#include "EnemyBeetroot.h"
-#include "BeetrootSegment.h"
+﻿#include "./include/game_scripts/enemies/EnemyBeetroot.h"
+#include "./include/game_scripts/enemies/BeetrootSegment.h"
 #include <MeshRenderer.h>
 #include <TimeSystem.h>
 #include <glm/glm.hpp>

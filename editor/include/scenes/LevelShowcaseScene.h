@@ -7,7 +7,6 @@
 #include "game_scripts/AimingAid.h"
 //#include "game_scripts/ThrowBottle.h"
 
-#include <AiNode.h>
 #include <Bloom.h>
 #include <Camera.h>
 #include <ColorGrading.h>

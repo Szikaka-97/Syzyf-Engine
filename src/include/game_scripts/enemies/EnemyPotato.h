@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include <enemies/EnemyBase.h>
+#include <./include/game_scripts/enemies/EnemyBase.h>
 #include <glm/glm.hpp>
 
 /// Phases of the potato's jump-and-plunge attack.

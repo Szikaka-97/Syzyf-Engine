@@ -3,7 +3,6 @@
 #include "GltfImporter.h"
 #include "game_scripts/DungeonGenerator.h"
 
-#include <AiNode.h>
 #include <Bloom.h>
 #include <Camera.h>
 #include <ColorGrading.h>

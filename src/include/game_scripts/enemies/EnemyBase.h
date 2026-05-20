@@ -1,6 +1,6 @@
 #pragma once
 
-#include <AiSimplified.h>
+#include "./include/game_scripts/enemies/AiSimplified.h"
 
 enum States { ATTACKING, FLEEING, CHASING, PATROLLING, AVOIDING_OBSTACLE };
 

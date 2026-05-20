@@ -1,4 +1,4 @@
-#include "EffectBase.h"
+#include "./include/game_scripts/AttackEffects/EffectBase.h"
 #include <glm/gtc/constants.hpp>
 #include <cmath>
 #include <spdlog/spdlog.h>

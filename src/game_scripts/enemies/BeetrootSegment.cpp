@@ -1,8 +1,8 @@
-#include "BeetrootSegment.h"
-#include "EnemyBeetroot.h"
+#include "./include/game_scripts/enemies/BeetrootSegment.h"
+#include "./include/game_scripts/enemies/EnemyBeetroot.h"
 #include "game_scripts/PlayerController.h"
 #include <glm/glm.hpp>
-#include "EnemyBase.h"
+#include "./include/game_scripts/enemies/EnemyBase.h"
 
 void BeetrootSegment::Initialize(EnemyBeetroot* owner, SceneNode* playerNode) {
     m_Owner      = owner;

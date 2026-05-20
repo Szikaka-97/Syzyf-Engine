@@ -1,8 +1,8 @@
-#include "ComboFirePetrify.h"
-#include "ComboFireTornado.h"
-#include "ComboTornadoPetrify.h"
-#include "ComboExplodePetrify.h"
-#include "ComboExplodeTornado.h"
+#include "./include/game_scripts/AttackEffects/combos/ComboFirePetrify.h"
+#include "./include/game_scripts/AttackEffects/combos/ComboFireTornado.h"
+#include "./include/game_scripts/AttackEffects/combos/ComboTornadoPetrify.h"
+#include "./include/game_scripts/AttackEffects/combos/ComboExplodePetrify.h"
+#include "./include/game_scripts/AttackEffects/combos/ComboExplodeTornado.h"
 #include <TimeSystem.h>
 #include <spdlog/spdlog.h>
 

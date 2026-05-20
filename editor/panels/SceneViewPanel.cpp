@@ -1,5 +1,4 @@
 #include "panels/SceneViewPanel.h"
-#include "AiNode.h"
 #include "Application.h"
 #include "CameraController.h"
 #include "Commands.h"
@@ -27,6 +26,8 @@
 
 #include <algorithm>
 #include <glm/gtc/type_ptr.hpp>
+
+#include "./include/game_scripts/enemies/AiSimplified.h"
 
 namespace Editor {
 void SceneViewPanel::Draw(Context& context) {
@@ -342,7 +343,7 @@ void SceneViewPanel::UpdateAndRenderScene(Context& context) {
     context.selectedScene->Render();
     if (context.state != State::Game) {
         for (auto* aiNode :
-             context.selectedScene->FindObjectsOfType<AiNode>()) {
+             context.selectedScene->FindObjectsOfType<AiSimplified>()) {
            // aiNode->DrawDebugView(context.physicsDebugRenderer.get());
         }
 

@@ -1,11 +1,11 @@
-#include <AiSimplified.h>
+#include <./include/game_scripts/enemies/AiSimplified.h>
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
 #include <MeshRenderer.h>
 #include <TimeSystem.h>
 #include <physics/LayerMaskFilter.h>
 
-#include "EnemyBase.h"
-#include "EnemyBullet.h"    
+#include "./include/game_scripts/enemies/EnemyBase.h"
+#include "./include/game_scripts/enemies/EnemyBullet.h"    
 
 EnemyBase::EnemyBase()
     : fov(glm::radians(180.0f)),

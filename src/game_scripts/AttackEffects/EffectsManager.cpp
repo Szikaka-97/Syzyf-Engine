@@ -1,9 +1,11 @@
-#include "EffectBase.h"
-#include "enemies/EnemyBullet.h"
+
+
+#include "./include/game_scripts/AttackEffects/EffectBase.h"
+#include "./include/game_scripts/enemies/EnemyBullet.h"
 #include <TimeSystem.h>
 #include <glm/glm.hpp>
 #include <spdlog/spdlog.h>
-#include "EffectsManager.h"
+#include "./include/game_scripts/AttackEffects/EffectsManager.h"
 
 EffectFire::EffectFire() = default;
 EffectPetrify::EffectPetrify() = default;

@@ -1,4 +1,4 @@
-#include "EnemyBullet.h"
+#include "./include/game_scripts/enemies/EnemyBullet.h"
 #include <TimeSystem.h>
 #include <glm/gtc/constants.hpp>
 #include <spdlog/spdlog.h>

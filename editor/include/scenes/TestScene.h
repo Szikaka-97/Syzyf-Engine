@@ -10,7 +10,6 @@
 #include "MotionBlur.h"
 
 #include "Noise3D.h"
-#include <AiNode.h>
 #include <Bloom.h>
 #include <Camera.h>
 #include <ColorGrading.h>
@@ -46,9 +45,9 @@
 #include <physics/Water.h>
 #include <scatter/Spawner.h>
 #include <Player.h>
-#include <enemies/EnemySkeleton.h>
-#include <enemies/EnemyBeetroot.h>
-#include <enemies/EnemyPotato.h>
+#include <./include/game_scripts/enemies/EnemySkeleton.h>
+#include <./include/game_scripts/enemies/EnemyBeetroot.h>
+#include <./include/game_scripts/enemies/EnemyPotato.h>
 
 #include "Jolt/Math/Vec3.h"
 #include <Jolt/Jolt.h>

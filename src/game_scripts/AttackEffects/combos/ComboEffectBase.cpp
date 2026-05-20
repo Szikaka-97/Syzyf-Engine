@@ -1,4 +1,4 @@
-#include "ComboEffectBase.h"
+#include "./include/game_scripts/AttackEffects/combos/ComboEffectBase.h"
 #include <spdlog/spdlog.h>
 
 void ComboEffectBase::Init(float e1Strength, float e1MaxRange, float e1MaxDamage, float dur) {

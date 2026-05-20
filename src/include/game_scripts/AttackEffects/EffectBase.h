@@ -7,7 +7,7 @@
 #include <glm/glm.hpp>
 #include <vector>
 
-#include "enemies/EnemyBase.h"
+#include "./include/game_scripts/enemies/EnemyBase.h"
 #include <MeshRenderer.h>
 
 class EffectBase : public GameObject {

@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include <enemies/EnemyBase.h>
+#include <./include/game_scripts/enemies/EnemyBase.h>
 #include <array>
 #include <vector>
 

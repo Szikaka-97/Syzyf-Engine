@@ -1,4 +1,4 @@
-﻿#include "EnemyPotato.h"
+﻿#include "./include/game_scripts/enemies/EnemyPotato.h"
 #include "game_scripts/PlayerController.h"
 #include <MeshRenderer.h>
 #include <TimeSystem.h>

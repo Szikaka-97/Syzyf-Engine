@@ -14,7 +14,7 @@ enum class EffectType {
 #include <glm/glm.hpp>
 #include <unordered_set>
  
-#include "enemies/EnemyBase.h"
+#include "./include/game_scripts/enemies/EnemyBase.h"
 
 class ComboEffectBase : public GameObject {
 public:
