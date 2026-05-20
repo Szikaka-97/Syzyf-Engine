@@ -75,6 +75,8 @@ public:
 
   TweenHandle CreateTween(const TweenConfig config);
 
+  float GetCurrentValue(const TweenId id) const;
+
   // If planning to share the handle outside of the owner, add a callt o RemoveTween in the destructor
   void RemoveTween(const TweenId id);
 
@@ -110,6 +112,8 @@ public:
     TweenHandle& Bind(std::function<void(float)> setter);
     TweenHandle& OnComplete(std::function<void()> callback);
     TweenHandle& SetPlaying(bool playing);
+
+    float GetCurrentValue() const;
 
     // This is unsafe and should only be used if you can make sure the 
     //  node that we are binding the value to stays valid for the entire duration of the tween

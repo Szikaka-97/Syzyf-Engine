@@ -3,6 +3,7 @@
 #include "Scene.h"
 #include <TimeSystem.h>
 
+#include <algorithm>
 #include <spdlog/spdlog.h>
 
 TweenSystem::TweenSystem(Scene* scene) : SceneComponent(scene) {
@@ -10,7 +11,7 @@ TweenSystem::TweenSystem(Scene* scene) : SceneComponent(scene) {
 }
 
 void TweenSystem::OnPreUpdate() {
-  const float deltaTime = Time::Delta();
+  const float deltaTime = Time::UnscaledDelta();
 
   for (std::size_t i = 0; i < this->tweens.size(); ++i) {
     if (!this->tweens[i].has_value())
@@ -61,6 +62,26 @@ TweenHandle TweenSystem::CreateTween(const TweenConfig config) {
   this->tweens[id.id].emplace(config);
   
   return TweenHandle(this, id);
+}
+
+float TweenSystem::GetCurrentValue(const TweenId id) const {
+    if (!this->IsValid(id)) {
+        return 0.0f;
+    }
+
+    const Tween& tween = this->tweens[id.id].value();
+
+    if (tween.tweenConfig.duration <= 0.0f || tween.timeActive >= tween.tweenConfig.duration) {
+        return tween.tweenConfig.targetValue;
+    }
+
+    float progress = tween.timeActive / tween.tweenConfig.duration;
+    progress = std::clamp(progress, 0.0f, 1.0f);
+
+    float easingValue = tween.tweenConfig.easingFunction(progress);
+    float difference = tween.tweenConfig.targetValue - tween.tweenConfig.initialValue;
+
+    return tween.tweenConfig.initialValue + (difference * easingValue);
 }
 
 void TweenSystem::RemoveTween(const TweenId id) {
@@ -158,6 +179,13 @@ TweenHandle& TweenHandle::OnComplete(std::function<void()> callback) {
 TweenHandle& TweenHandle::SetPlaying(bool playing) {
     if (system) system->SetPlaying(id, playing);
     return *this;
+}
+
+float TweenHandle::GetCurrentValue() const {
+    if (this->system) {
+        return this->system->GetCurrentValue(this->id);
+    }
+    return 0.0f;
 }
 
 void TweenHandle::Detach() {

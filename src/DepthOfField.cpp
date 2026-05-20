@@ -84,6 +84,7 @@ void DepthOfField::OnPostProcess(const PostProcessParams* params) {
 	glUniform1f(glGetUniformLocation(this->finalShader->GetHandle(), "minDistance"), this->minDistance);
 	glUniform1f(glGetUniformLocation(this->finalShader->GetHandle(), "maxDistance"), this->maxDistance);
 	glUniform1f(glGetUniformLocation(this->finalShader->GetHandle(), "focusDistance"), this->focusDistance);
+	glUniform1f(glGetUniformLocation(this->finalShader->GetHandle(), "finalMixFactor"), this->finalMixFactor);
 
     glUniform1i(glGetUniformLocation(this->finalShader->GetHandle(), "useDilution"), this->useDilution);
     glUniform1i(glGetUniformLocation(this->finalShader->GetHandle(), "size"), this->size);
@@ -100,6 +101,8 @@ void DepthOfField::DrawImGui() {
     ImGui::InputFloat("Min Distance", &this->minDistance);
     ImGui::InputFloat("Max Distance", &this->maxDistance);
     ImGui::InputFloat("Focus Distance", &this->focusDistance);
+
+    ImGui::InputFloat("Final Mix Factor", &this->finalMixFactor);
 
     ImGui::Separator();
     ImGui::Checkbox("Enable Dilution", &this->useDilution);

@@ -20,6 +20,8 @@ TimePoint Time::startup;
 TimePoint Time::now;
 float Time::applicationTime;
 float Time::deltaTime;
+float Time::timeScale = 1.0f;
+float Time::unscaledDeltaTime;
 
 void Time::Update() {
 	auto newNow = TimePoint(system_clock::now());
@@ -29,8 +31,9 @@ void Time::Update() {
 		now = newNow;
 	}
 
-	applicationTime = duration<float>(newNow.GetTime() - startup.GetTime()).count();
-	deltaTime = duration<float>(newNow.GetTime() - now.GetTime()).count();
+    unscaledDeltaTime = duration<float>(newNow.GetTime() - now.GetTime()).count();
+    deltaTime = unscaledDeltaTime * timeScale;
+    applicationTime += deltaTime;
 
 	now = newNow;
 }
@@ -39,3 +42,6 @@ const TimePoint& Time::Now() { return now; }
 TimePoint Time::SystemTime() { return TimePoint(system_clock::now()); }
 float Time::Current() { return applicationTime; }
 float Time::Delta() { return deltaTime; }
+void Time::SetTimeScale(float scale) { timeScale = scale; }
+float Time::GetTimeScale() { return timeScale; }
+float Time::UnscaledDelta() { return unscaledDeltaTime; }

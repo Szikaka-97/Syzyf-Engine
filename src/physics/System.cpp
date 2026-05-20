@@ -270,9 +270,15 @@ namespace Physics {
 
   void System::OnPreUpdate() {
     // TMEPRORARY
-    this->accumulator += Time::Delta();
+    this->accumulator += Time::UnscaledDelta();
+
+    float scaledStep = this->cDeltaTime * Time::GetTimeScale();
+
     while (this->accumulator > this->cDeltaTime) { 
-      physicsSystem->Update(cDeltaTime, 1, tempAllocator, jobSystem);
+      if (scaledStep > 0.0f) {
+        physicsSystem->Update(scaledStep, 1, tempAllocator, jobSystem);
+      }
+
       this->accumulator -= this->cDeltaTime;
     }
 

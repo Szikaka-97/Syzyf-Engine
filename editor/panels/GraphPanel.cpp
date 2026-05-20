@@ -45,7 +45,7 @@ void GraphPanel::Draw(Context& context) {
 void GraphPanel::DrawGraphNode(Context& context, SceneNode& node) {
     // Ignore editor camera
     if (node.GetObject<CameraController>()) {
-        return;
+        // return;
     }
 
     ImGui::PushID(node.GetID());
@@ -117,7 +117,8 @@ void GraphPanel::DrawGraphNode(Context& context, SceneNode& node) {
                               ImVec4(0.4f, 0.4f, 0.4f, 1.0f));
     }
 
-    if (ImGui::Button(node.EnabledSelf() ? "X" : " ", ImVec2(24, ImGui::GetFrameHeight()))) {
+    if (ImGui::Button(node.EnabledSelf() ? "X" : " ",
+                      ImVec2(24, ImGui::GetFrameHeight()))) {
         node.SetEnabled(!node.EnabledSelf());
     }
 

@@ -17,7 +17,6 @@
 #include <MeshRenderer.h>
 #include <Mirror.h>
 #include <ParticleSpawner.h>
-#include <Player.h>
 #include <ReflectionProbe.h>
 #include <Scene.h>
 #include <Shader.h>
@@ -30,6 +29,7 @@
 #include <enemies/EnemySkeleton.h>
 #include <fog/FogVolume.h>
 #include <game_scripts/CameraSettings.h>
+#include <game_scripts/Player.h>
 #include <game_scripts/PlayerController.h>
 #include <game_scripts/ThrowBottle.h>
 #include <glm/fwd.hpp>
@@ -42,12 +42,6 @@
 #include <physics/Water.h>
 #include <scatter/Spawner.h>
 #include <text/Font.h>
-#include <ui/objects/UiInteractable.h>
-#include <ui/objects/UiLayout.h>
-#include <ui/objects/UiText.h>
-#include <ui/objects/UiVisual.h>
-#include <ui/objects/custom/UiCircularBar.h>
-#include <ui/systems/UiSystem.h>
 
 #include "Jolt/Math/Vec3.h"
 #include <Jolt/Jolt.h>

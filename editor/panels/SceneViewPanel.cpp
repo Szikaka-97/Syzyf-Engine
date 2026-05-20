@@ -219,10 +219,16 @@ void SceneViewPanel::Draw(Context& context) {
 
     ImVec2 cursorScreenPosition = ImGui::GetCursorScreenPos();
 
+    ImVec2 imguiMouse = ImGui::GetMousePos();
+    float sdlX, sdlY;
+    SDL_GetMouseState(&sdlX, &sdlY);
+
     if (auto* inputSystem =
             context.selectedScene->GetComponent<InputSystem>()) {
+
         inputSystem->SetViewportOffset(
-            glm::vec2(cursorScreenPosition.x, cursorScreenPosition.y));
+            glm::vec2(cursorScreenPosition.x - (imguiMouse.x - sdlX),
+                      cursorScreenPosition.y - (imguiMouse.y - sdlY)));
     }
 
     ImVec2 viewportSize = ImGui::GetContentRegionAvail();
@@ -249,6 +255,10 @@ void SceneViewPanel::Draw(Context& context) {
 
     ImGui::Image((ImTextureID)(intptr_t)textureID, ImVec2(resX, resY),
                  ImVec2(0, 1), ImVec2(1, 0));
+
+    if (context.state == State::Game && ImGui::IsItemHovered()) {
+        ImGui::SetMouseCursor(ImGuiMouseCursor_None);
+    }
 
     if (ImGui::BeginDragDropTarget()) {
         this->HandleDrop(context);
@@ -696,6 +706,9 @@ void SceneViewPanel::DrawMenuBar(Context& context) {
     if (ImGui::RadioButton("Editor", context.state == State::Editor)) {
         if (context.state != State::Editor) {
             context.state = State::Editor;
+
+            ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+
             context.mainCamera =
                 context.selectedScene->FindObjectsOfType<CameraController>()
                     .front()
@@ -707,6 +720,8 @@ void SceneViewPanel::DrawMenuBar(Context& context) {
     if (ImGui::RadioButton("Game", context.state == State::Game)) {
         if (context.state != State::Game) {
             context.state = State::Game;
+
+            ImGui::GetIO().ConfigFlags &= ~ImGuiConfigFlags_NavEnableKeyboard;
 
             bool changedCamera = false;
             for (auto* camera :

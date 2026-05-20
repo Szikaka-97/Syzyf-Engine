@@ -430,7 +430,7 @@ void SceneGraphics::DrawMeshIndirect(const Mesh* mesh, int subMeshIndex, const M
 	EnqueueOpaque(node); 
 }
 
-void SceneGraphics::DrawUi(const glm::mat4& worldMatrix, const glm::vec2& size, int zIndex, const glm::vec4& color, Texture2D* texture, Material* customMaterial) {
+void SceneGraphics::DrawUi(const glm::mat4& worldMatrix, const glm::vec2& size, int zIndex, const glm::vec4& color, Texture2D* texture, Material* customMaterial, std::optional<glm::vec4> clipRectangle) {
     UiRenderNode node;
     node.worldMatrix = worldMatrix;
     node.size = size;
@@ -438,11 +438,12 @@ void SceneGraphics::DrawUi(const glm::mat4& worldMatrix, const glm::vec2& size, 
     node.color = color;
     node.texture = texture;
     node.customMaterial = customMaterial;
+    node.clipRectangle = clipRectangle;
 
     EnqueueUi(node);
 }
 
-void SceneGraphics::DrawUiText(const glm::mat4& worldMatrix, const glm::vec2& size, int zIndex, const glm::vec4& color, Texture2D* texture, const glm::vec4& uvRectangle, float pxRange, bool useMsdf) {
+void SceneGraphics::DrawUiText(const glm::mat4& worldMatrix, const glm::vec2& size, int zIndex, const glm::vec4& color, Texture2D* texture, const glm::vec4& uvRectangle, float pxRange, bool useMsdf, std::optional<glm::vec4> clipRectangle) {
     UiRenderNode node;
     node.worldMatrix = worldMatrix;
     node.size = size;
@@ -453,6 +454,7 @@ void SceneGraphics::DrawUiText(const glm::mat4& worldMatrix, const glm::vec2& si
     node.pxRange = pxRange;
     node.isText = true;
     node.useMsdf = useMsdf;
+    node.clipRectangle = clipRectangle;
 
     EnqueueUi(node);
 }
@@ -1768,7 +1770,12 @@ void SceneGraphics::RenderUi(const RenderParams& params, Framebuffer* target) {
 }
 
 void SceneGraphics::RenderUi(const ShaderGlobalUniforms& uniforms, const RenderParams& params, Framebuffer* target) {
-    std::sort(this->uiRenders.begin(), this->uiRenders.end());
+    std::stable_sort(this->uiRenders.begin(), this->uiRenders.end(), [](const auto& a, const auto& b) {
+        if (a.zIndex == b.zIndex) {
+            return a.isText < b.isText;
+        }
+        return a.zIndex < b.zIndex;
+    });
 
     target->SetColorAttachmentEnabled(true);
     glBindFramebuffer(GL_FRAMEBUFFER, target->GetHandle());
@@ -1831,7 +1838,7 @@ void SceneGraphics::RenderUi(const ShaderGlobalUniforms& uniforms, const RenderP
                     glUniform1i(texLoc, 0);
                 }
             }
-        } else if (!render.customMaterial) {
+        } else {
             int colorLocation = glGetUniformLocation(currentProgram->GetHandle(), "color");
             int hasTextureLocation = glGetUniformLocation(currentProgram->GetHandle(), "hasTexture");
             int textureLocation = glGetUniformLocation(currentProgram->GetHandle(), "tex");
@@ -1848,9 +1855,22 @@ void SceneGraphics::RenderUi(const ShaderGlobalUniforms& uniforms, const RenderP
             }
         }
 
+        if (render.clipRectangle.has_value()) {
+            glEnable(GL_SCISSOR_TEST);
+            glScissor(
+                static_cast<GLint>(render.clipRectangle.value().x),    
+                static_cast<GLint>(render.clipRectangle.value().y),    
+                static_cast<GLint>(render.clipRectangle.value().z),    
+                static_cast<GLint>(render.clipRectangle.value().w)  
+            );
+        } else {
+            glDisable(GL_SCISSOR_TEST);
+        }
+
         glDrawElements(GL_TRIANGLES, this->uiQuadMesh->SubMeshAt(0).GetVertexCount(), GL_UNSIGNED_INT, nullptr);
     }
 
+    glDisable(GL_SCISSOR_TEST);
     glBindVertexArray(0);
     glUseProgram(0);
     glEnable(GL_DEPTH_TEST);

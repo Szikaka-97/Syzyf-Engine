@@ -1,4 +1,4 @@
-#include <GameScripts/DungeonGenerator.h>
+#include <game_scripts/DungeonGenerator.h>
 
 #include <numeric>
 

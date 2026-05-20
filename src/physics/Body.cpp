@@ -589,7 +589,6 @@ void Body::OnEnable() {
 
 void Body::OnDisable() {
   if (!bodyCreated || !addedToWorld) {
-    spdlog::warn("Tried disabling a body that hasn't been created yet or one that hasn't been added yet");
     return;
   }
 

@@ -91,7 +91,7 @@ class Mover : public GameObject, public ImGuiDrawable {
             if (GetScene()->Input()->KeyPressed(Key::W)) {
                 movement += forward;
             }
-			if (GetScene()->Input()->KeyPressed(Key::S)) {
+            if (GetScene()->Input()->KeyPressed(Key::S)) {
                 movement -= forward;
             }
             if (GetScene()->Input()->KeyPressed(Key::LeftShift)) {
@@ -169,8 +169,7 @@ inline void InitScene(Scene& mainScene) {
             .Link();
 
     Cubemap* skyCubemap = mainScene.Resources()->Get<Cubemap>(
-        "./res/textures/skybox_showcase.hdr",
-        Texture::HDRColorBuffer);
+        "./res/textures/skybox_showcase.hdr", Texture::HDRColorBuffer);
     skyCubemap->SetWrapModeU(TextureWrap::Clamp);
     skyCubemap->SetWrapModeV(TextureWrap::Clamp);
     skyCubemap->SetWrapModeW(TextureWrap::Clamp);
@@ -178,18 +177,24 @@ inline void InitScene(Scene& mainScene) {
     Material* skyMat = new Material(skyProg);
     skyMat->SetValue("skyboxTexture", skyCubemap);
 
-	mainScene.GetRootNode()->AddObject<Skybox>(skyMat);
+    mainScene.GetRootNode()->AddObject<Skybox>(skyMat);
 
-    auto firstRoom = GltfImporter::LoadScene(&mainScene, "./res/models/rooms/room_one.glb", "Room one");
-    auto secondRoom = GltfImporter::LoadScene(&mainScene, "./res/models/rooms/room_I.glb", "Room two");
-	secondRoom->GlobalTransform().Position() = glm::vec3(28, 0, 0);
-	auto thirdRoom = GltfImporter::LoadScene(&mainScene, "./res/models/rooms/room_T.glb", "Room three");
-	thirdRoom->GlobalTransform().Position() = glm::vec3(56, 0, 0);
-	thirdRoom->LocalTransform().Rotation() = glm::vec3(0, glm::pi<float>() / 2, 0);
+    auto firstRoom = GltfImporter::LoadScene(
+        &mainScene, "./res/models/rooms/room_one.glb", "Room one");
+    auto secondRoom = GltfImporter::LoadScene(
+        &mainScene, "./res/models/rooms/room_I.glb", "Room two");
+    secondRoom->GlobalTransform().Position() = glm::vec3(28, 0, 0);
+    auto thirdRoom = GltfImporter::LoadScene(
+        &mainScene, "./res/models/rooms/room_T.glb", "Room three");
+    thirdRoom->GlobalTransform().Position() = glm::vec3(56, 0, 0);
+    thirdRoom->LocalTransform().Rotation() =
+        glm::vec3(0, glm::pi<float>() / 2, 0);
 
-	auto fourthRoom = GltfImporter::LoadScene(&mainScene, "./res/models/rooms/room_I.glb", "Room four");
-	fourthRoom->GlobalTransform().Position() = glm::vec3(56, 0, 28);
-	fourthRoom->LocalTransform().Rotation() = glm::vec3(0, glm::pi<float>() / 2, 0);
+    auto fourthRoom = GltfImporter::LoadScene(
+        &mainScene, "./res/models/rooms/room_I.glb", "Room four");
+    fourthRoom->GlobalTransform().Position() = glm::vec3(56, 0, 28);
+    fourthRoom->LocalTransform().Rotation() =
+        glm::vec3(0, glm::pi<float>() / 2, 0);
 
 #pragma endregion
 #pragma region Player
@@ -202,7 +207,7 @@ inline void InitScene(Scene& mainScene) {
 
     SceneNode* playerNode = mainScene.CreateNode("Player");
 
-	playerNode->AddObject<Mover>();
+    playerNode->AddObject<Mover>();
 
     SceneNode* bimberman = GltfImporter::LoadScene(
         &mainScene, "./res/models/bimbermann_throwing.glb", "Bimberman");
@@ -214,9 +219,10 @@ inline void InitScene(Scene& mainScene) {
     SceneNode* cameraNode = mainScene.CreateNode("Camera Node");
     cameraNode->AddObject<Camera>(
         Camera::Perspective(60.0f, 16.0f / 9.0f, 0.1f, 200.0f));
-    auto* cameraController = cameraNode->AddObject<CameraSettings>(playerNode->GlobalTransform().Position());
-	cameraController->angleY = 135;
-	cameraController->height = 10;
+    auto* cameraController = cameraNode->AddObject<CameraSettings>(
+        playerNode->GlobalTransform().Position());
+    cameraController->angleY = 135;
+    cameraController->height = 10;
     cameraNode->AddObject<Bloom>();
     cameraNode->AddObject<Tonemapper>()->SetOperator(
         Tonemapper::TonemapperOperator::GranTurismo);
@@ -253,7 +259,6 @@ inline void InitScene(Scene& mainScene) {
     fogVolume->AddObject<FogVolume>();
     fogVolume->GlobalTransform().Position() = {28.0f, 0.25f, 0.0f};
     fogVolume->GlobalTransform().Scale() = {200.0f, 0.5f, 100.0f};
-
 
 #pragma endregion
 

@@ -75,7 +75,7 @@ private:
 
     void DisableBottle(BottleInstance& bottle) {
         if (bottle.body) {
-            // bottle.node->DeleteObject(bottle.body);
+            bottle.node->DeleteObject(bottle.body);
             bottle.body = nullptr;
         }
         bottle.active = false;

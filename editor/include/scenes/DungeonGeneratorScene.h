@@ -6,7 +6,7 @@
 #include "LightSystem.h"
 #include "game_scripts/AimingAid.h"
 #include "game_scripts/ThrowBottle.h"
-#include <GameScripts/DungeonGenerator.h>
+#include <game_scripts/DungeonGenerator.h>
 
 #include <AiNode.h>
 #include <Bloom.h>

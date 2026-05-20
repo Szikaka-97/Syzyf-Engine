@@ -1,6 +1,7 @@
 #version 460
 
 #pragma transparent
+#pragma no_cull
 
 in VS_OUT {
 	vec3 worldPos;
