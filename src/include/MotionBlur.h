@@ -3,14 +3,15 @@
 #include <PostProcessEffect.h>
 #include <Material.h>           // ComputeShaderProgram
 #include <glm/glm.hpp>
+#include "Debug.h"
 
-class MotionBlur : public PostProcessEffect {
+class MotionBlur : public PostProcessEffect, public ImGuiDrawable {
 public:
     MotionBlur();
     ~MotionBlur();
 
     void OnPostProcess(const PostProcessParams* params) override;
-    void DrawImGui();           // opcjonalne sterowanie parametrami
+    virtual void DrawImGui() override;           // opcjonalne sterowanie parametrami
 
     void SetEnabled(bool enabled);
     void SetSamples(int samples);
@@ -24,7 +25,7 @@ private:
 
    
     int       samples = 32;            // liczba próbek
-    float     separation = 1.0f;       // skala separacji wektora ruchu
+    float     separation = 0.01f;       // skala separacji wektora ruchu
 
     void UpdateUniforms();
 };

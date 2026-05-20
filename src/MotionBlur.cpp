@@ -5,11 +5,11 @@
 #include <filesystem>
 
 MotionBlur::MotionBlur() {
-    if( std::filesystem::exists("C:/Users/wkow1/Documents/6sem/engine/res/shaders/motion_blur/motion_blur.comp"))
+    if( std::filesystem::exists("./res/shaders/motion_blur/motion_blur.comp"))
         spdlog::error("istnieje");
     else spdlog::error("nie istnieje");
     motionBlurShader = new ComputeShaderProgram(
-        "C:/Users/wkow1/Documents/6sem/engine/res/shaders/motion_blur/motion_blur.comp");
+        "./res/shaders/motion_blur/motion_blur.comp");
     previousViewProjection = glm::mat4(1.0f);
 }
 
