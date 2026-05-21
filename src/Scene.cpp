@@ -44,8 +44,6 @@ SceneNode::~SceneNode() {
             this->parent->children.erase(posInParentChildren);
         }
     }
-
-	std::free(this);
 }
 
 void SceneNode::RecalculateTransform() {
@@ -399,6 +397,8 @@ void Scene::FlushQueues() {
         if (!this->deletedNodesQueue.empty()) {
             auto deleted = this->deletedNodesQueue.front();
             deleted->~SceneNode();
+            
+	        std::free(deleted);
             
             this->deletedNodesQueue.pop();
         }
