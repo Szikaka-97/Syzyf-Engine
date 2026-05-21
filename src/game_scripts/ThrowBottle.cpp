@@ -5,6 +5,7 @@
 #include <game_scripts/PlayerController.h>
 #include <Formatters.h>
 #include <game_scripts/ThrowBottlePool.h>
+#include <game_scripts/bottle_effects/BottleEffect.h>
 
 ThrowBottle::ThrowBottle() { }
 
@@ -22,7 +23,9 @@ void ThrowBottle::Update() {
 }
 
 void ThrowBottle::Break() {
-	spdlog::info("BOOM");
+	for (BottleEffect* obj : GetNode()->GetAllObjectsInChildren<BottleEffect>()) {
+		obj->Effect();
+	}
 }
 
 void ThrowBottle::OnCollisionEnter(SceneNode* otherNode) {

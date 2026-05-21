@@ -9,6 +9,7 @@
 #include <Camera.h>
 #include <Graphics.h>
 #include <game_scripts/ThrowBottlePool.h>
+#include <game_scripts/bottle_effects/ExplosionEffect.h>
 #include <physics/VirtualCharacterController.h>
 #include <physics/Body.h>
 #include <Formatters.h>
@@ -283,6 +284,7 @@ void PlayerController::UpdateThrowing() {
 			glm::vec3 throwForce = glm::normalize(throwDirection) * speedX + glm::vec3(0, 1, 0) * speedY;
 			
 			thrownBottle->GetObject<Physics::Body>()->SetPosition(this->throwPoint->GlobalTransform().Position());
+			thrownBottle->AddObject<ExplosionEffect>();
 
 			thrownBottle->SetEnabled(true);
 			
