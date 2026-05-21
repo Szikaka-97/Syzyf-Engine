@@ -4,7 +4,7 @@
 #include <physics/System.h>
 #include <game_scripts/PlayerController.h>
 #include <Formatters.h>
-
+#include <game_scripts/ThrowBottlePool.h>
 
 ThrowBottle::ThrowBottle() { }
 
@@ -21,10 +21,16 @@ void ThrowBottle::Update() {
 
 }
 
+void ThrowBottle::Break() {
+	spdlog::info("BOOM");
+}
+
 void ThrowBottle::OnCollisionEnter(SceneNode* otherNode) {
 	PlayerController* _;
 	if (!otherNode->TryGetObject<PlayerController>(_)) {
-		delete this->GetNode();
+		Break();
+
+		GetScene()->GetComponent<ThrowBottlePool>()->ReturnBottleToPool(this);
 	}
 }
 

@@ -11,6 +11,8 @@ public:
 	void Awake();
 	void Update();
 
+	void Break();
+
 	virtual void OnCollisionEnter(SceneNode* otherNode) override;
 	virtual void OnCollisionExit(SceneNode* otherNode) override;
 };
