@@ -6,8 +6,8 @@
 #include <limits>
 #include <spdlog/spdlog.h>
 //#include "AiNode.h"
-#include "AiSimplified.h"
-#include "enemies/EnemyBase.h"
+#include "./include/game_scripts/enemies/AiSimplified.h"
+#include "./include/game_scripts/enemies/EnemyBase.h"
 
 #include <Jolt/Physics/Collision/RayCast.h>
 #include <Jolt/Physics/Collision/CastResult.h>

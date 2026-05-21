@@ -1,10 +1,11 @@
-#include <AiSimplified.h>
+#include <./include/game_scripts/enemies/AiSimplified.h>
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
 #include <MeshRenderer.h>
 #include <TimeSystem.h>
 #include <physics/LayerMaskFilter.h>
 
-#include "EnemyBase.h"
+#include "./include/game_scripts/enemies/EnemyBase.h"
+#include "./include/game_scripts/enemies/EnemyBullet.h"    
 
 EnemyBase::EnemyBase()
     : fov(glm::radians(180.0f)),
@@ -47,7 +48,7 @@ void EnemyBase::Die() {
 }
 void EnemyBase::SpawnProjectile(const glm::vec3& targetPos) {
   if (!m_ProjectileMesh || !m_ProjectileMaterial) {
-    spdlog::warn("AiNode: Projectile resources not set!");
+    spdlog::warn("AiNode: Projectile resources not set!"+ GetNode()->GetName());
     return;
   }
 
@@ -74,6 +75,9 @@ void EnemyBase::SpawnProjectile(const glm::vec3& targetPos) {
   body->SetRestitution(0.3f);
   body->SetFriction(0.5f);
   // body->Awake();
+
+  auto* bullet = projectileNode->AddObject<EnemyBullet>();
+    bullet->owner = this;
 }
 
 void EnemyBase::UpdateAttackAnimation() {
@@ -217,3 +221,68 @@ void EnemyBase::TakeDamage(int damage) {
     Die();
   }
 }
+
+void EnemyBase::ApplyBurn(float damagePerTick, float duration, float interval) {
+    m_Burn.active        = true;
+    m_Burn.remainingTime = duration;
+    m_Burn.damage        = damagePerTick;
+    m_Burn.interval      = (interval > 0.0f) ? interval : 1.0f;
+    m_Burn.intervalTimer = 0.0f;
+    spdlog::info("EnemyBase: burn applied ({:.1f} dmg / {:.1f}s, duration {:.1f}s)",
+                 damagePerTick, interval, duration);
+}
+ 
+void EnemyBase::ApplyPetrify(float slowFactor, float duration) {
+    if (m_Petrify.active) return;   
+    m_Petrify.active        = true;
+    m_Petrify.remainingTime = duration;
+    m_Petrify.originalSpeed = GetMovementSpeed();  
+    SetMovementSpeed(m_Petrify.originalSpeed * slowFactor);
+    spdlog::info("EnemyBase: petrify applied (slowFactor={:.2f}, duration={:.1f}s)",
+                 slowFactor, duration);
+}
+ 
+void EnemyBase::ApplyConfuse(float duration, bool isPrecise) {
+    m_Confuse.active        = true;
+    m_Confuse.remainingTime = duration;
+    m_Confuse.isPrecise     = isPrecise;
+    spdlog::info("EnemyBase: confuse applied (duration={:.1f}s)", duration);
+}
+ 
+void EnemyBase::UpdateStatusEffects() {
+    const float dt = Time::Delta();
+ 
+    if (m_Petrify.active) {
+        m_Petrify.remainingTime -= dt;
+        if (m_Petrify.remainingTime <= 0.0f) {
+            m_Petrify.active = false;
+            SetMovementSpeed(m_Petrify.originalSpeed);
+            spdlog::info("EnemyBase: petrify expired, speed restored");
+        }
+    }
+ 
+    if (m_Burn.active) {
+        m_Burn.remainingTime -= dt;
+        m_Burn.intervalTimer += dt;
+ 
+        if (m_Burn.remainingTime <= 0.0f) {
+            m_Burn.active = false;
+            spdlog::info("EnemyBase: burn expired");
+        } else if (m_Burn.intervalTimer >= m_Burn.interval) {
+            m_Burn.intervalTimer = 0.0f;
+            m_hp -= static_cast<int>(m_Burn.damage);
+            spdlog::debug("EnemyBase: burn tick -{:.0f} hp  (remaining hp={})",
+                          m_Burn.damage, m_hp);
+            if (m_hp <= 0) Die();
+        }
+    }
+ 
+    if (m_Confuse.active) {
+        m_Confuse.remainingTime -= dt;
+        if (m_Confuse.remainingTime <= 0.0f) {
+            m_Confuse.active = false;
+            spdlog::info("EnemyBase: confuse expired");
+        }
+    }
+}
+ 

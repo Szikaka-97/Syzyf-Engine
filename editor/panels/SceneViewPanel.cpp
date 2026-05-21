@@ -1,5 +1,4 @@
 #include "panels/SceneViewPanel.h"
-#include "AiNode.h"
 #include "Application.h"
 #include "CameraController.h"
 #include "Commands.h"
@@ -84,6 +83,14 @@ void SceneViewPanel::Draw(Context& context) {
     }
 
     if (drawContent) {
+        if (context.loadedScenes.empty()) {
+            if (startedAsPopup)
+                ImGui::EndPopup();
+            else
+                ImGui::End();
+            return;
+        }
+
         if (!this->isBarHidden) {
             if (context.state == State::Game) {
                 ImGui::BeginDisabled();
@@ -437,11 +444,6 @@ void SceneViewPanel::UpdateAndRenderScene(Context& context) {
     }
     context.selectedScene->Render();
     if (context.state != State::Game) {
-        for (auto* aiNode :
-             context.selectedScene->FindObjectsOfType<AiNode>()) {
-            // aiNode->DrawDebugView(context.physicsDebugRenderer.get());
-        }
-
         context.physicsDebugRenderer->Render();
     }
 

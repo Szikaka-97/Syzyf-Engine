@@ -1,0 +1,66 @@
+#version 460
+
+layout(local_size_x = 8, local_size_y = 8) in;
+
+layout(binding = 0) uniform sampler2D colorTex;
+layout(binding = 1) uniform sampler2D depthTex;
+layout(rgba16f, binding = 0) uniform writeonly image2D outputImg;
+
+// Zamiast "shared/uniforms.h" – w³asne uniformy
+uniform mat4 u_invProjection;            // Inverse Projection (bie¿¹ca klatka)
+uniform mat4 u_invView;                  // Inverse View (bie¿¹ca klatka)
+uniform mat4 u_previousViewProjection;   // View * Projection z poprzedniej klatki
+uniform vec2 u_motionBlurEnabled;        // x = 1.0 gdy w³¹czone
+uniform vec2 u_parameters;               // x = liczba próbek, y = separacja
+
+vec3 ViewPosFromDepth(vec2 uv, float rawDepth) {
+    vec4 ndc     = vec4(uv * 2.0 - 1.0, rawDepth * 2.0 - 1.0, 1.0);
+    vec4 viewPos = u_invProjection * ndc;
+    return viewPos.xyz / viewPos.w;
+}
+
+void main() {
+    ivec2 pixelCoord = ivec2(gl_GlobalInvocationID.xy);
+    vec2  texSize    = vec2(imageSize(outputImg));
+    vec2  uv         = (vec2(pixelCoord) + 0.5) / texSize;
+
+    vec4 color = texelFetch(colorTex, pixelCoord, 0);
+    float depth = texelFetch(depthTex, pixelCoord, 0).r;
+
+    // Rekonstrukcja pozycji œwiata z g³êbi
+    vec3 viewPos = ViewPosFromDepth(uv, depth);
+    vec4 worldPos = u_invView * vec4(viewPos, 1.0);
+
+    // Poprzednia klatka: wspó³rzêdne w przestrzeni przyciêcia i na ekranie
+    vec4 prevClip = u_previousViewProjection * worldPos;
+    prevClip.xyz /= prevClip.w;
+    vec2 prevUV = prevClip.xy * 0.5 + 0.5;
+
+    vec2 direction = uv - prevUV;   // wektor ruchu z poprzedniej klatki do bie¿¹cej
+
+    // Wczesne wyjœcie – blur wy³¹czony
+    if (u_motionBlurEnabled.x != 1.0 || u_parameters.x <= 0.0 || u_parameters.y <= 0.0) {
+        imageStore(outputImg, pixelCoord, color);
+        return;
+    }
+
+    int   size       = int(u_parameters.x);
+    float separation = u_parameters.y;
+    direction *= separation;
+
+    vec2 forward  = uv;
+    vec2 backward = uv;
+    vec4 total    = color;
+    float count   = 1.0;
+
+    for (int i = 0; i < size; i++) {
+        forward  += direction;
+        backward -= direction;
+        total    += texelFetch(colorTex, ivec2(forward * texSize), 0);
+        total    += texelFetch(colorTex, ivec2(backward * texSize), 0);
+        count    += 2.0;
+    }
+
+    total /= count;
+    imageStore(outputImg, pixelCoord, total);
+}

@@ -8,8 +8,9 @@
 #include <TimeSystem.h>
 #include <Camera.h>
 #include <Graphics.h>
-#include <game_scripts/ThrowBottlePool.h>
-#include <game_scripts/bottle_effects/ExplosionEffect.h>
+#include <game_scripts/ThrowableObjectPool.h>
+#include <game_scripts/AttackEffects/EffectsManager.h>
+#include <game_scripts/ThrowableObject.h>
 #include <physics/VirtualCharacterController.h>
 #include <physics/Body.h>
 #include <Formatters.h>
@@ -264,7 +265,8 @@ void PlayerController::UpdateThrowing() {
 		this->throwStrengthAccum = MoveTowards(this->throwStrengthAccum, 0, Time::Delta() * 10);
 
 		if (this->throwStrengthCache > 0 && this->throwStrengthAccum < 0.7f) {
-			SceneNode* thrownBottle = GetScene()->GetComponent<ThrowBottlePool>()->RequestThrowBottle();
+			SceneNode* thrownBottle = GetScene()->GetComponent<ThrowableObjectPool>()->RequestThrowableObject();
+			thrownBottle->AddObject<ThrowableObject>()->SetEffect<EffectExplosion>();
 
 			float forwardVelocityBoost = glm::dot(GetStrengthFromVelocity(), aimDirection);
 			if (forwardVelocityBoost < 0.0f) {
@@ -284,8 +286,7 @@ void PlayerController::UpdateThrowing() {
 			glm::vec3 throwForce = glm::normalize(throwDirection) * speedX + glm::vec3(0, 1, 0) * speedY;
 			
 			thrownBottle->GetObject<Physics::Body>()->SetPosition(this->throwPoint->GlobalTransform().Position());
-			thrownBottle->AddObject<ExplosionEffect>();
-
+	
 			thrownBottle->SetEnabled(true);
 			
 			thrownBottle->GetObject<Physics::Body>()->SetLinearVelocity(throwForce);
@@ -315,6 +316,27 @@ void PlayerController::Update() {
 	UpdateThrowing();
 
 	this->torso->GlobalTransform().Rotation() *= glm::angleAxis(glm::sin(Time::Current() * this->woblinessFrequency) * (0.1f + this->wobliness * 0.3f), this->torso->GlobalTransform().Forward());
+}
+
+void PlayerController::TakeDamage(float damage) {
+	this->health -= damage;
+
+	if (this->health < 0) {
+		Die();
+	}
+}
+
+float PlayerController::GetHealth() const {
+	return this->health;
+}
+void PlayerController::SetHealth(float newHealth) {
+	this->health = newHealth;
+}
+
+void PlayerController::Die() {
+	spdlog::info("Player is dead!");
+
+	delete this;
 }
 
 void PlayerController::DrawImGui() {

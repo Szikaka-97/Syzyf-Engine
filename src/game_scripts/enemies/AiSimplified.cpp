@@ -1,4 +1,4 @@
-#include <AiSimplified.h>
+#include <./include/game_scripts/enemies/AiSimplified.h>
 #include <Camera.h>
 #include <Graphics.h>
 #include <Jolt/Jolt.h>

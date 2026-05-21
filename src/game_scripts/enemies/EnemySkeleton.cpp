@@ -1,15 +1,11 @@
-#pragma once
-
-#include <AiSimplified.h>
+#include <game_scripts/enemies/EnemySkeleton.h>
 #include <game_scripts/Player.h>
 #include <Scene.h>
-#include <enemies/EnemyBase.h>
 
 #include <glm/glm.hpp>
 
-class EnemySkeleton : public EnemyBase {
- public:
-  void Update() {
+
+  void EnemySkeleton::Update() {
 
     EnsureBody();
     // m_TargetPosition = GetObject<Player>()->GlobalTransform().Position();
@@ -81,4 +77,3 @@ class EnemySkeleton : public EnemyBase {
 
     DrawDebugView();
   }
-};

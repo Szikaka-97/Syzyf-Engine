@@ -49,6 +49,10 @@ protected:
         void AstarChase();
     void DirectChase();
 
+protected:
+    void  SetMovementSpeed(float s) { m_Speed = s; }
+    float GetMovementSpeed() const  { return m_Speed; }
+
 public:
     AiSimplified();
     virtual ~AiSimplified();

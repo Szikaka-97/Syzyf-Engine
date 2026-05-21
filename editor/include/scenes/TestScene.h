@@ -12,7 +12,6 @@
 #include <game_scripts/Player.h>
 #include <game_scripts/PlayerController.h>
 
-#include <AiNode.h>
 #include <Bloom.h>
 #include <Camera.h>
 #include <ColorGrading.h>
@@ -36,11 +35,10 @@
 #include <TweenSystem.h>
 #include <Viewport.h>
 #include <animation/AnimationSystem.h>
-#include <enemies/EnemySkeleton.h>
+#include <game_scripts/enemies/EnemySkeleton.h>
 #include <fog/FogVolume.h>
 #include <game_scripts/CameraSettings.h>
 #include <game_scripts/PlayerController.h>
-#include <game_scripts/ThrowBottle.h>
 #include <glm/fwd.hpp>
 #include <glm/geometric.hpp>
 #include <glm/trigonometric.hpp>
@@ -62,7 +60,7 @@
 #include <ui/objects/UiVisual.h>
 #include <ui/systems/UiSystem.h>
 #include <Formatters.h>
-#include <game_scripts/ThrowBottlePool.h>
+#include <game_scripts/ThrowableObjectPool.h>
 
 #include "Jolt/Math/Vec3.h"
 #include "text/Text3D.h"
@@ -84,7 +82,7 @@ inline void InitScene(Scene& mainScene) {
     mainScene.AddComponent<PickableItemSystem>();
     auto* tweenSystem = mainScene.AddComponent<TweenSystem>();
     mainScene.AddComponent<WheelSystem>();
-    mainScene.AddComponent<ThrowBottlePool>();
+    mainScene.AddComponent<ThrowableObjectPool>();
 
     mainScene.GetGraphics()->ssaoSettings.enabled = false;
 
@@ -178,11 +176,15 @@ inline void InitScene(Scene& mainScene) {
     sun->GlobalTransform().Position() = {1, 2.2f, 0};
     sun->GlobalTransform().Rotation() =
         glm::quat(glm::radians(glm::vec3(50.0f, -20.0f, 0.0f)));
-    mainScene.GetComponent<LightSystem>()->SetAmbientLight(
-        {1.0f, 1.0f, 1.0f, 0.6f});
+    mainScene.GetComponent<LightSystem>()->SetAmbientLight({1.0f, 1.0f, 1.0f, 0.6f});
 
 #pragma endregion
-    SceneNode* uiRoot = mainScene.CreateNode("UI");
+#pragma Enemy
+    
+#pragma endregion
+#pragma region UI
+
+SceneNode* uiRoot = mainScene.CreateNode("UI");
 
     // Move this into the wheel system
     SceneNode* uiNode = mainScene.CreateNode(uiRoot, "Ui Node");
@@ -261,5 +263,6 @@ inline void InitScene(Scene& mainScene) {
         itemNode->AddObject<UiInteractable>();
         itemNode->AddObject<WheelTag>();
     }
+#pragma endregion
 }
 } // namespace TestScene

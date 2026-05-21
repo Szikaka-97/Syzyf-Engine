@@ -1,15 +1,15 @@
-#include <game_scripts/ThrowBottlePool.h>
+#include <game_scripts/ThrowableObjectPool.h>
 
 #include <MeshRenderer.h>
 #include <Mesh.h>
 #include <Material.h>
 #include <Shader.h>
-#include <game_scripts/ThrowBottle.h>
+#include <game_scripts/ThrowableObject.h>
 #include <physics/Body.h>
 #include <physics/Helpers.h>
 #include "physics/System.h"
 
-ThrowBottlePool::ThrowBottlePool(Scene *scene):
+ThrowableObjectPool::ThrowableObjectPool(Scene *scene):
 SceneComponent(scene),
 capacity(20) {
 	this->allInstances.reserve(this->capacity);
@@ -27,11 +27,11 @@ capacity(20) {
 	this->bottleMaterial->SetValue("uColor", glm::vec3(1, 0, 0));
 }
 
-SceneNode* ThrowBottlePool::RequestThrowBottle() {
+SceneNode* ThrowableObjectPool::RequestThrowableObject() {
 	if (this->allInstances.size() < this->capacity) {
 		SceneNode* newBottle = GetScene()->CreateNode(this->bottlesPoolRoot, std::format("Bottle {}", this->allInstances.size()));
 
-		newBottle->AddObject<ThrowBottle>();
+		// newBottle->AddObject<T>();
 
 		newBottle->AddObject<Physics::Body>(JPH::BodyCreationSettings(Physics::SphereShape(0.1f), JPH::Vec3::sZero(), JPH::Quat::sIdentity(), JPH::EMotionType::Dynamic, Physics::Layers::MOVING))->SetCollisionLayerAndMask({0}, 0);;
 		newBottle->AddObject<MeshRenderer>(this->bottleMesh, this->bottleMaterial);
@@ -55,7 +55,7 @@ SceneNode* ThrowBottlePool::RequestThrowBottle() {
 	}
 }
 
-void ThrowBottlePool::ReturnBottleToPool(ThrowBottle* bottle) {
+void ThrowableObjectPool::ReturnBottleToPool(ThrowableObject* bottle) {
 	bottle->GetNode()->SetEnabled(false);
 	bottle->GetNode()->SetParent(this->bottlesPoolRoot);
 }

@@ -4,8 +4,7 @@
 #include <vector>
 #include <glm/glm.hpp>
 #include "physics/DebugRenderer.h"
-#include <AiNode.h>
-#include "AiSimplified.h"
+#include "./include/game_scripts/enemies/AiSimplified.h"
 
 class Mesh;
 class AiNode;

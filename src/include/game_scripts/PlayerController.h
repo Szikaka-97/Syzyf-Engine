@@ -31,6 +31,8 @@ private:
 	SceneNode* throwingArm = nullptr;
 	SceneNode* throwPoint = nullptr;
 
+	float health = 100;
+
 	float aimBearing;
 	glm::quat defaultThrowingArmRotation;
 
@@ -46,6 +48,13 @@ private:
 public:
 	void Awake();
 	void Update();
+
+	void TakeDamage(float damage);
+	
+	float GetHealth() const;
+	void SetHealth(float newHealth);
+
+	void Die();
 
 	virtual void DrawImGui() override;
 };
