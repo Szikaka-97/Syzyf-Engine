@@ -62,6 +62,7 @@
 #include <ui/objects/UiVisual.h>
 #include <ui/systems/UiSystem.h>
 #include <Formatters.h>
+#include <game_scripts/ThrowBottlePool.h>
 
 #include "Jolt/Math/Vec3.h"
 #include "text/Text3D.h"
@@ -83,6 +84,7 @@ inline void InitScene(Scene& mainScene) {
     mainScene.AddComponent<PickableItemSystem>();
     auto* tweenSystem = mainScene.AddComponent<TweenSystem>();
     mainScene.AddComponent<WheelSystem>();
+    mainScene.AddComponent<ThrowBottlePool>();
 
     mainScene.GetGraphics()->ssaoSettings.enabled = false;
 

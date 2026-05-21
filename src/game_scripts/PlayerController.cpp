@@ -8,7 +8,9 @@
 #include <TimeSystem.h>
 #include <Camera.h>
 #include <Graphics.h>
+#include <game_scripts/ThrowBottlePool.h>
 #include <physics/VirtualCharacterController.h>
+#include <physics/Body.h>
 #include <Formatters.h>
 
 float MoveTowards(float current, float target, float maxDelta) {
@@ -104,15 +106,19 @@ void PlayerController::Awake() {
 	this->charController = GetObject<Physics::VirtualCharacterController>();
 	
 	this->torso = GetNode()->FindNode("Bimberman/root/Torso");
+	assert(this->torso);
+
+	this->throwingArm = this->torso->FindNode("Arm R");
+	assert(this->throwingArm);
+
 	this->aim = GetNode()->FindNode("Aim Reticle");
 	this->characterRoot = GetNode()->FindNode("Bimberman/root");
-	this->throwingArm = this->torso->FindNode("Arm R");
+	this->throwPoint = this->throwingArm->FindNode("Throw Point");
 
 	assert(this->charController);
-	assert(this->torso);
 	assert(this->aim);
-	assert(this->throwingArm);
 	assert(this->characterRoot);
+	assert(this->throwPoint);
 
 	this->charController->SetCollisionLayerAndMask({1}, {0});
 
@@ -227,14 +233,14 @@ void PlayerController::UpdateThrowing() {
 		throwOomph = 1;
 	}
 
+	glm::vec3 aimDirection = glm::angleAxis(this->aimBearing, glm::vec3(0, 1, 0)) * glm::vec3(0, 0, 1);
+
 	if (throwOomph > 0 && this->throwStrengthCache == 0) {
 		this->throwStrengthAccum += Time::Delta() * throwOomph / this->throwSpeedTime;
 
 		if (this->throwStrengthAccum > 1) {
 			this->throwStrengthAccum = 1;
 		}
-
-		glm::vec3 aimDirection = glm::angleAxis(this->aimBearing, glm::vec3(0, 1, 0)) * glm::vec3(0, 0, 1);
 
 		glm::vec3 hitPoint = aimDirection * glm::mix(this->minThrowDistance, this->maxThrowDistance, ThrowStrengthEasing(this->throwStrengthAccum)) + GetStrengthFromVelocity();
 
@@ -257,7 +263,30 @@ void PlayerController::UpdateThrowing() {
 		this->throwStrengthAccum = MoveTowards(this->throwStrengthAccum, 0, Time::Delta() * 10);
 
 		if (this->throwStrengthCache > 0 && this->throwStrengthAccum < 0.7f) {
-			// Thrown bottle
+			SceneNode* thrownBottle = GetScene()->GetComponent<ThrowBottlePool>()->RequestThrowBottle();
+
+			float forwardVelocityBoost = glm::dot(GetStrengthFromVelocity(), aimDirection);
+			if (forwardVelocityBoost < 0.0f) {
+				forwardVelocityBoost = 0.0f;
+			}
+			
+			float finalThrowDist = glm::mix(minThrowDistance, maxThrowDistance, ThrowStrengthEasing(this->throwStrengthCache));
+			glm::vec3 hitPoint = aimDirection * (finalThrowDist + forwardVelocityBoost);
+			
+			float speedX = glm::length(hitPoint) / this->flightTime;
+
+			float speedY = ((9.8 / 2) * this->flightTime * this->flightTime - glm::dot(this->throwPoint->GlobalTransform().Position().Value(), glm::vec3(0, 1, 0))) / this->flightTime;
+
+			glm::vec3 throwDirection = GlobalTransform().Position() + hitPoint - this->throwPoint->GlobalTransform().Position();
+			throwDirection.y = 0;
+
+			glm::vec3 throwForce = glm::normalize(throwDirection) * speedX + glm::vec3(0, 1, 0) * speedY;
+			
+			thrownBottle->GetObject<Physics::Body>()->SetPosition(this->throwPoint->GlobalTransform().Position());
+
+			thrownBottle->SetEnabled(true);
+			
+			thrownBottle->GetObject<Physics::Body>()->SetLinearVelocity(throwForce);
 
 			this->throwStrengthCache = -1;
 		}

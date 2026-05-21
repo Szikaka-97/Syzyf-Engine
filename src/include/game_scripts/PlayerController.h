@@ -29,6 +29,7 @@ private:
 	SceneNode* aim = nullptr;
 	SceneNode* characterRoot = nullptr;
 	SceneNode* throwingArm = nullptr;
+	SceneNode* throwPoint = nullptr;
 
 	float aimBearing;
 	glm::quat defaultThrowingArmRotation;
