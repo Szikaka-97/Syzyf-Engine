@@ -21,7 +21,7 @@ public:
 
 namespace Debug {
 	template<typename T>
-	bool Property(T& property, const std::string& name) = delete;
+	bool Property(T& property, const std::string& name);
 	
 	template<>
 	bool Property(float& property, const std::string& name);

@@ -139,6 +139,10 @@ GLenum Texture::CalcInternalFormat(TextureColor colorSpace, TextureFormat format
 
 	GLenum result;
 
+	if (channels == TextureChannels::GrayscaleInteger) {
+		if (format == TextureFormat::Ubyte) return GL_R8UI;
+		if (format == TextureFormat::Uint) return GL_R32UI;
+	}
 	if (channels == TextureChannels::Depth) {
 		result = GL_DEPTH_COMPONENT;
 	}
@@ -262,6 +266,7 @@ bool Texture::IsDirty() const {
 void Texture::Update() {
 	GLenum glTexType[] {
 		GL_TEXTURE_2D,
+		GL_TEXTURE_3D,
 		GL_TEXTURE_CUBE_MAP
 	};
 
@@ -387,9 +392,52 @@ Texture2D::Texture2D(unsigned int width, unsigned int height, const TextureParam
 
 	this->Update();
 }
+Texture2D* Texture2D::Create(unsigned char* textureData, int width, int height, const TextureParams& loadParams) {
+	GLuint textureHandle;
+	glGenTextures(1, &textureHandle);
 
-Texture2D* Texture2D::Load(const fs::path& texturePath, const TextureParams& loadParams) {
-	stbi_set_flip_vertically_on_load(true);
+	glBindTexture(GL_TEXTURE_2D, textureHandle);
+
+	GLenum internalFormat = CalcInternalFormat(loadParams);
+	GLenum format = ToGL(loadParams.channels);
+	GLenum textureType = ToGL(loadParams.format);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, format, textureType, textureData);		
+	glBindTexture(GL_TEXTURE_2D, 0);
+	
+	Texture2D* result = new Texture2D(width, height, loadParams, textureHandle);
+
+	result->Update();
+
+	return result;
+}
+
+
+Texture2D* Texture2D::Load(const unsigned char* data, const int length, const TextureParams loadParams, bool flip) {
+	stbi_set_flip_vertically_on_load(flip);
+
+	int width, height, nrChannels;
+	unsigned char* textureData = nullptr;
+	
+	if (loadParams.format == TextureFormat::Float) {
+		textureData = (unsigned char*)stbi_loadf_from_memory(data, length, &width, &height, &nrChannels, loadParams.NumChannels());
+	} else {
+		textureData = stbi_load_from_memory(data, length, &width, &height, &nrChannels, loadParams.NumChannels());
+	}
+
+	if (!textureData) {
+		spdlog::error("Failed to load texture from data");
+		return nullptr;
+	}
+
+	Texture2D* texture = Create(textureData, width, height, loadParams);
+
+	stbi_image_free(textureData);
+	return texture;
+}
+
+Texture2D* Texture2D::Load(const fs::path& texturePath, const TextureParams& loadParams, bool flip) {
+	stbi_set_flip_vertically_on_load(flip);
 	
 	fs::directory_entry textureFile(texturePath);
 
@@ -406,26 +454,13 @@ Texture2D* Texture2D::Load(const fs::path& texturePath, const TextureParams& loa
 		return nullptr;
 	}
 
-	GLuint textureHandle;
-	glGenTextures(1, &textureHandle);
-
-	glBindTexture(GL_TEXTURE_2D, textureHandle);
-
-	GLenum internalFormat = CalcInternalFormat(loadParams);
-	GLenum format = ToGL(loadParams.channels);
-	GLenum textureType = ToGL(loadParams.format);
-
-	glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, format, textureType, textureData);
+	Texture2D* texture = Create(textureData, width, height, loadParams);
 	
 	stbi_image_free(textureData);
-	
-	glBindTexture(GL_TEXTURE_2D, 0);
-	
-	Texture2D* result = new Texture2D(width, height, loadParams, textureHandle);
-	
-	result->path = texturePath;
 
-	return result;
+	texture->path = texturePath;
+
+	return texture;
 }
 
 void Cubemap::Create() {
@@ -759,3 +794,109 @@ void Cubemap::SetWrapModeW(TextureWrap wrapMode) {
 	this->wrapW.dirty = true;
 	this->dirty = true;
 }
+
+Texture3D* Texture3D::Create(unsigned char* textureData, int width, int height, int depth, const TextureParams& loadParams) {
+    GLuint textureHandle;
+    glGenTextures(1, &textureHandle);
+
+    glBindTexture(GL_TEXTURE_3D, textureHandle);
+
+    GLenum internalFormat = CalcInternalFormat(loadParams);
+    GLenum format = ToGL(loadParams.channels);
+    GLenum textureType = ToGL(loadParams.format);
+
+    glTexImage3D(GL_TEXTURE_3D, 0, internalFormat, width, height, depth, 0, format, textureType, textureData);
+    glBindTexture(GL_TEXTURE_3D, 0);
+
+    Texture3D* result = new Texture3D(width, height, depth, loadParams, textureHandle);
+
+    return result;
+}
+
+void Texture3D::Create() {
+	if (this->width > 0 && this->height > 0 && this->depth > 0) {
+		GLenum internalFormat = CalcInternalFormat(this->colorSpace, this->format, this->channels);
+		GLenum texFormat = ToGL(this->channels);
+		GLenum textureType = ToGL(this->format);
+		
+		if (!this->handle) {
+			glCreateTextures(GL_TEXTURE_3D, 1, &this->handle);
+		}
+		
+        glTexImage3D(
+            GL_TEXTURE_3D, 0,
+            internalFormat, this->width, this->height, this->depth, 0, texFormat, textureType, nullptr
+        );
+
+		this->Update();
+	
+		glBindTexture(GL_TEXTURE_3D, 0);
+	}
+}
+
+Texture3D::Texture3D(unsigned int width, unsigned int height, unsigned int depth, const TextureParams& creationParams) {
+	this->format = creationParams.format;
+	this->channels = creationParams.channels;
+	this->colorSpace = creationParams.colorSpace;
+	this->owning = true;
+	this->handle = 0;
+	this->width = width;
+	this->height = height;
+    this->depth = depth;
+	this->dirty = true;
+
+	this->mipmapped = TextureInfoBit<bool>();
+	this->wrapU = TextureInfoBit<TextureWrap>();
+	this->wrapV = TextureInfoBit<TextureWrap>();
+	this->wrapW = TextureInfoBit<TextureWrap>();
+	this->minFilter = TextureInfoBit<TextureFilter>();
+	this->magFilter = TextureInfoBit<TextureFilter>();
+	
+	this->SetWrapModeU(creationParams.wrapU);
+	this->SetWrapModeV(creationParams.wrapV);
+	this->SetWrapModeW(creationParams.wrapW);
+	this->SetMinFilter(creationParams.minFilter);
+	this->SetMagFilter(creationParams.magFilter);
+
+	Create();
+}
+
+Texture3D::Texture3D(unsigned int width, unsigned int height, unsigned int depth, const TextureParams& creationParams, GLuint handle) {
+	this->format = creationParams.format;
+	this->channels = creationParams.channels;
+	this->colorSpace = creationParams.colorSpace;
+	this->owning = true;
+	this->handle = handle;
+	this->width = width;
+	this->height = height;
+	this->dirty = true;
+
+	this->mipmapped = TextureInfoBit<bool>();
+	this->wrapU = TextureInfoBit<TextureWrap>();
+	this->wrapV = TextureInfoBit<TextureWrap>();
+	this->wrapW = TextureInfoBit<TextureWrap>();
+	
+	this->SetWrapModeU(creationParams.wrapU);
+	this->SetWrapModeV(creationParams.wrapV);
+	this->SetWrapModeW(creationParams.wrapW);
+	this->SetMinFilter(creationParams.minFilter);
+	this->SetMagFilter(creationParams.magFilter);
+
+	this->Update();
+}
+
+TextureWrap Texture3D::GetWrapModeW() const {
+    return this->wrapW.value;
+}
+
+void Texture3D::SetWrapModeW(TextureWrap wrapMode) {
+	if (this->wrapW.value == wrapMode) {
+		return;
+	}
+
+	this->wrapW.value = wrapMode;
+	
+	this->wrapW.dirty = true;
+	this->dirty = true;
+}
+

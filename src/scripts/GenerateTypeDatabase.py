@@ -8,6 +8,13 @@ from os import path
 import traceback
 
 clang.TemplateArgumentKind.STRUCTURAL_VALUE = clang.TemplateArgumentKind(5)
+clang.TemplateArgumentKind.TEMPLATE = clang.TemplateArgumentKind(6)
+clang.TemplateArgumentKind.TEMPLATE_EXPANSION = clang.TemplateArgumentKind(7)
+clang.TemplateArgumentKind.EXPRESSION = clang.TemplateArgumentKind(8)
+clang.TemplateArgumentKind.PACK = clang.TemplateArgumentKind(9)
+
+
+
 
 SOURCE_FILES_DIRECTORY = sys.argv[1]
 HEADER_FILES_DIRECTORY = sys.argv[2]
@@ -151,21 +158,30 @@ class CppType:
 			CppType.all_types[name] = CppType(type)
 
 		return name
+	
+
+	@staticmethod
+	def get_definitions(cursor: clang.Cursor) -> list[clang.Cursor]:
+		defs = []
+
+		for token in cursor.get_children():
+			if is_type_decl(token) and token.is_definition():
+				defs.append(token)
+			elif token.kind == clang.CursorKind.NAMESPACE:
+				defs += CppType.get_definitions(token)
 		
+		return defs
+
 	@classmethod
 	def read_all_types(cls, code_file: clang.TranslationUnit):
 		cursor: clang.Cursor = code_file.cursor
 
-		definitions: list[clang.Cursor] = [
-			token for token in cursor.get_children() if (
-				is_type_decl(token) and token.is_definition()
-			)
-		]
+		definitions: list[clang.Cursor] = cls.get_definitions(cursor)
 
 		for class_def in definitions:
 			type: clang.Type = class_def.type
-			
-			if HEADER_FILES_DIRECTORY not in type.get_declaration().location.file.name:
+
+			if HEADER_FILES_DIRECTORY not in type.get_declaration().location.file.name.replace("\\", "/"):
 				continue
 
 			cls.read_type(type)
@@ -235,12 +251,17 @@ class CppType:
 		rep["name"] = self.name
 		rep["simple_name"] = self.get_simple_name()
 		rep["template_args"] = self.template_args
-		rep["projects_own"] = HEADER_FILES_DIRECTORY in self.cursor.location.file.name
+		rep["projects_own"] = HEADER_FILES_DIRECTORY in self.cursor.location.file.name.replace("\\", "/")
 		rep["access"] = str_access_specifier(self.cursor.access_specifier)
 		rep["enclosing_class"] = self.enclosing_class
 		rep["enum_width"] = self.enum_width
 
 		return rep
+
+
+def list_files_recursive(path: str) -> list[str]:
+	return [os.path.join(root, file) for root, dirs, files in os.walk(path) for file in files]
+
 
 
 def is_type_decl(cursor: clang.Cursor) -> bool:
@@ -276,7 +297,9 @@ def construct_file(files: list[str], compile_args: list[str]) -> clang.Translati
 	compiled_file = ""
 
 	for h_file in files:
-		compiled_file += f"#include<{os.path.basename(h_file)}>\n"
+		if os.path.isfile(h_file):
+			compiled_file += f"#include<{os.path.relpath(h_file, HEADER_FILES_DIRECTORY)}>\n"
+	
 	
 	result = clang.Index.create().parse(
 		f"main.cpp",
@@ -284,12 +307,14 @@ def construct_file(files: list[str], compile_args: list[str]) -> clang.Translati
 		unsaved_files=[(f"main.cpp", compiled_file)]
 	)
 
-	diagnostic_messages = [message for message in result.diagnostics if message.severity > 2]
+	diagnostic_messages = [message for message in result.diagnostics if message.severity > clang.Diagnostic.Warning]
 
 	if len(diagnostic_messages) > 0:
 		for message in diagnostic_messages:
-			print(message)
+			print(message.format(clang.Diagnostic.DisplaySourceLocation | clang.Diagnostic.DisplayCategoryName | clang.Diagnostic.DisplayColumn | clang.Diagnostic.DisplaySourceRanges))
 		
+		print(compiled_file)
+
 		raise RuntimeError()
 
 	return result
@@ -333,7 +358,20 @@ def main():
 
 			break
 
-	files = [path.abspath(HEADER_FILES_DIRECTORY + "/" + file) for file in os.listdir(HEADER_FILES_DIRECTORY)]
+	files = [path.abspath(file) for file in list_files_recursive(HEADER_FILES_DIRECTORY)]
+
+	compile_args_final = []
+
+	for arg in compile_args:
+		if arg.startswith("-I"):
+			arg = arg.removeprefix("-I\"").removeprefix("-I")
+			arg = os.path.abspath(arg)
+
+			compile_args_final.append("-isystem")	
+		
+		compile_args_final.append(arg)
+
+	compile_args = compile_args_final
 
 	CppType.read_all_types(construct_file(files, compile_args))
 	

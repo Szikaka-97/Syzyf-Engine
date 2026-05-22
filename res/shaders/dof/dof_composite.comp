@@ -1,0 +1,79 @@
+#version 460
+
+layout (local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+
+layout(binding = 0) uniform sampler2D inputTex;
+layout(binding = 1) uniform sampler2D blurTex;
+layout(binding = 2) uniform sampler2D depthTex;
+
+layout(rgba16f, binding = 0) uniform writeonly image2D outputImg;
+
+#include "shared/uniforms.h"
+
+uniform float minDistance;
+uniform float maxDistance;
+uniform float focusDistance;
+
+uniform bool useDilution;
+uniform int size;
+uniform float separation;
+uniform float minThreshold;
+uniform float maxThreshold;
+
+float LinearizeDepth(float rawDepth) {
+    float z = rawDepth * 2.0 - 1.0;
+    return (2.0 * Global_CameraNearPlane * Global_CameraFarPlane) / (Global_CameraFarPlane + Global_CameraNearPlane - z * (Global_CameraFarPlane - Global_CameraNearPlane));
+}
+
+void main() {
+    ivec2 pixelCoord = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 resolution = textureSize(inputTex, 0);
+
+    if (pixelCoord.x >= resolution.x || pixelCoord.y >= resolution.y) {
+        return;
+    }
+
+    vec2 uv = (vec2(pixelCoord) + 0.5) / vec2(resolution);
+    vec2 blurResolution = vec2(textureSize(blurTex, 0));
+
+	vec3 focusColor = texelFetch(inputTex, pixelCoord, 0).xyz;
+	vec3 blurColor = textureLod(blurTex, uv, 0).xyz;
+    float rawDepth = texelFetch(depthTex, pixelCoord, 0).x;
+    float linearDepth = LinearizeDepth(rawDepth); 
+
+    if (useDilution) {
+    float mx = 0.0;
+    vec4 cmx = vec4(blurColor, 1.0);
+    for (int i = -size; i <= size; ++i) {
+        for (int j = -size; j <= size; ++j) {
+            // Nothing - Rectangle
+            // Diamond 
+            // if (!(abs(i) <= size - abs(j))) {
+            //     continue;
+            // }
+            //
+            // Circle 
+            if (!(distance(vec2(i, j), vec2(0, 0)) <= size)) {
+                continue;
+            }
+            
+            vec2 dilationUv = uv + (vec2(i, j) * separation) / blurResolution;
+            vec4 c = textureLod(blurTex, dilationUv, 0);
+
+            float mxt = dot(c.rgb, vec3(0.2126729, 0.7151522, 0.0721750));
+
+            if (mxt > mx) {
+                mx = mxt;
+                cmx = c;
+            }
+        }
+    }
+        blurColor = mix(blurColor.rgb, cmx.rgb, smoothstep(minThreshold, maxThreshold, mx));
+    }
+
+    float blur = smoothstep(minDistance, maxDistance, abs(linearDepth - focusDistance));
+
+    vec3 result = mix(focusColor, blurColor, blur);
+
+	imageStore(outputImg, pixelCoord, vec4(result, 1.0));
+}

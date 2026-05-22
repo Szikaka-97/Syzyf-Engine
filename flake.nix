@@ -22,20 +22,29 @@
         xorg.libXi
         xorg.libXrandr
         xorg.libXext
+        libxcb
+        libxtst
       ];
     in
     {
-      devShells.${system}.default = pkgs.mkShell {
+      devShells.${system}.default = pkgs.mkShell.override { stdenv = pkgs.clangStdenv; } {
 
         nativeBuildInputs = with pkgs; [
           cmake
           ninja
+          ccache
           pkg-config
           gdb
           wayland-scanner
+          python3
 
+          cppcheck
+          include-what-you-use
+          glslang
           glslls
           clang-tools
+          doxygen
+          graphviz
         ];
 
         buildInputs = with pkgs; [
@@ -49,3 +58,4 @@
       };
     };
 }
+

@@ -12,6 +12,7 @@ struct UniformTypeInfo {
 
 UniformTypeInfo GetUniformInfo(GLenum type) {
 	const static std::map<GLenum, UniformTypeInfo> dict {
+    { GL_BOOL, { UniformSpec::UniformType::Bool, 1 * sizeof(GLint)} },
 		{ GL_FLOAT, { UniformSpec::UniformType::Float1, 1 * sizeof(GLfloat)} },
 		{ GL_FLOAT_VEC2, { UniformSpec::UniformType::Float2, 2 * sizeof(GLfloat)} },
 		{ GL_FLOAT_VEC3, { UniformSpec::UniformType::Float3, 3 * sizeof(GLfloat)} },
@@ -23,6 +24,7 @@ UniformTypeInfo GetUniformInfo(GLenum type) {
 		{ GL_FLOAT_MAT3, { UniformSpec::UniformType::Matrix3x3, 9 * sizeof(GLfloat)} },
 		{ GL_FLOAT_MAT4, { UniformSpec::UniformType::Matrix4x4, 16 * sizeof(GLfloat)} },
 		{ GL_SAMPLER_2D, { UniformSpec::UniformType::Sampler2D, sizeof(UniformSpec::TextureUniform<Texture2D>)} },
+		{ GL_SAMPLER_3D, { UniformSpec::UniformType::Sampler3D, sizeof(UniformSpec::TextureUniform<Texture3D>)} },
 		{ GL_SAMPLER_CUBE, { UniformSpec::UniformType::Cubemap, sizeof(UniformSpec::TextureUniform<Cubemap>)} },
 		{ GL_IMAGE_2D, { UniformSpec::UniformType::Image2D, sizeof(UniformSpec::TextureUniform<Texture2D>)} },
 		{ GL_UNSIGNED_INT_IMAGE_2D, { UniformSpec::UniformType::UImage2D, sizeof(UniformSpec::TextureUniform<Texture2D>)} },
@@ -41,8 +43,8 @@ void UniformSpec::CreateFrom(GLuint programHandle) {
 
 	glGetProgramiv(programHandle, GL_ACTIVE_UNIFORMS, &uniformCount);
 
-	GLuint uniforms[uniformCount];
-	GLint params[uniformCount];
+	std::vector<GLuint> uniforms(uniformCount);
+	std::vector<GLint> params(uniformCount);
 
 	std::vector<GLuint> shaderUniforms;
 
@@ -50,7 +52,7 @@ void UniformSpec::CreateFrom(GLuint programHandle) {
 		uniforms[i] = i;
 	}
 
-	glGetActiveUniformsiv(programHandle, uniformCount, uniforms, GL_UNIFORM_BLOCK_INDEX, params);
+	glGetActiveUniformsiv(programHandle, uniformCount, uniforms.data(), GL_UNIFORM_BLOCK_INDEX, params.data());
 
 	for (int i = 0; i < uniformCount; i++) {
 		if (params[i] < 0) {
@@ -62,7 +64,7 @@ void UniformSpec::CreateFrom(GLuint programHandle) {
 
 	this->variables.resize(uniformCount);
 
-	glGetActiveUniformsiv(programHandle, uniformCount, shaderUniforms.data(), GL_UNIFORM_TYPE, params);
+	glGetActiveUniformsiv(programHandle, uniformCount, shaderUniforms.data(), GL_UNIFORM_TYPE, params.data());
 
 	int currentOffset = 0;
 
@@ -77,7 +79,7 @@ void UniformSpec::CreateFrom(GLuint programHandle) {
 		currentOffset += typeInfo.size;
 	}
 
-	glGetActiveUniformsiv(programHandle, uniformCount, shaderUniforms.data(), GL_UNIFORM_NAME_LENGTH, params);
+	glGetActiveUniformsiv(programHandle, uniformCount, shaderUniforms.data(), GL_UNIFORM_NAME_LENGTH, params.data());
 
 	for (int i = 0; i < uniformCount; i++) {
 		this->variables[i].name.resize(params[i] - 1);

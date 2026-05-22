@@ -4,6 +4,8 @@
 
 #include <Serialized.h>
 
+struct BoundingBox;
+
 struct Plane {
 	serialized glm::vec3 normal;
 	serialized float distance;
@@ -29,3 +31,7 @@ struct Frustum {
 	        const Plane& farPlane
 	);
 };
+
+Frustum ComputeFrustum(const glm::mat4& projectionMatrix);
+bool TestPlane(const Plane& plane, const BoundingBox& bounds);
+bool TestFrustum(const Frustum& frustum, const BoundingBox& bounds);

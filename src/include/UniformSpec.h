@@ -14,7 +14,9 @@ class ComputeShaderProgram;
 
 template <class T>
 concept Blittable = ( // It's stupid, but frankly idk if there's a better way to do it
-	std::same_as<T, float>
+	std::same_as<T, bool> //idk
+  ||
+  std::same_as<T, float>
 	||
 	std::same_as<T, glm::vec2>
 	||
@@ -43,6 +45,7 @@ concept TextureClass = (
 class UniformSpec {
 public:
 	enum class UniformType {
+    Bool,
 		Float1,
 		Float2,
 		Float3,
@@ -54,6 +57,7 @@ public:
 		Matrix3x3,
 		Matrix4x4,
 		Sampler2D,
+    Sampler3D,
 		Cubemap,
 		Image2D,
 		UImage2D,

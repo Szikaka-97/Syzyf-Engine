@@ -13,6 +13,7 @@ namespace fs = std::filesystem;
 class Material;
 
 class Mesh : public Resource {
+	friend class GltfImporter;
 public:
 	enum class MeshType {
 		Points = 1,
@@ -22,6 +23,7 @@ public:
 
 	class SubMesh {
 		friend class Mesh;
+		friend class GltfImporter;
 	private:
 		unsigned int faceCount;
 		unsigned int* indexData;
@@ -46,6 +48,8 @@ public:
 		unsigned int GetVertexCount() const;
 		unsigned int GetFaceCount() const;
 
+  		const unsigned int* GetIndexData() const;
+
 		BoundingBox GetBounds() const;
 	};
 
@@ -64,6 +68,9 @@ private:
 	std::vector<SubMesh> subMeshes;
 	std::vector<Material*> materials;
 	// std::map<std::string, MeshPart> parts;
+	BoundingBox bounds;
+  
+	std::vector<glm::mat4> inverseBindMatrices;
 	
 	unsigned int materialCount;
 	unsigned int vertexCount;
@@ -71,6 +78,8 @@ private:
 	unsigned int vertexStride;
 	GLuint vertexBuffer;
 	fs::path path;
+
+	GLuint UploadToGpu(const VertexSpec meshSpec);
 public:
 	Mesh() = default;
 	virtual ~Mesh();
@@ -78,8 +87,17 @@ public:
 	unsigned int GetMaterialsCount() const;
 	std::vector<Material*> GetDefaultMaterials() const;
 
+	const std::vector<glm::mat4>& GetInverseBindMatrices() const;
+
 	unsigned int GetSubMeshCount() const;
 	std::vector<SubMesh> GetSubMeshes() const;
+	BoundingBox GetBounds() const;
+	void CalculateBounds();
+
+	unsigned int GetVertexCount() const;
+	unsigned int GetVertexStride() const;
+
+	const float* GetVertexData() const;
 
 	const SubMesh& SubMeshAt(unsigned int index) const;
 	const SubMesh& operator[](unsigned int index) const;

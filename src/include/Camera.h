@@ -23,13 +23,15 @@ public:
 	};
 	struct Orthographic {
 		Orthographic() = default;
-		Orthographic(float left, float right, float top, float bottom);
+		Orthographic(float left, float right, float top, float bottom, float nearPlane, float farPlane);
 		Orthographic(glm::vec2 viewportSize);
 
 		serialized float left = 0;
 		serialized float right = 0;
 		serialized float top = 0;
 		serialized float bottom = 0;
+		serialized float znear = 0;
+		serialized float zfar = 0;
 	};
 
 	enum class CameraType {
@@ -54,7 +56,7 @@ public:
 	void MakePerspective(float fovyDegrees, float aspectRatio, float nearPlane, float farPlane);
 
 	void MakeOrtho();
-	void MakeOrtho(float left, float right, float top, float bottom);
+	void MakeOrtho(float left, float right, float top, float bottom, float znear, float zfar);
 
 	CameraType GetType() const;
 	void SetType(CameraType type);

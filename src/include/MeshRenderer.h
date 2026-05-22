@@ -8,7 +8,16 @@
 class Mesh;
 class Material;
 
+enum MaskEffectBits : uint8_t {
+    None = 0,
+    XRay = 1,
+    Outline = 1 << 1,
+    Jfa = 1 << 2, 
+};
+
 class MeshRenderer : public GameObject, public ImGuiDrawable {
+public:
+    uint8_t maskFlags = MaskEffectBits::None;
 private:
 	serialized Mesh* mesh;
 	serialized std::vector<Material*> materials;
@@ -21,6 +30,8 @@ public:
 
 	Mesh* GetMesh();
 	void SetMesh(Mesh* newMesh);
+
+	int GetMaterialCount() const;
 
 	Material* GetMaterial(int materialIndex = 0);
 

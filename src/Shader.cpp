@@ -17,12 +17,12 @@
 #include <spdlog/spdlog.h>
 #include <string_view>
 
-constexpr std::string VertexShaderExtension = ".vert";
-constexpr std::string GeometryShaderExtension = ".geom";
-constexpr std::string TesselationControlShaderExtension = ".tess_eval";
-constexpr std::string TesselationEvaluationShaderExtension = ".tess_ctrl";
-constexpr std::string PixelShaderExtension = ".frag";
-constexpr std::string ComputeShaderExtension = ".comp";
+//constexpr std::string VertexShaderExtension = ".vert";
+//constexpr std::string GeometryShaderExtension = ".geom";
+//constexpr std::string TesselationControlShaderExtension = ".tess_eval";
+//constexpr std::string TesselationEvaluationShaderExtension = ".tess_ctrl";
+//constexpr std::string PixelShaderExtension = ".frag";
+//constexpr std::string ComputeShaderExtension = ".comp";
 
 std::vector<ShaderProgram*> ShaderProgram::allPrograms;
 

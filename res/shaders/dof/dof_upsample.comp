@@ -1,0 +1,85 @@
+#version 460
+
+// Based on https://github.com/tgalaj/RapidGL/tree/master/src/demos/26_bloom
+
+#define GROUP_SIZE         8
+#define GROUP_THREAD_COUNT (GROUP_SIZE * GROUP_SIZE)
+#define FILTER_SIZE        3
+#define FILTER_RADIUS      (FILTER_SIZE / 2)
+#define TILE_SIZE          (GROUP_SIZE + 2 * FILTER_RADIUS)
+#define TILE_PIXEL_COUNT   (TILE_SIZE * TILE_SIZE)
+
+layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE) in;
+
+layout(binding = 0) uniform sampler2D inputTex;
+layout(rgba16f, binding = 0) uniform image2D outputImg;
+
+// layout(binding = 1) uniform sampler2D u_dirt_texture;
+
+uniform vec2 texelSize;
+uniform int mipLevel;
+uniform float bloomIntensity;
+// uniform float dirtIntensity;
+
+shared float sm_r[TILE_PIXEL_COUNT];
+shared float sm_g[TILE_PIXEL_COUNT];
+shared float sm_b[TILE_PIXEL_COUNT];
+
+void storeSharedColor(int idx, vec4 c) {
+	sm_r[idx] = c.r;
+	sm_g[idx] = c.g;
+	sm_b[idx] = c.b;
+}
+
+vec4 loadSharedColor(uint idx) {
+	return vec4(sm_r[idx], sm_g[idx], sm_b[idx], 1.0);
+}
+
+void memoryBarrierWithSync() {
+	groupMemoryBarrier();
+	barrier();
+}
+
+void main() {
+	ivec2 pixelCoord = ivec2(gl_GlobalInvocationID.xy);
+	vec2 baseIndex = ivec2(gl_WorkGroupID) * GROUP_SIZE - FILTER_RADIUS;
+
+	// The first (TILE_PIXEL_COUNT - GROUP_THREAD_COUNT) threads load at most 2 texel values
+	for (int i = int(gl_LocalInvocationIndex); i < TILE_PIXEL_COUNT; i += GROUP_THREAD_COUNT) {
+		const vec2 uv = (baseIndex + 0.5) * texelSize;
+		const vec2 uvOffset = vec2(i % TILE_SIZE, i / TILE_SIZE) * texelSize;
+		
+		const vec4 color = textureLod(inputTex, (uv + uvOffset), mipLevel);
+		storeSharedColor(i, color);
+	}
+
+	memoryBarrierWithSync();
+
+	// center texel
+	const uint sm_idx = (gl_LocalInvocationID.x + FILTER_RADIUS) + (gl_LocalInvocationID.y + FILTER_RADIUS) * TILE_SIZE;
+
+	// Based on [Jimenez14] http://goo.gl/eomGso
+	vec4 s;
+	s =  loadSharedColor(sm_idx - TILE_SIZE - 1);
+	s += loadSharedColor(sm_idx - TILE_SIZE    ) * 2.0;
+	s += loadSharedColor(sm_idx - TILE_SIZE + 1);
+
+	s += loadSharedColor(sm_idx - 1) * 2.0;
+	s += loadSharedColor(sm_idx    ) * 4.0;
+	s += loadSharedColor(sm_idx + 1) * 2.0;
+	
+	s += loadSharedColor(sm_idx + TILE_SIZE - 1);
+	s += loadSharedColor(sm_idx + TILE_SIZE    ) * 2.0;
+	s += loadSharedColor(sm_idx + TILE_SIZE + 1);
+
+	const vec4 bloom = s * (1.0 / 16.0);
+
+    vec4 outPixel = bloom;
+
+	// if (mipLevel == 1) {
+	// 	vec2 uv  = (vec2(pixelCoord) + vec2(0.5, 0.5)) * texelSize;
+	// 	outPixel += texture(u_dirt_texture, uv) * dirtIntensity * bloom * bloomIntensity;
+	// }
+
+	imageStore(outputImg, pixelCoord, outPixel);
+}

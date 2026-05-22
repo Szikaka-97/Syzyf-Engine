@@ -3,12 +3,12 @@
 #include <malloc.h>
 
 #include <glm/glm.hpp>
-#include <GLFW/glfw3.h>
 #include <imgui.h>
 
 #include <Light.h>
 #include <Camera.h>
 #include <Graphics.h>
+#include <TimeSystem.h>
 
 #include "../res/shaders/shared/shared.h"
 #include "../res/shaders/shared/uniforms.h"
@@ -19,7 +19,8 @@ LightSystem::LightSystem(Scene* scene):
 GameObjectSystem<Light>(scene),
 lightsBuffer(0),
 shadowmapAtlasSize(4096),
-directionalLightCascadeCount(6) {
+directionalLightCascadeCount(6),
+ambientLight(1.0f, 1.0f, 1.0f, 0.001f) {
 	this->shadowAtlasFramebuffer = new Framebuffer(Framebuffer::Attachment::Depth, shadowmapAtlasSize, shadowmapAtlasSize);
 
 	glGenBuffers(1, &this->lightsBuffer);
@@ -42,24 +43,38 @@ GLuint LightSystem::GetShadowmapsBufferHandle() {
 	return this->shadowmapsBuffer;
 }
 
+Framebuffer* LightSystem::GetShadowAtlasFramebuffer() {
+    return this->shadowAtlasFramebuffer;
+}
+
+glm::vec4 LightSystem::GetAmbientLight() const {
+    return this->ambientLight;
+}
+
+void LightSystem::SetAmbientLight(glm::vec4 ambientLight) {
+    this->ambientLight = ambientLight;
+}
+
 void LightSystem::DoSpotLightShadowmap(Light* light, ShadowMapRegion& shadowmapRect) {
 	ShaderGlobalUniforms globalUniforms;
-		
+
 	globalUniforms.Global_ViewMatrix = glm::lookAt(
 		light->GlobalTransform().Position().Value(),
 		light->GlobalTransform().Position() + light->GlobalTransform().Forward(),
 		glm::vec3(0, 1, 0)
 	);
+	globalUniforms.Global_InverseViewMatrix = glm::inverse(globalUniforms.Global_ViewMatrix);
 	globalUniforms.Global_ProjectionMatrix = glm::perspective(light->GetSpotlightAngle() * 2, 1.0f, 0.1f, light->GetRange());
+	globalUniforms.Global_InverseProjectionMatrix = glm::inverse(globalUniforms.Global_ProjectionMatrix);
 	globalUniforms.Global_VPMatrix = globalUniforms.Global_ProjectionMatrix * globalUniforms.Global_ViewMatrix;
 	globalUniforms.Global_CameraWorldPos = light->GlobalTransform().Position();
-	globalUniforms.Global_Time = (float) glfwGetTime();
+	globalUniforms.Global_Time = Time::Current();
 	globalUniforms.Global_CameraFarPlane = 0;
 	globalUniforms.Global_CameraNearPlane = 0;
 	globalUniforms.Global_CameraFov = 0;
 
 	shadowmapRect.viewTransform = globalUniforms.Global_VPMatrix;
-	
+
 	RenderParams renderParams(RenderPassType::Shadows, glm::vec4(
 		shadowmapRect.start.x, shadowmapRect.start.y,
 		shadowmapRect.end.x - shadowmapRect.start.x, shadowmapRect.end.y - shadowmapRect.start.y
@@ -73,14 +88,13 @@ void LightSystem::DoSpotLightShadowmap(Light* light, ShadowMapRegion& shadowmapR
 
 void LightSystem::DoDirectionalLightShadowmap(Light* light, ShadowMapRegion* shadowmapRects) {
 	ShaderGlobalUniforms globalUniforms;
-	
-	globalUniforms.Global_Time = (float) glfwGetTime();
+	globalUniforms.Global_Time = Time::Current();
 	globalUniforms.Global_CameraFarPlane = 0;
 	globalUniforms.Global_CameraNearPlane = 0;
 	globalUniforms.Global_CameraFov = 0;
-	
+
 	Camera* mainCamera = GetScene()->GetGraphics()->GetMainCamera();
-	
+
 	float nearPlane = mainCamera->GetNearPlane();
 	float farPlane = mainCamera->GetFarPlane();
 	glm::vec3 cameraPosition = mainCamera->GlobalTransform().Position();
@@ -112,6 +126,7 @@ void LightSystem::DoDirectionalLightShadowmap(Light* light, ShadowMapRegion* sha
 			frustumCenter + light->GlobalTransform().Forward(),
 			glm::vec3(0, 1, 0)
 		);
+		globalUniforms.Global_InverseViewMatrix = glm::inverse(globalUniforms.Global_ViewMatrix);
 
 		glm::mat4 invFrustumMatrix = glm::inverse(glm::perspective(mainCamera->GetFovRad(), mainCamera->GetAspectRatio(), cascadeFrustumStart, cascadeFrustumEnd) * mainCamera->ViewMatrix());
 
@@ -143,17 +158,18 @@ void LightSystem::DoDirectionalLightShadowmap(Light* light, ShadowMapRegion* sha
 				low.z = lightSpaceFrustumCorner.z;
 			}
 		}
-		
+
 		glm::vec3 lightPos = frustumCenter;
 
 		globalUniforms.Global_ProjectionMatrix = glm::ortho(low.x, high.x, low.y, high.y, low.z - 100.0f, high.z + 10.0f);
+		globalUniforms.Global_InverseProjectionMatrix = glm::inverse(globalUniforms.Global_ProjectionMatrix);
 		globalUniforms.Global_CameraWorldPos = lightPos;
 		globalUniforms.Global_VPMatrix = globalUniforms.Global_ProjectionMatrix * globalUniforms.Global_ViewMatrix;
 
 		ShadowMapRegion& shadowmapRect = shadowmapRects[cascade];
-		
+
 		shadowmapRect.viewTransform = globalUniforms.Global_VPMatrix;
-		
+
 		RenderParams renderParams(RenderPassType::Shadows, glm::vec4(
 			shadowmapRect.start.x, shadowmapRect.start.y,
 			shadowmapRect.end.x - shadowmapRect.start.x, shadowmapRect.end.y - shadowmapRect.start.y
@@ -177,9 +193,9 @@ void LightSystem::DoPointLightShadowmap(Light* light, ShadowMapRegion* shadowmap
 	};
 
 	ShaderGlobalUniforms globalUniforms;
-	
+
 	globalUniforms.Global_CameraWorldPos = light->GlobalTransform().Position();
-	globalUniforms.Global_Time = (float) glfwGetTime();
+	globalUniforms.Global_Time = Time::Current();
 	globalUniforms.Global_CameraFarPlane = 0;
 	globalUniforms.Global_CameraNearPlane = 0;
 	globalUniforms.Global_CameraFov = glm::radians(90.0f);
@@ -187,17 +203,19 @@ void LightSystem::DoPointLightShadowmap(Light* light, ShadowMapRegion* shadowmap
 	for (int face = 0; face < 6; face++) {
 		if (face == 2) {
 				globalUniforms.Global_ViewMatrix = glm::lookAt(
-					light->GlobalTransform().Position().Value(),
+				    light->GlobalTransform().Position().Value(),
 					light->GlobalTransform().Position() + directions[face],
 					glm::vec3(0, 0, 1)
 				);
+				globalUniforms.Global_InverseViewMatrix = glm::inverse(globalUniforms.Global_ViewMatrix);
 			}
 			else if (face == 3) {
 				globalUniforms.Global_ViewMatrix = glm::lookAt(
 					light->GlobalTransform().Position().Value(),
 					light->GlobalTransform().Position() + directions[face],
 					glm::vec3(0, 0, -1)
-				);	
+				);
+				globalUniforms.Global_InverseViewMatrix = glm::inverse(globalUniforms.Global_ViewMatrix);
 			}
 			else {
 				globalUniforms.Global_ViewMatrix = glm::lookAt(
@@ -205,8 +223,10 @@ void LightSystem::DoPointLightShadowmap(Light* light, ShadowMapRegion* shadowmap
 					light->GlobalTransform().Position() + directions[face],
 					glm::vec3(0, -1, 0)
 				);
+				globalUniforms.Global_InverseViewMatrix = glm::inverse(globalUniforms.Global_ViewMatrix);
 			}
 		globalUniforms.Global_ProjectionMatrix = glm::perspective(glm::radians(90.4f), 1.0f, 0.1f, light->GetRange());
+		globalUniforms.Global_InverseProjectionMatrix = glm::inverse(globalUniforms.Global_ProjectionMatrix);
 		globalUniforms.Global_VPMatrix = globalUniforms.Global_ProjectionMatrix * globalUniforms.Global_ViewMatrix;
 
 		ShadowMapRegion& shadowmapRect = shadowmapRects[face];
@@ -222,19 +242,17 @@ void LightSystem::DoPointLightShadowmap(Light* light, ShadowMapRegion* shadowmap
 
 		shadowmapRect.start /= this->shadowmapAtlasSize;
 		shadowmapRect.end /= this->shadowmapAtlasSize;
-	}	
+	}
 }
 
 void LightSystem::OnPostRender() {
 	glBindFramebuffer(GL_FRAMEBUFFER, this->shadowAtlasFramebuffer->GetHandle());
 	glClear(GL_DEPTH_BUFFER_BIT);
 
-	glm::vec4 ambientLight{1.0, 1.0, 1.0, 0.01};
-
 	int shadowmapTexturesCount = 0;
 
 	int lightIndex = 0;
-	for (const auto& l : *GetAllObjects()) {
+	for (const auto& l : IterateObjects()) {
 		if (lightIndex >= MAX_NUM_LIGHTS) {
 			break;
 		}
@@ -261,11 +279,11 @@ void LightSystem::OnPostRender() {
 
 	int xPosition = 0;
 	int yPosition = 0;
-	
+
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->lightsBuffer);
 
 	if (sizeDivisor > 0) {
-		for (const auto& l : *GetAllObjects()) {
+		for (const auto& l : IterateObjects()) {
 			if (lightIndex >= MAX_NUM_LIGHTS) {
 				break;
 			}
@@ -273,25 +291,25 @@ void LightSystem::OnPostRender() {
 			if (!l->IsEnabled()) {
 				continue;
 			}
-	
+
 			if (l->IsShadowCasting()) {
 				if (l->GetType() == Light::LightType::Spot) {
 					rects[shadowMapIndex].start = glm::vec2(xPosition, yPosition);
 					rects[shadowMapIndex].end = glm::vec2(xPosition + this->shadowmapAtlasSize / sizeDivisor, yPosition + this->shadowmapAtlasSize / sizeDivisor);
-	
+
 					xPosition += this->shadowmapAtlasSize / sizeDivisor;
 					if (xPosition >= this->shadowmapAtlasSize) {
 						xPosition = 0;
 						yPosition += this->shadowmapAtlasSize / sizeDivisor;
 					}
-	
+
 					shadowMapIndex++;
 				}
 				else if (l->GetType() == Light::LightType::Point) {
 					for (int i = 0; i < 6; i++) {
 						rects[shadowMapIndex + i].start = glm::vec2(xPosition, yPosition);
 						rects[shadowMapIndex + i].end = glm::vec2(xPosition + this->shadowmapAtlasSize / sizeDivisor, yPosition + this->shadowmapAtlasSize / sizeDivisor);
-	
+
 						xPosition += this->shadowmapAtlasSize / sizeDivisor;
 						if (xPosition >= this->shadowmapAtlasSize) {
 							xPosition = 0;
@@ -305,7 +323,7 @@ void LightSystem::OnPostRender() {
 					for (int i = 0; i < this->directionalLightCascadeCount; i++) {
 						rects[shadowMapIndex + i].start = glm::vec2(xPosition, yPosition);
 						rects[shadowMapIndex + i].end = glm::vec2(xPosition + this->shadowmapAtlasSize / sizeDivisor, yPosition + this->shadowmapAtlasSize / sizeDivisor);
-	
+
 						xPosition += this->shadowmapAtlasSize / sizeDivisor;
 						if (xPosition >= this->shadowmapAtlasSize) {
 							xPosition = 0;
@@ -320,7 +338,7 @@ void LightSystem::OnPostRender() {
 
 		shadowMapIndex = 0;
 		lightIndex = 0;
-		for (const auto& l : *GetAllObjects()) {
+		for (const auto& l : IterateObjects()) {
 			if (lightIndex >= MAX_NUM_LIGHTS) {
 				break;
 			}
@@ -328,21 +346,21 @@ void LightSystem::OnPostRender() {
 			if (!l->IsEnabled()) {
 				continue;
 			}
-	
-			if (l->IsDirty() || l->IsShadowCasting()) {	
+
+			if (l->IsDirty() || l->IsShadowCasting()) {
 				ShaderLightRep rep = l->GetShaderRepresentation();
-	
+
 				if (l->IsShadowCasting()) {
 					rep.shadowAtlasIndex = shadowMapIndex;
-	
+
 					if (l->GetType() == Light::LightType::Spot) {
 						shadowMapIndex++;
-	
+
 						DoSpotLightShadowmap(l, rects[rep.shadowAtlasIndex]);
 					}
 					else if (l->GetType() == Light::LightType::Point) {
 						shadowMapIndex += 6;
-	
+
 						DoPointLightShadowmap(l, rects + rep.shadowAtlasIndex);
 					}
 					else if (l->GetType() == Light::LightType::Directional) {
@@ -354,7 +372,8 @@ void LightSystem::OnPostRender() {
 				else {
 					rep.shadowAtlasIndex = -1;
 				}
-		
+
+				glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->lightsBuffer);
 				glBufferSubData(GL_SHADER_STORAGE_BUFFER, 32 + sizeof(ShaderLightRep) * lightIndex, sizeof(rep), &rep);
 			}
 
@@ -362,7 +381,7 @@ void LightSystem::OnPostRender() {
 		}
 	}
 
-	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(ambientLight), &ambientLight);
+	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(this->ambientLight), &this->ambientLight);
 	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 16, sizeof(lightIndex), &lightIndex);
 	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 20, sizeof(this->directionalLightCascadeCount), &this->directionalLightCascadeCount);
 
@@ -384,13 +403,16 @@ int LightSystem::Order() {
 
 void LightSystem::DrawImGui() {
 	if (ImGui::TreeNode("Lights Debug")) {
+		ImGui::ColorEdit4("Ambient Color", &this->ambientLight.x);
+		ImGui::Separator();
+
 		ImGui::Text("Shadow atlas resolution: %ix%i px", this->shadowmapAtlasSize, this->shadowmapAtlasSize);
 		ImGui::Text("Active lights: %i", (int) this->GetAllObjects()->size());
 
 		ImGui::Separator();
 
 		int newShadowmapResolution = this->shadowmapAtlasSize;
-	
+
 		ImGui::InputInt("Shadow atlas resolution", &newShadowmapResolution);
 
 		if (ImGui::IsItemDeactivatedAfterEdit() && ImGui::IsKeyPressed(ImGuiKey_Enter)) {
@@ -402,3 +424,4 @@ void LightSystem::DrawImGui() {
 		ImGui::TreePop();
 	}
 }
+

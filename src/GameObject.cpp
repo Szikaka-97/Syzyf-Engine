@@ -2,6 +2,7 @@
 
 #include <Scene.h>
 #include <Light.h>
+#include <TypeInfo.h>
 
 GameObject::~GameObject() {
 	this->node->DeleteObject(this);
@@ -12,18 +13,7 @@ int GameObject::GetID() const {
 }
 
 std::string GameObject::GetName() const {
-	std::string objectName = this->runtimeTypeInfo->name();
-	int firstLetter = 0;
-	for (int i = 0; i < objectName.length(); i++) {
-		if (objectName[i] >= '0' && objectName[i] <= '9') {
-			firstLetter++;
-		}
-		else {
-			break;
-		}
-	}
-
-	return objectName.substr(firstLetter);
+    return TypeInfo::GetTypeInfo(typeid(*this)).name;
 }
 
 SceneTransform& GameObject::GetTransform() const {
@@ -80,3 +70,4 @@ void GameObject::SetEnabled(bool enabled) {
 void GameObject::operator delete(GameObject* ptr, std::destroying_delete_t) {
 	ptr->GetScene()->QueueDelete(ptr);
 }
+

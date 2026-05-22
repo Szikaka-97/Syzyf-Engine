@@ -50,6 +50,10 @@ Material* MeshRenderer::GetMaterial(int materialIndex) {
 	return this->materials[materialIndex];
 }
 
+int MeshRenderer::GetMaterialCount() const {
+	return this->mesh->GetMaterialsCount();
+}
+
 void MeshRenderer::SetMaterial(Material* newMaterial, int materialIndex) {
 	if (materialIndex < 0 || this->mesh->GetMaterialsCount() <= materialIndex) {
 		return;
@@ -66,6 +70,25 @@ void MeshRenderer::DrawImGui() {
 	if (ImGui::TreeNode(std::format("SubMesh count: {}", this->mesh->GetSubMeshCount()).c_str())) {
 		ImGui::TreePop();
 	}
+    
+    bool hasOutline = (this->maskFlags & MaskEffectBits::Outline) != 0;
+    if (ImGui::Checkbox("Outline", &hasOutline)) {
+        if (hasOutline) this->maskFlags |= MaskEffectBits::Outline;
+        else this->maskFlags &= ~MaskEffectBits::Outline;
+    }
+
+    bool hasXray = (this->maskFlags & MaskEffectBits::XRay) != 0;
+    if (ImGui::Checkbox("X-Ray", &hasXray)) {
+        if (hasXray) this->maskFlags |= MaskEffectBits::XRay;
+        else this->maskFlags &= ~MaskEffectBits::XRay;
+    }
+
+    bool hasJfaOutline = (this->maskFlags & MaskEffectBits::Jfa) != 0;
+    if (ImGui::Checkbox("JFA Outline", &hasJfaOutline)) {
+        if (hasJfaOutline) this->maskFlags |= MaskEffectBits::Jfa;
+        else this->maskFlags &= ~MaskEffectBits::Jfa;
+    }
+
 	if (ImGui::TreeNode(std::format("Material count: {}", this->materials.size()).c_str())) {
 		for (int i = 0; i < this->materials.size(); i++) {
 			Material* mat = this->materials[i];

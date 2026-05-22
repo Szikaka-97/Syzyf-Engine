@@ -17,11 +17,16 @@ private:
 	serialized float threshold = 1.5f;
 	serialized float knee = 0.1f;
 	serialized float intensity = 0.6f;
-	serialized std::string debugName = "kurwa";
+	serialized float dirtIntensity = 0.0f;
+
+	serialized Texture2D* dirtTexture = nullptr;
 
 	void UpdateTexture();
 public:
 	Bloom();
+
+	void SetDirtTexture(Texture2D* texture);
+	void SetDirtIntensity(float intensity);
 
 	virtual void OnPostProcess(const PostProcessParams* params);
 

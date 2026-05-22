@@ -6,7 +6,8 @@
 
 #define mat4 glm::mat4
 #define mat3 glm::mat3x4
-#define vec3 alignas(glm::vec4) glm::vec3
+#define vec4 glm::vec4
+#define vec3 alignas(vec4) glm::vec3
 #define UNIFORM_DECL(bindingPoint) struct alignas(4 * sizeof(float))
 
 #else
@@ -18,8 +19,11 @@
 UNIFORM_DECL(0) ShaderGlobalUniforms
 {
 	mat4 Global_ViewMatrix;
+	mat4 Global_InverseViewMatrix;
 	mat4 Global_ProjectionMatrix;
+	mat4 Global_InverseProjectionMatrix;
 	mat4 Global_VPMatrix;
+	vec4 Global_Resolution;
 	vec3 Global_CameraWorldPos;
 	float Global_Time;
 	float Global_CameraNearPlane;
@@ -29,6 +33,7 @@ UNIFORM_DECL(0) ShaderGlobalUniforms
 UNIFORM_DECL(1) ShaderObjectUniforms
 {
 	mat4 Object_ModelMatrix;
+	mat4 Object_InverseModelMatrix;
 	mat4 Object_MVPMatrix;
 	mat3 Object_NormalModelMatrix;
 };
@@ -47,6 +52,10 @@ UNIFORM_DECL(1) ShaderObjectUniforms
 
 #ifdef vec3
 #undef vec3
+#endif
+
+#ifdef vec4
+#undef vec4
 #endif
 
 #ifdef UNIFORM_DECL

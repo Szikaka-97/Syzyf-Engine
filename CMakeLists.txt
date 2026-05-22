@@ -27,6 +27,10 @@ include(global_settings)
 # ---- Dependencies ----
 add_subdirectory(thirdparty)
 
+if (MSVC)
+add_link_options(/NODEFAULTLIB:LIBCMTD)
+endif()
+
 set(CMAKE_CXX_STANDARD 23)
 
 IF (MSVC)
@@ -37,3 +41,12 @@ ENDIF ()
 
 # ---- Main project's files ----
 add_subdirectory(src)
+target_include_directories(${PROJECT_NAME} PRIVATE src/include)
+
+# ---- Editor ----
+option(BUILD_EDITOR "Build the Syzyf Editor" ON)
+
+if(BUILD_EDITOR)
+    message(STATUS "Syzyf Editor build ENABLED")
+    add_subdirectory(editor)
+endif()

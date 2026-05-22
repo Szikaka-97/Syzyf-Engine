@@ -362,10 +362,6 @@ def main():
 
 	serialized_types = {type_name: tp for type_name, tp in CppType.all_types.items() if tp.access == "public" and is_serialized_type(tp)}
 
-	for key in serialized_types:
-		print(" - " + key)
-
-
 	with CodeWriter(DEST_HEADER_FILE_PATH) as dest_header:
 		dest_header.line("#pragma once")
 		dest_header.line()

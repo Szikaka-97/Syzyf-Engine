@@ -7,13 +7,15 @@ cmake_install.cmake
 install_manifest.txt
 compile_commands.json
 CTestTestfile.cmake
+imgui.ini
 
 [Bb]uild/
 .vscode/
 .vs/
 out/
 res/testing/
-venv/
+
+.idea/
 
 # Clang
 .clang-format
@@ -26,3 +28,10 @@ venv/
 src/scripts/venv/
 src/scripts/__pycache__/
 src/codegen/
+
+#Clion
+.idea
+
+# doxygen
+html/
+latex/

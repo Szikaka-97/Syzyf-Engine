@@ -1,3 +1,4 @@
+
 #pragma once
 
 #include <glad/glad.h>
@@ -18,6 +19,8 @@ private:
 	int shadowmapAtlasSize;
 	int directionalLightCascadeCount;
 
+    glm::vec4 ambientLight;
+
 	void ChangeShadowAtlasResolution(int newResolution);
 
 	void DoSpotLightShadowmap(Light* light, ShadowMapRegion& shadowmapRect);
@@ -28,6 +31,10 @@ public:
 
 	GLuint GetLightsBufferHandle();
 	GLuint GetShadowmapsBufferHandle();
+	Framebuffer* GetShadowAtlasFramebuffer();
+
+    glm::vec4 GetAmbientLight() const;
+    void SetAmbientLight(glm::vec4 ambientLight);
 
 	virtual void OnPostRender();
 
@@ -35,3 +42,4 @@ public:
 
 	virtual void DrawImGui();
 };
+
