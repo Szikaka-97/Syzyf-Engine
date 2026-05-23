@@ -675,18 +675,27 @@ std::vector<Material*> GltfImporter::LoadMaterials(Scene* scene, fastgltf::Asset
 
     bool usesPom = gltfMaterial.name.find("_POM") != std::string::npos;
 
-    switch (gltfMaterial.alphaMode){
-      case fastgltf::AlphaMode::Blend:
-        spdlog::info("{} is using a blend program", gltfMaterial.name);
-        material = new Material(usesPom ? blendPomProg : blendProg);
-        break;
-      case fastgltf::AlphaMode::Opaque:
-        material = new Material(usesPom ? opaquePomProg : opaqueProg);
-        break;
-      case fastgltf::AlphaMode::Mask:
+    // for some reason changing the blend mode in blender doesnt change the gltf alphamode,
+    //  so this is a workaroud for now,
+    //  replace the shaders with the dither shader or perhaps a more sophisticated parser 
+    if (gltfMaterial.name.find("_DITHER") != std::string::npos) {
+        spdlog::error("{} USES DITHER", gltfMaterial.name);
         material = new Material(usesPom ? maskPomProg : maskProg);
         material->SetValue("alphaCutoff", gltfMaterial.alphaCutoff);
-        break;
+    } else {
+        switch (gltfMaterial.alphaMode){
+          case fastgltf::AlphaMode::Blend:
+            spdlog::info("{} is using a blend program", gltfMaterial.name);
+            material = new Material(usesPom ? blendPomProg : blendProg);
+            break;
+          case fastgltf::AlphaMode::Opaque:
+            material = new Material(usesPom ? opaquePomProg : opaqueProg);
+            break;
+          case fastgltf::AlphaMode::Mask:
+            material = new Material(usesPom ? maskPomProg : maskProg);
+            material->SetValue("alphaCutoff", gltfMaterial.alphaCutoff);
+            break;
+        }
     }
 
     material->name = gltfMaterial.name;

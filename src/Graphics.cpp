@@ -621,7 +621,7 @@ void SceneGraphics::RenderPrepass(const ShaderGlobalUniforms& uniforms, const Re
         }
 
         if (isMasked || currentProgram == render.material->GetShader()) {
-            render.material->Bind();
+            render.material->Bind(currentProgram);
         }
 
         if (render.jointBufferOffset >= 0) {
@@ -836,7 +836,7 @@ void SceneGraphics::RenderShadows(const ShaderGlobalUniforms& uniforms, const Re
         }
 
         if (isMasked || currentProgram == render.material->GetShader()) {
-            render.material->Bind();
+            render.material->Bind(currentProgram);
         }
 
         if (render.jointBufferOffset >= 0) {

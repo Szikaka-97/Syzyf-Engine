@@ -20,8 +20,8 @@ in VS_OUT {
 
 #include "shared/light.h"
 
-uniform vec4 baseColorFactor;
-uniform sampler2D albedoMap;
+layout(location = 0) uniform vec4 baseColorFactor;
+layout(location = 2) uniform sampler2D albedoMap;
 
 uniform float roughnessFactor;
 uniform float metallicFactor;
@@ -31,7 +31,7 @@ uniform sampler2D normalMap;
 uniform vec3 emissiveFactor;
 uniform float emissiveStrength;
 uniform sampler2D emissiveMap;
-uniform float alphaCutoff;
+layout(location = 1) uniform float alphaCutoff;
 
 uniform samplerCube Builtin_EnvIrradianceMap;
 uniform samplerCube Builtin_EnvPrefilterMap;
