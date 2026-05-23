@@ -78,6 +78,8 @@ private:
         ShaderProgram* prepassAnimatedShader;
         ShaderProgram* prepassScatterShader;
         ShaderProgram* prepassMaskShader;
+        ShaderProgram* prepassDitherHoleShader;
+        ShaderProgram* prepassDitherProximityShader;
         ShaderProgram* prepassAnimatedMaskShader;
         ShaderProgram* prepassScatterMaskShader;
 

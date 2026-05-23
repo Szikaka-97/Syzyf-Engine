@@ -639,7 +639,8 @@ std::vector<Material*> GltfImporter::LoadMaterials(Scene* scene, fastgltf::Asset
 
   const char* vertexShaderPath = isSkinned ? "./res/shaders/gltf/lit_animation.vert" : "./res/shaders/gltf/lit.vert";
 
-	auto* opaqueProg = ShaderProgram::Build()
+  // awful
+  auto* opaqueProg = ShaderProgram::Build()
   .WithVertexShader(vertexShaderPath)
   .WithPixelShader("./res/shaders/gltf/pbr.frag")
   .Link();
@@ -669,19 +670,33 @@ std::vector<Material*> GltfImporter::LoadMaterials(Scene* scene, fastgltf::Asset
       .WithVertexShader(vertexShaderPath)
       .WithPixelShader("./res/shaders/gltf/pbr_pom_blend.frag")
       .Link();
+
+  auto* ditherHoleProg = ShaderProgram::Build()
+      .WithVertexShader(vertexShaderPath)
+      .WithPixelShader("./res/shaders/gltf/pbr_dither_hole.frag")
+      .Link();
+
+  auto* ditherProximityProg = ShaderProgram::Build()
+      .WithVertexShader(vertexShaderPath)
+      .WithPixelShader("./res/shaders/gltf/pbr_dither_proximity.frag")
+      .Link();
   
   for (auto& gltfMaterial : asset.materials) {
     Material* material = nullptr;
 
     bool usesPom = gltfMaterial.name.find("_POM") != std::string::npos;
+    bool usesDitherHole = gltfMaterial.name.find("_DITHERHOLE") != std::string::npos;
+    bool usesDitherProximity = gltfMaterial.name.find("_DITHER") != std::string::npos;
+    Texture2D* ditherTexture = scene->Resources()->Get<Texture2D>("./res/textures/bayer/bayer16.png", Texture::TechnicalMapXYZ);
 
-    // for some reason changing the blend mode in blender doesnt change the gltf alphamode,
-    //  so this is a workaroud for now,
-    //  replace the shaders with the dither shader or perhaps a more sophisticated parser 
-    if (gltfMaterial.name.find("_DITHER") != std::string::npos) {
-        spdlog::error("{} USES DITHER", gltfMaterial.name);
-        material = new Material(usesPom ? maskPomProg : maskProg);
+    if (usesDitherHole) {
+        material = new Material(ditherHoleProg);
         material->SetValue("alphaCutoff", gltfMaterial.alphaCutoff);
+        material->SetValue("ditherTex", ditherTexture);
+    } else if (usesDitherProximity) {
+        material = new Material(ditherProximityProg);
+        material->SetValue("alphaCutoff", gltfMaterial.alphaCutoff);
+        material->SetValue("ditherTex", ditherTexture);
     } else {
         switch (gltfMaterial.alphaMode){
           case fastgltf::AlphaMode::Blend:

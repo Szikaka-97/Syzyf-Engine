@@ -26,6 +26,7 @@ UNIFORM_DECL(0) ShaderGlobalUniforms
 	vec4 Global_Resolution;
 	vec3 Global_CameraWorldPos;
 	float Global_Time;
+    vec4 Global_PlayerWorldPos;
 	float Global_CameraNearPlane;
 	float Global_CameraFarPlane;
 	float Global_CameraFov;

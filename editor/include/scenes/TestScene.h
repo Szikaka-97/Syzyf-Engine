@@ -501,7 +501,7 @@ inline void InitScene(Scene& mainScene) {
                                 .maxLifetime = 10000.0f,
                                 .minScale = 0.02f,
                                 .maxScale = 0.03f,
-                                .alphaMode = AlphaMode::Alpha,
+                                .alphaMode = AlphaMode::Dither,
                                 .enableProximityFade = true,
                                 .proximityFadeMin = 0.2f,
                                 .proximityFadeMax = 1.5f,
