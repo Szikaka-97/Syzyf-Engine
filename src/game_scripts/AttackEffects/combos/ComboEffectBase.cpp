@@ -1,5 +1,6 @@
 #include "./include/game_scripts/AttackEffects/combos/ComboEffectBase.h"
 #include <spdlog/spdlog.h>
+#include <MeshRenderer.h>
 
 void ComboEffectBase::Init(float e1Strength, float e1MaxRange, float e1MaxDamage, float dur) {
     effect1Strength  = glm::clamp(e1Strength, 0.0f, 1.0f);
@@ -37,4 +38,13 @@ std::vector<EnemyBase*> ComboEffectBase::ScanNearbyEnemies() const {
 glm::vec3 ComboEffectBase::GetFlatPosition() const {
     glm::vec3 p = myNode ? glm::vec3(myNode->GlobalTransform().Position()) : glm::vec3(0);
     return p;
+}
+
+void ComboEffectBase::SetEffectRenderer(Mesh* mesh, Material* mat) {
+    SceneNode* node = GetNode();
+    if (node) {
+        node->AddObject<MeshRenderer>(mesh, mat);
+    } else {
+        spdlog::error("EffectBase::SetEffectRenderer: GetNode() is null – effect not attached to any node");
+    }
 }

@@ -36,6 +36,8 @@
 #include "ThrowableObject.h"
 #include "./AttackEffects/EffectBase.h"
 #include "./AttackEffects/EffectsManager.h"	
+#include "./AttackEffects/combos/ComboEffectBase.h"	
+#include "./AttackEffects/combos/ComboExplodeConfuse.h"	
 
 
 class PlayerController : public GameObject, public ImGuiDrawable {
@@ -282,12 +284,16 @@ public:
 				this->bottle->SetParent(thrownBottle);
 				this->bottle->LocalTransform().Position() = glm::zero<glm::vec3>();
 				auto* throwable = thrownBottle->AddObject<ThrowableObject>();
-throwable->SetEffect<EffectFire>([](EffectFire* e) {
-    e->radius  = 3.0f;
-    e->damage  = 40.0f;
-    e->special1 = true;   // podwaja obra�enia
-});
+//throwable->SetEffect<EffectFire>([](EffectFire* e) {
+//    e->radius  = 3.0f;
+//    e->damage  = 40.0f;
+//    e->special1 = true;   // podwaja obra�enia
+//});
 //throwable->SetVisual(bottleMesh, bottleMat); 
+				throwable->SetComboEffect<ComboExplodeConfuse>([](ComboExplodeConfuse* c) {
+    c->Init(0.6f, 5.0f, 30.0f, 4.0f);  // Init MUSI być tu wywołany
+    c->ingredientCount = 2;
+});
 
 
 				// Fill up thrownBottle
