@@ -26,11 +26,11 @@ public:
 
     template <typename TEffect>
     void SetEffect(std::function<void(TEffect*)> configure = nullptr) {
-        m_ComboFactory  = nullptr;
+        m_ComboFactory  = nullptr;    
         m_EffectFactory = [this, configure](SceneNode* node) -> EffectBase* {
             TEffect* effect = node->AddObject<TEffect>();
             if (configure) configure(effect);
-            effect->Init();
+            effect->Init();                
 
             ShaderProgram* pbrProg = ShaderProgram::Build()
                 .WithVertexShader("./res/shaders/lit.vert")
@@ -42,7 +42,7 @@ public:
                 return effect;
             }
 
-            Scene* scene = this->GetScene();
+            Scene* scene = this->GetScene();   // this wymagane — poprawnie schwytane
             Texture2D* albedo = scene->Resources()->Get<Texture2D>(
                 "./res/textures/material_preview/worn-shiny-metal-albedo.png",
                 Texture::ColorTextureRGB);
@@ -59,7 +59,8 @@ public:
             mat->SetValue("armMap",    arm);
             Mesh* effectMesh = scene->Resources()->Get<Mesh>("./res/models/not_cube.obj");
 
-            effect->SetEffectRenderer(effectMesh, mat);
+            Mesh* mesh = scene->Resources()->Get<Mesh>("./res/models/jake_tangents.glb");
+            effect->SetEffectRenderer(mesh, mat);
             return effect;
         };
     }
@@ -71,7 +72,7 @@ public:
 
     template <typename TCombo>
     void SetComboEffect(std::function<void(TCombo*)> configure = nullptr) {
-        m_EffectFactory = nullptr;
+        m_EffectFactory = nullptr;  
         m_ComboFactory = [this,configure](SceneNode* node) {
             TCombo* combo = node->AddObject<TCombo>();
             if (configure) configure(combo);
@@ -82,9 +83,10 @@ public:
 
             if (!pbrProg) {
                 spdlog::error("ThrowableObject: shader nie skompilował się");
+                //return effect;
             }
 
-            Scene* scene = this->GetScene();
+            Scene* scene = this->GetScene();   
             Texture2D* albedo = scene->Resources()->Get<Texture2D>(
                 "./res/textures/material_preview/worn-shiny-metal-albedo.png",
                 Texture::ColorTextureRGB);
@@ -102,10 +104,11 @@ public:
 
             Mesh* mesh = scene->Resources()->Get<Mesh>("./res/models/effectBase.glb");
             combo->SetEffectRenderer(mesh, mat);
+            //return effect;
         };
     }
 
-
+    
     void SetComboFactory(ComboFactory factory) {
         m_EffectFactory = nullptr;
         m_ComboFactory  = std::move(factory);
@@ -124,6 +127,13 @@ public:
     }
 
     void Update() {
+        if (m_DeletionCountdown > 0) {
+            m_DeletionCountdown--;
+            if (m_DeletionCountdown == 0)
+                DetachChildrenAndDeleteSelf();
+            return;
+        }
+
         if (m_ShouldSpawn) {
             m_ShouldSpawn = false;
             SpawnEffect();

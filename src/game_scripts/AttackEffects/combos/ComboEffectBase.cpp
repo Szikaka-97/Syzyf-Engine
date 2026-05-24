@@ -2,12 +2,9 @@
 #include <spdlog/spdlog.h>
 #include <MeshRenderer.h>
 
-void ComboEffectBase::Init(float e1Strength, float e1MaxRange,
-                           float e1MaxDamage, float dur) {
-    myNode = GetNode();
-
+void ComboEffectBase::Init(float e1Strength, float e1MaxRange, float e1MaxDamage, float dur) {
     effect1Strength  = glm::clamp(e1Strength, 0.0f, 1.0f);
-    effect2Strength  = 1.0f - effect1Strength;
+    effect2Strength  = 1.0f - effect1Strength;   
     maxEffect1Range  = e1MaxRange;
     maxEffect1Damage = e1MaxDamage;
     duration         = dur;
@@ -16,13 +13,10 @@ void ComboEffectBase::Init(float e1Strength, float e1MaxRange,
 }
 
 void ComboEffectBase::Update() {
-    if (!myNode) myNode = GetNode();
-    if (!myNode) return;  
-
     m_Elapsed += Time::Delta();
     if (m_Elapsed >= duration) {
         m_Expired = true;
-        GetScene()->QueueDelete(myNode);  
+        if (myNode) GetScene()->QueueDelete(myNode);
     }
 }
 
@@ -51,6 +45,6 @@ void ComboEffectBase::SetEffectRenderer(Mesh* mesh, Material* mat) {
     if (node) {
         node->AddObject<MeshRenderer>(mesh, mat);
     } else {
-        spdlog::error("EffectBase::SetEffectRenderer: GetNode() is null – effect not attached to any node");
+        spdlog::error("EffectBase::SetEffectRenderer: GetNode() is null Â– effect not attached to any node");
     }
 }
