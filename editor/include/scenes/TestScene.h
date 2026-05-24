@@ -41,6 +41,7 @@
 #include <game_scripts/PlayerController.h>
 #include <glm/fwd.hpp>
 #include <glm/geometric.hpp>
+#include <glm/gtc/constants.hpp>
 #include <glm/trigonometric.hpp>
 #include <glm/gtc/matrix_access.hpp>
 #include <physics/Body.h>
@@ -106,8 +107,7 @@ inline void InitScene(Scene& mainScene) {
     Material* skyMat = new Material(skyProg);
     skyMat->SetValue("skyboxTexture", skyCubemap);
 
-    auto floorNode =
-        GltfImporter::LoadScene(&mainScene, "./res/models/floor.glb", "Floor");
+    auto floorNode = GltfImporter::LoadScene(&mainScene, "./res/models/floor.glb", "Floor");
     floorNode->AddObject<Skybox>(skyMat);
     MeshRenderer* floorMeshRenderer =
         floorNode->GetObjectInChildren<MeshRenderer>();
@@ -116,7 +116,7 @@ inline void InitScene(Scene& mainScene) {
             Physics::MeshShape(floorMeshRenderer->GetMesh()),
             JPH::RVec3::sZero(), JPH::Quat::sZero(), JPH::EMotionType::Static,
             Physics::Layers::NON_MOVING});
-
+    auto* surface = floorNode->AddObject<Surface>(floorMeshRenderer->GetMesh(), 1.0f);
     floorBody->SetCollisionLayerAndMask({0}, 0xFFFFFFFF);
 
 #pragma endregion
@@ -180,6 +180,33 @@ inline void InitScene(Scene& mainScene) {
 
 #pragma endregion
 #pragma Enemy
+    JPH::ShapeRefC enemyShape = new JPH::CapsuleShape(0.5f, 1.0f);
+    JPH::BodyCreationSettings enemySettings(
+        enemyShape, JPH::RVec3(10.5f, 2.0f, 2.0f), JPH::Quat::sIdentity(),
+        JPH::EMotionType::Dynamic, Physics::Layers::MOVING);
+    Material* enemyMat =
+        mainScene.Resources()->Get<Material>("./res/materials/jake.mat");
+    Mesh* cubeMesh =
+        mainScene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
+
+	SceneNode* enemy1 = mainScene.CreateNode("Enemy 1");
+   // enemy1->GlobalTransform().Position() = glm::vec3(10.5f, 0.0f, -5.0f);
+    enemy1->GlobalTransform().Scale() = glm::vec3(0.5f, 0.5f, 0.5f);
+    enemy1->GlobalTransform().Position() = glm::vec3(15.f, 0.f, 0.f);
+    Physics::Body* enemyBody1 = enemy1->AddObject<Physics::Body>(enemySettings);
+    enemyBody1->SetRestitution(0.0f);
+    auto* enemyAi1 = enemy1->AddObject<EnemySkeleton>();
+    enemyAi1->SetSurface(surface);
+    enemyAi1->SetTargetNode(player->GetNode());
+    enemyAi1->SetProjectileResources(cubeMesh, enemyMat);
+    enemyAi1->SetAttackCooldown(1.2f);
+    enemyAi1->SetRoomID(floorNode->GetID());
+
+    
+    SceneNode* enemyModel = GltfImporter::LoadScene(&mainScene, "./res/models/szkielet6.glb", "EnemyModel");
+    enemyModel->SetParent(enemy1);
+    enemyModel->GlobalTransform().Scale() = glm::vec3(0.1,0.1,0.1);
+    enemyModel->LocalTransform().Position() = glm::zero<glm::vec3>();
     
 #pragma endregion
 #pragma region UI

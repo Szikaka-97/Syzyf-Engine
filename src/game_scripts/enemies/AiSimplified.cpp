@@ -100,10 +100,15 @@ void AiSimplified::SetTarget(glm::vec3 target) { m_TargetPosition = target; }
 void AiSimplified::SetSurface(Surface* surface) {
   if (surface) {
     m_Surface = surface;
+
+    m_Surface->AddEnemy(this);
   } else {
     auto surfaces = GetScene()->FindObjectsOfType<Surface>();
     if (!surfaces.empty()) {
       m_Surface = surfaces[0];
+      
+      
+      m_Surface->AddEnemy(this);
     } else {
       spdlog::error("AiNode: No Surface component found in scene");
     }

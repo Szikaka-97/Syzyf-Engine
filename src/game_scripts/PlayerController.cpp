@@ -15,6 +15,8 @@
 #include <physics/Body.h>
 #include <Formatters.h>
 
+PlayerController* PlayerController::instance;
+
 float MoveTowards(float current, float target, float maxDelta) {
 	maxDelta = glm::abs(maxDelta);
 
@@ -125,6 +127,8 @@ void PlayerController::Awake() {
 	this->charController->SetCollisionLayerAndMask({1}, {0});
 
 	this->defaultThrowingArmRotation = this->throwingArm->LocalTransform().Rotation();
+
+	this->instance = this;
 }
 
 void PlayerController::UpdateMovement() {

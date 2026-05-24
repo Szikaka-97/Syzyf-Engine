@@ -1,6 +1,7 @@
 #include "Surface.h"
 #include "Mesh.h"
 #include "Scene.h"
+#include "game_scripts/PlayerController.h"
 #include "physics/System.h"
 #include <random>
 #include <limits>
@@ -8,13 +9,14 @@
 //#include "AiNode.h"
 #include "./include/game_scripts/enemies/AiSimplified.h"
 #include "./include/game_scripts/enemies/EnemyBase.h"
+#include <game_scripts/PlayerController.h>
 
 #include <Jolt/Physics/Collision/RayCast.h>
 #include <Jolt/Physics/Collision/CastResult.h>
 #include <unordered_set>
 
 Surface::Surface(Mesh* floorMesh, float cellSize)
-    : floorMesh(floorMesh), cellSize(cellSize) {
+    : floorMesh(floorMesh), cellSize(cellSize), m_playerInside(false) {
     if (!floorMesh || floorMesh->GetSubMeshCount() == 0) {
        // spdlog::error("Surface: No valid mesh provided or mesh has no submeshes");
         return;
@@ -248,4 +250,20 @@ void Surface::DrawDebugSurface(Physics::DebugRenderer* debugRenderer, float poin
         JPH::Vec3 center(m_center.x, m_center.y, m_center.z);
         debugRenderer->DrawSphere(center, 0.2f, JPH::Color::sRed);
     }
+}
+
+void Surface::Update() {
+	PlayerController* player = PlayerController::Instance();
+
+	bool containsPlayer = ContainsPoint(player->GlobalTransform().Position(), 0.2f);
+	
+	if (m_playerInside && !containsPlayer) {
+		m_playerInside = false;
+		InformExit();
+	}
+	else if (!m_playerInside && containsPlayer) {
+		m_playerInside = true;
+
+		InformEnter();
+	}
 }

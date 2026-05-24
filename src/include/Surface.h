@@ -15,11 +15,12 @@ private:
     Mesh* floorMesh;
 
     float cellSize;
-            std::vector<glm::vec3> walkablePoints;
-        glm::vec3 m_center;  
+    std::vector<glm::vec3> walkablePoints;
+    glm::vec3 m_center;  
     glm::vec3 m_size;
     int m_RoomID;
     std::vector<AiSimplified*> myEnemies;
+    bool m_playerInside;
 
     void CollectVertices();
     void CalculateBounds();   
@@ -52,4 +53,5 @@ public:
     bool ContainsPoint (const glm::vec3& point, float margin) ;
     void DrawDebugSurface(Physics::DebugRenderer* debugRenderer, float pointSize = 0.1f, int step = 5) const;
 
+    void Update();
 };

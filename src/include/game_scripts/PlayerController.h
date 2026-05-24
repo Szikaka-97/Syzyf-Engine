@@ -11,6 +11,8 @@ class Camera;
 
 class PlayerController : public GameObject, public ImGuiDrawable {
 private:
+	static PlayerController* instance;
+	
 	float wobliness = 0;
 	float woblinessFrequency = 1;
 	float speed = 5;
@@ -46,6 +48,10 @@ private:
 	void UpdateTargetting();
 	void UpdateThrowing();
 public:
+	static inline PlayerController* Instance() {
+		return instance;
+	}
+	
 	void Awake();
 	void Update();
 
