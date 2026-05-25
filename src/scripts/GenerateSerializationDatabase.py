@@ -382,6 +382,8 @@ def main():
 		dest_impl.line("#include <TypeInfo.h>")
 
 		dest_impl.line()
+		dest_impl.line("using json = nlohmann::json;")
+		dest_impl.line()
 
 		include_files = []
 
@@ -463,7 +465,7 @@ def main():
 
 				dest_impl.line(f"void* result = alloc_aligned(sizeof({type_name}), alignof({type_name}));")
 
-				dest_impl.line(f"memset(result, 0, sizeof(result));")
+				dest_impl.line(f"memset(result, 0, sizeof({type_name}));")
 
 				for field in tp.fields:
 					if field.is_pointer:

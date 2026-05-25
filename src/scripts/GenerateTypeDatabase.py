@@ -151,6 +151,8 @@ class CppType:
 
 		if discard:
 			return name
+
+		name = cls.get_full_name(type)
 		
 		if name not in CppType.all_types:
 			CppType.all_types[name] = None
@@ -221,6 +223,32 @@ class CppType:
 				self.template_args.append(self.cursor.get_template_argument_value(template_arg_index))
 			else:
 				self.template_args.append(CppModifiedType(self.cursor.get_template_argument_type(template_arg_index)))
+
+	@classmethod
+	def get_full_name(cls, type: clang.Type) -> str:
+		name: str = type.spelling
+
+		parentsStack = []
+
+		if type.get_declaration().lexical_parent:
+			parent = type.get_declaration().lexical_parent
+			
+			while parent:
+				if parent.kind == clang.CursorKind.NAMESPACE or is_type_decl(parent):
+					parentsStack.append(parent.spelling)
+				else:
+					break	
+			
+				parent = parent.lexical_parent
+
+		for i in range(len(parentsStack) - 1, -1, -1):
+			if name.startswith(parentsStack[i]):
+				name = name.removeprefix(parentsStack[i] + "::")
+
+		for parent in parentsStack:
+			name = parent + "::" + name
+		
+		return name
 
 
 	def get_simple_name(self) -> str:

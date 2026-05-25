@@ -8,16 +8,40 @@ class CppModifiedType:
 		self.is_const: bool = data["is_const"]
 
 
+class CppField:
+	def __init__(self, data: dict[str, Any]):
+		self.name: str = data["name"]
+		self.type: str = data["type"]
+		self.attributes: list[str] = data["attributes"]
+		self.access: str = data["access"]
+		self.offset: int = data["byte_offset"]
+		self.array_count: int = data["array_size"]
+		self.is_pointer: bool = data["is_pointer"]
+		self.is_reference: bool = data["is_reference"]
+		self.is_const: bool = data["is_const"]
+
+
+class CppMethod:
+	def __init__(self, data: dict[str, Any]):
+		self.name: str = data["name"]
+		self.return_type: CppModifiedType = CppModifiedType(data["return_type"])
+		self.arguments: list[CppModifiedType] = [CppModifiedType(type_data) for type_data in data["arguments"]]
+		self.is_virtual: bool = data["is_virtual"]
+		self.is_pure_virtual: bool = data["is_pure_virtual"]
+		self.is_const: bool = data["is_const"]
+		self.access: str = data["access"]
+
+
 class CppType:
 	all_types: dict[str, Self] = {}
 
 	@classmethod
-	def load_types(cls, data: dict[str, dict]) -> CppType:
+	def load_types(cls, data: dict[str, dict]) -> Self:
 		for type_name, type_data in data.items():
-			cls.all_types[type_data["name"]] = CppType(type_data)
+			cls.all_types[type_name] = CppType(type_data)
 
 	@classmethod
-	def get_type(cls, type_name: str) -> CppType:
+	def get_type(cls, type_name: str) -> Self:
 		return cls.all_types[type_name]
 
 
@@ -88,27 +112,3 @@ class CppType:
 
 	def get_all_methods(self) -> list[CppMethod]:
 		return [method for base_class in self.get_class_hierarchy() for method in base_class.methods]
-
-
-class CppField:
-	def __init__(self, data: dict[str, Any]):
-		self.name: str = data["name"]
-		self.type: str = data["type"]
-		self.attributes: list[str] = data["attributes"]
-		self.access: str = data["access"]
-		self.offset: int = data["byte_offset"]
-		self.array_count: int = data["array_size"]
-		self.is_pointer: bool = data["is_pointer"]
-		self.is_reference: bool = data["is_reference"]
-		self.is_const: bool = data["is_const"]
-
-
-class CppMethod:
-	def __init__(self, data: dict[str, Any]):
-		self.name: str = data["name"]
-		self.return_type: CppModifiedType = CppModifiedType(data["return_type"])
-		self.arguments: list[CppModifiedType] = [CppModifiedType(type_data) for type_data in data["arguments"]]
-		self.is_virtual: bool = data["is_virtual"]
-		self.is_pure_virtual: bool = data["is_pure_virtual"]
-		self.is_const: bool = data["is_const"]
-		self.access: str = data["access"]
