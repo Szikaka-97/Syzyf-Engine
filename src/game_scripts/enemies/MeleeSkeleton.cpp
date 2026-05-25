@@ -22,6 +22,7 @@ void MeleeSkeleton::UpdateAttackSequence() {
   void MeleeSkeleton::Update() {
 
     EnsureBody();
+    LockXZRotation();
     // m_TargetPosition = GetObject<Player>()->GlobalTransform().Position();
     if (m_TargetNode)
       m_TargetPosition = m_TargetNode->GlobalTransform().Position();

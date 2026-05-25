@@ -49,12 +49,34 @@ AiSimplified::AiSimplified()
 AiSimplified::~AiSimplified() {}
 
 void AiSimplified::EnsureBody() {
-  if (myNode == nullptr) {
-    myNode = GetNode();
-  }
-  if (myNode != nullptr && m_Body == nullptr) {
-    m_Body = myNode->GetObject<Physics::Body>();
-  }
+    if (myNode == nullptr) {
+        myNode = GetNode();
+    }
+    if (myNode != nullptr && m_Body == nullptr) {
+        m_Body = myNode->GetObject<Physics::Body>();
+
+        if (m_Body) {
+            m_Body->SetAngularDamping(999.0f); 
+        }
+    }
+}
+
+void AiSimplified::LockXZRotation() {
+    if (!m_Body) return;
+
+    glm::quat rot = m_Body->GetRotation();
+
+    const float epsilon = 0.001f;
+    if (glm::abs(rot.x) > epsilon || glm::abs(rot.z) > epsilon) {
+        glm::quat corrected = glm::quat(rot.w, 0.0f, rot.y, 0.0f);
+        corrected = glm::normalize(corrected);
+
+        m_Body->SetRotation(corrected);
+        myNode->GlobalTransform().Rotation() = corrected;
+
+        glm::vec3 angVel = m_Body->GetAngularVelocity();
+        m_Body->SetAngularVelocity(glm::vec3(0.0f, angVel.y, 0.0f));
+    }
 }
 
 void AiSimplified::MoveInDirection(const glm::vec3& direction) {
