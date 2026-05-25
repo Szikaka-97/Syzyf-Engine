@@ -7,7 +7,6 @@ enum States { ATTACKING, FLEEING, CHASING, PATROLLING, AVOIDING_OBSTACLE };
 class EnemyBase : public AiSimplified {
 private:
     float fov = glm::radians(180.0f);
-    float m_AttackCooldown;
     float m_AttackTimer;
     float m_ProjectileSpeed;
     Mesh* m_ProjectileMesh;
@@ -48,7 +47,8 @@ private:
  
 protected:
     void UpdateStatusEffects();
-
+    
+    float m_AttackCooldown;
 public:
     EnemyBase();
     ~EnemyBase();

@@ -48,6 +48,7 @@
 #include <./include/game_scripts/enemies/EnemySkeleton.h>
 #include <./include/game_scripts/enemies/EnemyBeetroot.h>
 #include <./include/game_scripts/enemies/EnemyPotato.h>
+#include <./include/game_scripts/enemies/MeleeSkeleton.h>
 
 #include "Jolt/Math/Vec3.h"
 #include <Jolt/Jolt.h>
@@ -280,7 +281,7 @@ inline void InitScene(Scene& mainScene) {
     enemy1->GlobalTransform().Scale() = glm::vec3(0.5f, 0.5f, 0.5f);
     Physics::Body* enemyBody1 = enemy1->AddObject<Physics::Body>(enemySettings);
     enemyBody1->SetRestitution(0.0f);
-    auto* enemyAi1 = enemy1->AddObject<EnemySkeleton>();
+    auto* enemyAi1 = enemy1->AddObject<MeleeSkeleton>();
     enemyAi1->SetSurface(surface);
     enemyAi1->SetTargetNode(player->GetNode());
     enemyAi1->SetProjectileResources(cubeMesh, enemyMat);

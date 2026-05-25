@@ -10,4 +10,5 @@
 class EnemySkeleton : public EnemyBase {
  public:
   void Update();
+  void OnCollisionEnter();
 };
