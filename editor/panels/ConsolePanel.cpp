@@ -1,5 +1,5 @@
 #include "panels/ConsolePanel.h"
-#include "Application.h"
+#include "EditorApplication.h"
 
 #include <mutex>
 

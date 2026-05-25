@@ -1,8 +1,8 @@
 #include "panels/SceneViewPanel.h"
 #include "AiNode.h"
-#include "Application.h"
 #include "CameraController.h"
 #include "Commands.h"
+#include "EditorApplication.h"
 #include "MousePickingBodySystem.h"
 #include "ParticleSpawner.h"
 #include "SceneRegistry.h"
@@ -235,8 +235,6 @@ void SceneViewPanel::Draw(Context& context) {
         glm::vec2(resX, resY));
     context.selectedScene->GetGraphics()->GetMainFramebuffer()->SetSize(
         glm::uvec2(resX, resY));
-
-    Time::Update();
 
     this->UpdateAndRenderScene(context);
 

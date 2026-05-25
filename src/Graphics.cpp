@@ -137,7 +137,7 @@ currentUniforms() {
             .colorSpace = TextureColor::Linear,
             .format = TextureFormat::Ubyte,
             .minFilter = TextureFilter::Nearest,
-            .magFilter = TextureFilter::Nearest
+            .magFilter = TextureFilter::Nearest,
     });
     this->uiQuadMesh = this->GetScene()->Resources()->Get<Mesh>("./res/models/uiQuad.obj");
 

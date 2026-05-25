@@ -1,5 +1,5 @@
 #include "panels/MainMenuBar.h"
-#include "Application.h"
+#include "EditorApplication.h"
 #include "Settings.h"
 #include "Themes.h"
 

@@ -12,7 +12,7 @@
 
 #include <spdlog/spdlog.h>
 
-#include <Engine.h>
+#include <Application.h>
 #include <TimeSystem.h>
 #include <Graphics.h>
 
@@ -606,10 +606,10 @@ void InputSystem::SetMouseLocked(bool locked) {
 		this->prevMouseMovement = glm::vec2(0, 0);
 
 		SDL_SetRelativeMouseTransform(mouseTransform, this);
-		SDL_SetWindowRelativeMouseMode(Engine::GetWindow(), true);
+		SDL_SetWindowRelativeMouseMode(Application::GetWindow(), true);
 	}
 	else {
-		SDL_SetWindowRelativeMouseMode(Engine::GetWindow(), false);
+		SDL_SetWindowRelativeMouseMode(Application::GetWindow(), false);
 	}
 
 	this->mouseLocked = locked;

@@ -62,7 +62,7 @@
 #include <imgui.h>
 #include <physics/VirtualCharacterController.h>
 
-namespace TestScene {
+namespace MainMenuScene {
 class Mover : public GameObject, public ImGuiDrawable {
   private:
     float pitch;
@@ -517,4 +517,4 @@ inline void InitScene(Scene& mainScene) {
 
 #pragma endregion
 }
-} // namespace TestScene
+} // namespace MainMenuScene

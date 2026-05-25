@@ -1,6 +1,6 @@
 #include "panels/GraphPanel.h"
-#include "Application.h"
 #include "CameraController.h"
+#include "EditorApplication.h"
 #include "imgui.h"
 
 #include <Scene.h>
@@ -117,7 +117,8 @@ void GraphPanel::DrawGraphNode(Context& context, SceneNode& node) {
                               ImVec4(0.4f, 0.4f, 0.4f, 1.0f));
     }
 
-    if (ImGui::Button(node.EnabledSelf() ? "X" : " ", ImVec2(24, ImGui::GetFrameHeight()))) {
+    if (ImGui::Button(node.EnabledSelf() ? "X" : " ",
+                      ImVec2(24, ImGui::GetFrameHeight()))) {
         node.SetEnabled(!node.EnabledSelf());
     }
 

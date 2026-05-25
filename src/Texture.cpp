@@ -350,6 +350,7 @@ Texture2D::Texture2D(unsigned int width, unsigned int height, const TextureParam
 	this->dirty = true;
 
 	this->mipmapped = TextureInfoBit<bool>();
+    this->mipmapped.dirty = false;
 	this->wrapU = TextureInfoBit<TextureWrap>();
 	this->wrapV = TextureInfoBit<TextureWrap>();
 	this->minFilter = TextureInfoBit<TextureFilter>();
@@ -374,6 +375,7 @@ Texture2D::Texture2D(unsigned int width, unsigned int height, const TextureParam
 	this->dirty = true;
 
 	this->mipmapped = TextureInfoBit<bool>();
+    this->mipmapped.dirty = false;
 	this->wrapU = TextureInfoBit<TextureWrap>();
 	this->wrapV = TextureInfoBit<TextureWrap>();
 	this->minFilter = TextureInfoBit<TextureFilter>();
@@ -809,6 +811,8 @@ void Texture3D::Create() {
 		if (!this->handle) {
 			glCreateTextures(GL_TEXTURE_3D, 1, &this->handle);
 		}
+
+        glBindTexture(GL_TEXTURE_3D, this->handle);
 		
         glTexImage3D(
             GL_TEXTURE_3D, 0,
