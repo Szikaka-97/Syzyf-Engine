@@ -63,6 +63,7 @@ SIMPLE_TYPES = [
 	"float",
 	"double",
 	"std::basic_string<char>",
+	"std::__cxx11::basic_string<char>",
 ]
 
 
@@ -210,7 +211,7 @@ def write_field_deserializer(writer: CodeWriter, field: CppField, lhs: str) -> N
 		writer.line(f"new(({get_enum_type(field_type)}*) (raw + {field.offset})) {get_enum_type(field_type)}{{data[\"{field.name}\"].get<{get_enum_type(field_type)}>()}};")
 	elif is_array_type(field_type):
 		write_array_deserializer(writer, field, lhs)
-	elif field.type in INTRINSIC_SERIALIZERS:
+	elif field_type.name in INTRINSIC_SERIALIZERS:
 		writer.line(f"new(({field.type}*) (raw + {field.offset})) {field.type}{{Serialization::Deserialize<{field.type}>(data[\"{field.name}\"])}};")
 	elif not field.is_pointer:
 		if field.type in serialized_types:
