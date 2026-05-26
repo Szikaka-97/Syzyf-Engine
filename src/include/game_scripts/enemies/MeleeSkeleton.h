@@ -5,6 +5,7 @@
 #include <Scene.h>
 #include <./include/game_scripts/enemies/EnemyBase.h>
 
+#include <./include/game_scripts/enemies/loot/LootPool.h>
 #include "EnemySword.h"
 
 #include <glm/glm.hpp>
@@ -14,7 +15,8 @@ class MeleeSkeleton : public EnemyBase {
 	 bool m_IsAttacking = false;
 	 void UpdateAttackSequence();
 	 EnemySword* sword = nullptr;
-
+	 
+  LootPool& GetLootPool() override{return LootPool::GetMeleeSkeletonLootPool();}
 MeleeSkeleton() : EnemyBase() {
 	this->attackRange = 1.0f;
 
@@ -31,3 +33,5 @@ MeleeSkeleton() : EnemyBase() {
 	void StartAttack();
   void Update();
 };
+
+

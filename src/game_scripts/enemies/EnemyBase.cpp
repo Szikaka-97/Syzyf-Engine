@@ -7,6 +7,10 @@
 #include "./include/game_scripts/enemies/EnemyBase.h"
 #include "./include/game_scripts/enemies/EnemyBullet.h"    
 
+#include "./include/game_scripts/enemies/loot/LootItem.h"
+
+#include "./include/game_scripts/enemies/loot/LootPool.h"
+
 EnemyBase::EnemyBase()
     : fov(glm::radians(180.0f)),
       m_AttackCooldown(1.5f),
@@ -42,9 +46,25 @@ void EnemyBase::Attack() {
 
 void EnemyBase::Die() {
   if (myNode) {
+
+     /* std::mt19937 m_Rng{std::random_device{}()};
+      int rnd = m_Rng() % 5;
+      for (int i = 0; i <= rnd; ++i) {
+          DropLoot();
+      }*/
+
     GetScene()->QueueDelete(myNode);
     myNode = nullptr;
   }
+}
+
+void EnemyBase::DropLoot() {
+    LootPool& pool = GetLootPool();
+    const LootItem* item = pool.Draw();
+    if (item && myNode) {
+        glm::vec3 spawnPos = currentPos + glm::vec3(0.0f, 0.5f, 0.0f);
+        item->Spawn(GetScene(), spawnPos);
+    }
 }
 void EnemyBase::SpawnProjectile(const glm::vec3& targetPos) {
   if (!m_ProjectileMesh || !m_ProjectileMaterial) {

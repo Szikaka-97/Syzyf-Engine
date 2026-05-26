@@ -2,6 +2,9 @@
 
 #include "./include/game_scripts/enemies/AiSimplified.h"
 
+#include <./include/game_scripts/enemies/loot/LootPool.h>
+#include <typeindex>
+
 enum States { ATTACKING, FLEEING, CHASING, PATROLLING, AVOIDING_OBSTACLE };
 
 class EnemyBase : public AiSimplified {
@@ -24,6 +27,7 @@ private:
     float m_AttackAnimationElapsed = 0.0f;
     void SetAnimation(const std::string& name);
     bool CanSeePlayer() const;
+
 
     struct BurnState {
         bool  active        = false;
@@ -78,8 +82,8 @@ public:
     void UpdateAttackAnimation();
 
     void Attack();
-    /// todo
-    void DropLoot();
+     virtual LootPool& GetLootPool() = 0; 
+    void DropLoot(); 
 
     void ApplyBurn(float damagePerTick, float duration, float interval = 1.0f);
  
