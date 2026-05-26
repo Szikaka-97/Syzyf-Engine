@@ -694,11 +694,26 @@ void SceneViewPanel::DrawMenuBar(Context& context) {
     if (ImGui::RadioButton("Editor", context.state == State::Editor)) {
         if (context.state != State::Editor) {
             context.state = State::Editor;
-            context.mainCamera =
-                context.selectedScene->FindObjectsOfType<CameraController>()
-                    .front()
-                    ->GetObject<Camera>();
-            context.mainCamera->SetAsMainCamera();
+
+            auto cameraControllers =
+                context.selectedScene->FindObjectsOfType<CameraController>();
+
+            if (!cameraControllers.empty()) {
+                context.mainCamera =
+                    cameraControllers.front()->GetObject<Camera>();
+                if (context.mainCamera) {
+                    context.mainCamera->SetAsMainCamera();
+                }
+            } else {
+                SceneNode* cameraNode =
+                    context.selectedScene->CreateNode("Editor Camera");
+                cameraNode->AddObject<CameraController>();
+                cameraNode->GlobalTransform().Position() = {0.0, 1.0, 0.0};
+                context.mainCamera = cameraNode->GetObject<Camera>();
+                if (context.mainCamera) {
+                    context.mainCamera->SetAsMainCamera();
+                }
+            }
         }
     }
     ImGui::SameLine();

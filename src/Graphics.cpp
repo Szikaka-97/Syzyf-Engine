@@ -152,6 +152,10 @@ currentUniforms() {
     this->opaquePassFramebuffer->CreateCustomAttachment(0, normalBufferParams);
 }
 
+void SceneGraphics::SetSSAOEnabled(bool enabled) {
+    this->ssaoSettings.enabled = enabled;
+}
+
 glm::vec2 SceneGraphics::GetScreenResolution() const {
 	return this->mainViewport->GetSize();
 }

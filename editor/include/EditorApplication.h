@@ -64,7 +64,7 @@ class EditorApplication : public ::Application {
     EditorApplication() : ::Application("Syzyf Editor", 1280, 720) {}
 
   protected:
-    void OnInit() override;
+    void OnInit(int argc = 0, char* argv[] = nullptr) override;
     void OnUpdate() override;
     void OnRender() override;
     void OnImGuiRender() override;

@@ -65,9 +65,9 @@ void UiInteractableSystem::OnPreUpdate() {
             interactable->isHovered = true;
             inputConsumed = true;
 
-            if (!wasHovered && interactable->OnHoverExit) interactable->OnHoverEnter();
+            if (!wasHovered && interactable->OnHoverEnter) interactable->OnHoverEnter();
 
-            if (mousePressed) {
+            if (mouseDown) {
                 interactable->isPressed = true;
                 if (interactable->OnPress) interactable->OnPress();
             } else if (mouseReleased && wasPressed) {

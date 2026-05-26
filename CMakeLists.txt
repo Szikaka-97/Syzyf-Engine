@@ -51,7 +51,7 @@ if(BUILD_EDITOR)
 endif()
 
 # ---- Game ----
-option(BUILD_GAME "Build Game" OFF)
+option(BUILD_GAME "Build Game" ON)
 
 if(BUILD_GAME)
     message(STATUS "Game build ENABLED")

@@ -6,14 +6,65 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 
-void GameApplication::OnInit() {
+void GameApplication::OnInit(int argc, char* argv[]) {
     auto sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
     auto logger = std::make_shared<spdlog::logger>("Bimberman", sink);
     spdlog::set_default_logger(logger);
-    spdlog::set_level(spdlog::level::err);
 
-    this->currentScene = Scene::CreateStandaloneScene();
-    SplashScene::InitScene(*this->currentScene);
+    spdlog::level::level_enum logLevel = spdlog::level::err;
+
+    for (int i = 1; i < argc; ++i) {
+        std::string arg = argv[i];
+        if ((arg == "--log-level" || arg == "-l") && i + 1 < argc) {
+            std::string levelString = argv[++i];
+
+            if (levelString == "trace")
+                logLevel = spdlog::level::trace;
+            else if (levelString == "debug")
+                logLevel = spdlog::level::debug;
+            else if (levelString == "info")
+                logLevel = spdlog::level::info;
+            else if (levelString == "warn")
+                logLevel = spdlog::level::warn;
+            else if (levelString == "err")
+                logLevel = spdlog::level::err;
+            else if (levelString == "critical")
+                logLevel = spdlog::level::critical;
+            else if (levelString == "off")
+                logLevel = spdlog::level::off;
+            else
+                logLevel = spdlog::level::err;
+
+            break;
+        }
+    }
+
+    spdlog::set_level(logLevel);
+
+    this->settings.Load();
+
+    Scene* newScene = Scene::CreateStandaloneScene();
+    SplashScene::InitScene(*newScene);
+    this->currentScene = newScene;
+    this->ApplySettings();
+}
+
+void GameApplication::ApplySettings() {
+    SDL_SetWindowSize(this->window, this->settings.resolutionWidth,
+                      this->settings.resolutionHeight);
+
+    if (this->settings.windowed) {
+        SDL_SetWindowFullscreen(this->window, 0);
+    } else {
+        SDL_SetWindowFullscreen(this->window, SDL_WINDOW_FULLSCREEN);
+    }
+
+    if (this->currentScene) {
+        if (this->currentScene->GetGraphics()) {
+            this->currentScene->GetGraphics()->SetSSAOEnabled(
+                this->settings.ssaoEnabled);
+        }
+    }
 }
 
 void GameApplication::OnUpdate() {

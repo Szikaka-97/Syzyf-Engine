@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Settings.h"
 #include <SDL3/SDL_video.h>
 
 #include <functional>
@@ -26,11 +27,16 @@ protected:
     bool isSceneChangeRequested = false;
     SceneInitCallback pendingSceneInitFunc = nullptr;
 
+    GameSettings settings;
+
 public:
     Application(const std::string& title = "Syzyf", int width = 1280, int height = 720);
     virtual ~Application();
 
-    void Run();
+    void Run(int argc = 0, char* argv[] = nullptr);
+
+    GameSettings& GetSettings() { return settings; }
+    virtual void ApplySettings() {}
 
     static SDL_Window* GetWindow();
     static Scene* GetCurrentScene();
@@ -39,7 +45,7 @@ public:
     void RequestSceneChange(SceneInitCallback initFunc);
 
 protected:
-    virtual void OnInit() {}
+    virtual void OnInit(int argc = 0, char* argv[] = nullptr) {}
     virtual void OnUpdate() {}
     virtual void OnRender() {}
     virtual void OnImGuiRender() {}

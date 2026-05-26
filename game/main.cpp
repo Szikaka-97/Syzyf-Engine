@@ -1,8 +1,8 @@
 #include "include/GameApplication.h"
 
-int main(int, char**) {
+int main(int argc, char* argv[]) {
     GameApplication app;
-    app.Run();
+    app.Run(argc, argv);
 
     return 0;
 }

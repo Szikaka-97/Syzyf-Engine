@@ -2,6 +2,7 @@
 
 #include "DungeonGeneratorScene.h"
 #include "LevelShowcaseScene.h"
+#include "MainMenuScene.h"
 #include "TestScene.h"
 #include "examples/particles_and_scatter.h"
 #include "examples/tweens.h"
@@ -40,6 +41,7 @@ class SceneRegistry {
                                      ExampleParticlesAndScatter::InitScene);
         SceneRegistry::RegisterScene("Example: Tweens",
                                      ExampleTweens::InitScene);
+        SceneRegistry::RegisterScene("Main Menu", MainMenu::InitScene);
     }
 };
 } // namespace Editor

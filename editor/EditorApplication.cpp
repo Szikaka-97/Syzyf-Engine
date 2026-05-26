@@ -28,7 +28,7 @@ void EditorApplication::InitSpdlog() {
     spdlog::set_default_logger(combined_logger);
 }
 
-void EditorApplication::OnInit() {
+void EditorApplication::OnInit(int argc, char* argv[]) {
     this->context.window = this->window;
     this->context.glContext = this->glContext;
 

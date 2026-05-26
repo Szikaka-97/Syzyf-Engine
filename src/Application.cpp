@@ -156,10 +156,10 @@ void Application::ShutdownEngine() {
     SDL_Quit();
 }
 
-void Application::Run() {
+void Application::Run(int argc, char* argv[]) {
     if (!InitEngine()) return;
 
-    OnInit();
+    OnInit(argc, argv);
 
     while (isRunning) {
         SDL_Event event;
@@ -227,6 +227,7 @@ void Application::ExecutePendingSceneChange() {
     }
 
     this->currentScene = Scene::CreateStandaloneScene();
+    this->ApplySettings();
 
     if (this->pendingSceneInitFunc) {
         this->pendingSceneInitFunc(this->currentScene);

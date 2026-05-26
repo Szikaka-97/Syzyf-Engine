@@ -67,6 +67,7 @@ public:
         int blurRange = 2;
         float resolutionScale = 1.0f;
     };
+
 private:
     // this should all be using unique ptrs
     struct Shaders {
@@ -201,6 +202,8 @@ private:
 public:
 	SceneGraphics(Scene* scene);
 	
+    void SetSSAOEnabled(bool enabled);
+
 	glm::vec2 GetScreenResolution() const;
 	void UpdateScreenResolution(glm::vec2 newResolution);
 	
