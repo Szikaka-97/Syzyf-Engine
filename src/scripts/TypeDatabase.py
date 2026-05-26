@@ -99,7 +99,7 @@ class CppType:
 		queue = [self]
 
 		while len(queue):
-			queue += [CppType.get_type(base) for base in queue[-1].base_classes]
+			queue = [CppType.get_type(base) for base in queue[-1].base_classes] + queue
 
 			hierarchy.append(queue.pop())
 		

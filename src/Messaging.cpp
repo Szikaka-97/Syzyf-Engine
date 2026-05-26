@@ -19,8 +19,6 @@ bool MessageTree::TryFindNode(SceneNode* sceneNode, MessageTree::MessageNode** r
 	if (parentChain.top() != this->root->content.node) {
 		spdlog::warn("TryFindNode: Node is detached from tree - {}", sceneNode->GetID());
 
-		asm("INT3");
-
 		result = nullptr;
 
 		return false;

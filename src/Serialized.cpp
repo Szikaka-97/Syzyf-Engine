@@ -44,7 +44,10 @@ json Serialization::FinishObjectSerialization() {
 }
 
 void* Serialization::FetchDeserializedObject(int index) {
-	return deserializedObjects[index];
+	if (index >= 0) {
+		return deserializedObjects[index];
+	}
+	return nullptr;
 }
 
 template<>

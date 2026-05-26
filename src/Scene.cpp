@@ -1,4 +1,5 @@
 #include <Scene.h>
+#include "Messaging.h"
 #include "Serialized.h"
 
 #include <malloc.h>
@@ -224,13 +225,17 @@ void SceneNode::operator delete(SceneNode* ptr, std::destroying_delete_t) {
 }
 
 void SceneNode::Deserialize(const nlohmann::json& data) {
-	spdlog::info("Scene Node Serialize");
+	std::erase(this->objects, nullptr);
+	
+	if (this->parent) {
+		spdlog::info("Halleluyah");
+	}
 }
 nlohmann::json SceneNode::Serialize() const {
 	nlohmann::json data;
 
-	data["id"] = this->id;
-
+	data["transform"] = Serialization::Serialize(this->transform.localTransform.Value());
+	
 	return data;
 }
 
@@ -488,61 +493,36 @@ void Scene::operator delete(Scene* ptr, std::destroying_delete_t) {
 }
 
 void Scene::Deserialize(const nlohmann::json& json_node) {
-	std::vector<json> nodesData = json_node["nodes"];
-
-	std::vector<SceneNode*> nodes(nodesData.size());
-
-	this->messageTree.RemoveNode(this->root);
-	std::free(this->root);
-	
-	SceneNode* newRoot = nullptr;
-
-	std::map<int, int> nodeIdMap;
-
-	for (int i = 0; i < nodesData.size(); i++) {
-		nodes[i] = new SceneNode(this);
-		nodes[i]->id = nodesData[i]["id"];
-		nodes[i]->name = nodesData[i]["name"];
-
-		nodeIdMap[nodes[i]->id] = i;
-
-		this->nextSceneNodeID = std::max(this->nextSceneNodeID, nodes[i]->id + 1);
-
-		if (nodesData[i]["parent"].get<int>() < 0) {
-			newRoot = nodes[i];
+	for (int compIndex : json_node["components"]) {
+		SceneComponent* comp = (SceneComponent*) Serialization::FetchDeserializedObject(compIndex);
+		
+		if (!comp) {
+			continue;
 		}
 
-		this->messageTree.AddNode(nodes[i]);
+		comp->scene = this;
+		
+		this->components.push_back(comp);
 	}
+
+	this->graphics = AddComponent<SceneGraphics>();
+	this->inputSystem = AddComponent<InputSystem>();
+
+	this->messageTree.AddNode(this->root);
 	
-	this->root = newRoot;
-
-	// std::sort(nodes.begin(), nodes.end(), [](SceneNode* a, SceneNode* b) -> bool { return a.pa })
-
-	for (int i = 0; i < nodesData.size(); i++) {
-		if (nodesData[i]["parent"].get<int>() >= 0) {
-			nodes[i]->SetParent(nodes[nodeIdMap[nodesData[i]["parent"]]]);
-		}
-
-		nodes[i]->LocalTransform() = Serialization::Deserialize<glm::mat4>(nodesData[i]["transform"]);
-
-		spdlog::info(nodes[i]->GetID());
-
-		for (auto& objData : nodesData[i]["objects"]) {
-			if (objData.is_number_integer()) {
-
-				continue;
-			}
-
-			// Serialization::DeserializeGameObject(nodes[i], objData);
-		}
-	}
+	this->messageTree.PropagateMessage<Message::Awake>(this->root);
 }
 
 nlohmann::json Scene::Serialize() const {
 	json data;
 
-	data["root"] = Serialization::Serialize(this->root);
+	std::vector<int> componentsData;
 
+	for (SceneComponent* comp : this->components) {
+		componentsData.push_back(Serialization::QueueObjectSerialization(comp));
+	}
+	
+	data["components"] = componentsData;
+	
 	return data;
 }

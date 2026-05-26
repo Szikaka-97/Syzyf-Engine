@@ -30,15 +30,15 @@ private:
 	SceneNode* parent;
 
 	int id;
-	std::string name;
+	serialized std::string name;
 
-	uint8_t disabledState;
-	uint8_t layer;
+	serialized uint8_t disabledState;
+	serialized uint8_t layer;
 
 	Scene* const scene;
-	std::vector<GameObject*> objects;
+	serialized std::vector<GameObject*> objects;
 
-	std::vector<SceneNode*> children;
+	serialized std::vector<SceneNode*> children;
 	SceneTransform transform;
 
 	SceneNode(Scene* scene);
@@ -121,7 +121,7 @@ class Scene {
 	friend class SceneNode;
 	friend class GameObject;
 public:
-    std::string name = "";
+    serialized std::string name = "";
 
 	int nextSceneNodeID;
 	int nextGameObjectID;
@@ -130,7 +130,7 @@ public:
 
 	std::vector<SceneComponent*> components;
 	MessageTree messageTree;
-	SceneNode* root;
+	serialized SceneNode* root;
 
 	InputSystem* inputSystem;
 	SceneGraphics* graphics;

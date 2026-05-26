@@ -1,5 +1,8 @@
 #pragma once
 
+#include "Graphics.h"
+#include "InputSystem.h"
+#include "Serialized.h"
 #include "scenes/DungeonGeneratorScene.h"
 #include "scenes/LevelShowcaseScene.h"
 #include "scenes/TestScene.h"
@@ -7,6 +10,7 @@
 #include "scenes/examples/tweens.h"
 #include "scenes/examples/ui.h"
 
+#include <filesystem>
 #include <functional>
 #include <string>
 #include <unordered_map>
@@ -40,6 +44,16 @@ class SceneRegistry {
                                      ExampleParticlesAndScatter::InitScene);
         SceneRegistry::RegisterScene("Example: Tweens",
                                      ExampleTweens::InitScene);
+
+        for (const auto& sceneFile : std::filesystem::directory_iterator("./res/scenes")) {
+        	SceneRegistry::RegisterScene(std::format("Loaded: {}", sceneFile.path().stem().string()), [sceneFile](Scene& s) -> void {
+         		std::ifstream jsonFile{sceneFile.path()};
+
+           		json sceneData = json::parse(jsonFile);
+         
+         		s = *Serialization::DeserializeObject<Scene>(sceneData);
+         	});
+        }
     }
 };
 } // namespace Editor

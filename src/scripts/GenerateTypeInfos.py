@@ -79,6 +79,8 @@ def main():
 		for type_name, tp in CppType.all_types.items():
 			dest_impl.line(f"{{ .name = \"{type_name}\", .size = sizeof({type_name}) }},")
 
+		dest_impl.line("{ .name = \"void\", .size = 0 },")
+
 		dest_impl.less_indent()
 		dest_impl.line("};")
 
@@ -103,13 +105,20 @@ def main():
 			dest_impl.line(f"{{ typeid(const {type_name} *), {index} }},")
 			index += 1
 
+		dest_impl.line(f"{{ typeid(void), {index} }},")
+
 		dest_impl.less_indent()
 		dest_impl.line("};")
 
 		dest_impl.line("const TypeInfo& TypeInfo::GetTypeInfo(const std::string& typeName) {")
 		dest_impl.more_indent()
 
+		dest_impl.line("if (typeInfoLookupByName.contains(typeName)) {")
+		dest_impl.more_indent()
 		dest_impl.line("return allTypeInfos[typeInfoLookupByName[typeName]];")
+		dest_impl.less_indent()
+		dest_impl.line("};")
+		dest_impl.line(f"return allTypeInfos[{index}];")
 
 		dest_impl.less_indent()
 		dest_impl.line("};")
@@ -117,7 +126,12 @@ def main():
 		dest_impl.line("const TypeInfo& TypeInfo::GetTypeInfo(const std::type_info& typeInfo) {")
 		dest_impl.more_indent()
 
+		dest_impl.line("if (typeInfoLookupByTypeId.contains(std::type_index{typeInfo})) {")
+		dest_impl.more_indent()
 		dest_impl.line("return allTypeInfos[typeInfoLookupByTypeId[std::type_index{typeInfo}]];")
+		dest_impl.less_indent()
+		dest_impl.line("};")
+		dest_impl.line(f"return allTypeInfos[{index}];")
 
 		dest_impl.less_indent()
 		dest_impl.line("};")

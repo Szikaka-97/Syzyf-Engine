@@ -6,6 +6,7 @@
 #include "MousePickingBodySystem.h"
 #include "ParticleSpawner.h"
 #include "SceneRegistry.h"
+#include "Serialized.h"
 #include "physics/Body.h"
 #include "physics/DebugRenderer.h"
 
@@ -17,6 +18,7 @@
 #include <SDL3/SDL_mouse.h>
 #include <glm/glm.hpp>
 #include <imgui.h>
+#include <nlohmann/json_fwd.hpp>
 #define IMVIEWGUIZMO_IMPLEMENTATION
 #include "thirdparty/ImViewGuizmo.h"
 
@@ -168,6 +170,28 @@ void SceneViewPanel::Draw(Context& context) {
                             context.mainCamera->SetAsMainCamera();
                         }
                     }
+
+                    ImGui::Separator();
+
+                    if (ImGui::Selectable("+ New Scene")) {
+                        Scene* newScene = Scene::CreateStandaloneScene();
+                        newScene->AddComponent<MousePickingBodySystem>();
+                        newScene->name = "New Scene";
+
+                        SceneNode* cameraNode = newScene->CreateNode();
+                        cameraNode->AddObject<CameraController>();
+                        cameraNode->GlobalTransform().Position() = {
+                            0.0f, 1.0f, 0.0f};
+
+                        context.loadedScenes.push_back(newScene);
+
+                        context.selectedScene = newScene;
+                        context.selectedNode = nullptr;
+                        context.mainCamera =
+                            cameraNode->GetObject<Camera>();
+                        context.mainCamera->SetAsMainCamera();
+                    }
+                    
                     ImGui::EndPopup();
                 }
 
@@ -210,6 +234,16 @@ void SceneViewPanel::Draw(Context& context) {
             else
                 ImGui::End();
             return;
+        }
+        else {
+            if (ImGui::IsKeyChordPressed(ImGuiKey::ImGuiMod_Ctrl | ImGuiKey::ImGuiKey_S)) {
+           	    nlohmann::json rep = Serialization::Serialize(context.selectedScene);
+
+                std::ofstream sceneSave(std::format("./res/scenes/{}.scene", context.selectedScene->name));
+                sceneSave << rep.dump(2);
+
+                spdlog::info("Saving scene {}", context.selectedScene->name);
+            }
         }
     }
 

@@ -94,7 +94,7 @@ def has_serialization_methods(tp: CppType) -> bool:
 			and
 			not method.return_type.is_pointer
 			and
-			method.return_type.type == "nlohmann::basic_json<>"
+			method.return_type.type.endswith("::basic_json<>")
 			and
 			len(method.arguments) == 0
 		)
@@ -108,7 +108,7 @@ def has_serialization_methods(tp: CppType) -> bool:
 			and
 			len(method.arguments) == 1
 			and
-			method.arguments[0].type == "nlohmann::basic_json<>"
+			method.arguments[0].type.endswith("::basic_json<>")
 		)
 	])
 
@@ -136,25 +136,25 @@ def write_field_serializer(writer: CodeWriter, field: CppField, lhs: str) -> Non
 		writer.line(lhs + f" = *({get_enum_type(field_type)} *) (data + {field.offset});")
 	elif is_array_type(field_type):
 		write_array_serializer(writer, field, lhs)
-	# elif sanitize_class_name(field_type.full_name) in INTRINSIC_SERIALIZERS:
-	# 	writer.line(lhs + f" = Serialization::Serialize(*({field_type.full_name} *) (data + {field.offset}));")
-	# elif not field_type.is_pointer:
-	# 	if field.type.full_name in all_classes:
-	# 		writer.line(lhs + f" = InternalSerialize{sanitize_class_name(field.type.full_name)}(data + {field.offset});")
-	# 	else:
-	# 		print(f"WARN: Serializing object of non-serializable type {field.type.full_name}")
-	# else:
-	# 	if field.type.full_name.removesuffix("*").removesuffix(" ") in all_classes:
-	# 		writer.line(lhs + f" = SerializeObject(*(const {field.type.full_name}*) (data + {field.offset}));")
-	# 	else:
-	# 		print(f"WARN: Serializing object of non-serializable type {field.type.full_name}")
+	elif field_type.name in INTRINSIC_SERIALIZERS:
+		writer.line(lhs + f" = Serialization::Serialize(*({field_type.name} *) (data + {field.offset}));")
+	elif not field.is_pointer:
+		if field.type in serialized_types:
+			writer.line(lhs + f" = InternalSerialize{sanitize_class_name(field.type)}(data + {field.offset});")
+		else:
+			print(f"WARN: Serializing object of non-serializable type {field_type.name}")
+	else:
+		if field.type in serialized_types:
+			writer.line(lhs + f" = SerializeObject(*(const {field.type}**) (data + {field.offset}));")
+		else:
+			print(f"WARN: Serializing object of non-serializable type {field.type}")
 
 
 def write_array_serializer(writer: CodeWriter, field: CppField, lhs: str) -> None:
 	writer.line("{")
 	writer.more_indent()
 
-	writer.line(f"json resultArray;")
+	writer.line("json resultArray = R\"([])\"_json;")
 	writer.line(f"auto& sourceArray = *({field.type} *) (data + {field.offset});")
 
 	writer.line()
@@ -220,7 +220,7 @@ def write_field_deserializer(writer: CodeWriter, field: CppField, lhs: str) -> N
 			print(f"WARN: Deserializing object of non-serializable type {field_type.name}")
 	else:
 		if field.type in serialized_types:
-			writer.line(f"*((void**) (raw + {field.offset})) = deserializedObjects[data[\"{field.name}\"].get<int>()];")
+			writer.line(f"*((void**) (raw + {field.offset})) = Serialization::FetchDeserializedObject(data[\"{field.name}\"].get<int>());")
 		else:
 			print(f"WARN: Deserializing object of non-serializable type {field.type}")
 
@@ -231,7 +231,7 @@ def write_array_deserializer(writer: CodeWriter, field: CppField, lhs: str) -> N
 
 	element_type: CppModifiedType = CppType.get_type(field.type).template_args[0]
 
-	writer.line(f"std::vector<{element_type.type + " *" if element_type.is_pointer else ""}>* dest = new((std::vector<{element_type.type}> *) (raw + {field.offset})) std::vector<{element_type.type + " *" if element_type.is_pointer else ""}>(data[\"{field.name}\"].size());")
+	writer.line(f"std::vector<{element_type.type + " *" if element_type.is_pointer else ""}>* dest = new((std::vector<{element_type.type}> *) (raw + {field.offset})) std::vector<{element_type.type + " *" if element_type.is_pointer else ""}>();")
 	writer.line("int i = 0;")
 
 	writer.line()
@@ -259,7 +259,7 @@ def write_array_deserializer(writer: CodeWriter, field: CppField, lhs: str) -> N
 				print(f"WARN: Deserializing array of non-serializable type {thing_type.name}")
 		else:
 			if element_type.type in serialized_types:
-				writer.line(f"dest->push_back(reinterpret_cast<{thing_type.name} *>(deserializedObjects[data[\"{field.name}\"][i].get<int>()]));")
+				writer.line(f"dest->push_back(reinterpret_cast<{thing_type.name} *>(Serialization::FetchDeserializedObject(data[\"{field.name}\"][i].get<int>())));")
 			else:
 				print(f"WARN: Deserializing array of non-serializable type {thing_type.name}")
 
@@ -308,7 +308,15 @@ def write_internal_serialize(writer: CodeWriter, type_name: str, tp: CppType) ->
 		write_field_serializer(writer, field, f"result[\"{field.name}\"]")
 
 	if has_serialization_methods(tp):
-		writer.line(f"result = reinterpret_cast<const {type_name} *>(ptr)->Serialize();")
+		writer.line("")
+		writer.line(f"auto patch = reinterpret_cast<const {type_name} *>(ptr)->Serialize();")
+		writer.line("if (patch.is_object()) {")
+		writer.more_indent()
+		
+		writer.line(f"result.merge_patch(reinterpret_cast<const {type_name} *>(ptr)->Serialize());")
+
+		writer.less_indent()
+		writer.line("}")
 
 	writer.line()
 
@@ -334,14 +342,14 @@ def write_internal_deserialize(writer: CodeWriter, type_name: str, tp: CppType) 
 
 	writer.line()	
 
+	for field in tp.fields:
+		if "__serialized__" not in field.attributes:
+			continue
+
+		write_field_deserializer(writer, field, f"result[\"{field.name}\"]")
+
 	if has_serialization_methods(tp):
 		writer.line(f"const_cast<{type_name} *>(reinterpret_cast<volatile {type_name} *>(ptr))->Deserialize(data);")
-	else:
-		for field in tp.fields:
-			if "__serialized__" not in field.attributes:
-				continue
-
-			write_field_deserializer(writer, field, f"result[\"{field.name}\"]")
 
 	writer.line()
 
@@ -362,6 +370,15 @@ def main():
 		CppType.load_types(data)
 
 	serialized_types = {type_name: tp for type_name, tp in CppType.all_types.items() if tp.access == "public" and is_serialized_type(tp)}
+
+	final_serialized_types = serialized_types.copy()
+
+	for type in serialized_types.values():
+		for base in type.get_class_hierarchy():
+			if base.name not in final_serialized_types:
+				final_serialized_types[base.name] = base
+
+	serialized_types = final_serialized_types
 
 	with CodeWriter(DEST_HEADER_FILE_PATH) as dest_header:
 		dest_header.line("#pragma once")
@@ -505,7 +522,17 @@ def main():
 
 		dest_impl.line()
 
-		dest_impl.line("const std::string typeName = TypeInfo::GetTypeInfo(objectType).name;")
+		dest_impl.line("const TypeInfo& typeRef = TypeInfo::GetTypeInfo(objectType);")
+
+		dest_impl.line("if (!typeRef.IsValid()) {")
+		dest_impl.more_indent()
+
+		dest_impl.line("return -1;")
+		
+		dest_impl.less_indent()
+		dest_impl.line("}")
+
+		dest_impl.line("const std::string typeName = typeRef.name;")
 
 		dest_impl.line()
 
@@ -523,7 +550,14 @@ def main():
 
 		dest_impl.line(f"result[\"_class_name\"] = typeName;")
 
+		dest_impl.line("if (serializationFunctionLookup.contains(typeName)) {")
+
 		dest_impl.line("result[\"_data\"] = serializationFunctionLookup[typeName](ptr);")
+		dest_impl.line("}")
+
+		dest_impl.line("else {")
+		dest_impl.line("result[\"_data\"] = R\"({})\"_json;")
+		dest_impl.line("}")
 
 		dest_impl.line()
 

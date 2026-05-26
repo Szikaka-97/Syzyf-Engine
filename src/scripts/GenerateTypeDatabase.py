@@ -204,6 +204,12 @@ class CppType:
 		self.is_enum = decl_cursor.kind == clang.CursorKind.ENUM_DECL
 		self.enum_width = clang_type.get_size() if self.is_enum else 0
 
+		if (len(list(clang_type.get_canonical().get_declaration().get_children())) == 0):
+			print(len(list(clang_type.get_declaration().underlying_typedef_type.get_declaration().get_children())))
+		# 	for token in clang_type.get_canonical().get_declaration().get_tokens():
+		# 		print(token.spelling + " " + str(token.kind))
+		# 	exit(1)
+
 		for class_part in decl_cursor.get_children():
 			if is_type_decl(class_part):
 				CppType.read_type(class_part.type)

@@ -12,6 +12,10 @@ struct TypeInfo {
 	
 	template<typename T>
 	static const TypeInfo& GetTypeInfo();
+
+	inline bool IsValid() const {
+		return this->size > 0;
+	}
 };
 
 template<typename T>

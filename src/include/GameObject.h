@@ -15,10 +15,10 @@
 class GameObject {
 	friend class Scene;
 private:
-	serialized int id;
+	int id;
 	const std::type_info* runtimeTypeInfo;
-	bool enabled;
-	SceneNode* node;
+	serialized bool enabled;
+	serialized SceneNode* node;
 protected:
 	SceneTransform& GetTransform() const;
 	SceneTransform::TransformAccess& GlobalTransform() const;
