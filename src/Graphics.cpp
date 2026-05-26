@@ -24,7 +24,7 @@
 #include "animation/SkeletonComponent.h"
 
 #include "Scene.h"
-#include "game_scripts/PlayerController.h"
+#include "game_scripts/player/PlayerController.h"
 #include "include/Framebuffer.h"
 #include "include/Shader.h"
 

@@ -171,11 +171,11 @@ inline void InitScene(Scene& mainScene) {
         item->AddObject<MeshRenderer>(schnozMesh,
                                       schnozMesh->GetDefaultMaterials());
         item->AddObject<PickableItem>();
-        auto* itemBody = item->AddObject<Physics::Body>(schnozSettings);
-        itemBody->SetCollisionLayerAndMask({2}, 0xFFFFFFFF);
-
         item->GlobalTransform().Scale() = glm::vec3(0.2f);
         item->GlobalTransform().Position() = {2.0f, 2.0f + i * 0.5f, 2.0f};
+
+        auto* itemBody = item->AddObject<Physics::Body>(schnozSettings);
+        itemBody->SetCollisionLayerAndMask({2}, 0xFFFFFFFF);
     }
 
 #pragma endregion
@@ -267,8 +267,8 @@ inline void InitScene(Scene& mainScene) {
     Material* blueTransparentMat = new Material(transparentProg);
     blueTransparentMat->SetValue("uColor", glm::vec4(0.5, 0.5, 1.0, 0.6));
 
-    // Mesh* cubeMesh =
-    // mainScene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
+    Mesh* cubeMesh =
+        mainScene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
 
     SceneNode* pinkTransparentCubeNode = mainScene.CreateNode("Pink Cube");
     auto* pinkCubeRenderer = pinkTransparentCubeNode->AddObject<MeshRenderer>(
@@ -315,8 +315,6 @@ inline void InitScene(Scene& mainScene) {
                  .maxRotation = {glm::radians(15.0f), glm::radians(360.0f),
                                  glm::radians(15.0f)}})
             .Build();
-    Mesh* schnozMesh =
-        mainScene.Resources()->Get<Mesh>("./res/models/schnoz/schnoz.obj");
     Scatter::Spawner* scatterSpawner2 = scatter2->AddObject<Scatter::Spawner>(
         schnozMesh, std::move(scatterMaterial2), scatterSettings2);
 
@@ -490,5 +488,53 @@ inline void InitScene(Scene& mainScene) {
     healthBarLogic->mockEnemyNode = enemy;
     healthBarLogic->fillVisual = fillVisual;
     healthBarLogic->bgVisual = bgVisual;
+
+    ShaderProgram* sprayProgram =
+        ShaderProgram::Build()
+            .WithVertexShader("./res/shaders/particles/particles.vert")
+            .WithPixelShader("./res/shaders/particles/particles_blend.frag")
+            .Link();
+
+    auto sprayMaterial = new Material(sprayProgram);
+    sprayMaterial->SetValue("colorTex", mainScene.Resources()->Get<Texture2D>(
+                                            "./res/textures/dust.png",
+                                            Texture2D::ColorTextureRGBA));
+    sprayMaterial->SetValue("color", glm::vec4(10.0f, 0.0f, 40.0f, 1.0f));
+
+    SceneNode* sprayNode = mainScene.CreateNode("Spray");
+    sprayNode->GlobalTransform().Position() = {0.0f, 0.0f, 0.0f};
+    sprayNode->AddObject<ParticleSpawner>(
+        mainScene.Resources()->Get<Mesh>("./res/models/fullscreenquad.obj"),
+        sprayMaterial,
+        ParticleSpawnerSettings{.maxParticles = 512,
+                                .areaExtents = glm::vec3(0.5f, 3.0f, 0.5f),
+                                .emissionShapeExtents =
+                                    glm::vec3(0.2f, 0.0f, 0.2f),
+                                .minVelocity = glm::vec3(-0.3f, 1.5f, -0.3f),
+                                .maxVelocity = glm::vec3(0.3f, 4.0f, 0.3f),
+                                .minInitialAngle = 0.0f,
+                                .maxInitialAngle = 6.28318f,
+                                .minAngularVelocity = -0.5f,
+                                .maxAngularVelocity = 0.5f,
+                                .rotateY = false,
+                                .enableLifetime = true,
+                                .minLifetime = 0.5f,
+                                .maxLifetime = 1.5f,
+                                .minScale = 0.03f,
+                                .maxScale = 0.06f,
+                                .alphaMode = AlphaMode::Dither,
+                                .enableProximityFade = true,
+                                .proximityFadeMin = 0.1f,
+                                .proximityFadeMax = 0.5f,
+                                .enableDistanceFade = true,
+                                .distanceFadeMin = 5.0f,
+                                .distanceFadeMax = 8.0f,
+                                .enableLifetimeFade = true,
+                                .enableDepthFade = true,
+                                .depthFadeDistance = 0.2f,
+                                .billboardMode = BillboardMode::Enabled,
+                                .wrapAround = false,
+                                .continuous = true,
+                                .useColorRamp = false});
 }
 } // namespace TestScene
