@@ -29,9 +29,11 @@
 #include "Jolt/Math/Vec3.h"
 #include "Jolt/Physics/Body/BodyCreationSettings.h"
 #include "Jolt/Physics/Body/MotionType.h"
+#include "TimeSystem.h"
 #include "physics/Body.h"
 #include "physics/Helpers.h"
 #include "physics/System.h"
+#include "ui/objects/custom/UiOptionsMenu.h"
 
 class PlayerController : public GameObject, public ImGuiDrawable {
 public:
@@ -58,6 +60,8 @@ public:
 	float wobblinessAccum = 0;
 
 	SceneNode* bottle = nullptr;
+
+    UiOptionsMenu* optionsUi = nullptr;
 
 	Physics::VirtualCharacterController* virtualController = nullptr;
 	glm::vec3 velocity = glm::vec3(0.0f);
@@ -150,6 +154,25 @@ public:
 		this->throwStrengthCache = 0;
 
 		this->bottle = GltfImporter::LoadScene(GetScene(), "./res/models/crosshair.glb", "bottle visual");
+
+
+    TextureParams fontParams = {.channels = TextureChannels::RGB,
+                                .colorSpace = TextureColor::Linear,
+                                .format = TextureFormat::Ubyte,
+                                .wrapU = TextureWrap::Clamp,
+                                .wrapV = TextureWrap::Clamp,
+                                .minFilter = TextureFilter::Linear,
+                                .magFilter = TextureFilter::Linear};
+    Texture2D* fontAtlas = GetScene()->Resources()->Get<Texture2D>(
+        "./res/fonts/OpenSans-Regular/OpenSans-Regular.png", fontParams);
+    Font* font = GetScene()->Resources()->Get<Font>(
+        "./res/fonts/OpenSans-Regular/OpenSans-Regular.json", fontAtlas);
+        UiOptionsMenu* optionsUi = OptionsMenu::Build(*this->GetScene(), font);
+        optionsUi->onBackClicked = [optionsUi]() {
+            optionsUi->SetVisible(false);
+        };
+
+        this->optionsUi = optionsUi;
 	}
 
 	PlayerController(SceneNode* markerNode) {
@@ -172,6 +195,10 @@ public:
 	void Update() {
 		TryInitController();
 		if (!virtualController) return;
+
+        if (this->GetScene()->Input()->KeyDown(Key::Escape)) {
+            optionsUi->SetVisible(!optionsUi->IsVisible());
+        }
 
 		Camera* camera = GetScene()->GetGraphics()->GetMainCamera();
 		if (!camera) return;

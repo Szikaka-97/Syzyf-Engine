@@ -11,18 +11,17 @@ namespace SplashScene {
 
 class SplashController : public GameObject {
   private:
-    bool firstFrameDone = false;
+    int framesPassed = 0;
 
   public:
     SplashController() {}
 
     void Update() {
-        if (firstFrameDone) {
+        if (framesPassed > 2) {
             Application::Get()->RequestSceneChange(
                 [](Scene* s) { MainMenu::InitScene(*s); });
-        } else {
-            firstFrameDone = true;
         }
+        framesPassed++;
     }
 };
 
