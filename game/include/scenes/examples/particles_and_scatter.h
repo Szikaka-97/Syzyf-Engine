@@ -3,7 +3,7 @@
 #include "GltfImporter.h"
 #include "LightSystem.h"
 #include "fog/Fog.h"
-#include "game_scripts/AimingAid.h"
+#include "game_scripts/player/AimingAid.h"
 
 #include <Bloom.h>
 #include <Camera.h>
@@ -17,7 +17,6 @@
 #include <MeshRenderer.h>
 #include <Mirror.h>
 #include <ParticleSpawner.h>
-#include <Player.h>
 #include <ReflectionProbe.h>
 #include <Scene.h>
 #include <Shader.h>
@@ -29,9 +28,10 @@
 #include <animation/AnimationSystem.h>
 #include <enemies/EnemySkeleton.h>
 #include <fog/FogVolume.h>
-#include <game_scripts/CameraSettings.h>
-#include <game_scripts/PlayerController.h>
-#include <game_scripts/ThrowBottle.h>
+#include <game_scripts/player/CameraSettings.h>
+#include <game_scripts/player/Player.h>
+#include <game_scripts/player/PlayerController.h>
+#include <game_scripts/player/ThrowBottle.h>
 #include <glm/fwd.hpp>
 #include <glm/geometric.hpp>
 #include <glm/trigonometric.hpp>
@@ -42,12 +42,6 @@
 #include <physics/Water.h>
 #include <scatter/Spawner.h>
 #include <text/Font.h>
-#include <ui/objects/UiInteractable.h>
-#include <ui/objects/UiLayout.h>
-#include <ui/objects/UiText.h>
-#include <ui/objects/UiVisual.h>
-#include <ui/objects/custom/UiCircularBar.h>
-#include <ui/systems/UiSystem.h>
 
 #include "Jolt/Math/Vec3.h"
 #include <Jolt/Jolt.h>

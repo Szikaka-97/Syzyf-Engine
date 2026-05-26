@@ -30,9 +30,9 @@
 #include <fog/Fog.h>
 #include <fog/FogVolume.h>
 #include <fog/VolumetricFog.h>
-#include <game_scripts/CameraSettings.h>
-#include <game_scripts/PlayerController.h>
-#include <game_scripts/ThrowBottle.h>
+#include <game_scripts/player/CameraSettings.h>
+#include <game_scripts/player/PlayerController.h>
+#include <game_scripts/player/ThrowBottle.h>
 #include <glm/fwd.hpp>
 #include <glm/geometric.hpp>
 #include <glm/trigonometric.hpp>
@@ -625,8 +625,6 @@ inline void InitScene(Scene& mainScene) {
     // cameraNode->AddObject<Bloom>();
     // cameraNode->AddObject<Tonemapper>()->SetOperator(
     //     Tonemapper::TonemapperOperator::GranTurismo);
-
-  
 
     SceneNode* dungeon = mainScene.CreateNode("Dungeon");
     dungeon->AddObject<DungeonGenerator>(

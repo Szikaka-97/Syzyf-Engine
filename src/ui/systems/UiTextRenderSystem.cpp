@@ -1,9 +1,11 @@
 #include "ui/systems/UiTextRenderSystem.h"
 #include "ui/objects/UiLayout.h"
+#include "ui/objects/UiVisual.h"
 #include "ui/systems/UiLayoutSystem.h"
 #include "ui/objects/UiText.h"
 #include "Graphics.h"
 #include "Texture.h"
+#include <optional>
 
 UiTextRenderSystem::UiTextRenderSystem(Scene* scene) : GameObjectSystem<UiText>(scene) {}
 
@@ -37,7 +39,9 @@ void UiTextRenderSystem::OnPreRender() {
 
         glm::mat4 baseWorldMatrix = text->GlobalTransform().Value();
 
-        for (const char c : text->text) {
+        for (size_t i = 0; i < text->text.length(); ++i) {
+            char c = text->text[i];
+
             if (c == '\n') {
                 cursorX = localStartX;
                 cursorY += static_cast<float>(font->lineHeight) * scale;
@@ -51,6 +55,19 @@ void UiTextRenderSystem::OnPreRender() {
             }
 
             const Glyph& glyph = it->second;
+            
+            if (c == ' ' && text->maxWidth.has_value()) {
+                float scaledMaxWidth = text->maxWidth.value() * scaleFactor;
+                float nextWordWidth = MeasureWordWidth(text, i + 1, scale);
+                float spaceAdvance = static_cast<float>(glyph.advance) * scale;
+
+                float currentLineWidth = cursorX - localStartX;
+                if (currentLineWidth + spaceAdvance + nextWordWidth > scaledMaxWidth) {
+                    cursorX = localStartX;
+                    cursorY += static_cast<float>(font->lineHeight) * scale;
+                    continue;
+                }
+            }
 
             if (glyph.planeBounds.z > glyph.planeBounds.x) {
                 float x0 = cursorX + (glyph.planeBounds.x * scale);
@@ -74,10 +91,27 @@ void UiTextRenderSystem::OnPreRender() {
 
                 glm::vec4 uvRectangle(u0, v0, u1 - u0, v1 -v0);
 
-                this->GetScene()->GetGraphics()->DrawUiText(letterMatrix, letterSize, layout->zIndex, text->color, font->atlasTexture, uvRectangle, static_cast<float>(font->distanceRange), font->useMsdf);
+                auto* visual = text->GetObject<UiVisual>();
+                auto clipRectangle = visual ? visual->clipRectangle : std::nullopt; 
+
+                this->GetScene()->GetGraphics()->DrawUiText(letterMatrix, letterSize, layout->zIndex, text->color, font->atlasTexture, uvRectangle, static_cast<float>(font->distanceRange), font->useMsdf, clipRectangle);
             }
 
             cursorX += static_cast<float>(glyph.advance) * scale;
         }
     }
+}
+
+float UiTextRenderSystem::MeasureWordWidth(const UiText* text, size_t startIndex, float scale) {
+    float width = 0.0f;
+    for (size_t i = startIndex; i < text->text.length(); ++i) {
+        char c = text->text[i];
+        if (c == ' ' || c == '\n') break;
+
+        auto glyphIt = text->font->glyphs.find(static_cast<uint32_t>(c));
+        if (glyphIt != text->font->glyphs.end()) {
+            width += static_cast<float>(glyphIt->second.advance) * scale;
+        }
+    }
+    return width;
 }

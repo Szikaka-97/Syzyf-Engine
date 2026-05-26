@@ -14,6 +14,10 @@ void GraphPanel::Draw(Context& context) {
         return;
     }
 
+    if (context.state == State::Game) {
+        ImGui::BeginDisabled();
+    }
+
     SceneNode* root = context.selectedScene->GetRootNode();
 
     if (root != nullptr) {
@@ -39,13 +43,17 @@ void GraphPanel::Draw(Context& context) {
 
     this->DrawContextMenu(context);
 
+    if (context.state == State::Game) {
+        ImGui::EndDisabled();
+    }
+
     ImGui::End();
 }
 
 void GraphPanel::DrawGraphNode(Context& context, SceneNode& node) {
     // Ignore editor camera
     if (node.GetObject<CameraController>()) {
-        return;
+        // return;
     }
 
     ImGui::PushID(node.GetID());

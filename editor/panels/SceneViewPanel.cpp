@@ -116,6 +116,8 @@ void SceneViewPanel::Draw(Context& context) {
                         if (!requiresTabSync &&
                             context.selectedScene != scene) {
                             context.selectedScene = scene;
+                            // Otherwise the editor crashes if you delete an
+                            // object while in game
                             context.selectedNode = nullptr;
 
                             context.mainCamera =
@@ -219,10 +221,16 @@ void SceneViewPanel::Draw(Context& context) {
 
     ImVec2 cursorScreenPosition = ImGui::GetCursorScreenPos();
 
+    ImVec2 imguiMouse = ImGui::GetMousePos();
+    float sdlX, sdlY;
+    SDL_GetMouseState(&sdlX, &sdlY);
+
     if (auto* inputSystem =
             context.selectedScene->GetComponent<InputSystem>()) {
+
         inputSystem->SetViewportOffset(
-            glm::vec2(cursorScreenPosition.x, cursorScreenPosition.y));
+            glm::vec2(cursorScreenPosition.x - (imguiMouse.x - sdlX),
+                      cursorScreenPosition.y - (imguiMouse.y - sdlY)));
     }
 
     ImVec2 viewportSize = ImGui::GetContentRegionAvail();
@@ -248,6 +256,10 @@ void SceneViewPanel::Draw(Context& context) {
     ImGui::Image((ImTextureID)(intptr_t)textureID, ImVec2(resX, resY),
                  ImVec2(0, 1), ImVec2(1, 0));
 
+    if (context.state == State::Game && ImGui::IsItemHovered()) {
+        ImGui::SetMouseCursor(ImGuiMouseCursor_None);
+    }
+
     if (ImGui::BeginDragDropTarget()) {
         this->HandleDrop(context);
     }
@@ -270,10 +282,8 @@ void SceneViewPanel::Draw(Context& context) {
                 }
 
                 if (ImGui::IsKeyPressed(ImGuiKey_Delete)) {
-                    // context.selectedScene->DeleteNode(context.selectedNode);
-                    // context.selectedNode = nullptr;
-
-                    // TODO uncomment when deleting doesnt crash the game
+                    context.selectedScene->DeleteNode(context.selectedNode);
+                    context.selectedNode = nullptr;
                 }
             }
 
@@ -720,6 +730,9 @@ void SceneViewPanel::DrawMenuBar(Context& context) {
     if (ImGui::RadioButton("Game", context.state == State::Game)) {
         if (context.state != State::Game) {
             context.state = State::Game;
+            context.selectedNode = nullptr;
+
+            ImGui::GetIO().ConfigFlags &= ~ImGuiConfigFlags_NavEnableKeyboard;
 
             bool changedCamera = false;
             for (auto* camera :

@@ -639,34 +639,33 @@ std::vector<Material*> GltfImporter::LoadMaterials(Scene* scene, fastgltf::Asset
 
   const char* vertexShaderPath = isSkinned ? "./res/shaders/gltf/lit_animation.vert" : "./res/shaders/gltf/lit.vert";
 
-  // awful
-  auto* opaqueProg = ShaderProgram::Build()
+  static auto* opaqueProg = ShaderProgram::Build()
   .WithVertexShader(vertexShaderPath)
   .WithPixelShader("./res/shaders/gltf/pbr.frag")
   .Link();
 
-  auto* maskProg = ShaderProgram::Build()
+  static auto* maskProg = ShaderProgram::Build()
   .WithVertexShader(vertexShaderPath)
   .WithPixelShader("./res/shaders/gltf/pbr_mask.frag")
   .Link();
 
-  auto* blendProg = ShaderProgram::Build()
+  static auto* blendProg = ShaderProgram::Build()
   .WithVertexShader(vertexShaderPath)
   .WithPixelShader("./res/shaders/gltf/pbr_blend.frag")
   .Link();
 
-  auto* opaquePomProg = ShaderProgram::Build()
+  static auto* opaquePomProg = ShaderProgram::Build()
       .WithVertexShader(vertexShaderPath)
       .WithPixelShader("./res/shaders/gltf/pbr_pom.frag")
       .Link();
 
   // Could just use the regular one because it has a discard either way but w/e
-  auto* maskPomProg = ShaderProgram::Build()
+  static auto* maskPomProg = ShaderProgram::Build()
       .WithVertexShader(vertexShaderPath)
       .WithPixelShader("./res/shaders/gltf/pbr_pom_mask.frag")
       .Link();
 
-  auto* blendPomProg = ShaderProgram::Build()
+  static auto* blendPomProg = ShaderProgram::Build()
       .WithVertexShader(vertexShaderPath)
       .WithPixelShader("./res/shaders/gltf/pbr_pom_blend.frag")
       .Link();

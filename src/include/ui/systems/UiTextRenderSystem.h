@@ -8,4 +8,6 @@ public:
     UiTextRenderSystem(Scene* scene);
 
     void OnPreRender() override;
+private:
+    float MeasureWordWidth(const UiText* text, size_t startIndex, float scale);
 };
