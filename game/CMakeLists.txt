@@ -10,7 +10,6 @@ target_link_libraries(Bimberman PRIVATE Syzyf)
 
 target_include_directories(Bimberman PRIVATE
     ${CMAKE_SOURCE_DIR}/src/include
-    ${CMAKE_SOURCE_DIR}/editor/include/scenes
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/stb_image_resize2
 )

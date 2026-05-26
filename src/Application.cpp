@@ -191,6 +191,10 @@ void Application::Run() {
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         SDL_GL_SwapWindow(this->window);
+
+        if (this->isSceneChangeRequested) {
+            ExecutePendingSceneChange();
+        }
     }
 
     OnShutdown();
@@ -203,4 +207,31 @@ SDL_Window* Application::GetWindow() {
 
 Scene* Application::GetCurrentScene() {
     return instance ? instance->currentScene : nullptr;
+}
+
+Application* Application::Get() {
+    return instance;
+}
+
+void Application::RequestSceneChange(SceneInitCallback initFunc) {
+    this->pendingSceneInitFunc = initFunc;
+    this->isSceneChangeRequested = true;
+}
+
+void Application::ExecutePendingSceneChange() {
+    if (!this->isSceneChangeRequested) return;
+
+    if (this->currentScene) {
+        delete this->currentScene;
+        this->currentScene = nullptr;
+    }
+
+    this->currentScene = Scene::CreateStandaloneScene();
+
+    if (this->pendingSceneInitFunc) {
+        this->pendingSceneInitFunc(this->currentScene);
+    }
+
+    this->isSceneChangeRequested = false;
+    this->pendingSceneInitFunc = nullptr;
 }

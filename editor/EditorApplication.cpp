@@ -3,8 +3,8 @@
 #include "ComponentRegistry.h"
 #include "MousePickingBodySystem.h"
 #include "SceneRegistry.h"
+#include "TestScene.h"
 #include "Themes.h"
-#include "scenes/TestScene.h"
 
 #include "thirdparty/ImGuizmo.h"
 #include "thirdparty/ImViewGuizmo.h"
@@ -141,6 +141,50 @@ void EditorApplication::DrawPanels() {
     this->filesPanel.Draw();
     this->consolePanel.Draw(this->context);
     this->sceneViewPanel.Draw(this->context);
+}
+
+void EditorApplication::ExecutePendingSceneChange() {
+    if (!this->isSceneChangeRequested)
+        return;
+
+    Scene* oldScene = this->context.selectedScene;
+
+    Scene* newScene = Scene::CreateStandaloneScene();
+
+    if (this->pendingSceneInitFunc) {
+        this->pendingSceneInitFunc(newScene);
+    }
+
+    newScene->AddComponent<MousePickingBodySystem>();
+    newScene->GetGraphics()->UpdateScreenResolution(glm::vec2(1024.0f, 576.0f));
+
+    auto it = std::find(this->context.loadedScenes.begin(),
+                        this->context.loadedScenes.end(), oldScene);
+    if (it != this->context.loadedScenes.end()) {
+        *it = newScene;
+    } else {
+        this->context.loadedScenes.push_back(newScene);
+    }
+
+    this->context.selectedScene = newScene;
+    this->context.selectedNode = nullptr;
+
+    auto cameras = newScene->FindObjectsOfType<Camera>();
+    if (!cameras.empty()) {
+        this->context.mainCamera = cameras.front();
+        this->context.mainCamera = nullptr;
+    } else {
+        this->context.mainCamera = nullptr;
+        spdlog::warn("Editor: The new scene doesn't have a Camera");
+    }
+
+    this->currentScene = newScene;
+    if (oldScene) {
+        delete oldScene;
+    }
+
+    this->isSceneChangeRequested = false;
+    this->pendingSceneInitFunc = nullptr;
 }
 
 } // namespace Editor

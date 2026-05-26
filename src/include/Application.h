@@ -2,9 +2,12 @@
 
 #include <SDL3/SDL_video.h>
 
+#include <functional>
 #include <string>
 
 class Scene;
+
+using SceneInitCallback = std::function<void(class Scene*)>;
 
 class Application {
 protected:
@@ -20,6 +23,9 @@ protected:
 
     bool isRunning = true;
 
+    bool isSceneChangeRequested = false;
+    SceneInitCallback pendingSceneInitFunc = nullptr;
+
 public:
     Application(const std::string& title = "Syzyf", int width = 1280, int height = 720);
     virtual ~Application();
@@ -28,6 +34,9 @@ public:
 
     static SDL_Window* GetWindow();
     static Scene* GetCurrentScene();
+    static Application* Get();
+
+    void RequestSceneChange(SceneInitCallback initFunc);
 
 protected:
     virtual void OnInit() {}
@@ -35,6 +44,8 @@ protected:
     virtual void OnRender() {}
     virtual void OnImGuiRender() {}
     virtual void OnShutdown() {}
+
+    virtual void ExecutePendingSceneChange();
 
 private:
     bool InitEngine();

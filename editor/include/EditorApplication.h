@@ -70,6 +70,8 @@ class EditorApplication : public ::Application {
     void OnImGuiRender() override;
     void OnShutdown() override;
 
+    void ExecutePendingSceneChange() override;
+
   private:
     void InitSpdlog();
     void Input();

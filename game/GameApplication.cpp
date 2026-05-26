@@ -1,7 +1,7 @@
 #include "include/GameApplication.h"
 
-#include "TestScene.h"
 #include "imgui.h"
+#include "scenes/SplashScene.h"
 
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
@@ -13,7 +13,7 @@ void GameApplication::OnInit() {
     spdlog::set_level(spdlog::level::err);
 
     this->currentScene = Scene::CreateStandaloneScene();
-    TestScene::InitScene(*this->currentScene);
+    SplashScene::InitScene(*this->currentScene);
 }
 
 void GameApplication::OnUpdate() {
