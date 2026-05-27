@@ -18,6 +18,7 @@
 #include "game_scripts/crafting/CraftingDragInteractor.h"
 #include "game_scripts/crafting/DraggableCraftingItem.h"
 #include "game_scripts/crafting/CraftingStation.h"
+#include "game_scripts/crafting/CraftingIngredientReceiver.h"
 
 #include <Player.h>
 #include <game_scripts/PlayerController.h>
@@ -96,15 +97,19 @@ namespace CraftingScene{
         auto* item = node->AddObject<Crafting::DraggableCraftingItem>();
         item->data = { ingredientType, displayName };
 
-        node->AddObject<Physics::Body>(
+        auto* body = node->AddObject<Physics::Body>(
             JPH::BodyCreationSettings{
                 Physics::BoxShape(scale * 0.5f),
-                JPH::RVec3::sZero(),
+                JPH::RVec3(position.x, position.y, position.z),
                 JPH::Quat::sIdentity(),
-                JPH::EMotionType::Static,
-                Physics::Layers::NON_MOVING
+                JPH::EMotionType::Kinematic,
+                Physics::Layers::MOVING
             }
         );
+
+        body->SetGravityFactor(0.0f);
+        body->SetLinearVelocity(glm::vec3(0.0f));
+        body->SetAngularVelocity(glm::vec3(0.0f));
 
         return item;
     }
@@ -229,7 +234,7 @@ namespace CraftingScene{
 
         SceneNode* bimberMachineNode = GltfImporter::LoadScene(
             &scene,
-            "./res/models/bimberMACHINAWIP.glb",
+            "./res/models/bimbermanMachineNameingScheme.glb",
             "Bimber Machine",
             craftingRootNode
         );
@@ -243,6 +248,27 @@ namespace CraftingScene{
             AddStaticPhysicsFromModel(bimberMachineNode);
 
             auto* craftingStation = bimberMachineNode->AddObject<Crafting::CraftingStation>();
+
+            SceneNode* cauldronNode = bimberMachineNode->FindNode("Cauldron");
+
+            if (cauldronNode){
+                auto* cauldronBody = cauldronNode->AddObject<Physics::Body>(
+                    JPH::BodyCreationSettings{
+                        Physics::BoxShape(glm::vec3(2.5f, 1.0f, 2.5f)),
+                        JPH::RVec3::sZero(),
+                        JPH::Quat::sIdentity(),
+                        JPH::EMotionType::Static,
+                        Physics::Layers::NON_MOVING
+                    }
+                );
+
+                cauldronBody->SetIsSensor(true);
+
+                cauldronNode->AddObject<Crafting::CraftingIngredientReceiver>();
+            }else{
+                spdlog::error("CraftingScene: Cauldron not found.");
+            }
+
             craftingStation->interactionRadius = 3.0f;
             craftingStation->stationCameraPosition = glm::vec3(4.0f, 2.0f, 0.0f);
             craftingStation->stationCameraRotation =

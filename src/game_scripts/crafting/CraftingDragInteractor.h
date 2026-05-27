@@ -16,44 +16,33 @@
 
 #include <vector>
 
-namespace Crafting
-{
-    class CraftingDragInteractor : public GameObject
-    {
+namespace Crafting{
+    class CraftingDragInteractor : public GameObject{
     public:
         float interactionDistance = 100.0f;
         glm::vec2 viewportSize = glm::vec2(1024.0f, 576.0f);
 
-        void SetViewportSize(const glm::vec2& size)
-        {
+        void SetViewportSize(const glm::vec2& size){
             viewportSize = size;
         }
 
-        void Awake()
-        {
+        void Awake(){
             spdlog::info("CraftingDragInteractor ready.");
             spdlog::info("Hold LMB on ingredient and drag it with mouse.");
         }
 
-        void Update()
-        {
-            if (!GetScene() || !GetScene()->Input())
-            {
-                return;
-            }
+        void Update(){
+            if (!GetScene() || !GetScene()->Input()){return;}
 
-            if (GetScene()->Input()->ButtonDown(MouseButton::Left))
-            {
+            if (GetScene()->Input()->ButtonDown(MouseButton::Left)){
                 TryBeginDrag();
             }
 
-            if (heldItem && GetScene()->Input()->ButtonPressed(MouseButton::Left))
-            {
+            if (heldItem && GetScene()->Input()->ButtonPressed(MouseButton::Left)){
                 UpdateDraggedItem();
             }
 
-            if (heldItem && GetScene()->Input()->ButtonUp(MouseButton::Left))
-            {
+            if (heldItem && GetScene()->Input()->ButtonUp(MouseButton::Left)){
                 EndDrag();
             }
         }
@@ -63,12 +52,10 @@ namespace Crafting
         float dragPlaneY = 0.0f;
         glm::vec3 grabOffset = glm::vec3(0.0f);
 
-        void TryBeginDrag()
-        {
+        void TryBeginDrag(){
             Camera* camera = FindMainCamera();
 
-            if (!camera)
-            {
+            if (!camera){
                 spdlog::warn("CraftingDragInteractor: main camera not found.");
                 return;
             }
@@ -76,8 +63,7 @@ namespace Crafting
             glm::vec3 rayOrigin;
             glm::vec3 rayDirection;
 
-            if (!BuildMouseRay(camera, rayOrigin, rayDirection))
-            {
+            if (!BuildMouseRay(camera, rayOrigin, rayDirection)){
                 spdlog::warn("CraftingDragInteractor: failed to build mouse ray.");
                 return;
             }
@@ -86,8 +72,7 @@ namespace Crafting
             DraggableCraftingItem* item =
                 RaycastDraggableItem(rayOrigin, rayDirection, hitPoint);
 
-            if (!item)
-            {
+            if (!item){
                 spdlog::info("Crafting drag: no draggable item under mouse.");
                 return;
             }
@@ -104,32 +89,23 @@ namespace Crafting
             UpdateDraggedItem();
         }
 
-        void UpdateDraggedItem()
-        {
-            if (!heldItem)
-            {
-                return;
-            }
+        void UpdateDraggedItem(){
+            if (!heldItem){return;}
 
             Camera* camera = FindMainCamera();
 
-            if (!camera)
-            {
-                return;
-            }
+            if (!camera){return;}
 
             glm::vec3 rayOrigin;
             glm::vec3 rayDirection;
 
-            if (!BuildMouseRay(camera, rayOrigin, rayDirection))
-            {
+            if (!BuildMouseRay(camera, rayOrigin, rayDirection)){
                 return;
             }
 
             glm::vec3 pointOnPlane;
 
-            if (!RaycastToHorizontalPlane(rayOrigin, rayDirection, dragPlaneY, pointOnPlane))
-            {
+            if (!RaycastToHorizontalPlane(rayOrigin, rayDirection, dragPlaneY, pointOnPlane)){
                 return;
             }
 
@@ -139,12 +115,8 @@ namespace Crafting
             heldItem->DragTo(targetPosition);
         }
 
-        void EndDrag()
-        {
-            if (!heldItem)
-            {
-                return;
-            }
+        void EndDrag(){
+            if (!heldItem){return;}
 
             heldItem->EndDrag();
 
@@ -153,22 +125,20 @@ namespace Crafting
             dragPlaneY = 0.0f;
         }
 
-        bool BuildMouseRay(Camera* camera, glm::vec3& outOrigin, glm::vec3& outDirection)
-        {
-            if (!camera || !GetScene() || !GetScene()->Input())
-            {
+        bool BuildMouseRay(Camera* camera, glm::vec3& outOrigin, glm::vec3& outDirection){
+            if (!camera || !GetScene() || !GetScene()->Input()){
                 return false;
             }
 
             glm::vec2 mousePosition = GetScene()->Input()->GetMousePosition();
 
-            if (viewportSize.x <= 1.0f || viewportSize.y <= 1.0f)
-            {
+            if (viewportSize.x <= 1.0f || viewportSize.y <= 1.0f){
                 spdlog::warn(
                     "CraftingDragInteractor: invalid viewport size {} x {}.",
                     viewportSize.x,
                     viewportSize.y
                 );
+
                 return false;
             }
 
@@ -197,17 +167,14 @@ namespace Crafting
             const glm::vec3& rayDirection,
             float planeY,
             glm::vec3& outPoint
-        )
-        {
-            if (glm::abs(rayDirection.y) < 0.0001f)
-            {
+        ){
+            if (glm::abs(rayDirection.y) < 0.0001f){
                 return false;
             }
 
             float t = (planeY - rayOrigin.y) / rayDirection.y;
 
-            if (t < 0.0f || t > interactionDistance)
-            {
+            if (t < 0.0f || t > interactionDistance){
                 return false;
             }
 
@@ -219,12 +186,10 @@ namespace Crafting
             const glm::vec3& origin,
             const glm::vec3& direction,
             glm::vec3& outHitPoint
-        )
-        {
+        ){
             auto* physics = GetScene()->GetComponent<Physics::System>();
 
-            if (!physics)
-            {
+            if (!physics){
                 spdlog::warn("CraftingDragInteractor: Physics::System not found.");
                 return nullptr;
             }
@@ -232,15 +197,13 @@ namespace Crafting
             Physics::RayCastPayload hit =
                 physics->CastRay(origin, direction * interactionDistance);
 
-            if (!hit.hasHit)
-            {
+            if (!hit.hasHit){
                 return nullptr;
             }
 
             DraggableCraftingItem* item = FindDraggableOnNode(hit.node);
 
-            if (!item)
-            {
+            if (!item){
                 return nullptr;
             }
 
@@ -254,14 +217,11 @@ namespace Crafting
             return item;
         }
 
-        DraggableCraftingItem* FindDraggableOnNode(SceneNode* node)
-        {
+        DraggableCraftingItem* FindDraggableOnNode(SceneNode* node){
             SceneNode* current = node;
 
-            while (current)
-            {
-                if (auto* item = current->GetObject<DraggableCraftingItem>())
-                {
+            while (current){
+                if (auto* item = current->GetObject<DraggableCraftingItem>()){
                     return item;
                 }
 
@@ -271,12 +231,10 @@ namespace Crafting
             return nullptr;
         }
 
-        Camera* FindMainCamera()
-        {
+        Camera* FindMainCamera(){
             std::vector<Camera*> cameras = GetScene()->FindObjectsOfType<Camera>();
 
-            if (cameras.empty())
-            {
+            if (cameras.empty()){
                 return nullptr;
             }
 

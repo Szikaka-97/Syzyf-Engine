@@ -15,9 +15,12 @@ namespace Crafting{
       IngredientData data;
 
       bool isDragged = false;
+      bool returnToStartOnInvalidDrop = true;
 
       void Awake()
       {
+        startPosition = GetNode()->GlobalTransform().Position().Value();
+
         spdlog::info("Draggable item ready: {}", data.displayName);
       }
 
@@ -31,11 +34,7 @@ namespace Crafting{
       {
         if (!isDragged){return;}
 
-        GetNode()->GlobalTransform().Position() = position;
-
-        if (auto* body = GetNode()->GetObject<Physics::Body>()){
-          body->SetPosition(position);
-        }
+        SetWorldPosition(position);
       }
 
       void EndDrag(){
@@ -44,5 +43,32 @@ namespace Crafting{
         isDragged = false;
         spdlog::info("Released {}.", data.displayName);
       }
-  };
+
+      void ReturnToStart(){
+        SetWorldPosition(startPosition);
+
+        spdlog::info("Returned {} to start position.", data.displayName);
+      }
+
+      void Consume(){
+        spdlog::info("Consumed {}.", data.displayName);
+
+        GetNode()->SetEnabled(false);
+      }
+
+      glm::vec3 GetStartPosition() const{
+        return startPosition;
+      }
+
+    private:
+      glm::vec3 startPosition = glm::vec3(0.0f);
+
+      void SetWorldPosition(const glm::vec3& position){
+        GetNode()->GlobalTransform().Position() = position;
+
+        if (auto* body = GetNode()->GetObject<Physics::Body>()){
+          body->SetPosition(position);
+        }
+      }
+    };
 }
