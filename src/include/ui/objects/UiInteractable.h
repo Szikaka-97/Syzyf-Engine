@@ -16,6 +16,7 @@ public:
     bool isDown = false;
 
     // Placeholder until an event system exists(?)
+    
     // Runs the first time user pressed the button
     std::function<void()> OnDown;
     std::function<void()> OnHoverEnter;

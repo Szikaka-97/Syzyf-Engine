@@ -60,13 +60,14 @@ void UiInteractableSystem::OnPreUpdate() {
             localMouse.x >= 0.0f && localMouse.x <= 1.0f &&
             localMouse.y >= 0.0f && localMouse.y <= 1.0f;
 
+
+        interactable->isDown = false;
         if (isMouseOver) {
             interactable->isHovered = true;
             inputConsumed = true;
 
             if (!wasHovered && interactable->OnHoverEnter) interactable->OnHoverEnter();
 
-            interactable->isDown = false;
             if (mouseDown) {
                 interactable->isPressed = true;
                 interactable->isDown = true;

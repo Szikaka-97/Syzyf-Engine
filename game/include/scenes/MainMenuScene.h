@@ -28,19 +28,9 @@ class MainMenuController : public GameObject {
     }
 
     void Update() {
-        if (playButton && playButton->isPressed &&
-            this->loadingScene != nullptr) {
+        if (playButton && playButton->isDown && this->loadingScene != nullptr) {
             Application::Get()->RequestSceneChange(this->loadingScene);
             this->loadingScene = nullptr;
-        }
-
-        if (optionsButton && optionsButton->isPressed) {
-            if (mainMenuLayout) {
-                mainMenuLayout->offset = glm::ivec2(9999, 9999);
-            }
-            if (optionsController) {
-                optionsController->SetVisible(true);
-            }
         }
     }
 };
@@ -106,6 +96,17 @@ inline void InitScene(Scene& mainScene) {
 
     UiOptionsMenu* optionsUi = OptionsMenu::Build(mainScene, font);
     controller->optionsController = optionsUi;
+
+    controller->optionsButton->OnDown = [controller, optionsUi]() {
+        spdlog::info("optiosn button clicked");
+        auto* optionsLayout = optionsUi->GetObject<UiLayout>();
+        spdlog::info("OptionsUi offsets: {}x{}", optionsLayout->offset.x,
+                     optionsLayout->offset.y);
+        optionsUi->SetVisible(true);
+        if (controller->mainMenuLayout) {
+            controller->mainMenuLayout->offset = glm::ivec2(9999, 9999);
+        }
+    };
 
     optionsUi->onBackClicked = [controller, optionsUi]() {
         optionsUi->SetVisible(false);

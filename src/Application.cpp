@@ -247,4 +247,6 @@ void Application::ExecutePendingSceneChange() {
     this->isSceneChangeRequested = false;
     this->pendingSceneInitFunc = nullptr;
     this->pendingScene = nullptr;
+
+    this->ApplySettings();
 }

@@ -15,8 +15,8 @@ public:
     UiInteractable* interactable = nullptr;
     UiVisual* checkmarkVisual = nullptr;
 
-    static SceneNode* Create(Scene& scene, const std::string& labelText, Font* font, bool defaultState) {
-        SceneNode* rootNode = scene.CreateNode("Checkbox Root");
+    static SceneNode* Create(Scene& scene, Font* font, const std::string& labelText = "", bool defaultState = false, SceneNode* parent = nullptr) {
+        SceneNode* rootNode = scene.CreateNode(parent, "Checkbox Root");
         auto* layout = rootNode->AddObject<UiLayout>(glm::ivec2(200, 40), glm::ivec2(0, 0), 0, AnchorPoint::Center);
 
         auto* checkboxLogic = rootNode->AddObject<UiCheckbox>();

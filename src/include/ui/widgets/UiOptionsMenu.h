@@ -6,6 +6,8 @@
 #include "ui/objects/UiLayout.h"
 #include "ui/objects/UiText.h"
 #include "ui/objects/UiVisual.h"
+#include "ui/widgets/UiCheckbox.h"
+
 #include <functional>
 #include <spdlog/spdlog.h>
 
@@ -68,11 +70,6 @@ class UiOptionsMenu : public GameObject {
             spdlog::debug("VSync toggled: {}", pendingVsync);
         }
 
-        if (ssaoButton && ssaoButton->isDown) {
-            pendingSsao = !pendingSsao;
-            spdlog::debug("SSAO toggled: {}", pendingSsao);
-        }
-
         if (applyButton && applyButton->isDown) {
             auto* app = Application::Get();
             if (app) {
@@ -98,6 +95,7 @@ class UiOptionsMenu : public GameObject {
 
         if (backButton && backButton->isDown) {
             if (onBackClicked) {
+                spdlog::warn("calling on back clicked");
                 onBackClicked();
             }
         }
@@ -105,8 +103,10 @@ class UiOptionsMenu : public GameObject {
 
     void SetVisible(bool visible) {
         if (optionsMenuLayout) {
+            spdlog::info("Set Visible");
             optionsMenuLayout->offset =
                 visible ? glm::ivec2(0, 0) : glm::ivec2(9999, 9999);
+            spdlog::info("Set offsets to: {}x{}, visible: {}", optionsMenuLayout->offset.x, optionsMenuLayout->offset.y, visible);
         }
     }
 
@@ -121,6 +121,14 @@ class UiOptionsMenu : public GameObject {
 namespace OptionsMenu {
 inline UiOptionsMenu* Build(Scene& mainScene, Font* font) {
     SceneNode* optionsGroup = mainScene.CreateNode("Options Menu Group");
+
+    auto* app = Application::Get();
+    if (app == nullptr) {
+        spdlog::error("UiOptionsMenu: Failed to retrieve app");
+        return nullptr;
+    }
+    auto& settings = app->GetSettings();
+
     auto* controller = optionsGroup->AddObject<UiOptionsMenu>();
 
     controller->optionsMenuLayout = optionsGroup->AddObject<UiLayout>(
@@ -189,6 +197,23 @@ inline UiOptionsMenu* Build(Scene& mainScene, Font* font) {
                                       AnchorPoint::Center);
     auto* ssaoText = ssaoTextNode->AddObject<UiText>("Toggle SSAO", font);
     ssaoText->fontSize = 20.0f;
+
+    SceneNode* ssaoCheckboxNode = UiCheckbox::Create(mainScene, font, "SSAO Checkbox", settings.ssaoEnabled, optionsGroup);
+
+    if (auto* layout = ssaoCheckboxNode->GetObject<UiLayout>()) {
+        layout->offset = glm::ivec2(0, 50);
+    }
+    if (auto* checkboxLogic = ssaoCheckboxNode->GetObject<UiCheckbox>()) {
+        checkboxLogic->OnValueChanged = [controller](bool isChecked) {
+            if (isChecked) {
+                spdlog::debug("SSAO Checkbox ON");
+                controller->pendingSsao = true;
+            } else {
+                spdlog::debug("SSAO Checkbox OFF");
+                controller->pendingSsao = false;
+            }
+        };
+    }
 
     SceneNode* applyButtonNode =
         mainScene.CreateNode(optionsGroup, "Apply Button");
