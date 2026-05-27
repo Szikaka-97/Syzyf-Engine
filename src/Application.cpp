@@ -90,7 +90,7 @@ Application::Application(const std::string& title, int width, int height)
 Application::~Application() {}
 
 bool Application::InitEngine() {
-    if (!SDL_Init(SDL_INIT_VIDEO)) return false;
+    if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK)) return false;
 
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);

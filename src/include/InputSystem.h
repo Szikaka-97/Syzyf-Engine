@@ -8,7 +8,7 @@
 #include <SceneComponent.h>
 #include <Debug.h>
 
-struct GLFWwindow;
+class SDL_Gamepad;
 
 enum class Key {
 	Space          = ' ',
@@ -130,6 +130,23 @@ enum class Key {
 	RightSuper     = 347,
 	Menu           = 348,
 };
+enum class GamepadButton {
+	FaceSouth   = 0,
+	FaceEast    = 1,
+	FaceWest    = 2,
+	FaceNorth   = 3,
+	Back        = 4,
+	Guide       = 5,
+	Start       = 6,
+	LeftStick   = 7,
+	RightStick  = 8,
+	LeftBumper  = 9,
+	RightBumper = 10,
+	DpadUp      = 11,
+	DpadDown    = 12,
+	DpadLeft    = 13,
+	DpadRight   = 14,
+};
 
 enum class MouseButton {
 	Left   = 0,
@@ -140,6 +157,13 @@ enum class MouseButton {
 	Mouse6 = 5,
 	Mouse7 = 6,
 	Mouse8 = 7,
+};
+
+enum class InputAxis {
+	GamepadLeftStick    = 0,
+	GamepadRightStick   = 1,
+	GamepadLeftTrigger  = 2,
+	GamepadRightTrigger = 3
 };
 
 class InputSystem : public SceneComponent, public ImGuiDrawable {
@@ -194,6 +218,14 @@ private:
 		}
 	};
 
+	struct GamepadKeyData {
+		SDL_Gamepad* handle;
+		KeyBitMask keys[15];
+
+		GamepadKeyData(SDL_Gamepad* handle);
+	};
+
+	std::vector<GamepadKeyData> gamepads;
 	std::map<int, KeyBitMask> keys;
 	std::atomic<glm::vec2> prevMouseMovement;
 	bool mouseLocked;
@@ -223,6 +255,15 @@ public:
 	bool ButtonUp(MouseButton button) const;
 	bool ButtonUp(int button) const;
 
+	bool GamepadButtonDown(GamepadButton button) const;
+	bool GamepadButtonDown(int gamepadIndex, GamepadButton button) const;
+
+	bool GamepadButtonPressed(GamepadButton button) const;
+	bool GamepadButtonPressed(int gamepadIndex, GamepadButton button) const;
+
+	bool GamepadButtonUp(GamepadButton button) const;
+	bool GamepadButtonUp(int gamepadIndex, GamepadButton button) const;
+
 	bool MouseLocked();
 
 	void SetMouseLocked(bool locked);
@@ -234,6 +275,9 @@ public:
 
 	glm::vec2 GetMouseMovement();
 	glm::vec2 GetMousePosition();
+
+	glm::vec2 GetGamepadAxis(InputAxis axis) const;
+	glm::vec2 GetGamepadAxis(int gamepadIndex, InputAxis axis) const;
 
 	virtual void OnPreUpdate();
 	virtual void OnPostUpdate();
