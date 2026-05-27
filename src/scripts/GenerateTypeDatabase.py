@@ -22,7 +22,7 @@ COMMAND_FILE = path.abspath(sys.argv[3])
 
 
 class CppField:
-	def __init__(self, field_cursor: clang.Cursor):
+	def __init__(self, field_cursor: clang.Cursor, owner: clang.Type):
 		self.cursor = field_cursor
 		
 		self.name = field_cursor.spelling
@@ -41,6 +41,8 @@ class CppField:
 
 		self.array_count = field_cursor.type.get_array_size()
 
+		self.owning_type = CppType.read_type(owner.get_canonical())
+
 		for field_token in field_cursor.get_children():
 			if field_token.kind == clang.CursorKind.ANNOTATE_ATTR:
 				self.attributes.append(field_token.displayname)
@@ -58,6 +60,7 @@ class CppField:
 		rep["byte_offset"] = self.offset
 		rep["array_size"] = self.array_count
 		rep["attributes"] = self.attributes
+		rep["owning_type"] = self.owning_type
 		
 		return rep
 
@@ -205,7 +208,7 @@ class CppType:
 		self.enum_width = clang_type.get_size() if self.is_enum else 0
 
 		if (len(list(clang_type.get_canonical().get_declaration().get_children())) == 0):
-			print(len(list(clang_type.get_declaration().underlying_typedef_type.get_declaration().get_children())))
+			pass
 		# 	for token in clang_type.get_canonical().get_declaration().get_tokens():
 		# 		print(token.spelling + " " + str(token.kind))
 		# 	exit(1)
@@ -214,7 +217,7 @@ class CppType:
 			if is_type_decl(class_part):
 				CppType.read_type(class_part.type)
 			elif class_part.kind == clang.CursorKind.FIELD_DECL:
-				self.fields.append(CppField(class_part))
+				self.fields.append(CppField(class_part, clang_type))
 			elif class_part.kind == clang.CursorKind.CXX_METHOD:
 				self.methods.append(CppMethod(class_part))
 			elif class_part.kind == clang.CursorKind.CXX_BASE_SPECIFIER:

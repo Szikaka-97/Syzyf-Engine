@@ -27,16 +27,16 @@ class Scene;
 class SceneNode {
 	friend class Scene;
 private:
-	SceneNode* parent;
+	serialized SceneNode* parent;
 
-	int id;
+	serialized int id;
 	serialized std::string name;
 
 	serialized uint8_t disabledState;
 	serialized uint8_t layer;
 
-	Scene* const scene;
-	serialized std::vector<GameObject*> objects;
+	serialized Scene* const scene;
+	std::vector<GameObject*> objects;
 
 	serialized std::vector<SceneNode*> children;
 	SceneTransform transform;
@@ -120,6 +120,7 @@ public:
 class Scene {
 	friend class SceneNode;
 	friend class GameObject;
+	friend class MessagingHelpers;
 public:
     serialized std::string name = "";
 
@@ -144,6 +145,12 @@ public:
 	void SetGameObjectEnabledInternal(GameObject* obj, bool enabled);
 	void ChangeNodeParentInternal(SceneNode* node, SceneNode* newParent);
 	void SetNodeEnabledInTreeInternal(SceneNode* node, bool enabled);
+
+	void DeserializeGameObject(SceneNode* node, json data);
+
+	template<class T_GO, typename... T_Param>
+		requires std::derived_from<T_GO, GameObject>
+	void AddGameObjectInternal(SceneNode* node, T_GO* obj);
 
 	void AddObjectToSystems(GameObject* obj);
 public:
@@ -318,6 +325,25 @@ std::vector<T_GO*> SceneNode::GetAllObjectsInChildren() const {
 	return result;
 }
 
+
+template<class T_GO, typename... T_Param>
+	requires std::derived_from<T_GO, GameObject>
+void Scene::AddGameObjectInternal(SceneNode* node, T_GO* obj) {
+	node->objects.push_back(obj);
+
+	this->messageTree.AddMessageReceiver(obj);
+
+	AddObjectToSystems(obj);
+
+	obj->id = this->nextGameObjectID++;
+
+	obj->enabled = true;
+
+	this->messageTree.MessageObject<Message::Awake>(obj);
+	this->messageTree.MessageObject<Message::OnEnable>(obj);
+}
+
+
 template<class T_GO, typename... T_Param>
 	requires std::derived_from<T_GO, GameObject>
 T_GO* Scene::CreateObjectOn(SceneNode* node, T_Param&&... params) {
@@ -330,20 +356,8 @@ T_GO* Scene::CreateObjectOn(SceneNode* node, T_Param&&... params) {
 	T_GO* created = new(const_cast<T_GO*>(bufAsObjPtr)) T_GO(std::forward<T_Param>(params)...);
 	
 	created->node = node;
-	created->runtimeTypeInfo = &typeid(T_GO);
 	
-	node->objects.push_back(created);
-
-	this->messageTree.AddMessageReceiver(created);
-
-	AddObjectToSystems(created);
-
-	created->id = this->nextGameObjectID++;
-
-	created->enabled = true;
-
-	this->messageTree.MessageObject<Message::Awake>(created);
-	this->messageTree.MessageObject<Message::OnEnable>(created);
+	AddGameObjectInternal<T_GO>(node, created);
 
 	return created;
 }

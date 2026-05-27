@@ -15,6 +15,8 @@
 #include <Layer.h>
 #include <spdlog/spdlog.h>
 
+GameObject* MessagingHelpers_AddObjectToNode(SceneNode* node, const std::string& objectName); // Trust me bro
+
 SceneNode::SceneNode(Scene* scene) :
 scene(scene),
 transform(),
@@ -226,7 +228,9 @@ void SceneNode::operator delete(SceneNode* ptr, std::destroying_delete_t) {
 
 void SceneNode::Deserialize(const nlohmann::json& data) {
 	std::erase(this->objects, nullptr);
-	
+
+	this->scene->nextSceneNodeID = std::max(this->scene->nextSceneNodeID, this->id + 1);
+
 	if (this->parent) {
 		spdlog::info("Halleluyah");
 	}
@@ -304,6 +308,10 @@ void Scene::SetNodeEnabledInTreeInternal(SceneNode* node, bool enabled) {
 	for (auto child : node->children) {
 		SetNodeEnabledInTreeInternal(child, enabled);
 	}
+}
+
+void Scene::DeserializeGameObject(SceneNode* node, json data) {
+
 }
 
 void Scene::SetNodeEnabledInternal(SceneNode* node, bool enabled) {

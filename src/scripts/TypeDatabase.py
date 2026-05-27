@@ -19,6 +19,7 @@ class CppField:
 		self.is_pointer: bool = data["is_pointer"]
 		self.is_reference: bool = data["is_reference"]
 		self.is_const: bool = data["is_const"]
+		self.owning_type: str = data["owning_type"]
 
 
 class CppMethod:

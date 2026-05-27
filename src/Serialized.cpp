@@ -1,21 +1,55 @@
 #include <Serialized.h>
 #include <Resources.h>
+#include <TypeInfo.h>
+#include <spdlog/spdlog.h>
 
 #include <nlohmann/json.hpp>
+
+#ifdef _WIN32
+#define alloc_aligned(size, align) _aligned_malloc(size, align)
+#else
+#define alloc_aligned(size, align) std::aligned_alloc(align, size)
+#endif
 
 std::vector<json> serializedObjects;
 std::vector<void *> deserializedObjects;
 
+extern std::unordered_map<std::string, volatile void* (*)(volatile void*, const json&)> deserializationFunctionLookup;
+extern std::unordered_map<std::string, void* (*)(void*)> constructionFunctionLookup;
+
 void InternalStartObjectSerialization();
-void* InternalConstructObject(const std::string& objectName);
+void* InternalConstructObject(const std::string& objectName, void* location);
 volatile void* InternalDeserializeJson(volatile void* ptr, const json& data);
 
 void* InternalDeserializeObject(const json& data) {
 	deserializedObjects.clear();
 	deserializedObjects.reserve(data.size());
 
+	size_t totalSize = 0;
+	size_t alignment = 8;
+
 	for (const auto& object : data) {
-		deserializedObjects.push_back(InternalConstructObject(object["_class_name"]));
+		totalSize += TypeInfo::GetTypeInfo(object["_class_name"]).size;
+
+		if (totalSize % alignment != 0) {
+			totalSize += alignment - (totalSize % alignment);
+		}
+	}
+
+	uint8_t* buffer = (uint8_t*) alloc_aligned(totalSize, alignment);
+
+	for (const auto& object : data) {
+		deserializedObjects.push_back(InternalConstructObject(object["_class_name"], buffer));
+
+		spdlog::info("Constructing {} at {:x}", (std::string) object["_class_name"], (intptr_t) buffer);
+
+		size_t objectSize = TypeInfo::GetTypeInfo(object["_class_name"]).size;
+
+		if (objectSize % alignment != 0) {
+			objectSize += alignment - (objectSize % alignment);
+		}
+
+		buffer += objectSize;
 	}
 
 	int i = 0;
@@ -244,4 +278,22 @@ json Serialization::Serialize(const glm::mat4& v) {
 	result["_33"] = v[3][3];
 
 	return result;
+}
+
+void* InternalConstructObject(const std::string& objectName, void* location) {
+	auto objectConstructorSearch = constructionFunctionLookup.find(objectName);
+	if (objectConstructorSearch != constructionFunctionLookup.end()) {
+		return objectConstructorSearch->second(location);
+	}
+	return nullptr;
+}
+volatile void* InternalDeserializeJson(volatile void* ptr, const json& data) {
+	const std::string typeName = data["_class_name"];
+	auto deserializerSearch = deserializationFunctionLookup.find(typeName);
+	if (deserializerSearch != deserializationFunctionLookup.end()) {
+		deserializerSearch->second(ptr, data["_data"]);
+		return ptr;
+	}
+	
+	return nullptr;
 }

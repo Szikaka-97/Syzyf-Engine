@@ -173,6 +173,52 @@ void SceneViewPanel::Draw(Context& context) {
 
                     ImGui::Separator();
 
+                    ImGui::TextDisabled("Loaded Scenes:");
+
+                    for (const auto& [name, loadFunc] :
+                         SceneRegistry::GetLoadRegistry()) {
+                        
+                        if (ImGui::Selectable(name.c_str())) {
+                            Scene* newScene = loadFunc();
+
+                            newScene->AddComponent<MousePickingBodySystem>();
+
+                            context.loadedScenes.push_back(newScene);
+
+                            auto cameras = newScene->FindObjectsOfType<Camera>();
+
+                            if (cameras.size() > 0) {
+                                Camera* mainCamera = cameras[0];
+
+                                for (Camera* cam : cameras) {
+                                    if (cam->GetPriority() > mainCamera->GetPriority()) {
+                                        mainCamera = cam;
+                                    }
+                                }
+                                
+                                mainCamera->AddObject<CameraController>();
+                                context.mainCamera = mainCamera;
+                                context.mainCamera->SetAsMainCamera();
+                            }
+                            else {
+                                SceneNode* cameraNode = newScene->CreateNode();
+                                cameraNode->AddObject<CameraController>();
+                                cameraNode->GlobalTransform().Position() = {
+                                    0.0f, 1.0f, 0.0f};
+
+                                context.loadedScenes.push_back(newScene);
+
+                                context.mainCamera = cameraNode->GetObject<Camera>();
+                                context.mainCamera->SetAsMainCamera();
+                            }
+
+                            context.selectedScene = newScene;
+                            context.selectedNode = nullptr;
+                        }
+                    }
+
+                    ImGui::Separator();
+
                     if (ImGui::Selectable("+ New Scene")) {
                         Scene* newScene = Scene::CreateStandaloneScene();
                         newScene->AddComponent<MousePickingBodySystem>();
@@ -238,6 +284,8 @@ void SceneViewPanel::Draw(Context& context) {
         else {
             if (ImGui::IsKeyChordPressed(ImGuiKey::ImGuiMod_Ctrl | ImGuiKey::ImGuiKey_S)) {
            	    nlohmann::json rep = Serialization::Serialize(context.selectedScene);
+
+                spdlog::info("Root is legit: {}", context.selectedScene->root != nullptr);
 
                 std::ofstream sceneSave(std::format("./res/scenes/{}.scene", context.selectedScene->name));
                 sceneSave << rep.dump(2);

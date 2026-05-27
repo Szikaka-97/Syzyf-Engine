@@ -177,6 +177,10 @@ void MessageTree::AddNode(SceneNode* node) {
 	else {
 		this->root = added;
 	}
+
+	for (SceneNode* child : node->GetChildren()) {
+		AddNode(child);
+	}
 }
 
 void MessageTree::RemoveNode(SceneNode* node) {

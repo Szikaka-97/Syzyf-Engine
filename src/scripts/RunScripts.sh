@@ -35,3 +35,9 @@ if [ ! $? == 0 ]; then
 fi
 
 python GenerateSerializationDatabase.py $cmake_binary_dir/codegen/type_database.json
+
+if [ ! $? == 0 ]; then
+	exit
+fi
+
+python GenerateSketchyStuff.py $cmake_binary_dir/codegen/type_database.json

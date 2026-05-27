@@ -16,7 +16,6 @@ class GameObject {
 	friend class Scene;
 private:
 	int id;
-	const std::type_info* runtimeTypeInfo;
 	serialized bool enabled;
 	serialized SceneNode* node;
 protected:

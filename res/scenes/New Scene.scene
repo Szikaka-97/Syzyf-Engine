@@ -3,12 +3,12 @@
     "_class_name": "Scene",
     "_data": {
       "components": [
+        4,
         5,
         6,
-        7,
         -1,
-        8,
-        9
+        7,
+        8
       ],
       "name": "New Scene",
       "root": 1
@@ -18,15 +18,15 @@
     "_class_name": "SceneNode",
     "_data": {
       "children": [
+        2,
         3
       ],
       "disabledState": 0,
+      "id": 0,
       "layer": 0,
-      "name": "SavedRoot",
-      "objects": [
-        2,
-        -1
-      ],
+      "name": "root",
+      "parent": -1,
+      "scene": 0,
       "transform": {
         "_00": 1.0,
         "_01": 0.0,
@@ -48,23 +48,15 @@
     }
   },
   {
-    "_class_name": "ReflectionProbe",
-    "_data": {
-      "enabled": true,
-      "node": 1
-    }
-  },
-  {
     "_class_name": "SceneNode",
     "_data": {
       "children": [],
       "disabledState": 0,
+      "id": 1,
       "layer": 0,
       "name": "",
-      "objects": [
-        4,
-        -1
-      ],
+      "parent": 1,
+      "scene": 0,
       "transform": {
         "_00": 1.0,
         "_01": 0.0,
@@ -86,29 +78,33 @@
     }
   },
   {
-    "_class_name": "Camera",
+    "_class_name": "SceneNode",
     "_data": {
-      "enabled": true,
-      "layerMask": {
-        "value": 4294967295
-      },
-      "node": 3,
-      "orthoData": {
-        "bottom": 0.0,
-        "left": -0.0,
-        "right": 0.0,
-        "top": 0.0,
-        "zfar": 0.0,
-        "znear": 0.0
-      },
-      "perspectiveData": {
-        "aspectRatio": 1.926829218864441,
-        "farPlane": 400.0,
-        "fovyDegrees": 60.0,
-        "nearPlane": 0.5
-      },
-      "priority": 0,
-      "type": 0
+      "children": [],
+      "disabledState": 0,
+      "id": 2,
+      "layer": 0,
+      "name": "Created Node",
+      "parent": 1,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": 0.0,
+        "_32": 0.0,
+        "_33": 1.0
+      }
     }
   },
   {
@@ -117,16 +113,7 @@
   },
   {
     "_class_name": "LightSystem",
-    "_data": {
-      "ambientLight": {
-        "w": 0.0010000000474974513,
-        "x": 1.0,
-        "y": 1.0,
-        "z": 1.0
-      },
-      "directionalLightCascadeCount": 6,
-      "shadowmapAtlasSize": 4096
-    }
+    "_data": {}
   },
   {
     "_class_name": "PostProcessingSystem",

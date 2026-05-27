@@ -125,37 +125,63 @@ def is_serialized_type(tp: CppType) -> bool:
 
 
 def write_field_serializer(writer: CodeWriter, field: CppField, lhs: str) -> None:
+	offset_str = ""
+
+	for f in CppType.get_type(field.owning_type).fields:
+		if f == field:
+			break
+			
+		offset_str = f"{f.type + (" *" if f.is_pointer or f.is_reference else "")}, " + offset_str
+
+	if offset_str != "":
+		offset_str = f"closest_alignment<{field.type + (" *" if field.is_pointer or field.is_reference else "")}>(calculate_alignment<" + offset_str[:-2] + ">())" 
+	else:
+		offset_str = "0" 
+
 	if is_simple_type(field.type):
-		writer.line(lhs + f" = *({field.type} *) (data + {field.offset});")
+		writer.line(lhs + f" = *({field.type} *) (data + {offset_str});")
 
 		return
 	
 	field_type = CppType.get_type(field.type)
 
 	if field_type.is_enum():
-		writer.line(lhs + f" = *({get_enum_type(field_type)} *) (data + {field.offset});")
+		writer.line(lhs + f" = *({get_enum_type(field_type)} *) (data + {offset_str});")
 	elif is_array_type(field_type):
 		write_array_serializer(writer, field, lhs)
 	elif field_type.name in INTRINSIC_SERIALIZERS:
-		writer.line(lhs + f" = Serialization::Serialize(*({field_type.name} *) (data + {field.offset}));")
+		writer.line(lhs + f" = Serialization::Serialize(*({field_type.name} *) (data + {offset_str}));")
 	elif not field.is_pointer:
 		if field.type in serialized_types:
-			writer.line(lhs + f" = InternalSerialize{sanitize_class_name(field.type)}(data + {field.offset});")
+			writer.line(lhs + f" = InternalSerialize{sanitize_class_name(field.type)}(data + {offset_str});")
 		else:
 			print(f"WARN: Serializing object of non-serializable type {field_type.name}")
 	else:
 		if field.type in serialized_types:
-			writer.line(lhs + f" = SerializeObject(*(const {field.type}**) (data + {field.offset}));")
+			writer.line(lhs + f" = SerializeObject(*(const {field.type}**) (data + {offset_str}));")
 		else:
 			print(f"WARN: Serializing object of non-serializable type {field.type}")
 
 
 def write_array_serializer(writer: CodeWriter, field: CppField, lhs: str) -> None:
+	offset_str = ""
+
+	for f in CppType.get_type(field.owning_type).fields:
+		if f == field:
+			break
+			
+		offset_str = f"{f.type + (" *" if f.is_pointer or f.is_reference else "")}, " + offset_str
+
+	if offset_str != "":
+		offset_str = f"closest_alignment<{field.type + (" *" if field.is_pointer or field.is_reference else "")}>(calculate_alignment<" + offset_str[:-2] + ">())" 
+	else:
+		offset_str = "0" 
+
 	writer.line("{")
 	writer.more_indent()
 
 	writer.line("json resultArray = R\"([])\"_json;")
-	writer.line(f"auto& sourceArray = *({field.type} *) (data + {field.offset});")
+	writer.line(f"auto& sourceArray = *({field.type} *) (data + {offset_str});")
 
 	writer.line()
 
@@ -200,38 +226,64 @@ def write_array_serializer(writer: CodeWriter, field: CppField, lhs: str) -> Non
 
 
 def write_field_deserializer(writer: CodeWriter, field: CppField, lhs: str) -> None:
+	offset_str = ""
+
+	for f in CppType.get_type(field.owning_type).fields:
+		if f == field:
+			break
+			
+		offset_str = f"{f.type + (" *" if f.is_pointer or f.is_reference else "")}, " + offset_str
+
+	if offset_str != "":
+		offset_str = f"closest_alignment<{field.type + (" *" if field.is_pointer or field.is_reference else "")}>(calculate_alignment<" + offset_str[:-2] + ">())" 
+	else:
+		offset_str = "0"
+	
 	if is_simple_type(field.type):
-		writer.line(f"new(({field.type}*) (raw + {field.offset})) {field.type}{{data[\"{field.name}\"].get<{field.type}>()}};")
+		writer.line(f"new(({field.type}*) (raw + {offset_str})) {field.type}{{data[\"{field.name}\"].get<{field.type}>()}};")
 
 		return
 
 	field_type = CppType.get_type(field.type)
 
 	if field_type.is_enum():
-		writer.line(f"new(({get_enum_type(field_type)}*) (raw + {field.offset})) {get_enum_type(field_type)}{{data[\"{field.name}\"].get<{get_enum_type(field_type)}>()}};")
+		writer.line(f"new(({get_enum_type(field_type)}*) (raw + {offset_str})) {get_enum_type(field_type)}{{data[\"{field.name}\"].get<{get_enum_type(field_type)}>()}};")
 	elif is_array_type(field_type):
 		write_array_deserializer(writer, field, lhs)
 	elif field_type.name in INTRINSIC_SERIALIZERS:
-		writer.line(f"new(({field.type}*) (raw + {field.offset})) {field.type}{{Serialization::Deserialize<{field.type}>(data[\"{field.name}\"])}};")
+		writer.line(f"new(({field.type}*) (raw + {offset_str})) {field.type}{{Serialization::Deserialize<{field.type}>(data[\"{field.name}\"])}};")
 	elif not field.is_pointer:
 		if field.type in serialized_types:
-			writer.line(f"InternalDeserialize{sanitize_class_name(field.type)}On(reinterpret_cast<volatile {field.type} *>(raw + {field.offset}), data[\"{field.name}\"]);")
+			writer.line(f"InternalDeserialize{sanitize_class_name(field.type)}On(reinterpret_cast<volatile {field.type} *>(raw + {offset_str}), data[\"{field.name}\"]);")
 		else:
 			print(f"WARN: Deserializing object of non-serializable type {field_type.name}")
 	else:
 		if field.type in serialized_types:
-			writer.line(f"*((void**) (raw + {field.offset})) = Serialization::FetchDeserializedObject(data[\"{field.name}\"].get<int>());")
+			writer.line(f"*((void**) (raw + {offset_str})) = Serialization::FetchDeserializedObject(data[\"{field.name}\"].get<int>());")
 		else:
 			print(f"WARN: Deserializing object of non-serializable type {field.type}")
 
 
 def write_array_deserializer(writer: CodeWriter, field: CppField, lhs: str) -> None:
+	offset_str = ""
+
+	for f in CppType.get_type(field.owning_type).fields:
+		if f == field:
+			break
+			
+		offset_str = f"{f.type + (" *" if f.is_pointer or f.is_reference else "")}, " + offset_str
+
+	if offset_str != "":
+		offset_str = f"closest_alignment<{field.type + (" *" if field.is_pointer or field.is_reference else "")}>(calculate_alignment<" + offset_str[:-2] + ">())" 
+	else:
+		offset_str = "0"
+	
 	writer.line("{")
 	writer.more_indent()
 
 	element_type: CppModifiedType = CppType.get_type(field.type).template_args[0]
 
-	writer.line(f"std::vector<{element_type.type + " *" if element_type.is_pointer else ""}>* dest = new((std::vector<{element_type.type}> *) (raw + {field.offset})) std::vector<{element_type.type + " *" if element_type.is_pointer else ""}>();")
+	writer.line(f"std::vector<{element_type.type + " *" if element_type.is_pointer else ""}>* dest = new((std::vector<{element_type.type}> *) (raw + {offset_str})) std::vector<{element_type.type + " *" if element_type.is_pointer else ""}>();")
 	writer.line("int i = 0;")
 
 	writer.line()
@@ -441,6 +493,37 @@ def main():
 
 		dest_impl.line()
 
+		dest_impl.line("template <typename T>")
+		dest_impl.line("constexpr size_t closest_alignment(size_t a) {")
+		dest_impl.line("if (a % alignof(T) == 0) {")
+		dest_impl.line("	return a;")
+		dest_impl.line("}")
+		dest_impl.line("return a + (alignof(T) - (a % alignof(T)));")
+		dest_impl.line("}")
+
+		dest_impl.line("template <typename... TOther>")
+		dest_impl.line("	requires (sizeof...(TOther) == 0)")
+		dest_impl.line("constexpr size_t calculate_alignment() {")
+		dest_impl.line("	return 0;")
+		dest_impl.line("}")
+
+		dest_impl.line("template <typename T>")
+		dest_impl.line("constexpr size_t calculate_alignment() {")
+		dest_impl.line("	return sizeof(T);")
+		dest_impl.line("}")
+
+		dest_impl.line("template <typename T, typename... TOther>")
+		dest_impl.line("requires (sizeof...(TOther) > 0)")
+		dest_impl.line("constexpr size_t calculate_alignment(int _ = 0) {")
+		dest_impl.line("	size_t s = calculate_alignment<TOther...>();")
+		dest_impl.line("")
+		dest_impl.line("	if (s % alignof(T) == 0) {")
+		dest_impl.line("		return s + sizeof(T);")
+		dest_impl.line("	}")
+		dest_impl.line("	return s + (alignof(T) - (s % alignof(T))) + sizeof(T);")
+		dest_impl.line("}")
+
+
 		dest_impl.line("std::unordered_map<std::string, json (*)(const void*)> serializationFunctionLookup {")
 		dest_impl.more_indent()
 
@@ -467,7 +550,7 @@ def main():
 
 		dest_impl.line()
 
-		dest_impl.line("std::unordered_map<std::string, void* (*)()> constructionFunctionLookup {")
+		dest_impl.line("std::unordered_map<std::string, void* (*)(void*)> constructionFunctionLookup {")
 		dest_impl.more_indent()
 
 		index = 0
@@ -476,25 +559,23 @@ def main():
 				continue
 			
 			if any([constructor for constructor in tp.constructors if len(constructor.arguments) == 0 and constructor.access == "public"]):
-				dest_impl.line(f"{{ \"{type_name}\", []() -> void* {{ return new {type_name}(); }} }},")
+				dest_impl.line(f"{{ \"{type_name}\", [](void* ptr) -> void* {{ return new (ptr){type_name}(); }} }},")
 			elif not tp.is_polymorphic():
-				dest_impl.line(f"{{ \"{type_name}\", []() -> void* {{")
+				dest_impl.line(f"{{ \"{type_name}\", [](void* ptr) -> void* {{")
 				dest_impl.more_indent()
 
-				dest_impl.line(f"void* result = alloc_aligned(sizeof({type_name}), alignof({type_name}));")
-
-				dest_impl.line(f"memset(result, 0, sizeof({type_name}));")
+				dest_impl.line(f"memset(ptr, 0, sizeof({type_name}));")
 
 				for field in tp.fields:
 					if field.is_pointer:
-						dest_impl.line(f"*(((unsigned char**) result) + {field.offset}) = nullptr;")
+						dest_impl.line(f"*(((unsigned char**) ptr) + {field.offset}) = nullptr;")
 					elif (field.type in CppType.all_types and CppType.get_type(field.type).default_constructible()) or is_simple_type(field.type):
-						dest_impl.line(f"new (({field.type}*) (((unsigned char*) result) + {field.offset})) {field.type}();")
+						dest_impl.line(f"new (({field.type}*) (((unsigned char*) ptr) + {field.offset})) {field.type}();")
 					else:
 						dest_impl.line(f"// Field {type_name}.{field.name} cannot be properly initialized, gg")
 						print(f"Field {type_name}.{field.name} cannot be properly initialized, gg")
 
-				dest_impl.line("return result;")
+				dest_impl.line("return ptr;")
 
 				dest_impl.less_indent()
 				dest_impl.line(f"}} }},")
@@ -510,6 +591,16 @@ def main():
 
 		dest_impl.line("int InternalSerializeObject(const void* ptr, const std::type_info& objectType) {")
 		dest_impl.more_indent()
+
+		dest_impl.line("if (!ptr) {")
+		dest_impl.more_indent()
+
+		dest_impl.line("return -1;")
+
+		dest_impl.less_indent()
+		dest_impl.line("}")
+
+		dest_impl.line()
 
 		dest_impl.line("auto objectAlreadySerializedSearch = serializationMap.find(ptr);")
 		dest_impl.line("if (objectAlreadySerializedSearch != serializationMap.end()) {")
@@ -551,12 +642,19 @@ def main():
 		dest_impl.line(f"result[\"_class_name\"] = typeName;")
 
 		dest_impl.line("if (serializationFunctionLookup.contains(typeName)) {")
+		dest_impl.more_indent()
 
 		dest_impl.line("result[\"_data\"] = serializationFunctionLookup[typeName](ptr);")
+
+		dest_impl.less_indent()
 		dest_impl.line("}")
 
 		dest_impl.line("else {")
+		dest_impl.more_indent()
+
 		dest_impl.line("result[\"_data\"] = R\"({})\"_json;")
+
+		dest_impl.less_indent()
 		dest_impl.line("}")
 
 		dest_impl.line()
@@ -566,48 +664,6 @@ def main():
 		dest_impl.line()
 
 		dest_impl.line("return index;")
-
-		dest_impl.less_indent()
-		dest_impl.line("}")
-
-		dest_impl.line()
-
-		dest_impl.line("void* InternalConstructObject(const std::string& objectName) {")
-		dest_impl.more_indent()
-
-		dest_impl.line("auto objectConstructorSearch = constructionFunctionLookup.find(objectName);")
-		dest_impl.line("if (objectConstructorSearch != constructionFunctionLookup.end()) {")
-		dest_impl.more_indent()
-
-		dest_impl.line("return objectConstructorSearch->second();")
-
-		dest_impl.less_indent()
-		dest_impl.line("}")
-
-		dest_impl.line("return nullptr;")
-
-		dest_impl.less_indent()
-		dest_impl.line("}")
-
-		dest_impl.line("volatile void* InternalDeserializeJson(volatile void* ptr, const json& data) {")
-		dest_impl.more_indent()
-
-		dest_impl.line("const std::string typeName = data[\"_class_name\"];")
-
-		dest_impl.line("auto deserializerSearch = deserializationFunctionLookup.find(typeName);")
-		dest_impl.line("if (deserializerSearch != deserializationFunctionLookup.end()) {")
-		dest_impl.more_indent()
-
-		dest_impl.line("deserializerSearch->second(ptr, data[\"_data\"]);")
-
-		dest_impl.line("return ptr;")
-
-		dest_impl.less_indent()
-		dest_impl.line("}")
-
-		dest_impl.line()
-
-		dest_impl.line("return nullptr;")
 
 		dest_impl.less_indent()
 		dest_impl.line("}")

@@ -35,3 +35,9 @@ if not %ERRORLEVEL% == 0 (
 )
 
 python GenerateSerializationDatabase.py %cmake_binary_dir%/codegen/type_database.json
+
+if not %ERRORLEVEL% == 0 (
+	exit
+)
+
+python GenerateSketchyStuff.py %cmake_binary_dir%/codegen/type_database.json

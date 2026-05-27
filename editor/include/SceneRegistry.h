@@ -20,6 +20,7 @@ class Scene;
 namespace Editor {
 
 using SceneInitFunction = std::function<void(Scene&)>;
+using SceneLoadFunction = std::function<Scene*(void)>;
 
 class SceneRegistry {
   public:
@@ -30,6 +31,11 @@ class SceneRegistry {
 
     static std::unordered_map<std::string, SceneInitFunction>& GetRegistry() {
         static std::unordered_map<std::string, SceneInitFunction> registry;
+        return registry;
+    }
+
+    static std::unordered_map<std::string, SceneLoadFunction>& GetLoadRegistry() {
+        static std::unordered_map<std::string, SceneLoadFunction> registry;
         return registry;
     }
 
@@ -46,13 +52,13 @@ class SceneRegistry {
                                      ExampleTweens::InitScene);
 
         for (const auto& sceneFile : std::filesystem::directory_iterator("./res/scenes")) {
-        	SceneRegistry::RegisterScene(std::format("Loaded: {}", sceneFile.path().stem().string()), [sceneFile](Scene& s) -> void {
+        	GetLoadRegistry()[std::format("Loaded: {}", sceneFile.path().stem().string())] = [sceneFile]() -> Scene * {
          		std::ifstream jsonFile{sceneFile.path()};
 
            		json sceneData = json::parse(jsonFile);
          
-         		s = *Serialization::DeserializeObject<Scene>(sceneData);
-         	});
+         		return Serialization::DeserializeObject<Scene>(sceneData);
+         	};
         }
     }
 };
