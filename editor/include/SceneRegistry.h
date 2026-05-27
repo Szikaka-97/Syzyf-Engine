@@ -2,7 +2,7 @@
 
 #include "Graphics.h"
 #include "InputSystem.h"
-#include "Serialized.h"
+#include "Serialization.h"
 #include "scenes/DungeonGeneratorScene.h"
 #include "scenes/LevelShowcaseScene.h"
 #include "scenes/TestScene.h"
