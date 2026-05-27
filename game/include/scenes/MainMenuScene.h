@@ -3,8 +3,8 @@
 #include "Application.h"
 #include "GameObject.h"
 #include "LoadingScene.h"
-#include "ui/custom/UiOptionsMenu.h"
 #include "ui/objects/UiInteractable.h"
+#include "ui/widgets/UiOptionsMenu.h"
 
 class MainMenuController : public GameObject {
   public:
@@ -14,12 +14,24 @@ class MainMenuController : public GameObject {
     UiLayout* mainMenuLayout = nullptr;
     UiOptionsMenu* optionsController = nullptr;
 
-    MainMenuController() = default;
+    Scene* loadingScene = nullptr;
+
+    MainMenuController() {
+        this->loadingScene = Scene::CreateStandaloneScene();
+        LoadingScene::InitScene(*loadingScene);
+    }
+
+    ~MainMenuController() {
+        if (this->loadingScene != nullptr) {
+            delete this->loadingScene;
+        }
+    }
 
     void Update() {
-        if (playButton && playButton->isPressed) {
-            Application::Get()->RequestSceneChange(
-                [](Scene* s) { LoadingScene::InitScene(*s); });
+        if (playButton && playButton->isPressed &&
+            this->loadingScene != nullptr) {
+            Application::Get()->RequestSceneChange(this->loadingScene);
+            this->loadingScene = nullptr;
         }
 
         if (optionsButton && optionsButton->isPressed) {

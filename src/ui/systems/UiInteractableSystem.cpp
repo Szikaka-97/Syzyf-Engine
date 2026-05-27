@@ -1,6 +1,5 @@
 #include "ui/systems/UiInteractableSystem.h"
 #include "InputSystem.h"
-#include "imgui.h"
 #include "ui/objects/UiInteractable.h"
 #include "Graphics.h"
 #include "ui/objects/UiLayout.h"
@@ -67,14 +66,17 @@ void UiInteractableSystem::OnPreUpdate() {
 
             if (!wasHovered && interactable->OnHoverEnter) interactable->OnHoverEnter();
 
+            interactable->isDown = false;
             if (mouseDown) {
                 interactable->isPressed = true;
+                interactable->isDown = true;
+                if (interactable->OnDown) interactable->OnDown();
+            } else if (mousePressed && wasPressed) {
                 if (interactable->OnPress) interactable->OnPress();
             } else if (mouseReleased && wasPressed) {
                 interactable->isPressed = false;
-                if (interactable->OnClick) interactable->OnClick();
                 if (interactable->OnRelease) interactable->OnRelease();
-            } else if (!mouseDown) {
+            } else if (!mousePressed) {
                 interactable->isPressed = false;
             }
         } else {
@@ -83,15 +85,11 @@ void UiInteractableSystem::OnPreUpdate() {
             if (mouseReleased && wasPressed) {
                 interactable->isPressed = false;
                 if (interactable->OnRelease) interactable->OnRelease();
-            } else if (!mouseDown) {
+            } else if (!mousePressed) {
                 interactable->isPressed = false;
             }
 
             if (wasHovered && interactable->OnHoverExit) interactable->OnHoverExit();
         }
     }
-}
-
-void UiInteractable::DrawImGui() {
-    ImGui::Checkbox("Interactable", &this->isInteractable);
 }

@@ -25,6 +25,7 @@ protected:
     bool isRunning = true;
 
     bool isSceneChangeRequested = false;
+    Scene* pendingScene = nullptr;
     SceneInitCallback pendingSceneInitFunc = nullptr;
 
     GameSettings settings;
@@ -42,7 +43,10 @@ public:
     static Scene* GetCurrentScene();
     static Application* Get();
 
-    void RequestSceneChange(SceneInitCallback initFunc);
+    // Request a scene change to a scene defined using a function
+    void RequestSceneBuild(SceneInitCallback initFunc);
+    // Request a scene change to an already instantiated function
+    void RequestSceneChange(Scene* scene);
 
 protected:
     virtual void OnInit(int argc = 0, char* argv[] = nullptr) {}

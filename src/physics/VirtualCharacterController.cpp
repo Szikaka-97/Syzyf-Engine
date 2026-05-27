@@ -109,6 +109,15 @@ glm::vec3 VirtualCharacterController::GetLinearVelocity() const {
   return glm::vec3(0.0f);
 }
 
+// Returns the character's mass
+//  returns zero if the character is a nullptr
+float VirtualCharacterController::GetMass() const {
+    if (this->character != nullptr) {
+        return this->character->GetMass();
+    }
+    return 0.0f;
+}
+
 JPH::BodyID VirtualCharacterController::GetGroundBodyID() const {
   if (this->character) {
     return this->character->GetGroundBodyID();
@@ -198,6 +207,26 @@ void VirtualCharacterController::SetRotation(const glm::quat& rotation) {
 
 void VirtualCharacterController::SetGravityFactor(float factor) {
   this->gravityFactor = factor;
+}
+
+void VirtualCharacterController::SetLinearVelocity(const glm::vec3& velocity) {
+    if (!MathHelpers::IsValid(velocity)) {
+        spdlog::error("Physics::VirtualCharacterController: Attempted to set NaN or Inf linear velocity");
+        return;
+    }
+    if (this->character != nullptr) {
+        this->character->SetLinearVelocity(JPH::RVec3(velocity.x, velocity.y, velocity.z));
+    } else {
+        spdlog::warn("Physics::VirtualCharacterController: Tried setting linear velocity on an invalid character controller");
+    }
+}
+
+void VirtualCharacterController::SetMass(const float mass) {
+    if (this->character != nullptr) {
+        this->character->SetMass(mass);
+    } else {
+        spdlog::warn("Physics::VirtualCharacterController: Tried setting mass on an invalid character controller");
+    }
 }
 
 void VirtualCharacterController::SyncToNode() {

@@ -12,12 +12,13 @@
 #include <physics/System.h>
 #include <text/Font.h>
 #include <text/Text3D.h>
-#include <ui/custom/UiCircularBar.h>
 #include <ui/objects/UiInteractable.h>
 #include <ui/objects/UiLayout.h>
 #include <ui/objects/UiText.h>
 #include <ui/objects/UiVisual.h>
 #include <ui/systems/UiSystem.h>
+#include <ui/widgets/UiCheckbox.h>
+#include <ui/widgets/UiCircularBar.h>
 
 namespace ExampleUi {
 inline void InitScene(Scene& mainScene) {
@@ -139,6 +140,23 @@ inline void InitScene(Scene& mainScene) {
         "Lvl 2 Niebieski Glodny Alfa Krasnolud", dougenzakaFont);
     textObject->color = {1.2f, 0.0f, 0.0f, 1.0f};
     textObject->billboardMode = BillboardMode::Z;
+
+    // Checkbox
+    SceneNode* checkboxNode = UiCheckbox::Create(mainScene, "Checkbox Example",
+                                                 dougenzakaFont, false);
+    if (auto* layout = checkboxNode->GetObject<UiLayout>()) {
+        layout->offset = glm::ivec2(100, 200);
+    }
+    if (auto* checkboxLogic = checkboxNode->GetObject<UiCheckbox>()) {
+        checkboxLogic->OnValueChanged = [](bool isChecked) {
+            if (isChecked) {
+                spdlog::info("Checkbox ON");
+            } else {
+                spdlog::info("Checkbox OFF");
+            }
+        };
+    }
+
 #pragma endregion
 
 #pragma region Camera

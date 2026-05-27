@@ -51,29 +51,29 @@ class UiOptionsMenu : public GameObject {
             initialized = true;
         }
 
-        if (resolutionButton && resolutionButton->isPressed) {
+        if (resolutionButton && resolutionButton->isDown) {
             pendingResolutionIndex = (pendingResolutionIndex + 1) % 4;
             spdlog::debug("Resolution set to {}x{}",
                           resWidths[pendingResolutionIndex],
                           resHeights[pendingResolutionIndex]);
         }
 
-        if (fullscreenButton && fullscreenButton->isPressed) {
+        if (fullscreenButton && fullscreenButton->isDown) {
             pendingWindowed = !pendingWindowed;
             spdlog::debug("Windowed toggled: {}", pendingWindowed);
         }
 
-        if (vsyncToggleButton && vsyncToggleButton->isPressed) {
+        if (vsyncToggleButton && vsyncToggleButton->isDown) {
             pendingVsync = !pendingVsync;
             spdlog::debug("VSync toggled: {}", pendingVsync);
         }
 
-        if (ssaoButton && ssaoButton->isPressed) {
+        if (ssaoButton && ssaoButton->isDown) {
             pendingSsao = !pendingSsao;
             spdlog::debug("SSAO toggled: {}", pendingSsao);
         }
 
-        if (applyButton && applyButton->isPressed) {
+        if (applyButton && applyButton->isDown) {
             auto* app = Application::Get();
             if (app) {
                 app->GetSettings().resolutionWidth =
@@ -96,7 +96,7 @@ class UiOptionsMenu : public GameObject {
                           app->GetSettings().ssaoEnabled);
         }
 
-        if (backButton && backButton->isPressed) {
+        if (backButton && backButton->isDown) {
             if (onBackClicked) {
                 onBackClicked();
             }

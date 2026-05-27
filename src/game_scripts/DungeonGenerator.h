@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Debug.h"
-#include "GltfImporter.h"
+#include "GltfScene.h"
 #include "imgui.h"
 #include "physics/Body.h"
 #include "physics/System.h"
@@ -408,11 +408,16 @@ private:
                     continue;
                 }
 
-                SceneNode* scene = GltfImporter::LoadScene(
+                GltfScene* roomScene = ResourceDatabase::Global->Get<GltfScene>(modelPath);
+                if (!roomScene) {
+                    spdlog::warn("DungeonGenerator: Failed to load room scene {}", modelPath);
+                    continue;
+                }
+
+                SceneNode* scene = roomScene->Instantiate(
                     this->GetScene(),
-                    modelPath,
-                    std::format("Room {}x{}", x, y),
-                    this->GetNode()
+                    this->GetNode(),
+                    std::format("Room {}x{}", x, y)
                 );
 
                 const float roomSize = this->ROOM_SIZE;

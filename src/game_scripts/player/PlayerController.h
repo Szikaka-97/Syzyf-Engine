@@ -25,6 +25,7 @@
 #include <imgui.h>
 #include <cmath>
 #include "AimingAid.h"
+#include "GltfScene.h"
 #include "Jolt/Math/MathTypes.h"
 #include "Jolt/Math/Vec3.h"
 #include "Jolt/Physics/Body/BodyCreationSettings.h"
@@ -161,7 +162,8 @@ public:
         this->throwStrengthAccum = 0;
         this->throwStrengthCache = 0;
 
-        this->bottle = GltfImporter::LoadScene(GetScene(), "./res/models/crosshair.glb", "bottle visual");
+        auto* crosshairScene = this->GetScene()->Resources()->Get<GltfScene>("./res/models/crosshair.glb");
+        this->bottle = crosshairScene->Instantiate(GetScene(), nullptr, "bottle visual");
     }
 
     PlayerController(SceneNode* markerNode) {
@@ -177,7 +179,8 @@ public:
         this->throwStrengthAccum = 0;
         this->throwStrengthCache = 0;
 
-        this->bottle = GltfImporter::LoadScene(GetScene(), "./res/models/crosshair.glb", "bottle visual");
+        auto* crosshairScene = this->GetScene()->Resources()->Get<GltfScene>("./res/models/crosshair.glb");
+        this->bottle = crosshairScene->Instantiate(GetScene(), nullptr, "bottle visual");
     }
 
 

@@ -329,7 +329,7 @@ value(value) { }
 InputSystem::InputSystem(Scene* scene):
 SceneComponent(scene),
 prevMouseMovement(glm::zero<glm::vec2>()),
-mouseLocked(false) {
+mouseLocked(false), cursorHidden(false) {
 	keys = {
 		{ (int) Key::Space, 0 },
 		{ (int) Key::Apostrophe, 0 },
@@ -613,6 +613,20 @@ void InputSystem::SetMouseLocked(bool locked) {
 	}
 
 	this->mouseLocked = locked;
+}
+
+bool InputSystem::IsCursorHidden() const {
+    return this->cursorHidden;
+}
+
+void InputSystem::SetCursorHidden(bool hidden) {
+    this->cursorHidden = hidden;
+
+    if (hidden) {
+        SDL_HideCursor();
+    } else {
+        SDL_ShowCursor();
+    }
 }
 
 void InputSystem::SetViewportOffset(const glm::vec2& offset) {

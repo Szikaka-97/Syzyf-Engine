@@ -213,11 +213,20 @@ Application* Application::Get() {
     return instance;
 }
 
-void Application::RequestSceneChange(SceneInitCallback initFunc) {
+void Application::RequestSceneBuild(SceneInitCallback initFunc) {
     this->pendingSceneInitFunc = initFunc;
     this->isSceneChangeRequested = true;
 }
 
+// Requests a scene change using a preloaded scene
+void Application::RequestSceneChange(Scene* scene) {
+    this->pendingScene = scene;
+    this->isSceneChangeRequested = true;
+}
+
+// Swaps the scenes,
+//  Will prioritize `pendingScene` over other pending scenes
+//  Clears all the pending scenes afterwards regardless if there were more than one
 void Application::ExecutePendingSceneChange() {
     if (!this->isSceneChangeRequested) return;
 
@@ -226,13 +235,16 @@ void Application::ExecutePendingSceneChange() {
         this->currentScene = nullptr;
     }
 
-    this->currentScene = Scene::CreateStandaloneScene();
-    this->ApplySettings();
-
-    if (this->pendingSceneInitFunc) {
+    // Preloaded scene
+    if (this->pendingScene) {
+        this->currentScene = this->pendingScene;
+    // Init function
+    } else if (this->pendingSceneInitFunc) {
+        this->currentScene = Scene::CreateStandaloneScene();
         this->pendingSceneInitFunc(this->currentScene);
     }
 
     this->isSceneChangeRequested = false;
     this->pendingSceneInitFunc = nullptr;
+    this->pendingScene = nullptr;
 }

@@ -257,7 +257,7 @@ void SceneViewPanel::Draw(Context& context) {
                  ImVec2(0, 1), ImVec2(1, 0));
 
     if (context.state == State::Game && ImGui::IsItemHovered()) {
-        ImGui::SetMouseCursor(ImGuiMouseCursor_None);
+        // ImGui::SetMouseCursor(ImGuiMouseCursor_None);
     }
 
     if (ImGui::BeginDragDropTarget()) {
@@ -598,8 +598,9 @@ void SceneViewPanel::HandleDrop(Context& context) {
         if (payload->IsDelivery()) {
             if (droppedPath.extension() == ".glb" ||
                 droppedPath.extension() == ".gltf") {
-                SceneNode* node = GltfImporter::LoadScene(
-                    context.selectedScene, normalizedPath.c_str());
+                SceneNode* node = context.selectedScene->Resources()
+                                      ->Get<GltfScene>(normalizedPath.c_str())
+                                      ->Instantiate(context.selectedScene);
 
                 if (hasValidSpawnPosition) {
                     node->LocalTransform().Position() = spawnPosition;
@@ -730,7 +731,8 @@ void SceneViewPanel::DrawMenuBar(Context& context) {
     if (ImGui::RadioButton("Game", context.state == State::Game)) {
         if (context.state != State::Game) {
             context.state = State::Game;
-            context.selectedNode = nullptr;
+            // ! having this commented might cause a crash
+            // context.selectedNode = nullptr;
 
             ImGui::GetIO().ConfigFlags &= ~ImGuiConfigFlags_NavEnableKeyboard;
 

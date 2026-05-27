@@ -1,6 +1,6 @@
 #pragma once
 
-#include "GltfImporter.h"
+#include "GltfScene.h"
 #include "game_scripts/DungeonGenerator.h"
 
 #include <AiNode.h>

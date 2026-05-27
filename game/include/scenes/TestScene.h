@@ -2,13 +2,13 @@
 
 #include "DepthOfField.h"
 #include "GameObjectSystem.h"
-#include "GltfImporter.h"
+#include "GltfScene.h"
 #include "JfaOutline.h"
 #include "LightSystem.h"
 #include "fog/Fog.h"
 #include "game_scripts/player/PickableItemSystem.h"
-#include "ui/custom/UiHealthBar.h"
-#include "ui/custom/wheel/UiWheel.h"
+#include "ui/widgets/UiHealthBar.h"
+#include "ui/widgets/wheel/UiWheel.h"
 #include <game_scripts/player/AimingAid.h>
 #include <game_scripts/player/Player.h>
 #include <game_scripts/player/PlayerController.h>
@@ -52,8 +52,6 @@
 #include <physics/Water.h>
 #include <scatter/Spawner.h>
 #include <text/Font.h>
-#include <ui/custom/UiCircularBar.h>
-#include <ui/custom/wheel/UiRadialWheel.h>
 #include <ui/objects/UiCursor.h>
 #include <ui/objects/UiInteractable.h>
 #include <ui/objects/UiLayout.h>
@@ -61,6 +59,8 @@
 #include <ui/objects/UiText.h>
 #include <ui/objects/UiVisual.h>
 #include <ui/systems/UiSystem.h>
+#include <ui/widgets/UiCircularBar.h>
+#include <ui/widgets/wheel/UiRadialWheel.h>
 
 #include "Jolt/Math/Vec3.h"
 #include "text/Text3D.h"
@@ -105,8 +105,9 @@ inline void InitScene(Scene& mainScene) {
     Material* skyMat = new Material(skyProg);
     skyMat->SetValue("skyboxTexture", skyCubemap);
 
-    auto floorNode =
-        GltfImporter::LoadScene(&mainScene, "./res/models/floor.glb", "Floor");
+    auto floorNode = mainScene.Resources()
+                         ->Get<GltfScene>("./res/models/floor.glb")
+                         ->Instantiate(&mainScene, nullptr, "Floor");
     floorNode->AddObject<Skybox>(skyMat);
     MeshRenderer* floorMeshRenderer =
         floorNode->GetObjectInChildren<MeshRenderer>();
@@ -118,8 +119,9 @@ inline void InitScene(Scene& mainScene) {
 
     floorBody->SetCollisionLayerAndMask({0}, 0xFFFFFFFF);
 
-    auto* room = GltfImporter::LoadScene(
-        &mainScene, "./res/models/rooms/room_I.gltf", "Room");
+    auto* room = mainScene.Resources()
+                     ->Get<GltfScene>("./res/models/rooms/room_I.gltf")
+                     ->Instantiate(&mainScene, nullptr, "Room");
     room->GlobalTransform().Position() += {0.0f, 0.01f, 0.0f};
 
 #pragma endregion
@@ -133,8 +135,10 @@ inline void InitScene(Scene& mainScene) {
 
     SceneNode* playerNode = mainScene.CreateNode("Player");
 
-    SceneNode* bimberman = GltfImporter::LoadScene(
-        &mainScene, "./res/models/bimbermann_throwing.glb", "Bimberman");
+    SceneNode* bimberman =
+        mainScene.Resources()
+            ->Get<GltfScene>("./res/models/bimbermann_throwing.glb")
+            ->Instantiate(&mainScene, nullptr, "Bimberman");
     bimberman->SetParent(playerNode);
 
     auto* virtualCharacter =
@@ -148,8 +152,10 @@ inline void InitScene(Scene& mainScene) {
 
     auto* aimingAid = mainScene.CreateNode("AimingAid")->AddObject<AimingAid>();
 
-    aimingAid->crosshair = GltfImporter::LoadScene(
-        &mainScene, "./res/models/crosshair.glb", "crosshair", floorNode);
+    aimingAid->crosshair =
+        mainScene.Resources()
+            ->Get<GltfScene>("./res/models/crosshair.glb")
+            ->Instantiate(&mainScene, floorNode, "Crosshair");
     aimingAid->crosshair->SetParent(aimingAid->GetNode());
     aimingAid->GetNode()->GetObjectInChildren<MeshRenderer>()->maskFlags |=
         MaskEffectBits::XRay;
@@ -182,8 +188,9 @@ inline void InitScene(Scene& mainScene) {
 
 #pragma region Enemy
 
-    SceneNode* enemy =
-        GltfImporter::LoadScene(&mainScene, "./res/models/szkielet6.glb");
+    SceneNode* enemy = mainScene.Resources()
+                           ->Get<GltfScene>("./res/models/szkielet6.glb")
+                           ->Instantiate(&mainScene, nullptr, "enemy");
     enemy->GlobalTransform().Position() = {3.0f, 1.0f, 0.0f};
     enemy->GlobalTransform().Scale() = glm::vec3(0.1f);
 
@@ -429,7 +436,7 @@ inline void InitScene(Scene& mainScene) {
         ->SetEnabled(false);
     gridUpButton->AddObject<WheelTag>();
     // scary
-    gridUpButton->AddObject<UiInteractable>()->OnClick = [grid]() {
+    gridUpButton->AddObject<UiInteractable>()->OnDown = [grid]() {
         grid->ScrollUp();
     };
 
@@ -441,7 +448,7 @@ inline void InitScene(Scene& mainScene) {
     gridDownButton->AddObject<UiVisual>(glm::vec4(0.2f, 0.2f, 0.2f, 0.8f))
         ->SetEnabled(false);
     gridDownButton->AddObject<WheelTag>();
-    gridDownButton->AddObject<UiInteractable>()->OnClick = [grid]() {
+    gridDownButton->AddObject<UiInteractable>()->OnDown = [grid]() {
         grid->ScrollDown();
     };
 

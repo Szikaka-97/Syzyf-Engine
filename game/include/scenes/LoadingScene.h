@@ -18,7 +18,7 @@ class LoadingController : public GameObject {
 
     void Update() {
         if (framesPassed > 2) {
-            Application::Get()->RequestSceneChange(
+            Application::Get()->RequestSceneBuild(
                 [](Scene* s) { TestScene::InitScene(*s); });
         }
         framesPassed++;

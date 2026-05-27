@@ -4,13 +4,13 @@
 #include "Debug.h"
 #include "Framebuffer.h"
 #include "GameObject.h"
-#include "GltfImporter.h"
+#include "GltfScene.h"
 #include "InputSystem.h"
 #include "Material.h"
 #include "MeshRenderer.h"
 #include "TweenSystem.h"
 #include "Viewport.h"
-#include "ui/custom/wheel/UiWheel.h"
+#include "ui/widgets/wheel/UiWheel.h"
 #include "ui/objects/UiLayout.h"
 #include "ui/objects/UiText.h"
 #include "ui/objects/UiVisual.h"
@@ -103,8 +103,6 @@ public:
         numberOfSlices = gltfPaths.size();
         itemSlots.clear();
 
-        GltfImporter importer;
-
         for (int i = 0; i < numberOfSlices; i++) {
             ItemSlot slot;
 
@@ -124,7 +122,7 @@ public:
             slot.itemNode = GetScene()->CreateNode("ItemPivot_" + std::to_string(i));
             slot.itemNode->GlobalTransform().Position() = glm::vec3(0.0f, -500.0f + (i * 10.0f), 0.2f);
 
-            importer.LoadScene(GetScene(), gltfPaths[i], "ItemModel_" + std::to_string(i), slot.itemNode);
+            GetScene()->Resources()->Get<GltfScene>(gltfPaths[i])->Instantiate(GetScene(), slot.itemNode, "ItemModel_" + std::to_string(i));
             SetLayerRecursive(slot.itemNode, ui3DLayer);
 
             slot.uiNode = GetScene()->CreateNode(GetNode(), "ItemVisual_" + std::to_string(i));
