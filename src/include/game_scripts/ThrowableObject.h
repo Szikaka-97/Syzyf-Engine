@@ -49,7 +49,7 @@ void SetEffect(std::function<void(TEffect*)> configure = nullptr) {
         reflectiveMat->SetValue("normalMap", reflectiveNormal);
         reflectiveMat->SetValue("armMap", reflectiveARM);
 
-        Mesh* effectMesh = scene->Resources()->Get<Mesh>("./res/models/jake_tangents.glb");
+        Mesh* effectMesh = scene->Resources()->Get<Mesh>("./res/models/not_cube.obj");
 
         effect->SetEffectRenderer(effectMesh, reflectiveMat);
         return effect;

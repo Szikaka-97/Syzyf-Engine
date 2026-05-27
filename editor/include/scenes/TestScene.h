@@ -154,8 +154,7 @@ inline void InitScene(Scene& mainScene) {
     SceneNode* cameraNode = mainScene.CreateNode("Camera Node");
     cameraNode->AddObject<Camera>(
         Camera::Perspective(60.0f, 16.0f / 9.0f, 0.1f, 200.0f));
-    cameraNode->AddObject<CameraSettings>(
-        playerNode->GlobalTransform().Position());
+    cameraNode->AddObject<CameraSettings>(playerNode->GlobalTransform().Position());
     cameraNode->AddObject<MaskEffects>();
     auto* jfa = cameraNode->AddObject<JfaOutline>();
     jfa->outlineThickness = 4.0f;
