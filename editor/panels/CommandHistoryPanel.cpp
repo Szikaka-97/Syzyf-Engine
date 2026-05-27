@@ -1,6 +1,7 @@
 #include "panels/CommandHistoryPanel.h"
 
-#include "Application.h"
+#include "EditorApplication.h"
+
 #include "imgui.h"
 
 namespace Editor {

@@ -2,7 +2,7 @@
 
 #include "DepthOfField.h"
 #include "EasingFunctions.h"
-#include "GltfImporter.h"
+#include "GltfScene.h"
 #include "LightSystem.h"
 
 #include <Bloom.h>
@@ -175,19 +175,23 @@ inline void InitScene(Scene& mainScene) {
 
     mainScene.GetRootNode()->AddObject<Skybox>(skyMat);
 
-    auto firstRoom = GltfImporter::LoadScene(
-        &mainScene, "./res/models/rooms/room_one.glb", "Room one");
-    auto secondRoom = GltfImporter::LoadScene(
-        &mainScene, "./res/models/rooms/room_I.glb", "Room two");
+    auto firstRoom = mainScene.Resources()
+                         ->Get<GltfScene>("./res/models/rooms/room_one.glb")
+                         ->Instantiate(&mainScene, nullptr, "Room one");
+    auto secondRoom = mainScene.Resources()
+                          ->Get<GltfScene>("./res/models/rooms/room_I.glb")
+                          ->Instantiate(&mainScene, nullptr, "Room Two");
     secondRoom->GlobalTransform().Position() = glm::vec3(28, 0, 0);
-    auto thirdRoom = GltfImporter::LoadScene(
-        &mainScene, "./res/models/rooms/room_T.glb", "Room three");
+    auto thirdRoom = mainScene.Resources()
+                         ->Get<GltfScene>("./res/models/rooms/room_T.glb")
+                         ->Instantiate(&mainScene, nullptr, "Room Three");
     thirdRoom->GlobalTransform().Position() = glm::vec3(56, 0, 0);
     thirdRoom->LocalTransform().Rotation() =
         glm::vec3(0, glm::pi<float>() / 2, 0);
 
-    auto fourthRoom = GltfImporter::LoadScene(
-        &mainScene, "./res/models/rooms/room_I.glb", "Room four");
+    auto fourthRoom = mainScene.Resources()
+                          ->Get<GltfScene>("./res/models/rooms/room_I.glb")
+                          ->Instantiate(&mainScene, nullptr, "Room Four");
     fourthRoom->GlobalTransform().Position() = glm::vec3(56, 0, 28);
     fourthRoom->LocalTransform().Rotation() =
         glm::vec3(0, glm::pi<float>() / 2, 0);
@@ -205,8 +209,10 @@ inline void InitScene(Scene& mainScene) {
 
     playerNode->AddObject<Mover>();
 
-    SceneNode* bimberman = GltfImporter::LoadScene(
-        &mainScene, "./res/models/bimbermann_throwing.glb", "Bimberman");
+    SceneNode* bimberman =
+        mainScene.Resources()
+            ->Get<GltfScene>("./res/models/bimbermann_throwing.glb")
+            ->Instantiate(&mainScene, nullptr, "Bimberman");
     bimberman->SetParent(playerNode);
 
 #pragma endregion

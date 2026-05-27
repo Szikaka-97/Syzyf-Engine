@@ -82,6 +82,8 @@ private:
         ShaderProgram* prepassAnimatedShader;
         ShaderProgram* prepassScatterShader;
         ShaderProgram* prepassMaskShader;
+        ShaderProgram* prepassDitherHoleShader;
+        ShaderProgram* prepassDitherProximityShader;
         ShaderProgram* prepassAnimatedMaskShader;
         ShaderProgram* prepassScatterMaskShader;
 
@@ -203,6 +205,8 @@ private:
 public:
 	SceneGraphics(Scene* scene);
 	
+    void SetSSAOEnabled(bool enabled);
+
 	glm::vec2 GetScreenResolution() const;
 	void UpdateScreenResolution(glm::vec2 newResolution);
 	

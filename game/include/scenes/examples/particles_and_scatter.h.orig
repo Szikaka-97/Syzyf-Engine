@@ -1,6 +1,6 @@
 #pragma once
 
-#include "GltfImporter.h"
+#include "GltfScene.h"
 #include "LightSystem.h"
 #include "fog/Fog.h"
 
@@ -42,6 +42,7 @@
 #include <text/Font.h>
 
 #include "Jolt/Math/Vec3.h"
+#include "ui/systems/UiSystem.h"
 #include <Jolt/Jolt.h>
 #include <Jolt/Physics/Body/MotionType.h>
 #include <Jolt/Physics/Character/CharacterVirtual.h>
@@ -326,8 +327,9 @@ inline void InitScene(Scene& mainScene) {
     Material* skyMat = new Material(skyProg);
     skyMat->SetValue("skyboxTexture", skyCubemap);
 
-    auto floorNode =
-        GltfImporter::LoadScene(&mainScene, "./res/models/floor.glb", "Floor");
+    auto floorNode = mainScene.Resources()
+                         ->Get<GltfScene>("./res/models/floor.glb")
+                         ->Instantiate(&mainScene, nullptr, "Floor");
     floorNode->AddObject<Skybox>(skyMat);
     MeshRenderer* floorMeshRenderer =
         floorNode->GetObjectInChildren<MeshRenderer>();
@@ -348,8 +350,10 @@ inline void InitScene(Scene& mainScene) {
 
     SceneNode* playerNode = mainScene.CreateNode("Player");
 
-    SceneNode* bimberman = GltfImporter::LoadScene(
-        &mainScene, "./res/models/bimbermann_throwing.glb", "Bimberman");
+    SceneNode* bimberman =
+        mainScene.Resources()
+            ->Get<GltfScene>("./res/models/bimbermann_throwing.glb")
+            ->Instantiate(&mainScene, nullptr, "Bimberman");
     bimberman->SetParent(playerNode);
 
     auto* virtualCharacter =
@@ -363,9 +367,17 @@ inline void InitScene(Scene& mainScene) {
 
     // auto* aimingAid = mainScene.CreateNode("AimingAid")->AddObject<AimingAid>();
 
+<<<<<<< HEAD:editor/include/scenes/examples/particles_and_scatter.h
     // aimingAid->crosshair = GltfImporter::LoadScene(
     //     &mainScene, "./res/models/crosshair.glb", "crosshair", floorNode);
     // aimingAid->crosshair->SetParent(aimingAid->GetNode());
+=======
+    aimingAid->crosshair =
+        mainScene.Resources()
+            ->Get<GltfScene>("./res/models/crosshair.glb")
+            ->Instantiate(&mainScene, floorNode, "Crosshair");
+    aimingAid->crosshair->SetParent(aimingAid->GetNode());
+>>>>>>> origin/cube:game/include/scenes/examples/particles_and_scatter.h
 
     // player->aim = aimingAid;
 
@@ -497,6 +509,60 @@ inline void InitScene(Scene& mainScene) {
     SceneNode* tornadoNode = mainScene.CreateNode("Tornado Node");
     tornadoNode->AddObject<Tornado>();
     tornadoNode->GlobalTransform().Position() = {5.0f, 0.0f, 0.0f};
+
+    // Particles spawning from one spot instead of being global
+    //  Disabling the lifetime would make them spawn once and then disapear once
+    //  they exit the areaExtents
+    //      instead of spawning continuously
+    //      best done with distance fade enabled so they don't blink out of
+    //      existence
+    ShaderProgram* sprayProgram =
+        ShaderProgram::Build()
+            .WithVertexShader("./res/shaders/particles/particles.vert")
+            .WithPixelShader("./res/shaders/particles/particles_blend.frag")
+            .Link();
+
+    auto sprayMaterial = new Material(sprayProgram);
+    sprayMaterial->SetValue("colorTex", mainScene.Resources()->Get<Texture2D>(
+                                            "./res/textures/dust.png",
+                                            Texture2D::ColorTextureRGBA));
+    sprayMaterial->SetValue("color", glm::vec4(10.0f, 0.0f, 40.0f, 1.0f));
+
+    SceneNode* sprayNode = mainScene.CreateNode("Spray");
+    sprayNode->GlobalTransform().Position() = {0.0f, 0.0f, 0.0f};
+    sprayNode->AddObject<ParticleSpawner>(
+        mainScene.Resources()->Get<Mesh>("./res/models/fullscreenquad.obj"),
+        sprayMaterial,
+        ParticleSpawnerSettings{.maxParticles = 512,
+                                .areaExtents = glm::vec3(0.5f, 3.0f, 0.5f),
+                                .emissionShapeExtents =
+                                    glm::vec3(0.2f, 0.0f, 0.2f),
+                                .minVelocity = glm::vec3(-0.3f, 1.5f, -0.3f),
+                                .maxVelocity = glm::vec3(0.3f, 4.0f, 0.3f),
+                                .minInitialAngle = 0.0f,
+                                .maxInitialAngle = 6.28318f,
+                                .minAngularVelocity = -0.5f,
+                                .maxAngularVelocity = 0.5f,
+                                .rotateY = false,
+                                .enableLifetime = true,
+                                .minLifetime = 0.5f,
+                                .maxLifetime = 1.5f,
+                                .minScale = 0.03f,
+                                .maxScale = 0.06f,
+                                .alphaMode = AlphaMode::Dither,
+                                .enableProximityFade = true,
+                                .proximityFadeMin = 0.1f,
+                                .proximityFadeMax = 0.5f,
+                                .enableDistanceFade = true,
+                                .distanceFadeMin = 5.0f,
+                                .distanceFadeMax = 8.0f,
+                                .enableLifetimeFade = true,
+                                .enableDepthFade = true,
+                                .depthFadeDistance = 0.2f,
+                                .billboardMode = BillboardMode::Enabled,
+                                .wrapAround = false,
+                                .continuous = true,
+                                .useColorRamp = false});
 
 #pragma endregion
 }

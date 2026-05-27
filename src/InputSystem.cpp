@@ -12,7 +12,7 @@
 
 #include <spdlog/spdlog.h>
 
-#include <Engine.h>
+#include <Application.h>
 #include <TimeSystem.h>
 #include <Graphics.h>
 
@@ -329,7 +329,7 @@ value(value) { }
 InputSystem::InputSystem(Scene* scene):
 SceneComponent(scene),
 prevMouseMovement(glm::zero<glm::vec2>()),
-mouseLocked(false) {
+mouseLocked(false), cursorHidden(false) {
 	keys = {
 		{ (int) Key::Space, 0 },
 		{ (int) Key::Apostrophe, 0 },
@@ -606,13 +606,27 @@ void InputSystem::SetMouseLocked(bool locked) {
 		this->prevMouseMovement = glm::vec2(0, 0);
 
 		SDL_SetRelativeMouseTransform(mouseTransform, this);
-		SDL_SetWindowRelativeMouseMode(Engine::GetWindow(), true);
+		SDL_SetWindowRelativeMouseMode(Application::GetWindow(), true);
 	}
 	else {
-		SDL_SetWindowRelativeMouseMode(Engine::GetWindow(), false);
+		SDL_SetWindowRelativeMouseMode(Application::GetWindow(), false);
 	}
 
 	this->mouseLocked = locked;
+}
+
+bool InputSystem::IsCursorHidden() const {
+    return this->cursorHidden;
+}
+
+void InputSystem::SetCursorHidden(bool hidden) {
+    this->cursorHidden = hidden;
+
+    if (hidden) {
+        SDL_HideCursor();
+    } else {
+        SDL_ShowCursor();
+    }
 }
 
 void InputSystem::SetViewportOffset(const glm::vec2& offset) {

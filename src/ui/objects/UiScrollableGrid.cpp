@@ -37,7 +37,7 @@ void UiScrollableGrid::Update() {
     if (gridItems.empty()) return;
 
     int col = selectedIndex % columns;
-    int maxIndex = static_cast<int>(gridItems.size()) - 1;
+    maxIndex = static_cast<int>(gridItems.size()) - 1;
 
     if (input->KeyDown(Key::Right) && col < columns - 1 && selectedIndex < maxIndex) {
         selectedIndex++;
@@ -106,6 +106,18 @@ void UiScrollableGrid::Update() {
         bool isVisible = (bottomEdge > -halfContainerHeight) && (topEdge < halfContainerHeight);
         childNode->SetEnabled(isVisible);
     }
+}
+
+void UiScrollableGrid::ScrollUp() {
+    if (selectedIndex - columns >= 0) {
+        selectedIndex -= columns;
+    }
+}
+
+void UiScrollableGrid::ScrollDown() {
+    if (selectedIndex + columns <= maxIndex) {
+        selectedIndex += columns; 
+    } 
 }
 
 void UiScrollableGrid::DrawImGui() {

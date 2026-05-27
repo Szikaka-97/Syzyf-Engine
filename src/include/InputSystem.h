@@ -197,6 +197,7 @@ private:
 	std::map<int, KeyBitMask> keys;
 	std::atomic<glm::vec2> prevMouseMovement;
 	bool mouseLocked;
+    bool cursorHidden;
     glm::vec2 viewportOffset = {0.0f, 0.0f};
 public:
 	InputSystem(Scene* scene);
@@ -225,6 +226,10 @@ public:
 	bool MouseLocked();
 
 	void SetMouseLocked(bool locked);
+
+    bool IsCursorHidden() const;
+    void SetCursorHidden(bool hidden);
+
     void SetViewportOffset(const glm::vec2& offset);
 
 	glm::vec2 GetMouseMovement();

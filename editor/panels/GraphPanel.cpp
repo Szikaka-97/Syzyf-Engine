@@ -1,6 +1,6 @@
 #include "panels/GraphPanel.h"
-#include "Application.h"
 #include "CameraController.h"
+#include "EditorApplication.h"
 #include "imgui.h"
 
 #include <Scene.h>
@@ -12,6 +12,10 @@ void GraphPanel::Draw(Context& context) {
     if (context.selectedScene == nullptr) {
         ImGui::End();
         return;
+    }
+
+    if (context.state == State::Game) {
+        ImGui::BeginDisabled();
     }
 
     SceneNode* root = context.selectedScene->GetRootNode();
@@ -38,6 +42,10 @@ void GraphPanel::Draw(Context& context) {
     }
 
     this->DrawContextMenu(context);
+
+    if (context.state == State::Game) {
+        ImGui::EndDisabled();
+    }
 
     ImGui::End();
 }

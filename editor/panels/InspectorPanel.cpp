@@ -1,7 +1,7 @@
 #include "panels/InspectorPanel.h"
-#include "Application.h"
 #include "Commands.h"
 #include "ComponentRegistry.h"
+#include "EditorApplication.h"
 #include "MousePickingBody.h"
 
 #include <Debug.h>

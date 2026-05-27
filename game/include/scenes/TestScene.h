@@ -2,12 +2,13 @@
 
 #include "DepthOfField.h"
 #include "GameObjectSystem.h"
-#include "GltfImporter.h"
+#include "GltfScene.h"
 #include "JfaOutline.h"
 #include "LightSystem.h"
+#include "Resources.h"
 #include "fog/Fog.h"
 #include "game_scripts/PickableItemSystem.h"
-#include "ui/custom/wheel/UiWheel.h"
+#include "ui/widgets/wheel/UiWheel.h"
 #include <game_scripts/AimCrosshair.h>
 #include <game_scripts/Player.h>
 #include <game_scripts/PlayerController.h>
@@ -51,8 +52,8 @@
 #include <physics/Water.h>
 #include <scatter/Spawner.h>
 #include <text/Font.h>
-#include <ui/custom/UiCircularBar.h>
-#include <ui/custom/wheel/UiRadialWheel.h>
+#include <ui/widgets/UiCircularBar.h>
+#include <ui/widgets/wheel/UiRadialWheel.h>
 #include <ui/objects/UiCursor.h>
 #include <ui/objects/UiInteractable.h>
 #include <ui/objects/UiLayout.h>
@@ -107,7 +108,7 @@ inline void InitScene(Scene& mainScene) {
     Material* skyMat = new Material(skyProg);
     skyMat->SetValue("skyboxTexture", skyCubemap);
 
-    auto floorNode = GltfImporter::LoadScene(&mainScene, "./res/models/floor.glb", "Floor");
+    auto floorNode = ResourceDatabase::Global->Get<GltfScene>("./res/models/floor.glb")->Instantiate(&mainScene, mainScene.root, "Floor");
     floorNode->AddObject<Skybox>(skyMat);
     MeshRenderer* floorMeshRenderer =
         floorNode->GetObjectInChildren<MeshRenderer>();
@@ -130,8 +131,8 @@ inline void InitScene(Scene& mainScene) {
 
     SceneNode* playerNode = mainScene.CreateNode("Player");
 
-    SceneNode* bimberman = GltfImporter::LoadScene(
-        &mainScene, "./res/models/bimbermann_throwing.glb", "Bimberman");
+    SceneNode* bimberman = ResourceDatabase::Global->Get<GltfScene>("./res/models/bimbermann_throwing.glb")->Instantiate(
+        &mainScene, mainScene.root, "Bimberman");
     bimberman->SetParent(playerNode);
 
     auto* virtualCharacter =
@@ -142,7 +143,7 @@ inline void InitScene(Scene& mainScene) {
         playerNode->GlobalTransform().Position().Value());
     virtualCharacter->SetGravityFactor(1);
     
-    auto* aimingAid = GltfImporter::LoadScene(&mainScene, "./res/models/crosshair.glb", "Aim Reticle", playerNode)->AddObject<AimCrosshair>();
+    auto* aimingAid = ResourceDatabase::Global->Get<GltfScene>("./res/models/crosshair.glb")->Instantiate(&mainScene, playerNode, "Aim Reticle")->AddObject<AimCrosshair>();
         
     auto* player = playerNode->AddObject<PlayerController>();
     // player->aim = aimingAid;
@@ -202,7 +203,7 @@ inline void InitScene(Scene& mainScene) {
     enemyAi1->SetRoomID(floorNode->GetID());
 
     
-    SceneNode* enemyModel = GltfImporter::LoadScene(&mainScene, "./res/models/szkielet6.glb", "EnemyModel");
+    SceneNode* enemyModel = ResourceDatabase::Global->Get<GltfScene>("./res/models/szkielet6.glb")->Instantiate(&mainScene, mainScene.root, "EnemyModel");
     enemyModel->SetParent(enemy1);
     enemyModel->GlobalTransform().Scale() = glm::vec3(0.1,0.1,0.1);
     enemyModel->LocalTransform().Position() = glm::zero<glm::vec3>();

@@ -11,10 +11,9 @@
 #include "panels/SceneViewPanel.h"
 #include "panels/StatusBar.h"
 #include "panels/SystemsDebugPanel.h"
-// #include "panels/TextureToolPanel.h"
 #include "thirdparty/ImGuizmo.h"
+#include <Application.h>
 
-#include <SDL3/SDL_video.h>
 #include <physics/DebugRenderer.h>
 
 class Scene;
@@ -33,11 +32,10 @@ struct Context {
     SDL_GLContext glContext = nullptr;
 
     ImFont* consoleFont = nullptr;
-
     CommandHistory commandHistory;
 
     std::vector<Scene*> loadedScenes;
-    Scene* selectedScene = nullptr; // change to index?
+    Scene* selectedScene = nullptr;
     SceneNode* selectedNode = nullptr;
     Camera* mainCamera = nullptr;
     ImGuizmo::OPERATION currentGizmoOperation = ImGuizmo::TRANSLATE;
@@ -47,12 +45,8 @@ struct Context {
     std::unique_ptr<Physics::DebugRenderer> physicsDebugRenderer;
 };
 
-class Application {
+class EditorApplication : public ::Application {
   private:
-    const char* GLSL_VERSION = "#version 460";
-    const int32_t GL_VERSION_MAJOR = 4;
-    const int32_t GL_VERSION_MINOR = 6;
-
     Settings settings;
     Context context;
 
@@ -61,23 +55,26 @@ class Application {
     MainMenuBar mainMenuBar;
     InspectorPanel inspectorPanel;
     GraphPanel graphPanel;
-    // TextureToolPanel textureToolPanel;
     SceneViewPanel sceneViewPanel;
-    SystemsDebugPanel systemsDebugPanel; // Rename
+    SystemsDebugPanel systemsDebugPanel;
     CommandHistoryPanel commandHistoryPanel;
     StatusBar statusBar;
 
   public:
-    bool Setup();
-    void Terminate();
-    void MainLoop();
+    EditorApplication() : ::Application("Syzyf Editor", 1280, 720) {}
+
+  protected:
+    void OnInit(int argc = 0, char* argv[] = nullptr) override;
+    void OnUpdate() override;
+    void OnRender() override;
+    void OnImGuiRender() override;
+    void OnShutdown() override;
+
+    void ExecutePendingSceneChange() override;
 
   private:
     void InitSpdlog();
-    bool InitProgram();
-    bool InitImGui();
-
     void Input();
-    void DrawPanels(bool& shouldClose);
+    void DrawPanels();
 };
 } // namespace Editor

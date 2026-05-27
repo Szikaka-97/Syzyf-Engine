@@ -1,7 +1,7 @@
 #include "panels/SceneViewPanel.h"
-#include "Application.h"
 #include "CameraController.h"
 #include "Commands.h"
+#include "EditorApplication.h"
 #include "MousePickingBodySystem.h"
 #include "ParticleSpawner.h"
 #include "SceneRegistry.h"
@@ -83,14 +83,6 @@ void SceneViewPanel::Draw(Context& context) {
     }
 
     if (drawContent) {
-        if (context.loadedScenes.empty()) {
-            if (startedAsPopup)
-                ImGui::EndPopup();
-            else
-                ImGui::End();
-            return;
-        }
-
         if (!this->isBarHidden) {
             if (context.state == State::Game) {
                 ImGui::BeginDisabled();
@@ -123,6 +115,8 @@ void SceneViewPanel::Draw(Context& context) {
                         if (!requiresTabSync &&
                             context.selectedScene != scene) {
                             context.selectedScene = scene;
+                            // Otherwise the editor crashes if you delete an
+                            // object while in game
                             context.selectedNode = nullptr;
 
                             context.mainCamera =
@@ -249,8 +243,6 @@ void SceneViewPanel::Draw(Context& context) {
     context.selectedScene->GetGraphics()->GetMainFramebuffer()->SetSize(
         glm::uvec2(resX, resY));
 
-    Time::Update();
-
     this->UpdateAndRenderScene(context);
 
     GLuint textureID = context.selectedScene->GetGraphics()
@@ -264,7 +256,7 @@ void SceneViewPanel::Draw(Context& context) {
                  ImVec2(0, 1), ImVec2(1, 0));
 
     if (context.state == State::Game && ImGui::IsItemHovered()) {
-        ImGui::SetMouseCursor(ImGuiMouseCursor_None);
+        // ImGui::SetMouseCursor(ImGuiMouseCursor_None);
     }
 
     if (ImGui::BeginDragDropTarget()) {
@@ -289,10 +281,8 @@ void SceneViewPanel::Draw(Context& context) {
                 }
 
                 if (ImGui::IsKeyPressed(ImGuiKey_Delete)) {
-                    // context.selectedScene->DeleteNode(context.selectedNode);
-                    // context.selectedNode = nullptr;
-
-                    // TODO uncomment when deleting doesnt crash the game
+                    context.selectedScene->DeleteNode(context.selectedNode);
+                    context.selectedNode = nullptr;
                 }
             }
 
@@ -444,6 +434,7 @@ void SceneViewPanel::UpdateAndRenderScene(Context& context) {
     }
     context.selectedScene->Render();
     if (context.state != State::Game) {
+
         context.physicsDebugRenderer->Render();
     }
 
@@ -602,8 +593,9 @@ void SceneViewPanel::HandleDrop(Context& context) {
         if (payload->IsDelivery()) {
             if (droppedPath.extension() == ".glb" ||
                 droppedPath.extension() == ".gltf") {
-                SceneNode* node = GltfImporter::LoadScene(
-                    context.selectedScene, normalizedPath.c_str());
+                SceneNode* node = context.selectedScene->Resources()
+                                      ->Get<GltfScene>(normalizedPath.c_str())
+                                      ->Instantiate(context.selectedScene);
 
                 if (hasValidSpawnPosition) {
                     node->LocalTransform().Position() = spawnPosition;
@@ -709,19 +701,33 @@ void SceneViewPanel::DrawMenuBar(Context& context) {
         if (context.state != State::Editor) {
             context.state = State::Editor;
 
-            ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+            auto cameraControllers =
+                context.selectedScene->FindObjectsOfType<CameraController>();
 
-            context.mainCamera =
-                context.selectedScene->FindObjectsOfType<CameraController>()
-                    .front()
-                    ->GetObject<Camera>();
-            context.mainCamera->SetAsMainCamera();
+            if (!cameraControllers.empty()) {
+                context.mainCamera =
+                    cameraControllers.front()->GetObject<Camera>();
+                if (context.mainCamera) {
+                    context.mainCamera->SetAsMainCamera();
+                }
+            } else {
+                SceneNode* cameraNode =
+                    context.selectedScene->CreateNode("Editor Camera");
+                cameraNode->AddObject<CameraController>();
+                cameraNode->GlobalTransform().Position() = {0.0, 1.0, 0.0};
+                context.mainCamera = cameraNode->GetObject<Camera>();
+                if (context.mainCamera) {
+                    context.mainCamera->SetAsMainCamera();
+                }
+            }
         }
     }
     ImGui::SameLine();
     if (ImGui::RadioButton("Game", context.state == State::Game)) {
         if (context.state != State::Game) {
             context.state = State::Game;
+            // ! having this commented might cause a crash
+            // context.selectedNode = nullptr;
 
             ImGui::GetIO().ConfigFlags &= ~ImGuiConfigFlags_NavEnableKeyboard;
 

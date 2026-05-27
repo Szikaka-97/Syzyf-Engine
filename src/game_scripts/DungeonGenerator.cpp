@@ -2,7 +2,7 @@
 
 #include <numeric>
 
-#include <GltfImporter.h>
+#include <GltfScene.h>
 #include <Formatters.h>
 #include <imgui.h>
 
@@ -209,31 +209,34 @@ void DungeonGenerator::Render() {
 		auto room = this->roomsToSpawn.front();
 		this->roomsToSpawn.pop();
 
-		SceneNode* spawnedRoom = nullptr;
+		GltfScene* roomPrefab = nullptr;
 
 		if (room.position == glm::vec2(0, 0)) {
-			spawnedRoom = GltfImporter::LoadScene(GetScene(), "./res/models/rooms/Room Start.glb", std::format("Room {}", roomCounter), GetNode());
+			roomPrefab = ResourceDatabase::Global->Get<GltfScene>("./res/models/rooms/Room Start.glb");
 		}
 		else if (room.type == RoomShape::Corridor) {
-			spawnedRoom = GltfImporter::LoadScene(GetScene(), "./res/models/rooms/Room Corridor.glb", std::format("Room {}", roomCounter), GetNode());
+			roomPrefab = ResourceDatabase::Global->Get<GltfScene>("./res/models/rooms/Room Corridor.glb");
 		}
 		else if (room.type == RoomShape::DeadEnd) {
-			spawnedRoom = GltfImporter::LoadScene(GetScene(), "./res/models/rooms/Room DeadEnd.glb", std::format("Room {}", roomCounter), GetNode());
+			roomPrefab = ResourceDatabase::Global->Get<GltfScene>("./res/models/rooms/Room DeadEnd.glb");
 		}
 		else if (room.type == RoomShape::TShape) {
-			spawnedRoom = GltfImporter::LoadScene(GetScene(), "./res/models/rooms/Room T.glb", std::format("Room {}", roomCounter), GetNode());
+			roomPrefab = ResourceDatabase::Global->Get<GltfScene>("./res/models/rooms/Room T.glb");
 		}
 		else if (room.type == RoomShape::Corner) {
-			spawnedRoom = GltfImporter::LoadScene(GetScene(), "./res/models/rooms/Room L.glb", std::format("Room {}", roomCounter), GetNode());
+			roomPrefab = ResourceDatabase::Global->Get<GltfScene>("./res/models/rooms/Room L.glb");
 		}
 		else if (room.type == RoomShape::Cross) {
-			spawnedRoom = GltfImporter::LoadScene(GetScene(), "./res/models/rooms/Room Cross.glb", std::format("Room {}", roomCounter), GetNode());
+			roomPrefab = ResourceDatabase::Global->Get<GltfScene>("./res/models/rooms/Room Cross.glb");
 		}
 
 		roomCounter++;
 
-		if (spawnedRoom) {
+		if (roomPrefab) {
 			spdlog::info("Room coords: {}", room.position);
+
+			SceneNode* spawnedRoom = roomPrefab->Instantiate(GetScene(), GetNode(), std::format("Room {}", roomCounter));
+			
 			spawnedRoom->GlobalTransform().Position() = GlobalTransform().Position() + glm::vec3(room.position.y, 0, room.position.x) * glm::vec3(this->gridSize);
 			spawnedRoom->GlobalTransform().Rotation() = glm::vec3(0, glm::radians(-90.0f * room.orientation), 0);
 

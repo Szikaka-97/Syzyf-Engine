@@ -71,6 +71,7 @@ public:
   std::vector<CollisionData> collisionQueue;
 private:
   bool drawDebug = false;
+  bool firstFrame = true;
 
   float accumulator = 0.0f;
   const float cDeltaTime = 1.0f / 60.0f;

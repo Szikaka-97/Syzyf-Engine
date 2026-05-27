@@ -15,7 +15,14 @@ public:
 
     int selectedIndex = 0;
 
+private:
+    int maxIndex = 0;
+
+public:
     void Update();
+
+    void ScrollUp();
+    void ScrollDown();
 
     void DrawImGui();
 };

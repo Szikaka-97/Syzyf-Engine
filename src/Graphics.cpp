@@ -24,6 +24,7 @@
 #include "animation/SkeletonComponent.h"
 
 #include "Scene.h"
+#include "game_scripts/PlayerController.h"
 #include "include/Framebuffer.h"
 #include "include/Shader.h"
 
@@ -136,7 +137,7 @@ currentUniforms() {
             .colorSpace = TextureColor::Linear,
             .format = TextureFormat::Ubyte,
             .minFilter = TextureFilter::Nearest,
-            .magFilter = TextureFilter::Nearest
+            .magFilter = TextureFilter::Nearest,
     });
     this->uiQuadMesh = this->GetScene()->Resources()->Get<Mesh>("./res/models/uiQuad.obj");
 
@@ -149,6 +150,10 @@ currentUniforms() {
         .format = TextureFormat::Float
     };
     this->opaquePassFramebuffer->CreateCustomAttachment(0, normalBufferParams);
+}
+
+void SceneGraphics::SetSSAOEnabled(bool enabled) {
+    this->ssaoSettings.enabled = enabled;
 }
 
 glm::vec2 SceneGraphics::GetScreenResolution() const {
@@ -605,14 +610,22 @@ void SceneGraphics::RenderPrepass(const ShaderGlobalUniforms& uniforms, const Re
 
         const ShaderProgram*  targetShader = this->shaders.prepassShader;
         bool isMasked = render.material->GetShader()->HasPragma("alpha_mask");
+        bool isDitherHole = render.material->GetShader()->HasPragma("dither_hole");
+        bool isDitherProximity = render.material->GetShader()->HasPragma("dither_proximity");
+        // awfuldamsndkdaskjds
 
         // Doesn't support opaque particles in the prepass !
+        // xd
         if (render.jointBufferOffset >= 0) {
-            targetShader = isMasked ? this->shaders.prepassAnimatedMaskShader : this->shaders.prepassAnimatedShader;
+            targetShader = (isMasked || isDitherHole || isDitherProximity) ? this->shaders.prepassAnimatedMaskShader : this->shaders.prepassAnimatedShader;
         } else if (render.material->GetShader()->HasPragma("scatter")) {
-            targetShader = isMasked ? this->shaders.prepassScatterMaskShader : this->shaders.prepassScatterShader;
+            targetShader = (isMasked || isDitherHole || isDitherProximity) ? this->shaders.prepassScatterMaskShader : this->shaders.prepassScatterShader;
         } else if (render.material->GetShader()->HasPragma("complex_vertex_shader")) {
             targetShader = render.material->GetShader();
+        } else if (isDitherHole) {
+            targetShader = this->shaders.prepassDitherHoleShader;
+        } else if (isDitherProximity) {
+            targetShader = this->shaders.prepassDitherProximityShader;
         } else if (isMasked) {
             targetShader = this->shaders.prepassMaskShader;
         }
@@ -622,8 +635,8 @@ void SceneGraphics::RenderPrepass(const ShaderGlobalUniforms& uniforms, const Re
             glUseProgram(currentProgram->GetHandle());
         }
 
-        if (isMasked || currentProgram == render.material->GetShader()) {
-            render.material->Bind();
+        if (isMasked || isDitherHole || isDitherProximity || currentProgram == render.material->GetShader()) {
+            render.material->Bind(currentProgram);
         }
 
         if (render.jointBufferOffset >= 0) {
@@ -821,13 +834,20 @@ void SceneGraphics::RenderShadows(const ShaderGlobalUniforms& uniforms, const Re
 
         const ShaderProgram* targetShader = this->shaders.depthOnlyShader;
         bool isMasked = render.material->GetShader()->HasPragma("alpha_mask");
+        bool isDitherHole = render.material->GetShader()->HasPragma("dither_hole");
+        bool isDitherProximity = render.material->GetShader()->HasPragma("dither_proximity");
 
+        // xd
         if (render.jointBufferOffset >= 0) {
-            targetShader = isMasked ? this->shaders.prepassAnimatedMaskShader : this->shaders.depthOnlyAnimatedShader;
+            targetShader = (isMasked || isDitherHole || isDitherProximity) ? this->shaders.prepassAnimatedMaskShader : this->shaders.prepassAnimatedShader;
         } else if (render.material->GetShader()->HasPragma("scatter")) {
-            targetShader = isMasked ? this->shaders.prepassScatterMaskShader : this->shaders.prepassScatterShader;
+            targetShader = (isMasked || isDitherHole || isDitherProximity) ? this->shaders.prepassScatterMaskShader : this->shaders.prepassScatterShader;
         } else if (render.material->GetShader()->HasPragma("complex_vertex_shader")) {
             targetShader = render.material->GetShader();
+        } else if (isDitherHole) {
+            targetShader = this->shaders.prepassDitherHoleShader;
+        } else if (isDitherProximity) {
+            targetShader = this->shaders.prepassDitherProximityShader;
         } else if (isMasked) {
             targetShader = this->shaders.prepassMaskShader;
         }
@@ -837,8 +857,15 @@ void SceneGraphics::RenderShadows(const ShaderGlobalUniforms& uniforms, const Re
             glUseProgram(currentProgram->GetHandle());
         }
 
-        if (isMasked || currentProgram == render.material->GetShader()) {
-            render.material->Bind();
+        if (isMasked || isDitherHole || isDitherProximity || currentProgram == render.material->GetShader()) {
+            render.material->Bind(currentProgram);
+        }
+
+        if (render.jointBufferOffset >= 0) {
+            int offsetLocation = glGetUniformLocation(currentProgram->GetHandle(), "uBoneOffset");
+            if (offsetLocation >= 0) {
+                glUniform1i(offsetLocation, render.jointBufferOffset);
+            }
         }
 
         if (render.jointBufferOffset >= 0) {
@@ -1929,6 +1956,15 @@ void SceneGraphics::RenderCamera(Camera* camera, Viewport* renderTarget, const R
 	this->currentUniforms.Global_CameraFov = camera->GetFovRad();
     this->currentUniforms.Global_Resolution = glm::vec4(this->mainViewport->GetSize().x, this->mainViewport->GetSize().y, 0.0f, 0.0f);
 
+    auto players = GetScene()->FindObjectsOfType<PlayerController>();
+    if (!players.empty() && players[0] != nullptr) {
+        glm::vec3 playerPosition = players[0]->GetNode()->GlobalTransform().Position().Value();
+
+        this->currentUniforms.Global_PlayerWorldPos = glm::vec4(playerPosition, 1.0f);
+    } else {
+        this->currentUniforms.Global_PlayerWorldPos = glm::vec4(0.0f);
+    }
+
 	RenderParams activeParams((RenderPassType) 0, params.viewport, false, camera->GetLayerMask());
 
 	BindUniformBuffers();
@@ -2151,6 +2187,15 @@ void SceneGraphics::SetupShaders() {
     this->shaders.prepassMaskShader = ShaderProgram::Build()
         .WithVertexShader("./res/shaders/prepass/prepass.vert")
         .WithPixelShader("./res/shaders/prepass/prepass_mask.frag")
+        .Link();
+
+    this->shaders.prepassDitherHoleShader = ShaderProgram::Build()
+        .WithVertexShader("./res/shaders/prepass/prepass_dither.vert")
+        .WithPixelShader("./res/shaders/prepass/prepass_dither_hole.frag")
+        .Link();
+    this->shaders.prepassDitherProximityShader = ShaderProgram::Build()
+        .WithVertexShader("./res/shaders/prepass/prepass_dither.vert")
+        .WithPixelShader("./res/shaders/prepass/prepass_dither_proximity.frag")
         .Link();
 
     this->shaders.prepassAnimatedMaskShader = ShaderProgram::Build()

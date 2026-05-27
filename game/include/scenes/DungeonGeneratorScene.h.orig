@@ -1,10 +1,15 @@
 #pragma once
 
+<<<<<<< HEAD:editor/include/scenes/DungeonGeneratorScene.h
 #include "DepthOfField.h"
 #include "EasingFunctions.h"
 #include "GltfImporter.h"
 #include "LightSystem.h"
 #include <game_scripts/DungeonGenerator.h>
+=======
+#include "GltfScene.h"
+#include "game_scripts/DungeonGenerator.h"
+>>>>>>> origin/cube:game/include/scenes/DungeonGeneratorScene.h
 
 #include <Bloom.h>
 #include <Camera.h>
