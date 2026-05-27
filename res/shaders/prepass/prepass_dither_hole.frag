@@ -14,6 +14,22 @@ layout(location = 1) uniform float alphaCutoff;
 layout(location = 2) uniform sampler2D albedoMap;
 layout(location = 3) uniform sampler2D ditherTex;
 
+layout(location = 20) uniform sampler2D Builtin_ShadowMask;
+
+layout(location = 21) uniform float roughnessFactor;
+layout(location = 22) uniform float metallicFactor;
+layout(location = 23) uniform sampler2D armMap;
+layout(location = 24) uniform bool useOcclusion;
+layout(location = 25) uniform sampler2D normalMap;
+layout(location = 26) uniform vec3 emissiveFactor;
+layout(location = 27) uniform float emissiveStrength;
+layout(location = 28) uniform sampler2D emissiveMap;
+
+layout(location = 29) uniform samplerCube Builtin_EnvIrradianceMap;
+layout(location = 30) uniform samplerCube Builtin_EnvPrefilterMap;
+layout(location = 31) uniform sampler2D Builtin_BRDFConvolutionMap;
+layout(location = 32) uniform sampler2D Builtin_AOMap;
+
 void main() {
     if (Global_PlayerWorldPos.w > 0.5) {
         vec3 camToPlayer = Global_PlayerWorldPos.xyz - Global_CameraWorldPos.xyz;
