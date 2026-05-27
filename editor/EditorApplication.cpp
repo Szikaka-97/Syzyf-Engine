@@ -149,10 +149,15 @@ void EditorApplication::ExecutePendingSceneChange() {
 
     Scene* oldScene = this->context.selectedScene;
 
-    Scene* newScene = Scene::CreateStandaloneScene();
-
+    Scene* newScene;
     if (this->pendingSceneInitFunc) {
+        newScene = Scene::CreateStandaloneScene();
         this->pendingSceneInitFunc(newScene);
+    } else if (pendingScene != nullptr) {
+        newScene = this->pendingScene;
+    } else {
+        spdlog::error("Tried executing a scene change with no pending scenes");
+        return;
     }
 
     newScene->AddComponent<MousePickingBodySystem>();
