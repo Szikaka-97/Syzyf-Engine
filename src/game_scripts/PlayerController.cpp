@@ -14,6 +14,8 @@
 #include <physics/VirtualCharacterController.h>
 #include <physics/Body.h>
 #include <Formatters.h>
+#include <game_scripts/PickableItemSystem.h>
+#include <physics/LayerMaskFilter.h>
 
 PlayerController* PlayerController::instance;
 
@@ -120,7 +122,7 @@ void PlayerController::Awake() {
 	this->throwPoint = this->throwingArm->FindNode("Throw Point");
 
 	assert(this->charController);
-	assert(this->aim);
+
 	assert(this->characterRoot);
 	assert(this->throwPoint);
 
@@ -224,15 +226,22 @@ void PlayerController::UpdateTargetting() {
 	float targetBearing = glm::atan(aimDir.x, aimDir.z);
 
 	this->aimBearing = MoveTowardsAngle(this->aimBearing, targetBearing, Time::Delta() * this->aimSpeed);
-
-	this->aim->LocalTransform().Position() = glm::angleAxis(this->aimBearing, glm::vec3(0, 1, 0)) * glm::vec3(0, 0, 1);
 	
 	this->characterRoot->LocalTransform().Rotation() = glm::angleAxis(this->aimBearing, glm::vec3(0, 1, 0));
-	
+
+	if (!this->CanThrow()) {
+		return;
+	}
+
+	this->aim->LocalTransform().Position() = glm::angleAxis(this->aimBearing, glm::vec3(0, 1, 0)) * glm::vec3(0, 0, 1);
 	this->aim->SetEnabled(GetScene()->Input()->ButtonPressed(0));
 }
 
 void PlayerController::UpdateThrowing() {
+	if (!this->CanThrow()) {
+		return;
+	}
+
 	float throwOomph = 0;
 
 	if (GetScene()->Input()->ButtonPressed(0)) {
@@ -314,10 +323,81 @@ void PlayerController::UpdateThrowing() {
 	}
 }
 
+void PlayerController::HandleItemInteractions() {
+	if (!this->pickableItemSystem) {
+		this->pickableItemSystem = GetScene()->GetComponent<PickableItemSystem>();
+		if (!this->pickableItemSystem) return;
+	}
+
+	PickableItem* newItem = nullptr;
+
+	// Mouse cursor raycast
+	if (!this->physics) {
+		this->physics = this->GetScene()->GetComponent<Physics::System>();
+	} else if (auto* camera = this->GetScene()->GetGraphics()->GetMainCamera()) {
+		auto* input = this->GetScene()->Input();
+		auto* graphics = this->GetScene()->GetGraphics();
+
+		glm::vec2 mousePosition = input->GetMousePosition();
+		glm::vec2 screenSize = graphics->GetScreenResolution();
+
+		glm::vec4 viewport(0.0f, 0.0f, screenSize.x, screenSize.y);
+
+		float windowY = screenSize.y - mousePosition.y;
+
+		glm::vec3 windowNear(mousePosition.x, windowY, 0.0f);
+		glm::vec3 windowFar(mousePosition.x, windowY, 1.0f);
+
+		glm::mat4 view = camera->ViewMatrix();
+		glm::mat4 proj = camera->ProjectionMatrix();
+
+		glm::vec3 rayOrigin = glm::unProject(windowNear, view, proj, viewport);
+		glm::vec3 rayTarget = glm::unProject(windowFar, view, proj, viewport);
+
+		glm::vec3 rayDirection = glm::normalize(rayTarget - rayOrigin) * 100.0f;
+
+		// Includes only the items (layer 2)
+		Physics::LayerMaskFilter layerFilter({2}, true);
+
+		Physics::RayCastPayload hit = this->physics->CastRay(rayOrigin, rayDirection, {}, {}, layerFilter);
+
+		if (hit.hasHit && hit.node) {
+			newItem = hit.node->GetObject<PickableItem>();
+		}
+	}
+
+	// Closest item fallback
+	if (newItem == nullptr) {
+		newItem = pickableItemSystem->GetClosestItem(this->GlobalTransform().Position().Value(), this->itemHighlightRadius);
+	}
+
+	// Highlighting logic
+	if (newItem != this->highlightedItem) {
+		if (this->highlightedItem) {
+			if (auto* renderer = this->highlightedItem->GetObject<MeshRenderer>()) {
+				renderer->maskFlags &= ~MaskEffectBits::Jfa;
+			}
+		}
+		if (newItem != nullptr) {
+			if (auto* renderer = newItem->GetObject<MeshRenderer>()) {
+				renderer->maskFlags |= MaskEffectBits::Jfa;
+			}
+		}
+		this->highlightedItem = newItem;
+	}
+
+	// On interact
+	if (this->GetScene()->Input()->KeyDown(Key::G) && this->highlightedItem != nullptr) {
+		this->highlightedItem->OnPickUp();
+		delete this->highlightedItem->GetNode();
+		this->highlightedItem = nullptr;
+	}
+}
 void PlayerController::Update() {
 	UpdateMovement();
 	UpdateTargetting();
 	UpdateThrowing();
+	HandleItemInteractions();
 
 	this->torso->GlobalTransform().Rotation() *= glm::angleAxis(glm::sin(Time::Current() * this->woblinessFrequency) * (0.1f + this->wobliness * 0.3f), this->torso->GlobalTransform().Forward());
 }
