@@ -137,11 +137,11 @@ void Text3D::RebuildMesh() {
         xOffset += glyph.advance * scale;
     }
 
-    if (positions.empty()) {
-        this->mesh = nullptr;
-        this->renderer->SetMesh(nullptr);
-        return;
-    }
+    // if (positions.empty()) {
+    //     this->mesh = nullptr;
+    //     this->renderer->SetMesh(nullptr);
+    //     return;
+    // }
 
     glm::vec3 minCorner(INFINITY);
     glm::vec3 maxCorner(-INFINITY);
