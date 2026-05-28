@@ -54,8 +54,6 @@ void AnimationComponent::DrawImGui() {
                 SetTime(animation.data.name, scrubTime);
             }
 
-            float percentage = (animation.data.duration > 0.0f) ? (animation.timeActive / animation.data.duration) : 0.0f;
-            ImGui::ProgressBar(percentage, ImVec2(-1.0f, 0.0f));
             ImGui::TreePop();
         }
     }
