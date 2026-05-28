@@ -181,7 +181,7 @@ inline void InitScene(Scene& mainScene) {
 #pragma Enemy
     JPH::ShapeRefC enemyShape = new JPH::CapsuleShape(0.5f, 1.0f);
     JPH::BodyCreationSettings enemySettings(
-        enemyShape, JPH::RVec3(10.5f, 2.0f, 2.0f), JPH::Quat::sIdentity(),
+        enemyShape, JPH::RVec3(10.5f, 1.5f, 2.0f), JPH::Quat::sIdentity(),
         JPH::EMotionType::Dynamic, Physics::Layers::MOVING);
     Material* enemyMat =
         mainScene.Resources()->Get<Material>("./res/materials/jake.mat");
@@ -190,16 +190,19 @@ inline void InitScene(Scene& mainScene) {
 
 	SceneNode* enemy1 = mainScene.CreateNode("Enemy 1");
    // enemy1->GlobalTransform().Position() = glm::vec3(10.5f, 0.0f, -5.0f);
-    enemy1->GlobalTransform().Scale() = glm::vec3(0.5f, 0.5f, 0.5f);
-    enemy1->GlobalTransform().Position() = glm::vec3(15.f, 0.f, 0.f);
+        enemy1->GlobalTransform().Scale() = glm::vec3(0.5f, 0.5f, 0.5f);
+        enemy1->GlobalTransform().Position() = glm::vec3(15.f, 1.5f, 0.f);
     Physics::Body* enemyBody1 = enemy1->AddObject<Physics::Body>(enemySettings);
     enemyBody1->SetRestitution(0.0f);
+    enemyBody1->SetCollisionLayerAndMask({1}, 0xFFFFFFFF);
     auto* enemyAi1 = enemy1->AddObject<EnemySkeleton>();
     enemyAi1->SetSurface(surface);
     enemyAi1->SetTargetNode(player->GetNode());
     enemyAi1->SetProjectileResources(cubeMesh, enemyMat);
     enemyAi1->SetAttackCooldown(1.2f);
     enemyAi1->SetRoomID(floorNode->GetID());
+
+    enemyAi1->SetCapsuleVisualOffset(0.5f, 1.0f);
 
     
     SceneNode* enemyModel = ResourceDatabase::Global->Get<GltfScene>("./res/models/szkielet6.glb")->Instantiate(&mainScene, mainScene.root, "EnemyModel");

@@ -43,6 +43,7 @@ AiSimplified::AiSimplified()
   m_Body = nullptr;
   m_Surface = nullptr;
   myNode = GetNode();
+  
   // m_Body = myNode->GetObject<Physics::Body>();
 }
 
@@ -117,7 +118,7 @@ void AiSimplified::RotateNode(glm::vec3 dir) {
   }
 }
 
-void AiSimplified::SetTarget(glm::vec3 target) { m_TargetPosition = target; }
+void AiSimplified::SetTarget(glm::vec3 target) { m_TargetPosition = target; currentPos.y = target.y;}
 
 void AiSimplified::SetSurface(Surface* surface) {
   if (surface) {

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "./include/game_scripts/enemies/AiSimplified.h"
-#include <Player.h>
+//#include <Player.h>
 #include <Scene.h>
 #include <game_scripts/enemies/EnemyBase.h>
 

@@ -25,6 +25,14 @@ EnemyBase::EnemyBase()
 
 EnemyBase::~EnemyBase() {}
 
+void EnemyBase::Awake() {
+        // przesuñ wszystkie dzieci-modele w dó³ o offset kapsu³y
+        if (m_VisualOffset == 0.0f) return;
+        for (auto* child : GetNode()->GetChildren()) {
+            child->LocalTransform().Position() += glm::vec3(0.f, m_VisualOffset, 0.f);
+        }
+    }
+
 void EnemyBase::Attack() {
   // if (!m_TargetPosition) return;
   if (m_InAttackAnimation) return;

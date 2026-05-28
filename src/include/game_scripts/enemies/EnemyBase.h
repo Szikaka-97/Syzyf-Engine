@@ -22,6 +22,7 @@ private:
     float sightRange = 10.0f;
     bool playerInSightRange, playerInAttackRange;
     int m_RoomID = 0;
+    float m_VisualOffset = 0.0f;
     std::string m_CurrentAnimation;
     float m_AttackAnimationDuration = 1.0f;
     float m_AttackAnimationElapsed = 0.0f;
@@ -56,6 +57,8 @@ protected:
 public:
     EnemyBase();
     ~EnemyBase();
+    void Awake();
+
 
     bool m_InAttackAnimation = false;
 
@@ -69,6 +72,9 @@ public:
     int GetID() const { return m_RoomID; }
     void SetProjectileResources(Mesh* mesh, Material* material);
     void SetAttackCooldown(float cooldown);
+    void SetCapsuleVisualOffset(float halfHeight, float radius) {
+        m_VisualOffset = -(halfHeight + radius);
+    }
     void SetAttackAnimation(AnimationComponent* anim);
     void PlayAttackAnimation(std::string name);
 

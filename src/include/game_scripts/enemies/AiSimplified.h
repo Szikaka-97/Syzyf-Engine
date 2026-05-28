@@ -83,7 +83,7 @@ float m_StuckTimer = 0.0f;
     void SetPatrolPoints(const std::vector<glm::vec2>& points);
 
     SceneNode* m_TargetNode = nullptr;
-void SetTargetNode(SceneNode* node) { m_TargetNode = node; }
+void SetTargetNode(SceneNode* node) { m_TargetNode = node; currentPos.y = node->GlobalTransform().Position().y;}
 
    
 };
