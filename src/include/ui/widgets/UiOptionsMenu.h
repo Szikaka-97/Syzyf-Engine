@@ -6,6 +6,7 @@
 #include "ui/objects/UiLayout.h"
 #include "ui/objects/UiText.h"
 #include "ui/objects/UiVisual.h"
+#include "ui/widgets/UiDropdown.h"
 #include "ui/widgets/UiCheckbox.h"
 
 #include <functional>
@@ -13,10 +14,9 @@
 
 class UiOptionsMenu : public GameObject {
   public:
-    UiInteractable* resolutionButton = nullptr;
-    UiInteractable* fullscreenButton = nullptr;
-    UiInteractable* vsyncToggleButton = nullptr;
-    UiInteractable* ssaoButton = nullptr;
+    UiDropdown* resolutionDropdown = nullptr;
+    UiCheckbox* fullscreenCheckbox = nullptr;
+    UiCheckbox* vsyncCheckbox = nullptr;
     UiInteractable* applyButton = nullptr;
     UiInteractable* backButton = nullptr;
 
@@ -51,23 +51,6 @@ class UiOptionsMenu : public GameObject {
                 pendingSsao = app->GetSettings().ssaoEnabled;
             }
             initialized = true;
-        }
-
-        if (resolutionButton && resolutionButton->isDown) {
-            pendingResolutionIndex = (pendingResolutionIndex + 1) % 4;
-            spdlog::debug("Resolution set to {}x{}",
-                          resWidths[pendingResolutionIndex],
-                          resHeights[pendingResolutionIndex]);
-        }
-
-        if (fullscreenButton && fullscreenButton->isDown) {
-            pendingWindowed = !pendingWindowed;
-            spdlog::debug("Windowed toggled: {}", pendingWindowed);
-        }
-
-        if (vsyncToggleButton && vsyncToggleButton->isDown) {
-            pendingVsync = !pendingVsync;
-            spdlog::debug("VSync toggled: {}", pendingVsync);
         }
 
         if (applyButton && applyButton->isDown) {
@@ -134,72 +117,68 @@ inline UiOptionsMenu* Build(Scene& mainScene, Font* font) {
     controller->optionsMenuLayout = optionsGroup->AddObject<UiLayout>(
         glm::uvec2(400, 500), glm::ivec2(9999, 9999), 0, AnchorPoint::Center);
 
-    SceneNode* resolutionButtonNode =
-        mainScene.CreateNode(optionsGroup, "Resolution Button");
-    resolutionButtonNode->AddObject<UiLayout>(
-        glm::uvec2(200, 40), glm::ivec2(0, 200), 1, AnchorPoint::Center);
-    auto* resolutionVisual = resolutionButtonNode->AddObject<UiVisual>(
-        glm::vec4(0.4f, 0.4f, 0.4f, 1.0f));
-    resolutionVisual->colorHovered = glm::vec4(0.6f, 0.6f, 0.6f, 1.0f);
-    controller->resolutionButton =
-        resolutionButtonNode->AddObject<UiInteractable>();
-    SceneNode* resolutionTextNode =
-        mainScene.CreateNode(resolutionButtonNode, "Resolution Text");
-    resolutionTextNode->AddObject<UiLayout>(
-        glm::uvec2(200, 40), glm::ivec2(0, 0), 2, AnchorPoint::Center);
-    auto* resolutionText =
-        resolutionTextNode->AddObject<UiText>("Cycle Resolution", font);
-    resolutionText->fontSize = 20.0f;
+    // Resolution dropdown
 
-    SceneNode* fullscreenButtonNode =
-        mainScene.CreateNode(optionsGroup, "Fullscreen Button");
-    fullscreenButtonNode->AddObject<UiLayout>(
-        glm::uvec2(200, 40), glm::ivec2(0, 150), 1, AnchorPoint::Center);
-    auto* fullscreenVisual = fullscreenButtonNode->AddObject<UiVisual>(
-        glm::vec4(0.4f, 0.4f, 0.4f, 1.0f));
-    fullscreenVisual->colorHovered = glm::vec4(0.6f, 0.6f, 0.6f, 1.0f);
-    controller->fullscreenButton =
-        fullscreenButtonNode->AddObject<UiInteractable>();
-    SceneNode* fullscreenTextNode =
-        mainScene.CreateNode(fullscreenButtonNode, "Fullscreen Text");
-    fullscreenTextNode->AddObject<UiLayout>(
-        glm::uvec2(200, 40), glm::ivec2(0, 0), 2, AnchorPoint::Center);
-    auto* fullscreenText =
-        fullscreenTextNode->AddObject<UiText>("Toggle Windowed", font);
-    fullscreenText->fontSize = 20.0f;
+    // This checks the currently set settings resolution, so the dropdown displays the proper value by default
+    int initialResolutionIndex = 0;
+    for (int i = 0; i < 4; ++i) {
+        if (controller->resWidths[i] == settings.resolutionWidth &&
+            controller->resHeights[i] == settings.resolutionHeight) {
+            initialResolutionIndex = i;
+            break;
+        }
+    }
+    controller->pendingResolutionIndex = initialResolutionIndex;
+    
+    std::vector<std::string> resolutionOptions = {
+        "1280x720",
+        "1280x800",
+        "800x600",
+        "1920x1080"
+    };
 
-    SceneNode* vsyncButtonNode =
-        mainScene.CreateNode(optionsGroup, "VSync Button");
-    vsyncButtonNode->AddObject<UiLayout>(
-        glm::uvec2(200, 40), glm::ivec2(0, 100), 1, AnchorPoint::Center);
-    auto* vsyncVisual =
-        vsyncButtonNode->AddObject<UiVisual>(glm::vec4(0.4f, 0.4f, 0.4f, 1.0f));
-    vsyncVisual->colorHovered = glm::vec4(0.6f, 0.6f, 0.6f, 1.0f);
-    controller->vsyncToggleButton =
-        vsyncButtonNode->AddObject<UiInteractable>();
-    SceneNode* vsyncTextNode =
-        mainScene.CreateNode(vsyncButtonNode, "VSync Text");
-    vsyncTextNode->AddObject<UiLayout>(glm::uvec2(200, 40), glm::ivec2(0, 0), 2,
-                                       AnchorPoint::Center);
-    auto* vsyncText = vsyncTextNode->AddObject<UiText>("Toggle VSync", font);
-    vsyncText->fontSize = 20.0f;
+    SceneNode* dropdownNode = UiDropdown::Create(mainScene, font, resolutionOptions, controller->pendingResolutionIndex, optionsGroup);
 
-    SceneNode* ssaoButtonNode =
-        mainScene.CreateNode(optionsGroup, "SSAO Button");
-    ssaoButtonNode->AddObject<UiLayout>(glm::uvec2(200, 40), glm::ivec2(0, 0),
-                                        1, AnchorPoint::Center);
-    auto* ssaoVisual =
-        ssaoButtonNode->AddObject<UiVisual>(glm::vec4(0.4f, 0.4f, 0.4f, 1.0f));
-    ssaoVisual->colorHovered = glm::vec4(0.6f, 0.6f, 0.6f, 1.0f);
-    controller->ssaoButton = ssaoButtonNode->AddObject<UiInteractable>();
-    SceneNode* ssaoTextNode = mainScene.CreateNode(ssaoButtonNode, "SSAO Text");
-    ssaoTextNode->AddObject<UiLayout>(glm::uvec2(200, 40), glm::ivec2(0, 0), 2,
-                                      AnchorPoint::Center);
-    auto* ssaoText = ssaoTextNode->AddObject<UiText>("Toggle SSAO", font);
-    ssaoText->fontSize = 20.0f;
+    if (auto* layout = dropdownNode->GetObject<UiLayout>()) {
+        layout->offset = glm::ivec2(0, 200);
+    }
 
+    controller->resolutionDropdown = dropdownNode->GetObject<UiDropdown>();
+    if (controller->resolutionDropdown) {
+        controller->resolutionDropdown->OnValueChanged = [controller](int newIndex) {
+            controller->pendingResolutionIndex = newIndex;
+            spdlog::debug("Resolution dropdown changed to {}x{}", controller->resWidths[newIndex], controller->resHeights[newIndex]);
+        };
+    }
+
+    // Fullscreen 
+    SceneNode* fullscreenCheckboxNode = UiCheckbox::Create(mainScene, font, "Toggle Windowed", settings.windowed, optionsGroup);
+    if (auto* layout = fullscreenCheckboxNode->GetObject<UiLayout>()) {
+        layout->offset = glm::ivec2(0, 150);
+    }
+    controller->fullscreenCheckbox = fullscreenCheckboxNode->GetObject<UiCheckbox>();
+    if (controller->fullscreenCheckbox) {
+        controller->fullscreenCheckbox->OnValueChanged = [controller](bool isChecked) {
+            controller->pendingWindowed = isChecked;
+            spdlog::debug("Windowed toggled: {}", controller->pendingWindowed);
+        };
+    }
+
+    // VSync 
+    SceneNode* vsyncCheckboxNode = UiCheckbox::Create(mainScene, font, "Toggle VSync", settings.vsyncEnabled, optionsGroup);
+    if (auto* layout = vsyncCheckboxNode->GetObject<UiLayout>()) {
+        layout->offset = glm::ivec2(0, 100);
+    }
+    controller->vsyncCheckbox = vsyncCheckboxNode->GetObject<UiCheckbox>();
+    if (controller->vsyncCheckbox) {
+        controller->vsyncCheckbox->OnValueChanged = [controller](bool isChecked) {
+            controller->pendingVsync = isChecked;
+            spdlog::debug("VSync toggled: {}", controller->pendingVsync);
+        };
+    }
+
+    // SSAO 
     SceneNode* ssaoCheckboxNode = UiCheckbox::Create(mainScene, font, "SSAO Checkbox", settings.ssaoEnabled, optionsGroup);
-
     if (auto* layout = ssaoCheckboxNode->GetObject<UiLayout>()) {
         layout->offset = glm::ivec2(0, 50);
     }
@@ -215,6 +194,7 @@ inline UiOptionsMenu* Build(Scene& mainScene, Font* font) {
         };
     }
 
+    // Apply button
     SceneNode* applyButtonNode =
         mainScene.CreateNode(optionsGroup, "Apply Button");
     applyButtonNode->AddObject<UiLayout>(
@@ -230,6 +210,7 @@ inline UiOptionsMenu* Build(Scene& mainScene, Font* font) {
     auto* applyText = applyTextNode->AddObject<UiText>("Apply Changes", font);
     applyText->fontSize = 20.0f;
 
+    // Back button
     SceneNode* backButtonNode =
         mainScene.CreateNode(optionsGroup, "Back Button");
     backButtonNode->AddObject<UiLayout>(glm::uvec2(150, 40), glm::ivec2(0, 50),
@@ -247,4 +228,3 @@ inline UiOptionsMenu* Build(Scene& mainScene, Font* font) {
     return controller;
 }
 } // namespace OptionsMenu
-
