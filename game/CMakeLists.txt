@@ -18,6 +18,16 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release")
     set_target_properties(Bimberman PROPERTIES WIN32_EXECUTABLE TRUE)
 endif()
 
+if (WIN32)
+    add_custom_command(
+        TARGET Bimberman POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy
+        ${CMAKE_CURRENT_BINARY_DIR}/../_deps/joltphysics-build/libJolt.dll
+        ${CMAKE_CURRENT_BINARY_DIR}/libJolt.dll
+    )
+
+endif()
+
 add_custom_command(TARGET Bimberman POST_BUILD
                    COMMAND ${CMAKE_COMMAND} -E create_symlink
                    ${CMAKE_SOURCE_DIR}/res
