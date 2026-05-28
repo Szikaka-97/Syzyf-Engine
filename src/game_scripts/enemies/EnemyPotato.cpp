@@ -191,6 +191,8 @@ void EnemyPotato::Update() {
     // with the physics body position or the jump will snap back.
     if (!m_IsAttacking) {
         currentPos = m_Body->GetPosition();
+        
+    currentPos.y = m_TargetPosition.y;
         myNode->GlobalTransform().Position() = currentPos;
         myNode->GlobalTransform().Rotation() = m_Body->GetRotation();
     } else {

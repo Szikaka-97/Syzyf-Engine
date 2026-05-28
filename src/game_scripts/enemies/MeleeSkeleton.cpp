@@ -35,6 +35,8 @@ void MeleeSkeleton::UpdateAttackSequence() {
     if (!myNode) return;
 
     currentPos = m_Body->GetPosition();
+    
+    currentPos.y = m_TargetPosition.y;
     myNode->GlobalTransform().Position() = currentPos;
     myNode->GlobalTransform().Rotation() = m_Body->GetRotation();
     glm::vec3 dirToTarget = m_TargetPosition - currentPos;
