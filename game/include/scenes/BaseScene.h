@@ -60,9 +60,7 @@ public:
 	void Awake() {
 		int index = 0;
 		SceneNode* lightNode = GetNode()->FindNode(std::format("Light.{:03}", index));
-		spdlog::info(std::format("Light.{:03}", index));
 		while (lightNode) {
-			spdlog::info("Spawned light");
 			SceneNode* lightPointNode = lightNode->FindNode(std::format("PointLight.{:03}", index));
 	
 			this->lights.push_back(lightPointNode->AddObject<Light>(Light::PointLight(glm::vec3(1, 0.5f, 0.1f), 10, 3)));
@@ -218,6 +216,7 @@ public:
 		this->tutorialText = text3dNode->AddObject<Text3D>(" ", papyrusFont);
 		this->tutorialText->color = {1.2f, 0.3f, 0.0f, 0.0f};
 		this->tutorialText->billboardMode = BillboardMode::Enabled;
+		this->tutorialText->SetAlignment(TextAlignment::Middle);
 
 		this->timePoint = Time::Current();
 	}
