@@ -43,6 +43,7 @@
 
 #include <fog/FogVolume.h>
 #include <PersistentData.h>
+#include <text/Text3D.h>
 
 namespace BaseScene {
 
@@ -52,13 +53,56 @@ class GateKey : public PickableItem {
 	}
 };
 
+class BaseLights : public GameObject {
+private:
+	std::vector<Light*> lights;
+public:
+	void Awake() {
+		int index = 0;
+		SceneNode* lightNode = GetNode()->FindNode(std::format("Light.{:03}", index));
+		spdlog::info(std::format("Light.{:03}", index));
+		while (lightNode) {
+			spdlog::info("Spawned light");
+			SceneNode* lightPointNode = lightNode->FindNode(std::format("PointLight.{:03}", index));
+	
+			this->lights.push_back(lightPointNode->AddObject<Light>(Light::PointLight(glm::vec3(1, 0.5f, 0.1f), 10, 3)));
+	
+			index++;
+			
+			lightNode = GetNode()->FindNode(std::format("Light.{:03}", index));
+		}
+	}
+
+	void Update() {
+		int index = 0;
+
+		float lightsOnTime = PersistentData::Get<float>("Base_TurnLightsOn");
+
+		for (Light* l : this->lights) {
+			l->SetIntensity(3 + glm::sin(Time::Current() * (0.6 + (l->GetID() % 4) * 0.15) + l->GetID() * 4) * 0.5f);
+
+			if (index >= 2) {
+				if (lightsOnTime != 0) {
+					float intens = l->GetIntensity();
+					l->SetIntensity(intens * glm::clamp(Time::Current() - lightsOnTime, 0.f, 1.f));
+				}
+				else {
+					l->SetIntensity(0);
+				}
+			}
+
+			index++;
+		}
+	}
+};
+
 class BaseScript : public GameObject { // Move to own file later
 private:
 	SceneNode* gate;
 	glm::vec3 exitVolume;
 	SceneNode* key;
-
 	bool gateLowering = false;
+
 public:
 	void Awake() {
 		this->gate = GetNode()->FindNode("Exit Gate");
@@ -110,8 +154,13 @@ public:
 		if (!this->gateLowering && glm::distance(
 			PlayerController::Instance()->GlobalTransform().Position().Value(),
 			this->gate->GlobalTransform().Position().Value()
-		) < 1 && PersistentData::Get<bool>("Base_PlayerPickedUpKey")) {
-			this->gateLowering = true;
+		) < 2) {
+			if (PersistentData::Get<bool>("Base_PlayerPickedUpKey")) {
+				this->gateLowering = true;
+			}
+			else {
+				PersistentData::Set<bool>("Base_PlayerBoopedGate", true);
+			}
 		}
 
 		if (this->gateLowering) {
@@ -128,6 +177,150 @@ public:
 	}
 };
 
+class BaseTutorialManager : public GameObject {
+private:
+	Text3D* tutorialText;
+	float timePoint;
+	bool playerStartedMoving = false;
+	bool playerReachedDoors = false;
+	bool playerMovedAwayFromDoors = false;
+	bool playerFoundKey = false;
+	bool playerGotCloseToKey = false;
+
+	float TimeSincePoint() const {
+		return Time::Current() - timePoint;
+	}
+public:
+	void Awake() {
+		TextureParams fontTextureParams = {
+			.channels = TextureChannels::RGB,
+			.colorSpace = TextureColor::Linear,
+			.format = TextureFormat::Ubyte,
+			.wrapU = TextureWrap::Clamp,
+			.wrapV = TextureWrap::Clamp,
+			.minFilter = TextureFilter::Linear,
+			.magFilter = TextureFilter::Linear
+		};
+
+		Texture2D* papyrusAtlas = GetScene()->Resources()->Get<Texture2D>(
+			"./res/fonts/Papyrus/Papyrus-Regular.png",
+			fontTextureParams
+		);
+		Font* papyrusFont = GetScene()->Resources()->Get<Font>(
+			"./res/fonts/Papyrus/Papyrus-Regular.json",
+			papyrusAtlas,
+			false
+		);
+
+		SceneNode* text3dNode = GetScene()->CreateNode("Text 3D");
+		text3dNode->LocalTransform().Position() = {3.0f, 2.0f, 1.0f};
+		text3dNode->GlobalTransform().Scale() = glm::vec3(0.4f);
+		this->tutorialText = text3dNode->AddObject<Text3D>(" ", papyrusFont);
+		this->tutorialText->color = {1.2f, 0.3f, 0.0f, 0.0f};
+		this->tutorialText->billboardMode = BillboardMode::Enabled;
+
+		this->timePoint = Time::Current();
+	}
+
+	void Update() {
+		if (!playerStartedMoving) {
+			if (GetScene()->Input()->KeyPressed(Key::W) | GetScene()->Input()->KeyPressed(Key::A) | GetScene()->Input()->KeyPressed(Key::S) | GetScene()->Input()->KeyPressed(Key::D)) {
+				playerStartedMoving = true;
+
+				timePoint = Time::Current();
+			}
+
+			if (TimeSincePoint() > 3) {
+				this->tutorialText->SetText("You can use WASD to move around");
+				this->tutorialText->color.w = glm::clamp(this->tutorialText->color.w + Time::Delta(), 0.f, 1.f);
+			}
+			return;
+		}
+		else if (!PersistentData::Get<bool>("Base_PlayerBoopedGate")) {
+			this->tutorialText->color.w = glm::clamp(this->tutorialText->color.w - Time::Delta() * 2, 0.f, 1.f);
+		}
+
+		if (PersistentData::Get<bool>("Base_PlayerBoopedGate") && !this->playerMovedAwayFromDoors) {
+			if (!this->playerReachedDoors) {
+				this->playerReachedDoors = true;
+
+				this->timePoint = Time::Current();
+			}
+
+			this->tutorialText->GlobalTransform().Position() = glm::vec3(1.6, 2, 8.5);
+
+			if (TimeSincePoint() > 0.8 && PersistentData::Get<float>("Base_TurnLightsOn") == 0) {
+				spdlog::info("Turning on the lights");
+				PersistentData::Set<float>("Base_TurnLightsOn", Time::Current());
+			}
+			if (TimeSincePoint() > 0.5) {
+				this->tutorialText->SetText("The gate is locked\nFind a key to open it");
+
+				float distFromDoors = glm::distance(
+					PlayerController::Instance()->GlobalTransform().Position().Value(),
+					GetNode()->FindNode("Exit Gate")->GlobalTransform().Position().Value()
+				);
+
+				this->tutorialText->color.w = glm::clamp(this->tutorialText->color.w + Time::Delta(), 0.f, glm::min(1.0f, 1.0f + 1.f - distFromDoors / 2));
+				
+				if (distFromDoors > 4) {
+					this->tutorialText->color.w = 0;
+
+					this->timePoint = Time::Current();
+
+					this->playerMovedAwayFromDoors = true;
+				}
+			}
+		}
+
+		if (this->playerMovedAwayFromDoors && !this->playerGotCloseToKey) {
+			if (TimeSincePoint() > 1) {
+				this->tutorialText->GlobalTransform().Position() = PlayerController::Instance()->GlobalTransform().Position() + glm::vec3(0, 1.5, 0);
+				this->tutorialText->SetText("Use Q + E to rotate the camera");
+				this->tutorialText->color.w = glm::clamp(this->tutorialText->color.w + Time::Delta(), 0.f, 1.f);
+
+				if (!PersistentData::Get<bool>("Base_PlayerPickedUpKey")) {
+					GetNode()->GetObjectInChildren<GateKey>()->GetObject<MeshRenderer>()->maskFlags = MaskEffectBits::Outline;
+				}
+			}
+
+			CameraSettings* cam = GetScene()->FindObjectsOfType<CameraSettings>()[0];
+
+			if (cam->angleY > 180) {
+				this->playerFoundKey = true;
+			}
+		}
+
+		if (this->playerFoundKey && !this->playerGotCloseToKey) {
+			this->tutorialText->color.w = glm::clamp(this->tutorialText->color.w - Time::Delta() * 2, 0.f, 1.f);
+
+			if (!PersistentData::Get<bool>("Base_PlayerPickedUpKey")) {
+				float distToKey = glm::distance(
+					GetNode()->GetObjectInChildren<GateKey>()->GlobalTransform().Position().Value(),
+					PlayerController::Instance()->GlobalTransform().Position().Value()
+				);
+				
+				if (distToKey < 1) {
+					this->playerGotCloseToKey = true;
+
+					this->timePoint = Time::Current();
+				}
+			}
+		}
+
+		if (this->playerGotCloseToKey) {
+			this->tutorialText->SetText("Use G to pick up objects that are near you");
+
+			if (!PersistentData::Get<bool>("Base_PlayerPickedUpKey")) {
+				this->tutorialText->color.w = glm::clamp(this->tutorialText->color.w + Time::Delta(), 0.f, 1.f);
+			}
+			else {
+				this->tutorialText->color.w = glm::clamp(this->tutorialText->color.w - Time::Delta(), 0.f, 1.f);
+			}
+		}
+	}
+};
+
 inline void InitScene(Scene& mainScene) {
 	mainScene.AddComponent<Physics::System>();
 	mainScene.AddComponent<DebugInspector>();
@@ -137,6 +330,8 @@ inline void InitScene(Scene& mainScene) {
 	auto* tweenSystem = mainScene.AddComponent<TweenSystem>();
 	mainScene.AddComponent<WheelSystem>();
 	mainScene.AddComponent<ThrowableObjectPool>();
+
+	mainScene.GetComponent<LightSystem>()->SetAmbientLight(glm::vec4(1, 0.6, 0.3, 0.03));
 
 #pragma region Base
 	auto floorNode = ResourceDatabase::Global->Get<GltfScene>("./res/models/rooms/Base.glb")->Instantiate(&mainScene, mainScene.root, "Floor");
@@ -149,7 +344,6 @@ inline void InitScene(Scene& mainScene) {
 		}
 	);
 	floorBody->SetCollisionLayerAndMask({0}, 0xFFFFFFFF);
-	mainScene.GetComponent<LightSystem>()->SetAmbientLight({1.0f, 1.0f, 1.0f, 0.6f});
 
 	ShaderProgram* skyProg = ShaderProgram::Build()
 	.WithVertexShader(("./res/shaders/skybox.vert"))
@@ -157,7 +351,7 @@ inline void InitScene(Scene& mainScene) {
 	.Link();
 
 	Cubemap* skyCubemap = mainScene.Resources()->Get<Cubemap>(
-		"./res/textures/citrus_orchard_road_puresky.hdr",
+		"./res/textures/null_skybox.hdr",
 		Texture::HDRColorBuffer
 	);
 	skyCubemap->SetWrapModeU(TextureWrap::Clamp);
@@ -170,15 +364,19 @@ inline void InitScene(Scene& mainScene) {
 	floorNode->AddObject<Skybox>(skyMat);
 
 	auto* exitFogNode = mainScene.CreateNode(floorNode, "Exit Fog");
-	exitFogNode->GlobalTransform().Position() = glm::vec3(1.6686f, 0, 12.25);
-	exitFogNode->GlobalTransform().Scale() = glm::vec3(4, 4, 4);
+	exitFogNode->GlobalTransform().Position() = glm::vec3(1.6686f, -1, 20);
+	exitFogNode->GlobalTransform().Rotation() = glm::radians(glm::vec3(-8, 0, 0));
+	exitFogNode->GlobalTransform().Scale() = glm::vec3(4, 4, 17);
 	auto* exitFog = exitFogNode->AddObject<FogVolume>();
 	exitFog->scatteringDensity = 0.5;
 	exitFog->absorptionDensity = 0.1;
 	exitFog->coverage = 0.1;
 	exitFog->sharpness = 3.5;
+	exitFog->emissiveStrength = 0.06;
 
 	floorNode->AddObject<BaseScript>();
+	floorNode->AddObject<BaseLights>();
+	floorNode->AddObject<BaseTutorialManager>();
 #pragma endregion
 
 #pragma region Player
@@ -194,6 +392,8 @@ inline void InitScene(Scene& mainScene) {
 	)->Instantiate(&mainScene, mainScene.root, "Bimberman");
 
 	bimberman->SetParent(playerNode);
+
+	playerNode->GlobalTransform().Position() = glm::vec3(4, 0, -1);
 
 	auto* virtualCharacter = playerNode->AddObject<Physics::VirtualCharacterController>(characterSettings);
 	virtualCharacter->SetCollisionLayerAndMask({1}, 0xFFFFFFFF);
