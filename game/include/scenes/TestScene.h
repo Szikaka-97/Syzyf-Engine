@@ -10,7 +10,6 @@
 #include "game_scripts/PickableItemSystem.h"
 #include "ui/widgets/wheel/UiWheel.h"
 #include <game_scripts/AimCrosshair.h>
-#include <game_scripts/Player.h>
 #include <game_scripts/PlayerController.h>
 
 #include <Bloom.h>

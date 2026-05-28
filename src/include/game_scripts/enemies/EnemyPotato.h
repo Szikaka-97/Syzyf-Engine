@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include <./include/game_scripts/enemies/EnemyBase.h>
+#include <./include/game_scripts/enemies/loot/LootPool.h>
 #include <glm/glm.hpp>
 
 /// Phases of the potato's jump-and-plunge attack.
@@ -47,7 +48,9 @@ public:
     EnemyPotato();
 
     void Update();
-
+    LootPool& GetLootPool() override{return LootPool::GetPotatoLootPool();};
     /// Supply the mesh / material used to render the ground shadow.
     void SetShadowResources(Mesh* mesh, Material* mat);
 };
+
+

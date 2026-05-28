@@ -29,7 +29,7 @@
 #include <game_scripts/enemies/EnemySkeleton.h>
 #include <fog/FogVolume.h>
 #include <game_scripts/CameraSettings.h>
-#include <game_scripts/Player.h>
+#include <physics/VirtualCharacterController.h>
 #include <game_scripts/PlayerController.h>
 #include <glm/fwd.hpp>
 #include <glm/geometric.hpp>
@@ -52,6 +52,8 @@
 #include <imgui.h>
 #include <memory>
 #include <physics/VirtualCharacterController.h>
+#include <game_scripts/enemies/MeleeSkeleton.h>
+#include <game_scripts/enemies/EnemyBeetroot.h>
 
 namespace ExampleParticlesAndScatter {
 
@@ -339,6 +341,7 @@ inline void InitScene(Scene& mainScene) {
             Physics::MeshShape(floorMeshRenderer->GetMesh()),
             JPH::RVec3::sZero(), JPH::Quat::sZero(), JPH::EMotionType::Static,
             Physics::Layers::NON_MOVING});
+    auto* surface = floorNode->AddObject<Surface>(floorMeshRenderer->GetMesh(), 1.0f);
 
 #pragma endregion
 #pragma region Player
@@ -355,27 +358,125 @@ inline void InitScene(Scene& mainScene) {
         "./res/models/bimbermann_throwing.glb")->Instantiate(&mainScene, mainScene.root, "Bimberman");
     bimberman->SetParent(playerNode);
 
-    auto* virtualCharacter =
-        playerNode->AddObject<Physics::VirtualCharacterController>(
-            characterSettings);
+    auto* virtualCharacter = playerNode->AddObject<Physics::VirtualCharacterController>(characterSettings);
     virtualCharacter->SetPosition(
         playerNode->GlobalTransform().Position().Value());
     virtualCharacter->SetGravityFactor(0);
     virtualCharacter->SetCollisionLayerAndMask({0}, 0);
+    
+    auto* aimingAid = ResourceDatabase::Global->Get<GltfScene>("./res/models/crosshair.glb")->Instantiate(&mainScene, playerNode, "Aim Reticle")->AddObject<AimCrosshair>();
+    
     auto* player = playerNode->AddObject<PlayerController>();
 
-    // auto* aimingAid = mainScene.CreateNode("AimingAid")->AddObject<AimingAid>();
-
-    // aimingAid->crosshair = GltfImporter::LoadScene(
-    //     &mainScene, "./res/models/crosshair.glb", "crosshair", floorNode);
-    // aimingAid->crosshair->SetParent(aimingAid->GetNode());
-
-    // player->aim = aimingAid;
-
-    player->AddObject<Player>();
 
 #pragma endregion
 
+#pragma region Enemy
+    /*JPH::BodyCreationSettings enemyShapeSettings = JPH::BodyCreationSettings(
+        Physics::MeshShape(floorMeshRenderer->GetMesh()), JPH::RVec3::sZero(),
+        JPH::Quat::sZero(), JPH::EMotionType::Dynamic, Physics::Layers::MOVING);*/
+   
+
+
+    JPH::ShapeRefC enemyShape = new JPH::CapsuleShape(0.5f, 1.0f);
+    JPH::BodyCreationSettings enemySettings(
+        enemyShape, JPH::RVec3(10.5f, 2.0f, 2.0f), JPH::Quat::sIdentity(),
+        JPH::EMotionType::Dynamic, Physics::Layers::MOVING);
+    Material* enemyMat =
+        mainScene.Resources()->Get<Material>("./res/materials/jake.mat");
+    Mesh* cubeMesh =
+        mainScene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
+    
+
+    SceneNode* enemy1 = mainScene.CreateNode("Enemy 1");
+    enemy1->GlobalTransform().Scale() = glm::vec3(0.5f, 0.5f, 0.5f);
+    Physics::Body* enemyBody1 = enemy1->AddObject<Physics::Body>(enemySettings);
+    enemyBody1->SetRestitution(0.0f);
+    auto* enemyAi1 = enemy1->AddObject<MeleeSkeleton>();
+    enemyAi1->SetSurface(surface);
+    enemyAi1->SetTargetNode(player->GetNode());
+    enemyAi1->SetProjectileResources(cubeMesh, enemyMat);
+    enemyAi1->SetAttackCooldown(1.2f);
+    enemyAi1->SetRoomID(1);
+
+    SceneNode* enemyModel = mainScene.resources.Get<GltfScene>("./res/models/szkielet6.glb")->Instantiate(&mainScene, enemy1, "EnemyModel");
+    enemyModel->GlobalTransform().Scale() = glm::vec3(0.1,0.1,0.1);
+    enemy1->GlobalTransform().Position() = glm::vec3(10.5f, 0.0f, -5.0f);
+    enemyModel->LocalTransform().Position() = glm::vec3(0);
+
+    auto* animComp = enemyModel->GetObjectInChildren<AnimationComponent>();
+    if (animComp) {
+        spdlog::info(
+            "Found AnimationComponent in enemy model, animations count: {}",
+            animComp->animations.size());
+    } else {
+        spdlog::warn("No AnimationComponent found in enemy model");
+    }
+
+    if (animComp) {
+        enemyAi1->SetAttackAnimation(animComp);
+    }
+
+    // SceneNode* enemy2 = mainScene.CreateNode("Enemy 2");
+    // //enemy2->GlobalTransform().Position() = glm::vec3(12.0f, 0.0f, -5.0f);
+    // enemy2->GlobalTransform().Scale() = glm::vec3(0.5f, 0.5f, 0.5f);
+    // Physics::Body* enemyBody2 = enemy2->AddObject<Physics::Body>(enemySettings);
+    // enemyBody2->SetRestitution(0.0f);
+    // auto* enemyAi2 = enemy2->AddObject<EnemyBeetroot>();
+    // enemyAi2->SetSurface(surface);
+    // enemyAi2->SetTargetNode(player->GetNode());
+    // enemyAi2->SetProjectileResources(cubeMesh, enemyMat);
+    // enemyAi2->SetAttackCooldown(1.2f);
+    // enemyAi2->SetRoomID(1);
+
+    // SceneNode* enemyModel2 = mainScene.resources.Get<GltfScene>("./res/models/enemies/ziemniak_remake.glb")->Instantiate(&mainScene, enemy2, "EnemyModel2");
+    // //enemyModel2->GlobalTransform().Scale() = glm::vec3(0.1, 0.1, 0.1);
+    // auto* animComp2 = enemyModel2->GetObjectInChildren<AnimationComponent>();
+    // if (animComp2) {
+    //     spdlog::info(
+    //         "Found AnimationComponent in enemy model 2, animations count: {}",
+    //         animComp2->animations.size());
+    // } else {
+    //     spdlog::warn("No AnimationComponent found in enemy model 2");
+    // }
+    // if (animComp2) {
+    //     enemyAi2->SetAttackAnimation(animComp2);
+    // }
+
+    // SceneNode* enemy3 = mainScene.CreateNode("Enemy 3");
+    // //enemy3->GlobalTransform().Position() = glm::vec3(13.5f, 0.0f, -5.0f);
+    // //enemy3->GlobalTransform().Scale() = glm::vec3(0.5f, 0.5f, 0.5f);
+    // Physics::Body* enemyBody3 = enemy3->AddObject<Physics::Body>(enemySettings);
+    // enemyBody3->SetRestitution(0.0f);
+    // auto* enemyAi3 = enemy3->AddObject<EnemyPotato>();
+    // enemyAi3->SetSurface(surface);
+    // enemyAi3->SetTargetNode(player->GetNode());
+    // enemyAi3->SetProjectileResources(cubeMesh, enemyMat);
+    // enemyAi3->SetAttackCooldown(1.2f);
+    // enemyAi3->SetRoomID(1);
+
+    // SceneNode* enemyModel3 = GltfImporter::LoadScene(
+    //     &mainScene, "./res/models/enemies/burak_macki2.glb", "EnemyModel3");
+    // enemyModel3->SetParent(enemy3);
+    // //enemyModel3->GlobalTransform().Scale() = glm::vec3(0.1, 0.1, 0.1);
+    // auto* animComp3 = enemyModel3->GetObjectInChildren<AnimationComponent>();
+    // if (animComp3) {
+    //     spdlog::info(
+    //         "Found AnimationComponent in enemy model 3, animations count: {}",
+    //         animComp3->animations.size());
+    // } else {
+    //     spdlog::warn("No AnimationComponent found in enemy model 3");
+    // }   
+    // if (animComp3) {
+    //     enemyAi3->SetAttackAnimation(animComp3);
+    // }
+
+    surface->AddEnemy(enemyAi1);
+    // surface->AddEnemy(enemyAi2);
+    // surface->AddEnemy(enemyAi3);
+    surface->InformEnter(); 
+
+#pragma endregion
 #pragma region Camera
 
     SceneNode* cameraNode = mainScene.CreateNode("Camera Node");
@@ -404,9 +505,6 @@ inline void InitScene(Scene& mainScene) {
 #pragma endregion
 
 #pragma region Scatter
-    Mesh* cubeMesh =
-        mainScene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
-
     ShaderProgram* scatterProgram =
         ShaderProgram::Build()
             .WithVertexShader("./res/shaders/scatter/scatter.vert")

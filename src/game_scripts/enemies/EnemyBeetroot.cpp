@@ -123,7 +123,7 @@ void EnemyBeetroot::OnSegmentHitPlayer() {
 // ──────────────────────────────────────────────────────────────────────────────
 void EnemyBeetroot::Update() {
     EnsureBody();
-
+    LockXZRotation();
     if (m_TargetNode)
         m_TargetPosition = m_TargetNode->GlobalTransform().Position();
     else

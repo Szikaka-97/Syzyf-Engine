@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include <./include/game_scripts/enemies/EnemyBase.h>
+#include <./include/game_scripts/enemies/loot/LootPool.h>
 #include <array>
 #include <vector>
 
@@ -42,10 +43,13 @@ public:
     EnemyBeetroot();
 
     void Update();
-
+    LootPool& GetLootPool() {
+    return LootPool::GetBeetrootLootPool();
+};
     /// Supply the mesh / material used to render each ground segment.
     void SetSegmentResources(Mesh* mesh, Material* mat);
 
     /// Called by BeetrootSegment when it damages the player.
     void OnSegmentHitPlayer();
 };
+

@@ -48,7 +48,7 @@ protected:
     void EnsureBody();  
         void AstarChase();
     void DirectChase();
-
+    void LockXZRotation();
 protected:
     void  SetMovementSpeed(float s) { m_Speed = s; }
     float GetMovementSpeed() const  { return m_Speed; }

@@ -39,6 +39,8 @@ public:
     void Update();
  
     bool IsExpired() const { return m_Expired; }
+
+    void SetEffectRenderer(Mesh* mesh, Material* mat);
  
 protected:
     float m_Elapsed = 0.0f;

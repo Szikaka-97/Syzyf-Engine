@@ -1,10 +1,24 @@
-#include <game_scripts/enemies/EnemySkeleton.h>
+#include "./include/game_scripts/enemies/AiSimplified.h"
+#include"./include/game_scripts/enemies/MeleeSkeleton.h"
 #include <Scene.h>
+#include <./include/game_scripts/enemies/EnemyBase.h>
 
+#include "game_scripts/PlayerController.h"
+#include <MeshRenderer.h>
+#include <TimeSystem.h>
 #include <glm/glm.hpp>
+#include <spdlog/spdlog.h>
 
+void MeleeSkeleton::StartAttack() {
+    m_IsAttacking         = true;
+    StopMoving();
+    }
 
-  void EnemySkeleton::Update() {
+void MeleeSkeleton::UpdateAttackSequence() {
+
+}
+
+  void MeleeSkeleton::Update() {
 
     EnsureBody();
     LockXZRotation();
@@ -30,6 +44,13 @@
       StopMoving();
       return;
     }
+
+    if (m_IsAttacking) {
+        StopMoving();
+        UpdateAttackSequence();
+        return;
+    }
+
     if (isPlayerInRoom) {
       float dist = glm::distance(currentPos, m_TargetPosition);
       if (m_hp <= 30) {
@@ -63,8 +84,12 @@
         DirectChase();
         break;
       case States::ATTACKING:
-        StopMoving();
-        Attack();
+        if (!m_IsAttacking && m_AttackCooldown <= 0.0f)
+                StartAttack();
+            else {
+                StopMoving();
+                m_AttackCooldown -= Time::Delta();
+            }
         break;
       case States::FLEEING:
         Flee();

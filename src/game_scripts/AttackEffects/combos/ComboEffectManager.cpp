@@ -6,6 +6,12 @@
 #include <TimeSystem.h>
 #include <spdlog/spdlog.h>
 
+#include "./include/game_scripts/AttackEffects/combos/ComboExplodeConfuse.h"
+#include "./include/game_scripts/AttackEffects/combos/ComboPetrifyConfuse.h"
+#include "./include/game_scripts/AttackEffects/combos/ComboFireConfuse.h"
+#include "./include/game_scripts/AttackEffects/combos/ComboTornadoConfuse.h"
+#include "./include/game_scripts//enemies/EnemyBullet.h"
+
 static void RotateNodeY(SceneNode* node, float degPerSec) {
     if (!node) return;
     glm::quat delta = glm::angleAxis(glm::radians(degPerSec * Time::Delta()),
@@ -168,4 +174,126 @@ void ComboExplodeTornado::Update() {
     }
 
     // TODO: EnemyBullet capture (see note at top of file)
+}
+
+static bool PreciseFromCount(int count) { return count == 2; }
+
+void ComboExplodeConfuse::ApplyTo(EnemyBase* enemy) {
+    enemy->TakeDamage(static_cast<int>(GetDamage()));
+
+    float confuseDur = duration * effect2Strength;
+    enemy->ApplyConfuse(confuseDur, PreciseFromCount(ingredientCount));
+
+    spdlog::debug("ComboExplodeConfuse: hit enemy — dmg={:.0f}, confuseDur={:.1f}s",
+                  GetDamage(), confuseDur);
+}
+
+void ComboExplodeConfuse::Update() {
+    if (myNode) {
+        glm::vec3 s = myNode->GlobalTransform().Scale();
+        s.x += Time::Delta();
+        s.z += Time::Delta();
+        myNode->GlobalTransform().Scale() = s;
+    }
+
+    ComboEffectBase::Update();
+    if (m_Expired) return;
+
+    for (auto* enemy : ScanNearbyEnemies()) {
+        if (m_HitEnemies.count(enemy)) continue;
+        m_HitEnemies.insert(enemy);
+        ApplyTo(enemy);
+    }
+}
+
+void ComboPetrifyConfuse::ApplyTo(EnemyBase* enemy) {
+    float slowFactor = 0.5f + 0.5f * (1.0f - effect1Strength);
+    float petrifyDur = duration * effect1Strength;
+    enemy->ApplyPetrify(slowFactor, petrifyDur);
+
+    float confuseDur = duration * effect2Strength;
+    enemy->ApplyConfuse(confuseDur, PreciseFromCount(ingredientCount));
+
+    spdlog::debug("ComboPetrifyConfuse: slowFactor={:.2f} petrifyDur={:.1f}s confuseDur={:.1f}s",
+                  slowFactor, petrifyDur, confuseDur);
+}
+
+void ComboPetrifyConfuse::Update() {
+    ComboEffectBase::Update();
+    if (m_Expired) return;
+
+    for (auto* enemy : ScanNearbyEnemies()) {
+        if (m_HitEnemies.count(enemy)) continue;
+        m_HitEnemies.insert(enemy);
+        ApplyTo(enemy);
+    }
+}
+
+void ComboFireConfuse::ApplyTo(EnemyBase* enemy) {
+    float burnDur = duration * (1.0f - effect2Strength);
+    enemy->ApplyBurn(GetDamage(), burnDur);
+
+    float confuseDur = duration * effect2Strength;
+    enemy->ApplyConfuse(confuseDur, PreciseFromCount(ingredientCount));
+
+    enemy->TakeDamage(static_cast<int>(GetDamage()));
+
+    spdlog::debug("ComboFireConfuse: burn={:.1f}s confuse={:.1f}s dmg={:.0f}",
+                  burnDur, confuseDur, GetDamage());
+}
+
+void ComboFireConfuse::Update() {
+    ComboEffectBase::Update();
+    if (m_Expired) return;
+
+    for (auto* enemy : ScanNearbyEnemies()) {
+        if (m_HitEnemies.count(enemy)) continue;
+        m_HitEnemies.insert(enemy);
+        ApplyTo(enemy);
+    }
+}
+
+void ComboTornadoConfuse::InitTornado() {
+    m_TornadoRadius = effect2Strength * maxTornadoRadius;
+    SetXZScale(myNode, m_TornadoRadius);
+    spdlog::info("ComboTornadoConfuse: tornadoRadius={:.1f}", m_TornadoRadius);
+}
+
+void ComboTornadoConfuse::ApplyConfuseTo(EnemyBase* enemy) {
+    float confuseDur = duration * effect2Strength;
+    enemy->ApplyConfuse(confuseDur, PreciseFromCount(ingredientCount));
+
+    spdlog::debug("ComboTornadoConfuse: confused enemy (dur={:.1f}s, precise={})",
+                  confuseDur, PreciseFromCount(ingredientCount));
+}
+
+void ComboTornadoConfuse::ScanAndHandleBullets() {
+    glm::vec3 pos = GetFlatPosition();
+
+    for (auto* bullet : GetScene()->FindObjectsOfType<EnemyBullet>()) {
+        if (!bullet->myNode) continue;
+        glm::vec3 bpos = bullet->myNode->GlobalTransform().Position();
+        if (glm::distance(pos, bpos) > m_TornadoRadius) continue;
+
+        if (ingredientCount == 1) {
+            GetScene()->QueueDelete(bullet->myNode);
+        } else {
+            bullet->BulletInTornadoAction(myNode, m_TornadoRadius, rotationSpeed);
+        }
+    }
+}
+
+void ComboTornadoConfuse::Update() {
+    ComboEffectBase::Update();
+    if (m_Expired) return;
+
+    RotateNodeY(myNode, rotationSpeed);
+
+    for (auto* enemy : ScanNearbyEnemies()) {
+        if (m_HitEnemies.count(enemy)) continue;
+        m_HitEnemies.insert(enemy);
+        ApplyConfuseTo(enemy);
+    }
+
+    ScanAndHandleBullets();
 }

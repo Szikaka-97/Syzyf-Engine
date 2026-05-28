@@ -174,7 +174,7 @@ void EnemyPotato::UpdateAttackSequence() {
 // ──────────────────────────────────────────────────────────────────────────────
 void EnemyPotato::Update() {
     EnsureBody();
-
+    LockXZRotation();
     if (m_TargetNode)
         m_TargetPosition = m_TargetNode->GlobalTransform().Position();
     else
