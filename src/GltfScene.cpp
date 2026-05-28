@@ -121,8 +121,13 @@ GltfScene* GltfScene::Load(const fs::path path) {
   model->asset = std::make_unique<fastgltf::Asset>(std::move(expectedAsset.get()));
   model->isSkinned = !model->asset->skins.empty();
 
-  model->materials = LoadMaterials(*model->asset, model->isSkinned);
-  
+  model->materials = LoadMaterials(*model->asset, false);
+
+  if (model->isSkinned) {
+      std::vector<Material*> skinnedMaterials = LoadMaterials(*model->asset, true);
+      model->materials.insert(model->materials.end(), skinnedMaterials.begin(), skinnedMaterials.end());
+  }
+
   model->meshes.reserve(model->asset->meshes.size());
   for (auto& gltfMesh : model->asset->meshes) {
       model->meshes.push_back(LoadMesh(gltfMesh, *model->asset, model->materials));
@@ -415,10 +420,16 @@ Mesh* GltfScene::LoadMesh(fastgltf::Mesh& gltfMesh, fastgltf::Asset& asset, std:
     auto index = std::distance(gltfMesh.primitives.begin(), it);
     auto& primitive = mesh->subMeshes[index];
 
+    std::size_t baseMaterialCount = asset.materials.size() + 1;
+
     if (it->materialIndex.has_value()) {
       primitive.materialIndex = it->materialIndex.value();
     } else {
-      primitive.materialIndex = materials.size() - 1;
+      primitive.materialIndex = baseMaterialCount - 1;
+    }
+    
+    if (isSkinned) {
+        primitive.materialIndex += baseMaterialCount;
     }
 
     primitive.indexData = new unsigned int[primitive.faceCount * (unsigned int) primitive.type];

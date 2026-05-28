@@ -8,6 +8,8 @@ void AnimationComponent::Play(const std::string name) {
     if (animation.data.name == name) {
       animation.timeActive = 0.0f;
       animation.playing = true;
+
+      animation.currentKeyframes.assign(animation.data.tracks.size(), 0);
       return;
     }
   }

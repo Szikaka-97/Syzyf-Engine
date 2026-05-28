@@ -50,7 +50,7 @@ void AnimationSystem::OnPreUpdate() {
           i = 0;
         }
         if (animation.looping) {
-          animation.timeActive = 0.0f;
+          animation.timeActive = std::fmod(animation.timeActive, animation.data.duration);
         } else {
           animation.playing = false;
           animation.timeActive = animation.data.duration;
@@ -282,8 +282,8 @@ void AnimationSystem::UnregisterObjectForced(GameObject* obj) {
 
   for (auto* object : IterateObjects()) {
     for (auto& animation : object->animations) {
-      std::erase_if(animation.data.tracks, [obj](auto track) -> bool {
-        return track.target = obj->GetNode();
+      std::erase_if(animation.data.tracks, [obj](const auto& track) -> bool {
+        return track.target == obj->GetNode();
       });
     }
   }

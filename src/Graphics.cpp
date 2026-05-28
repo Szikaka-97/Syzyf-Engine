@@ -347,14 +347,17 @@ void SceneGraphics::DrawGizmoMesh(const Mesh* mesh, int subMeshIndex, const Mate
 void SceneGraphics::DrawMeshInstanced(MeshRenderer* renderer, unsigned int instanceCount) {
     if (!renderer || !renderer->GetMesh()) return;
 
-    int skinningOffset = -1;
-    if (auto* skeleton = renderer->GetNode()->GetObject<SkeletonComponent>()) {
-        skinningOffset = skeleton->bufferOffset;
-    }
+    auto* skeleton = renderer->GetNode()->GetObject<SkeletonComponent>();
 
     for (int i = 0; i < renderer->GetMesh()->GetSubMeshCount(); i++) {
         const Mesh::SubMesh* mesh = &renderer->GetMesh()->SubMeshAt(i);
         const Material* material = renderer->GetMaterial(mesh->GetMaterialIndex());
+
+        int skinningOffset = -1;
+
+        if (skeleton != nullptr && glGetUniformLocation(material->GetShader()->GetHandle(), "uBoneOffset") >= 0) {
+            skinningOffset = skeleton->bufferOffset;
+        }
 
         BoundingBox bounds = mesh->GetBounds();
         if (skinningOffset >= 0) {
@@ -859,13 +862,6 @@ void SceneGraphics::RenderShadows(const ShaderGlobalUniforms& uniforms, const Re
 
         if (isMasked || isDitherHole || isDitherProximity || currentProgram == render.material->GetShader()) {
             render.material->Bind(currentProgram);
-        }
-
-        if (render.jointBufferOffset >= 0) {
-            int offsetLocation = glGetUniformLocation(currentProgram->GetHandle(), "uBoneOffset");
-            if (offsetLocation >= 0) {
-                glUniform1i(offsetLocation, render.jointBufferOffset);
-            }
         }
 
         if (render.jointBufferOffset >= 0) {

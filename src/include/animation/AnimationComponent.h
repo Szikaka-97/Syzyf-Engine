@@ -51,5 +51,7 @@ public:
 
   void Play(const std::string name);
 
+  void Resume(const std::string name);
+
   virtual ~AnimationComponent() = default;
 };
