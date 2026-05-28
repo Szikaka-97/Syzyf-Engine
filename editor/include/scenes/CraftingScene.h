@@ -19,6 +19,7 @@
 #include "game_scripts/crafting/DraggableCraftingItem.h"
 #include "game_scripts/crafting/CraftingStation.h"
 #include "game_scripts/crafting/CraftingIngredientReceiver.h"
+#include "game_scripts/crafting/Cauldron.h"
 
 #include <Player.h>
 #include <game_scripts/PlayerController.h>
@@ -28,7 +29,6 @@
 #include <ui/systems/UiSystem.h>
 
 #include <physics/Body.h>
-#include <physics/Helpers.h>
 #include <physics/System.h>
 
 #include <Jolt/Jolt.h>
@@ -45,28 +45,108 @@
 #include <string>
 
 namespace CraftingScene{
-    inline void AddStaticPhysicsFromModel(SceneNode* modelNode){
-        if (!modelNode){
-            spdlog::warn("CraftingScene: cannot add physics to null model node.");
+    inline SceneNode* CreateLocalPoint(
+        Scene& scene,
+        SceneNode* parent,
+        const std::string& nodeName,
+        const glm::vec3& localPosition
+    ){
+        SceneNode* node = scene.CreateNode(parent,nodeName);
+
+        node->LocalTransform().Position() = localPosition;
+
+        return node;
+    }
+
+    inline void CreateCraftingStageCameraPoints(Scene& scene, SceneNode* machineNode){
+        if (!machineNode){
             return;
         }
 
-        JPH::ShapeRefC shape = Physics::CreateCompoundShapeFromNode(
-            modelNode,
-            false,
-            JPH::EMotionType::Static,
-            Physics::Layers::NON_MOVING
+        CreateLocalPoint(
+            scene,
+            machineNode,
+            "IngredientCameraPoint",
+            glm::vec3(1.5f, 3.5f, 1.5f)
         );
 
-        modelNode->AddObject<Physics::Body>(
+        CreateLocalPoint(
+            scene,
+            machineNode,
+            "IngredientCameraTarget",
+            glm::vec3(0.0f, 1.0f, 1.5f)
+        );
+
+        CreateLocalPoint(
+            scene,
+            machineNode,
+            "HeatingCameraPoint",
+            glm::vec3(1.5f, 0.5f, 1.5f)
+        );
+
+        CreateLocalPoint(
+            scene,
+            machineNode,
+            "HeatingCameraTarget",
+            glm::vec3(0.0f, 0.5f, 1.5f)
+        );
+
+        CreateLocalPoint(
+            scene,
+            machineNode,
+            "BottlingCameraPoint",
+            glm::vec3(4.0f, 2.5f, 2.0f)
+        );
+
+        CreateLocalPoint(
+            scene,
+            machineNode,
+            "BottlingCameraTarget",
+            glm::vec3(4.0f, 1.0f, 0.0f)
+        );
+    }
+
+    inline SceneNode* CreateStationHitbox(Scene& scene, SceneNode* machineNode){
+        if (!machineNode){
+            return nullptr;
+        }
+
+        SceneNode* stationHitboxNode =
+            scene.CreateNode(machineNode, "StationHitbox");
+
+        stationHitboxNode->LocalTransform().Position() =
+            glm::vec3(0.0f, 1.5f, 0.0f);
+
+        stationHitboxNode->LocalTransform().Scale() =
+            glm::vec3(1.0f);
+
+        glm::vec3 stationHitboxPosition =
+            stationHitboxNode->GlobalTransform().Position().Value();
+
+        auto* stationBody = stationHitboxNode->AddObject<Physics::Body>(
             JPH::BodyCreationSettings{
-                shape,
-                JPH::Vec3::sZero(),
+                Physics::BoxShape(glm::vec3(0.6f, 1.5f, 3.6f)),
+                JPH::RVec3(
+                    stationHitboxPosition.x,
+                    stationHitboxPosition.y,
+                    stationHitboxPosition.z
+                ),
                 JPH::Quat::sIdentity(),
                 JPH::EMotionType::Static,
                 Physics::Layers::NON_MOVING
             }
         );
+
+        stationBody->SetPosition(stationHitboxPosition);
+
+        spdlog::info(
+            "CraftingScene: StationHitbox created at {} {} {}.",
+            stationHitboxPosition.x,
+            stationHitboxPosition.y,
+            stationHitboxPosition.z
+        );
+
+        return stationHitboxNode;
     }
 
     inline Material* CreateColorMaterial(const glm::vec4& color){
@@ -82,10 +162,54 @@ namespace CraftingScene{
         return material;
     }
 
+    inline Crafting::IngredientData CreateMainEffectIngredient(
+        Crafting::IngredientType ingredientType,
+        const std::string& displayName,
+        const std::string& effectId,
+        const glm::vec4& color
+        ){
+            Crafting::IngredientData data;
+
+            data.type = ingredientType;
+            data.displayName = displayName;
+            data.role = Crafting::IngredientRole::MainEffect;
+            data.effectId = effectId;
+            data.modifierId = Crafting::ModifierId::None;
+            data.value = 1.0f;
+            data.color = color;
+
+            return data;
+    }
+
+    inline Crafting::IngredientData CreateModifierIngredient(
+        Crafting::IngredientType ingredientType,
+        const std::string& displayName,
+        const std::string& modifierId,
+        float value,
+        const glm::vec4& color
+        ){
+            Crafting::IngredientData data;
+
+            data.type = ingredientType;
+            data.displayName = displayName;
+            data.role = Crafting::IngredientRole::Modifier;
+            data.effectId = Crafting::EffectId::None;
+            data.modifierId = modifierId;
+            data.value = value;
+            data.color = color;
+
+            return data;
+    }
+
     inline Crafting::DraggableCraftingItem* CreateDraggableCube(
-        Scene& scene, SceneNode* parent, const std::string& nodeName, Mesh* mesh,
-        Material* material, const glm::vec3& position, const glm::vec3& scale,
-        Crafting::IngredientType ingredientType, const std::string& displayName
+        Scene& scene,
+        SceneNode* parent,
+        const std::string& nodeName,
+        Mesh* mesh,
+        Material* material,
+        const glm::vec3& position,
+        const glm::vec3& scale,
+        const Crafting::IngredientData& ingredientData
     ){
         SceneNode* node = scene.CreateNode(parent, nodeName);
 
@@ -94,13 +218,16 @@ namespace CraftingScene{
         node->LocalTransform().Position() = position;
         node->LocalTransform().Scale() = scale;
 
+        glm::vec3 globalPosition =
+            node->GlobalTransform().Position().Value();
+
         auto* item = node->AddObject<Crafting::DraggableCraftingItem>();
-        item->data = { ingredientType, displayName };
+        item->data = ingredientData;
 
         auto* body = node->AddObject<Physics::Body>(
             JPH::BodyCreationSettings{
-                Physics::BoxShape(scale * 0.5f),
-                JPH::RVec3(position.x, position.y, position.z),
+                Physics::BoxShape(scale * 1.0f),
+                JPH::RVec3(globalPosition.x, globalPosition.y, globalPosition.z),
                 JPH::Quat::sIdentity(),
                 JPH::EMotionType::Kinematic,
                 Physics::Layers::MOVING
@@ -110,6 +237,7 @@ namespace CraftingScene{
         body->SetGravityFactor(0.0f);
         body->SetLinearVelocity(glm::vec3(0.0f));
         body->SetAngularVelocity(glm::vec3(0.0f));
+        body->SetPosition(globalPosition);
 
         return item;
     }
@@ -240,79 +368,207 @@ namespace CraftingScene{
         );
 
         if (bimberMachineNode){
-            bimberMachineNode->LocalTransform().Position() = glm::vec3(-4.0f, 0.0f, 0.0f);
+            bimberMachineNode->LocalTransform().Position() =
+                glm::vec3(-4.0f, 0.0f, 0.0f);
+
             bimberMachineNode->LocalTransform().Rotation() =
                 glm::quat(glm::radians(glm::vec3(0.0f, 0.0f, 0.0f)));
-            bimberMachineNode->LocalTransform().Scale() = glm::vec3(1.0f);
 
-            AddStaticPhysicsFromModel(bimberMachineNode);
+            bimberMachineNode->LocalTransform().Scale() =
+                glm::vec3(1.0f);
 
-            auto* craftingStation = bimberMachineNode->AddObject<Crafting::CraftingStation>();
+            CreateCraftingStageCameraPoints(scene,bimberMachineNode);
+            CreateStationHitbox(scene,bimberMachineNode);
 
             SceneNode* cauldronNode = bimberMachineNode->FindNode("Cauldron");
 
             if (cauldronNode){
-                auto* cauldronBody = cauldronNode->AddObject<Physics::Body>(
-                    JPH::BodyCreationSettings{
-                        Physics::BoxShape(glm::vec3(2.5f, 1.0f, 2.5f)),
-                        JPH::RVec3::sZero(),
-                        JPH::Quat::sIdentity(),
-                        JPH::EMotionType::Static,
-                        Physics::Layers::NON_MOVING
-                    }
-                );
+                cauldronNode->AddObject<Crafting::Cauldron>();
+
+                SceneNode* cauldronReceiverHitboxNode =
+                    scene.CreateNode(cauldronNode, "CauldronReceiverHitbox");
+
+                cauldronReceiverHitboxNode->LocalTransform().Position() =
+                    glm::vec3(0.0f, -0.2f, 0.0f);
+
+                cauldronReceiverHitboxNode->LocalTransform().Scale() =
+                    glm::vec3(1.0f);
+
+                glm::vec3 cauldronReceiverHitboxPosition =
+                    cauldronReceiverHitboxNode->GlobalTransform().Position().Value();
+
+                auto* cauldronBody =
+                    cauldronReceiverHitboxNode->AddObject<Physics::Body>(
+                        JPH::BodyCreationSettings{
+                            Physics::BoxShape(glm::vec3(0.7f, 0.3f, 0.7f)),
+                            JPH::RVec3(
+                                cauldronReceiverHitboxPosition.x,
+                                cauldronReceiverHitboxPosition.y,
+                                cauldronReceiverHitboxPosition.z
+                            ),
+                            JPH::Quat::sIdentity(),
+                            JPH::EMotionType::Static,
+                            Physics::Layers::NON_MOVING
+                        }
+                    );
 
                 cauldronBody->SetIsSensor(true);
+                cauldronBody->SetPosition(cauldronReceiverHitboxPosition);
 
-                cauldronNode->AddObject<Crafting::CraftingIngredientReceiver>();
+                auto* receiver =
+                    cauldronReceiverHitboxNode->AddObject<Crafting::CraftingIngredientReceiver>();
+
+                receiver->ingredientConsumeOffset =
+                    glm::vec3(0.0f, 0.0f, 0.0f);
+
+                spdlog::info(
+                    "CraftingScene: CauldronReceiverHitbox created at {} {} {}.",
+                    cauldronReceiverHitboxPosition.x,
+                    cauldronReceiverHitboxPosition.y,
+                    cauldronReceiverHitboxPosition.z
+                );
             }else{
                 spdlog::error("CraftingScene: Cauldron not found.");
             }
 
+            SceneNode* lidNode = bimberMachineNode->FindNode("Lid");
+
+            if (lidNode){
+                SceneNode* lidHitboxNode =
+                    scene.CreateNode(lidNode, "LidHitbox");
+
+                lidHitboxNode->LocalTransform().Position() =
+                    glm::vec3(0.0f, 0.4f, 0.0f);
+
+                lidHitboxNode->LocalTransform().Scale() =
+                    glm::vec3(1.0f);
+
+                glm::vec3 lidHitboxPosition =
+                    lidHitboxNode->GlobalTransform().Position().Value();
+
+                auto* lidBody = lidHitboxNode->AddObject<Physics::Body>(
+                    JPH::BodyCreationSettings{
+                        Physics::BoxShape(glm::vec3(0.75f, 0.4f, 0.75f)),
+                        JPH::RVec3(
+                            lidHitboxPosition.x,
+                            lidHitboxPosition.y,
+                            lidHitboxPosition.z
+                        ),
+                        JPH::Quat::sIdentity(),
+                        JPH::EMotionType::Kinematic,
+                        Physics::Layers::NON_MOVING
+                    }
+                );
+
+                lidBody->SetPosition(lidHitboxPosition);
+
+                spdlog::info(
+                    "CraftingScene: LidHitbox created at {} {} {}.",
+                    lidHitboxPosition.x,
+                    lidHitboxPosition.y,
+                    lidHitboxPosition.z
+                );
+            }else{
+                spdlog::error("CraftingScene: Lid not found.");
+            }
+
+            auto* craftingStation =
+                bimberMachineNode->AddObject<Crafting::CraftingStation>();
+
             craftingStation->interactionRadius = 3.0f;
-            craftingStation->stationCameraPosition = glm::vec3(4.0f, 2.0f, 0.0f);
+            craftingStation->stationCameraPosition =
+                glm::vec3(0.0f, 5.0f, 0.0f);
+
             craftingStation->stationCameraRotation =
-                glm::quat(glm::radians(glm::vec3(20.0f, -90.0f, 0.0f)));
+                glm::quat(glm::radians(glm::vec3(60.0f, -90.0f, 0.0f)));
         }else{
             spdlog::error("CraftingScene: failed to load bimberMachine");
         }
 
         Mesh* cubeMesh = scene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
 
-        Material* sugarMaterial =
-            CreateColorMaterial(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+        Material* burnMaterial =
+            CreateColorMaterial(glm::vec4(1.0f, 0.1f, 0.1f, 1.0f));
 
-        Material* waterMaterial =
-            CreateColorMaterial(glm::vec4(0.2f, 0.45f, 1.0f, 1.0f));
+        Material* lightningMaterial =
+            CreateColorMaterial(glm::vec4(1.0f, 1.0f, 0.1f, 1.0f));
+
+        Material* radiusMaterial =
+            CreateColorMaterial(glm::vec4(0.1f, 0.8f, 0.2f, 1.0f));
+
+        Material* durationMaterial =
+            CreateColorMaterial(glm::vec4(0.1f, 0.3f, 1.0f, 1.0f));
 
         SceneNode* ingredientsRootNode =
             scene.CreateNode(craftingRootNode, "Crafting Ingredients");
 
+        CreateDraggableCube(
+            scene,
+            ingredientsRootNode,
+            "Burn Ingredient",
+            cubeMesh,
+            burnMaterial,
+            glm::vec3(-3.0f, 1.5f, 3.0f),
+            glm::vec3(0.35f, 0.35f, 0.35f),
+            CreateMainEffectIngredient(
+                Crafting::IngredientType::Sugar,
+                "Burn",
+                Crafting::EffectId::Burn,
+                glm::vec4(1.0f, 0.1f, 0.1f, 1.0f)
+            )
+        );
+
+        CreateDraggableCube(
+            scene,
+            ingredientsRootNode,
+            "Lightning Ingredient",
+            cubeMesh,
+            lightningMaterial,
+            glm::vec3(-3.0f, 1.5f, 2.2f),
+            glm::vec3(0.35f, 0.35f, 0.35f),
+            CreateMainEffectIngredient(
+                Crafting::IngredientType::Water,
+                "Lightning",
+                Crafting::EffectId::Lightning,
+                glm::vec4(1.0f, 1.0f, 0.1f, 1.0f)
+            )
+        );
+
+        CreateDraggableCube(
+            scene,
+            ingredientsRootNode,
+            "Radius Modifier",
+            cubeMesh,
+            radiusMaterial,
+            glm::vec3(-3.0f, 1.5f, 1.4f),
+            glm::vec3(0.35f, 0.35f, 0.35f),
+            CreateModifierIngredient(
+                Crafting::IngredientType::Water,
+                "Radius",
+                Crafting::ModifierId::Radius,
+                1.0f,
+                glm::vec4(0.1f, 0.8f, 0.2f, 1.0f)
+            )
+        );
+
+        CreateDraggableCube(
+            scene,
+            ingredientsRootNode,
+            "Duration Modifier",
+            cubeMesh,
+            durationMaterial,
+            glm::vec3(-3.0f, 1.5f, 0.6f),
+            glm::vec3(0.35f, 0.35f, 0.35f),
+            CreateModifierIngredient(
+                Crafting::IngredientType::Sugar,
+                "Duration",
+                Crafting::ModifierId::Duration,
+                1.0f,
+                glm::vec4(0.1f, 0.3f, 1.0f, 1.0f)
+            )
+        );
+
         ingredientsRootNode->SetEnabled(false);
-
-        CreateDraggableCube(
-            scene,
-            ingredientsRootNode,
-            "Sugar Ingredient",
-            cubeMesh,
-            sugarMaterial,
-            glm::vec3(0.0f, 1.0f, 2.0f),
-            glm::vec3(0.4f, 0.4f, 0.4f),
-            Crafting::IngredientType::Sugar,
-            "Sugar"
-        );
-
-        CreateDraggableCube(
-            scene,
-            ingredientsRootNode,
-            "Water Ingredient",
-            cubeMesh,
-            waterMaterial,
-            glm::vec3(0.0f, 1.0f, -2.0f),
-            glm::vec3(0.4f, 0.4f, 0.4f),
-            Crafting::IngredientType::Water,
-            "Water"
-        );
 
         SceneNode* sunNode = scene.CreateNode(rootNode, "Sun");
 
@@ -325,7 +581,9 @@ namespace CraftingScene{
 
         sun->SetShadowCasting(true);
 
-        sunNode->GlobalTransform().Position() = glm::vec3(1.0f, 4.0f, 2.0f);
+        sunNode->GlobalTransform().Position() =
+            glm::vec3(1.0f, 4.0f, 2.0f);
+
         sunNode->GlobalTransform().Rotation() =
             glm::quat(glm::radians(glm::vec3(50.0f, -20.0f, 0.0f)));
 

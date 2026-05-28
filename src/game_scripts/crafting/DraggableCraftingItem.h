@@ -27,6 +27,9 @@ namespace Crafting{
       void BeginDrag()
       {
         isDragged = true;
+
+        SyncPhysicsToNode();
+
         spdlog::info("Picked up {}.", data.displayName);
       }
 
@@ -40,7 +43,10 @@ namespace Crafting{
       void EndDrag(){
         if (!isDragged){return;}
 
+        SyncPhysicsToNode();
+
         isDragged = false;
+
         spdlog::info("Released {}.", data.displayName);
       }
 
@@ -56,6 +62,14 @@ namespace Crafting{
         GetNode()->SetEnabled(false);
       }
 
+      void ConsumeAt(const glm::vec3& position){
+        SetWorldPosition(position);
+
+        spdlog::info("Consumed {} at cauldron.", data.displayName);
+
+        GetNode()->SetEnabled(false);
+      }
+
       glm::vec3 GetStartPosition() const{
         return startPosition;
       }
@@ -66,8 +80,15 @@ namespace Crafting{
       void SetWorldPosition(const glm::vec3& position){
         GetNode()->GlobalTransform().Position() = position;
 
+        SyncPhysicsToNode();
+      }
+
+      void SyncPhysicsToNode(){
         if (auto* body = GetNode()->GetObject<Physics::Body>()){
-          body->SetPosition(position);
+          body->SyncToNode();
+
+          body->SetLinearVelocity(glm::vec3(0.0f));
+          body->SetAngularVelocity(glm::vec3(0.0f));
         }
       }
     };

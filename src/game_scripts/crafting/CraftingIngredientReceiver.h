@@ -4,10 +4,12 @@
 #include <physics/ICollisionReceiver.h>
 
 #include "DraggableCraftingItem.h"
+#include "Cauldron.h"
 
 #include <algorithm>
 #include <vector>
 
+#include <glm/glm.hpp>
 #include <spdlog/spdlog.h>
 
 namespace Crafting{
@@ -17,30 +19,45 @@ namespace Crafting{
     public:
           std::vector<IngredientType> insertedIngredients;
 
-          void OnCollisionEnter(SceneNode* otherNode) override{
-                auto* item =
-                    FindDraggableOnNode(otherNode);
+          glm::vec3 ingredientConsumeOffset = glm::vec3(0.0f, 0.8f, 0.0f);
 
-                if (!item){return;}
+        void OnCollisionEnter(SceneNode* otherNode) override{
+            auto* item = FindDraggableOnNode(otherNode);
 
-                if (item->data.type == IngredientType::None){
-                      spdlog::warn("CraftingIngredientReceiver: ignored ingredient with type None.");
-                      return;
-                }
+            if (!item){return;}
 
-                SceneNode* itemNode = item->GetNode();
+            auto* cauldron = FindCauldronOnNodeOrParents(GetNode());
 
-                if (WasAlreadyInserted(itemNode)){
-                    return;
-                }
+            if (!cauldron){
+                spdlog::warn("CraftingIngredientReceiver: Cauldron component missing.");
+                return;
+            }
 
-                insertedItemNodes.push_back(itemNode);
-                insertedIngredients.push_back(item->data.type);
+            if (item->data.role == IngredientRole::None){
+                spdlog::warn("CraftingIngredientReceiver: ignored ingredient with role None.");
+                item->ReturnToStart();
+                return;
+            }
 
-                spdlog::info("Inserted ingredient: {}",item->data.displayName);
+            SceneNode* itemNode = item->GetNode();
 
-                item->Consume();
-          }
+            if (WasAlreadyInserted(itemNode)){return;}
+
+            if (!cauldron->AddIngredient(item->data)){
+                item->ReturnToStart();
+                return;
+            }
+
+            insertedItemNodes.push_back(itemNode);
+            insertedIngredients.push_back(item->data.type);
+
+            spdlog::info("Inserted ingredient: {}",item->data.displayName);
+
+            glm::vec3 consumePosition =
+                GetNode()->GlobalTransform().Position().Value() + ingredientConsumeOffset;
+
+            item->ConsumeAt(consumePosition);
+        }
 
           void OnCollisionExit(SceneNode* otherNode) override{}
 
@@ -66,6 +83,20 @@ namespace Crafting{
             while (current){
                 if (auto* item = current->GetObject<DraggableCraftingItem>()){
                     return item;
+                }
+
+                current = current->GetParent();
+            }
+
+            return nullptr;
+        }
+
+        Cauldron* FindCauldronOnNodeOrParents(SceneNode* node){
+            SceneNode* current = node;
+
+            while (current){
+                if (auto* cauldron = current->GetObject<Cauldron>()){
+                    return cauldron;
                 }
 
                 current = current->GetParent();
