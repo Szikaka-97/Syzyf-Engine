@@ -7,6 +7,7 @@
 #include "Cauldron.h"
 
 #include <algorithm>
+#include <cmath>
 #include <vector>
 
 #include <glm/glm.hpp>
@@ -19,12 +20,31 @@ namespace Crafting{
     public:
           std::vector<IngredientType> insertedIngredients;
 
-          glm::vec3 ingredientConsumeOffset = glm::vec3(0.0f, 0.8f, 0.0f);
+          glm::vec3 ingredientConsumeOffset = glm::vec3(0.0f, 0.0f, 0.0f);
+
+          glm::vec3 receiverHalfExtents = glm::vec3(0.65f, 0.3f, 0.65f);
+
+          bool ContainsWorldPoint(const glm::vec3& point) const{
+              glm::vec3 receiverPosition =
+                  GetNode()->GlobalTransform().Position().Value();
+
+              glm::vec3 difference =
+                  point - receiverPosition;
+
+              return
+                  std::abs(difference.x) <= receiverHalfExtents.x &&
+                  std::abs(difference.y) <= receiverHalfExtents.y &&
+                  std::abs(difference.z) <= receiverHalfExtents.z;
+          }
 
         void OnCollisionEnter(SceneNode* otherNode) override{
             auto* item = FindDraggableOnNode(otherNode);
 
             if (!item){return;}
+
+            if (item->isDragged){
+                return;
+            }
 
             auto* cauldron = FindCauldronOnNodeOrParents(GetNode());
 

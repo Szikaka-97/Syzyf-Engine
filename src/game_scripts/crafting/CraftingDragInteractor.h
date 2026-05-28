@@ -27,7 +27,6 @@ namespace Crafting
     {
     public:
         float interactionDistance = 100.0f;
-        float dropIntoCauldronDistance = 1.5f;
         glm::vec2 viewportSize = glm::vec2(1024.0f, 576.0f);
 
         void SetViewportSize(const glm::vec2& size)
@@ -205,12 +204,12 @@ namespace Crafting
             }
 
             CraftingIngredientReceiver* receiver =
-                FindClosestIngredientReceiver(item);
+                FindReceiverContainingItem(item);
 
             if (!receiver)
             {
                 spdlog::info(
-                    "Crafting drag: {} was not dropped close enough to Cauldron.",
+                    "Crafting drag: {} was not released inside Cauldron receiver hitbox.",
                     item->data.displayName
                 );
 
@@ -223,14 +222,14 @@ namespace Crafting
             }
 
             spdlog::info(
-                "Crafting drag: dropped {} into ingredient receiver.",
+                "Crafting drag: released {} inside ingredient receiver.",
                 item->data.displayName
             );
 
             receiver->OnCollisionEnter(item->GetNode());
         }
 
-        CraftingIngredientReceiver* FindClosestIngredientReceiver(
+        CraftingIngredientReceiver* FindReceiverContainingItem(
             DraggableCraftingItem* item
         )
         {
@@ -245,9 +244,6 @@ namespace Crafting
             std::vector<CraftingIngredientReceiver*> receivers =
                 GetScene()->FindObjectsOfType<CraftingIngredientReceiver>();
 
-            CraftingIngredientReceiver* closestReceiver = nullptr;
-            float closestDistance = dropIntoCauldronDistance;
-
             for (auto* receiver : receivers)
             {
                 if (!receiver || !receiver->GetNode())
@@ -255,20 +251,13 @@ namespace Crafting
                     continue;
                 }
 
-                glm::vec3 receiverPosition =
-                    receiver->GetNode()->GlobalTransform().Position().Value();
-
-                float distance =
-                    glm::distance(itemPosition, receiverPosition);
-
-                if (distance <= closestDistance)
+                if (receiver->ContainsWorldPoint(itemPosition))
                 {
-                    closestDistance = distance;
-                    closestReceiver = receiver;
+                    return receiver;
                 }
             }
 
-            return closestReceiver;
+            return nullptr;
         }
 
         bool BuildMouseRay(Camera* camera, glm::vec3& outOrigin, glm::vec3& outDirection)

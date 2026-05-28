@@ -419,7 +419,7 @@ namespace CraftingScene{
                     cauldronReceiverHitboxNode->AddObject<Crafting::CraftingIngredientReceiver>();
 
                 receiver->ingredientConsumeOffset =
-                    glm::vec3(0.0f, 0.0f, 0.0f);
+                    glm::vec3(0.0f, 0.5f, 0.0f);
 
                 spdlog::info(
                     "CraftingScene: CauldronReceiverHitbox created at {} {} {}.",
@@ -508,7 +508,7 @@ namespace CraftingScene{
             "Burn Ingredient",
             cubeMesh,
             burnMaterial,
-            glm::vec3(-3.0f, 1.5f, 3.0f),
+            glm::vec3(-3.0f, 2.0f, 3.0f),
             glm::vec3(0.35f, 0.35f, 0.35f),
             CreateMainEffectIngredient(
                 Crafting::IngredientType::Sugar,
@@ -524,7 +524,7 @@ namespace CraftingScene{
             "Lightning Ingredient",
             cubeMesh,
             lightningMaterial,
-            glm::vec3(-3.0f, 1.5f, 2.2f),
+            glm::vec3(-3.0f, 2.0f, 2.2f),
             glm::vec3(0.35f, 0.35f, 0.35f),
             CreateMainEffectIngredient(
                 Crafting::IngredientType::Water,
@@ -540,7 +540,7 @@ namespace CraftingScene{
             "Radius Modifier",
             cubeMesh,
             radiusMaterial,
-            glm::vec3(-3.0f, 1.5f, 1.4f),
+            glm::vec3(-3.0f, 2.0f, 1.4f),
             glm::vec3(0.35f, 0.35f, 0.35f),
             CreateModifierIngredient(
                 Crafting::IngredientType::Water,
@@ -557,7 +557,7 @@ namespace CraftingScene{
             "Duration Modifier",
             cubeMesh,
             durationMaterial,
-            glm::vec3(-3.0f, 1.5f, 0.6f),
+            glm::vec3(-3.0f, 2.0f, 0.6f),
             glm::vec3(0.35f, 0.35f, 0.35f),
             CreateModifierIngredient(
                 Crafting::IngredientType::Sugar,
