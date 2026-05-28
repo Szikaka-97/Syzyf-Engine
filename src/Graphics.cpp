@@ -479,7 +479,7 @@ void SceneGraphics::Render() {
 		RenderCamera(camera);
 	}
 
-    RenderPassType passType = RenderPassType::Color | RenderPassType::DepthPrepass | RenderPassType::Gizmos | RenderPassType::Transparent | RenderPassType::Volumetric | RenderPassType::Mask;
+    RenderPassType passType = this->mainCamera->GetPasses();
     if (this->ssaoSettings.enabled) {
         passType = passType | RenderPassType::SSAO;
     }
@@ -1915,7 +1915,7 @@ void SceneGraphics::RenderCamera(Camera* camera, Viewport* renderTarget) {
 	}
 
 	auto defaultParams = RenderParams(
-		RenderPassType::Color | RenderPassType::DepthPrepass,
+		camera->GetPasses(),
 		glm::vec4(
 			0,
 			0,

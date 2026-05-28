@@ -86,6 +86,7 @@ void EditorApplication::OnInit(int argc, char* argv[]) {
         if (scene == this->context.selectedScene) {
             this->context.mainCamera = cameraNode->GetObject<Camera>();
             this->context.mainCamera->SetAsMainCamera();
+            this->context.mainCamera->AddPass(RenderPassType::Gizmos);
         }
     }
 }

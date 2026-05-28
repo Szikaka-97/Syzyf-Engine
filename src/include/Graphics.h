@@ -27,26 +27,6 @@ class ReflectionProbeSystem;
 class Camera;
 class Viewport;
 
-// struct RenderBatch {
-// 	Mesh* mesh;
-// 	Material* material;
-// 	int argsSize;
-// };
-
-enum class RenderPassType {
-	Color = 1,
-	DepthPrepass = 2,
-	Shadows = 6,
-	Gizmos = 8,
-	PostProcessing = 16,
-	Transparent = 32,
-	Additive = 64,
-	Volumetric = 128,
-    SSAO = 256,
-    Mask = 512,
-    UI = 1024,
-};
-
 struct RenderParams {
 	RenderPassType pass;
 	glm::vec4 viewport;
@@ -284,11 +264,3 @@ public:
 
 	virtual int Order();
 };
-
-inline constexpr RenderPassType operator&(RenderPassType a, RenderPassType b) {
-	return static_cast<RenderPassType>(static_cast<int>(a) & static_cast<int>(b));
-}
-
-inline constexpr RenderPassType operator|(RenderPassType a, RenderPassType b) {
-	return static_cast<RenderPassType>(static_cast<int>(a) | static_cast<int>(b));
-}
