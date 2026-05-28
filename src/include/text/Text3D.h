@@ -3,6 +3,7 @@
 #include "Debug.h"
 #include "GameObject.h"
 #include "ParticleSpawner.h"
+#include "ui/TextAlignment.h"
 
 class Font;
 class ShaderProgram;
@@ -17,6 +18,7 @@ public:
 private:
     std::string text = "";
     Font* font;
+    TextAlignment alignment;
 
     std::unique_ptr<Mesh> mesh;
     MeshRenderer* renderer = nullptr;
@@ -29,9 +31,11 @@ public:
 
     std::string GetText() const;
     Font* GetFont() const;
+    TextAlignment GetAlignment() const;
 
     void SetText(const std::string& newText);
     void SetFont(Font* newFont);
+    void SetAlignment(TextAlignment alignment);
 
     void Render();
     void DrawImGui();

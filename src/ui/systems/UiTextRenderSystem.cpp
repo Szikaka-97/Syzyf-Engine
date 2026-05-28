@@ -10,6 +10,11 @@
 UiTextRenderSystem::UiTextRenderSystem(Scene* scene) : GameObjectSystem<UiText>(scene) {}
 
 void UiTextRenderSystem::OnPreRender() {
+    struct TextLine {
+        float length;
+        int numChars;
+    };
+
     glm::vec2 resolution = this->GetScene()->GetGraphics()->GetScreenResolution();
     float scaleFactor = resolution.y / UiLayoutSystem::VIRTUAL_RESOLUTION.y;
 
@@ -25,6 +30,11 @@ void UiTextRenderSystem::OnPreRender() {
             continue;
         }
 
+        int charsInCurrentLine = 0;
+
+        std::vector<TextLine> lineLenghts;
+        float longestLine = 0;
+
         Font* font = text->font;
         const float textureWidth = static_cast<float>(font->atlasTexture->GetWidth());
         const float textureHeight = static_cast<float>(font->atlasTexture->GetHeight());
@@ -37,67 +47,124 @@ void UiTextRenderSystem::OnPreRender() {
         float cursorX = localStartX;
         float cursorY = localStartY;
 
+        float xOffset = 0.0f;
+        float yOffset = 0.0f;
+
         glm::mat4 baseWorldMatrix = text->GlobalTransform().Value();
 
-        for (size_t i = 0; i < text->text.length(); ++i) {
-            char c = text->text[i];
+        int startingChar = 0;
 
+        for (char c : text->text) {
             if (c == '\n') {
-                cursorX = localStartX;
-                cursorY += static_cast<float>(font->lineHeight) * scale;
-                continue;
+                lineLenghts.push_back({
+                    xOffset,
+                    charsInCurrentLine + 1
+                });
+
+                if (xOffset > longestLine) {
+                    longestLine = xOffset;
+                }
+
+                startingChar += charsInCurrentLine;
+
+                xOffset = 0.0f;
+                charsInCurrentLine = 0;
+            }
+            else {
+                charsInCurrentLine++;
+                
+                if (font->glyphs.find(c) == font->glyphs.end()) continue;
+
+                const Glyph& glyph = font->glyphs[c];
+
+                if (c == ' ' && text->maxWidth.has_value()) {
+                    float scaledMaxWidth = text->maxWidth.value() * scaleFactor;
+                    float nextWordWidth = MeasureWordWidth(text, startingChar + charsInCurrentLine, scale);
+                    float spaceAdvance = static_cast<float>(glyph.advance) * scale;
+
+                    if (xOffset + spaceAdvance + nextWordWidth > scaledMaxWidth) {
+                        lineLenghts.push_back({
+                            xOffset,
+                            charsInCurrentLine
+                        });
+                    }
+                }
+
+                xOffset += glyph.advance * scale;
+            }
+        }
+
+        lineLenghts.push_back({
+            xOffset,
+            charsInCurrentLine
+        });
+
+        if (xOffset > longestLine) {
+            longestLine = xOffset;
+        }
+
+        startingChar = 0;
+
+        for (auto line : lineLenghts) {
+            if (text->alignment == TextAlignment::Left) {
+                xOffset = 0;
+            }
+            else if (text->alignment == TextAlignment::Middle) {
+                xOffset = (longestLine - line.length) * 0.5f;
+            }
+            else {
+                xOffset = longestLine - line.length;
             }
 
-            auto it = font->glyphs.find(static_cast<uint32_t>(c));
-            if (it == font->glyphs.end()) {
-                spdlog::warn("UiTextRenderSystem::OnPreRender: Failed to find the required glyph in the atlas");
-                continue;
-            }
+            for (int i = 0; i < line.numChars; i++) {
+                char c = text->text[startingChar + i];
 
-            const Glyph& glyph = it->second;
-            
-            if (c == ' ' && text->maxWidth.has_value()) {
-                float scaledMaxWidth = text->maxWidth.value() * scaleFactor;
-                float nextWordWidth = MeasureWordWidth(text, i + 1, scale);
-                float spaceAdvance = static_cast<float>(glyph.advance) * scale;
-
-                float currentLineWidth = cursorX - localStartX;
-                if (currentLineWidth + spaceAdvance + nextWordWidth > scaledMaxWidth) {
-                    cursorX = localStartX;
-                    cursorY += static_cast<float>(font->lineHeight) * scale;
+                if (c == '\n') {
                     continue;
                 }
+
+                auto it = font->glyphs.find(static_cast<uint32_t>(c));
+                if (it == font->glyphs.end()) {
+                    spdlog::warn("UiTextRenderSystem::OnPreRender: Failed to find the required glyph in the atlas: '{}' ({:x})", c, (int) c);
+                    continue;
+                }
+
+                const Glyph& glyph = it->second;
+                
+                if (glyph.planeBounds.z > glyph.planeBounds.x) {
+                    float x0 = cursorX + xOffset + (glyph.planeBounds.x * scale);
+                    float y0 = cursorY + yOffset - (glyph.planeBounds.y * scale);
+                    float x1 = cursorX + xOffset + (glyph.planeBounds.z * scale);
+                    float y1 = cursorY + yOffset - (glyph.planeBounds.w * scale);
+
+                    const float width = x1 - x0;
+                    const float height = y1 - y0;
+
+                    const float localCenterX = x0 + (width * 0.5f);
+                    const float localCenterY = y0 + (height * 0.5f);
+
+                    glm::mat4 letterMatrix = glm::translate(baseWorldMatrix, glm::vec3(localCenterX, localCenterY, 0.0f));
+                    glm::vec2 letterSize(width, height);
+
+                    const float u0 = glyph.atlasBounds.x / textureWidth;
+                    const float v0 = glyph.atlasBounds.y / textureHeight;
+                    const float u1 = glyph.atlasBounds.z / textureWidth;
+                    const float v1 = glyph.atlasBounds.w / textureHeight;
+
+                    glm::vec4 uvRectangle(u0, v0, u1 - u0, v1 -v0);
+
+                    auto* visual = text->GetObject<UiVisual>();
+                    auto clipRectangle = visual ? visual->clipRectangle : std::nullopt; 
+
+                    this->GetScene()->GetGraphics()->DrawUiText(letterMatrix, letterSize, layout->zIndex, text->color, font->atlasTexture, uvRectangle, static_cast<float>(font->distanceRange), font->useMsdf, clipRectangle);
+                }
+
+                xOffset += static_cast<float>(glyph.advance) * scale;
             }
 
-            if (glyph.planeBounds.z > glyph.planeBounds.x) {
-                float x0 = cursorX + (glyph.planeBounds.x * scale);
-                float y0 = cursorY - (glyph.planeBounds.y * scale);
-                float x1 = cursorX + (glyph.planeBounds.z * scale);
-                float y1 = cursorY - (glyph.planeBounds.w * scale);
+            yOffset += font->lineHeight * scale;
 
-                const float width = x1 - x0;
-                const float height = y1 - y0;
-
-                const float localCenterX = x0 + (width * 0.5f);
-                const float localCenterY = y0 + (height * 0.5f);
-
-                glm::mat4 letterMatrix = glm::translate(baseWorldMatrix, glm::vec3(localCenterX, localCenterY, 0.0f));
-                glm::vec2 letterSize(width, height);
-
-                const float u0 = glyph.atlasBounds.x / textureWidth;
-                const float v0 = glyph.atlasBounds.y / textureHeight;
-                const float u1 = glyph.atlasBounds.z / textureWidth;
-                const float v1 = glyph.atlasBounds.w / textureHeight;
-
-                glm::vec4 uvRectangle(u0, v0, u1 - u0, v1 -v0);
-
-                auto* visual = text->GetObject<UiVisual>();
-                auto clipRectangle = visual ? visual->clipRectangle : std::nullopt; 
-
-                this->GetScene()->GetGraphics()->DrawUiText(letterMatrix, letterSize, layout->zIndex, text->color, font->atlasTexture, uvRectangle, static_cast<float>(font->distanceRange), font->useMsdf, clipRectangle);
-            }
-
-            cursorX += static_cast<float>(glyph.advance) * scale;
+            startingChar += line.numChars;
         }
     }
 }

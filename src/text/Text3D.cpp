@@ -10,7 +10,7 @@
 #include <imgui.h>
 #include <misc/cpp/imgui_stdlib.h>
 
-Text3D::Text3D(std::string text, Font* font, std::shared_ptr<Material> material) : text(text), font(font), material(material) {
+Text3D::Text3D(std::string text, Font* font, std::shared_ptr<Material> material) : text(text), font(font), material(material), alignment(TextAlignment::Left) {
 
     if (material == nullptr) {
         this->shader.reset(
@@ -41,6 +41,10 @@ Font* Text3D::GetFont() const {
     return this->font;
 }
 
+TextAlignment Text3D::GetAlignment() const {
+    return this->alignment;
+}
+
 void Text3D::SetText(const std::string& newText) {
     if (this->text == newText) {
         return;
@@ -58,6 +62,15 @@ void Text3D::SetFont(Font* newFont) {
     this->font = newFont;
     this->RebuildMesh();
     this->material->SetValue("useMsdf", this->font->useMsdf);
+}
+
+void Text3D::SetAlignment(TextAlignment alignment) {
+    if (this->alignment == alignment) {
+        return;
+    }
+
+    this->alignment = alignment;
+    this->RebuildMesh();
 }
 
 void Text3D::Render() {
@@ -80,9 +93,20 @@ void Text3D::DrawImGui() {
     if (ImGui::Combo("Billboard Mode", &currentBillboardMode, billboardModes, IM_ARRAYSIZE(billboardModes))) {
         this->billboardMode = static_cast<BillboardMode>(currentBillboardMode);
     }
+
+    const char* alignments[] = { "Left", "Middle", "Right" };
+    int currentAlignment = static_cast<int>(this->alignment);
+    if (ImGui::Combo("Text Alignment", &currentAlignment, alignments, IM_ARRAYSIZE(alignments))) {
+        this->SetAlignment(static_cast<TextAlignment>(currentAlignment));
+    }
 }
 
 void Text3D::RebuildMesh() {
+    struct TextLine {
+        float length;
+        int numChars;
+    };
+
     if (!this->font) return;
     if (this->mesh != nullptr) {
         this->mesh = nullptr;
@@ -96,45 +120,99 @@ void Text3D::RebuildMesh() {
     float yOffset = 0.0f;
     float scale = 1.0f / this->font->emSize;
 
+    int charsInCurrentLine = 0;
+
+    std::vector<TextLine> lineLenghts;
+    float longestLine = 0;
+
     for (char c : this->text) {
         if (c == '\n') {
-            xOffset = 0.0f;
-            yOffset -= font->lineHeight * scale;
-            continue;
-        }
-
-        if (font->glyphs.find(c) == font->glyphs.end()) continue;
-
-        const Glyph& glyph = font->glyphs[c];
-
-        if (glyph.planeBounds.z > glyph.planeBounds.x) {
-            float left = xOffset + glyph.planeBounds.x * scale;
-            float bottom = yOffset + glyph.planeBounds.y * scale;
-            float right = xOffset + glyph.planeBounds.z * scale;
-            float top = yOffset + glyph.planeBounds.w * scale;
-
-            float uvLeft = glyph.atlasBounds.x / font->atlasTexture->GetWidth();
-            float uvBottom = glyph.atlasBounds.y / font->atlasTexture->GetHeight();
-            float uvRight = glyph.atlasBounds.z / font->atlasTexture->GetWidth();
-            float uvTop = glyph.atlasBounds.w / font->atlasTexture->GetHeight();
-
-            int baseIndex = positions.size();
-
-            positions.push_back({left, bottom, 0.0f});
-            uvs.push_back({uvLeft, uvBottom});
-            positions.push_back({right, bottom, 0.0f});
-            uvs.push_back({uvRight, uvBottom});
-            positions.push_back({right, top, 0.0f});
-            uvs.push_back({uvRight, uvTop});
-            positions.push_back({left, top, 0.0f});
-            uvs.push_back({uvLeft, uvTop});
-
-            indices.insert(indices.end(), {
-                (unsigned int)(baseIndex + 0), (unsigned int)(baseIndex + 1), (unsigned int)(baseIndex + 2),
-                (unsigned int)(baseIndex + 2), (unsigned int)(baseIndex + 3), (unsigned int)(baseIndex + 0)
+            lineLenghts.push_back({
+                xOffset,
+                charsInCurrentLine + 1
             });
+
+            if (xOffset > longestLine) {
+                longestLine = xOffset;
+            }
+
+            xOffset = 0.0f;
+            charsInCurrentLine = 0;
         }
-        xOffset += glyph.advance * scale;
+        else {
+            charsInCurrentLine++;
+            
+            if (font->glyphs.find(c) == font->glyphs.end()) continue;
+
+            const Glyph& glyph = font->glyphs[c];
+
+            xOffset += glyph.advance * scale;
+        }
+    }
+
+    lineLenghts.push_back({
+        xOffset,
+        charsInCurrentLine
+    });
+
+    if (xOffset > longestLine) {
+        longestLine = xOffset;
+    }
+
+    int startingChar = 0;
+
+    for (auto line : lineLenghts) {
+        if (this->alignment == TextAlignment::Left) {
+            xOffset = 0;
+        }
+        else if (this->alignment == TextAlignment::Middle) {
+            xOffset = (longestLine - line.length) * 0.5f;
+        }
+        else {
+            xOffset = longestLine - line.length;
+        }
+
+        yOffset -= font->lineHeight * scale;
+
+        for (int i = 0; i < line.numChars; i++) {
+            char c = this->text[startingChar + i];
+
+            if (font->glyphs.find(c) == font->glyphs.end()) continue;
+
+            const Glyph& glyph = font->glyphs[c];
+
+            if (glyph.planeBounds.z > glyph.planeBounds.x) {
+                float left = xOffset + glyph.planeBounds.x * scale;
+                float bottom = yOffset + glyph.planeBounds.y * scale;
+                float right = xOffset + glyph.planeBounds.z * scale;
+                float top = yOffset + glyph.planeBounds.w * scale;
+
+                float uvLeft = glyph.atlasBounds.x / font->atlasTexture->GetWidth();
+                float uvBottom = glyph.atlasBounds.y / font->atlasTexture->GetHeight();
+                float uvRight = glyph.atlasBounds.z / font->atlasTexture->GetWidth();
+                float uvTop = glyph.atlasBounds.w / font->atlasTexture->GetHeight();
+
+                int baseIndex = positions.size();
+
+                positions.push_back({left, bottom, 0.0f});
+                uvs.push_back({uvLeft, uvBottom});
+                positions.push_back({right, bottom, 0.0f});
+                uvs.push_back({uvRight, uvBottom});
+                positions.push_back({right, top, 0.0f});
+                uvs.push_back({uvRight, uvTop});
+                positions.push_back({left, top, 0.0f});
+                uvs.push_back({uvLeft, uvTop});
+
+                indices.insert(indices.end(), {
+                    (unsigned int)(baseIndex + 0), (unsigned int)(baseIndex + 1), (unsigned int)(baseIndex + 2),
+                    (unsigned int)(baseIndex + 2), (unsigned int)(baseIndex + 3), (unsigned int)(baseIndex + 0)
+                });
+            }
+            
+            xOffset += glyph.advance * scale;
+        }
+
+        startingChar += line.numChars;
     }
 
     // if (positions.empty()) {
