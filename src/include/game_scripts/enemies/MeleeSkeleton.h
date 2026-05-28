@@ -3,9 +3,9 @@
 #include "./include/game_scripts/enemies/AiSimplified.h"
 #include <Player.h>
 #include <Scene.h>
-#include <./include/game_scripts/enemies/EnemyBase.h>
+#include <game_scripts/enemies/EnemyBase.h>
 
-#include <./include/game_scripts/enemies/loot/LootPool.h>
+#include <game_scripts/enemies/loot/LootPool.h>
 #include "EnemySword.h"
 
 #include <glm/glm.hpp>
@@ -20,7 +20,7 @@ class MeleeSkeleton : public EnemyBase {
 MeleeSkeleton() : EnemyBase() {
 	this->attackRange = 1.0f;
 
-	auto* hand = GetNode()->FindNode("Cube.015");
+	auto* hand = GetNode()->FindNode("EnemyModel/rig.001_deform/Cube.015");
 
 	if (hand) {
 		sword = hand->AddObject<EnemySword>();

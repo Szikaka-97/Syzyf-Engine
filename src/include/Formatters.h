@@ -10,6 +10,19 @@
 #include <Transform.h>
 
 template<>
+struct fmt::formatter<glm::vec2> : fmt::formatter<float> {
+	template <typename Context>
+	constexpr auto format(const glm::vec2& input, Context& ctx) const {
+		return 
+			fmt::format_to(ctx.out(), "("),
+			formatter<float>::format(input.x, ctx),
+			fmt::format_to(ctx.out(), ", "),
+			formatter<float>::format(input.y, ctx),
+			fmt::format_to(ctx.out(), ")");
+	}
+};
+
+template<>
 struct fmt::formatter<glm::vec3> : fmt::formatter<float> {
 	template <typename Context>
 	constexpr auto format(const glm::vec3& input, Context& ctx) const {

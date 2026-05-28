@@ -1,6 +1,13 @@
-#include "./include/game_scripts/enemies/EnemySword.h"
-#include "./include/game_scripts/PlayerController.h"
-#include <Player.h>
+#include <game_scripts/enemies/EnemySword.h>
+
+#include <game_scripts/PlayerController.h>
+
+#include <GltfScene.h>
+
+
+EnemySword::EnemySword() {
+	SceneNode* enemyModel = GetScene()->resources.Get<GltfScene>("./res/models/sword.glb")->Instantiate(GetScene(), GetNode(), "sword");
+}
 
 void EnemySword::Update() {
 	// For testing: make the sword follow the enemy's hand position

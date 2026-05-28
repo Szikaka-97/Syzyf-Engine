@@ -1,5 +1,5 @@
 #include "panels/SystemsDebugPanel.h"
-#include "Application.h"
+#include "EditorApplication.h"
 #include "Graphics.h"
 
 #include <Scene.h>

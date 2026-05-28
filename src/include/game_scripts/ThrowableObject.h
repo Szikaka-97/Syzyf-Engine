@@ -52,16 +52,16 @@ public:
                 "./res/textures/material_preview/worn-shiny-metal-arm.png",
                 Texture::TechnicalMapXYZ);
 
-            Material* mat = new Material(pbrProg);
+	Material* mat = new Material(pbrProg);
             mat->SetValue("albedoMap", albedo);
             mat->SetValue("normalMap", normal);
             mat->SetValue("armMap",    arm);
+        Mesh* effectMesh = scene->Resources()->Get<Mesh>("./res/models/not_cube.obj");
 
-            Mesh* mesh = scene->Resources()->Get<Mesh>("./res/models/jake_tangents.glb");
-            effect->SetEffectRenderer(mesh, mat);
-            return effect;
-        };
-    }
+        effect->SetEffectRenderer(effectMesh, mat);
+        return effect;
+    };
+}
 
     void SetEffectFactory(EffectFactory factory) {
         m_ComboFactory  = nullptr;

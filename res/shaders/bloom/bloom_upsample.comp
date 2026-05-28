@@ -12,7 +12,8 @@
 layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE) in;
 
 layout(binding = 0) uniform sampler2D inputTex;
-layout(rgba16f, binding = 0) uniform image2D outputImg;
+layout(rgba16f, binding = 0) uniform image2D sourceImg;
+layout(rgba16f, binding = 1) uniform image2D outputImg;
 
 layout(binding = 1) uniform sampler2D dirtTexture;
 
@@ -75,7 +76,7 @@ void main() {
 
 	const vec4 bloom = s * (1.0 / 16.0);
 
-	vec4 outPixel = imageLoad(outputImg, pixelCoord) + bloom * bloomIntensity;
+	vec4 outPixel = imageLoad(sourceImg, pixelCoord) + bloom * bloomIntensity;
 
 	if (mipLevel == 0 && useDirtTexture) {
 		vec2 uv  = (vec2(pixelCoord) + vec2(0.5, 0.5)) * texelSize;

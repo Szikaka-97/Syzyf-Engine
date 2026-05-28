@@ -21,6 +21,7 @@ uniform uint uEnableLifetime;
 
 layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 
+// https://gist.github.com/keijiro/24f9d505fac238c9a2982c0d6911d8e3
 uint hash(uint state) {
     state ^= 2747636419u;
     state *= 2654435769u;

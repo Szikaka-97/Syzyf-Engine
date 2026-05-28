@@ -70,6 +70,14 @@ void MeshRenderer::DrawImGui() {
 	if (ImGui::TreeNode(std::format("SubMesh count: {}", this->mesh->GetSubMeshCount()).c_str())) {
 		ImGui::TreePop();
 	}
+   
+    if (ImGui::TreeNode("Mask Effects")) {
+        for (unsigned int i = 0; i < 8; i++) {
+            DrawMaskEffectCheckbox((MaskEffectBits)(MaskEffectBits::XRay << i));
+        }
+        ImGui::TreePop();
+    }
+
 	if (ImGui::TreeNode(std::format("Material count: {}", this->materials.size()).c_str())) {
 		for (int i = 0; i < this->materials.size(); i++) {
 			Material* mat = this->materials[i];
@@ -87,4 +95,12 @@ void MeshRenderer::DrawImGui() {
 
 		ImGui::TreePop();
 	}
+}
+
+void MeshRenderer::DrawMaskEffectCheckbox(MaskEffectBits maskEffect) {
+    bool hasEffect = (this->maskFlags & maskEffect) != 0;
+    if (ImGui::Checkbox(std::format("Effect {}", (unsigned int)maskEffect).c_str(), &hasEffect)) {
+        if (hasEffect) this->maskFlags |= maskEffect;
+        else this->maskFlags &= ~maskEffect;
+    }
 }

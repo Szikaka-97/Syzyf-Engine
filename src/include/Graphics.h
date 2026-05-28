@@ -1,5 +1,7 @@
 #pragma once
 
+#include <glm/fwd.hpp>
+#include <optional>
 #include <queue>
 #include <vector>
 #include <glad/glad.h>
@@ -41,6 +43,8 @@ enum class RenderPassType {
 	Additive = 64,
 	Volumetric = 128,
     SSAO = 256,
+    Mask = 512,
+    UI = 1024,
 };
 
 struct RenderParams {
@@ -62,9 +66,13 @@ public:
         float bias = 0.025f;
         float power = 4.0f;
         int blurRange = 2;
+        // Should be private but i dnt care
         float resolutionScale = 1.0f;
     };
+
+    SSAOSettings ssaoSettings;
 private:
+    // this should all be using unique ptrs
     struct Shaders {
         // Depth
         ShaderProgram* depthOnlyShader;
@@ -74,12 +82,20 @@ private:
         ShaderProgram* prepassAnimatedShader;
         ShaderProgram* prepassScatterShader;
         ShaderProgram* prepassMaskShader;
+        ShaderProgram* prepassDitherHoleShader;
+        ShaderProgram* prepassDitherProximityShader;
         ShaderProgram* prepassAnimatedMaskShader;
         ShaderProgram* prepassScatterMaskShader;
 
         // SSAO 
         ShaderProgram* ssaoShader;
         ShaderProgram* ssaoBlurShader;
+
+        // Mask
+        ShaderProgram* maskShader;
+        // UI
+        ShaderProgram* uiShader;
+        ShaderProgram* uiTextShader;
     };
 
 	struct RenderNode {
@@ -95,6 +111,8 @@ private:
 
         int jointBufferOffset = -1;
 
+        uint8_t maskFlags = 0;
+
         GLuint indirectBuffer = 0;
         GLuint indirectBufferOffset = 0;
         GLuint instanceSSBO = 0;
@@ -106,12 +124,34 @@ private:
 		bool operator<(const RenderNode& other) const;
 	};
 
+    struct UiRenderNode {
+        glm::mat4 worldMatrix;
+        glm::vec2 size;
+        int zIndex = 0;
+        glm::vec4 color{1.0f};
+        Texture2D* texture = nullptr;
+        Material* customMaterial = nullptr;
+
+        bool isText = false;
+        bool useMsdf = false;
+        std::optional<glm::vec4> clipRectangle;
+
+        glm::vec4 uvRectangle{0.0f, 0.0f, 1.0f, 1.0f};
+        float pxRange = 4.0f;
+
+        bool operator<(const UiRenderNode& other) const {
+            return zIndex < other.zIndex;
+        }
+    };
+
 	std::vector<RenderNode> opaqueRenders;
 	std::vector<RenderNode> gizmoRenders;
 	std::vector<RenderNode> transparentRenders;
 	std::vector<RenderNode> oitTransparentRenders;
 	std::vector<RenderNode> additiveRenders;
 	std::vector<RenderNode> volumetricRenders;
+    std::vector<RenderNode> maskRenders;
+    std::vector<UiRenderNode> uiRenders;
 	GLuint globalUniformsBuffer;
 	GLuint objectUniformsBuffer;
 	
@@ -121,6 +161,7 @@ private:
 	Framebuffer* volumetricPassFramebuffer;
     Framebuffer* ssaoFramebuffer;
     Framebuffer* ssaoBlurFramebuffer;
+    Framebuffer* maskFramebuffer;
     float depthMult = 1.0f;
 
 	LightSystem* lightSystem;
@@ -132,11 +173,12 @@ private:
 	ShaderGlobalUniforms currentUniforms;
     Shaders shaders;
 
-    SSAOSettings ssaoSettings;
     std::vector<glm::vec3> ssaoKernel;
     std::unique_ptr<Texture2D> ssaoNoiseTexture;
 
     float volumetricPassResolutionScale = 1.0f;
+
+    Mesh* uiQuadMesh;
 
 	void RenderFullscreenFrameQuad();
 	void CompositeTransparentPass();
@@ -152,6 +194,9 @@ private:
 	void EnqueueOITransparent(const RenderNode& node);
 	void EnqueueAdditive(const RenderNode& node);
 	void EnqueueVolumetric(const RenderNode& node);
+    void EnqueueUi(const UiRenderNode& node);
+
+    void EnqueueMask(const RenderNode& node);
 
 	void BindMaterialProperties(Material* mat);
 
@@ -160,6 +205,8 @@ private:
 public:
 	SceneGraphics(Scene* scene);
 	
+    void SetSSAOEnabled(bool enabled);
+
 	glm::vec2 GetScreenResolution() const;
 	void UpdateScreenResolution(glm::vec2 newResolution);
 	
@@ -185,6 +232,9 @@ public:
 
     void DrawMeshIndirect(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, GLuint indirectBuffer, GLuint indirectBufferOffset, GLuint instanceSSBO, const BoundingBox& bounds, uint8_t layer = Layer::Default);
 
+    void DrawUi(const glm::mat4& worldMatrix, const glm::vec2& size, int zIndex, const glm::vec4& color, Texture2D* texture = nullptr, Material* customMaterial = nullptr, std::optional<glm::vec4> clipRectangle = std::nullopt);
+    void DrawUiText(const glm::mat4& worldMatrix, const glm::vec2& size, int zIndex, const glm::vec4& color, Texture2D* texture, const glm::vec4& uvRectangle, float pxRange, bool useMsdf = true, std::optional<glm::vec4> clipRectangle = std::nullopt);
+
 	void DrawGizmoMesh(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, bool ignoresDepth = false);
 	
 	void RenderCamera(Camera* camera, Viewport* renderTarget = nullptr);
@@ -199,6 +249,9 @@ public:
 
 	void RenderSSAOBlur(const RenderParams& params, Framebuffer* target);
 	void RenderSSAOBlur(const ShaderGlobalUniforms& uniforms, const RenderParams& params, Framebuffer* target);
+
+    void RenderMask(const RenderParams& params, Framebuffer* target);
+    void RenderMask(const ShaderGlobalUniforms& uniforms, const RenderParams& params, Framebuffer* target);
 
 	void RenderOpaque(const RenderParams& params, Framebuffer* target);
 	void RenderOpaque(const ShaderGlobalUniforms& uniforms, const RenderParams& params, Framebuffer* target);
@@ -220,6 +273,10 @@ public:
 	
 	void RenderVolumetric(const RenderParams& params, Framebuffer* target);
 	void RenderVolumetric(const ShaderGlobalUniforms& uniforms, const RenderParams& params, Framebuffer* target);
+
+    void RenderUi(const RenderParams& params, Framebuffer* target);
+
+    void RenderUi(const ShaderGlobalUniforms& uniforms, const RenderParams& params, Framebuffer* target);
 
 	virtual void OnPostRender();
 

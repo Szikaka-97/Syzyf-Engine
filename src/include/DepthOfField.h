@@ -5,13 +5,7 @@
 #include "Shader.h"
 
 class DepthOfField : public PostProcessEffect, public ImGuiDrawable {
-private:
-    glm::vec2 savedResolution;
-    GLuint dofTexture;
-    ComputeShaderProgram* downsampleShader;
-    ComputeShaderProgram* upsampleShader;
-    ComputeShaderProgram* finalShader;
-
+public:
     int blurLevel = 3;
     float minDistance = 5.0f;
     float maxDistance = 20.0f;
@@ -22,6 +16,15 @@ private:
     float separation = 2.0f;
     float minThreshold = 0.1f;
     float maxThreshold = 0.5f;
+
+    // Shouldn't be here, create a separate blur effect instead
+    float finalMixFactor = 1.0f;
+private:
+    glm::vec2 savedResolution;
+    GLuint dofTexture;
+    ComputeShaderProgram* downsampleShader;
+    ComputeShaderProgram* upsampleShader;
+    ComputeShaderProgram* finalShader;
 public:
     DepthOfField();
 

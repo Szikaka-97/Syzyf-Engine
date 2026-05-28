@@ -1,0 +1,52 @@
+#version 460 core
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+
+layout(rgba16f, binding = 0) uniform image2D inputImg;
+layout(rgba16f, binding = 1) uniform image2D outputImg;
+
+uniform int jumpDistance;
+
+vec3 jump(vec3 minSeed, ivec2 current, vec2 offset) {
+    ivec2 samplePos = current + ivec2(offset);
+    ivec2 size = ivec2(imageSize(inputImg));
+
+    if (samplePos.x < 0 || samplePos.y < 0 || samplePos.x >= size.x || samplePos.y >= size.y) {
+        return minSeed;
+    }
+
+    vec2 seed = imageLoad(inputImg, samplePos).xy;
+
+    if (seed.x < -999.0) {
+        return minSeed;
+    }
+
+    float dist = distance(vec2(current), seed);
+
+    if (dist < minSeed.z) {
+        return vec3(seed.x, seed.y, dist);
+    }
+
+    return minSeed;
+}
+
+void main() {
+    ivec2 currentUv = ivec2(gl_GlobalInvocationID.xy); 
+    ivec2 size = imageSize(outputImg);
+
+    if (currentUv.x >= size.x || currentUv.y >= size.y) return;
+
+    vec3 current = vec3(-1000.0, -1000.0, 999999999.0);
+
+    current = jump(current, currentUv, jumpDistance * ivec2(0, 0));
+    current = jump(current, currentUv, jumpDistance * ivec2(0, 1));
+    current = jump(current, currentUv, jumpDistance * ivec2(1, 1));
+    current = jump(current, currentUv, jumpDistance * ivec2(1, 0));
+    current = jump(current, currentUv, jumpDistance * ivec2(1, -1));
+    current = jump(current, currentUv, jumpDistance * ivec2(0, -1));
+    current = jump(current, currentUv, jumpDistance * ivec2(-1, -1));
+    current = jump(current, currentUv, jumpDistance * ivec2(-1, 0));
+    current = jump(current, currentUv, jumpDistance * ivec2(-1, 1));
+
+    imageStore(outputImg, currentUv, vec4(current.x, current.y, 0.0, 1.0));
+}
