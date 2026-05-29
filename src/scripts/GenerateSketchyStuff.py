@@ -66,6 +66,7 @@ def main():
 		dest.line("#include <string>")
 		dest.line("#include <map>")
 		dest.line("#include <functional>")
+		dest.line("#include <TypeInfo.h>")
 
 		dest.line()
 
@@ -98,6 +99,7 @@ def main():
 
 		dest.line("static std::map<std::string, std::function<GameObject* (SceneNode*)>> gameObjectAdditionFunctions;")
 		dest.line("static std::map<std::string, std::function<SceneComponent* (Scene*)>> sceneComponentAdditionFunctions;")
+		dest.line("static std::map<std::string, std::function<void (SceneNode* node, GameObject*)>> gameObjectAttachmentFunctions;")
 
 		dest.less_indent()
 		dest.line("};")
@@ -114,19 +116,54 @@ def main():
 		dest.less_indent()
 		dest.line("};")
 
+		dest.line("std::map<std::string, std::function<void (SceneNode*, GameObject*)>> MessagingHelpers::gameObjectAttachmentFunctions {")
+		dest.more_indent()
+
+		for tp in gameobject_types:
+			lineSpelling = f"{{ \"{tp.name}\", [](SceneNode* node, GameObject* obj) -> void {{ return node->GetScene()->AddGameObjectInternal<{tp.name}>(node, dynamic_cast<{tp.name} *>(obj)); }} }},"
+
+			if any([constructor for constructor in tp.constructors if len(constructor.arguments) == 0]):
+				dest.line(lineSpelling)
+			else:
+				dest.line("//" + lineSpelling)
+
+		dest.less_indent()
+		dest.line("};")
+
 		dest.line("std::map<std::string, std::function<GameObject* (SceneNode*)>> MessagingHelpers::gameObjectAdditionFunctions {")
 		dest.more_indent()
 
 		for tp in gameobject_types:
+			lineSpelling = f"{{ \"{tp.name}\", [](SceneNode* node) -> GameObject* {{ return node->AddObject<{tp.name}>(); }} }},"
+
 			if any([constructor for constructor in tp.constructors if len(constructor.arguments) == 0]):
-				dest.line(f"{{ \"{tp.name}\", [](SceneNode* node) -> GameObject* {{ return node->AddObject<{tp.name}>(); }} }},")
+				dest.line(lineSpelling)
 			else:
-				dest.line(f"// {{ \"{tp.name}\", [](SceneNode* node) -> GameObject* {{ return node->AddObject<{tp.name}>(); }} }},")
+				dest.line("//" + lineSpelling)
 
 		dest.less_indent()
 		dest.line("};")
 
 		dest.line("")
+
+		dest.line("GameObject* MessagingHelpers_AttachObjectToNode(SceneNode* node, GameObject* obj) {")
+		dest.more_indent()
+		
+		dest.line("auto objectName = TypeInfo::GetTypeInfo(typeid(*obj)).name;")
+		dest.line("auto func = MessagingHelpers::gameObjectAdditionFunctions.find(objectName);")
+
+		dest.line("if (func != MessagingHelpers::gameObjectAdditionFunctions.end()) {")
+		dest.more_indent()
+		
+		dest.line("return func->second(node);")
+
+		dest.less_indent()
+		dest.line("}")
+		dest.line("return nullptr;")
+
+		dest.less_indent()
+		dest.line("}")
+		dest.line()
 
 		dest.line("GameObject* MessagingHelpers_AddObjectToNode(SceneNode* node, const std::string& objectName) {")
 		dest.more_indent()

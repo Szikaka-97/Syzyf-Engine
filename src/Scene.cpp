@@ -18,6 +18,7 @@
 
 GameObject* MessagingHelpers_AddObjectToNode(SceneNode* node, const std::string& objectName); // Trust me bro
 SceneComponent* MessagingHelpers_AddComponentToScene(Scene* scene, const std::string& objectName); // Trust me sis
+GameObject* MessagingHelpers_AttachObjectToNode(SceneNode* node, GameObject* obj);
 
 SceneNode::SceneNode(Scene* scene) :
 scene(scene),
@@ -231,12 +232,25 @@ void SceneNode::operator delete(SceneNode* ptr, std::destroying_delete_t) {
 void SceneNode::Deserialize(const nlohmann::json& data) {
 	std::erase(this->objects, nullptr);
 
+	this->children.clear();
 	this->scene->nextSceneNodeID = std::max(this->scene->nextSceneNodeID, this->id + 1);
 
 	if (this->parent) {
-		// this->transform.localTransform = Serialization::Deserialize<glm::mat4>(data["transform"]);
-		// this->transform.localTransform.MarkDirty();
+		this->parent->children.push_back(this);
 		GetTransform().LocalTransform() = Serialization::Deserialize<glm::mat4>(data["transform"]);
+	}
+
+	spdlog::error("Attaching itself to scene: {}", this->GetID());
+	this->scene->messageTree.AddNode(this);
+
+	for (int objectIndex : data["objects"]) {
+		GameObject* objectPtr = (GameObject*) Serialization::FetchDeserializedObject(objectIndex);
+		
+		if (objectPtr) {
+			std::string objectName = Serialization::GetDeserializedObjectTypeName(objectIndex);
+			
+			MessagingHelpers_AttachObjectToNode(this, objectPtr);
+		}
 	}
 
 	spdlog::info("Finished node deserialization");
@@ -246,6 +260,14 @@ nlohmann::json SceneNode::Serialize() const {
 
 	data["transform"] = Serialization::Serialize(this->transform.localTransform.Value());
 	
+	std::vector<int> serializedObjects;
+
+	for (GameObject* obj : this->objects) {
+		serializedObjects.push_back(Serialization::QueueObjectSerialization(obj));
+	}
+
+	data["objects"] = serializedObjects;
+
 	return data;
 }
 

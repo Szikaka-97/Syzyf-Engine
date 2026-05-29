@@ -114,6 +114,10 @@ def has_serialization_methods(tp: CppType) -> bool:
 
 
 def is_serialized_type(tp: CppType) -> bool:
+	for base in tp.base_classes:
+		if base == "DoNotSerialize":
+			return False
+
 	if any([field for field in tp.fields if "__serialized__" in field.attributes]):
 		return True
 	
@@ -126,6 +130,13 @@ def is_serialized_type(tp: CppType) -> bool:
 
 def write_field_serializer(writer: CodeWriter, field: CppField, lhs: str) -> None:
 	offset_str = ""
+	additional_offset_str = "0"
+
+	for base in CppType.get_type(field.owning_type).base_classes:
+		offset_str = f"{base}, " + offset_str
+
+	if len(CppType.get_type(field.owning_type).base_classes) == 0 and CppType.get_type(field.owning_type).is_polymorphic():
+		additional_offset_str = "sizeof(void*)"
 
 	for f in CppType.get_type(field.owning_type).fields:
 		if f == field:
@@ -139,26 +150,26 @@ def write_field_serializer(writer: CodeWriter, field: CppField, lhs: str) -> Non
 		offset_str = "0" 
 
 	if is_simple_type(field.type):
-		writer.line(lhs + f" = *({field.type} *) (data + {offset_str});")
+		writer.line(lhs + f" = *({field.type} *) (data + {offset_str} + {additional_offset_str});")
 
 		return
 	
 	field_type = CppType.get_type(field.type)
 
 	if field_type.is_enum():
-		writer.line(lhs + f" = *({get_enum_type(field_type)} *) (data + {offset_str});")
+		writer.line(lhs + f" = *({get_enum_type(field_type)} *) (data + {offset_str} + {additional_offset_str});")
 	elif is_array_type(field_type):
 		write_array_serializer(writer, field, lhs)
 	elif field_type.name in INTRINSIC_SERIALIZERS:
-		writer.line(lhs + f" = Serialization::Serialize(*({field_type.name} *) (data + {offset_str}));")
+		writer.line(lhs + f" = Serialization::Serialize(*({field_type.name} *) (data + {offset_str} + {additional_offset_str}));")
 	elif not field.is_pointer:
 		if field.type in serialized_types:
-			writer.line(lhs + f" = InternalSerialize{sanitize_class_name(field.type)}(data + {offset_str});")
+			writer.line(lhs + f" = InternalSerialize{sanitize_class_name(field.type)}(data + {offset_str} + {additional_offset_str});")
 		else:
 			print(f"WARN: Serializing object of non-serializable type {field_type.name}")
 	else:
 		if field.type in serialized_types:
-			writer.line(lhs + f" = SerializeObject(*(const {field.type}**) (data + {offset_str}));")
+			writer.line(lhs + f" = SerializeObject(*(const {field.type}**) (data + {offset_str} + {additional_offset_str}));")
 		else:
 			print(f"WARN: Serializing object of non-serializable type {field.type}")
 
@@ -209,7 +220,11 @@ def write_array_serializer(writer: CodeWriter, field: CppField, lhs: str) -> Non
 				print(f"WARN: Serializing array of non-serializable type {element_type.name}")
 		else:
 			if element_type.name in serialized_types:
-				writer.line(f"resultArray.push_back(SerializeObject(element));")
+				if field.owning_type == "SceneNode": # Dirty hack, but there's no such thing as a "clean" hack
+					if field.name == "children":
+						writer.line(f"if (static_cast<const SceneNode*>(element)->GetObject<DoNotSerializeNode>() == nullptr) resultArray.push_back(SerializeObject(element));")
+				else:
+					writer.line(f"resultArray.push_back(SerializeObject(element));")
 			else:
 				print(f"WARN: Serializing array of non-serializable type {element_type.name}")
 	
@@ -227,6 +242,13 @@ def write_array_serializer(writer: CodeWriter, field: CppField, lhs: str) -> Non
 
 def write_field_deserializer(writer: CodeWriter, field: CppField, lhs: str) -> None:
 	offset_str = ""
+	additional_offset_str = "0"
+
+	for base in CppType.get_type(field.owning_type).base_classes:
+		offset_str = f"{base}, " + offset_str
+
+	if len(CppType.get_type(field.owning_type).base_classes) == 0 and CppType.get_type(field.owning_type).is_polymorphic():
+		additional_offset_str = "sizeof(void*)"
 
 	for f in CppType.get_type(field.owning_type).fields:
 		if f == field:
@@ -240,26 +262,26 @@ def write_field_deserializer(writer: CodeWriter, field: CppField, lhs: str) -> N
 		offset_str = "0"
 	
 	if is_simple_type(field.type):
-		writer.line(f"new(({field.type}*) (raw + {offset_str})) {field.type}{{data[\"{field.name}\"].get<{field.type}>()}};")
+		writer.line(f"new(({field.type}*) (raw + {offset_str} + {additional_offset_str})) {field.type}{{data[\"{field.name}\"].get<{field.type}>()}};")
 
 		return
 
 	field_type = CppType.get_type(field.type)
 
 	if field_type.is_enum():
-		writer.line(f"new(({get_enum_type(field_type)}*) (raw + {offset_str})) {get_enum_type(field_type)}{{data[\"{field.name}\"].get<{get_enum_type(field_type)}>()}};")
+		writer.line(f"new(({get_enum_type(field_type)}*) (raw + {offset_str} + {additional_offset_str})) {get_enum_type(field_type)}{{data[\"{field.name}\"].get<{get_enum_type(field_type)}>()}};")
 	elif is_array_type(field_type):
 		write_array_deserializer(writer, field, lhs)
 	elif field_type.name in INTRINSIC_SERIALIZERS:
-		writer.line(f"new(({field.type}*) (raw + {offset_str})) {field.type}{{Serialization::Deserialize<{field.type}>(data[\"{field.name}\"])}};")
+		writer.line(f"new(({field.type}*) (raw + {offset_str} + {additional_offset_str})) {field.type}{{Serialization::Deserialize<{field.type}>(data[\"{field.name}\"])}};")
 	elif not field.is_pointer:
 		if field.type in serialized_types:
-			writer.line(f"InternalDeserialize{sanitize_class_name(field.type)}On(reinterpret_cast<volatile {field.type} *>(raw + {offset_str}), data[\"{field.name}\"]);")
+			writer.line(f"InternalDeserialize{sanitize_class_name(field.type)}On(reinterpret_cast<volatile {field.type} *>(raw + {offset_str} + {additional_offset_str}), data[\"{field.name}\"]);")
 		else:
 			print(f"WARN: Deserializing object of non-serializable type {field_type.name}")
 	else:
 		if field.type in serialized_types:
-			writer.line(f"*((void**) (raw + {offset_str})) = Serialization::FetchDeserializedObject(data[\"{field.name}\"].get<int>());")
+			writer.line(f"*((void**) (raw + {offset_str} + {additional_offset_str})) = Serialization::FetchDeserializedObject(data[\"{field.name}\"].get<int>());")
 		else:
 			print(f"WARN: Deserializing object of non-serializable type {field.type}")
 
@@ -429,7 +451,7 @@ def main():
 		for base in type.get_class_hierarchy():
 			if base.name not in final_serialized_types:
 				final_serialized_types[base.name] = base
-
+				
 	serialized_types = final_serialized_types
 
 	with CodeWriter(DEST_HEADER_FILE_PATH) as dest_header:
@@ -437,7 +459,7 @@ def main():
 		dest_header.line()
 
 	with CodeWriter(DEST_SOURCE_FILE_PATH) as dest_impl:
-		dest_impl.line("#include \"SerializationDecls.h\"")
+		dest_impl.line("#include <Serialization.h>")
 		dest_impl.line()
 		dest_impl.line("#include <unordered_map>")
 		dest_impl.line()

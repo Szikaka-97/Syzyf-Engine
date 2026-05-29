@@ -8,9 +8,10 @@
 #include <Graphics.h>
 #include <InputSystem.h>
 #include <TimeSystem.h>
+#include <Serialization.h>
 
 // When replacing the Mover with this, fix the gizmo as well
-class CameraController : public GameObject, public ImGuiDrawable {
+class CameraController : public DoNotSerializeNode, public ImGuiDrawable {
   private:
     float pitch;
     float rotation;

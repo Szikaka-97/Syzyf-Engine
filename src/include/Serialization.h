@@ -7,12 +7,9 @@
 
 #include <GameObject.h>
 
-class GameObject;
-class SceneNode;
-
-class Mesh;
-
 class DoNotSerialize { };
+
+class DoNotSerializeNode : public DoNotSerialize, public GameObject { };
 
 int InternalSerializeObject(const void* ptr, const std::type_info& objectType);
 void* InternalDeserializeObject(const json& data);
@@ -87,5 +84,3 @@ T* Serialization::DeserializeObject(const json& data) {
 	return reinterpret_cast<T*>(InternalDeserializeObject(data));
 
 }
-
-class DoNotSerializeNode : public GameObject { };
