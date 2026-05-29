@@ -1,3 +1,5 @@
+#pragma once
+
 #include <Serialized.h>
 
 #include <glm/glm.hpp>
