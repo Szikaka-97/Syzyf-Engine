@@ -125,12 +125,12 @@ public:
     }
 
     void Update() {
-        if (m_DeletionCountdown > 0) {
-            m_DeletionCountdown--;
-            if (m_DeletionCountdown == 0)
-                DetachChildrenAndDeleteSelf();
-            return;
-        }
+        // if (m_DeletionCountdown > 0) {
+        //     m_DeletionCountdown--;
+        //     if (m_DeletionCountdown == 0)
+        //         DetachChildrenAndDeleteSelf();
+        //     return;
+        // }
 
         if (m_ShouldSpawn) {
             m_ShouldSpawn = false;
