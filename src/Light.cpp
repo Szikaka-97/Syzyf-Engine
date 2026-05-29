@@ -49,7 +49,9 @@ intensity(1),
 linearAttenuation(1),
 quadraticAttenuation(1),
 shadowCasting(false),
-savedTransform(GlobalTransform()) { }
+savedTransform(GlobalTransform()) {
+	this->gizmoMat = new Material(GetGizmoShader(GetScene()));
+}
 
 Light::Light(Light::PointLight lightInfo):
 type(Light::LightType::Point),
