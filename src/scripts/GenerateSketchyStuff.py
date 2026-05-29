@@ -182,6 +182,25 @@ def main():
 		dest.less_indent()
 		dest.line("}")
 		dest.line()
+
+		dest.line("std::vector<std::string> MessagingHelpers_GetAvailableGameObjects() {")
+		dest.more_indent()
+		
+		dest.line("std::vector<std::string> result;")
+
+		dest.line("for (const auto& pair : MessagingHelpers::gameObjectAdditionFunctions) {")
+		dest.more_indent()
+		
+		dest.line("result.push_back(pair.first);")
+
+		dest.less_indent()
+		dest.line("}")
+		dest.line()
+		dest.line("return result;")
+
+		dest.less_indent()
+		dest.line("}")
+		dest.line()
 		
 
 	print("\tDone!")

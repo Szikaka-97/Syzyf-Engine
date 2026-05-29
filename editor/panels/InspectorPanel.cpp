@@ -15,6 +15,9 @@
 #include <imgui.h>
 #include <string>
 
+GameObject* MessagingHelpers_AddObjectToNode(SceneNode* node, const std::string& objectName);
+std::vector<std::string> MessagingHelpers_GetAvailableGameObjects();
+
 namespace Editor {
 
 void InspectorPanel::Draw(Context& context) {
@@ -291,11 +294,10 @@ void InspectorPanel::Draw(Context& context) {
             std::transform(searchString.begin(), searchString.end(),
                            searchString.begin(), ::tolower);
 
-            ComponentFactoryFunc firstMatchFunction = nullptr;
+            std::string firstMatchObject = "";
             bool isFirstMatch = true;
 
-            for (const auto& [name, factoryFunc] :
-                 ComponentRegistry::Get().GetFactories()) {
+            for (const auto& name: MessagingHelpers_GetAvailableGameObjects()) {
                 std::string lowerName = name;
                 std::transform(lowerName.begin(), lowerName.end(),
                                lowerName.begin(), ::tolower);
@@ -303,11 +305,11 @@ void InspectorPanel::Draw(Context& context) {
                 if (searchString.empty() ||
                     lowerName.find(searchString) != std::string::npos) {
                     if (isFirstMatch) {
-                        firstMatchFunction = factoryFunc;
+                        firstMatchObject = name;
                     }
 
                     if (ImGui::Selectable(name.c_str(), isFirstMatch)) {
-                        factoryFunc(context.selectedNode);
+                        MessagingHelpers_AddObjectToNode(context.selectedNode, name);
                         ImGui::CloseCurrentPopup();
                     }
 
@@ -315,8 +317,8 @@ void InspectorPanel::Draw(Context& context) {
                 }
             }
 
-            if (enterPressed && firstMatchFunction != nullptr) {
-                firstMatchFunction(context.selectedNode);
+            if (enterPressed && !firstMatchObject.empty()) {
+                MessagingHelpers_AddObjectToNode(context.selectedNode, firstMatchObject);
                 ImGui::CloseCurrentPopup();
             }
 
