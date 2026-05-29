@@ -19,10 +19,8 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${HEADER_FILES})
 source_group(TREE ${CMAKE_SOURCE_DIR}         FILES ${ASSETS_FILES})
 
 add_library(${PROJECT_NAME} ${HEADER_FILES} ${SOURCE_FILES} ${ASSETS_FILES}
-		Fxaa.cpp "enemies/EnemyBase.cpp"
         ${imgui_SOURCE_DIR}/misc/cpp/imgui_stdlib.cpp)
 
-target_compile_definitions(${PROJECT_NAME} PRIVATE GLFW_INCLUDE_NONE)
 target_compile_definitions(${PROJECT_NAME} PRIVATE LIBRARY_SUFFIX="")
 
 target_include_directories(
@@ -52,9 +50,9 @@ target_link_libraries(${PROJECT_NAME} Jolt)
 target_link_libraries(${PROJECT_NAME} mikktspace)
 
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD 
-                   COMMAND ${CMAKE_COMMAND} -E create_symlink 
-                   ${CMAKE_SOURCE_DIR}/res 
-                   ${CMAKE_CURRENT_BINARY_DIR}/res)
+				   COMMAND ${CMAKE_COMMAND} -E create_symlink 
+				   ${CMAKE_SOURCE_DIR}/res 
+				   ${CMAKE_CURRENT_BINARY_DIR}/res)
 
 target_compile_definitions (${PROJECT_NAME} PRIVATE GLM_ENABLE_EXPERIMENTAL)
 

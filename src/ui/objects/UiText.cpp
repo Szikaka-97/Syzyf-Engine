@@ -10,4 +10,10 @@ void UiText::DrawImGui() {
 
     ImGui::ColorEdit4("Color", &this->color[0]);
     ImGui::InputFloat("Font Size", &this->fontSize);
+
+    const char* alignments[] = { "Left", "Middle", "Right" };
+    int currentAlignment = static_cast<int>(this->alignment);
+    if (ImGui::Combo("Text Alignment", &currentAlignment, alignments, IM_ARRAYSIZE(alignments))) {
+        this->alignment = static_cast<TextAlignment>(currentAlignment);
+    }
 }

@@ -13,7 +13,7 @@ namespace fs = std::filesystem;
 
 enum class TextureType {
 	Texture2D,
-    Texture3D,
+	Texture3D,
 	Cubemap
 };
 
@@ -24,7 +24,7 @@ enum class TextureChannels {
 	RGBA = 3,
 	Depth = 4,
 	DepthStencil = 5,
-    GrayscaleInteger = 6
+	GrayscaleInteger = 6
 };
 
 enum class TextureColor {
@@ -120,9 +120,9 @@ public:
 		requires (std::derived_from<T_Tex, Texture>)
 	static T_Tex* Load(const fs::path& texturePath, const TextureParams& loadParams) = delete;
 
-  template <class T_Tex>
-    requires (std::derived_from<T_Tex, Texture>)
-  static T_Tex* Load(const unsigned char* data, const int length, const TextureParams loadParams) = delete;
+	template <class T_Tex>
+		requires (std::derived_from<T_Tex, Texture>)
+	static T_Tex* Load(const unsigned char* data, const int length, const TextureParams loadParams) = delete;
 
 	template <class T_Tex>
 		requires (std::derived_from<T_Tex, Texture>)

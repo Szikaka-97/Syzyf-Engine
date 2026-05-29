@@ -38,7 +38,8 @@ GLenum ToGL(TextureChannels channels) {
 		GL_RGB,
 		GL_RGBA,
 		GL_DEPTH_COMPONENT,
-		GL_DEPTH_STENCIL
+		GL_DEPTH_STENCIL,
+	        GL_RED_INTEGER,
 	};
 
 	return values[(int) channels];
@@ -356,6 +357,7 @@ Texture2D::Texture2D(unsigned int width, unsigned int height, const TextureParam
 	this->dirty = true;
 
 	this->mipmapped = TextureInfoBit<bool>();
+	this->mipmapped.dirty = false;
 	this->wrapU = TextureInfoBit<TextureWrap>();
 	this->wrapV = TextureInfoBit<TextureWrap>();
 	this->minFilter = TextureInfoBit<TextureFilter>();
@@ -380,6 +382,7 @@ Texture2D::Texture2D(unsigned int width, unsigned int height, const TextureParam
 	this->dirty = true;
 
 	this->mipmapped = TextureInfoBit<bool>();
+	this->mipmapped.dirty = false;
 	this->wrapU = TextureInfoBit<TextureWrap>();
 	this->wrapV = TextureInfoBit<TextureWrap>();
 	this->minFilter = TextureInfoBit<TextureFilter>();
@@ -392,6 +395,7 @@ Texture2D::Texture2D(unsigned int width, unsigned int height, const TextureParam
 
 	this->Update();
 }
+
 Texture2D* Texture2D::Create(unsigned char* textureData, int width, int height, const TextureParams& loadParams) {
 	GLuint textureHandle;
 	glGenTextures(1, &textureHandle);
@@ -411,7 +415,6 @@ Texture2D* Texture2D::Create(unsigned char* textureData, int width, int height, 
 
 	return result;
 }
-
 
 Texture2D* Texture2D::Load(const unsigned char* data, const int length, const TextureParams loadParams, bool flip) {
 	stbi_set_flip_vertically_on_load(flip);
@@ -822,6 +825,8 @@ void Texture3D::Create() {
 		if (!this->handle) {
 			glCreateTextures(GL_TEXTURE_3D, 1, &this->handle);
 		}
+
+        glBindTexture(GL_TEXTURE_3D, this->handle);
 		
         glTexImage3D(
             GL_TEXTURE_3D, 0,

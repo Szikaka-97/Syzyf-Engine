@@ -74,15 +74,13 @@ public:
 	void Deserialize(const nlohmann::json& data);
 };
 
-class Material : public Resource {
+class Material {
 	friend bool Debug::Property<Material>(Material&, const std::string&);
 private:
 	const ShaderProgram* shader;
 	ShaderVariableStorage shaderVariables;
 
 	static std::vector<Material*> allMaterials;
-
-	fs::path path;
 
 	Material();
 
@@ -92,9 +90,7 @@ public:
 
 	Material(const ShaderProgram* shader);
 
-	static Material* Load(fs::path materialPath);
-
-	void Bind() const;
+	void Bind(const ShaderProgram* targetProgram = nullptr) const;
 
 	template<Blittable T>
 	T GetValue(const std::string& uniformName) const;
@@ -134,9 +130,6 @@ public:
 
 	const ShaderProgram* GetShader() const;
 	const UniformSpec* GetUniforms() const;
-
-	virtual fs::path GetPath() const;
-	virtual uint64_t GetHash() const;
 
 	void Deserialize(const nlohmann::json& json_node);
 	nlohmann::json Serialize() const;
@@ -490,7 +483,7 @@ void ComputeDispatchData::SetUniformBuffer(int uniformBufferBinding, const T_Buf
 #pragma endregion
 
 template<> inline bool IsUniformOfRightType<bool>(UniformSpec::UniformType type) {
-  return type == UniformSpec::UniformType::Bool;
+	return type == UniformSpec::UniformType::Bool;
 }
 template<> inline bool IsUniformOfRightType<float>(UniformSpec::UniformType type) {
 	return type == UniformSpec::UniformType::Float1;

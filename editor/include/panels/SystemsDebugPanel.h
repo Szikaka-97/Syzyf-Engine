@@ -1,7 +1,7 @@
 #pragma once
 
 namespace Editor {
-class Context;
+struct Context;
 
 // Rename to something else later
 class SystemsDebugPanel {

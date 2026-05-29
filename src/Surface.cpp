@@ -1,20 +1,22 @@
 #include "Surface.h"
 #include "Mesh.h"
 #include "Scene.h"
+#include "game_scripts/PlayerController.h"
 #include "physics/System.h"
 #include <random>
 #include <limits>
 #include <spdlog/spdlog.h>
 //#include "AiNode.h"
-#include "AiSimplified.h"
-#include "enemies/EnemyBase.h"
+#include "./include/game_scripts/enemies/AiSimplified.h"
+#include "./include/game_scripts/enemies/EnemyBase.h"
+#include <game_scripts/PlayerController.h>
 
 #include <Jolt/Physics/Collision/RayCast.h>
 #include <Jolt/Physics/Collision/CastResult.h>
 #include <unordered_set>
 
 Surface::Surface(Mesh* floorMesh, float cellSize)
-    : floorMesh(floorMesh), cellSize(cellSize) {
+    : floorMesh(floorMesh), cellSize(cellSize), m_playerInside(false) {
     if (!floorMesh || floorMesh->GetSubMeshCount() == 0) {
        // spdlog::error("Surface: No valid mesh provided or mesh has no submeshes");
         return;
@@ -225,7 +227,7 @@ void Surface::DrawDebugSurface(Physics::DebugRenderer* debugRenderer, float poin
                                 JPH::Vec3(corners[3].x, corners[3].y, corners[3].z), boxColor);
         debugRenderer->DrawLine(JPH::Vec3(corners[3].x, corners[3].y, corners[3].z),
                                 JPH::Vec3(corners[0].x, corners[0].y, corners[0].z), boxColor);
-        // Górna podstawa
+        // G\F3rna podstawa
         debugRenderer->DrawLine(JPH::Vec3(corners[4].x, corners[4].y, corners[4].z),
                                 JPH::Vec3(corners[5].x, corners[5].y, corners[5].z), boxColor);
         debugRenderer->DrawLine(JPH::Vec3(corners[5].x, corners[5].y, corners[5].z),
@@ -234,7 +236,7 @@ void Surface::DrawDebugSurface(Physics::DebugRenderer* debugRenderer, float poin
                                 JPH::Vec3(corners[7].x, corners[7].y, corners[7].z), boxColor);
         debugRenderer->DrawLine(JPH::Vec3(corners[7].x, corners[7].y, corners[7].z),
                                 JPH::Vec3(corners[4].x, corners[4].y, corners[4].z), boxColor);
-        // Krawêdzie pionowe
+        // Kraw\EAdzie pionowe
         debugRenderer->DrawLine(JPH::Vec3(corners[0].x, corners[0].y, corners[0].z),
                                 JPH::Vec3(corners[4].x, corners[4].y, corners[4].z), boxColor);
         debugRenderer->DrawLine(JPH::Vec3(corners[1].x, corners[1].y, corners[1].z),
@@ -248,4 +250,20 @@ void Surface::DrawDebugSurface(Physics::DebugRenderer* debugRenderer, float poin
         JPH::Vec3 center(m_center.x, m_center.y, m_center.z);
         debugRenderer->DrawSphere(center, 0.2f, JPH::Color::sRed);
     }
+}
+
+void Surface::Update() {
+	PlayerController* player = PlayerController::Instance();
+
+	bool containsPlayer = ContainsPoint(player->GlobalTransform().Position(), 0.2f);
+	
+	if (m_playerInside && !containsPlayer) {
+		m_playerInside = false;
+		InformExit();
+	}
+	else if (!m_playerInside && containsPlayer) {
+		m_playerInside = true;
+
+		InformEnter();
+	}
 }

@@ -58,7 +58,7 @@ def main():
 
 		CppType.load_types(data)
 
-	gameobject_types = [type for type in CppType.all_types.values() if any([game_object_base for game_object_base in type.get_class_hierarchy() if game_object_base.name == "GameObject"])]
+	gameobject_types = [type for type in CppType.all_types.values() if any([game_object_base for game_object_base in type.get_class_hierarchy() if game_object_base.name == "GameObject"]) and not type.is_abstract()]
 
 	scenecomponent_types = [type for type in CppType.all_types.values() if any([scene_component_base for scene_component_base in type.get_class_hierarchy() if scene_component_base.name == "SceneComponent" or "GameObjectSystem" in scene_component_base.name])]
 

@@ -26,6 +26,7 @@ class Scene;
 
 class SceneNode {
 	friend class Scene;
+	friend class SceneTransform;
 private:
 	serialized SceneNode* parent;
 
@@ -122,7 +123,7 @@ class Scene {
 	friend class GameObject;
 	friend class MessagingHelpers;
 public:
-    serialized std::string name = "";
+	serialized std::string name = "";
 
 	int nextSceneNodeID;
 	int nextGameObjectID;

@@ -50,3 +50,11 @@ if(BUILD_EDITOR)
     message(STATUS "Syzyf Editor build ENABLED")
     add_subdirectory(editor)
 endif()
+
+# ---- Game ----
+option(BUILD_GAME "Build Game" ON)
+
+if(BUILD_GAME)
+    message(STATUS "Game build ENABLED")
+    add_subdirectory(game)
+endif()

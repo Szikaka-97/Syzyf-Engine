@@ -1,14 +1,9 @@
-#include "include/Application.h"
+#include "EditorApplication.h"
 
 int main(int, char**) {
-    Editor::Application app = Editor::Application();
+    Editor::EditorApplication app = Editor::EditorApplication();
 
-    if (!app.Setup()) {
-        return -1;
-    }
-
-    app.MainLoop();
-    app.Terminate();
+    app.Run();
 
     return 0;
 }

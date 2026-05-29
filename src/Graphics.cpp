@@ -24,6 +24,7 @@
 #include "animation/SkeletonComponent.h"
 
 #include "Scene.h"
+#include "game_scripts/PlayerController.h"
 #include "include/Framebuffer.h"
 #include "include/Shader.h"
 
@@ -136,7 +137,7 @@ currentUniforms() {
             .colorSpace = TextureColor::Linear,
             .format = TextureFormat::Ubyte,
             .minFilter = TextureFilter::Nearest,
-            .magFilter = TextureFilter::Nearest
+            .magFilter = TextureFilter::Nearest,
     });
     this->uiQuadMesh = this->GetScene()->Resources()->Get<Mesh>("./res/models/uiQuad.obj");
 
@@ -149,6 +150,10 @@ currentUniforms() {
         .format = TextureFormat::Float
     };
     this->opaquePassFramebuffer->CreateCustomAttachment(0, normalBufferParams);
+}
+
+void SceneGraphics::SetSSAOEnabled(bool enabled) {
+    this->ssaoSettings.enabled = enabled;
 }
 
 glm::vec2 SceneGraphics::GetScreenResolution() const {
@@ -342,14 +347,17 @@ void SceneGraphics::DrawGizmoMesh(const Mesh* mesh, int subMeshIndex, const Mate
 void SceneGraphics::DrawMeshInstanced(MeshRenderer* renderer, unsigned int instanceCount) {
     if (!renderer || !renderer->GetMesh()) return;
 
-    int skinningOffset = -1;
-    if (auto* skeleton = renderer->GetNode()->GetObject<SkeletonComponent>()) {
-        skinningOffset = skeleton->bufferOffset;
-    }
+    auto* skeleton = renderer->GetNode()->GetObject<SkeletonComponent>();
 
     for (int i = 0; i < renderer->GetMesh()->GetSubMeshCount(); i++) {
         const Mesh::SubMesh* mesh = &renderer->GetMesh()->SubMeshAt(i);
         const Material* material = renderer->GetMaterial(mesh->GetMaterialIndex());
+
+        int skinningOffset = -1;
+
+        if (skeleton != nullptr && glGetUniformLocation(material->GetShader()->GetHandle(), "uBoneOffset") >= 0) {
+            skinningOffset = skeleton->bufferOffset;
+        }
 
         BoundingBox bounds = mesh->GetBounds();
         if (skinningOffset >= 0) {
@@ -430,7 +438,7 @@ void SceneGraphics::DrawMeshIndirect(const Mesh* mesh, int subMeshIndex, const M
 	EnqueueOpaque(node); 
 }
 
-void SceneGraphics::DrawUi(const glm::mat4& worldMatrix, const glm::vec2& size, int zIndex, const glm::vec4& color, Texture2D* texture, Material* customMaterial) {
+void SceneGraphics::DrawUi(const glm::mat4& worldMatrix, const glm::vec2& size, int zIndex, const glm::vec4& color, Texture2D* texture, Material* customMaterial, std::optional<glm::vec4> clipRectangle) {
     UiRenderNode node;
     node.worldMatrix = worldMatrix;
     node.size = size;
@@ -438,11 +446,12 @@ void SceneGraphics::DrawUi(const glm::mat4& worldMatrix, const glm::vec2& size, 
     node.color = color;
     node.texture = texture;
     node.customMaterial = customMaterial;
+    node.clipRectangle = clipRectangle;
 
     EnqueueUi(node);
 }
 
-void SceneGraphics::DrawUiText(const glm::mat4& worldMatrix, const glm::vec2& size, int zIndex, const glm::vec4& color, Texture2D* texture, const glm::vec4& uvRectangle, float pxRange) {
+void SceneGraphics::DrawUiText(const glm::mat4& worldMatrix, const glm::vec2& size, int zIndex, const glm::vec4& color, Texture2D* texture, const glm::vec4& uvRectangle, float pxRange, bool useMsdf, std::optional<glm::vec4> clipRectangle) {
     UiRenderNode node;
     node.worldMatrix = worldMatrix;
     node.size = size;
@@ -452,6 +461,8 @@ void SceneGraphics::DrawUiText(const glm::mat4& worldMatrix, const glm::vec2& si
     node.uvRectangle = uvRectangle;
     node.pxRange = pxRange;
     node.isText = true;
+    node.useMsdf = useMsdf;
+    node.clipRectangle = clipRectangle;
 
     EnqueueUi(node);
 }
@@ -471,7 +482,7 @@ void SceneGraphics::Render() {
 		RenderCamera(camera);
 	}
 
-    RenderPassType passType = RenderPassType::Color | RenderPassType::DepthPrepass | RenderPassType::Gizmos | RenderPassType::Transparent | RenderPassType::Volumetric | RenderPassType::Mask;
+    RenderPassType passType = this->mainCamera->GetPasses();
     if (this->ssaoSettings.enabled) {
         passType = passType | RenderPassType::SSAO;
     }
@@ -552,6 +563,7 @@ void SceneGraphics::EnqueueUi(const UiRenderNode& node) {
     this->uiRenders.push_back(node);
 }
 
+// i didnt add no cull and ignore depth pragmas handling here yet
 void SceneGraphics::RenderPrepass(const RenderParams& params, Framebuffer* target) {
 	RenderPrepass(this->currentUniforms, params, target);
 }
@@ -601,14 +613,22 @@ void SceneGraphics::RenderPrepass(const ShaderGlobalUniforms& uniforms, const Re
 
         const ShaderProgram*  targetShader = this->shaders.prepassShader;
         bool isMasked = render.material->GetShader()->HasPragma("alpha_mask");
+        bool isDitherHole = render.material->GetShader()->HasPragma("dither_hole");
+        bool isDitherProximity = render.material->GetShader()->HasPragma("dither_proximity");
+        // awfuldamsndkdaskjds
 
         // Doesn't support opaque particles in the prepass !
+        // xd
         if (render.jointBufferOffset >= 0) {
-            targetShader = isMasked ? this->shaders.prepassAnimatedMaskShader : this->shaders.prepassAnimatedShader;
+            targetShader = (isMasked || isDitherHole || isDitherProximity) ? this->shaders.prepassAnimatedMaskShader : this->shaders.prepassAnimatedShader;
         } else if (render.material->GetShader()->HasPragma("scatter")) {
-            targetShader = isMasked ? this->shaders.prepassScatterMaskShader : this->shaders.prepassScatterShader;
+            targetShader = (isMasked || isDitherHole || isDitherProximity) ? this->shaders.prepassScatterMaskShader : this->shaders.prepassScatterShader;
         } else if (render.material->GetShader()->HasPragma("complex_vertex_shader")) {
             targetShader = render.material->GetShader();
+        } else if (isDitherHole) {
+            targetShader = this->shaders.prepassDitherHoleShader;
+        } else if (isDitherProximity) {
+            targetShader = this->shaders.prepassDitherProximityShader;
         } else if (isMasked) {
             targetShader = this->shaders.prepassMaskShader;
         }
@@ -618,8 +638,8 @@ void SceneGraphics::RenderPrepass(const ShaderGlobalUniforms& uniforms, const Re
             glUseProgram(currentProgram->GetHandle());
         }
 
-        if (isMasked || currentProgram == render.material->GetShader()) {
-            render.material->Bind();
+        if (isMasked || isDitherHole || isDitherProximity || currentProgram == render.material->GetShader()) {
+            render.material->Bind(currentProgram);
         }
 
         if (render.jointBufferOffset >= 0) {
@@ -740,6 +760,8 @@ void SceneGraphics::RenderMask(const RenderParams& params, Framebuffer* target) 
     glBindFramebuffer(GL_FRAMEBUFFER, target->GetHandle());
     glViewport(params.viewport.x, params.viewport.y, params.viewport.z, params.viewport.w);
 
+	glDisable(GL_DITHER);
+	
     GLuint clearColor[4] = { 0, 0, 0, 0 };
     glClearBufferuiv(GL_COLOR, 1, clearColor);
     glClear(GL_DEPTH_BUFFER_BIT);
@@ -768,6 +790,8 @@ void SceneGraphics::RenderMask(const RenderParams& params, Framebuffer* target) 
         glDrawElements(render.mesh->GetDrawMode(), render.mesh->GetVertexCount(), GL_UNSIGNED_INT, nullptr);
         
     }
+
+	glEnable(GL_DITHER);
 
     glBindVertexArray(0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -817,13 +841,20 @@ void SceneGraphics::RenderShadows(const ShaderGlobalUniforms& uniforms, const Re
 
         const ShaderProgram* targetShader = this->shaders.depthOnlyShader;
         bool isMasked = render.material->GetShader()->HasPragma("alpha_mask");
+        bool isDitherHole = render.material->GetShader()->HasPragma("dither_hole");
+        bool isDitherProximity = render.material->GetShader()->HasPragma("dither_proximity");
 
+        // xd
         if (render.jointBufferOffset >= 0) {
-            targetShader = isMasked ? this->shaders.prepassAnimatedMaskShader : this->shaders.depthOnlyAnimatedShader;
+            targetShader = (isMasked || isDitherHole || isDitherProximity) ? this->shaders.prepassAnimatedMaskShader : this->shaders.prepassAnimatedShader;
         } else if (render.material->GetShader()->HasPragma("scatter")) {
-            targetShader = isMasked ? this->shaders.prepassScatterMaskShader : this->shaders.prepassScatterShader;
+            targetShader = (isMasked || isDitherHole || isDitherProximity) ? this->shaders.prepassScatterMaskShader : this->shaders.prepassScatterShader;
         } else if (render.material->GetShader()->HasPragma("complex_vertex_shader")) {
             targetShader = render.material->GetShader();
+        } else if (isDitherHole) {
+            targetShader = this->shaders.prepassDitherHoleShader;
+        } else if (isDitherProximity) {
+            targetShader = this->shaders.prepassDitherProximityShader;
         } else if (isMasked) {
             targetShader = this->shaders.prepassMaskShader;
         }
@@ -833,8 +864,8 @@ void SceneGraphics::RenderShadows(const ShaderGlobalUniforms& uniforms, const Re
             glUseProgram(currentProgram->GetHandle());
         }
 
-        if (isMasked || currentProgram == render.material->GetShader()) {
-            render.material->Bind();
+        if (isMasked || isDitherHole || isDitherProximity || currentProgram == render.material->GetShader()) {
+            render.material->Bind(currentProgram);
         }
 
         if (render.jointBufferOffset >= 0) {
@@ -1070,6 +1101,18 @@ void SceneGraphics::RenderOpaque(const ShaderGlobalUniforms& uniforms, const Ren
 			currentProg = render.material->GetShader();
 
 			glUseProgram(currentProg->GetHandle());
+
+        if (currentProg->HasPragma("no_cull")) {
+                glDisable(GL_CULL_FACE);
+            } else {
+                glEnable(GL_CULL_FACE);
+            }
+
+            if (currentProg->HasPragma("ignore_depth")) {
+                glDisable(GL_DEPTH_TEST);
+            } else {
+                glEnable(GL_DEPTH_TEST);
+            }
 		}
 
 		render.material->Bind();
@@ -1169,6 +1212,8 @@ void SceneGraphics::RenderOpaque(const ShaderGlobalUniforms& uniforms, const Ren
 		glDrawElements(GL_TRIANGLES, sky->GetSkyMesh()->SubMeshAt(0).GetVertexCount(), GL_UNSIGNED_INT, nullptr);
 	}
 
+    glEnable(GL_CULL_FACE);
+    glEnable(GL_DEPTH_TEST);
 	glBindVertexArray(0);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
@@ -1218,6 +1263,18 @@ void SceneGraphics::RenderOrderedTransparent(const ShaderGlobalUniforms& uniform
 			currentProg = render.material->GetShader();
 
 			glUseProgram(currentProg->GetHandle());
+
+        if (currentProg->HasPragma("no_cull")) {
+                glDisable(GL_CULL_FACE);
+            } else {
+                glEnable(GL_CULL_FACE);
+            }
+
+            if (currentProg->HasPragma("ignore_depth")) {
+                glDisable(GL_DEPTH_TEST);
+            } else {
+                glEnable(GL_DEPTH_TEST);
+            }
 		}
 
 		render.material->Bind();
@@ -1298,6 +1355,8 @@ void SceneGraphics::RenderOrderedTransparent(const ShaderGlobalUniforms& uniform
 		}
 	}
 
+    glEnable(GL_CULL_FACE);
+    glEnable(GL_DEPTH_TEST);
 	glDisable(GL_BLEND);
 	glDepthMask(true);
 }
@@ -1352,6 +1411,18 @@ void SceneGraphics::RenderOITransparent(const ShaderGlobalUniforms& uniforms, co
 			currentProg = render.material->GetShader();
 
 			glUseProgram(currentProg->GetHandle());
+
+        if (currentProg->HasPragma("no_cull")) {
+                glDisable(GL_CULL_FACE);
+            } else {
+                glEnable(GL_CULL_FACE);
+            }
+
+            if (currentProg->HasPragma("ignore_depth")) {
+                glDisable(GL_DEPTH_TEST);
+            } else {
+                glEnable(GL_DEPTH_TEST);
+            }
 		}
 
 		render.material->Bind();
@@ -1432,6 +1503,7 @@ void SceneGraphics::RenderOITransparent(const ShaderGlobalUniforms& uniforms, co
 		}
 	}
 
+    glEnable(GL_CULL_FACE);
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
 	glDepthMask(true);
@@ -1488,6 +1560,18 @@ void SceneGraphics::RenderAdditive(const ShaderGlobalUniforms& uniforms, const R
 			currentProg = render.material->GetShader();
 
 			glUseProgram(currentProg->GetHandle());
+
+        if (currentProg->HasPragma("no_cull")) {
+                glDisable(GL_CULL_FACE);
+            } else {
+                glEnable(GL_CULL_FACE);
+            }
+
+            if (currentProg->HasPragma("ignore_depth")) {
+                glDisable(GL_DEPTH_TEST);
+            } else {
+                glEnable(GL_DEPTH_TEST);
+            }
 		}
 
 		render.material->Bind();
@@ -1568,6 +1652,7 @@ void SceneGraphics::RenderAdditive(const ShaderGlobalUniforms& uniforms, const R
 		}
 	}
 
+    glEnable(GL_CULL_FACE);
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
 	glDepthMask(true);
@@ -1712,7 +1797,12 @@ void SceneGraphics::RenderUi(const RenderParams& params, Framebuffer* target) {
 }
 
 void SceneGraphics::RenderUi(const ShaderGlobalUniforms& uniforms, const RenderParams& params, Framebuffer* target) {
-    std::sort(this->uiRenders.begin(), this->uiRenders.end());
+    std::stable_sort(this->uiRenders.begin(), this->uiRenders.end(), [](const auto& a, const auto& b) {
+        if (a.zIndex == b.zIndex) {
+            return a.isText < b.isText;
+        }
+        return a.zIndex < b.zIndex;
+    });
 
     target->SetColorAttachmentEnabled(true);
     glBindFramebuffer(GL_FRAMEBUFFER, target->GetHandle());
@@ -1765,14 +1855,17 @@ void SceneGraphics::RenderUi(const ShaderGlobalUniforms& uniforms, const RenderP
             if (int colorLocation = glGetUniformLocation(currentProgram->GetHandle(), "textColor"); colorLocation >= 0) {
                 glUniform4fv(colorLocation, 1, &render.color[0]);
             }
+            if (int useMsdfLocation = glGetUniformLocation(currentProgram->GetHandle(), "useMsdf"); useMsdfLocation >= 0) {
+                glUniform1i(useMsdfLocation, render.useMsdf);
+            }
             if (render.texture) {
                 glActiveTexture(GL_TEXTURE0);
                 glBindTexture(GL_TEXTURE_2D, render.texture->GetHandle());
-                if (int texLoc = glGetUniformLocation(currentProgram->GetHandle(), "msdfAtlas"); texLoc >= 0) {
+                if (int texLoc = glGetUniformLocation(currentProgram->GetHandle(), "fontAtlas"); texLoc >= 0) {
                     glUniform1i(texLoc, 0);
                 }
             }
-        } else if (!render.customMaterial) {
+        } else {
             int colorLocation = glGetUniformLocation(currentProgram->GetHandle(), "color");
             int hasTextureLocation = glGetUniformLocation(currentProgram->GetHandle(), "hasTexture");
             int textureLocation = glGetUniformLocation(currentProgram->GetHandle(), "tex");
@@ -1789,9 +1882,22 @@ void SceneGraphics::RenderUi(const ShaderGlobalUniforms& uniforms, const RenderP
             }
         }
 
+        if (render.clipRectangle.has_value()) {
+            glEnable(GL_SCISSOR_TEST);
+            glScissor(
+                static_cast<GLint>(render.clipRectangle.value().x),    
+                static_cast<GLint>(render.clipRectangle.value().y),    
+                static_cast<GLint>(render.clipRectangle.value().z),    
+                static_cast<GLint>(render.clipRectangle.value().w)  
+            );
+        } else {
+            glDisable(GL_SCISSOR_TEST);
+        }
+
         glDrawElements(GL_TRIANGLES, this->uiQuadMesh->SubMeshAt(0).GetVertexCount(), GL_UNSIGNED_INT, nullptr);
     }
 
+    glDisable(GL_SCISSOR_TEST);
     glBindVertexArray(0);
     glUseProgram(0);
     glEnable(GL_DEPTH_TEST);
@@ -1809,7 +1915,7 @@ void SceneGraphics::RenderCamera(Camera* camera, Viewport* renderTarget) {
 	}
 
 	auto defaultParams = RenderParams(
-		RenderPassType::Color | RenderPassType::DepthPrepass,
+		camera->GetPasses(),
 		glm::vec4(
 			0,
 			0,
@@ -1828,9 +1934,7 @@ void SceneGraphics::RenderCamera(Camera* camera, const RenderParams& params) {
 }
 
 void SceneGraphics::RenderCamera(Camera* camera, Viewport* renderTarget, const RenderParams& params) {
-	if (camera == nullptr) {
-		return;
-	}
+	assert(camera != nullptr);
 
 	if (renderTarget == nullptr) {
 		renderTarget = camera->GetRenderTarget();
@@ -1851,6 +1955,15 @@ void SceneGraphics::RenderCamera(Camera* camera, Viewport* renderTarget, const R
 	this->currentUniforms.Global_CameraNearPlane = camera->GetNearPlane();
 	this->currentUniforms.Global_CameraFov = camera->GetFovRad();
     this->currentUniforms.Global_Resolution = glm::vec4(this->mainViewport->GetSize().x, this->mainViewport->GetSize().y, 0.0f, 0.0f);
+
+    auto players = GetScene()->FindObjectsOfType<PlayerController>();
+    if (!players.empty() && players[0] != nullptr) {
+        glm::vec3 playerPosition = players[0]->GetNode()->GlobalTransform().Position().Value();
+
+        this->currentUniforms.Global_PlayerWorldPos = glm::vec4(playerPosition, 1.0f);
+    } else {
+        this->currentUniforms.Global_PlayerWorldPos = glm::vec4(0.0f);
+    }
 
 	RenderParams activeParams((RenderPassType) 0, params.viewport, false, camera->GetLayerMask());
 
@@ -2074,6 +2187,15 @@ void SceneGraphics::SetupShaders() {
     this->shaders.prepassMaskShader = ShaderProgram::Build()
         .WithVertexShader("./res/shaders/prepass/prepass.vert")
         .WithPixelShader("./res/shaders/prepass/prepass_mask.frag")
+        .Link();
+
+    this->shaders.prepassDitherHoleShader = ShaderProgram::Build()
+        .WithVertexShader("./res/shaders/prepass/prepass_dither.vert")
+        .WithPixelShader("./res/shaders/prepass/prepass_dither_hole.frag")
+        .Link();
+    this->shaders.prepassDitherProximityShader = ShaderProgram::Build()
+        .WithVertexShader("./res/shaders/prepass/prepass_dither.vert")
+        .WithPixelShader("./res/shaders/prepass/prepass_dither_proximity.frag")
         .Link();
 
     this->shaders.prepassAnimatedMaskShader = ShaderProgram::Build()

@@ -3,12 +3,12 @@
 #include "Graphics.h"
 #include "InputSystem.h"
 #include "Serialization.h"
-#include "scenes/DungeonGeneratorScene.h"
-#include "scenes/LevelShowcaseScene.h"
-#include "scenes/TestScene.h"
-#include "scenes/examples/particles_and_scatter.h"
-#include "scenes/examples/tweens.h"
-#include "scenes/examples/ui.h"
+#include "DungeonGeneratorScene.h"
+#include "TestScene.h"
+#include "MainMenuScene.h"
+#include "examples/particles_and_scatter.h"
+#include "examples/tweens.h"
+#include "examples/ui.h"
 
 #include <filesystem>
 #include <functional>
@@ -43,14 +43,12 @@ class SceneRegistry {
         SceneRegistry::RegisterScene("Test Scene", TestScene::InitScene);
         SceneRegistry::RegisterScene("Dungeon Generator",
                                      DungeonGeneratorScene::InitScene);
-        SceneRegistry::RegisterScene("Level Showcase",
-                                     LevelShowcaseScene::InitScene);
         SceneRegistry::RegisterScene("Example: UI", ExampleUi::InitScene);
         SceneRegistry::RegisterScene("Example: Particles And Scatter",
                                      ExampleParticlesAndScatter::InitScene);
         SceneRegistry::RegisterScene("Example: Tweens",
                                      ExampleTweens::InitScene);
-
+        SceneRegistry::RegisterScene("Main Menu", MainMenu::InitScene);
         for (const auto& sceneFile : std::filesystem::directory_iterator("./res/scenes")) {
         	GetLoadRegistry()[std::format("Loaded: {}", sceneFile.path().stem().string())] = [sceneFile]() -> Scene * {
          		std::ifstream jsonFile{sceneFile.path()};

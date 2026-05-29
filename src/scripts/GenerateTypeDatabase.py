@@ -334,7 +334,7 @@ def construct_file(files: list[str], compile_args: list[str]) -> clang.Translati
 	compiled_file = ""
 
 	for h_file in files:
-		if os.path.isfile(h_file):
+		if os.path.isfile(h_file) and "/scenes/" not in h_file and "\\scenes\\" not in h_file:
 			compiled_file += f"#include<{os.path.relpath(h_file, HEADER_FILES_DIRECTORY)}>\n"
 	
 	
@@ -350,7 +350,7 @@ def construct_file(files: list[str], compile_args: list[str]) -> clang.Translati
 		for message in diagnostic_messages:
 			print(message.format(clang.Diagnostic.DisplaySourceLocation | clang.Diagnostic.DisplayCategoryName | clang.Diagnostic.DisplayColumn | clang.Diagnostic.DisplaySourceRanges))
 		
-		print(compiled_file)
+		# print(compiled_file)
 
 		raise RuntimeError()
 

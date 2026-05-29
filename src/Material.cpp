@@ -304,29 +304,15 @@ nlohmann::json ShaderVariableStorage::Serialize() const {
 Material::Material():
 shader(nullptr),
 shaderVariables(),
-path() {
+name() {
 	allMaterials.push_back(this);
 }
 
 Material::Material(const ShaderProgram* shader):
 shader(shader),
 shaderVariables(shader->GetUniforms()),
-path() {
+name() {
 	allMaterials.push_back(this);
-}
-
-Material* Material::Load(fs::path materialPath) {
-	std::ifstream jsonFile(materialPath);
-
-	nlohmann::json materialData = nlohmann::json::parse(jsonFile);
-
-	volatile Material* result = new Material();
-
-	// Serialization::DeserializeOn(result, materialData);
-
-	const_cast<Material *>(result)->path = materialPath;
-
-	return const_cast<Material*>(result);
 }
 
 void Material::OnReloadShader(ShaderProgram* shader) {
@@ -337,8 +323,12 @@ void Material::OnReloadShader(ShaderProgram* shader) {
 	}
 }
 
-void Material::Bind() const {
-	glUseProgram(this->shader->GetHandle());
+void Material::Bind(const ShaderProgram* targetProgram) const {
+	if (targetProgram != nullptr) {
+        glUseProgram(targetProgram->GetHandle());
+    } else {
+        glUseProgram(this->shader->GetHandle());
+    }
 
 	this->shaderVariables.Bind();
 }
@@ -355,14 +345,6 @@ void Material::BindStorageBuffer(const std::string& storageBufferName, GLuint bu
 }
 void Material::BindStorageBuffer(int storageBufferIndex, GLuint bufferHandle) {
 	this->shaderVariables.BindStorageBuffer(storageBufferIndex, bufferHandle);
-}
-
-fs::path Material::GetPath() const {
-	return this->path;
-}
-
-uint64_t Material::GetHash() const {
-	return std::hash<fs::path>{}(this->path);
 }
 
 void Material::Deserialize(const nlohmann::json& json_node) {

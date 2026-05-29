@@ -10,6 +10,7 @@ class UiVisual : public GameObject, public ImGuiDrawable {
 public:
     glm::vec4 color{1.0f};
     Texture2D* texture = nullptr;
+    std::optional<glm::vec4> clipRectangle;
 
     std::optional<glm::vec4> colorDisabled;
     Texture2D* textureDisabled = nullptr;

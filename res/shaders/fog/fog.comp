@@ -63,7 +63,7 @@ void main() {
         float realDist = length(viewDir);
         viewDir = normalize(viewDir);
 
-        float dirY = sign(viewDir.y) * max(abs(viewDir.y), 0.001);
+        float dirY = (sign(viewDir.y) + 0.00001) * max(abs(viewDir.y), 0.001);
 
         float fogAmount = (density / fogHeightFalloff) * exp(-Global_CameraWorldPos.y * fogHeightFalloff) * (1.0 - exp(-realDist * dirY * fogHeightFalloff)) / dirY;
         fogAmount = clamp(fogAmount, 0.0, 1.0);

@@ -70,4 +70,3 @@ void GameObject::SetEnabled(bool enabled) {
 void GameObject::operator delete(GameObject* ptr, std::destroying_delete_t) {
 	ptr->GetScene()->QueueDelete(ptr);
 }
-

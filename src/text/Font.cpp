@@ -6,7 +6,7 @@
 
 using json = nlohmann::json;
 
-Font* Font::Load(const std::filesystem::path& jsonPath, Texture2D* atlasTexture) {
+Font* Font::Load(const std::filesystem::path& jsonPath, Texture2D* atlasTexture, bool useMsdf) {
     std::ifstream file(jsonPath);
     if (!file.is_open()) return nullptr;
 
@@ -14,16 +14,20 @@ Font* Font::Load(const std::filesystem::path& jsonPath, Texture2D* atlasTexture)
     file >> j;
 
     Font* font = new Font();
+    font->useMsdf = useMsdf;
     font->atlasTexture = atlasTexture;
 
-    font->distanceRange = j["atlas"]["distanceRange"];
+    if (font->useMsdf)
+        font->distanceRange = j["atlas"]["distanceRange"];
+    else
+        font->distanceRange = 0;
     font->emSize = j["metrics"]["emSize"];
     font->lineHeight = j["metrics"]["lineHeight"];
     font->ascender = j["metrics"]["ascender"];
     font->descender = j["metrics"]["descender"];
 
     for (const auto& glyphJson : j["glyphs"]) {
-        MsdfGlyph glyph;
+        Glyph glyph;
         glyph.unicode = glyphJson["unicode"];
         glyph.advance = glyphJson["advance"];
 
@@ -50,7 +54,7 @@ Font* Font::Load(const std::filesystem::path& jsonPath, Texture2D* atlasTexture)
 
     return font;
 }
-    
+
 fs::path Font::GetPath() const {
     return "";
 }

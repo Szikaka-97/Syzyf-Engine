@@ -1,0 +1,4 @@
+DisableFormat: false
+BasedOnStyle: LLVM
+IndentWidth: 4
+PointerAlignment: Left

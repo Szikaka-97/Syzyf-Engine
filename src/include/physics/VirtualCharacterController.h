@@ -31,6 +31,7 @@ public:
   glm::quat GetRotation() const;
   float GetGravityFactor() const;
   glm::vec3 GetLinearVelocity() const;
+  float GetMass() const;
 
   JPH::BodyID GetGroundBodyID() const;
   SceneNode* GetGroundObject() const;
@@ -47,6 +48,8 @@ public:
   void SetPosition(const glm::vec3& position);
   void SetRotation(const glm::quat& rotation);
   void SetGravityFactor(float factor);
+  void SetLinearVelocity(const glm::vec3& velocity);
+  void SetMass(const float mass);
 
   void SyncToNode();
 

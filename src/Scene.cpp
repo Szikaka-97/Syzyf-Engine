@@ -1,26 +1,26 @@
 #include <Scene.h>
-#include "Messaging.h"
-#include "Serialization.h"
 
 #include <malloc.h>
 #include <algorithm>
 
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/matrix_access.hpp>
 #include <glm/gtc/quaternion.hpp>
-#include <nlohmann/json.hpp>
-
+#include <Serialization.h>
 #include <GameObject.h>
 #include <Graphics.h>
 #include <InputSystem.h>
 #include <Layer.h>
 #include <spdlog/spdlog.h>
+#include <Formatters.h>
 #include <TypeInfo.h>
 
 GameObject* MessagingHelpers_AddObjectToNode(SceneNode* node, const std::string& objectName); // Trust me bro
 SceneComponent* MessagingHelpers_AddComponentToScene(Scene* scene, const std::string& objectName); // Trust me sis
 GameObject* MessagingHelpers_AttachObjectToNode(SceneNode* node, GameObject* obj);
 
-SceneNode::SceneNode(Scene* scene) :
+
+SceneNode::SceneNode(Scene* scene):
 scene(scene),
 transform(),
 children(),
@@ -50,28 +50,20 @@ SceneNode::~SceneNode() {
 			this->parent->children.erase(posInParentChildren);
 		}
 	}
-
-	std::free(this);
 }
 
 void SceneNode::RecalculateTransform() {
-	if (this->transform.LocalTransform().IsDirty()) {
+	if (this->transform.GlobalTransform().IsDirty()) {
 		if (this->parent) {
-			this->transform.GlobalTransform() =
-				this->parent->GlobalTransform().Value() *
-				this->transform.LocalTransform().Value();
+			this->transform.LocalTransform() = glm::inverse(this->parent->GlobalTransform().Value()) * this->transform.GlobalTransform().Value();
 		} else {
-			this->transform.GlobalTransform() =
-				this->transform.LocalTransform().Value();
+			this->transform.LocalTransform() = this->transform.GlobalTransform().Value();
 		}
-	} else if (this->transform.GlobalTransform().IsDirty()) {
+	} else if (this->transform.LocalTransform().IsDirty()) {
 		if (this->parent) {
-			this->transform.LocalTransform() =
-				this->transform.GlobalTransform().Value() *
-				glm::inverse(this->parent->GlobalTransform().Value());
+			this->transform.GlobalTransform() = this->parent->GlobalTransform().Value() * this->transform.LocalTransform().Value();
 		} else {
-			this->transform.LocalTransform() =
-				this->transform.GlobalTransform().Value();
+			this->transform.GlobalTransform() = this->transform.LocalTransform().Value();
 		}
 	}
 
@@ -167,11 +159,13 @@ SceneNode* SceneNode::FindNode(const fs::path& nodePath) const {
 	const SceneNode* currentNode = this;
 
 	for (const auto& nodeName : nodePath) {
-		auto nodeIter = std::find_if(currentNode->children.begin(),
-									 currentNode->children.end(),
-									 [&nodeName](SceneNode* child) -> bool {
-										 return child->name == nodeName;
-									 });
+		auto nodeIter = std::find_if(
+			currentNode->children.begin(),
+			currentNode->children.end(),
+			[&nodeName](SceneNode* child) -> bool {
+				return child->name == nodeName;
+			}
+		);
 
 		if (nodeIter == currentNode->children.end()) {
 			return nullptr;
@@ -280,12 +274,12 @@ Scene* Scene::CreateStandaloneScene() {
 	return created;
 }
 
-Scene::Scene()
-	: root(nullptr),
-	  nextSceneNodeID(0),
-	  nextGameObjectID(0),
-	  graphics(nullptr),
-	  inputSystem(nullptr) {
+Scene::Scene():
+root(nullptr),
+nextSceneNodeID(0),
+nextGameObjectID(0),
+graphics(nullptr),
+inputSystem(nullptr) {
 	this->root = CreateNode("root");
 }
 

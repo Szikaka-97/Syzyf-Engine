@@ -8,6 +8,7 @@ layout(rgba16f, binding = 0) uniform image2D jfaImg;
 layout(rgba16f, binding = 1) uniform image2D outputImg;
 
 uniform vec3 outlineColor;
+uniform float outlineIntensity;
 uniform float outlineThickness;
 uniform bool drawInnerLines;
 
@@ -27,7 +28,7 @@ void main() {
         if (!drawInnerLines && ((maskData & 4u) != 0u)) {
             imageStore(outputImg, texCoord, color);
         } else {
-            imageStore(outputImg, texCoord, vec4(outlineColor, 1.0));
+            imageStore(outputImg, texCoord, vec4(outlineColor * outlineIntensity, 1.0));
         }
     } else {
         imageStore(outputImg, texCoord, color);
