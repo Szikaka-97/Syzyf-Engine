@@ -232,8 +232,12 @@ void SceneNode::Deserialize(const nlohmann::json& data) {
 	this->scene->nextSceneNodeID = std::max(this->scene->nextSceneNodeID, this->id + 1);
 
 	if (this->parent) {
-		spdlog::info("Halleluyah");
+		// this->transform.localTransform = Serialization::Deserialize<glm::mat4>(data["transform"]);
+		// this->transform.localTransform.MarkDirty();
+		GetTransform().LocalTransform() = Serialization::Deserialize<glm::mat4>(data["transform"]);
 	}
+
+	spdlog::info("Finished node deserialization");
 }
 nlohmann::json SceneNode::Serialize() const {
 	nlohmann::json data;
@@ -519,6 +523,8 @@ void Scene::Deserialize(const nlohmann::json& json_node) {
 	this->messageTree.AddNode(this->root);
 	
 	this->messageTree.PropagateMessage<Message::Awake>(this->root);
+
+	spdlog::info("Finished scene deserialization");
 }
 
 nlohmann::json Scene::Serialize() const {
