@@ -467,7 +467,6 @@ def main():
 		dest_impl.line()
 
 		dest_impl.line("extern std::vector<json> serializedObjects;")
-		dest_impl.line("extern std::vector<void *> deserializedObjects;")
 
 		dest_impl.line()
 

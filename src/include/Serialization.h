@@ -23,6 +23,7 @@ namespace Serialization {
 
 	json FinishObjectSerialization();
 
+	std::string GetDeserializedObjectTypeName(int index);
 	void* FetchDeserializedObject(int index);
 
 	template<typename T>

@@ -3,12 +3,34 @@
     "_class_name": "Scene",
     "_data": {
       "components": [
-        6,
-        7,
-        8,
-        -1,
-        9,
-        10
+        {
+          "data": null,
+          "type": "InputSystem"
+        },
+        {
+          "data": null,
+          "type": "LightSystem"
+        },
+        {
+          "data": null,
+          "type": "PostProcessingSystem"
+        },
+        {
+          "data": null,
+          "type": "void"
+        },
+        {
+          "data": null,
+          "type": "Physics::System"
+        },
+        {
+          "data": null,
+          "type": "ReflectionProbeSystem"
+        },
+        {
+          "data": null,
+          "type": "SceneGraphics"
+        }
       ],
       "name": "New Scene",
       "root": 1
@@ -20,7 +42,7 @@
       "children": [
         2,
         3,
-        5
+        4
       ],
       "disabledState": 0,
       "id": 0,
@@ -59,17 +81,17 @@
       "parent": 1,
       "scene": 0,
       "transform": {
-        "_00": 1.0,
+        "_00": 0.9994786381721497,
         "_01": 0.0,
-        "_02": 0.0,
+        "_02": 0.032282982021570206,
         "_03": 0.0,
-        "_10": 0.0,
-        "_11": 1.0,
-        "_12": 0.0,
+        "_10": 8.451658504782245e-05,
+        "_11": 0.9999964237213135,
+        "_12": -0.002616627374663949,
         "_13": 0.0,
-        "_20": 0.0,
-        "_21": 0.0,
-        "_22": 1.0,
+        "_20": -0.03228287026286125,
+        "_21": 0.0026179919950664043,
+        "_22": 0.9994752407073975,
         "_23": 0.0,
         "_30": 0.0,
         "_31": 1.0,
@@ -81,13 +103,11 @@
   {
     "_class_name": "SceneNode",
     "_data": {
-      "children": [
-        4
-      ],
+      "children": [],
       "disabledState": 0,
       "id": 2,
       "layer": 0,
-      "name": "Lubie placki",
+      "name": "Moved Node",
       "parent": 1,
       "scene": 0,
       "transform": {
@@ -103,39 +123,9 @@
         "_21": 0.0,
         "_22": 1.0,
         "_23": 0.0,
-        "_30": 10.0,
-        "_31": 0.0,
-        "_32": 0.0,
-        "_33": 1.0
-      }
-    }
-  },
-  {
-    "_class_name": "SceneNode",
-    "_data": {
-      "children": [],
-      "disabledState": 0,
-      "id": 4,
-      "layer": 0,
-      "name": "Placki 2",
-      "parent": 3,
-      "scene": 0,
-      "transform": {
-        "_00": 1.0,
-        "_01": 0.0,
-        "_02": 0.0,
-        "_03": 0.0,
-        "_10": 0.0,
-        "_11": 1.0,
-        "_12": 0.0,
-        "_13": 0.0,
-        "_20": 0.0,
-        "_21": 0.0,
-        "_22": 1.0,
-        "_23": 0.0,
-        "_30": -10.0,
-        "_31": 5.0,
-        "_32": 0.0,
+        "_30": 1.0,
+        "_31": 2.0,
+        "_32": 3.0,
         "_33": 1.0
       }
     }
@@ -169,25 +159,5 @@
         "_33": 1.0
       }
     }
-  },
-  {
-    "_class_name": "InputSystem",
-    "_data": {}
-  },
-  {
-    "_class_name": "LightSystem",
-    "_data": {}
-  },
-  {
-    "_class_name": "PostProcessingSystem",
-    "_data": {}
-  },
-  {
-    "_class_name": "ReflectionProbeSystem",
-    "_data": {}
-  },
-  {
-    "_class_name": "SceneGraphics",
-    "_data": {}
   }
 ]

@@ -97,11 +97,22 @@ def main():
 		dest.more_indent()
 
 		dest.line("static std::map<std::string, std::function<GameObject* (SceneNode*)>> gameObjectAdditionFunctions;")
+		dest.line("static std::map<std::string, std::function<SceneComponent* (Scene*)>> sceneComponentAdditionFunctions;")
 
 		dest.less_indent()
 		dest.line("};")
 
 		dest.line()
+
+		dest.line("std::map<std::string, std::function<SceneComponent* (Scene*)>> MessagingHelpers::sceneComponentAdditionFunctions {")
+		dest.more_indent()
+
+		for tp in scenecomponent_types:
+			if not tp.is_abstract() and "GameObjectSystem<" not in tp.name:
+				dest.line(f"{{ \"{tp.name}\", [](Scene* scene) -> SceneComponent* {{ return scene->AddComponent<{tp.name}>(); }} }},")
+
+		dest.less_indent()
+		dest.line("};")
 
 		dest.line("std::map<std::string, std::function<GameObject* (SceneNode*)>> MessagingHelpers::gameObjectAdditionFunctions {")
 		dest.more_indent()
@@ -133,6 +144,44 @@ def main():
 
 		dest.less_indent()
 		dest.line("}")
+		dest.line()
+
+		dest.line("SceneComponent* MessagingHelpers_AddComponentToScene(Scene* scene, const std::string& objectName) {")
+		dest.more_indent()
+		
+		dest.line("auto func = MessagingHelpers::sceneComponentAdditionFunctions.find(objectName);")
+
+		dest.line("if (func != MessagingHelpers::sceneComponentAdditionFunctions.end()) {")
+		dest.more_indent()
+		
+		dest.line("return func->second(scene);")
+
+		dest.less_indent()
+		dest.line("}")
+		dest.line("return nullptr;")
+
+		dest.less_indent()
+		dest.line("}")
+		dest.line()
+
+		dest.line("std::vector<std::string> MessagingHelpers_GetAvailableComponents() {")
+		dest.more_indent()
+		
+		dest.line("std::vector<std::string> result;")
+
+		dest.line("for (const auto& pair : MessagingHelpers::sceneComponentAdditionFunctions) {")
+		dest.more_indent()
+		
+		dest.line("result.push_back(pair.first);")
+
+		dest.less_indent()
+		dest.line("}")
+		dest.line()
+		dest.line("return result;")
+
+		dest.less_indent()
+		dest.line("}")
+		dest.line()
 		
 
 	print("\tDone!")

@@ -14,8 +14,10 @@
 #include <InputSystem.h>
 #include <Layer.h>
 #include <spdlog/spdlog.h>
+#include <TypeInfo.h>
 
 GameObject* MessagingHelpers_AddObjectToNode(SceneNode* node, const std::string& objectName); // Trust me bro
+SceneComponent* MessagingHelpers_AddComponentToScene(Scene* scene, const std::string& objectName); // Trust me sis
 
 SceneNode::SceneNode(Scene* scene) :
 scene(scene),
@@ -505,20 +507,18 @@ void Scene::operator delete(Scene* ptr, std::destroying_delete_t) {
 }
 
 void Scene::Deserialize(const nlohmann::json& json_node) {
-	for (int compIndex : json_node["components"]) {
-		SceneComponent* comp = (SceneComponent*) Serialization::FetchDeserializedObject(compIndex);
+	for (json compJson : json_node["components"]) {
+		SceneComponent* comp = MessagingHelpers_AddComponentToScene(this, compJson["type"]);
 		
 		if (!comp) {
 			continue;
 		}
 
-		comp->scene = this;
-		
-		this->components.push_back(comp);
+		comp->Deserialize(compJson["data"]);
 	}
 
-	this->graphics = AddComponent<SceneGraphics>();
-	this->inputSystem = AddComponent<InputSystem>();
+	this->graphics = GetComponent<SceneGraphics>();
+	this->inputSystem = GetComponent<InputSystem>();
 
 	this->messageTree.AddNode(this->root);
 	
@@ -530,10 +530,14 @@ void Scene::Deserialize(const nlohmann::json& json_node) {
 nlohmann::json Scene::Serialize() const {
 	json data;
 
-	std::vector<int> componentsData;
+	std::vector<json> componentsData;
 
 	for (SceneComponent* comp : this->components) {
-		componentsData.push_back(Serialization::QueueObjectSerialization(comp));
+		json compNode;
+		compNode["type"] = TypeInfo::GetTypeInfo(typeid(*comp)).name;
+		compNode["data"] = comp->Serialize();
+
+		componentsData.push_back(compNode);
 	}
 	
 	data["components"] = componentsData;

@@ -11,8 +11,13 @@
 #define alloc_aligned(size, align) std::aligned_alloc(align, size)
 #endif
 
+struct DeserializedObject {
+	void* ptr;
+	std::string className;
+};
+
 std::vector<json> serializedObjects;
-std::vector<void *> deserializedObjects;
+std::vector<DeserializedObject> deserializedObjects;
 
 extern std::unordered_map<std::string, volatile void* (*)(volatile void*, const json&)> deserializationFunctionLookup;
 extern std::unordered_map<std::string, void* (*)(void*)> constructionFunctionLookup;
@@ -39,7 +44,7 @@ void* InternalDeserializeObject(const json& data) {
 	uint8_t* buffer = (uint8_t*) alloc_aligned(totalSize, alignment);
 
 	for (const auto& object : data) {
-		deserializedObjects.push_back(InternalConstructObject(object["_class_name"], buffer));
+		deserializedObjects.push_back({ InternalConstructObject(object["_class_name"], buffer), object["_class_name"] });
 
 		spdlog::info("Constructing {} at {:x}", (std::string) object["_class_name"], (intptr_t) buffer);
 
@@ -54,12 +59,12 @@ void* InternalDeserializeObject(const json& data) {
 
 	int i = 0;
 	for (const auto& object : data) {
-		InternalDeserializeJson(deserializedObjects[i], object);
+		InternalDeserializeJson(deserializedObjects[i].ptr, object);
 
 		i++;
 	}
 
-	return deserializedObjects[0];
+	return deserializedObjects[0].ptr;
 }
 
 void Serialization::StartObjectSerialization() {
@@ -77,9 +82,16 @@ json Serialization::FinishObjectSerialization() {
 	return result;
 }
 
+std::string Serialization::GetDeserializedObjectTypeName(int index) {
+	if (index >= 0) {
+		return deserializedObjects[index].className;
+	}
+	return "";
+}
+
 void* Serialization::FetchDeserializedObject(int index) {
 	if (index >= 0) {
-		return deserializedObjects[index];
+		return deserializedObjects[index].ptr;
 	}
 	return nullptr;
 }

@@ -22,3 +22,6 @@ void SceneComponent::DrawImGui() {}
 int SceneComponent::Order() {
 	return 0;
 }
+
+json SceneComponent::Serialize() { return json{}; }
+void SceneComponent::Deserialize(const json& data) {}
