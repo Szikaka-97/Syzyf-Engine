@@ -207,7 +207,7 @@ public:
 		Font* papyrusFont = GetScene()->Resources()->Get<Font>(
 			"./res/fonts/Papyrus/Papyrus-Regular.json",
 			papyrusAtlas,
-			false
+			true
 		);
 
 		SceneNode* text3dNode = GetScene()->CreateNode("Text 3D");
