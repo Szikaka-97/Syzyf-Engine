@@ -32,6 +32,30 @@
 
 #define LIGHT_GRID_SIZE 16
 
+static Mesh* ErrorMesh = nullptr;
+static Material* ErrorMaterial = nullptr;
+
+Mesh* GetErrorMesh() {
+	if (ErrorMesh == nullptr) {
+		ErrorMesh = ResourceDatabase::Global->Get<Mesh>("./res/schnoz/schnoz.obj");
+	}
+
+	return ErrorMesh;
+}
+
+Material* GetErrorMaterial() {
+	if (ErrorMaterial == nullptr) {
+		ErrorMaterial = new Material(
+			ShaderProgram::Build()
+			.WithVertexShader("./res/shaders/lit.vert")
+			.WithPixelShader("./res/shaders/error.frag")
+			.Link()
+		);
+	}
+
+	return ErrorMaterial;
+}
+
 RenderParams::RenderParams(RenderPassType pass, glm::vec4 viewport, bool clearDepth, LayerMask layers):
 pass(pass),
 viewport(viewport),
@@ -332,6 +356,10 @@ void SceneGraphics::DrawMesh(const Mesh* mesh, int subMeshIndex, const Material*
 }
 
 void SceneGraphics::DrawGizmoMesh(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, bool ignoresDepth) {
+	if (!mesh || mesh->GetSubMeshCount() < subMeshIndex + 1) {
+		return;
+	}
+
 	EnqueueGizmo(RenderNode(
 		&mesh->SubMeshAt(subMeshIndex),
 		material,
@@ -345,13 +373,23 @@ void SceneGraphics::DrawGizmoMesh(const Mesh* mesh, int subMeshIndex, const Mate
 }
 
 void SceneGraphics::DrawMeshInstanced(MeshRenderer* renderer, unsigned int instanceCount) {
-    if (!renderer || !renderer->GetMesh()) return;
+    if (!renderer) return;
+
+	Mesh* drawnMesh = renderer->GetMesh();
+
+	if (!drawnMesh) {
+		drawnMesh = GetErrorMesh();
+	}
 
     auto* skeleton = renderer->GetNode()->GetObject<SkeletonComponent>();
 
-    for (int i = 0; i < renderer->GetMesh()->GetSubMeshCount(); i++) {
-        const Mesh::SubMesh* mesh = &renderer->GetMesh()->SubMeshAt(i);
+    for (int i = 0; i < drawnMesh->GetSubMeshCount(); i++) {
+        const Mesh::SubMesh* mesh = &drawnMesh->SubMeshAt(i);
         const Material* material = renderer->GetMaterial(mesh->GetMaterialIndex());
+
+		if (!material) {
+			material = GetErrorMaterial();
+		}
 
         int skinningOffset = -1;
 
@@ -394,7 +432,16 @@ void SceneGraphics::DrawMeshInstanced(const Mesh* mesh, int subMeshIndex, const 
 }
 
 void SceneGraphics::DrawMeshInstanced(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, unsigned int instanceCount, const BoundingBox& bounds, GLuint instanceSSBO, uint8_t layer) {
-    
+    if (!mesh) {
+		mesh = GetErrorMesh();
+
+		subMeshIndex = 0;
+	}
+
+	if (!material) {
+		material = GetErrorMaterial();
+	}
+
     RenderNode node(&mesh->SubMeshAt(subMeshIndex), material, transformation, bounds, layer, instanceCount, instanceSSBO, false);
 
     if (material->GetShader()->HasPragma("transparent")) {
@@ -415,7 +462,17 @@ void SceneGraphics::DrawMeshInstanced(const Mesh* mesh, int subMeshIndex, const 
 }
 
 void SceneGraphics::DrawMeshIndirect(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, GLuint indirectBuffer, GLuint indirectBufferOffset, GLuint instanceSSBO, const BoundingBox& bounds, uint8_t layer) {
-    RenderNode node = RenderNode(&mesh->SubMeshAt(subMeshIndex), material, transformation, bounds, layer, indirectBuffer, indirectBufferOffset, instanceSSBO);
+    if (!mesh) {
+		mesh = GetErrorMesh();
+
+		subMeshIndex = 0;
+	}
+
+	if (!material) {
+		material = GetErrorMaterial();
+	}
+
+	RenderNode node = RenderNode(&mesh->SubMeshAt(subMeshIndex), material, transformation, bounds, layer, indirectBuffer, indirectBufferOffset, instanceSSBO);
 
    	if (material->GetShader()->HasPragma("transparent")) {
 		EnqueueOrderedTransparent(node);
