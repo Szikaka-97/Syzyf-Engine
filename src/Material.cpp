@@ -292,8 +292,12 @@ void Material::OnReloadShader(ShaderProgram* shader) {
 	}
 }
 
-void Material::Bind() const {
-	glUseProgram(this->shader->GetHandle());
+void Material::Bind(const ShaderProgram* targetProgram) const {
+	if (targetProgram != nullptr) {
+        glUseProgram(targetProgram->GetHandle());
+    } else {
+        glUseProgram(this->shader->GetHandle());
+    }
 
 	this->shaderVariables.Bind();
 }

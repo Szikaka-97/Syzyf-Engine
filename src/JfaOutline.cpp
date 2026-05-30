@@ -84,6 +84,7 @@ void JfaOutline::OnPostProcess(const PostProcessParams* params) {
 
     glUniform1f(glGetUniformLocation(this->finalShader->GetHandle(), "outlineThickness"), this->outlineThickness);
     glUniform3fv(glGetUniformLocation(this->finalShader->GetHandle(), "outlineColor"), 1, &this->outlineColor.x);
+    glUniform1f(glGetUniformLocation(this->finalShader->GetHandle(), "outlineIntensity"), this->outlineIntensity);
     glUniform1i(glGetUniformLocation(this->finalShader->GetHandle(), "drawInnerLines"), this->drawInnerLines);
 
     glBindTextureUnit(0, params->inputTexture->GetHandle());

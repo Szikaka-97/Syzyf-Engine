@@ -1,6 +1,6 @@
 #pragma once
 
-#include "GltfImporter.h"
+#include "GltfScene.h"
 #include <filesystem>
 
 #include <glad/glad.h>
@@ -14,7 +14,8 @@ namespace fs = std::filesystem;
 class Material;
 
 class Mesh : public Resource {
-friend class GltfImporter;
+friend class GltfScene;
+friend class Text3D;
 public:
 	enum class MeshType {
 		Points = 1,
@@ -24,7 +25,8 @@ public:
 
 	class SubMesh {
 		friend class Mesh;
-    friend class GltfImporter;
+        friend class GltfScene;
+        friend class Text3D;
 	private:
 		unsigned int faceCount;
 		unsigned int* indexData;

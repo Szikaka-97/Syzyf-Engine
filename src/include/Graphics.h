@@ -1,6 +1,7 @@
 #pragma once
 
 #include <glm/fwd.hpp>
+#include <optional>
 #include <queue>
 #include <vector>
 #include <glad/glad.h>
@@ -26,26 +27,6 @@ class ReflectionProbeSystem;
 class Camera;
 class Viewport;
 
-// struct RenderBatch {
-// 	Mesh* mesh;
-// 	Material* material;
-// 	int argsSize;
-// };
-
-enum class RenderPassType {
-	Color = 1,
-	DepthPrepass = 2,
-	Shadows = 6,
-	Gizmos = 8,
-	PostProcessing = 16,
-	Transparent = 32,
-	Additive = 64,
-	Volumetric = 128,
-  SSAO = 256,
-  Mask = 512,
-  UI = 1024,
-};
-
 struct RenderParams {
 	RenderPassType pass;
 	glm::vec4 viewport;
@@ -65,8 +46,11 @@ public:
         float bias = 0.025f;
         float power = 4.0f;
         int blurRange = 2;
+        // Should be private but i dnt care
         float resolutionScale = 1.0f;
     };
+
+    SSAOSettings ssaoSettings;
 private:
     // this should all be using unique ptrs
     struct Shaders {
@@ -78,6 +62,8 @@ private:
         ShaderProgram* prepassAnimatedShader;
         ShaderProgram* prepassScatterShader;
         ShaderProgram* prepassMaskShader;
+        ShaderProgram* prepassDitherHoleShader;
+        ShaderProgram* prepassDitherProximityShader;
         ShaderProgram* prepassAnimatedMaskShader;
         ShaderProgram* prepassScatterMaskShader;
 
@@ -127,6 +113,9 @@ private:
         Material* customMaterial = nullptr;
 
         bool isText = false;
+        bool useMsdf = false;
+        std::optional<glm::vec4> clipRectangle;
+
         glm::vec4 uvRectangle{0.0f, 0.0f, 1.0f, 1.0f};
         float pxRange = 4.0f;
 
@@ -164,7 +153,6 @@ private:
 	ShaderGlobalUniforms currentUniforms;
     Shaders shaders;
 
-    SSAOSettings ssaoSettings;
     std::vector<glm::vec3> ssaoKernel;
     std::unique_ptr<Texture2D> ssaoNoiseTexture;
 
@@ -197,6 +185,8 @@ private:
 public:
 	SceneGraphics(Scene* scene);
 	
+    void SetSSAOEnabled(bool enabled);
+
 	glm::vec2 GetScreenResolution() const;
 	void UpdateScreenResolution(glm::vec2 newResolution);
 	
@@ -222,8 +212,8 @@ public:
 
     void DrawMeshIndirect(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, GLuint indirectBuffer, GLuint indirectBufferOffset, GLuint instanceSSBO, const BoundingBox& bounds, uint8_t layer = Layer::Default);
 
-    void DrawUi(const glm::mat4& worldMatrix, const glm::vec2& size, int zIndex, const glm::vec4& color, Texture2D* texture = nullptr, Material* customMaterial = nullptr);
-    void DrawUiText(const glm::mat4& worldMatrix, const glm::vec2& size, int zIndex, const glm::vec4& color, Texture2D* texture, const glm::vec4& uvRectangle, float pxRange);
+    void DrawUi(const glm::mat4& worldMatrix, const glm::vec2& size, int zIndex, const glm::vec4& color, Texture2D* texture = nullptr, Material* customMaterial = nullptr, std::optional<glm::vec4> clipRectangle = std::nullopt);
+    void DrawUiText(const glm::mat4& worldMatrix, const glm::vec2& size, int zIndex, const glm::vec4& color, Texture2D* texture, const glm::vec4& uvRectangle, float pxRange, bool useMsdf = true, std::optional<glm::vec4> clipRectangle = std::nullopt);
 
 	void DrawGizmoMesh(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, bool ignoresDepth = false);
 	
@@ -274,11 +264,3 @@ public:
 
 	virtual int Order();
 };
-
-inline constexpr RenderPassType operator&(RenderPassType a, RenderPassType b) {
-	return static_cast<RenderPassType>(static_cast<int>(a) & static_cast<int>(b));
-}
-
-inline constexpr RenderPassType operator|(RenderPassType a, RenderPassType b) {
-	return static_cast<RenderPassType>(static_cast<int>(a) | static_cast<int>(b));
-}

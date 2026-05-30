@@ -1,11 +1,12 @@
 #pragma once
 
-#include "scenes/DungeonGeneratorScene.h"
-#include "scenes/LevelShowcaseScene.h"
-#include "scenes/TestScene.h"
-#include "scenes/examples/particles_and_scatter.h"
-#include "scenes/examples/tweens.h"
-#include "scenes/examples/ui.h"
+#include "DungeonGeneratorScene.h"
+#include "LevelShowcaseScene.h"
+#include "MainMenuScene.h"
+#include "TestScene.h"
+#include "examples/particles_and_scatter.h"
+#include "examples/tweens.h"
+#include "examples/ui.h"
 
 #include <functional>
 #include <string>
@@ -40,6 +41,7 @@ class SceneRegistry {
                                      ExampleParticlesAndScatter::InitScene);
         SceneRegistry::RegisterScene("Example: Tweens",
                                      ExampleTweens::InitScene);
+        SceneRegistry::RegisterScene("Main Menu", MainMenu::InitScene);
     }
 };
 } // namespace Editor

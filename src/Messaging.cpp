@@ -92,7 +92,7 @@ void MessageTree::PropagateMessageInternal(SceneNode* startNode, int messageId) 
 			if (child->type == 0) {
 				nodeStack.push(child);
 			}
-			else if (child->type == messageId){
+			else if (child->type == messageId && child->content.msg.receiver->IsEnabled()){
 				messengers.push(child->content.msg);
 			}
 		}

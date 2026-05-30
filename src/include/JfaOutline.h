@@ -14,6 +14,7 @@ public:
     bool drawInnerLines = false;
 
     glm::vec3 outlineColor = glm::vec3(1.0f);
+    float outlineIntensity = 1.0f;
     float outlineThickness = 10.0f;
 private:
     glm::vec2 savedResolution;

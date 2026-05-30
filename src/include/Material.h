@@ -82,7 +82,7 @@ public:
 
 	Material(const ShaderProgram* shader);
 
-	void Bind() const;
+	void Bind(const ShaderProgram* targetProgram = nullptr) const;
 
 	template<Blittable T>
 	T GetValue(const std::string& uniformName) const;

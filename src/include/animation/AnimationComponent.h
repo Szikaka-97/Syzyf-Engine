@@ -1,9 +1,10 @@
 #pragma once
 
+#include "Debug.h"
 #include "GameObject.h"
 #include <vector>
   
-class AnimationComponent : public GameObject {
+class AnimationComponent : public GameObject, public ImGuiDrawable {
 public:
   enum Property {
     POSITION,
@@ -33,6 +34,9 @@ public:
   };
 
   struct Animation {
+    // Required to update once after setting the time using SetTime or SetProgress
+    bool isDirty = false;
+
     AnimationData data;    
 
     float timeActive = 0.0f;
@@ -49,7 +53,16 @@ public:
 public:
   AnimationComponent();
 
+  // Plays the animation starting from the first frame
+  // To pause/unpause use the `playing` member variable
   void Play(const std::string name);
+
+  // Sets the animation progress to the specified time in seconds
+  void SetTime(const std::string& name, float timeInSeconds);
+  // Sets the animation progress to the specified percentage (0.0 - 1.0)
+  void SetProgress(const std::string& name, float percent);
+
+  void DrawImGui() override;
 
   virtual ~AnimationComponent() = default;
 };

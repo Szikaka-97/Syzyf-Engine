@@ -73,9 +73,11 @@ template<class T_Resource, typename... T_Params>
 	requires(Loadable<T_Resource, T_Params...>)
 T_Resource* ResourceDatabase::Get(const fs::path& resourcePath, T_Params... loadParams) {
 	if (IsLoaded<T_Resource>(resourcePath)) {
+        spdlog::debug("[Cache HIT] Returning {} from memory.", resourcePath.string());
 		return (T_Resource*) this->loadedResources.at(resourcePath).resource;
 	}
 
+    spdlog::debug("[Cache MISS] Loading {} from disk.", resourcePath.string());
 	T_Resource* res = T_Resource::Load(resourcePath, loadParams...);
 
 	if (res) {

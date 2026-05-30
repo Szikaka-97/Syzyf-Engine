@@ -9,14 +9,16 @@
 #include "SDL3/SDL_keyboard.h"
 #include "SDL3/SDL_mouse.h"
 #include "SDL3/SDL_scancode.h"
+#include "SDL3/SDL_gamepad.h"
 
 #include <spdlog/spdlog.h>
 
-#include <Engine.h>
+#include <Application.h>
 #include <TimeSystem.h>
 #include <Graphics.h>
 
 constexpr int MouseButtonOffset = 512;
+constexpr int GamepadButtonOffset = 1024;
 
 std::map<Key, int> keyToSDL {
 	{ Key::Space          , SDL_SCANCODE_SPACE },
@@ -317,6 +319,21 @@ std::map<Key, const std::string> keyToString {
 	{ (Key) ((int) MouseButton::Mouse6 + MouseButtonOffset), "Mouse 6" },
 	{ (Key) ((int) MouseButton::Mouse7 + MouseButtonOffset), "Mouse 7" },
 	{ (Key) ((int) MouseButton::Mouse8 + MouseButtonOffset), "Mouse 8" },
+	{ (Key) ((int) GamepadButton::FaceSouth + GamepadButtonOffset), "FaceSouth" },
+	{ (Key) ((int) GamepadButton::FaceEast + GamepadButtonOffset), "FaceEast" },
+	{ (Key) ((int) GamepadButton::FaceWest + GamepadButtonOffset), "FaceWest" },
+	{ (Key) ((int) GamepadButton::FaceNorth + GamepadButtonOffset), "FaceNorth" },
+	{ (Key) ((int) GamepadButton::Back + GamepadButtonOffset), "Back" },
+	{ (Key) ((int) GamepadButton::Guide + GamepadButtonOffset), "Guide" },
+	{ (Key) ((int) GamepadButton::Start + GamepadButtonOffset), "Start" },
+	{ (Key) ((int) GamepadButton::LeftStick + GamepadButtonOffset), "LeftStick" },
+	{ (Key) ((int) GamepadButton::RightStick + GamepadButtonOffset), "RightStick" },
+	{ (Key) ((int) GamepadButton::LeftBumper + GamepadButtonOffset), "LeftBumper" },
+	{ (Key) ((int) GamepadButton::RightBumper + GamepadButtonOffset), "RightBumper" },
+	{ (Key) ((int) GamepadButton::DpadUp + GamepadButtonOffset), "DpadUp" },
+	{ (Key) ((int) GamepadButton::DpadDown + GamepadButtonOffset), "DpadDown" },
+	{ (Key) ((int) GamepadButton::DpadLeft + GamepadButtonOffset), "DpadLeft" },
+	{ (Key) ((int) GamepadButton::DpadRight + GamepadButtonOffset), "DpadRight" },
 };
 
 
@@ -326,10 +343,14 @@ value(0) { }
 InputSystem::KeyBitMask::KeyBitMask(uint32_t value):
 value(value) { }
 
+InputSystem::GamepadKeyData::GamepadKeyData(SDL_Gamepad* handle):
+handle(handle),
+keys() { }
+
 InputSystem::InputSystem(Scene* scene):
 SceneComponent(scene),
 prevMouseMovement(glm::zero<glm::vec2>()),
-mouseLocked(false) {
+mouseLocked(false), cursorHidden(false) {
 	keys = {
 		{ (int) Key::Space, 0 },
 		{ (int) Key::Apostrophe, 0 },
@@ -457,6 +478,21 @@ mouseLocked(false) {
 		{ (int) MouseButton::Mouse6 + MouseButtonOffset, 0 },
 		{ (int) MouseButton::Mouse7 + MouseButtonOffset, 0 },
 		{ (int) MouseButton::Mouse8 + MouseButtonOffset, 0 },
+		{ (int) GamepadButton::FaceSouth + GamepadButtonOffset , 0},
+		{ (int) GamepadButton::FaceEast + GamepadButtonOffset , 0},
+		{ (int) GamepadButton::FaceWest + GamepadButtonOffset , 0},
+		{ (int) GamepadButton::FaceNorth + GamepadButtonOffset , 0},
+		{ (int) GamepadButton::Back + GamepadButtonOffset , 0},
+		{ (int) GamepadButton::Guide + GamepadButtonOffset , 0},
+		{ (int) GamepadButton::Start + GamepadButtonOffset , 0},
+		{ (int) GamepadButton::LeftStick + GamepadButtonOffset , 0},
+		{ (int) GamepadButton::RightStick + GamepadButtonOffset , 0},
+		{ (int) GamepadButton::LeftBumper + GamepadButtonOffset , 0},
+		{ (int) GamepadButton::RightBumper + GamepadButtonOffset , 0},
+		{ (int) GamepadButton::DpadUp + GamepadButtonOffset , 0},
+		{ (int) GamepadButton::DpadDown + GamepadButtonOffset , 0},
+		{ (int) GamepadButton::DpadLeft + GamepadButtonOffset , 0},
+		{ (int) GamepadButton::DpadRight + GamepadButtonOffset , 0},
 	};
 }
 
@@ -586,6 +622,39 @@ bool InputSystem::ButtonUp(int button) const {
 	return keyMask != this->keys.end() && keyMask->second.GetKeyUpBit();
 }
 
+bool InputSystem::GamepadButtonDown(GamepadButton button) const {
+	return GamepadButtonDown(0, button);
+}
+bool InputSystem::GamepadButtonDown(int gamepadIndex, GamepadButton button) const {
+	if (gamepadIndex < 0 || gamepadIndex >= this->gamepads.size()) {
+		return false;
+	}
+
+	return this->gamepads[gamepadIndex].keys[(int) button].GetKeyDownBit();
+}
+
+bool InputSystem::GamepadButtonPressed(GamepadButton button) const {
+	return GamepadButtonPressed(0, button);
+}
+bool InputSystem::GamepadButtonPressed(int gamepadIndex, GamepadButton button) const {
+	if (gamepadIndex < 0 || gamepadIndex >= this->gamepads.size()) {
+		return false;
+	}
+
+	return this->gamepads[gamepadIndex].keys[(int) button].GetKeyPressedBit();
+}
+
+bool InputSystem::GamepadButtonUp(GamepadButton button) const {
+	return GamepadButtonUp(0, button);
+}
+bool InputSystem::GamepadButtonUp(int gamepadIndex, GamepadButton button) const {
+	if (gamepadIndex < 0 || gamepadIndex >= this->gamepads.size()) {
+		return false;
+	}
+
+	return this->gamepads[gamepadIndex].keys[(int) button].GetKeyUpBit();
+}
+
 bool InputSystem::MouseLocked() {
 	return this->mouseLocked;
 }
@@ -606,13 +675,27 @@ void InputSystem::SetMouseLocked(bool locked) {
 		this->prevMouseMovement = glm::vec2(0, 0);
 
 		SDL_SetRelativeMouseTransform(mouseTransform, this);
-		SDL_SetWindowRelativeMouseMode(Engine::GetWindow(), true);
+		SDL_SetWindowRelativeMouseMode(Application::GetWindow(), true);
 	}
 	else {
-		SDL_SetWindowRelativeMouseMode(Engine::GetWindow(), false);
+		SDL_SetWindowRelativeMouseMode(Application::GetWindow(), false);
 	}
 
 	this->mouseLocked = locked;
+}
+
+bool InputSystem::IsCursorHidden() const {
+    return this->cursorHidden;
+}
+
+void InputSystem::SetCursorHidden(bool hidden) {
+    this->cursorHidden = hidden;
+
+    if (hidden) {
+        SDL_HideCursor();
+    } else {
+        SDL_ShowCursor();
+    }
 }
 
 void InputSystem::SetViewportOffset(const glm::vec2& offset) {
@@ -633,6 +716,61 @@ glm::vec2 InputSystem::GetMousePosition() {
 	}
 	
 	return this->prevMouseMovement;
+}
+
+glm::vec2 InputSystem::GetGamepadAxis(InputAxis axis) const {
+	return GetGamepadAxis(0, axis);
+}
+
+glm::vec2 InputSystem::GetGamepadAxis(int gamepadIndex, InputAxis axis) const {
+	if (gamepadIndex < 0 || gamepadIndex >= this->gamepads.size()) {
+		return glm::zero<glm::vec2>();
+	}
+	
+	glm::vec2 value = glm::zero<glm::vec2>();
+
+	switch (axis) {
+	case InputAxis::GamepadLeftStick: {
+		value.x = (float) SDL_GetGamepadAxis(this->gamepads[gamepadIndex].handle, SDL_GAMEPAD_AXIS_LEFTX);
+		value.y = (float) SDL_GetGamepadAxis(this->gamepads[gamepadIndex].handle, SDL_GAMEPAD_AXIS_LEFTY);
+
+		value -= SDL_JOYSTICK_AXIS_MIN;
+
+		value /= (SDL_JOYSTICK_AXIS_MAX - SDL_JOYSTICK_AXIS_MIN);
+		value -= 0.5;
+		value *= 2;
+
+		break;
+	}
+	case InputAxis::GamepadRightStick: {
+		value.x = (float) SDL_GetGamepadAxis(this->gamepads[gamepadIndex].handle, SDL_GAMEPAD_AXIS_RIGHTX);
+		value.y = (float) SDL_GetGamepadAxis(this->gamepads[gamepadIndex].handle, SDL_GAMEPAD_AXIS_RIGHTY);
+
+		value -= SDL_JOYSTICK_AXIS_MIN;
+
+		value /= (SDL_JOYSTICK_AXIS_MAX - SDL_JOYSTICK_AXIS_MIN);
+		value -= 0.5;
+		value *= 2;
+		
+		break;
+	}
+	case InputAxis::GamepadLeftTrigger: {
+		value.x = (float) SDL_GetGamepadAxis(this->gamepads[gamepadIndex].handle, SDL_GAMEPAD_AXIS_LEFT_TRIGGER);
+
+		value /= SDL_JOYSTICK_AXIS_MAX;
+
+		break;
+	}
+	case InputAxis::GamepadRightTrigger: {
+		value.x = (float) SDL_GetGamepadAxis(this->gamepads[gamepadIndex].handle, SDL_GAMEPAD_AXIS_RIGHT_TRIGGER);
+
+		value /= SDL_JOYSTICK_AXIS_MAX;
+
+		break;
+	}
+	}
+
+	return value;
 }
 
 void InputSystem::OnPreUpdate() {
@@ -663,6 +801,65 @@ void InputSystem::OnPreUpdate() {
 	
 	if (!this->mouseLocked) {
 		this->prevMouseMovement = glm::vec2(xpos, ypos) - this->viewportOffset;
+	}
+
+	if (SDL_HasGamepad()) {
+		int gamepadCount = 0;
+		SDL_JoystickID* joystickIDs = SDL_GetGamepads(&gamepadCount);
+		std::vector<SDL_Gamepad*> gamepadIds(gamepadCount);
+
+		for (int i = 0; i < gamepadCount; i++) {
+			SDL_Gamepad* gamepd = SDL_OpenGamepad(joystickIDs[i]);
+
+			gamepadIds[i] = gamepd;
+
+			bool contains = false;
+
+			for (auto pad : this->gamepads) {
+				if (pad.handle == gamepd) {
+					contains = true;
+
+					break;
+				}
+			}
+
+			if (!contains) {
+				this->gamepads.push_back(GamepadKeyData(gamepd));
+			}
+		}
+
+		std::erase_if(this->gamepads, [&gamepadIds, gamepadCount](const GamepadKeyData& gamepadData) -> bool {
+			for (int i = 0; i < gamepadCount; i++) {
+				if (gamepadData.handle == gamepadIds[i]) {
+					return false;
+				}
+			}
+
+			return true;
+		});
+
+		for (auto& pad : this->gamepads) {
+			for (int i = 0; i < 15; i++) {
+				KeyBitMask mask = pad.keys[i];
+
+				bool pressed = SDL_GetGamepadButton(pad.handle, (SDL_GamepadButton) i);
+
+				if (pressed ^ mask.GetKeyPressedBit()) {
+					mask.SetPressTime(Time::Current());
+				}
+
+				mask.SetKeyUpBit(!pressed && mask.GetKeyPressedBit());
+				mask.SetKeyDownBit(pressed && !mask.GetKeyPressedBit());
+				mask.SetKeyPressedBit(pressed);
+				
+				pad.keys[i] = mask;
+			}
+		}
+
+		SDL_free(joystickIDs);
+	}
+	else {
+		this->gamepads.clear();
 	}
 }
 
@@ -731,6 +928,42 @@ void InputSystem::DrawImGui() {
 				this->mouseLocked ? 0 : mouseMovement.x,
 				this->mouseLocked ? 0 : mouseMovement.y
 			).c_str());
+			
+			ImGui::TreePop();
+		}
+
+		if (ImGui::TreeNode("Gamepad")) {
+			int gamepadIndex = 0;
+			for (const auto& gamepad : this->gamepads) {
+				if (ImGui::TreeNode(std::format("{}", gamepadIndex).c_str())) {
+					for (int gamepadButton = 0; gamepadButton <= (int) GamepadButton::DpadRight; gamepadButton++) {
+						const std::string& keyName = keyToString.at((Key) (gamepadButton + GamepadButtonOffset));
+						const KeyBitMask keyValue = gamepad.keys[gamepadButton];
+
+						if (ImGui::TreeNode(keyName.c_str())) {
+							ImGui::Text("%s", std::format("Button Down:     {}", keyValue.GetKeyDownBit()).c_str());
+							ImGui::Text("%s", std::format("Button Pressed:  {}", keyValue.GetKeyPressedBit()).c_str());
+							ImGui::Text("%s", std::format("Button Up:       {}", keyValue.GetKeyUpBit()).c_str());
+							ImGui::Text("%s", std::format("Button Time:     {}", keyValue.GetPressTime()).c_str());
+
+							ImGui::TreePop();
+						}
+					}
+
+					ImGui::Text("Left Stick:    (%f, %f)", GetGamepadAxis(gamepadIndex, InputAxis::GamepadLeftStick).x, GetGamepadAxis(gamepadIndex, InputAxis::GamepadLeftStick).y);
+					ImGui::Text("Right Stick:   (%f, %f)", GetGamepadAxis(gamepadIndex, InputAxis::GamepadRightStick).x, GetGamepadAxis(gamepadIndex, InputAxis::GamepadRightStick).y);
+					ImGui::Text("Left Trigger:  %f", GetGamepadAxis(gamepadIndex, InputAxis::GamepadLeftTrigger).x);
+					ImGui::Text("Right Trigger: %f", GetGamepadAxis(gamepadIndex, InputAxis::GamepadRightTrigger).x);
+
+					ImGui::TreePop();
+				}
+
+				gamepadIndex++;
+			}
+
+			if (this->gamepads.size() == 0) {
+				ImGui::Text("No gamepads connected");
+			}
 			
 			ImGui::TreePop();
 		}

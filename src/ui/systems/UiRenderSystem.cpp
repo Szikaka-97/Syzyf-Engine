@@ -56,7 +56,8 @@ void UiRenderSystem::OnPreRender() {
             layout->zIndex,
             finalColor,
             finalTexture,
-            visual->customMaterial
+            visual->customMaterial,
+            visual->clipRectangle
         );
     }
 }

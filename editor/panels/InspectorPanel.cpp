@@ -1,12 +1,11 @@
 #include "panels/InspectorPanel.h"
-#include "Application.h"
 #include "Commands.h"
 #include "ComponentRegistry.h"
+#include "EditorApplication.h"
 #include "MousePickingBody.h"
 
 #include <Debug.h>
 #include <Scene.h>
-#include <animation/AnimationComponent.h>
 
 #include <cctype>
 #include <cstdint>
@@ -193,35 +192,6 @@ void InspectorPanel::Draw(Context& context) {
             }
 
             ImGui::TreePop();
-        }
-
-        AnimationComponent* animationComponent =
-            context.selectedNode->GetObject<AnimationComponent>();
-        if (animationComponent != nullptr) {
-            if (ImGui::TreeNodeEx("Animation",
-                                  ImGuiTreeNodeFlags_DefaultOpen)) {
-                int animationIndex = 0;
-                for (auto& animation : animationComponent->animations) {
-                    ImGui::PushID(animationIndex++);
-                    if (ImGui::TreeNode(animation.data.name.c_str())) {
-                        ImGui::Text("%s", std::format("Duration: {}",
-                                                      animation.data.duration)
-                                              .c_str());
-                        ImGui::Text("%s", std::format("Progress: {}",
-                                                      animation.timeActive)
-                                              .c_str());
-                        ImGui::Checkbox("Playing", &animation.playing);
-                        ImGui::Checkbox("Looping", &animation.looping);
-                        ImGui::DragFloat("Speed", &animation.speed, 1.0f, 0.0f,
-                                         5.0f, "%.2f");
-                        // animation.data.tracks.front().inputs add this maybe
-                        ImGui::TreePop();
-                    }
-
-                    ImGui::PopID();
-                }
-                ImGui::TreePop();
-            };
         }
 
         int index = 0;

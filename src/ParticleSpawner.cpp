@@ -30,16 +30,21 @@ ParticleSpawner::ParticleSpawner(Mesh* mesh, Material* material, ParticleSpawner
         if (settings.continuous) {
             float spawnDelay = (static_cast<float>(i) / static_cast<float>(settings.maxParticles)) * settings.maxLifetime;
             p.lifetime.x = -spawnDelay;
-        } else {
+            glm::vec3 randomPosition = glm::linearRand(min, max);
+            p.position = glm::vec4(randomPosition, glm::linearRand(settings.minScale, settings.maxScale));
+        } else if (settings.wrapAround) {
             p.lifetime.x = glm::linearRand(0.0f, randomLifetime);
+            glm::vec3 randomPosition = glm::linearRand(min, max);
+            p.position = glm::vec4(randomPosition, glm::linearRand(settings.minScale, settings.maxScale));
+        } else {
+            float spawnDelay = (static_cast<float>(i) / static_cast<float>(settings.maxParticles)) * settings.maxLifetime;
+            p.lifetime.x = -spawnDelay;
+            p.position = glm::vec4(0.0f, -99999999.0f, 0.0f, glm::linearRand(settings.minScale, settings.maxScale));
         }
 
         float randomAngle = glm::linearRand(settings.minInitialAngle, settings.maxInitialAngle);
         float randomAngularVelocity = glm::linearRand(settings.minAngularVelocity, settings.maxAngularVelocity);
 
-        float randomScale = glm::linearRand(settings.minScale, settings.maxScale);
-
-        p.position = glm::vec4(randomPosition, randomScale);
         p.velocity = glm::vec4(randomVelocity, 1.0f);
         p.lifetime.y = randomLifetime;
         p.lifetime.z = randomAngle;
@@ -112,6 +117,7 @@ void ParticleSpawner::Update() {
     glm::vec3 extents = this->settings.areaExtents;
 
     ComputeDispatchData* computeDispatchData = this->computeDispatch->GetData();
+    computeDispatchData->BindStorageBuffer("ParticleBuffer", this->particleBuffer);
     
     computeDispatchData->SetValue("uAreaCenter", center);
     computeDispatchData->SetValue("uEmissionShapeExtents", this->settings.emissionShapeExtents);
@@ -120,14 +126,17 @@ void ParticleSpawner::Update() {
     computeDispatchData->SetValue("uWrapAround", static_cast<unsigned int>(this->settings.wrapAround));
     computeDispatchData->SetValue("uEnableLifetime", static_cast<unsigned int>(this->settings.enableLifetime));
 
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, this->particleBuffer);
 
     GLuint workGroups = (this->settings.maxParticles + 63) / 64;
     this->computeDispatch->Dispatch(workGroups, 1, 1);
+
+    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 }
 
 void ParticleSpawner::Render() {
     if (!this->mesh || !this->material) {
-        spdlog::error("ParticleSpawner: mesh or material missing");
+        spdlog::error("ParticleSpawner: [{}] mesh or material missing", GetNode()->GetName());
         return;
     }
 

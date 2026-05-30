@@ -39,23 +39,27 @@ void AnimationSystem::OnPreUpdate() {
 
   for (auto* object : IterateObjects()) {
     for (auto& animation : object->animations) {
-      if (!animation.playing)
+      if (!animation.playing && !animation.isDirty)
         continue;
 
-      animation.timeActive += deltaTime * animation.speed;
+      if (animation.playing) {
+          animation.timeActive += deltaTime * animation.speed;
 
-      spdlog::debug("Animation: {}, duration: {}, timeactive: {}", animation.data.name, animation.data.duration, animation.timeActive);
-      if (animation.timeActive >= animation.data.duration) {
-        for (std::size_t& i : animation.currentKeyframes) {
-          i = 0;
-        }
-        if (animation.looping) {
-          animation.timeActive = 0.0f;
-        } else {
-          animation.playing = false;
-          animation.timeActive = animation.data.duration;
-        }
+          spdlog::debug("Animation: {}, duration: {}, timeactive: {}", animation.data.name, animation.data.duration, animation.timeActive);
+          if (animation.timeActive >= animation.data.duration) {
+            for (std::size_t& i : animation.currentKeyframes) {
+              i = 0;
+            }
+            if (animation.looping) {
+              animation.timeActive = std::fmod(animation.timeActive, animation.data.duration);
+            } else {
+              animation.playing = false;
+              animation.timeActive = animation.data.duration;
+            }
+          }
       }
+
+      animation.isDirty = false;
 
       for (std::size_t i = 0; i < animation.data.tracks.size(); ++i) {
         auto& track = animation.data.tracks[i];
@@ -282,8 +286,8 @@ void AnimationSystem::UnregisterObjectForced(GameObject* obj) {
 
   for (auto* object : IterateObjects()) {
     for (auto& animation : object->animations) {
-      std::erase_if(animation.data.tracks, [obj](auto track) -> bool {
-        return track.target = obj->GetNode();
+      std::erase_if(animation.data.tracks, [obj](const auto& track) -> bool {
+        return track.target == obj->GetNode();
       });
     }
   }

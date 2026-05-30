@@ -7,7 +7,7 @@
 #include <string>
 
 namespace Editor {
-class Context;
+struct Context;
 
 struct ConsoleLogMessage {
     std::string text;

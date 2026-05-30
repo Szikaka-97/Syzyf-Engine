@@ -1,6 +1,6 @@
 #include "panels/GraphPanel.h"
-#include "Application.h"
 #include "CameraController.h"
+#include "EditorApplication.h"
 #include "imgui.h"
 
 #include <Scene.h>
@@ -12,6 +12,10 @@ void GraphPanel::Draw(Context& context) {
     if (context.selectedScene == nullptr) {
         ImGui::End();
         return;
+    }
+
+    if (context.state == State::Game) {
+        ImGui::BeginDisabled();
     }
 
     SceneNode* root = context.selectedScene->GetRootNode();
@@ -39,13 +43,17 @@ void GraphPanel::Draw(Context& context) {
 
     this->DrawContextMenu(context);
 
+    if (context.state == State::Game) {
+        ImGui::EndDisabled();
+    }
+
     ImGui::End();
 }
 
 void GraphPanel::DrawGraphNode(Context& context, SceneNode& node) {
     // Ignore editor camera
     if (node.GetObject<CameraController>()) {
-        return;
+        // return;
     }
 
     ImGui::PushID(node.GetID());
@@ -117,7 +125,8 @@ void GraphPanel::DrawGraphNode(Context& context, SceneNode& node) {
                               ImVec4(0.4f, 0.4f, 0.4f, 1.0f));
     }
 
-    if (ImGui::Button(node.EnabledSelf() ? "X" : " ", ImVec2(24, ImGui::GetFrameHeight()))) {
+    if (ImGui::Button(node.EnabledSelf() ? "X" : " ",
+                      ImVec2(24, ImGui::GetFrameHeight()))) {
         node.SetEnabled(!node.EnabledSelf());
     }
 

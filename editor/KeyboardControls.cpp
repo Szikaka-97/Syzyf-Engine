@@ -1,6 +1,6 @@
 #include "KeyboardControls.h"
 
-#include "Application.h"
+#include "EditorApplication.h"
 
 #include <Scene.h>
 
