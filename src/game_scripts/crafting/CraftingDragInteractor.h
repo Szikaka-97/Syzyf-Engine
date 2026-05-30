@@ -162,6 +162,10 @@ namespace Crafting{
                     station->OnBlowerClicked();
                     break;
 
+                case CraftingInteractionType::Door:
+                    station->OnDoorClicked();
+                    break;
+
                 case CraftingInteractionType::None:
                 default:
                     break;

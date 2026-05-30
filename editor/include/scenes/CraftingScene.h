@@ -228,6 +228,79 @@ namespace CraftingScene{
         return blowerHitboxNode;
     }
 
+    inline SceneNode* CreateDoorHitbox(Scene& scene, SceneNode* machineNode){
+        if (!machineNode){
+            return nullptr;
+        }
+
+        SceneNode* doorNode =
+            machineNode->FindNode("Door");
+
+        if (!doorNode){
+            spdlog::warn("CraftingScene: Door node not found. DoorHitbox was not created.");
+            return nullptr;
+        }
+
+        SceneNode* doorHitboxNode =
+            scene.CreateNode(doorNode, "DoorHitbox");
+
+        doorHitboxNode->LocalTransform().Position() =
+            glm::vec3(0.0f, 0.0f, 0.0f);
+
+        doorHitboxNode->LocalTransform().Scale() =
+            glm::vec3(0.7f, 0.8f, 0.35f);
+
+        Mesh* cubeMesh =
+            scene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
+
+        Material* doorMaterial =
+            CreateColorMaterial(glm::vec4(0.2f, 0.7f, 1.0f, 0.55f));
+
+        if (cubeMesh && doorMaterial){
+            doorHitboxNode->AddObject<MeshRenderer>(
+                cubeMesh,
+                doorMaterial
+            );
+        }else{
+            spdlog::warn("CraftingScene: failed to create visible DoorHitbox cube.");
+        }
+
+        glm::vec3 doorHitboxPosition =
+            doorHitboxNode->GlobalTransform().Position().Value();
+
+        auto* doorBody = doorHitboxNode->AddObject<Physics::Body>(
+            JPH::BodyCreationSettings{
+                Physics::BoxShape(glm::vec3(0.6f, 0.7f, 0.25f)),
+                JPH::RVec3(
+                    doorHitboxPosition.x,
+                    doorHitboxPosition.y,
+                    doorHitboxPosition.z
+                ),
+                JPH::Quat::sIdentity(),
+                JPH::EMotionType::Static,
+                Physics::Layers::NON_MOVING
+            }
+        );
+
+        doorBody->SetPosition(doorHitboxPosition);
+
+        auto* doorInteractable =
+            doorHitboxNode->AddObject<Crafting::CraftingInteractable>();
+
+        doorInteractable->type = Crafting::CraftingInteractionType::Door;
+        doorInteractable->interactionEnabled = false;
+        doorInteractable->fallbackHalfExtents = glm::vec3(0.6f, 0.7f, 0.25f);
+
+        spdlog::info(
+            "CraftingScene: visible DoorHitbox cube created at {} {} {}.",
+            doorHitboxPosition.x,
+            doorHitboxPosition.y,
+            doorHitboxPosition.z
+        );
+
+        return doorHitboxNode;
+    }
+
     inline Material* CreateColorMaterial(const glm::vec4& color){
         ShaderProgram* shader =
             ShaderProgram::Build()
@@ -464,6 +537,7 @@ namespace CraftingScene{
             CreateCraftingStageCameraPoints(scene,bimberMachineNode);
             CreateStationHitbox(scene,bimberMachineNode);
             CreateBlowerHitbox(scene,bimberMachineNode);
+            CreateDoorHitbox(scene,bimberMachineNode);
 
             SceneNode* cauldronNode = bimberMachineNode->FindNode("Cauldron");
 

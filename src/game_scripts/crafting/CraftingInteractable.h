@@ -11,7 +11,8 @@ namespace Crafting{
         None       = 0,
         Ingredient = 1 << 0,
         Lid        = 1 << 1,
-        Blower     = 1 << 2
+        Blower     = 1 << 2,
+        Door       = 1 << 3
     };
 
     using CraftingInteractionMask = std::uint32_t;

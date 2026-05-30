@@ -33,7 +33,8 @@ namespace Crafting{
                     None,
                     Ingredients,
                     Heating,
-                    Finished
+                    Finished,
+                    Bottling
                 };
 
                 bool isActive = false;
@@ -51,6 +52,7 @@ namespace Crafting{
                 SceneNode* lidHitboxNode = nullptr;
                 SceneNode* stationHitboxNode = nullptr;
                 SceneNode* blowerHitboxNode = nullptr;
+                SceneNode* doorHitboxNode = nullptr;
 
                 bool lidHitboxIsChildOfLid = false;
 
@@ -68,12 +70,17 @@ namespace Crafting{
                 std::string lidHitboxNodeName = "LidHitbox";
                 std::string stationHitboxNodeName = "StationHitbox";
                 std::string blowerHitboxNodeName = "BlowerHitbox";
+                std::string doorNodeName = "Door";
+                std::string doorHitboxNodeName = "DoorHitbox";
 
                 std::string ingredientCameraPointNodeName = "IngredientCameraPoint";
                 std::string ingredientCameraTargetNodeName = "IngredientCameraTarget";
 
                 std::string heatingCameraPointNodeName = "HeatingCameraPoint";
                 std::string heatingCameraTargetNodeName = "HeatingCameraTarget";
+
+                std::string bottlingCameraPointNodeName = "BottlingCameraPoint";
+                std::string bottlingCameraTargetNodeName = "BottlingCameraTarget";
 
                 glm::vec3 lidOpenOffset = glm::vec3(-1.5f, 0.0f, 0.0f);
 
@@ -167,6 +174,36 @@ namespace Crafting{
                         );
                     }
 
+                    doorHitboxNode =
+                        GetNode()->FindNode(doorHitboxNodeName);
+
+                    if (!doorHitboxNode){
+                        doorHitboxNode =
+                            FindNodeRecursive(GetNode(), doorHitboxNodeName);
+                    }
+
+                    if (!doorHitboxNode){
+                        spdlog::warn("CraftingStation: DoorHitbox node not found.");
+                    }else{
+                        doorHitboxNode->SetEnabled(false);
+
+                        if (auto* interactable = doorHitboxNode->GetObject<CraftingInteractable>()){
+                            interactable->SetInteractionEnabled(false);
+                        }
+
+                        SyncPhysicsBodyToNode(doorHitboxNode);
+
+                        glm::vec3 doorPosition =
+                            doorHitboxNode->GlobalTransform().Position().Value();
+
+                        spdlog::info(
+                            "CraftingStation: DoorHitbox found at {} {} {}.",
+                            doorPosition.x,
+                            doorPosition.y,
+                            doorPosition.z
+                        );
+                    }
+
                     lidClosedLocalPosition =
                         lidNode->LocalTransform().Position().Value();
 
@@ -180,6 +217,7 @@ namespace Crafting{
                     currentStage = CraftingStage::None;
 
                     SetLidInteractionEnabled(false);
+                    SetDoorInteractionEnabled(false);
                     SetStationHitboxEnabled(true);
                 }
 
@@ -234,6 +272,14 @@ namespace Crafting{
                         return ToMask(CraftingInteractionType::Blower);
                     }
 
+                    if (currentStage == CraftingStage::Finished){
+                        if (CanUseDoor()){
+                            return ToMask(CraftingInteractionType::Door);
+                        }
+
+                        return ToMask(CraftingInteractionType::None);
+                    }
+
                     return ToMask(CraftingInteractionType::None);
                 }
 
@@ -253,6 +299,14 @@ namespace Crafting{
                         currentStage == CraftingStage::Heating &&
                         blowerHitboxNode &&
                         blowerHitboxNode->IsEnabled();
+                }
+
+                bool CanUseDoor() const{
+                    return
+                        isActive &&
+                        currentStage == CraftingStage::Finished &&
+                        doorHitboxNode &&
+                        doorHitboxNode->IsEnabled();
                 }
 
                 void OnLidClicked(){
@@ -283,6 +337,17 @@ namespace Crafting{
                     blowerClickRequested = true;
 
                     spdlog::info("CraftingStation: Blower click accepted.");
+                }
+
+                void OnDoorClicked(){
+                    if (!CanUseDoor()){
+                        spdlog::warn("CraftingStation: Door click ignored.");
+                        return;
+                    }
+
+                    StartBottlingStage();
+
+                    spdlog::info("CraftingStation: Door clicked. Bottling stage started.");
                 }
 
           private:
@@ -326,6 +391,7 @@ namespace Crafting{
 
                     SetIngredientsEnabled(false);
                     SetDragInteractorEnabled(true);
+                    SetDoorInteractionEnabled(false);
 
                     if (blowerHitboxNode){
                         blowerHitboxNode->SetEnabled(true);
@@ -357,11 +423,24 @@ namespace Crafting{
                         cauldron->SetQuality(heatingStage.GetQuality());
                     }
 
+                    SetDoorInteractionEnabled(true);
+
                     spdlog::info(
-                        "CraftingStation: heating finished. Quality: {} Temperature: {}",
+                        "CraftingStation: heating finished. Quality: {} Temperature: {}. Click Door to continue.",
                         heatingStage.GetQuality(),
                         heatingStage.GetTemperature()
                     );
+                }
+
+                void StartBottlingStage(){
+                    currentStage = CraftingStage::Bottling;
+
+                    SetDoorInteractionEnabled(false);
+                    SetDragInteractorEnabled(true);
+
+                    FocusCameraOnBottlingStage();
+
+                    spdlog::info("CraftingStation: bottling stage active.");
                 }
 
                 void OpenLid(){
@@ -423,6 +502,29 @@ namespace Crafting{
                     );
                 }
 
+                void SetDoorInteractionEnabled(bool enabled){
+                    if (!doorHitboxNode){
+                        return;
+                    }
+
+                    if (doorHitboxNode->EnabledSelf() != enabled){
+                        doorHitboxNode->SetEnabled(enabled);
+                    }
+
+                    if (auto* interactable = doorHitboxNode->GetObject<CraftingInteractable>()){
+                        interactable->SetInteractionEnabled(enabled);
+                    }
+
+                    if (enabled){
+                        SyncPhysicsBodyToNode(doorHitboxNode);
+                    }
+
+                    spdlog::info(
+                        "CraftingStation: Door interaction {}.",
+                        enabled ? "enabled" : "disabled"
+                    );
+                }
+
                 void SetStationHitboxEnabled(bool enabled){
                     if (!stationHitboxNode){
                         return;
@@ -469,9 +571,6 @@ namespace Crafting{
                 }
 
                 void SetLidLocalPosition(const glm::vec3& localPosition){
-                    if (!lidNode){
-                        return;
-                    }
 
                     glm::vec3 lidDelta =
                         localPosition - lidClosedLocalPosition;
@@ -595,6 +694,14 @@ namespace Crafting{
                         heatingCameraPointNodeName,
                         heatingCameraTargetNodeName,
                         "heating"
+                    );
+                }
+
+                void FocusCameraOnBottlingStage(){
+                    FocusCameraOnStage(
+                        bottlingCameraPointNodeName,
+                        bottlingCameraTargetNodeName,
+                        "bottling"
                     );
                 }
 
@@ -765,9 +872,11 @@ namespace Crafting{
                     currentStage = CraftingStage::Ingredients;
                     ingredientStageConfirmed = false;
                     loggedIngredientsReady = false;
+                    blowerClickRequested = false;
 
                     SetDragInteractorEnabled(true);
                     SetLidInteractionEnabled(false);
+                    SetDoorInteractionEnabled(false);
 
                     if (blowerHitboxNode){
                         blowerHitboxNode->SetEnabled(false);
@@ -804,6 +913,7 @@ namespace Crafting{
                     }
 
                     currentStage = CraftingStage::None;
+                    blowerClickRequested = false;
 
                     if (blowerHitboxNode){
                         blowerHitboxNode->SetEnabled(false);
@@ -812,6 +922,8 @@ namespace Crafting{
                             interactable->SetInteractionEnabled(false);
                         }
                     }
+
+                    SetDoorInteractionEnabled(false);
 
                     SetDragInteractorEnabled(true);
 
