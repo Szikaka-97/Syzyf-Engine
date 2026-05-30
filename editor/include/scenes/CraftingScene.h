@@ -16,6 +16,7 @@
 #include "game_scripts/AimingAid.h"
 #include "game_scripts/CameraSettings.h"
 #include "game_scripts/crafting/CraftingDragInteractor.h"
+#include "game_scripts/crafting/CraftingInteractable.h"
 #include "game_scripts/crafting/DraggableCraftingItem.h"
 #include "game_scripts/crafting/CraftingStation.h"
 #include "game_scripts/crafting/CraftingIngredientReceiver.h"
@@ -115,7 +116,7 @@ namespace CraftingScene{
             scene.CreateNode(machineNode, "StationHitbox");
 
         stationHitboxNode->LocalTransform().Position() =
-            glm::vec3(0.0f, 1.5f, 0.0f);
+            glm::vec3(0.0f, 4.5f, 0.0f);
 
         stationHitboxNode->LocalTransform().Scale() =
             glm::vec3(1.0f);
@@ -147,6 +148,84 @@ namespace CraftingScene{
         );
 
         return stationHitboxNode;
+    }
+
+    inline Material* CreateColorMaterial(const glm::vec4& color);
+
+    inline SceneNode* CreateBlowerHitbox(Scene& scene, SceneNode* machineNode){
+        if (!machineNode){
+            return nullptr;
+        }
+
+        SceneNode* firePlaceNode =
+            machineNode->FindNode("Fire_Place");
+
+        if (!firePlaceNode){
+            spdlog::warn(
+                "CraftingScene: Fire_Place node not found. BlowerHitbox will be attached to machine root."
+            );
+
+            firePlaceNode = machineNode;
+        }
+
+        SceneNode* blowerHitboxNode =
+            scene.CreateNode(firePlaceNode, "BlowerHitbox");
+
+        blowerHitboxNode->LocalTransform().Position() =
+            glm::vec3(0.0f, 0.15f, 0.0f);
+
+        blowerHitboxNode->LocalTransform().Scale() =
+            glm::vec3(0.45f, 0.45f, 0.45f);
+
+        Mesh* cubeMesh =
+            scene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
+
+        Material* blowerMaterial =
+            CreateColorMaterial(glm::vec4(0.85f, 0.2f, 1.0f, 0.65f));
+
+        if (cubeMesh && blowerMaterial){
+            blowerHitboxNode->AddObject<MeshRenderer>(
+                cubeMesh,
+                blowerMaterial
+            );
+        }else{
+            spdlog::warn("CraftingScene: failed to create visible BlowerHitbox cube.");
+        }
+
+        glm::vec3 blowerHitboxPosition =
+            blowerHitboxNode->GlobalTransform().Position().Value();
+
+        auto* blowerBody = blowerHitboxNode->AddObject<Physics::Body>(
+            JPH::BodyCreationSettings{
+                Physics::BoxShape(glm::vec3(0.25f, 0.25f, 0.25f)),
+                JPH::RVec3(
+                    blowerHitboxPosition.x,
+                    blowerHitboxPosition.y,
+                    blowerHitboxPosition.z
+                ),
+                JPH::Quat::sIdentity(),
+                JPH::EMotionType::Static,
+                Physics::Layers::NON_MOVING
+            }
+        );
+
+        blowerBody->SetPosition(blowerHitboxPosition);
+
+        auto* blowerInteractable =
+            blowerHitboxNode->AddObject<Crafting::CraftingInteractable>();
+
+        blowerInteractable->type = Crafting::CraftingInteractionType::Blower;
+        blowerInteractable->interactionEnabled = false;
+        blowerInteractable->fallbackHalfExtents = glm::vec3(0.45f, 0.45f, 0.45f);
+
+        spdlog::info(
+            "CraftingScene: visible BlowerHitbox cube created at {} {} {}.",
+            blowerHitboxPosition.x,
+            blowerHitboxPosition.y,
+            blowerHitboxPosition.z
+        );
+
+        return blowerHitboxNode;
     }
 
     inline Material* CreateColorMaterial(const glm::vec4& color){
@@ -223,6 +302,11 @@ namespace CraftingScene{
 
         auto* item = node->AddObject<Crafting::DraggableCraftingItem>();
         item->data = ingredientData;
+
+        auto* interactable = node->AddObject<Crafting::CraftingInteractable>();
+        interactable->type = Crafting::CraftingInteractionType::Ingredient;
+        interactable->interactionEnabled = true;
+        interactable->fallbackHalfExtents = scale;
 
         auto* body = node->AddObject<Physics::Body>(
             JPH::BodyCreationSettings{
@@ -379,6 +463,7 @@ namespace CraftingScene{
 
             CreateCraftingStageCameraPoints(scene,bimberMachineNode);
             CreateStationHitbox(scene,bimberMachineNode);
+            CreateBlowerHitbox(scene,bimberMachineNode);
 
             SceneNode* cauldronNode = bimberMachineNode->FindNode("Cauldron");
 
@@ -400,7 +485,7 @@ namespace CraftingScene{
                 auto* cauldronBody =
                     cauldronReceiverHitboxNode->AddObject<Physics::Body>(
                         JPH::BodyCreationSettings{
-                            Physics::BoxShape(glm::vec3(0.7f, 0.3f, 0.7f)),
+                            Physics::BoxShape(glm::vec3(0.7f, 2.0f, 0.7f)),
                             JPH::RVec3(
                                 cauldronReceiverHitboxPosition.x,
                                 cauldronReceiverHitboxPosition.y,
@@ -417,6 +502,9 @@ namespace CraftingScene{
 
                 auto* receiver =
                     cauldronReceiverHitboxNode->AddObject<Crafting::CraftingIngredientReceiver>();
+
+                receiver->receiverHalfExtents =
+                    glm::vec3(0.7f, 2.0f, 0.7f);
 
                 receiver->ingredientConsumeOffset =
                     glm::vec3(0.0f, 0.5f, 0.0f);
@@ -461,6 +549,13 @@ namespace CraftingScene{
                 );
 
                 lidBody->SetPosition(lidHitboxPosition);
+
+                auto* lidInteractable =
+                    lidHitboxNode->AddObject<Crafting::CraftingInteractable>();
+
+                lidInteractable->type = Crafting::CraftingInteractionType::Lid;
+                lidInteractable->interactionEnabled = false;
+                lidInteractable->fallbackHalfExtents = glm::vec3(0.75f, 0.4f, 0.75f);
 
                 spdlog::info(
                     "CraftingScene: LidHitbox created at {} {} {}.",

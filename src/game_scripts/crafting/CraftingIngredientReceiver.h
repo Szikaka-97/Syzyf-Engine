@@ -22,7 +22,7 @@ namespace Crafting{
 
           glm::vec3 ingredientConsumeOffset = glm::vec3(0.0f, 0.0f, 0.0f);
 
-          glm::vec3 receiverHalfExtents = glm::vec3(0.65f, 0.3f, 0.65f);
+          glm::vec3 receiverHalfExtents = glm::vec3(0.7f, 2.0f, 0.7f);
 
           bool ContainsWorldPoint(const glm::vec3& point) const{
               glm::vec3 receiverPosition =

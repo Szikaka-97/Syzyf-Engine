@@ -58,6 +58,7 @@ namespace Crafting{
 
           void Clear(){
                 ingredients.clear();
+                qualityPercent = 0.0f;
 
                 spdlog::info("Cauldron: cleared ingredients.");
           }
@@ -107,7 +108,34 @@ namespace Crafting{
                 return result;
           }
 
+          void SetQuality(float value){
+                if (value < 0.0f){
+                    value = 0.0f;
+                }
+
+                if (value > 100.0f){
+                    value = 100.0f;
+                }
+
+                qualityPercent = value;
+
+                spdlog::info("Cauldron: quality set to {}%.", qualityPercent);
+          }
+
+          float GetQuality() const{
+                return qualityPercent;
+          }
+
+          float GetQualityPercent() const{
+                return qualityPercent;
+          }
+
+          float GetQuality01() const{
+                return qualityPercent / 100.0f;
+          }
+
     private:
         std::vector<IngredientData> ingredients;
+        float qualityPercent = 0.0f;
     };
 }

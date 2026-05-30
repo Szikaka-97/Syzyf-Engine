@@ -8,6 +8,8 @@
 #include "game_scripts/CameraSettings.h"
 #include "game_scripts/crafting/Cauldron.h"
 #include "game_scripts/crafting/CraftingIngredientReceiver.h"
+#include "game_scripts/crafting/CraftingInteractable.h"
+#include "game_scripts/crafting/HeatingStage.h"
 
 #include <physics/Body.h>
 #include <physics/System.h>
@@ -20,46 +22,18 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/matrix_inverse.hpp>
-#include <imgui.h>
 #include <spdlog/spdlog.h>
 
 #include <string>
 
 namespace Crafting{
-    class CraftingStation : public GameObject, public ImGuiDrawable{
+    class CraftingStation : public GameObject{
           private:
-                class LidRayFilter : public JPH::BodyFilter{
-                public:
-                    explicit LidRayFilter(SceneNode* lidHitboxNode)
-                        : lidHitboxNode(lidHitboxNode){}
-
-                    bool ShouldCollide(const JPH::BodyID& inBodyID) const override{
-                        return true;
-                    }
-
-                    bool ShouldCollideLocked(const JPH::Body& inBody) const override{
-                        auto* object =
-                            reinterpret_cast<GameObject*>(inBody.GetUserData());
-
-                        if (!object){
-                            return false;
-                        }
-
-                        SceneNode* node = object->GetNode();
-
-                        while (node){
-                            if (node == lidHitboxNode){
-                                return true;
-                            }
-
-                            node = node->GetParent();
-                        }
-
-                        return false;
-                    }
-
-                private:
-                    SceneNode* lidHitboxNode = nullptr;
+                enum class CraftingStage{
+                    None,
+                    Ingredients,
+                    Heating,
+                    Finished
                 };
 
                 bool isActive = false;
@@ -67,17 +41,25 @@ namespace Crafting{
 
                 bool ingredientStageConfirmed = false;
                 bool lidInteractionEnabled = false;
+                bool loggedIngredientsReady = false;
+
+                CraftingStage currentStage = CraftingStage::None;
 
                 Cauldron* cauldron = nullptr;
 
                 SceneNode* lidNode = nullptr;
                 SceneNode* lidHitboxNode = nullptr;
                 SceneNode* stationHitboxNode = nullptr;
+                SceneNode* blowerHitboxNode = nullptr;
 
                 bool lidHitboxIsChildOfLid = false;
 
                 glm::vec3 lidClosedLocalPosition = glm::vec3(0.0f);
                 glm::vec3 lidHitboxClosedLocalPosition = glm::vec3(0.0f);
+
+                HeatingStage heatingStage;
+
+                bool blowerClickRequested = false;
 
           public:
                 float interactionRadius = 3.0f;
@@ -85,6 +67,7 @@ namespace Crafting{
                 std::string lidNodeName = "Lid";
                 std::string lidHitboxNodeName = "LidHitbox";
                 std::string stationHitboxNodeName = "StationHitbox";
+                std::string blowerHitboxNodeName = "BlowerHitbox";
 
                 std::string ingredientCameraPointNodeName = "IngredientCameraPoint";
                 std::string ingredientCameraTargetNodeName = "IngredientCameraTarget";
@@ -93,9 +76,6 @@ namespace Crafting{
                 std::string heatingCameraTargetNodeName = "HeatingCameraTarget";
 
                 glm::vec3 lidOpenOffset = glm::vec3(-1.5f, 0.0f, 0.0f);
-
-                float interactionDistance = 100.0f;
-                glm::vec2 viewportSize = glm::vec2(1024.0f, 576.0f);
 
                 glm::vec3 stationCameraPosition = glm::vec3(4.0f, 2.0f, 0.0f);
 
@@ -157,6 +137,36 @@ namespace Crafting{
                         spdlog::info("CraftingStation: StationHitbox found.");
                     }
 
+                    blowerHitboxNode =
+                        GetNode()->FindNode(blowerHitboxNodeName);
+
+                    if (!blowerHitboxNode){
+                        blowerHitboxNode =
+                            FindNodeRecursive(GetNode(), blowerHitboxNodeName);
+                    }
+
+                    if (!blowerHitboxNode){
+                        spdlog::warn("CraftingStation: BlowerHitbox node not found.");
+                    }else{
+                        blowerHitboxNode->SetEnabled(false);
+
+                        if (auto* interactable = blowerHitboxNode->GetObject<CraftingInteractable>()){
+                            interactable->SetInteractionEnabled(false);
+                        }
+
+                        SyncPhysicsBodyToNode(blowerHitboxNode);
+
+                        glm::vec3 blowerPosition =
+                            blowerHitboxNode->GlobalTransform().Position().Value();
+
+                        spdlog::info(
+                            "CraftingStation: BlowerHitbox found at {} {} {}.",
+                            blowerPosition.x,
+                            blowerPosition.y,
+                            blowerPosition.z
+                        );
+                    }
+
                     lidClosedLocalPosition =
                         lidNode->LocalTransform().Position().Value();
 
@@ -167,12 +177,16 @@ namespace Crafting{
 
                     CloseLid();
 
+                    currentStage = CraftingStage::None;
+
                     SetLidInteractionEnabled(false);
                     SetStationHitboxEnabled(true);
                 }
 
                 void Update(){
-                    if (!GetScene() || !GetScene()->Input()){return;}
+                    if (!GetScene() || !GetScene()->Input()){
+                        return;
+                    }
 
                     if (!isActive){
                         if (IsPlayerNear()){
@@ -184,16 +198,12 @@ namespace Crafting{
                         return;
                     }
 
-                    if (!ingredientStageConfirmed){
-                        if (cauldron && cauldron->CanConfirm()){
-                            SetLidInteractionEnabled(true);
-                        }else{
-                            SetLidInteractionEnabled(false);
-                        }
+                    if (currentStage == CraftingStage::Ingredients){
+                        UpdateIngredientsStage();
+                    }
 
-                        if (GetScene()->Input()->ButtonUp(MouseButton::Left)){
-                            TryConfirmIngredientStageByLidClick();
-                        }
+                    if (currentStage == CraftingStage::Heating){
+                        UpdateHeatingStage();
                     }
 
                     if (GetScene()->Input()->KeyDown(Key::Escape)){
@@ -201,54 +211,163 @@ namespace Crafting{
                     }
                 }
 
-                void DrawImGui(){
-                    if (!isActive && IsPlayerNear()){
-                        ImGui::Begin("Interaction");
-                        ImGui::Text("Press E to use crafting station");
-                        ImGui::End();
+                bool IsActive() const{
+                    return isActive;
+                }
+
+                CraftingInteractionMask GetActiveInteractionMask() const{
+                    if (!isActive){
+                        return ToMask(CraftingInteractionType::None);
                     }
 
-                    if (isActive){
-                        ImGui::Begin("Crafting Station");
-                        ImGui::Text("Crafting station active");
-                        ImGui::Text("Press ESC to exit");
-                        ImGui::Separator();
+                    if (currentStage == CraftingStage::Ingredients){
+                        CraftingInteractionMask mask = ToMask(CraftingInteractionType::Ingredient);
 
-                        if (cauldron){
-                            ImGui::Text(
-                                "Main ingredients: %d / %d",
-                                cauldron->CountMainEffectIngredients(),
-                                cauldron->maxMainEffectIngredients);
-
-                            ImGui::Text(
-                                "Modifier ingredients: %d / %d",
-                                cauldron->CountModifierIngredients(),
-                                cauldron->maxModifierIngredients);
-
-                            if (cauldron->CanConfirm()){
-                                ImGui::Text("Click Lid to confirm");
-                            }else{
-                                ImGui::Text("Add at least one main ingredient");
-                            }
+                        if (CanConfirmIngredientStageByLidClick()){
+                            mask = mask | CraftingInteractionType::Lid;
                         }
 
-                        if (lidInteractionEnabled){
-                            ImGui::Text("Lid interaction enabled");
-                        }else{
-                            ImGui::Text("Lid interaction disabled");
-                        }
-
-                        if (ingredientStageConfirmed){
-                            ImGui::Text("Ingredient stage confirmed");
-                        }
-
-                        ImGui::End();
+                        return mask;
                     }
+
+                    if (currentStage == CraftingStage::Heating){
+                        return ToMask(CraftingInteractionType::Blower);
+                    }
+
+                    return ToMask(CraftingInteractionType::None);
+                }
+
+                bool CanConfirmIngredientStageByLidClick() const{
+                    return
+                        isActive &&
+                        currentStage == CraftingStage::Ingredients &&
+                        lidInteractionEnabled &&
+                        lidHitboxNode &&
+                        cauldron &&
+                        cauldron->CanConfirm();
+                }
+
+                bool CanUseBlower() const{
+                    return
+                        isActive &&
+                        currentStage == CraftingStage::Heating &&
+                        blowerHitboxNode &&
+                        blowerHitboxNode->IsEnabled();
+                }
+
+                void OnLidClicked(){
+                    if (!CanConfirmIngredientStageByLidClick()){
+                        spdlog::warn("CraftingStation: Lid click ignored.");
+                        return;
+                    }
+
+                    ingredientStageConfirmed = true;
+
+                    CloseLid();
+
+                    SetLidInteractionEnabled(false);
+
+                    StartHeatingStage();
+
+                    FocusCameraOnHeatingStage();
+
+                    spdlog::info("CraftingStation: ingredient stage confirmed by Lid click.");
+                }
+
+                void OnBlowerClicked(){
+                    if (!CanUseBlower()){
+                        spdlog::warn("CraftingStation: Blower click ignored.");
+                        return;
+                    }
+
+                    blowerClickRequested = true;
+
+                    spdlog::info("CraftingStation: Blower click accepted.");
                 }
 
           private:
+                void UpdateIngredientsStage(){
+                    bool canConfirm =
+                        cauldron && cauldron->CanConfirm();
+
+                    SetLidInteractionEnabled(canConfirm);
+
+                    if (canConfirm && !loggedIngredientsReady){
+                        loggedIngredientsReady = true;
+
+                        spdlog::info(
+                            "CraftingStation: ingredients ready. Click Lid to start heating."
+                        );
+                    }
+
+                    if (!canConfirm){
+                        loggedIngredientsReady = false;
+                    }
+                }
+
+                void UpdateHeatingStage(){
+                    float deltaTime = 1.0f / 60.0f;
+
+                    bool blowerClicked = blowerClickRequested;
+                    blowerClickRequested = false;
+
+                    bool finished =
+                        heatingStage.Update(deltaTime, blowerClicked);
+
+                    if (finished){
+                        FinishHeatingStage();
+                    }
+                }
+
+                void StartHeatingStage(){
+                    currentStage = CraftingStage::Heating;
+
+                    heatingStage.Start();
+
+                    SetIngredientsEnabled(false);
+                    SetDragInteractorEnabled(true);
+
+                    if (blowerHitboxNode){
+                        blowerHitboxNode->SetEnabled(true);
+
+                        if (auto* interactable = blowerHitboxNode->GetObject<CraftingInteractable>()){
+                            interactable->SetInteractionEnabled(true);
+                        }
+
+                        SyncPhysicsBodyToNode(blowerHitboxNode);
+                    }
+
+                    spdlog::info("CraftingStation: heating stage started.");
+                }
+
+                void FinishHeatingStage(){
+                    currentStage = CraftingStage::Finished;
+
+                    if (blowerHitboxNode){
+                        blowerHitboxNode->SetEnabled(false);
+
+                        if (auto* interactable = blowerHitboxNode->GetObject<CraftingInteractable>()){
+                            interactable->SetInteractionEnabled(false);
+                        }
+                    }
+
+                    SetDragInteractorEnabled(true);
+
+                    if (cauldron){
+                        cauldron->SetQuality(heatingStage.GetQuality());
+                    }
+
+                    spdlog::info(
+                        "CraftingStation: heating finished. Quality: {} Temperature: {}",
+                        heatingStage.GetQuality(),
+                        heatingStage.GetTemperature()
+                    );
+                }
+
                 void OpenLid(){
-                    if (!lidNode){return;}
+                    if (!lidNode){
+                        return;
+                    }
 
                     SetLidLocalPosition(
                         lidClosedLocalPosition + lidOpenOffset
@@ -258,7 +377,9 @@ namespace Crafting{
                 }
 
                 void CloseLid(){
-                    if (!lidNode){return;}
+                    if (!lidNode){
+                        return;
+                    }
 
                     SetLidLocalPosition(lidClosedLocalPosition);
 
@@ -269,6 +390,10 @@ namespace Crafting{
                     if (lidInteractionEnabled == enabled){
                         if (lidHitboxNode && lidHitboxNode->EnabledSelf() != enabled){
                             lidHitboxNode->SetEnabled(enabled);
+
+                            if (auto* interactable = lidHitboxNode->GetObject<CraftingInteractable>()){
+                                interactable->SetInteractionEnabled(enabled);
+                            }
 
                             if (enabled){
                                 SyncPhysicsBodyToNode(lidHitboxNode);
@@ -282,6 +407,10 @@ namespace Crafting{
 
                     if (lidHitboxNode){
                         lidHitboxNode->SetEnabled(enabled);
+
+                        if (auto* interactable = lidHitboxNode->GetObject<CraftingInteractable>()){
+                            interactable->SetInteractionEnabled(enabled);
+                        }
 
                         if (enabled){
                             SyncPhysicsBodyToNode(lidHitboxNode);
@@ -315,8 +444,34 @@ namespace Crafting{
                     );
                 }
 
+                void SetDragInteractorEnabled(bool enabled){
+                    if (!GetScene()){
+                        return;
+                    }
+
+                    SceneNode* dragInteractorNode =
+                        GetScene()->FindNode("Crafting Root/Root/Crafting Drag Interactor");
+
+                    if (!dragInteractorNode){
+                        return;
+                    }
+
+                    if (dragInteractorNode->EnabledSelf() == enabled){
+                        return;
+                    }
+
+                    dragInteractorNode->SetEnabled(enabled);
+
+                    spdlog::info(
+                        "CraftingStation: drag interactor {}.",
+                        enabled ? "enabled" : "disabled"
+                    );
+                }
+
                 void SetLidLocalPosition(const glm::vec3& localPosition){
-                    if (!lidNode){return;}
+                    if (!lidNode){
+                        return;
+                    }
 
                     glm::vec3 lidDelta =
                         localPosition - lidClosedLocalPosition;
@@ -336,6 +491,24 @@ namespace Crafting{
                     }
                 }
 
+                SceneNode* FindNodeRecursive(SceneNode* rootNode, const std::string& targetName){
+                    if (!rootNode){
+                        return nullptr;
+                    }
+
+                    if (rootNode->GetName() == targetName){
+                        return rootNode;
+                    }
+
+                    for (SceneNode* child : rootNode->GetChildren()){
+                        if (SceneNode* foundNode = FindNodeRecursive(child, targetName)){
+                            return foundNode;
+                        }
+                    }
+
+                    return nullptr;
+                }
+
                 bool IsNodeChildOf(SceneNode* node, SceneNode* expectedParent){
                     SceneNode* current = node;
 
@@ -351,11 +524,15 @@ namespace Crafting{
                 }
 
                 void SyncPhysicsBodyToNode(SceneNode* node){
-                    if (!node){return;}
+                    if (!node){
+                        return;
+                    }
 
                     auto* body = node->GetObject<Physics::Body>();
 
-                    if (!body){return;}
+                    if (!body){
+                        return;
+                    }
 
                     if (!node->EnabledSelf()){
                         return;
@@ -370,140 +547,18 @@ namespace Crafting{
                     );
                 }
 
-                void TryConfirmIngredientStageByLidClick(){
-                    if (!WasLidClicked()){
-                        return;
-                    }
-
-                    if (!cauldron){
-                        spdlog::warn("CraftingStation: cannot confirm, Cauldron missing.");
-                        return;
-                    }
-
-                    if (!cauldron->CanConfirm()){
-                        spdlog::warn("CraftingStation: cannot confirm, no main ingredient in Cauldron.");
-                        return;
-                    }
-
-                    ingredientStageConfirmed = true;
-
-                    CloseLid();
-
-                    SetLidInteractionEnabled(false);
-
-                    FocusCameraOnHeatingStage();
-
-                    spdlog::info("CraftingStation: ingredient stage confirmed by Lid click.");
-                }
-
-                bool WasLidClicked(){
-                    if (!lidInteractionEnabled){
-                        return false;
-                    }
-
-                    if (!lidHitboxNode){
-                        return false;
-                    }
-
-                    Camera* camera = GetMainCamera();
-
-                    if (!camera){
-                        spdlog::warn("CraftingStation: main camera not found for Lid click.");
-                        return false;
-                    }
-
-                    glm::vec3 rayOrigin;
-                    glm::vec3 rayDirection;
-
-                    if (!BuildMouseRay(camera,rayOrigin,rayDirection)){
-                        return false;
-                    }
-
-                    auto* physics = GetScene()->GetComponent<Physics::System>();
-
-                    if (!physics){
-                        spdlog::warn("CraftingStation: Physics::System not found.");
-                        return false;
-                    }
-
-                    LidRayFilter lidFilter(lidHitboxNode);
-
-                    Physics::RayCastPayload hit =
-                        physics->CastRay(
-                            rayOrigin,
-                            rayDirection * interactionDistance,
-                            {},
-                            {},
-                            lidFilter
-                        );
-
-                    if (!hit.hasHit){
-                        spdlog::info("CraftingStation: Lid raycast missed.");
-                        return false;
-                    }
-
-                    spdlog::info("CraftingStation: Lid clicked.");
-                    return true;
-                }
-
-                Camera* GetMainCamera(){
-                    SceneNode* cameraNode = GetCameraNode();
-
-                    if (!cameraNode){
-                        return nullptr;
-                    }
-
-                    return cameraNode->GetObject<Camera>();
-                }
-
-                bool BuildMouseRay(Camera* camera, glm::vec3& outOrigin, glm::vec3& outDirection){
-                    if (!camera || !GetScene() || !GetScene()->Input()){
-                        return false;
-                    }
-
-                    glm::vec2 mousePosition =
-                        GetScene()->Input()->GetMousePosition();
-
-                    if (viewportSize.x <= 1.0f || viewportSize.y <= 1.0f){
-                        spdlog::warn(
-                            "CraftingStation: invalid viewport size {} x {}.",
-                            viewportSize.x,
-                            viewportSize.y
-                        );
-
-                        return false;
-                    }
-
-                    float ndcX = (2.0f * mousePosition.x) / viewportSize.x - 1.0f;
-                    float ndcY = 1.0f - (2.0f * mousePosition.y) / viewportSize.y;
-
-                    glm::vec4 clipSpacePosition =
-                        glm::vec4(ndcX, ndcY, -1.0f, 1.0f);
-
-                    glm::vec4 viewSpacePosition =
-                        glm::inverse(camera->ProjectionMatrix()) * clipSpacePosition;
-
-                    viewSpacePosition.z = -1.0f;
-                    viewSpacePosition.w = 0.0f;
-
-                    glm::vec4 worldDirection =
-                        glm::inverse(camera->ViewMatrix()) * viewSpacePosition;
-
-                    outOrigin =
-                        camera->GlobalTransform().Position().Value();
-
-                    outDirection =
-                        glm::normalize(glm::vec3(worldDirection));
-
-                    return true;
-                }
-
-                glm::quat LookAtRotation(const glm::vec3& cameraPosition,const glm::vec3& targetPosition){
+                glm::quat LookAtRotation(
+                    const glm::vec3& cameraPosition,
+                    const glm::vec3& targetPosition
+                ){
                     glm::vec3 direction =
                         targetPosition - cameraPosition;
 
                     if (glm::length(direction) < 0.0001f){
-                        spdlog::warn("CraftingStation: camera point and target are too close. Using fallback rotation.");
+                        spdlog::warn(
+                            "CraftingStation: camera point and target are too close. Using fallback rotation."
+                        );
+
                         return stationCameraRotation;
                     }
 
@@ -578,7 +633,9 @@ namespace Crafting{
                     }
 
                     if (!cameraPointNode || !cameraTargetNode){
-                        spdlog::warn("CraftingStation: camera point or target missing. Using fallback camera transform.");
+                        spdlog::warn(
+                            "CraftingStation: camera point or target missing. Using fallback camera transform."
+                        );
 
                         cameraNode->GlobalTransform().Position() =
                             stationCameraPosition;
@@ -705,8 +762,20 @@ namespace Crafting{
                         cameraSettings->enabled = false;
                     }
 
+                    currentStage = CraftingStage::Ingredients;
                     ingredientStageConfirmed = false;
+                    loggedIngredientsReady = false;
+
+                    SetDragInteractorEnabled(true);
                     SetLidInteractionEnabled(false);
+
+                    if (blowerHitboxNode){
+                        blowerHitboxNode->SetEnabled(false);
+
+                        if (auto* interactable = blowerHitboxNode->GetObject<CraftingInteractable>()){
+                            interactable->SetInteractionEnabled(false);
+                        }
+                    }
 
                     OpenLid();
 
@@ -733,6 +802,18 @@ namespace Crafting{
                         spdlog::warn("CraftingStation: Camera Node not found.");
                         return;
                     }
+
+                    currentStage = CraftingStage::None;
+
+                    if (blowerHitboxNode){
+                        blowerHitboxNode->SetEnabled(false);
+
+                        if (auto* interactable = blowerHitboxNode->GetObject<CraftingInteractable>()){
+                            interactable->SetInteractionEnabled(false);
+                        }
+                    }
+
+                    SetDragInteractorEnabled(true);
 
                     CloseLid();
 
