@@ -35,6 +35,9 @@ uniform vec3 areaCenter;
 // change later
 uniform uint billboardMode;
 
+uniform sampler2D scaleCurveTex;
+uniform uint useScaleCurve;
+
 uniform uint distanceFadeMode;
 uniform float distanceFadeMin;
 uniform float distanceFadeMax;
@@ -77,10 +80,10 @@ void main() {
 
     vs_out.lifetime = clamp(lifetime.x / lifetime.y, 0.0, 1.0);
 
-    // remove these two lines later
-    float size = particle.w * vs_out.lifetime;
-    if (rotateY == 0) {
-        size = particle.w;
+    float size = particle.w;
+    if (useScaleCurve > 0) {
+        float scaleMultiplier = texture(scaleCurveTex, vec2(vs_out.lifetime, 0.5)).r;
+        size *= scaleMultiplier;
     }
 
     if (billboardMode > 0) {

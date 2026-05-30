@@ -13,6 +13,22 @@ ParticleSpawner::ParticleSpawner(Mesh* mesh, Material* material, ParticleSpawner
     ComputeShaderProgram* shader = new ComputeShaderProgram(COMPUTE_SHADER_PATH);
     this->computeDispatch.reset(new ComputeShaderDispatch(shader));
 
+    ReallocateParticleBuffer();
+}
+
+ParticleSpawner::~ParticleSpawner() {
+    if (this->particleBuffer != 0) {
+        glDeleteBuffers(1, &this->particleBuffer);
+    }
+}
+
+void ParticleSpawner::ReallocateParticleBuffer() {
+    if (this->particleBuffer != 0) {
+        glDeleteBuffers(1, &this->particleBuffer);
+        this->particleBuffer = 0;
+    }
+
+    this->initialParticleData.clear();
     this->initialParticleData.reserve(settings.maxParticles);
 
     glm::vec3 spawnExtents = settings.wrapAround ? settings.areaExtents : settings.emissionShapeExtents;
@@ -61,12 +77,6 @@ ParticleSpawner::ParticleSpawner(Mesh* mesh, Material* material, ParticleSpawner
     this->computeDispatch->GetData()->BindStorageBuffer("ParticleBuffer", this->particleBuffer);
 }
 
-ParticleSpawner::~ParticleSpawner() {
-    if (this->particleBuffer != 0) {
-        glDeleteBuffers(1, &this->particleBuffer);
-    }
-}
-
 void ParticleSpawner::Update() {
     if (this->material == nullptr) {
         return;
@@ -74,6 +84,16 @@ void ParticleSpawner::Update() {
 
     // rename so either nothing has the 'u' prefix or every uniform has it
     this->material->SetValue("areaCenter", this->GlobalTransform().Position().value);
+
+    this->material->SetValue("color", this->settings.color);
+    this->material->SetValue("colorIntensity", this->settings.colorIntensity);
+
+    if (this->settings.scaleCurveTexture != nullptr) {
+        this->material->SetValue("scaleCurveTex", this->settings.scaleCurveTexture);
+        this->material->SetValue("useScaleCurve", 1u);
+    } else {
+        this->material->SetValue("useScaleCurve", 0u);
+    }
 
     // change later
     this->material->SetValue("billboardMode", static_cast<unsigned int>(this->settings.billboardMode));
@@ -186,23 +206,102 @@ void ParticleSpawner::DrawImGui() {
     if (this->mesh == nullptr || this->material == nullptr) {
         ImGui::BeginDisabled();
     }
+
+    bool needsReset = false;
+
+    if (ImGui::InputInt("Max Particles", &this->settings.maxParticles)) {
+        if (this->settings.maxParticles < 1) this->settings.maxParticles = 1;
+        needsReset = true;
+    }
+
+    if (ImGui::InputFloat3("Area Extents", &this->settings.areaExtents[0])) {
+        needsReset = true;
+    }
+
+    if (ImGui::InputFloat3("Emission Shape Extents", &this->settings.emissionShapeExtents[0])) {
+        needsReset = true;
+    }
+
+    if (ImGui::InputFloat3("Min Velocity", &this->settings.minVelocity[0])) {
+        needsReset = true;
+    }
+    if (ImGui::InputFloat3("Max Velocity", &this->settings.maxVelocity[0])) {
+        needsReset = true;
+    }
+
+    float minAngleDeg = glm::degrees(this->settings.minInitialAngle);
+    float maxAngleDeg = glm::degrees(this->settings.maxInitialAngle);
+    if (ImGui::InputFloat("Min Initial Angle (Deg)", &minAngleDeg)) {
+        this->settings.minInitialAngle = glm::radians(minAngleDeg);
+        needsReset = true;
+    }
+    if (ImGui::InputFloat("Max Initial Angle (Deg)", &maxAngleDeg)) {
+        this->settings.maxInitialAngle = glm::radians(maxAngleDeg);
+        needsReset = true;
+    }
+
+    if (ImGui::InputFloat("Min Angular Velocity", &this->settings.minAngularVelocity)) {
+        needsReset = true;
+    }
+    if (ImGui::InputFloat("Max Angular Velocity", &this->settings.maxAngularVelocity)) {
+        needsReset = true;
+    }
+
+    if (ImGui::Checkbox("Enable Lifetime", &this->settings.enableLifetime)) {
+        needsReset = true;
+    }
+    if (ImGui::InputFloat("Min Lifetime", &this->settings.minLifetime)) {
+        needsReset = true;
+    }
+    if (ImGui::InputFloat("Max Lifetime", &this->settings.maxLifetime)) {
+        needsReset = true;
+    }
+
+    if (ImGui::InputFloat("Min Scale", &this->settings.minScale)) {
+        needsReset = true;
+    }
+    if (ImGui::InputFloat("Max Scale", &this->settings.maxScale)) {
+        needsReset = true;
+    }
+
+    if (ImGui::Checkbox("Continuous", &this->settings.continuous)) {
+        needsReset = true;
+    }
+    if (ImGui::Checkbox("Wrap Around", &this->settings.wrapAround)) {
+        needsReset = true;
+    }
+
+    ImGui::Separator();
+
+    ImGui::ColorEdit4("Particle Color", &this->settings.color[0]);
+    ImGui::InputFloat("Particle Color Intensity", &this->settings.colorIntensity);
+
     const char* billboardModes[] = { "Disabled", "Enabled", "Z" };
     int currentBillboardMode = static_cast<int>(this->settings.billboardMode);
     if (ImGui::Combo("Billboard Mode", &currentBillboardMode, billboardModes, IM_ARRAYSIZE(billboardModes))) {
         this->settings.billboardMode = static_cast<BillboardMode>(currentBillboardMode);
     }
 
+    const char* alphaModes[] = { "Disabled", "Alpha", "Dither" };
+    int currentAlphaMode = static_cast<int>(this->settings.alphaMode);
+    if (ImGui::Combo("Alpha Mode", &currentAlphaMode, alphaModes, IM_ARRAYSIZE(alphaModes))) {
+        this->settings.alphaMode = static_cast<AlphaMode>(currentAlphaMode);
+    }
+
     if (this->settings.alphaMode != AlphaMode::Disabled) {
+        ImGui::Checkbox("Enable Proximity Fade", &this->settings.enableProximityFade);
         if (this->settings.enableProximityFade) {
             ImGui::InputFloat("Proximity Fade Min", &this->settings.proximityFadeMin);
             ImGui::InputFloat("Proximity Fade Max", &this->settings.proximityFadeMax);
         }
 
+        ImGui::Checkbox("Enable Distance Fade", &this->settings.enableDistanceFade);
         if (this->settings.enableDistanceFade) {
             ImGui::InputFloat("Distance Fade Min", &this->settings.distanceFadeMin);
             ImGui::InputFloat("Distance Fade Max", &this->settings.distanceFadeMax);
         }
 
+        ImGui::Checkbox("Enable Lifetime Fade", &this->settings.enableLifetimeFade);
         if (this->settings.enableLifetimeFade) {
             ImGui::InputFloat2("Lifetime Fade Min", &this->settings.lifetimeFadeIn[0]);
             ImGui::InputFloat2("Lifetime Fade Max", &this->settings.lifetimeFadeOut[0]);
@@ -215,6 +314,12 @@ void ParticleSpawner::DrawImGui() {
     }
 
     ImGui::Checkbox("Rotate Y", &this->settings.rotateY);
+    ImGui::Checkbox("Use Color Ramp", &this->settings.useColorRamp);
+
+    if (needsReset) {
+        ReallocateParticleBuffer();
+    }
+
     if (this->mesh == nullptr || this->material == nullptr) {
         ImGui::EndDisabled();
     }

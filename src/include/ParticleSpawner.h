@@ -59,6 +59,12 @@ struct ParticleSpawnerSettings {
     float minScale = 1.5f;
     float maxScale = 1.5f;
 
+    // Controls how the scale changes over the particle's lifetime
+    Texture2D* scaleCurveTexture = nullptr;
+
+    glm::vec4 color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+    float colorIntensity = 1.0f;
+
     // This is a bit silly because since you set the frag shader manually this setting doesn't really change much
     //  besides hiding the imgui options
     AlphaMode alphaMode = AlphaMode::Disabled;
@@ -104,8 +110,10 @@ private:
     ParticleSpawnerSettings settings;
 
     std::vector<ParticleData> initialParticleData;
-    GLuint particleBuffer;
+    GLuint particleBuffer = 0;
     bool particleBufferBoundToMaterial = false;
+
+    void ReallocateParticleBuffer();
 public:
     ParticleSpawner(Mesh* mesh, Material* material, ParticleSpawnerSettings = {});
     ~ParticleSpawner();

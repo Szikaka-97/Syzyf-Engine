@@ -26,11 +26,10 @@
 #include <TweenSystem.h>
 #include <Viewport.h>
 #include <animation/AnimationSystem.h>
-#include <game_scripts/enemies/EnemySkeleton.h>
 #include <fog/FogVolume.h>
 #include <game_scripts/CameraSettings.h>
-#include <physics/VirtualCharacterController.h>
 #include <game_scripts/PlayerController.h>
+#include <game_scripts/enemies/EnemySkeleton.h>
 #include <glm/fwd.hpp>
 #include <glm/geometric.hpp>
 #include <glm/trigonometric.hpp>
@@ -38,6 +37,7 @@
 #include <physics/DebugRenderer.h>
 #include <physics/Helpers.h>
 #include <physics/System.h>
+#include <physics/VirtualCharacterController.h>
 #include <physics/Water.h>
 #include <scatter/Spawner.h>
 #include <text/Font.h>
@@ -49,11 +49,11 @@
 #include <Jolt/Physics/Character/CharacterVirtual.h>
 #include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
 #include <Jolt/Physics/Collision/Shape/Shape.h>
+#include <game_scripts/enemies/EnemyBeetroot.h>
+#include <game_scripts/enemies/MeleeSkeleton.h>
 #include <imgui.h>
 #include <memory>
 #include <physics/VirtualCharacterController.h>
-#include <game_scripts/enemies/MeleeSkeleton.h>
-#include <game_scripts/enemies/EnemyBeetroot.h>
 
 namespace ExampleParticlesAndScatter {
 
@@ -341,7 +341,8 @@ inline void InitScene(Scene& mainScene) {
             Physics::MeshShape(floorMeshRenderer->GetMesh()),
             JPH::RVec3::sZero(), JPH::Quat::sZero(), JPH::EMotionType::Static,
             Physics::Layers::NON_MOVING});
-    auto* surface = floorNode->AddObject<Surface>(floorMeshRenderer->GetMesh(), 1.0f);
+    auto* surface =
+        floorNode->AddObject<Surface>(floorMeshRenderer->GetMesh(), 1.0f);
 
 #pragma endregion
 #pragma region Player
@@ -354,29 +355,34 @@ inline void InitScene(Scene& mainScene) {
 
     SceneNode* playerNode = mainScene.CreateNode("Player");
 
-    SceneNode* bimberman = ResourceDatabase::Global->Get<GltfScene>(
-        "./res/models/bimbermann_throwing.glb")->Instantiate(&mainScene, mainScene.root, "Bimberman");
+    SceneNode* bimberman =
+        ResourceDatabase::Global
+            ->Get<GltfScene>("./res/models/bimbermann_throwing.glb")
+            ->Instantiate(&mainScene, mainScene.root, "Bimberman");
     bimberman->SetParent(playerNode);
 
-    auto* virtualCharacter = playerNode->AddObject<Physics::VirtualCharacterController>(characterSettings);
+    auto* virtualCharacter =
+        playerNode->AddObject<Physics::VirtualCharacterController>(
+            characterSettings);
     virtualCharacter->SetPosition(
         playerNode->GlobalTransform().Position().Value());
     virtualCharacter->SetGravityFactor(0);
     virtualCharacter->SetCollisionLayerAndMask({0}, 0);
-    
-    auto* aimingAid = ResourceDatabase::Global->Get<GltfScene>("./res/models/crosshair.glb")->Instantiate(&mainScene, playerNode, "Aim Reticle")->AddObject<AimCrosshair>();
-    
-    auto* player = playerNode->AddObject<PlayerController>();
 
+    auto* aimingAid =
+        ResourceDatabase::Global->Get<GltfScene>("./res/models/crosshair.glb")
+            ->Instantiate(&mainScene, playerNode, "Aim Reticle")
+            ->AddObject<AimCrosshair>();
+
+    auto* player = playerNode->AddObject<PlayerController>();
 
 #pragma endregion
 
 #pragma region Enemy
     /*JPH::BodyCreationSettings enemyShapeSettings = JPH::BodyCreationSettings(
         Physics::MeshShape(floorMeshRenderer->GetMesh()), JPH::RVec3::sZero(),
-        JPH::Quat::sZero(), JPH::EMotionType::Dynamic, Physics::Layers::MOVING);*/
-   
-
+        JPH::Quat::sZero(), JPH::EMotionType::Dynamic,
+       Physics::Layers::MOVING);*/
 
     JPH::ShapeRefC enemyShape = new JPH::CapsuleShape(0.5f, 1.0f);
     JPH::BodyCreationSettings enemySettings(
@@ -386,7 +392,6 @@ inline void InitScene(Scene& mainScene) {
         mainScene.Resources()->Get<Material>("./res/materials/jake.mat");
     Mesh* cubeMesh =
         mainScene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
-    
 
     SceneNode* enemy1 = mainScene.CreateNode("Enemy 1");
     enemy1->GlobalTransform().Scale() = glm::vec3(0.5f, 0.5f, 0.5f);
@@ -399,8 +404,10 @@ inline void InitScene(Scene& mainScene) {
     enemyAi1->SetAttackCooldown(1.2f);
     enemyAi1->SetRoomID(1);
 
-    SceneNode* enemyModel = mainScene.resources.Get<GltfScene>("./res/models/szkielet6.glb")->Instantiate(&mainScene, enemy1, "EnemyModel");
-    enemyModel->GlobalTransform().Scale() = glm::vec3(0.1,0.1,0.1);
+    SceneNode* enemyModel =
+        mainScene.resources.Get<GltfScene>("./res/models/szkielet6.glb")
+            ->Instantiate(&mainScene, enemy1, "EnemyModel");
+    enemyModel->GlobalTransform().Scale() = glm::vec3(0.1, 0.1, 0.1);
     enemy1->GlobalTransform().Position() = glm::vec3(10.5f, 0.0f, -5.0f);
     enemyModel->LocalTransform().Position() = glm::vec3(0);
 
@@ -420,7 +427,8 @@ inline void InitScene(Scene& mainScene) {
     // SceneNode* enemy2 = mainScene.CreateNode("Enemy 2");
     // //enemy2->GlobalTransform().Position() = glm::vec3(12.0f, 0.0f, -5.0f);
     // enemy2->GlobalTransform().Scale() = glm::vec3(0.5f, 0.5f, 0.5f);
-    // Physics::Body* enemyBody2 = enemy2->AddObject<Physics::Body>(enemySettings);
+    // Physics::Body* enemyBody2 =
+    // enemy2->AddObject<Physics::Body>(enemySettings);
     // enemyBody2->SetRestitution(0.0f);
     // auto* enemyAi2 = enemy2->AddObject<EnemyBeetroot>();
     // enemyAi2->SetSurface(surface);
@@ -429,13 +437,15 @@ inline void InitScene(Scene& mainScene) {
     // enemyAi2->SetAttackCooldown(1.2f);
     // enemyAi2->SetRoomID(1);
 
-    // SceneNode* enemyModel2 = mainScene.resources.Get<GltfScene>("./res/models/enemies/ziemniak_remake.glb")->Instantiate(&mainScene, enemy2, "EnemyModel2");
+    // SceneNode* enemyModel2 =
+    // mainScene.resources.Get<GltfScene>("./res/models/enemies/ziemniak_remake.glb")->Instantiate(&mainScene,
+    // enemy2, "EnemyModel2");
     // //enemyModel2->GlobalTransform().Scale() = glm::vec3(0.1, 0.1, 0.1);
     // auto* animComp2 = enemyModel2->GetObjectInChildren<AnimationComponent>();
     // if (animComp2) {
     //     spdlog::info(
-    //         "Found AnimationComponent in enemy model 2, animations count: {}",
-    //         animComp2->animations.size());
+    //         "Found AnimationComponent in enemy model 2, animations count:
+    //         {}", animComp2->animations.size());
     // } else {
     //     spdlog::warn("No AnimationComponent found in enemy model 2");
     // }
@@ -446,7 +456,8 @@ inline void InitScene(Scene& mainScene) {
     // SceneNode* enemy3 = mainScene.CreateNode("Enemy 3");
     // //enemy3->GlobalTransform().Position() = glm::vec3(13.5f, 0.0f, -5.0f);
     // //enemy3->GlobalTransform().Scale() = glm::vec3(0.5f, 0.5f, 0.5f);
-    // Physics::Body* enemyBody3 = enemy3->AddObject<Physics::Body>(enemySettings);
+    // Physics::Body* enemyBody3 =
+    // enemy3->AddObject<Physics::Body>(enemySettings);
     // enemyBody3->SetRestitution(0.0f);
     // auto* enemyAi3 = enemy3->AddObject<EnemyPotato>();
     // enemyAi3->SetSurface(surface);
@@ -462,11 +473,11 @@ inline void InitScene(Scene& mainScene) {
     // auto* animComp3 = enemyModel3->GetObjectInChildren<AnimationComponent>();
     // if (animComp3) {
     //     spdlog::info(
-    //         "Found AnimationComponent in enemy model 3, animations count: {}",
-    //         animComp3->animations.size());
+    //         "Found AnimationComponent in enemy model 3, animations count:
+    //         {}", animComp3->animations.size());
     // } else {
     //     spdlog::warn("No AnimationComponent found in enemy model 3");
-    // }   
+    // }
     // if (animComp3) {
     //     enemyAi3->SetAttackAnimation(animComp3);
     // }
@@ -474,7 +485,7 @@ inline void InitScene(Scene& mainScene) {
     surface->AddEnemy(enemyAi1);
     // surface->AddEnemy(enemyAi2);
     // surface->AddEnemy(enemyAi3);
-    surface->InformEnter(); 
+    surface->InformEnter();
 
 #pragma endregion
 #pragma region Camera

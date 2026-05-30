@@ -7,6 +7,7 @@
 #include "LightSystem.h"
 #include "Resources.h"
 #include "fog/Fog.h"
+#include "game_scripts/FireParticles.h"
 #include "game_scripts/PickableItemSystem.h"
 #include "ui/widgets/wheel/UiWheel.h"
 #include <game_scripts/AimCrosshair.h>
@@ -16,6 +17,7 @@
 #include <Camera.h>
 #include <ColorGrading.h>
 #include <DepthOfField.h>
+#include <Formatters.h>
 #include <Framebuffer.h>
 #include <Fxaa.h>
 #include <InputSystem.h>
@@ -35,15 +37,16 @@
 #include <TweenSystem.h>
 #include <Viewport.h>
 #include <animation/AnimationSystem.h>
-#include <game_scripts/enemies/EnemySkeleton.h>
 #include <fog/FogVolume.h>
 #include <game_scripts/CameraSettings.h>
 #include <game_scripts/PlayerController.h>
+#include <game_scripts/ThrowableObjectPool.h>
+#include <game_scripts/enemies/EnemySkeleton.h>
 #include <glm/fwd.hpp>
 #include <glm/geometric.hpp>
 #include <glm/gtc/constants.hpp>
-#include <glm/trigonometric.hpp>
 #include <glm/gtc/matrix_access.hpp>
+#include <glm/trigonometric.hpp>
 #include <physics/Body.h>
 #include <physics/DebugRenderer.h>
 #include <physics/Helpers.h>
@@ -51,8 +54,6 @@
 #include <physics/Water.h>
 #include <scatter/Spawner.h>
 #include <text/Font.h>
-#include <ui/widgets/UiCircularBar.h>
-#include <ui/widgets/wheel/UiRadialWheel.h>
 #include <ui/objects/UiCursor.h>
 #include <ui/objects/UiInteractable.h>
 #include <ui/objects/UiLayout.h>
@@ -60,8 +61,8 @@
 #include <ui/objects/UiText.h>
 #include <ui/objects/UiVisual.h>
 #include <ui/systems/UiSystem.h>
-#include <Formatters.h>
-#include <game_scripts/ThrowableObjectPool.h>
+#include <ui/widgets/UiCircularBar.h>
+#include <ui/widgets/wheel/UiRadialWheel.h>
 
 #include "Jolt/Math/Vec3.h"
 #include "text/Text3D.h"
@@ -107,7 +108,9 @@ inline void InitScene(Scene& mainScene) {
     Material* skyMat = new Material(skyProg);
     skyMat->SetValue("skyboxTexture", skyCubemap);
 
-    auto floorNode = ResourceDatabase::Global->Get<GltfScene>("./res/models/floor.glb")->Instantiate(&mainScene, mainScene.root, "Floor");
+    auto floorNode =
+        ResourceDatabase::Global->Get<GltfScene>("./res/models/floor.glb")
+            ->Instantiate(&mainScene, mainScene.root, "Floor");
     floorNode->AddObject<Skybox>(skyMat);
     MeshRenderer* floorMeshRenderer =
         floorNode->GetObjectInChildren<MeshRenderer>();
@@ -116,7 +119,8 @@ inline void InitScene(Scene& mainScene) {
             Physics::MeshShape(floorMeshRenderer->GetMesh()),
             JPH::RVec3::sZero(), JPH::Quat::sZero(), JPH::EMotionType::Static,
             Physics::Layers::NON_MOVING});
-    auto* surface = floorNode->AddObject<Surface>(floorMeshRenderer->GetMesh(), 1.0f);
+    auto* surface =
+        floorNode->AddObject<Surface>(floorMeshRenderer->GetMesh(), 1.0f);
     floorBody->SetCollisionLayerAndMask({0}, 0xFFFFFFFF);
 
 #pragma endregion
@@ -130,8 +134,10 @@ inline void InitScene(Scene& mainScene) {
 
     SceneNode* playerNode = mainScene.CreateNode("Player");
 
-    SceneNode* bimberman = ResourceDatabase::Global->Get<GltfScene>("./res/models/bimbermann_throwing.glb")->Instantiate(
-        &mainScene, mainScene.root, "Bimberman");
+    SceneNode* bimberman =
+        ResourceDatabase::Global
+            ->Get<GltfScene>("./res/models/bimbermann_throwing.glb")
+            ->Instantiate(&mainScene, mainScene.root, "Bimberman");
     bimberman->SetParent(playerNode);
 
     auto* virtualCharacter =
@@ -141,9 +147,12 @@ inline void InitScene(Scene& mainScene) {
     virtualCharacter->SetPosition(
         playerNode->GlobalTransform().Position().Value());
     virtualCharacter->SetGravityFactor(1);
-    
-    auto* aimingAid = ResourceDatabase::Global->Get<GltfScene>("./res/models/crosshair.glb")->Instantiate(&mainScene, playerNode, "Aim Reticle")->AddObject<AimCrosshair>();
-        
+
+    auto* aimingAid =
+        ResourceDatabase::Global->Get<GltfScene>("./res/models/crosshair.glb")
+            ->Instantiate(&mainScene, playerNode, "Aim Reticle")
+            ->AddObject<AimCrosshair>();
+
     auto* player = playerNode->AddObject<PlayerController>();
     // player->aim = aimingAid;
 
@@ -154,7 +163,8 @@ inline void InitScene(Scene& mainScene) {
     SceneNode* cameraNode = mainScene.CreateNode("Camera Node");
     cameraNode->AddObject<Camera>(
         Camera::Perspective(60.0f, 16.0f / 9.0f, 0.1f, 200.0f));
-    cameraNode->AddObject<CameraSettings>(playerNode->GlobalTransform().Position());
+    cameraNode->AddObject<CameraSettings>(
+        playerNode->GlobalTransform().Position());
     cameraNode->AddObject<MaskEffects>();
     auto* jfa = cameraNode->AddObject<JfaOutline>();
     jfa->outlineThickness = 4.0f;
@@ -175,7 +185,8 @@ inline void InitScene(Scene& mainScene) {
     sun->GlobalTransform().Position() = {1, 2.2f, 0};
     sun->GlobalTransform().Rotation() =
         glm::quat(glm::radians(glm::vec3(50.0f, -20.0f, 0.0f)));
-    mainScene.GetComponent<LightSystem>()->SetAmbientLight({1.0f, 1.0f, 1.0f, 0.6f});
+    mainScene.GetComponent<LightSystem>()->SetAmbientLight(
+        {1.0f, 1.0f, 1.0f, 0.6f});
 
 #pragma endregion
 #pragma Enemy
@@ -188,8 +199,8 @@ inline void InitScene(Scene& mainScene) {
     Mesh* cubeMesh =
         mainScene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
 
-	SceneNode* enemy1 = mainScene.CreateNode("Enemy 1");
-   // enemy1->GlobalTransform().Position() = glm::vec3(10.5f, 0.0f, -5.0f);
+    SceneNode* enemy1 = mainScene.CreateNode("Enemy 1");
+    // enemy1->GlobalTransform().Position() = glm::vec3(10.5f, 0.0f, -5.0f);
     enemy1->GlobalTransform().Scale() = glm::vec3(0.5f, 0.5f, 0.5f);
     enemy1->GlobalTransform().Position() = glm::vec3(15.f, 0.f, 0.f);
     Physics::Body* enemyBody1 = enemy1->AddObject<Physics::Body>(enemySettings);
@@ -201,16 +212,17 @@ inline void InitScene(Scene& mainScene) {
     enemyAi1->SetAttackCooldown(1.2f);
     enemyAi1->SetRoomID(floorNode->GetID());
 
-    
-    SceneNode* enemyModel = ResourceDatabase::Global->Get<GltfScene>("./res/models/szkielet6.glb")->Instantiate(&mainScene, mainScene.root, "EnemyModel");
+    SceneNode* enemyModel =
+        ResourceDatabase::Global->Get<GltfScene>("./res/models/szkielet6.glb")
+            ->Instantiate(&mainScene, mainScene.root, "EnemyModel");
     enemyModel->SetParent(enemy1);
-    enemyModel->GlobalTransform().Scale() = glm::vec3(0.1,0.1,0.1);
+    enemyModel->GlobalTransform().Scale() = glm::vec3(0.1, 0.1, 0.1);
     enemyModel->LocalTransform().Position() = glm::zero<glm::vec3>();
-    
+
 #pragma endregion
 #pragma region UI
 
-SceneNode* uiRoot = mainScene.CreateNode("UI");
+    SceneNode* uiRoot = mainScene.CreateNode("UI");
 
     // Move this into the wheel system
     SceneNode* uiNode = mainScene.CreateNode(uiRoot, "Ui Node");
@@ -290,5 +302,10 @@ SceneNode* uiRoot = mainScene.CreateNode("UI");
         itemNode->AddObject<WheelTag>();
     }
 #pragma endregion
+
+    // Torch fire particles
+    SceneNode* sprayNode = mainScene.CreateNode("Fire");
+    sprayNode->GlobalTransform().Position() = {0.0f, 0.0f, 0.0f};
+    sprayNode->AddObject<FireParticles>();
 }
 } // namespace TestScene
