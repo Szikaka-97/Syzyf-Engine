@@ -22,6 +22,21 @@ namespace Crafting{
 
         float progressLoss = 0.5f;
 
+        void Reset(){
+            temperature = 0.0f;
+            qualityPercent = 0.0f;
+
+            totalTimer = 0.0f;
+            goodTemperatureTimer = 0.0f;
+            coolingDelayTimer = 0.0f;
+            blowerCooldownTimer = 0.0f;
+
+            finished = false;
+            wasInPerfectRange = false;
+            wasTooHot = false;
+            lastLoggedGoodSecond = -1;
+        }
+
         void Start(){
             temperature = 0.0f;
             qualityPercent = 100.0f;
@@ -35,7 +50,6 @@ namespace Crafting{
 
             wasInPerfectRange = false;
             wasTooHot = false;
-            wasTooCold = true;
             lastLoggedGoodSecond = -1;
 
             spdlog::info(
@@ -165,7 +179,6 @@ namespace Crafting{
 
         bool wasInPerfectRange = false;
         bool wasTooHot = false;
-        bool wasTooCold = true;
         int lastLoggedGoodSecond = -1;
 
         void UpdateBlowerCooldown(float deltaTime){
@@ -285,7 +298,6 @@ namespace Crafting{
 
             wasInPerfectRange = isInPerfectRange;
             wasTooHot = isTooHot;
-            wasTooCold = isTooCold;
         }
 
         float Clamp(float value, float minValue, float maxValue) const{

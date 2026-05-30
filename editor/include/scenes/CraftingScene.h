@@ -44,8 +44,17 @@
 #include <spdlog/spdlog.h>
 
 #include <string>
+#include <vector>
 
 namespace CraftingScene{
+    struct IngredientSpawnData{
+        std::string nodeName;
+        Material* material = nullptr;
+        glm::vec3 position = glm::vec3(0.0f);
+        glm::vec3 scale = glm::vec3(1.0f);
+        Crafting::IngredientData ingredientData;
+    };
+
     inline SceneNode* CreateLocalPoint(
         Scene& scene,
         SceneNode* parent,
@@ -96,14 +105,14 @@ namespace CraftingScene{
             scene,
             machineNode,
             "BottlingCameraPoint",
-            glm::vec3(4.0f, 2.5f, 2.0f)
+            glm::vec3(0.0f, 0.5f, -5.0f)
         );
 
         CreateLocalPoint(
             scene,
             machineNode,
             "BottlingCameraTarget",
-            glm::vec3(4.0f, 1.0f, 0.0f)
+            glm::vec3(0.0f, 0.5f, 1.5f)
         );
     }
 
@@ -216,7 +225,6 @@ namespace CraftingScene{
 
         blowerInteractable->type = Crafting::CraftingInteractionType::Blower;
         blowerInteractable->interactionEnabled = false;
-        blowerInteractable->fallbackHalfExtents = glm::vec3(0.45f, 0.45f, 0.45f);
 
         spdlog::info(
             "CraftingScene: visible BlowerHitbox cube created at {} {} {}.",
@@ -289,7 +297,6 @@ namespace CraftingScene{
 
         doorInteractable->type = Crafting::CraftingInteractionType::Door;
         doorInteractable->interactionEnabled = false;
-        doorInteractable->fallbackHalfExtents = glm::vec3(0.6f, 0.7f, 0.25f);
 
         spdlog::info(
             "CraftingScene: visible DoorHitbox cube created at {} {} {}.",
@@ -299,6 +306,89 @@ namespace CraftingScene{
         );
 
         return doorHitboxNode;
+    }
+
+
+    inline SceneNode* CreateValveHitbox(Scene& scene, SceneNode* machineNode){
+        if (!machineNode){
+            return nullptr;
+        }
+
+        SceneNode* valveNode = machineNode->FindNode("Knob_One.001");
+        bool valveAttachedToMachineRoot = false;
+
+        if (!valveNode){
+            valveNode = machineNode->FindNode("Knob_One");
+        }
+
+        if (!valveNode){
+            spdlog::warn(
+                "CraftingScene: Knob_One.001 node not found. ValveHitbox will be attached to machine root fallback position."
+            );
+
+            valveNode = machineNode;
+            valveAttachedToMachineRoot = true;
+        }
+
+        SceneNode* valveHitboxNode =
+            scene.CreateNode(valveNode, "ValveHitbox");
+
+        valveHitboxNode->LocalTransform().Position() =
+            valveAttachedToMachineRoot
+                ? glm::vec3(0.0f, 0.75f, 1.5f)
+                : glm::vec3(0.0f, 0.0f, 0.0f);
+
+        valveHitboxNode->LocalTransform().Scale() =
+            glm::vec3(0.35f, 0.35f, 0.35f);
+
+        Mesh* cubeMesh =
+            scene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
+
+        Material* valveMaterial =
+            CreateColorMaterial(glm::vec4(1.0f, 0.85f, 0.15f, 0.65f));
+
+        if (cubeMesh && valveMaterial){
+            valveHitboxNode->AddObject<MeshRenderer>(
+                cubeMesh,
+                valveMaterial
+            );
+        }else{
+            spdlog::warn("CraftingScene: failed to create visible ValveHitbox cube.");
+        }
+
+        glm::vec3 valveHitboxPosition =
+            valveHitboxNode->GlobalTransform().Position().Value();
+
+        auto* valveBody = valveHitboxNode->AddObject<Physics::Body>(
+            JPH::BodyCreationSettings{
+                Physics::BoxShape(glm::vec3(0.3f, 0.3f, 0.3f)),
+                JPH::RVec3(
+                    valveHitboxPosition.x,
+                    valveHitboxPosition.y,
+                    valveHitboxPosition.z
+                ),
+                JPH::Quat::sIdentity(),
+                JPH::EMotionType::Static,
+                Physics::Layers::NON_MOVING
+            }
+        );
+
+        valveBody->SetPosition(valveHitboxPosition);
+
+        auto* valveInteractable =
+            valveHitboxNode->AddObject<Crafting::CraftingInteractable>();
+
+        valveInteractable->type = Crafting::CraftingInteractionType::Valve;
+        valveInteractable->interactionEnabled = false;
+
+        spdlog::info(
+            "CraftingScene: visible ValveHitbox cube created at {} {} {}.",
+            valveHitboxPosition.x,
+            valveHitboxPosition.y,
+            valveHitboxPosition.z
+        );
+
+        return valveHitboxNode;
     }
 
     inline Material* CreateColorMaterial(const glm::vec4& color){
@@ -313,6 +403,165 @@ namespace CraftingScene{
 
         return material;
     }
+
+
+    inline SceneNode* CreateBottlingDebugCube(
+        Scene& scene,
+        SceneNode* parent,
+        const std::string& nodeName,
+        Mesh* mesh,
+        Material* material,
+        const glm::vec3& localPosition,
+        const glm::vec3& localScale
+    ){
+        SceneNode* node = scene.CreateNode(parent,nodeName);
+
+        node->LocalTransform().Position() = localPosition;
+        node->LocalTransform().Scale() = localScale;
+
+        if (mesh && material){
+            node->AddObject<MeshRenderer>(mesh,material);
+        }
+
+        return node;
+    }
+
+inline void CreateBottlingStageNodes(Scene& scene, SceneNode* machineNode){
+    if (!machineNode){
+        return;
+    }
+
+    const glm::vec3 bottleStartPoint =
+        glm::vec3(-2.624f, -0.113f, -3.330f);
+
+    const glm::vec3 bottleFillPoint =
+        glm::vec3(-4.009f, -0.103f, -3.357f);
+
+    const glm::vec3 bottleEndPoint =
+        glm::vec3(-5.227f, -0.075f, -3.330f);
+
+    const glm::vec3 lanePosition =
+        glm::vec3(-4.000f, -0.213f, -3.330f);
+
+    const glm::vec3 laneScale =
+        glm::vec3(2.850f, 0.080f, 0.450f);
+
+    const glm::vec3 fillZonePosition =
+        glm::vec3(-4.009f, -0.103f, -3.357f);
+
+    const glm::vec3 fillZoneScale =
+        glm::vec3(0.340f, 0.550f, 0.340f);
+
+    const glm::vec3 valveGuidePosition =
+        glm::vec3(-4.000f, 0.189f, -3.330f);
+
+    const glm::vec3 valveGuideScale =
+        glm::vec3(0.080f, 0.420f, 0.080f);
+
+    const glm::vec3 bottleScale =
+        glm::vec3(0.180f, 0.450f, 0.180f);
+
+    CreateLocalPoint(
+        scene,
+        machineNode,
+        "BottleStartPoint",
+        bottleStartPoint
+    );
+
+    CreateLocalPoint(
+        scene,
+        machineNode,
+        "BottleFillPoint",
+        bottleFillPoint
+    );
+
+    CreateLocalPoint(
+        scene,
+        machineNode,
+        "BottleEndPoint",
+        bottleEndPoint
+    );
+
+    Mesh* cubeMesh =
+        scene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
+
+    Material* bottleMaterial =
+        CreateColorMaterial(glm::vec4(0.35f, 0.75f, 1.0f, 0.9f));
+
+    Material* fillZoneMaterial =
+        CreateColorMaterial(glm::vec4(0.1f, 1.0f, 0.25f, 0.45f));
+
+    Material* beltMaterial =
+        CreateColorMaterial(glm::vec4(0.6f, 0.6f, 0.6f, 0.35f));
+
+    Material* liquidMaterial =
+        CreateColorMaterial(glm::vec4(0.9f, 0.25f, 0.15f, 0.95f));
+
+    Material* valveGuideMaterial =
+        CreateColorMaterial(glm::vec4(1.0f, 0.85f, 0.15f, 0.45f));
+
+    SceneNode* bottlesRoot =
+        scene.CreateNode(machineNode,"BottlingBottlesRoot");
+
+    bottlesRoot->LocalTransform().Position() = glm::vec3(0.0f);
+
+    CreateBottlingDebugCube(
+        scene,
+        bottlesRoot,
+        "BottlingLaneDebug",
+        cubeMesh,
+        beltMaterial,
+        lanePosition,
+        laneScale
+    );
+
+    CreateBottlingDebugCube(
+        scene,
+        bottlesRoot,
+        "BottleFillZoneDebug",
+        cubeMesh,
+        fillZoneMaterial,
+        fillZonePosition,
+        fillZoneScale
+    );
+
+    CreateBottlingDebugCube(
+        scene,
+        bottlesRoot,
+        "ValveToBottleGuideDebug",
+        cubeMesh,
+        valveGuideMaterial,
+        valveGuidePosition,
+        valveGuideScale
+    );
+
+    for (int i = 0; i < 4; ++i){
+        SceneNode* bottleNode = CreateBottlingDebugCube(
+            scene,
+            bottlesRoot,
+            "BottlingBottle_0" + std::to_string(i + 1),
+            cubeMesh,
+            bottleMaterial,
+            bottleStartPoint,
+            bottleScale
+        );
+
+        SceneNode* liquidNode = CreateBottlingDebugCube(
+            scene,
+            bottleNode,
+            "BottlingBottle_0" + std::to_string(i + 1) + "_Liquid",
+            cubeMesh,
+            liquidMaterial,
+            glm::vec3(0.0f, -0.08f, 0.0f),
+            glm::vec3(0.110f, 0.230f, 0.110f)
+        );
+
+        liquidNode->SetEnabled(false);
+
+    }
+    bottlesRoot->SetEnabled(false);
+
+}
 
     inline Crafting::IngredientData CreateMainEffectIngredient(
         Crafting::IngredientType ingredientType,
@@ -379,7 +628,6 @@ namespace CraftingScene{
         auto* interactable = node->AddObject<Crafting::CraftingInteractable>();
         interactable->type = Crafting::CraftingInteractionType::Ingredient;
         interactable->interactionEnabled = true;
-        interactable->fallbackHalfExtents = scale;
 
         auto* body = node->AddObject<Physics::Body>(
             JPH::BodyCreationSettings{
@@ -538,6 +786,8 @@ namespace CraftingScene{
             CreateStationHitbox(scene,bimberMachineNode);
             CreateBlowerHitbox(scene,bimberMachineNode);
             CreateDoorHitbox(scene,bimberMachineNode);
+            CreateValveHitbox(scene,bimberMachineNode);
+            CreateBottlingStageNodes(scene,bimberMachineNode);
 
             SceneNode* cauldronNode = bimberMachineNode->FindNode("Cauldron");
 
@@ -629,7 +879,6 @@ namespace CraftingScene{
 
                 lidInteractable->type = Crafting::CraftingInteractionType::Lid;
                 lidInteractable->interactionEnabled = false;
-                lidInteractable->fallbackHalfExtents = glm::vec3(0.75f, 0.4f, 0.75f);
 
                 spdlog::info(
                     "CraftingScene: LidHitbox created at {} {} {}.",
@@ -656,86 +905,84 @@ namespace CraftingScene{
 
         Mesh* cubeMesh = scene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
 
-        Material* burnMaterial =
-            CreateColorMaterial(glm::vec4(1.0f, 0.1f, 0.1f, 1.0f));
+        const glm::vec4 burnColor = glm::vec4(1.0f, 0.1f, 0.1f, 1.0f);
+        const glm::vec4 lightningColor = glm::vec4(1.0f, 1.0f, 0.1f, 1.0f);
+        const glm::vec4 radiusColor = glm::vec4(0.1f, 0.8f, 0.2f, 1.0f);
+        const glm::vec4 durationColor = glm::vec4(0.1f, 0.3f, 1.0f, 1.0f);
 
-        Material* lightningMaterial =
-            CreateColorMaterial(glm::vec4(1.0f, 1.0f, 0.1f, 1.0f));
-
-        Material* radiusMaterial =
-            CreateColorMaterial(glm::vec4(0.1f, 0.8f, 0.2f, 1.0f));
-
-        Material* durationMaterial =
-            CreateColorMaterial(glm::vec4(0.1f, 0.3f, 1.0f, 1.0f));
+        Material* burnMaterial = CreateColorMaterial(burnColor);
+        Material* lightningMaterial = CreateColorMaterial(lightningColor);
+        Material* radiusMaterial = CreateColorMaterial(radiusColor);
+        Material* durationMaterial = CreateColorMaterial(durationColor);
 
         SceneNode* ingredientsRootNode =
             scene.CreateNode(craftingRootNode, "Crafting Ingredients");
 
-        CreateDraggableCube(
-            scene,
-            ingredientsRootNode,
-            "Burn Ingredient",
-            cubeMesh,
-            burnMaterial,
-            glm::vec3(-3.0f, 2.0f, 3.0f),
-            glm::vec3(0.35f, 0.35f, 0.35f),
-            CreateMainEffectIngredient(
-                Crafting::IngredientType::Sugar,
-                "Burn",
-                Crafting::EffectId::Burn,
-                glm::vec4(1.0f, 0.1f, 0.1f, 1.0f)
-            )
-        );
+        const std::vector<IngredientSpawnData> ingredientSpawns = {
+            {
+                "Burn Ingredient",
+                burnMaterial,
+                glm::vec3(-3.0f, 2.0f, 3.0f),
+                glm::vec3(0.35f, 0.35f, 0.35f),
+                CreateMainEffectIngredient(
+                    Crafting::IngredientType::Sugar,
+                    "Burn",
+                    Crafting::EffectId::Burn,
+                    burnColor
+                )
+            },
+            {
+                "Lightning Ingredient",
+                lightningMaterial,
+                glm::vec3(-3.0f, 2.0f, 2.2f),
+                glm::vec3(0.35f, 0.35f, 0.35f),
+                CreateMainEffectIngredient(
+                    Crafting::IngredientType::Water,
+                    "Lightning",
+                    Crafting::EffectId::Lightning,
+                    lightningColor
+                )
+            },
+            {
+                "Radius Modifier",
+                radiusMaterial,
+                glm::vec3(-3.0f, 2.0f, 1.4f),
+                glm::vec3(0.35f, 0.35f, 0.35f),
+                CreateModifierIngredient(
+                    Crafting::IngredientType::Water,
+                    "Radius",
+                    Crafting::ModifierId::Radius,
+                    1.0f,
+                    radiusColor
+                )
+            },
+            {
+                "Duration Modifier",
+                durationMaterial,
+                glm::vec3(-3.0f, 2.0f, 0.6f),
+                glm::vec3(0.35f, 0.35f, 0.35f),
+                CreateModifierIngredient(
+                    Crafting::IngredientType::Sugar,
+                    "Duration",
+                    Crafting::ModifierId::Duration,
+                    1.0f,
+                    durationColor
+                )
+            }
+        };
 
-        CreateDraggableCube(
-            scene,
-            ingredientsRootNode,
-            "Lightning Ingredient",
-            cubeMesh,
-            lightningMaterial,
-            glm::vec3(-3.0f, 2.0f, 2.2f),
-            glm::vec3(0.35f, 0.35f, 0.35f),
-            CreateMainEffectIngredient(
-                Crafting::IngredientType::Water,
-                "Lightning",
-                Crafting::EffectId::Lightning,
-                glm::vec4(1.0f, 1.0f, 0.1f, 1.0f)
-            )
-        );
-
-        CreateDraggableCube(
-            scene,
-            ingredientsRootNode,
-            "Radius Modifier",
-            cubeMesh,
-            radiusMaterial,
-            glm::vec3(-3.0f, 2.0f, 1.4f),
-            glm::vec3(0.35f, 0.35f, 0.35f),
-            CreateModifierIngredient(
-                Crafting::IngredientType::Water,
-                "Radius",
-                Crafting::ModifierId::Radius,
-                1.0f,
-                glm::vec4(0.1f, 0.8f, 0.2f, 1.0f)
-            )
-        );
-
-        CreateDraggableCube(
-            scene,
-            ingredientsRootNode,
-            "Duration Modifier",
-            cubeMesh,
-            durationMaterial,
-            glm::vec3(-3.0f, 2.0f, 0.6f),
-            glm::vec3(0.35f, 0.35f, 0.35f),
-            CreateModifierIngredient(
-                Crafting::IngredientType::Sugar,
-                "Duration",
-                Crafting::ModifierId::Duration,
-                1.0f,
-                glm::vec4(0.1f, 0.3f, 1.0f, 1.0f)
-            )
-        );
+        for (const IngredientSpawnData& spawn : ingredientSpawns){
+            CreateDraggableCube(
+                scene,
+                ingredientsRootNode,
+                spawn.nodeName,
+                cubeMesh,
+                spawn.material,
+                spawn.position,
+                spawn.scale,
+                spawn.ingredientData
+            );
+        }
 
         ingredientsRootNode->SetEnabled(false);
 

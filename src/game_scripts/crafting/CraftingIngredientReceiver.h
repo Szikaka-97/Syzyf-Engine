@@ -5,6 +5,7 @@
 
 #include "DraggableCraftingItem.h"
 #include "Cauldron.h"
+#include "CraftingNodeUtils.h"
 
 #include <algorithm>
 #include <cmath>
@@ -38,7 +39,7 @@ namespace Crafting{
           }
 
         void OnCollisionEnter(SceneNode* otherNode) override{
-            auto* item = FindDraggableOnNode(otherNode);
+            auto* item = FindObjectOnNodeOrParents<DraggableCraftingItem>(otherNode);
 
             if (!item){return;}
 
@@ -46,7 +47,7 @@ namespace Crafting{
                 return;
             }
 
-            auto* cauldron = FindCauldronOnNodeOrParents(GetNode());
+            auto* cauldron = FindObjectOnNodeOrParents<Cauldron>(GetNode());
 
             if (!cauldron){
                 spdlog::warn("CraftingIngredientReceiver: Cauldron component missing.");
@@ -97,32 +98,5 @@ namespace Crafting{
             ) != insertedItemNodes.end();
         }
 
-        DraggableCraftingItem* FindDraggableOnNode(SceneNode* node){
-            SceneNode* current = node;
-
-            while (current){
-                if (auto* item = current->GetObject<DraggableCraftingItem>()){
-                    return item;
-                }
-
-                current = current->GetParent();
-            }
-
-            return nullptr;
-        }
-
-        Cauldron* FindCauldronOnNodeOrParents(SceneNode* node){
-            SceneNode* current = node;
-
-            while (current){
-                if (auto* cauldron = current->GetObject<Cauldron>()){
-                    return cauldron;
-                }
-
-                current = current->GetParent();
-            }
-
-            return nullptr;
-        }
     };
 }

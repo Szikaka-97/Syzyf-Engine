@@ -4,7 +4,6 @@
 
 #include <cstdint>
 
-#include <glm/glm.hpp>
 
 namespace Crafting{
     enum class CraftingInteractionType : std::uint32_t{
@@ -12,7 +11,8 @@ namespace Crafting{
         Ingredient = 1 << 0,
         Lid        = 1 << 1,
         Blower     = 1 << 2,
-        Door       = 1 << 3
+        Door       = 1 << 3,
+        Valve      = 1 << 4
     };
 
     using CraftingInteractionMask = std::uint32_t;
@@ -46,7 +46,6 @@ namespace Crafting{
     public:
         CraftingInteractionType type = CraftingInteractionType::None;
         bool interactionEnabled = true;
-        glm::vec3 fallbackHalfExtents = glm::vec3(0.35f, 0.35f, 0.35f);
 
         bool IsInteractionEnabled() const{
             return interactionEnabled;

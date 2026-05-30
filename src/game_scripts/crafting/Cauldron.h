@@ -3,6 +3,7 @@
 #include "GameObject.h"
 
 #include "game_scripts/crafting/CraftingTypes.h"
+#include "game_scripts/crafting/CraftingRecipeChecker.h"
 
 #include <glm/glm.hpp>
 #include <spdlog/spdlog.h>
@@ -49,7 +50,15 @@ namespace Crafting{
           }
 
           bool CanConfirm() const{
-                return CountMainEffectIngredients() > 0;
+                return CraftingRecipeChecker::HasValidRecipe(ingredients);
+          }
+
+          CraftingRecipeCheckResult GetRecipeCheckResult() const{
+                return CraftingRecipeChecker::Check(ingredients);
+          }
+
+          std::string GetRecipeName() const{
+                return CraftingRecipeChecker::GetRecipeName(ingredients);
           }
 
           bool HasAnyIngredient() const{

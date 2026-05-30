@@ -138,6 +138,20 @@ namespace Crafting{
         return startPosition;
       }
 
+      void ResetForNewSession()
+      {
+        isDragged = false;
+        motionMode = MotionMode::None;
+
+        if (GetNode())
+        {
+          GetNode()->SetEnabled(true);
+          SetWorldPosition(startPosition);
+        }
+
+        spdlog::info("Reset draggable ingredient: {}.", data.displayName);
+      }
+
     private:
       enum class MotionMode
       {

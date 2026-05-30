@@ -10,6 +10,7 @@
 #include "game_scripts/crafting/DraggableCraftingItem.h"
 #include "game_scripts/crafting/CraftingIngredientReceiver.h"
 #include "game_scripts/crafting/CraftingStation.h"
+#include "game_scripts/crafting/CraftingNodeUtils.h"
 
 #include <physics/System.h>
 
@@ -22,8 +23,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <spdlog/spdlog.h>
 
-#include <algorithm>
-#include <limits>
 #include <vector>
 
 namespace Crafting{
@@ -38,7 +37,7 @@ namespace Crafting{
 
         void Awake(){
             spdlog::info("CraftingDragInteractor ready.");
-            spdlog::info("CraftingDragInteractor uses CraftingInteractable mask filtering.");
+            spdlog::info("CraftingDragInteractor uses physics raycast only.");
         }
 
         void Update(){
@@ -119,7 +118,6 @@ namespace Crafting{
             CraftingInteractionMask activeMask = station->GetActiveInteractionMask();
 
             if (activeMask == ToMask(CraftingInteractionType::None)){
-                spdlog::info("Crafting interaction: active mask is empty.");
                 return;
             }
 
@@ -133,15 +131,14 @@ namespace Crafting{
             glm::vec3 rayOrigin;
             glm::vec3 rayDirection;
 
-            if (!BuildMouseRay(camera,rayOrigin,rayDirection)){
+            if (!BuildMouseRay(camera, rayOrigin, rayDirection)){
                 spdlog::warn("CraftingDragInteractor: failed to build mouse ray.");
                 return;
             }
 
             InteractableHit hit;
 
-            if (!RaycastInteractable(rayOrigin,rayDirection,activeMask,hit)){
-                spdlog::info("Crafting interaction: no interactable hit for current mask.");
+            if (!RaycastInteractablePhysics(rayOrigin, rayDirection, activeMask, hit)){
                 return;
             }
 
@@ -166,6 +163,10 @@ namespace Crafting{
                     station->OnDoorClicked();
                     break;
 
+                case CraftingInteractionType::Valve:
+                    station->OnValveClicked();
+                    break;
+
                 case CraftingInteractionType::None:
                 default:
                     break;
@@ -173,7 +174,7 @@ namespace Crafting{
         }
 
         void TryBeginDragFromHit(const InteractableHit& hit){
-            DraggableCraftingItem* item = FindDraggableOnNode(hit.node);
+            DraggableCraftingItem* item = FindObjectOnNodeOrParents<DraggableCraftingItem>(hit.node);
 
             if (!item){
                 spdlog::warn("Crafting drag: Ingredient interactable has no DraggableCraftingItem.");
@@ -211,13 +212,13 @@ namespace Crafting{
             glm::vec3 rayOrigin;
             glm::vec3 rayDirection;
 
-            if (!BuildMouseRay(camera,rayOrigin,rayDirection)){
+            if (!BuildMouseRay(camera, rayOrigin, rayDirection)){
                 return;
             }
 
             glm::vec3 pointOnPlane;
 
-            if (!RaycastToHorizontalPlane(rayOrigin,rayDirection,dragPlaneY,pointOnPlane)){
+            if (!RaycastToHorizontalPlane(rayOrigin, rayDirection, dragPlaneY, pointOnPlane)){
                 return;
             }
 
@@ -298,19 +299,6 @@ namespace Crafting{
             return nullptr;
         }
 
-        bool RaycastInteractable(
-            const glm::vec3& origin,
-            const glm::vec3& direction,
-            CraftingInteractionMask activeMask,
-            InteractableHit& outHit
-        ){
-            if (RaycastInteractablePhysics(origin,direction,activeMask,outHit)){
-                return true;
-            }
-
-            return RaycastInteractableFallbackAabb(origin,direction,activeMask,outHit);
-        }
-
         bool RaycastInteractablePhysics(
             const glm::vec3& origin,
             const glm::vec3& direction,
@@ -336,11 +324,11 @@ namespace Crafting{
                 );
 
             if (!hit.hasHit){
-                spdlog::info("Crafting interaction: physics interactable raycast missed.");
                 return false;
             }
 
-            CraftingInteractable* interactable = FindInteractableOnNode(hit.node,activeMask);
+            CraftingInteractable* interactable =
+                FindInteractableOnNode(hit.node, activeMask);
 
             if (!interactable){
                 spdlog::warn("Crafting interaction: physics hit has no matching CraftingInteractable.");
@@ -351,116 +339,6 @@ namespace Crafting{
             outHit.node = hit.node;
             outHit.position = hit.position;
 
-            spdlog::info("Crafting interaction: physics interactable raycast hit.");
-            return true;
-        }
-
-        bool RaycastInteractableFallbackAabb(
-            const glm::vec3& origin,
-            const glm::vec3& direction,
-            CraftingInteractionMask activeMask,
-            InteractableHit& outHit
-        ){
-            std::vector<CraftingInteractable*> interactables =
-                GetScene()->FindObjectsOfType<CraftingInteractable>();
-
-            float bestDistance = std::numeric_limits<float>::max();
-            CraftingInteractable* bestInteractable = nullptr;
-            SceneNode* bestNode = nullptr;
-            glm::vec3 bestPosition = glm::vec3(0.0f);
-
-            for (auto* interactable : interactables){
-                if (!interactable || !interactable->MatchesMask(activeMask)){
-                    continue;
-                }
-
-                SceneNode* node = interactable->GetNode();
-
-                if (!node || !node->IsEnabled()){
-                    continue;
-                }
-
-                glm::vec3 center =
-                    node->GlobalTransform().Position().Value();
-
-                glm::vec3 halfExtents = interactable->fallbackHalfExtents;
-
-                float distance = 0.0f;
-
-                if (!RayIntersectsAabb(
-                    origin,
-                    direction,
-                    center - halfExtents,
-                    center + halfExtents,
-                    interactionDistance,
-                    distance
-                )){
-                    continue;
-                }
-
-                if (distance < bestDistance){
-                    bestDistance = distance;
-                    bestInteractable = interactable;
-                    bestNode = node;
-                    bestPosition = origin + direction * distance;
-                }
-            }
-
-            if (!bestInteractable){
-                spdlog::info("Crafting interaction: fallback interactable AABB missed.");
-                return false;
-            }
-
-            outHit.interactable = bestInteractable;
-            outHit.node = bestNode;
-            outHit.position = bestPosition;
-
-            spdlog::info("Crafting interaction: fallback interactable AABB hit.");
-            return true;
-        }
-
-        bool RayIntersectsAabb(
-            const glm::vec3& rayOrigin,
-            const glm::vec3& rayDirection,
-            const glm::vec3& boxMin,
-            const glm::vec3& boxMax,
-            float maxDistance,
-            float& outDistance
-        ){
-            float tMin = 0.0f;
-            float tMax = maxDistance;
-
-            for (int axis = 0; axis < 3; ++axis){
-                float originValue = rayOrigin[axis];
-                float directionValue = rayDirection[axis];
-                float minValue = boxMin[axis];
-                float maxValue = boxMax[axis];
-
-                if (glm::abs(directionValue) < 0.0001f){
-                    if (originValue < minValue || originValue > maxValue){
-                        return false;
-                    }
-
-                    continue;
-                }
-
-                float inverseDirection = 1.0f / directionValue;
-                float t1 = (minValue - originValue) * inverseDirection;
-                float t2 = (maxValue - originValue) * inverseDirection;
-
-                if (t1 > t2){
-                    std::swap(t1,t2);
-                }
-
-                tMin = std::max(tMin,t1);
-                tMax = std::min(tMax,t2);
-
-                if (tMin > tMax){
-                    return false;
-                }
-            }
-
-            outDistance = tMin;
             return true;
         }
 
@@ -475,20 +353,6 @@ namespace Crafting{
                     if (interactable->MatchesMask(activeMask)){
                         return interactable;
                     }
-                }
-
-                current = current->GetParent();
-            }
-
-            return nullptr;
-        }
-
-        DraggableCraftingItem* FindDraggableOnNode(SceneNode* node){
-            SceneNode* current = node;
-
-            while (current){
-                if (auto* item = current->GetObject<DraggableCraftingItem>()){
-                    return item;
                 }
 
                 current = current->GetParent();
@@ -516,7 +380,7 @@ namespace Crafting{
             float ndcX = (2.0f * mousePosition.x) / viewportSize.x - 1.0f;
             float ndcY = 1.0f - (2.0f * mousePosition.y) / viewportSize.y;
 
-            glm::vec4 clipSpacePosition = glm::vec4(ndcX,ndcY,-1.0f,1.0f);
+            glm::vec4 clipSpacePosition = glm::vec4(ndcX, ndcY, -1.0f, 1.0f);
 
             glm::vec4 viewSpacePosition =
                 glm::inverse(camera->ProjectionMatrix()) * clipSpacePosition;
@@ -583,7 +447,8 @@ namespace Crafting{
                 }
             }
 
-            std::vector<Camera*> cameras = GetScene()->FindObjectsOfType<Camera>();
+            std::vector<Camera*> cameras =
+                GetScene()->FindObjectsOfType<Camera>();
 
             if (cameras.empty()){
                 return nullptr;
