@@ -405,6 +405,15 @@ void PlayerController::Update() {
 	this->torso->GlobalTransform().Rotation() *= glm::angleAxis(glm::sin(Time::Current() * this->woblinessFrequency) * (0.1f + this->wobliness * 0.3f), this->torso->GlobalTransform().Forward());
 }
 
+void PlayerController::OnEnable() {
+	PlayerController::instance = this;
+}
+void PlayerController::OnDisable() {
+	if (PlayerController::instance == this) {
+		PlayerController::instance = nullptr;
+	}
+}
+	
 void PlayerController::TakeDamage(float damage) {
 	this->health -= damage;
 
