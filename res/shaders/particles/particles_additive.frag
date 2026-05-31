@@ -1,13 +1,13 @@
 #version 460
 
-#pragma transparent
+#pragma additive
 
 in VS_OUT {
-	vec3 worldPos;
-	vec3 viewPos;
-	vec3 normal;
-	vec3 tangent;
-	vec2 texcoords;
+    vec3 worldPos;
+    vec3 viewPos;
+    vec3 normal;
+    vec3 tangent;
+    vec2 texcoords;
     float alpha;
     float lifetime;
 } ps_in;
@@ -18,7 +18,6 @@ in VS_OUT {
 #define SHADING_LAMBERT
 
 #include "shared/shading.h"
-
 #include "shared/light.h"
 
 uniform sampler2D colorTex;
@@ -42,19 +41,20 @@ float LinearizeDepth(float depth) {
 }
 
 void main() {
-	vec4 color = texture(colorTex, ps_in.texcoords) * color;
+    vec4 baseColor = texture(colorTex, ps_in.texcoords) * color;
+    
     if (useColorRamp > 0) {
-        vec4 colorRamp = texture(colorRamp, vec2(ps_in.lifetime, 0.0));
-        color.rgb *= colorRamp.rgb * colorIntensity;
+        vec4 rampColor = texture(colorRamp, vec2(ps_in.lifetime, 0.0));
+        baseColor.rgb *= rampColor.rgb * colorIntensity;
     }
 
-    float alpha = color.a * ps_in.alpha;
+    float finalAlpha = baseColor.a * ps_in.alpha;
 
     // Doesn't work well with large quads in the vertex shader
     //  if the performance is bad for smaller particles try moving this there again
     if (proximityFadeMode > 0) {
         float distanceToCamera = length(ps_in.viewPos);
-        alpha *= smoothstep(proximityFadeMin, proximityFadeMax, distanceToCamera);
+        finalAlpha *= smoothstep(proximityFadeMin, proximityFadeMax, distanceToCamera);
     }
 
     if (enableDepthFade > 0) {
@@ -68,8 +68,8 @@ void main() {
         float distanceToScene = sceneDepth - particleDepth;
 
         float depthFade = clamp(distanceToScene / depthFadeDistance, 0.0, 1.0);
-        alpha *= depthFade;
+        finalAlpha *= depthFade;
     }
 
-    FragColor = vec4(color.rgb, alpha);
+    FragColor = vec4(baseColor.rgb * finalAlpha, finalAlpha);
 }

@@ -55,6 +55,10 @@ void UiTextRenderSystem::OnPreRender() {
         int startingChar = 0;
 
         for (char c : text->text) {
+            if (c == '\0') {
+                break;
+            }
+
             if (c == '\n') {
                 lineLenghts.push_back({
                     xOffset,
@@ -71,6 +75,10 @@ void UiTextRenderSystem::OnPreRender() {
                 charsInCurrentLine = 0;
             }
             else {
+                if (font->glyphs.find(static_cast<uint32_t>(c)) == font->glyphs.end()) {
+                    continue;
+                }
+
                 charsInCurrentLine++;
                 
                 if (font->glyphs.find(c) == font->glyphs.end()) continue;
@@ -119,13 +127,19 @@ void UiTextRenderSystem::OnPreRender() {
             for (int i = 0; i < line.numChars; i++) {
                 char c = text->text[startingChar + i];
 
+                if (c == '\0') {
+                    break;
+                }
+
                 if (c == '\n') {
                     continue;
                 }
 
                 auto it = font->glyphs.find(static_cast<uint32_t>(c));
                 if (it == font->glyphs.end()) {
-                    spdlog::warn("UiTextRenderSystem::OnPreRender: Failed to find the required glyph in the atlas: '{}' ({:x})", c, (int) c);
+                    if (c > 31 && c != 127) {
+                        spdlog::warn("UiTextRenderSystem::OnPreRender: Failed to find the required glyph in the atlas: '{}' ({:x})", c, (int) c);
+                    }
                     continue;
                 }
 
