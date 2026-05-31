@@ -69,21 +69,21 @@ void UiTextRenderSystem::OnPreRender() {
                     longestLine = xOffset;
                 }
 
-                startingChar += charsInCurrentLine;
+                startingChar += charsInCurrentLine + 1;
 
                 xOffset = 0.0f;
                 charsInCurrentLine = 0;
             }
             else {
-                if (font->glyphs.find(static_cast<uint32_t>(c)) == font->glyphs.end()) {
+                auto glyphIt = font->glyphs.find(static_cast<uint32_t>(c));
+
+                if (glyphIt == font->glyphs.end()) {
                     continue;
                 }
 
                 charsInCurrentLine++;
-                
-                if (font->glyphs.find(c) == font->glyphs.end()) continue;
 
-                const Glyph& glyph = font->glyphs[c];
+                const Glyph& glyph = glyphIt->second;
 
                 if (c == ' ' && text->maxWidth.has_value()) {
                     float scaledMaxWidth = text->maxWidth.value() * scaleFactor;
@@ -95,10 +95,20 @@ void UiTextRenderSystem::OnPreRender() {
                             xOffset,
                             charsInCurrentLine
                         });
+
+                        if (xOffset > longestLine) {
+                            longestLine = xOffset;
+                        }
+
+                        startingChar += charsInCurrentLine;
+                        xOffset = 0.0f;
+                        charsInCurrentLine = 0;
+
+                        continue;
                     }
                 }
 
-                xOffset += glyph.advance * scale;
+                xOffset += static_cast<float>(glyph.advance) * scale;
             }
         }
 
@@ -125,6 +135,10 @@ void UiTextRenderSystem::OnPreRender() {
             }
 
             for (int i = 0; i < line.numChars; i++) {
+                if (startingChar + i >= static_cast<int>(text->text.size())) {
+                    break;
+                }
+
                 char c = text->text[startingChar + i];
 
                 if (c == '\0') {
