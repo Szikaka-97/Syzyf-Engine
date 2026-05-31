@@ -22,6 +22,9 @@ public:
 	static std::unordered_map<std::string, T>& GetRegistry();
 
 	template<typename T>
+	static bool HasKey(const std::string& key);
+	
+	template<typename T>
 	static T Get(const std::string& key);
 
 	template<typename T>
@@ -37,6 +40,11 @@ template<typename T>
 std::unordered_map<std::string, T>& PersistentData::GetRegistry() {
 	static PersistentRegistry<T> registry;
 	return registry.map;
+}
+
+template<typename T>
+bool PersistentData::HasKey(const std::string &key) {
+	return GetRegistry<T>().contains(key);
 }
 
 template<typename T>
