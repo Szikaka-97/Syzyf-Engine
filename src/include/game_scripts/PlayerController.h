@@ -68,6 +68,8 @@ public:
 
 	void Awake();
 	void Update();
+	void OnEnable();
+	void OnDisable();
 
 	void TakeDamage(float damage);
 
