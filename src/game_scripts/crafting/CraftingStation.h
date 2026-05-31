@@ -960,7 +960,7 @@ namespace Crafting{
                     }
 
                     if (auto* cameraSettings = cameraNode->GetObject<CameraSettings>()){
-                        cameraSettings->enabled = false;
+                        cameraSettings->SetEnabled(false);
                     }
 
                     ResetCraftingSession();
@@ -1018,7 +1018,7 @@ namespace Crafting{
                     SetIngredientsEnabled(false);
 
                     if (auto* cameraSettings = cameraNode->GetObject<CameraSettings>()){
-                        cameraSettings->enabled = true;
+                        cameraSettings->SetEnabled(true);
                     }
 
                     isActive = false;
