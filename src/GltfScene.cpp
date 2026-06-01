@@ -369,7 +369,9 @@ SceneNode* GltfScene::CreateNode(
       const float defaultQuadratic = 0.032f;
       const float defaultRange = 20.0f;
       const float defaultOuterConeAngle = 45.0f;
-      const float candelasToWatts = 54.35f;
+      // Multiplied by 100 to match how the scene looks in blender,
+      //    not necessarily accurate
+      const float candelasToWatts = 5435.0f;
 
       switch (gltfLight.type) {
           case fastgltf::LightType::Directional: {
