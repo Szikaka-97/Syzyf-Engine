@@ -371,8 +371,8 @@ void LightSystem::OnPostRender() {
 
 	int lightIndex = 0;
 	for (const auto& l : IterateObjects()) {
-		if (lightIndex >= MAX_NUM_LIGHTS) {
-			break;
+		if (!l->IsEnabled()) {
+			continue;
 		}
 
 		if (l->IsShadowCasting()) {
@@ -388,10 +388,15 @@ void LightSystem::OnPostRender() {
 		}
 	}
 
-	ShadowMapRegion* rects = (ShadowMapRegion*) alloca(sizeof(ShadowMapRegion) * shadowmapTexturesCount);
+	ShadowMapRegion* rects = nullptr;
+	int sizeDivisor = 0;
+
+	if (shadowmapTexturesCount > 0) {
+		rects = (ShadowMapRegion*) alloca(sizeof(ShadowMapRegion) * shadowmapTexturesCount);
+	}
 
 	int shadowMapIndex = 0;
-	int sizeDivisor = 1 << (int) (
+	sizeDivisor = 1 << (int) (
 		std::ceil(std::log2(std::sqrt(shadowmapTexturesCount)))
 	);
 
@@ -514,6 +519,9 @@ void LightSystem::OnPostRender() {
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+	CalculateLightClusters();
+	CullLights();
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, this->lightsBuffer);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, this->lightIndexList);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, this->lightGrid);
 }

@@ -47,22 +47,25 @@ vec3 shade(in Material mat, in vec3 worldPos, in vec3 normal, in vec3 tangent) {
 #endif
 	const vec3 viewPos = (Global_ViewMatrix * vec4(worldPos, 1.0)).xyz;
 
-	const uint zTile = uint((log(abs(viewPos.z) / Global_CameraNearPlane) * Light_LightGridSize.z) / log(Global_CameraFarPlane / Global_CameraNearPlane));
-	const vec2 tileSize = Global_Resolution.xy / Light_LightGridSize.xy;
-
-	const ivec3 tile = ivec3(gl_FragCoord.xy / tileSize, zTile);
-
-	const uint clusterIndex = uint(dot(tile, vec3(1, Light_LightGridSize.x, Light_LightGridSize.x * Light_LightGridSize.y)));
-
-	const uvec2 lightData = Light_LightGrid[clusterIndex];
-	
-	const uint lightStartIndex = lightData.x;
-	const uint lightCount = lightData.y;
+	//	const uint zTile = uint((log(abs(viewPos.z) / Global_CameraNearPlane) * Light_LightGridSize.z) / log(Global_CameraFarPlane / Global_CameraNearPlane));
+	// const vec2 tileSize = Global_Resolution.xy / Light_LightGridSize.xy;
+	//
+	// const ivec3 tile = ivec3(gl_FragCoord.xy / tileSize, zTile);
+	//
+	// const uint clusterIndex = uint(dot(tile, vec3(1, Light_LightGridSize.x, Light_LightGridSize.x * Light_LightGridSize.y)));
+	//
+	// const uvec2 lightData = Light_LightGrid[clusterIndex];
+	//
+	// const uint lightStartIndex = lightData.x;
+	// const uint lightCount = lightData.y;
+	const uint lightCount = uint(Light_LightCount);
 
 	for (int lightIndex = 0; lightIndex < lightCount; lightIndex++) {
-		Light l = Light_LightsList[Light_LightIndexList[lightStartIndex + lightIndex]];
-	// for (int lightIndex = 0; lightIndex < Light_LightCount; lightIndex++) {
-	// 	Light l = Light_LightsList[lightIndex];
+		// Light l = Light_LightsList[Light_LightIndexList[lightStartIndex + lightIndex]];
+		// for (int lightIndex = 0; lightIndex < Light_LightCount; lightIndex++) {
+		// 	Light l = Light_LightsList[lightIndex];
+
+		Light l = Light_LightsList[lightIndex];
 
 		if (l.intensity <= 0) {
 			continue;
