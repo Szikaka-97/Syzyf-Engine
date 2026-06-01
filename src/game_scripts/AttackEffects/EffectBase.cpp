@@ -6,6 +6,7 @@
 
 
 void EffectBase::Init() {
+     OnInit();
     OnApplySpecials();   
 
     for (auto* enemy : ScanEnemiesInRadius())
@@ -51,11 +52,19 @@ std::vector<EnemyBase*> EffectBase::ScanEnemiesInRadius() const {
 }
 
 void EffectBase::SetEffectRenderer(Mesh* mesh, Material* mat) {
+    if (!mesh) {
+        spdlog::error("EffectBase::SetEffectRenderer: mesh is null — check file path");
+        return;
+    }
+    if (!mat) {
+        spdlog::error("EffectBase::SetEffectRenderer: material is null");
+        return;
+    }
     SceneNode* node = GetNode();
     if (node) {
         node->AddObject<MeshRenderer>(mesh, mat);
     } else {
-        spdlog::error("EffectBase::SetEffectRenderer: GetNode() is null – effect not attached to any node");
+        spdlog::error("EffectBase::SetEffectRenderer: GetNode() is null");
     }
 }
 

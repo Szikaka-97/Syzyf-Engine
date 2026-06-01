@@ -9,6 +9,8 @@ public:
     EffectFire();
    // EffectBase* Clone() const { return new EffectFire(*this); }  
 protected:
+    
+    void OnInit() override;
     void OnApplySpecials() override;
     void OnApplyToEnemy(EnemyBase* enemy) override;
 };
@@ -21,6 +23,8 @@ public:
     //EffectBase* Clone() const { return new EffectPetrify(*this); }  
 
 protected:
+    
+    void OnInit() override;
     void OnApplySpecials() override;
     void OnApplyToEnemy(EnemyBase* enemy) override;
 };
@@ -35,6 +39,8 @@ public:
    // EffectBase* Clone() const { return new EffectTornado(*this); }  
 
 protected:
+    
+    void OnInit() override;
     void  OnApplySpecials() override;
     void  OnApplyToEnemy(EnemyBase* enemy) override {}  
     void  OnUpdate() override;
@@ -53,6 +59,8 @@ public:
     EffectConfuse();
   //  EffectBase* Clone() const { return new EffectConfuse(*this); }
 protected:
+    
+    void OnInit() override;
     void OnApplySpecials() override;
     void OnApplyToEnemy(EnemyBase* enemy) override;
 };
@@ -62,12 +70,14 @@ public:
     float strength  = 0.5f;
     float maxRange  = 10.0f;
     float maxDamage = 50.0f;
+
     EffectExplosion();
    // EffectBase* Clone() const { return new EffectExplosion(*this); }
     float GetRange()  const { return strength * maxRange;  }
     float GetDamage() const { return strength * maxDamage; }
  
 protected:
+    void OnInit() override;
     void  OnApplySpecials() override;
     void  OnApplyToEnemy(EnemyBase* enemy) override;
     void  OnUpdate() override;

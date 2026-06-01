@@ -38,7 +38,7 @@ public:
 
 
 protected:
-
+     virtual void OnInit() {}
     virtual void OnApplySpecials() {}
 
     virtual void OnApplyToEnemy(EnemyBase* enemy) {};
