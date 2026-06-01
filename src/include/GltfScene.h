@@ -39,4 +39,6 @@ private:
   
 	virtual fs::path GetPath() const override;
 	virtual uint64_t GetHash() const override;
+public:
+  std::vector<Mesh*> GetMeshes();
 };
