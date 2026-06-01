@@ -15,7 +15,6 @@ private:
     Mesh* m_ProjectileMesh;
     Material* m_ProjectileMaterial;
     AnimationComponent* m_AttackAnimation = nullptr;
-    void Die();
     void SpawnProjectile(const glm::vec3& targetPos);
     float timeBetweenAttacks;
     bool alreadyAttacked;
@@ -94,4 +93,6 @@ public:
     bool IsPetrified() const { return m_Petrify.active; }
     bool IsBurning()   const { return m_Burn.active;    }
     bool IsConfused()  const { return m_Confuse.active; }
+    
+    virtual void Die();
 };

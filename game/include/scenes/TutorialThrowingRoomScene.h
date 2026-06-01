@@ -81,6 +81,8 @@ private:
 	float damageTimer = 0.0f;
 
 public:
+	static int remainingRats;
+
 	void Initialize(SceneNode* playerNode, float damage, float damageRange, float damageCooldown) {
 		this->playerNode = playerNode;
 		this->damage = damage;
@@ -96,6 +98,8 @@ public:
 	void Awake() {
 		this->myNode = GetNode();
 		this->currentPos = GetNode()->GlobalTransform().Position().Value();
+
+		remainingRats++;
 	}
 
 	void Update() {
@@ -128,10 +132,18 @@ public:
 		}
 	}
 
+	virtual void Die() override {
+		remainingRats--;
+
+		EnemyBase::Die();
+	}
+
 	LootPool& GetLootPool() override {
 		return LootPool::GetSkeletonLootPool();
 	}
 };
+
+int TutorialStaticRatTarget::remainingRats = 0;
 
 class TutorialRatSpawnManager : public GameObject {
 private:
@@ -286,7 +298,12 @@ public:
 			return;
 		}
 
-		ShowPrompt("Hit the rats\nwith the potions");
+		if (TutorialStaticRatTarget::remainingRats > 0) {
+			ShowPrompt("Hit the rats\nwith the potions");
+		}
+		else {
+			ShowPrompt("Move to the next room");
+		}
 	}
 };
 
@@ -543,6 +560,10 @@ public:
 			return;
 		}
 
+		if (TutorialStaticRatTarget::remainingRats > 0) {
+			return;
+		}
+
 		if (!this->opening) {
 			if (!PersistentData::Get<bool>("TutorialThrowingRoom_PlayerTookBottles")) {
 				return;
@@ -615,6 +636,10 @@ public:
 inline void AddRatModel(Scene& mainScene, SceneNode* ratNode) {
 	SceneNode* ratModel = ResourceDatabase::Global->Get<GltfScene>("./res/models/enemy/rat6.glb")
 		->Instantiate(&mainScene, ratNode, "RatModel");
+
+	for (MeshRenderer* ratPart : ratModel->GetAllObjectsInChildren<MeshRenderer>()) {
+		ratPart->maskFlags |= MaskEffectBits::Outline;
+	}
 
 	ratModel->LocalTransform().Position() = glm::vec3(0.0f, -0.45f, 0.0f);
 	ratModel->LocalTransform().Scale() = glm::vec3(1.6f);

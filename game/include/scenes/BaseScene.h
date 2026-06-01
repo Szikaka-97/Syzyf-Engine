@@ -407,6 +407,8 @@ public:
                 if (distanceToTrigger < this->triggerRadius) {
                         this->sceneRequested = true;
 
+						spdlog::error("BUILD");
+
                         Application::Get()->RequestSceneBuild(
                         [](Scene* s) { TutorialThrowingRoomScene::InitScene(*s); }
                         );
