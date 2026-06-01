@@ -123,8 +123,6 @@ public:
 			this->lights.push_back(light);
 			this->baseIntensities.push_back(3.0f);
 		}
-
-		spdlog::info("BaseLights: prepared {} point lights.", this->lights.size());
 	}
 
 	void Update() {
@@ -307,7 +305,6 @@ public:
 			this->tutorialText->GlobalTransform().Position() = glm::vec3(1.6, 2, 8.5);
 
 			if (TimeSincePoint() > 0.8 && PersistentData::Get<float>("Base_TurnLightsOn") == 0) {
-				spdlog::info("Turning on the lights");
 				PersistentData::Set<float>("Base_TurnLightsOn", Time::Current());
 			}
 			if (TimeSincePoint() > 0.5) {

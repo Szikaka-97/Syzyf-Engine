@@ -38,7 +38,7 @@
 #include <Tonemapper.h>
 #include <ColorGrading.h>
 #include <Fxaa.h>
-
+#include "CraftingScene.h"
 #include <PersistentData.h>
 #include <Application.h>
 #include <algorithm>
@@ -46,7 +46,7 @@
 #include <string>
 #include <vector>
 
-namespace BaseScene {
+namespace CraftingScene {
 	inline void InitScene(Scene& mainScene);
 }
 
@@ -124,8 +124,6 @@ public:
 			if (auto* player = this->playerNode->GetObject<PlayerController>()) {
 				player->TakeDamage(this->damage);
 				this->damageTimer = this->damageCooldown;
-
-				spdlog::info("TutorialStaticRatTarget: player took {:.1f} damage from static rat.", this->damage);
 			}
 		}
 	}
@@ -426,8 +424,6 @@ public:
 		}
 
 		this->lightsOnTime = Time::Current();
-
-		spdlog::info("TutorialThrowingRoomLights: prepared {} point lights.", this->lights.size());
 	}
 
 	void Update() {
@@ -497,7 +493,6 @@ inline SceneNode* FindTutorialDoorNode(SceneNode* roomNode) {
 		SceneNode* doorNode = FindFirstNodeByNameRecursive(roomNode, doorName);
 
 		if (doorNode != nullptr) {
-			spdlog::info("TutorialThrowingRoomScene: found door node '{}'.", doorName);
 			return doorNode;
 		}
 	}
@@ -563,7 +558,6 @@ public:
 			}
 
 			this->opening = true;
-			spdlog::info("TutorialThrowingRoomDoorOpener: opening door.");
 		}
 
 		glm::vec3 doorPosition = this->doorNode->GlobalTransform().Position().Value();
@@ -580,7 +574,7 @@ public:
 	}
 };
 
-class TutorialThrowingRoomExitToBase : public GameObject {
+class TutorialThrowingRoomExitToCrafting : public GameObject {
 private:
 	bool sceneRequested = false;
 	glm::vec3 triggerPosition = glm::vec3(19.8054f, 0.94866f, 0.01518f);
@@ -592,16 +586,9 @@ public:
 
 		if (triggerNode != nullptr) {
 			this->triggerPosition = triggerNode->GlobalTransform().Position().Value();
-
-			spdlog::info(
-				"TutorialThrowingRoomExitToBase: NextRoom trigger found at {} {} {}.",
-				this->triggerPosition.x,
-				this->triggerPosition.y,
-				this->triggerPosition.z
-			);
 		}
 		else {
-			spdlog::warn("TutorialThrowingRoomExitToBase: NextRoom node not found. Using fallback trigger position.");
+			spdlog::error("TutorialThrowingRoomExitToCrafting: NextRoom node not found. Using fallback trigger position.");
 		}
 	}
 
@@ -618,10 +605,8 @@ public:
 		if (distanceToTrigger < this->triggerRadius) {
 			this->sceneRequested = true;
 
-			spdlog::info("TutorialThrowingRoomExitToBase: returning to BaseScene.");
-
 			Application::Get()->RequestSceneBuild(
-				[](Scene* s) { BaseScene::InitScene(*s); }
+				[](Scene* s) { CraftingScene::InitScene(*s); }
 			);
 		}
 	}
@@ -695,14 +680,6 @@ inline void SpawnRatAt(Scene& mainScene, SceneNode* spawnNode, SceneNode* player
 		1.6f,
 		1.0f
 	);
-
-	spdlog::info(
-		"TutorialThrowingRoomScene: rat spawned at {} {} {} from marker '{}'.",
-		spawnPosition.x,
-		spawnPosition.y,
-		spawnPosition.z,
-		spawnNode->GetName()
-	);
 }
 
 inline void SpawnTutorialRats(Scene& mainScene, SceneNode* roomNode, SceneNode* playerNode, Surface* surface) {
@@ -721,11 +698,6 @@ inline void SpawnTutorialRats(Scene& mainScene, SceneNode* roomNode, SceneNode* 
 	for (SceneNode* spawnNode : ratSpawns) {
 		SpawnRatAt(mainScene, spawnNode, playerNode, surface);
 	}
-
-	spdlog::info(
-		"TutorialThrowingRoomScene: spawned static tutorial rats={}",
-		ratSpawns.size()
-	);
 }
 
 inline void InitScene(Scene& mainScene) {
@@ -823,7 +795,7 @@ inline void InitScene(Scene& mainScene) {
 		FindTutorialDoorNode(roomNode)
 	);
 
-	roomNode->AddObject<TutorialThrowingRoomExitToBase>();
+	roomNode->AddObject<TutorialThrowingRoomExitToCrafting>();
 #pragma endregion
 
 #pragma region Camera
