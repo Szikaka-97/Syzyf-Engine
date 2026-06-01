@@ -31,34 +31,7 @@ public:
             if (configure) configure(effect);
             effect->Init();                
 
-            ShaderProgram* pbrProg = ShaderProgram::Build()
-                .WithVertexShader("./res/shaders/lit.vert")
-                .WithPixelShader("./res/shaders/pbr.frag")
-                .Link();
-
-            if (!pbrProg) {
-                spdlog::error("ThrowableObject: shader nie skompilował się");
-                return effect;
-            }
-
-            Scene* scene = this->GetScene();   // this wymagane — poprawnie schwytane
-            Texture2D* albedo = scene->Resources()->Get<Texture2D>(
-                "./res/textures/material_preview/worn-shiny-metal-albedo.png",
-                Texture::ColorTextureRGB);
-            Texture2D* normal = scene->Resources()->Get<Texture2D>(
-                "./res/textures/material_preview/worn-shiny-metal-Normal-ogl.png",
-                Texture::TechnicalMapXYZ);
-            Texture2D* arm = scene->Resources()->Get<Texture2D>(
-                "./res/textures/material_preview/worn-shiny-metal-arm.png",
-                Texture::TechnicalMapXYZ);
-
-            Material* mat = new Material(pbrProg);
-            mat->SetValue("albedoMap", albedo);
-            mat->SetValue("normalMap", normal);
-            mat->SetValue("armMap",    arm);
-
-            Mesh* mesh = scene->Resources()->Get<Mesh>("./res/models/jake_tangents.glb");
-            effect->SetEffectRenderer(mesh, mat);
+            
             return effect;
         };
     }
