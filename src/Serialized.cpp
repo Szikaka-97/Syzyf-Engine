@@ -159,6 +159,37 @@ glm::ivec4 Serialization::Deserialize(const json& json_node) {
 }
 
 template<>
+glm::uvec2 Serialization::Deserialize(const json& json_node) {
+	glm::uvec2 result;
+
+	result.x = json_node["x"].get<int>();
+	result.y = json_node["y"].get<int>();
+
+	return result;
+}
+template<>
+glm::uvec3 Serialization::Deserialize(const json& json_node) {
+	glm::uvec3 result;
+
+	result.x = json_node["x"].get<int>();
+	result.y = json_node["y"].get<int>();
+	result.z = json_node["z"].get<int>();
+
+	return result;
+}
+template<>
+glm::uvec4 Serialization::Deserialize(const json& json_node) {
+	glm::uvec4 result;
+
+	result.x = json_node["x"].get<int>();
+	result.y = json_node["y"].get<int>();
+	result.z = json_node["z"].get<int>();
+	result.w = json_node["w"].get<int>();
+
+	return result;
+}
+
+template<>
 glm::mat3 Serialization::Deserialize(const json& json_node) {
 	glm::mat3 result;
 
@@ -244,6 +275,34 @@ json Serialization::Serialize(const glm::ivec3& v) {
 	return result;
 }
 json Serialization::Serialize(const glm::ivec4& v) {
+	json result;
+
+	result["x"] = v.x;
+	result["y"] = v.y;
+	result["z"] = v.z;
+	result["w"] = v.w;
+
+	return result;
+}
+
+json Serialization::Serialize(const glm::uvec2& v) {
+	json result;
+
+	result["x"] = v.x;
+	result["y"] = v.y;
+
+	return result;
+}
+json Serialization::Serialize(const glm::uvec3& v) {
+	json result;
+
+	result["x"] = v.x;
+	result["y"] = v.y;
+	result["z"] = v.z;
+
+	return result;
+}
+json Serialization::Serialize(const glm::uvec4& v) {
 	json result;
 
 	result["x"] = v.x;

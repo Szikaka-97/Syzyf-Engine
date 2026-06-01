@@ -35,13 +35,15 @@
   {
     "_class_name": "SceneNode",
     "_data": {
-      "children": [],
+      "children": [
+        2
+      ],
       "disabledState": 0,
       "id": 0,
       "layer": 0,
       "name": "root",
       "objects": [
-        2,
+        6,
         -1
       ],
       "parent": -1,
@@ -63,6 +65,128 @@
         "_31": 0.0,
         "_32": 0.0,
         "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [],
+      "disabledState": 0,
+      "id": 2,
+      "layer": 0,
+      "name": "",
+      "objects": [
+        3,
+        -1
+      ],
+      "parent": 1,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": -0.5701756477355957,
+        "_31": 0.0,
+        "_32": 6.745880603790283,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "MeshRenderer",
+    "_data": {
+      "enabled": true,
+      "materials": [
+        4,
+        5
+      ],
+      "mesh": "./res/models/star.obj",
+      "node": 2
+    }
+  },
+  {
+    "_class_name": "Material",
+    "_data": {
+      "shader": "./res/shaders/lit.vert@@@@./res/shaders/pbr.frag@",
+      "variables": {
+        "albedoMap": {
+          "channels": 3,
+          "colorSpace": 1,
+          "format": 0,
+          "magFilter": 1,
+          "minFilter": 1,
+          "path": "./res/textures/default_color.png",
+          "wrapU": 1,
+          "wrapV": 1
+        },
+        "armMap": {
+          "channels": 2,
+          "colorSpace": 0,
+          "format": 0,
+          "magFilter": 1,
+          "minFilter": 1,
+          "path": "./res/textures/default_arm.png",
+          "wrapU": 1,
+          "wrapV": 1
+        },
+        "normalMap": {
+          "channels": 2,
+          "colorSpace": 0,
+          "format": 0,
+          "magFilter": 1,
+          "minFilter": 1,
+          "path": "./res/textures/default_norm.png",
+          "wrapU": 1,
+          "wrapV": 1
+        }
+      }
+    }
+  },
+  {
+    "_class_name": "Material",
+    "_data": {
+      "shader": "./res/shaders/lit.vert@@@@./res/shaders/pbr.frag@",
+      "variables": {
+        "albedoMap": {
+          "channels": 3,
+          "colorSpace": 1,
+          "format": 0,
+          "magFilter": 1,
+          "minFilter": 1,
+          "path": "./res/textures/default_color.png",
+          "wrapU": 1,
+          "wrapV": 1
+        },
+        "armMap": {
+          "channels": 2,
+          "colorSpace": 0,
+          "format": 0,
+          "magFilter": 1,
+          "minFilter": 1,
+          "path": "./res/textures/default_arm.png",
+          "wrapU": 1,
+          "wrapV": 1
+        },
+        "normalMap": {
+          "channels": 2,
+          "colorSpace": 0,
+          "format": 0,
+          "magFilter": 1,
+          "minFilter": 1,
+          "path": "./res/textures/default_norm.png",
+          "wrapU": 1,
+          "wrapV": 1
+        }
       }
     }
   },

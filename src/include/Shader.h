@@ -9,6 +9,7 @@
 #include <VertexSpec.h>
 #include <UniformSpec.h>
 #include <Resources.h>
+#include <Serialized.h>
 
 namespace fs = std::filesystem;
 
@@ -183,6 +184,9 @@ public:
 	static void ReloadAllShaders();
 
 	static ShaderProgram* Load(const fs::path& shaderPath);
+
+	json Serialize() const;
+	static ShaderProgram* Deserialize(const json& data);
 };
 
 class ComputeShaderProgram {

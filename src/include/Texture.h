@@ -8,6 +8,7 @@
 #include <spdlog/spdlog.h>
 
 #include <Resources.h>
+#include <Serialization.h>
 
 namespace fs = std::filesystem;
 
@@ -184,6 +185,9 @@ public:
 	virtual constexpr TextureType GetType() const {
 		return TextureType::Texture2D;
 	}
+
+	json Serialize() const;
+	static Texture2D* Deserialize(const json& data);
 };
 
 class Texture3D : public Texture {
@@ -213,6 +217,9 @@ public:
 
 	TextureWrap GetWrapModeW() const;
 	void SetWrapModeW(TextureWrap wrapMode);
+
+	json Serialize() const;
+	static Texture3D* Deserialize(const json& data);
 };
 
 class Cubemap : public Texture {
@@ -238,6 +245,9 @@ public:
 	virtual constexpr TextureType GetType() const {
 		return TextureType::Cubemap;
 	}
+
+	json Serialize() const;
+	static Cubemap* Deserialize(const json& data);
 };
 
 template<> Texture2D* Texture::Load<Texture2D>(const fs::path& texturePath, const TextureParams& loadParams);

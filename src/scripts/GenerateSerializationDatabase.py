@@ -85,6 +85,10 @@ def is_array_type(type: CppType) -> bool:
 	return type.name.startswith("std::vector")
 
 
+def is_resource_type(type: CppType) -> bool:
+	return any(base for base in type.get_class_hierarchy() if base.name == "Resource")
+
+
 def has_serialization_methods(tp: CppType) -> bool:
 	return any([
 		method for method in tp.methods if (
@@ -105,6 +109,36 @@ def has_serialization_methods(tp: CppType) -> bool:
 			not method.is_virtual
 			and
 			method.return_type.type == "void"
+			and
+			len(method.arguments) == 1
+			and
+			method.arguments[0].type.endswith("::basic_json<>")
+		)
+	])
+
+
+def has_resource_serialization_methods(tp: CppType) -> bool:
+	return any([
+		method for method in tp.methods if (
+			method.name == "Serialize"
+			and
+			not method.is_virtual
+			and
+			not method.return_type.is_pointer
+			and
+			method.return_type.type.endswith("::basic_json<>")
+			and
+			len(method.arguments) == 0
+		)
+	]) and any([
+		method for method in tp.methods if (
+			method.name == "Deserialize"
+			and
+			method.is_static
+			and
+			method.return_type.type == tp.name
+			and
+			method.return_type.is_pointer
 			and
 			len(method.arguments) == 1
 			and
@@ -162,6 +196,11 @@ def write_field_serializer(writer: CodeWriter, field: CppField, lhs: str) -> Non
 		write_array_serializer(writer, field, lhs)
 	elif field_type.name in INTRINSIC_SERIALIZERS:
 		writer.line(lhs + f" = Serialization::Serialize(*({field_type.name} *) (data + {offset_str} + {additional_offset_str}));")
+	elif is_resource_type(field_type):
+		if has_resource_serialization_methods(field_type):
+			writer.line(lhs + f" = (*({field_type.name}**) (data + {offset_str} + {additional_offset_str}))->Serialize();")
+		else:
+			writer.line(lhs + f" = (*({field_type.name}**) (data + {offset_str} + {additional_offset_str}))->GetPath();")
 	elif not field.is_pointer:
 		if field.type in serialized_types:
 			writer.line(lhs + f" = InternalSerialize{sanitize_class_name(field.type)}(data + {offset_str} + {additional_offset_str});")
@@ -176,6 +215,13 @@ def write_field_serializer(writer: CodeWriter, field: CppField, lhs: str) -> Non
 
 def write_array_serializer(writer: CodeWriter, field: CppField, lhs: str) -> None:
 	offset_str = ""
+	additional_offset_str = "0"
+
+	for base in CppType.get_type(field.owning_type).base_classes:
+		offset_str = f"{base}, " + offset_str
+
+	if len(CppType.get_type(field.owning_type).base_classes) == 0 and CppType.get_type(field.owning_type).is_polymorphic():
+		additional_offset_str = "sizeof(void*)"
 
 	for f in CppType.get_type(field.owning_type).fields:
 		if f == field:
@@ -192,7 +238,7 @@ def write_array_serializer(writer: CodeWriter, field: CppField, lhs: str) -> Non
 	writer.more_indent()
 
 	writer.line("json resultArray = R\"([])\"_json;")
-	writer.line(f"auto& sourceArray = *({field.type} *) (data + {offset_str});")
+	writer.line(f"auto& sourceArray = *({field.type} *) (data + {offset_str} + {additional_offset_str});")
 
 	writer.line()
 
@@ -274,6 +320,11 @@ def write_field_deserializer(writer: CodeWriter, field: CppField, lhs: str) -> N
 		write_array_deserializer(writer, field, lhs)
 	elif field_type.name in INTRINSIC_SERIALIZERS:
 		writer.line(f"new(({field.type}*) (raw + {offset_str} + {additional_offset_str})) {field.type}{{Serialization::Deserialize<{field.type}>(data[\"{field.name}\"])}};")
+	elif is_resource_type(field_type):
+		if has_resource_serialization_methods(field_type):
+			writer.line(f"*((void**) (raw + {offset_str} + {additional_offset_str})) = {field_type.name}::Deserialize(data[\"{field.name}\"]);")
+		else:
+			writer.line(f"*((void**) (raw + {offset_str} + {additional_offset_str})) = ResourceDatabase::Global->Get<{field_type.name}>(data[\"{field.name}\"]);")
 	elif not field.is_pointer:
 		if field.type in serialized_types:
 			writer.line(f"InternalDeserialize{sanitize_class_name(field.type)}On(reinterpret_cast<volatile {field.type} *>(raw + {offset_str} + {additional_offset_str}), data[\"{field.name}\"]);")
@@ -288,6 +339,13 @@ def write_field_deserializer(writer: CodeWriter, field: CppField, lhs: str) -> N
 
 def write_array_deserializer(writer: CodeWriter, field: CppField, lhs: str) -> None:
 	offset_str = ""
+	additional_offset_str = "0"
+
+	for base in CppType.get_type(field.owning_type).base_classes:
+		offset_str = f"{base}, " + offset_str
+
+	if len(CppType.get_type(field.owning_type).base_classes) == 0 and CppType.get_type(field.owning_type).is_polymorphic():
+		additional_offset_str = "sizeof(void*)"
 
 	for f in CppType.get_type(field.owning_type).fields:
 		if f == field:
@@ -298,7 +356,7 @@ def write_array_deserializer(writer: CodeWriter, field: CppField, lhs: str) -> N
 	if offset_str != "":
 		offset_str = f"closest_alignment<{field.type + (" *" if field.is_pointer or field.is_reference else "")}>(calculate_alignment<" + offset_str[:-2] + ">())" 
 	else:
-		offset_str = "0"
+		offset_str = "0" 
 	
 	writer.line("{")
 	writer.more_indent()

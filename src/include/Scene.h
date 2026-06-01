@@ -330,6 +330,8 @@ std::vector<T_GO*> SceneNode::GetAllObjectsInChildren() const {
 template<class T_GO, typename... T_Param>
 	requires std::derived_from<T_GO, GameObject>
 void Scene::AddGameObjectInternal(SceneNode* node, T_GO* obj) {
+	obj->node = node;
+	
 	node->objects.push_back(obj);
 
 	this->messageTree.AddMessageReceiver(obj);
@@ -355,8 +357,6 @@ T_GO* Scene::CreateObjectOn(SceneNode* node, T_Param&&... params) {
 	bufAsObjPtr->node = node;
 
 	T_GO* created = new(const_cast<T_GO*>(bufAsObjPtr)) T_GO(std::forward<T_Param>(params)...);
-	
-	created->node = node;
 	
 	AddGameObjectInternal<T_GO>(node, created);
 
