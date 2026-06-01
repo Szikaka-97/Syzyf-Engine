@@ -49,6 +49,13 @@ namespace Serialization {
 	glm::ivec4 Deserialize(const json& json_node);
 
 	template<>
+	glm::uvec2 Deserialize(const json& json_node);
+	template<>
+	glm::uvec3 Deserialize(const json& json_node);
+	template<>
+	glm::uvec4 Deserialize(const json& json_node);
+
+	template<>
 	glm::mat3 Deserialize(const json& json_node);
 	template<>
 	glm::mat4 Deserialize(const json& json_node);
@@ -60,6 +67,10 @@ namespace Serialization {
 	json Serialize(const glm::ivec2& v);
 	json Serialize(const glm::ivec3& v);
 	json Serialize(const glm::ivec4& v);
+	
+	json Serialize(const glm::uvec2& v);
+	json Serialize(const glm::uvec3& v);
+	json Serialize(const glm::uvec4& v);
 	
 	json Serialize(const glm::mat3& v);
 	json Serialize(const glm::mat4& v);

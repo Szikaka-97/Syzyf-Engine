@@ -14,8 +14,6 @@ clang.TemplateArgumentKind.EXPRESSION = clang.TemplateArgumentKind(8)
 clang.TemplateArgumentKind.PACK = clang.TemplateArgumentKind(9)
 
 
-
-
 SOURCE_FILES_DIRECTORY = sys.argv[1]
 HEADER_FILES_DIRECTORY = sys.argv[2]
 COMMAND_FILE = path.abspath(sys.argv[3])
@@ -99,11 +97,13 @@ class CppMethod:
 
 		self.is_const = method_cursor.is_const_method()
 
+		self.is_static = method_cursor.is_static_method()
+
 		for arg in method_cursor.type.argument_types():
 			self.arguments.append(CppModifiedType(arg.get_canonical()))
 
 	def __json__(self):
-		return { "name": self.name, "return_type": self.return_type, "arguments": self.arguments, "is_virtual": self.is_abstract, "is_pure_virtual": self.is_pure_virtual, "access": self.access, "is_const": self.is_const }
+		return { "name": self.name, "return_type": self.return_type, "arguments": self.arguments, "is_virtual": self.is_abstract, "is_pure_virtual": self.is_pure_virtual, "access": self.access, "is_const": self.is_const, "is_static": self.is_static }
 
 
 class CppType:

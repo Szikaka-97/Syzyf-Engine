@@ -905,3 +905,100 @@ void Texture3D::SetWrapModeW(TextureWrap wrapMode) {
 	this->dirty = true;
 }
 
+json Texture2D::Serialize() const {
+	json data;
+
+	data["path"] = this->GetPath();
+
+	data["channels"] = (int) this->channels;
+	data["colorSpace"] = (int) this->colorSpace;
+	data["format"] = (int) this->format;
+	data["wrapU"] = (int) this->wrapU.value;
+	data["wrapV"] = (int) this->wrapV.value;
+	data["minFilter"] = (int) this->minFilter.value;
+	data["magFilter"] = (int) this->magFilter.value;
+
+	return data;
+}
+Texture2D* Texture2D::Deserialize(const json& data) {
+	TextureParams params{
+		.channels = data["channels"],
+		.colorSpace = data["colorSpace"],
+		.format = data["format"],
+		.wrapU = data["wrapU"],
+		.wrapV = data["wrapV"],
+		.minFilter = data["minFilter"],
+		.magFilter = data["magFilter"],
+	};
+
+	fs::path texPath = data["path"];
+
+	return ResourceDatabase::Global->Get<Texture2D>(texPath, params);
+}
+
+json Texture3D::Serialize() const {
+	json data;
+
+	data["path"] = this->GetPath();
+
+	data["channels"] = (int) this->channels;
+	data["colorSpace"] = (int) this->colorSpace;
+	data["format"] = (int) this->format;
+	data["wrapU"] = (int) this->wrapU.value;
+	data["wrapV"] = (int) this->wrapV.value;
+	data["wrapW"] = (int) this->wrapW.value;
+	data["minFilter"] = (int) this->minFilter.value;
+	data["magFilter"] = (int) this->magFilter.value;
+
+	return data;
+}
+Texture3D* Texture3D::Deserialize(const json& data) {
+	TextureParams params{
+		.channels = data["channels"],
+		.colorSpace = data["colorSpace"],
+		.format = data["format"],
+		.wrapU = data["wrapU"],
+		.wrapV = data["wrapV"],
+		.wrapW = data["wrapW"],
+		.minFilter = data["minFilter"],
+		.magFilter = data["magFilter"],
+	};
+
+	fs::path texPath = data["path"];
+
+	// return ResourceDatabase::Global->Get<Texture3D>(texPath, params);
+	return nullptr; // TODO
+}
+
+json Cubemap::Serialize() const {
+	json data;
+
+	data["path"] = this->GetPath();
+
+	data["channels"] = (int) this->channels;
+	data["colorSpace"] = (int) this->colorSpace;
+	data["format"] = (int) this->format;
+	data["wrapU"] = (int) this->wrapU.value;
+	data["wrapV"] = (int) this->wrapV.value;
+	data["wrapW"] = (int) this->wrapW.value;
+	data["minFilter"] = (int) this->minFilter.value;
+	data["magFilter"] = (int) this->magFilter.value;
+
+	return data;
+}
+Cubemap* Cubemap::Deserialize(const json& data) {
+	TextureParams params{
+		.channels = data["channels"],
+		.colorSpace = data["colorSpace"],
+		.format = data["format"],
+		.wrapU = data["wrapU"],
+		.wrapV = data["wrapV"],
+		.wrapW = data["wrapW"],
+		.minFilter = data["minFilter"],
+		.magFilter = data["magFilter"],
+	};
+
+	fs::path texPath = data["path"];
+
+	return ResourceDatabase::Global->Get<Cubemap>(texPath, params);
+}

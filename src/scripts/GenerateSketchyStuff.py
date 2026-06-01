@@ -146,20 +146,19 @@ def main():
 
 		dest.line("")
 
-		dest.line("GameObject* MessagingHelpers_AttachObjectToNode(SceneNode* node, GameObject* obj) {")
+		dest.line("void MessagingHelpers_AttachObjectToNode(SceneNode* node, GameObject* obj) {")
 		dest.more_indent()
 		
 		dest.line("auto objectName = TypeInfo::GetTypeInfo(typeid(*obj)).name;")
-		dest.line("auto func = MessagingHelpers::gameObjectAdditionFunctions.find(objectName);")
+		dest.line("auto func = MessagingHelpers::gameObjectAttachmentFunctions.find(objectName);")
 
-		dest.line("if (func != MessagingHelpers::gameObjectAdditionFunctions.end()) {")
+		dest.line("if (func != MessagingHelpers::gameObjectAttachmentFunctions.end()) {")
 		dest.more_indent()
 		
-		dest.line("return func->second(node);")
+		dest.line("func->second(node, obj);")
 
 		dest.less_indent()
 		dest.line("}")
-		dest.line("return nullptr;")
 
 		dest.less_indent()
 		dest.line("}")

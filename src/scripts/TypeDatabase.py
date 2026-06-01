@@ -30,6 +30,7 @@ class CppMethod:
 		self.is_virtual: bool = data["is_virtual"]
 		self.is_pure_virtual: bool = data["is_pure_virtual"]
 		self.is_const: bool = data["is_const"]
+		self.is_static: bool = data["is_static"]
 		self.access: str = data["access"]
 
 

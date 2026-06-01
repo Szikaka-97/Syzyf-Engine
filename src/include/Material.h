@@ -79,8 +79,8 @@ class Material {
 private:
 	const ShaderProgram* shader;
 	ShaderVariableStorage shaderVariables;
-
 	static std::vector<Material*> allMaterials;
+
 
 	Material();
 

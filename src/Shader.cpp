@@ -15,6 +15,7 @@
 #include <Material.h>
 
 #include <spdlog/spdlog.h>
+#include <string>
 #include <string_view>
 
 //constexpr std::string VertexShaderExtension = ".vert";
@@ -734,6 +735,113 @@ void ShaderProgram::ReloadAllShaders() {
 	for (ShaderProgram* shader : allPrograms) {
 		shader->Reload();
 	}
+}
+
+ShaderProgram* ShaderProgram::Load(const fs::path &shaderPath) {
+	ShaderBuilder build = ShaderProgram::Build();
+
+	if (fs::is_regular_file(shaderPath)) {
+		std::ifstream jsonFile(shaderPath);
+	
+		json data = json::parse(jsonFile);
+	
+	
+		if (!data["vertexShader"].get<std::string>().empty()) {
+			build.WithVertexShader(data["vertexShader"]);
+		}
+		if (!data["geometryShader"].get<std::string>().empty()) {
+			build.WithGeometryShader(data["geometryShader"]);
+		}
+		if (!data["tessCtrlShader"].get<std::string>().empty()) {
+			build.WithTessControlShader(data["tessCtrlShader"]);
+		}
+		if (!data["tessEvalShader"].get<std::string>().empty()) {
+			build.WithTessEvaluationShader(data["tessEvalShader"]);
+		}
+		if (!data["pixelShader"].get<std::string>().empty()) {
+			build.WithPixelShader(data["pixelShader"]);
+		}
+	
+		for (const auto& keyword : data["keywords"].get<std::map<std::string, std::string>>()) {
+			build.WithKeyword(keyword.first, keyword.second);
+		}
+	}
+	else {
+		std::stringstream ss(shaderPath);
+
+		std::string vertexShaderPath;
+		std::string geometryShaderPath;
+		std::string tessCtrlShaderPath;
+		std::string tessEvalShaderPath;
+		std::string pixelShaderPath;
+
+		std::getline(ss, vertexShaderPath, '@');
+		std::getline(ss, geometryShaderPath, '@');
+		std::getline(ss, tessCtrlShaderPath, '@');
+		std::getline(ss, tessEvalShaderPath, '@');
+		std::getline(ss, pixelShaderPath, '@');
+
+		std::map<std::string, std::string> keywords;
+
+		while (ss.good()) {
+			std::string key;
+			std::string value;
+
+			std::getline(ss, key, ':');
+			std::getline(ss, value, '@');
+
+			keywords[key] = value;
+		}
+
+		if (!vertexShaderPath.empty()) {
+			build.WithVertexShader(vertexShaderPath);
+		}
+		if (!geometryShaderPath.empty()) {
+			build.WithGeometryShader(geometryShaderPath);
+		}
+		if (!tessCtrlShaderPath.empty()) {
+			build.WithTessControlShader(tessCtrlShaderPath);
+		}
+		if (!tessEvalShaderPath.empty()) {
+			build.WithTessEvaluationShader(tessEvalShaderPath);
+		}
+		if (!pixelShaderPath.empty()) {
+			build.WithPixelShader(pixelShaderPath);
+		}
+	
+		for (const auto& keyword : keywords) {
+			build.WithKeyword(keyword.first, keyword.second);
+		}
+	}
+
+	ShaderProgram* result = build.Link();
+
+	result->path = shaderPath;
+
+	return result;
+}
+
+json ShaderProgram::Serialize() const {
+	if (!this->path.empty()) {
+		return this->path;
+	}
+
+	std::stringstream ss;
+
+	ss << this->vertexShader.shader.GetFilePath().string() << '@';
+	ss << this->geometryShader.shader.GetFilePath().string() << '@';
+	ss << this->tessCtrlShader.shader.GetFilePath().string() << '@';
+	ss << this->tessEvalShader.shader.GetFilePath().string() << '@';
+	ss << this->pixelShader.shader.GetFilePath().string() << '@';
+
+	for (const auto& keyword : this->keywords) {
+		ss << keyword.first << ":" << keyword.second << '@';
+	}
+
+	return ss.str();
+}
+static ShaderProgram* Deserialize(const json& data) {
+	return ShaderProgram::Load(data.get<std::string>());
 }
 
 ComputeShaderProgram::ComputeShaderProgram(GLuint handle) {

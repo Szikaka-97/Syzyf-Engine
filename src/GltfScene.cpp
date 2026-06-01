@@ -132,7 +132,11 @@ GltfScene* GltfScene::Load(const fs::path path) {
 
   model->meshes.reserve(model->asset->meshes.size());
   for (auto& gltfMesh : model->asset->meshes) {
-      model->meshes.push_back(LoadMesh(gltfMesh, *model->asset, model->materials));
+      auto* mesh = LoadMesh(gltfMesh, *model->asset, model->materials);
+
+      mesh->path = std::format("{}:{}", path.string(), gltfMesh.name);
+
+      model->meshes.push_back(mesh);
   }
 
   return model; 
@@ -928,4 +932,8 @@ fs::path GltfScene::GetPath() const {
 }
 uint64_t GltfScene::GetHash() const {
   return 0;
+}
+
+std::vector<Mesh*> GltfScene::GetMeshes() {
+  return this->meshes;
 }

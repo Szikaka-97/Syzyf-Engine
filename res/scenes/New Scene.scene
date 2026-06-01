@@ -35,14 +35,18 @@
   {
     "_class_name": "SceneNode",
     "_data": {
-      "children": [],
+      "children": [
+        2,
+        6
+      ],
       "disabledState": 0,
       "id": 0,
       "layer": 0,
       "name": "root",
       "objects": [
-        2,
-        -1
+        15,
+        -1,
+        16
       ],
       "parent": -1,
       "scene": 0,
@@ -64,6 +68,435 @@
         "_32": 0.0,
         "_33": 1.0
       }
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [],
+      "disabledState": 0,
+      "id": 2,
+      "layer": 0,
+      "name": "",
+      "objects": [
+        3,
+        -1
+      ],
+      "parent": 1,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": -0.5701756477355957,
+        "_31": 0.0,
+        "_32": 6.745880603790283,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "MeshRenderer",
+    "_data": {
+      "enabled": true,
+      "materials": [
+        4,
+        5
+      ],
+      "mesh": "./res/models/star.obj",
+      "node": 2
+    }
+  },
+  {
+    "_class_name": "Material",
+    "_data": {
+      "shader": "./res/shaders/lit.vert@@@@./res/shaders/pbr.frag@",
+      "variables": {
+        "albedoMap": {
+          "channels": 3,
+          "colorSpace": 1,
+          "format": 0,
+          "magFilter": 1,
+          "minFilter": 1,
+          "path": "./res/textures/default_color.png",
+          "wrapU": 1,
+          "wrapV": 1
+        },
+        "armMap": {
+          "channels": 2,
+          "colorSpace": 0,
+          "format": 0,
+          "magFilter": 1,
+          "minFilter": 1,
+          "path": "./res/textures/default_arm.png",
+          "wrapU": 1,
+          "wrapV": 1
+        },
+        "normalMap": {
+          "channels": 2,
+          "colorSpace": 0,
+          "format": 0,
+          "magFilter": 1,
+          "minFilter": 1,
+          "path": "./res/textures/default_norm.png",
+          "wrapU": 1,
+          "wrapV": 1
+        }
+      }
+    }
+  },
+  {
+    "_class_name": "Material",
+    "_data": {
+      "shader": "./res/shaders/lit.vert@@@@./res/shaders/pbr.frag@",
+      "variables": {
+        "albedoMap": {
+          "channels": 3,
+          "colorSpace": 1,
+          "format": 0,
+          "magFilter": 1,
+          "minFilter": 1,
+          "path": "./res/textures/default_color.png",
+          "wrapU": 1,
+          "wrapV": 1
+        },
+        "armMap": {
+          "channels": 2,
+          "colorSpace": 0,
+          "format": 0,
+          "magFilter": 1,
+          "minFilter": 1,
+          "path": "./res/textures/default_arm.png",
+          "wrapU": 1,
+          "wrapV": 1
+        },
+        "normalMap": {
+          "channels": 2,
+          "colorSpace": 0,
+          "format": 0,
+          "magFilter": 1,
+          "minFilter": 1,
+          "path": "./res/textures/default_norm.png",
+          "wrapU": 1,
+          "wrapV": 1
+        }
+      }
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [
+        7,
+        11
+      ],
+      "disabledState": 0,
+      "id": 4,
+      "layer": 0,
+      "name": "crosshair",
+      "objects": [],
+      "parent": 1,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 3.582353115081787,
+        "_31": 0.0,
+        "_32": 4.523709774017334,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [],
+      "disabledState": 0,
+      "id": 5,
+      "layer": 0,
+      "name": "Reticle",
+      "objects": [
+        8,
+        -1
+      ],
+      "parent": 6,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": 0.0,
+        "_32": 0.0,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "MeshRenderer",
+    "_data": {
+      "enabled": true,
+      "materials": [
+        9,
+        10
+      ],
+      "mesh": "./res/models/crosshair.glb:Cylinder",
+      "node": 7
+    }
+  },
+  {
+    "_class_name": "Material",
+    "_data": {
+      "shader": "./res/shaders/gltf/lit.vert@@@@./res/shaders/gltf/pbr.frag@",
+      "variables": {
+        "albedoMap": {
+          "channels": 3,
+          "colorSpace": 1,
+          "format": 0,
+          "magFilter": 1,
+          "minFilter": 1,
+          "path": "./res/textures/default_color.png",
+          "wrapU": 1,
+          "wrapV": 1
+        },
+        "armMap": {
+          "channels": 2,
+          "colorSpace": 0,
+          "format": 0,
+          "magFilter": 1,
+          "minFilter": 1,
+          "path": "./res/textures/default_arm.png",
+          "wrapU": 1,
+          "wrapV": 1
+        },
+        "baseColorFactor": {
+          "w": 1.0,
+          "x": 0.7384194135665894,
+          "y": 0.0,
+          "z": 0.8000074625015259
+        },
+        "emissiveFactor": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "emissiveMap": {
+          "channels": 2,
+          "colorSpace": 1,
+          "format": 0,
+          "magFilter": 1,
+          "minFilter": 7,
+          "path": "./res/textures/default_emissive.png",
+          "wrapU": 1,
+          "wrapV": 1
+        },
+        "emissiveStrength": 1.0,
+        "metallicFactor": 0.0,
+        "normalMap": {
+          "channels": 2,
+          "colorSpace": 0,
+          "format": 0,
+          "magFilter": 1,
+          "minFilter": 1,
+          "path": "./res/textures/default_norm.png",
+          "wrapU": 1,
+          "wrapV": 1
+        },
+        "roughnessFactor": 0.5,
+        "useOcclusion": false
+      }
+    }
+  },
+  {
+    "_class_name": "Material",
+    "_data": {
+      "shader": "./res/shaders/gltf/lit.vert@@@@./res/shaders/gltf/pbr.frag@",
+      "variables": {
+        "albedoMap": {
+          "channels": 3,
+          "colorSpace": 1,
+          "format": 0,
+          "magFilter": 1,
+          "minFilter": 1,
+          "path": "./res/textures/default_color.png",
+          "wrapU": 1,
+          "wrapV": 1
+        },
+        "armMap": {
+          "channels": 2,
+          "colorSpace": 0,
+          "format": 0,
+          "magFilter": 1,
+          "minFilter": 1,
+          "path": "./res/textures/default_arm.png",
+          "wrapU": 1,
+          "wrapV": 1
+        },
+        "baseColorFactor": {
+          "w": 0.800000011920929,
+          "x": 0.800000011920929,
+          "y": 0.800000011920929,
+          "z": 0.800000011920929
+        },
+        "emissiveFactor": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "emissiveMap": {
+          "channels": 2,
+          "colorSpace": 1,
+          "format": 0,
+          "magFilter": 1,
+          "minFilter": 7,
+          "path": "./res/textures/default_emissive.png",
+          "wrapU": 1,
+          "wrapV": 1
+        },
+        "emissiveStrength": 0.0,
+        "metallicFactor": 0.0,
+        "normalMap": {
+          "channels": 2,
+          "colorSpace": 0,
+          "format": 0,
+          "magFilter": 1,
+          "minFilter": 1,
+          "path": "./res/textures/default_norm.png",
+          "wrapU": 1,
+          "wrapV": 1
+        },
+        "roughnessFactor": 1.0,
+        "useOcclusion": false
+      }
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [
+        12
+      ],
+      "disabledState": 0,
+      "id": 6,
+      "layer": 0,
+      "name": "Bottle",
+      "objects": [
+        14,
+        -1
+      ],
+      "parent": 6,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0683902502059937,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0683902502059937,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0683902502059937,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": 0.1641412079334259,
+        "_32": 0.0,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [],
+      "disabledState": 0,
+      "id": 7,
+      "layer": 0,
+      "name": "Arrow",
+      "objects": [
+        13,
+        -1
+      ],
+      "parent": 11,
+      "scene": 0,
+      "transform": {
+        "_00": 0.9359875917434692,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 0.9359875917434692,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 0.9359875917434692,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": 0.4568089246749878,
+        "_32": 0.0,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "MeshRenderer",
+    "_data": {
+      "enabled": true,
+      "materials": [
+        9,
+        10
+      ],
+      "mesh": "./res/models/crosshair.glb:Cube.002",
+      "node": 12
+    }
+  },
+  {
+    "_class_name": "MeshRenderer",
+    "_data": {
+      "enabled": true,
+      "materials": [
+        9,
+        10
+      ],
+      "mesh": "./res/models/crosshair.glb:Cylinder.010",
+      "node": 11
+    }
+  },
+  {
+    "_class_name": "ReflectionProbe",
+    "_data": {
+      "enabled": true,
+      "node": 1
     }
   },
   {
