@@ -82,6 +82,10 @@ public:
 
 	inline void SetThrowingUnlocked(bool unlocked) {
 		this->throwingUnlocked = unlocked;
+
+		if (!unlocked && this->aim != nullptr) {
+			this->aim->SetEnabled(false);
+		}
 	}
 
 	inline bool IsThrowingUnlocked() const {

@@ -14,6 +14,7 @@
 #include "physics/Body.h"
 #include "physics/ICollisionReceiver.h"
 #include "game_scripts/AttackEffects/EffectsManager.h"
+#include <game_scripts/enemies/EnemyBase.h>
 #include <Scene.h>
 #include <Resources.h>
 
@@ -25,11 +26,11 @@ public:
 
     template <typename TEffect>
     void SetEffect(std::function<void(TEffect*)> configure = nullptr) {
-        m_ComboFactory  = nullptr;    
+        m_ComboFactory  = nullptr;
         m_EffectFactory = [this, configure](SceneNode* node) -> EffectBase* {
             TEffect* effect = node->AddObject<TEffect>();
             if (configure) configure(effect);
-            effect->Init();                
+            effect->Init();
 
             ShaderProgram* pbrProg = ShaderProgram::Build()
                 .WithVertexShader("./res/shaders/lit.vert")
@@ -41,7 +42,7 @@ public:
                 return effect;
             }
 
-            Scene* scene = this->GetScene();   // this wymagane — poprawnie schwytane
+            Scene* scene = this->GetScene();
             Texture2D* albedo = scene->Resources()->Get<Texture2D>(
                 "./res/textures/material_preview/worn-shiny-metal-albedo.png",
                 Texture::ColorTextureRGB);
@@ -52,16 +53,16 @@ public:
                 "./res/textures/material_preview/worn-shiny-metal-arm.png",
                 Texture::TechnicalMapXYZ);
 
-	Material* mat = new Material(pbrProg);
+            Material* mat = new Material(pbrProg);
             mat->SetValue("albedoMap", albedo);
             mat->SetValue("normalMap", normal);
             mat->SetValue("armMap",    arm);
-        Mesh* effectMesh = scene->Resources()->Get<Mesh>("./res/models/not_cube.obj");
+            Mesh* effectMesh = scene->Resources()->Get<Mesh>("./res/models/not_cube.obj");
 
-        effect->SetEffectRenderer(effectMesh, mat);
-        return effect;
-    };
-}
+            effect->SetEffectRenderer(effectMesh, mat);
+            return effect;
+        };
+    }
 
     void SetEffectFactory(EffectFactory factory) {
         m_ComboFactory  = nullptr;
@@ -70,7 +71,7 @@ public:
 
     template <typename TCombo>
     void SetComboEffect(std::function<void(TCombo*)> configure = nullptr) {
-        m_EffectFactory = nullptr;  
+        m_EffectFactory = nullptr;
         m_ComboFactory = [this,configure](SceneNode* node) {
             TCombo* combo = node->AddObject<TCombo>();
             if (configure) configure(combo);
@@ -81,10 +82,9 @@ public:
 
             if (!pbrProg) {
                 spdlog::error("ThrowableObject: shader nie skompilował się");
-                //return effect;
             }
 
-            Scene* scene = this->GetScene();   
+            Scene* scene = this->GetScene();
             Texture2D* albedo = scene->Resources()->Get<Texture2D>(
                 "./res/textures/material_preview/worn-shiny-metal-albedo.png",
                 Texture::ColorTextureRGB);
@@ -102,11 +102,10 @@ public:
 
             Mesh* mesh = scene->Resources()->Get<Mesh>("./res/models/effectBase.glb");
             combo->SetEffectRenderer(mesh, mat);
-            //return effect;
         };
     }
 
-    
+
     void SetComboFactory(ComboFactory factory) {
         m_EffectFactory = nullptr;
         m_ComboFactory  = std::move(factory);
@@ -125,13 +124,6 @@ public:
     }
 
     void Update() {
-        // if (m_DeletionCountdown > 0) {
-        //     m_DeletionCountdown--;
-        //     if (m_DeletionCountdown == 0)
-        //         DetachChildrenAndDeleteSelf();
-        //     return;
-        // }
-
         if (m_ShouldSpawn) {
             m_ShouldSpawn = false;
             SpawnEffect();
@@ -142,6 +134,10 @@ public:
             }
 
             m_DeletionCountdown = 2;
+            return;
+        }
+
+        if (CheckEnemyHit()) {
             return;
         }
 
@@ -160,6 +156,13 @@ public:
         spdlog::debug("ThrowableObject: hit \"{}\"",
                       other ? other->GetName() : "<null>");
 
+        if (other != nullptr) {
+            if (EnemyBase* enemy = FindEnemyOnNodeOrParents(other)) {
+                KillEnemy(enemy);
+                return;
+            }
+        }
+
         m_ImpactPos   = GetNode()->GlobalTransform().Position();
         m_ShouldSpawn = true;
     }
@@ -168,6 +171,59 @@ public:
     void OnCollisionExit(SceneNode* /*other*/) override {}
 
 private:
+    EnemyBase* FindEnemyOnNodeOrParents(SceneNode* node) {
+        SceneNode* current = node;
+
+        while (current != nullptr) {
+            if (EnemyBase* enemy = current->GetObject<EnemyBase>()) {
+                return enemy;
+            }
+
+            current = current->GetParent();
+        }
+
+        return nullptr;
+    }
+
+    bool CheckEnemyHit() {
+        if (m_ShouldSpawn || m_DeletionCountdown > 0) {
+            return false;
+        }
+
+        glm::vec3 bottlePos = GetNode()->GlobalTransform().Position();
+
+        for (EnemyBase* enemy : GetScene()->FindObjectsOfType<EnemyBase>()) {
+            if (enemy == nullptr || enemy->myNode == nullptr) {
+                continue;
+            }
+
+            glm::vec3 enemyPos = enemy->myNode->GlobalTransform().Position();
+
+            if (glm::distance(bottlePos, enemyPos) <= 0.9f) {
+                KillEnemy(enemy);
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    void KillEnemy(EnemyBase* enemy) {
+        if (enemy == nullptr || enemy->myNode == nullptr) {
+            return;
+        }
+
+        m_ImpactPos = GetNode()->GlobalTransform().Position();
+
+        spdlog::info(
+            "ThrowableObject: bottle killed enemy \"{}\"",
+            enemy->myNode->GetName()
+        );
+
+        enemy->TakeDamage(999);
+        m_ShouldSpawn = true;
+    }
+
     void SpawnEffect() {
         Scene*     scene      = GetScene();
         SceneNode* effectNode = scene->CreateNode("ThrowableEffect");

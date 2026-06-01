@@ -6,12 +6,14 @@
 #include <TweenSystem.h>
 #include <physics/System.h>
 #include <animation/AnimationSystem.h>
+#include <animation/AnimationComponent.h>
 #include <ui/systems/UiSystem.h>
 #include <ui/widgets/wheel/UiWheel.h>
 #include <game_scripts/PickableItem.h>
 #include <game_scripts/PickableItemSystem.h>
 #include <game_scripts/ThrowableObjectPool.h>
 #include <game_scripts/AimCrosshair.h>
+#include <game_scripts/enemies/EnemySkeleton.h>
 
 #include <GltfScene.h>
 #include <Graphics.h>
@@ -35,6 +37,7 @@
 #include <Fxaa.h>
 
 #include <PersistentData.h>
+#include <text/Text3D.h>
 #include <algorithm>
 
 namespace TutorialThrowingRoomScene {
@@ -47,6 +50,237 @@ public:
 		if (PlayerController::Instance()) {
 			PlayerController::Instance()->SetThrowingUnlocked(true);
 		}
+	}
+};
+
+class TutorialEnemyTouchDamage : public GameObject {
+private:
+	SceneNode* targetNode = nullptr;
+	float damage = 15.0f;
+	float attackRange = 1.35f;
+	float attackCooldown = 1.0f;
+	float attackTimer = 0.0f;
+
+public:
+	void Initialize(SceneNode* targetNode, float damage, float attackRange, float attackCooldown) {
+		this->targetNode = targetNode;
+		this->damage = damage;
+		this->attackRange = attackRange;
+		this->attackCooldown = attackCooldown;
+		this->attackTimer = 0.0f;
+	}
+
+	void Update() {
+		if (!PersistentData::Get<bool>("TutorialThrowingRoom_PlayerTookBottles")) {
+			return;
+		}
+
+		if (this->targetNode == nullptr) {
+			return;
+		}
+
+		if (this->attackTimer > 0.0f) {
+			this->attackTimer -= Time::Delta();
+		}
+
+		float distanceToPlayer = glm::distance(
+			GetNode()->GlobalTransform().Position().Value(),
+			this->targetNode->GlobalTransform().Position().Value()
+		);
+
+		if (distanceToPlayer <= this->attackRange && this->attackTimer <= 0.0f) {
+			if (auto* player = this->targetNode->GetObject<PlayerController>()) {
+				player->TakeDamage(this->damage);
+				this->attackTimer = this->attackCooldown;
+
+				spdlog::info("TutorialEnemyTouchDamage: player took {:.1f} damage", this->damage);
+			}
+		}
+	}
+};
+
+class TutorialThrowingRoomCombatManager : public GameObject {
+private:
+	bool enemiesActivated = false;
+	bool roomCleared = false;
+
+	void ActivateEnemies() {
+		for (EnemyBase* enemy : GetScene()->FindObjectsOfType<EnemyBase>()) {
+			if (enemy != nullptr && enemy->myNode != nullptr) {
+				enemy->OnPlayerEnteredRoom();
+			}
+		}
+
+		this->enemiesActivated = true;
+		spdlog::info("TutorialThrowingRoomCombatManager: enemies activated.");
+	}
+
+public:
+	void Awake() {
+		this->roomCleared = PersistentData::Get<bool>("TutorialThrowingRoom_RoomCleared");
+
+		if (PersistentData::Get<bool>("TutorialThrowingRoom_PlayerTookBottles") && !this->roomCleared) {
+			ActivateEnemies();
+		}
+	}
+
+	void Update() {
+		if (this->roomCleared) {
+			return;
+		}
+
+		if (!this->enemiesActivated) {
+			if (PersistentData::Get<bool>("TutorialThrowingRoom_PlayerTookBottles")) {
+				ActivateEnemies();
+			}
+
+			return;
+		}
+
+		int enemiesAlive = 0;
+
+		for (EnemyBase* enemy : GetScene()->FindObjectsOfType<EnemyBase>()) {
+			if (enemy != nullptr && enemy->myNode != nullptr) {
+				enemiesAlive++;
+			}
+		}
+
+		if (enemiesAlive == 0) {
+			this->roomCleared = true;
+			PersistentData::Set<bool>("TutorialThrowingRoom_RoomCleared", true);
+
+			spdlog::info("TutorialThrowingRoomCombatManager: room cleared.");
+		}
+	}
+};
+
+class TutorialThrowingPromptManager : public GameObject {
+private:
+	Text3D* promptText = nullptr;
+	SceneNode* bottlesNode = nullptr;
+
+	bool playerTookBottles = false;
+	bool playerStartedAiming = false;
+	bool playerReleasedThrow = false;
+	bool roomCleared = false;
+
+	float timePoint = 0.0f;
+
+	float TimeSincePoint() const {
+		return Time::Current() - this->timePoint;
+	}
+
+	void ShowPrompt(const std::string& text, const glm::vec3& position) {
+		this->promptText->SetText(text);
+		this->promptText->GlobalTransform().Position() = position;
+		this->promptText->color.w = glm::clamp(this->promptText->color.w + Time::Delta() * 2.0f, 0.0f, 1.0f);
+	}
+
+public:
+	void Awake() {
+		this->bottlesNode = GetNode()->FindNode("Bottles");
+		this->playerTookBottles = PersistentData::Get<bool>("TutorialThrowingRoom_PlayerTookBottles");
+		this->roomCleared = PersistentData::Get<bool>("TutorialThrowingRoom_RoomCleared");
+
+		TextureParams fontTextureParams = {
+			.channels = TextureChannels::RGB,
+			.colorSpace = TextureColor::Linear,
+			.format = TextureFormat::Ubyte,
+			.wrapU = TextureWrap::Clamp,
+			.wrapV = TextureWrap::Clamp,
+			.minFilter = TextureFilter::Linear,
+			.magFilter = TextureFilter::Linear
+		};
+
+		Texture2D* papyrusAtlas = GetScene()->Resources()->Get<Texture2D>(
+			"./res/fonts/Papyrus/Papyrus-Regular.png",
+			fontTextureParams
+		);
+		Font* papyrusFont = GetScene()->Resources()->Get<Font>(
+			"./res/fonts/Papyrus/Papyrus-Regular.json",
+			papyrusAtlas,
+			true
+		);
+
+		SceneNode* text3dNode = GetScene()->CreateNode("Throwing Tutorial Text 3D");
+		text3dNode->GlobalTransform().Scale() = glm::vec3(0.35f);
+
+		this->promptText = text3dNode->AddObject<Text3D>(" ", papyrusFont);
+		this->promptText->color = {1.2f, 0.3f, 0.0f, 0.0f};
+		this->promptText->billboardMode = BillboardMode::Enabled;
+		this->promptText->SetAlignment(TextAlignment::Middle);
+
+		this->timePoint = Time::Current();
+	}
+
+	void Update() {
+		if (this->promptText == nullptr) {
+			return;
+		}
+
+		bool tookBottlesNow = PersistentData::Get<bool>("TutorialThrowingRoom_PlayerTookBottles");
+		bool roomClearedNow = PersistentData::Get<bool>("TutorialThrowingRoom_RoomCleared");
+
+		if (tookBottlesNow && !this->playerTookBottles) {
+			this->playerTookBottles = true;
+			this->timePoint = Time::Current();
+		}
+
+		if (roomClearedNow && !this->roomCleared) {
+			this->roomCleared = true;
+			this->timePoint = Time::Current();
+		}
+
+		if (!this->playerTookBottles) {
+			glm::vec3 promptPosition = glm::vec3(0.0f, 2.0f, 0.0f);
+
+			if (this->bottlesNode != nullptr) {
+				promptPosition = this->bottlesNode->GlobalTransform().Position().Value() + glm::vec3(0.0f, 1.2f, 0.0f);
+			}
+			else if (PlayerController::Instance()) {
+				promptPosition = PlayerController::Instance()->GlobalTransform().Position().Value() + glm::vec3(0.0f, 1.8f, 0.0f);
+			}
+
+			ShowPrompt("Find the bottles\nPress G to pick them up", promptPosition);
+
+			return;
+		}
+
+		if (PlayerController::Instance() == nullptr) {
+			return;
+		}
+
+		glm::vec3 playerPromptPosition = PlayerController::Instance()->GlobalTransform().Position().Value() + glm::vec3(0.0f, 1.8f, 0.0f);
+
+		if (this->roomCleared) {
+			ShowPrompt("The room is clear\nReturn to the gate", playerPromptPosition);
+			return;
+		}
+
+		if (!this->playerStartedAiming) {
+			ShowPrompt("Hold LMB to aim\nRelease to throw a bottle", playerPromptPosition);
+
+			if (GetScene()->Input()->ButtonPressed(0)) {
+				this->playerStartedAiming = true;
+				this->timePoint = Time::Current();
+			}
+
+			return;
+		}
+
+		if (!this->playerReleasedThrow) {
+			if (GetScene()->Input()->ButtonPressed(0)) {
+				ShowPrompt("Release LMB\nto throw", playerPromptPosition);
+			}
+			else {
+				this->playerReleasedThrow = true;
+				this->timePoint = Time::Current();
+			}
+
+			return;
+		}
+
+		ShowPrompt("Hit the rats\nwith bottles", playerPromptPosition);
 	}
 };
 
@@ -210,6 +444,103 @@ inline void SetupBottlePickup(SceneNode* roomNode) {
 	bottlesNode->AddObject<TutorialBottlePickup>();
 }
 
+inline void CollectNodesByPrefixRecursive(SceneNode* node, const std::string& prefix, std::vector<SceneNode*>& result) {
+	if (!node) {
+		return;
+	}
+
+	if (node->GetName().rfind(prefix, 0) == 0) {
+		result.push_back(node);
+	}
+
+	for (SceneNode* child : node->GetChildren()) {
+		CollectNodesByPrefixRecursive(child, prefix, result);
+	}
+}
+
+inline void AddEnemyModel(Scene& mainScene, SceneNode* enemyNode, const std::string& modelPath, const glm::vec3& scale) {
+	SceneNode* enemyModel = ResourceDatabase::Global->Get<GltfScene>(modelPath)
+		->Instantiate(&mainScene, enemyNode, "EnemyModel");
+
+	enemyModel->LocalTransform().Position() = glm::vec3(0.0f);
+	enemyModel->GlobalTransform().Scale() = scale;
+
+	if (auto* animComp = enemyModel->GetObjectInChildren<AnimationComponent>()) {
+		if (auto* enemy = enemyNode->GetObject<EnemyBase>()) {
+			enemy->SetAttackAnimation(animComp);
+		}
+	}
+}
+
+inline EnemySkeleton* SpawnRatEnemyAt(Scene& mainScene, SceneNode* spawnNode, SceneNode* playerNode, Surface* surface) {
+	glm::vec3 spawnPosition = spawnNode->GlobalTransform().Position().Value();
+
+	SceneNode* enemyNode = mainScene.CreateNode("Enemy Rat");
+	enemyNode->GlobalTransform().Position() = spawnPosition;
+
+	JPH::ShapeRefC enemyShape = new JPH::CapsuleShape(0.35f, 0.7f);
+
+	JPH::BodyCreationSettings enemySettings(
+		enemyShape,
+		JPH::RVec3(spawnPosition.x, spawnPosition.y + 0.8f, spawnPosition.z),
+		JPH::Quat::sIdentity(),
+		JPH::EMotionType::Dynamic,
+		Physics::Layers::MOVING
+	);
+
+	Physics::Body* enemyBody = enemyNode->AddObject<Physics::Body>(enemySettings);
+	enemyBody->SetRestitution(0.0f);
+	enemyBody->SetFriction(0.8f);
+	enemyBody->SetCollisionLayerAndMask({1}, {0});
+
+	EnemySkeleton* enemyAi = enemyNode->AddObject<EnemySkeleton>();
+	enemyAi->SetTargetNode(playerNode);
+	enemyAi->SetAttackCooldown(1.2f);
+	enemyAi->attackRange = 1.5f;
+
+	if (surface != nullptr) {
+		enemyAi->SetSurface(surface);
+		enemyAi->SetRoomID(surface->GetID());
+		surface->AddEnemy(enemyAi);
+	}
+
+	AddEnemyModel(
+		mainScene,
+		enemyNode,
+		"./res/models/enemy/rat6.glb",
+		glm::vec3(1.0f)
+	);
+
+	enemyNode->AddObject<TutorialEnemyTouchDamage>()->Initialize(
+		playerNode,
+		15.0f,
+		1.35f,
+		1.0f
+	);
+
+	return enemyAi;
+}
+
+inline void SpawnTutorialEnemies(Scene& mainScene, SceneNode* roomNode, SceneNode* playerNode, Surface* surface) {
+	if (PersistentData::Get<bool>("TutorialThrowingRoom_RoomCleared")) {
+		spdlog::info("TutorialThrowingRoomScene: room already cleared, skipping enemies.");
+		return;
+	}
+
+	std::vector<SceneNode*> ratSpawns;
+
+	CollectNodesByPrefixRecursive(roomNode, "ENEMY_SPAWN_Rat", ratSpawns);
+
+	for (SceneNode* spawnNode : ratSpawns) {
+		SpawnRatEnemyAt(mainScene, spawnNode, playerNode, surface);
+	}
+
+	spdlog::info(
+		"TutorialThrowingRoomScene: spawned rat enemies={}",
+		ratSpawns.size()
+	);
+}
+
 inline void InitScene(Scene& mainScene) {
 	mainScene.AddComponent<Physics::System>();
 	mainScene.AddComponent<DebugInspector>();
@@ -227,7 +558,7 @@ inline void InitScene(Scene& mainScene) {
 		"./res/models/rooms/TutorialThrowingRoom.glb"
 	)->Instantiate(&mainScene, mainScene.root, "Tutorial Throwing Room");
 
-	AddRoomPhysicsAndSurface(roomNode);
+	Surface* surface = AddRoomPhysicsAndSurface(roomNode);
 
 	ShaderProgram* skyProg = ShaderProgram::Build()
 	.WithVertexShader(("./res/shaders/skybox.vert"))
@@ -250,6 +581,9 @@ inline void InitScene(Scene& mainScene) {
 	AddRoomLights(roomNode);
 
 	SetupBottlePickup(roomNode);
+
+	roomNode->AddObject<TutorialThrowingPromptManager>();
+	roomNode->AddObject<TutorialThrowingRoomCombatManager>();
 #pragma endregion
 
 #pragma region Player
@@ -281,15 +615,19 @@ inline void InitScene(Scene& mainScene) {
 	virtualCharacter->SetPosition(playerNode->GlobalTransform().Position().Value());
 	virtualCharacter->SetGravityFactor(1);
 
-	ResourceDatabase::Global->Get<GltfScene>("./res/models/crosshair.glb")
-		->Instantiate(&mainScene, playerNode, "Aim Reticle")
-		->AddObject<AimCrosshair>();
+	SceneNode* aimReticle = ResourceDatabase::Global->Get<GltfScene>("./res/models/crosshair.glb")
+		->Instantiate(&mainScene, playerNode, "Aim Reticle");
+
+	aimReticle->AddObject<AimCrosshair>();
+	aimReticle->SetEnabled(PersistentData::Get<bool>("TutorialThrowingRoom_PlayerTookBottles"));
 
 	auto* player = playerNode->AddObject<PlayerController>();
 
 	player->SetThrowingUnlocked(
 		PersistentData::Get<bool>("TutorialThrowingRoom_PlayerTookBottles")
 	);
+
+	SpawnTutorialEnemies(mainScene, roomNode, playerNode, surface);
 #pragma endregion
 
 #pragma region Camera
