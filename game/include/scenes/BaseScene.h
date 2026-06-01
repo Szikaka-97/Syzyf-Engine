@@ -45,6 +45,10 @@
 #include <PersistentData.h>
 #include <text/Text3D.h>
 
+#include <Application.h>
+#include <algorithm>
+#include "TutorialThrowingRoomScene.h"
+
 namespace BaseScene {
 
 class GateKey : public PickableItem {
@@ -53,43 +57,97 @@ class GateKey : public PickableItem {
 	}
 };
 
+inline int GetBasePointLightIndex(const std::string& name) {
+	const std::string prefix = "PointLight.";
+
+	if (name.rfind(prefix, 0) != 0) {
+		return 999999;
+	}
+
+	std::string numberText = name.substr(prefix.size());
+
+	try {
+		return std::stoi(numberText);
+	}
+	catch (...) {
+		return 999999;
+	}
+}
+
+inline void CollectBasePointLightsRecursive(SceneNode* node, std::vector<SceneNode*>& pointLights) {
+	if (!node) {
+		return;
+	}
+
+	std::string nodeName = node->GetName();
+
+	if (nodeName.rfind("PointLight", 0) == 0) {
+		pointLights.push_back(node);
+	}
+
+	for (SceneNode* child : node->GetChildren()) {
+		CollectBasePointLightsRecursive(child, pointLights);
+	}
+}
+
 class BaseLights : public GameObject {
 private:
 	std::vector<Light*> lights;
+	std::vector<float> baseIntensities;
+
 public:
 	void Awake() {
-		int index = 0;
-		SceneNode* lightNode = GetNode()->FindNode(std::format("Light.{:03}", index));
-		while (lightNode) {
-			SceneNode* lightPointNode = lightNode->FindNode(std::format("PointLight.{:03}", index));
-	
-			this->lights.push_back(lightPointNode->AddObject<Light>(Light::PointLight(glm::vec3(1, 0.5f, 0.1f), 10, 3)));
-	
-			index++;
-			
-			lightNode = GetNode()->FindNode(std::format("Light.{:03}", index));
+		std::vector<SceneNode*> pointLightNodes;
+
+		CollectBasePointLightsRecursive(GetNode(), pointLightNodes);
+
+		std::sort(pointLightNodes.begin(), pointLightNodes.end(), [](SceneNode* a, SceneNode* b) {
+			return GetBasePointLightIndex(a->GetName()) < GetBasePointLightIndex(b->GetName());
+		});
+
+		for (SceneNode* pointLightNode : pointLightNodes) {
+			Light* light = nullptr;
+
+			if (!pointLightNode->TryGetObject<Light>(light)) {
+				light = pointLightNode->AddObject<Light>(
+					Light::PointLight(
+						glm::vec3(1.0f, 0.5f, 0.1f),
+						10.0f,
+						0.0f,
+						0.09f,
+						0.032f
+					)
+				);
+			}
+
+			this->lights.push_back(light);
+			this->baseIntensities.push_back(3.0f);
 		}
+
+		spdlog::info("BaseLights: prepared {} point lights.", this->lights.size());
 	}
 
 	void Update() {
-		int index = 0;
-
 		float lightsOnTime = PersistentData::Get<float>("Base_TurnLightsOn");
 
-		for (Light* l : this->lights) {
-			l->SetIntensity(3 + glm::sin(Time::Current() * (0.6 + (l->GetID() % 4) * 0.15) + l->GetID() * 4) * 0.5f);
+		for (int index = 0; index < this->lights.size(); index++) {
+			Light* light = this->lights[index];
+			float flicker = glm::sin(Time::Current() * (0.6f + (light->GetID() % 4) * 0.15f) + light->GetID() * 4.0f) * 0.5f;
+			float targetIntensity = this->baseIntensities[index] + flicker;
+			float turnOnAmount = 1.0f;
 
 			if (index >= 2) {
-				if (lightsOnTime != 0) {
-					float intens = l->GetIntensity();
-					l->SetIntensity(intens * glm::clamp(Time::Current() - lightsOnTime, 0.f, 1.f));
+				if (lightsOnTime == 0.0f) {
+					turnOnAmount = 0.0f;
 				}
 				else {
-					l->SetIntensity(0);
+					float sequenceDelay = float(index - 2) * 0.25f;
+					float fadeDuration = 0.6f;
+					turnOnAmount = glm::clamp((Time::Current() - lightsOnTime - sequenceDelay) / fadeDuration, 0.0f, 1.0f);
 				}
 			}
 
-			index++;
+			light->SetIntensity(targetIntensity * turnOnAmount);
 		}
 	}
 };
@@ -320,6 +378,45 @@ public:
 	}
 };
 
+class BaseExitToTutorialThrowingRoom : public GameObject {
+private:
+	bool sceneRequested = false;
+	glm::vec3 triggerPosition = glm::vec3(1.6686f, 0.0f, 20.0f);
+	float triggerRadius = 2.5f;
+
+public:
+	void Awake() {
+		SceneNode* triggerNode = GetNode()->FindNode("NextRoom");
+
+		if (triggerNode) {
+			this->triggerPosition = triggerNode->GlobalTransform().Position().Value();
+		}
+	}
+
+	void Update() {
+		if (this->sceneRequested) {
+			return;
+		}
+
+		if (!PersistentData::Get<bool>("Base_PlayerPickedUpKey")) {
+		 	return;
+                }
+
+                float distanceToTrigger = glm::distance(
+                        PlayerController::Instance()->GlobalTransform().Position().Value(),
+                        this->triggerPosition
+                );
+
+                if (distanceToTrigger < this->triggerRadius) {
+                        this->sceneRequested = true;
+
+                        Application::Get()->RequestSceneBuild(
+                        [](Scene* s) { TutorialThrowingRoomScene::InitScene(*s); }
+                        );
+                }
+        }
+};
+
 inline void InitScene(Scene& mainScene) {
 	mainScene.AddComponent<Physics::System>();
 	mainScene.AddComponent<DebugInspector>();
@@ -376,6 +473,7 @@ inline void InitScene(Scene& mainScene) {
 	floorNode->AddObject<BaseScript>();
 	floorNode->AddObject<BaseLights>();
 	floorNode->AddObject<BaseTutorialManager>();
+        floorNode->AddObject<BaseExitToTutorialThrowingRoom>();
 #pragma endregion
 
 #pragma region Player
