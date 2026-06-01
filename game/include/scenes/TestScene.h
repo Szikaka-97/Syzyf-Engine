@@ -62,6 +62,7 @@
 #include <ui/systems/UiSystem.h>
 #include <Formatters.h>
 #include <game_scripts/ThrowableObjectPool.h>
+#include "game_scripts/enemies/MeleeSkeleton.h"
 
 #include "Jolt/Math/Vec3.h"
 #include "text/Text3D.h"
@@ -223,12 +224,12 @@ inline void InitScene(Scene& mainScene) {
 
 	SceneNode* enemy1 = mainScene.CreateNode("Enemy 1");
    // enemy1->GlobalTransform().Position() = glm::vec3(10.5f, 0.0f, -5.0f);
-        enemy1->GlobalTransform().Scale() = glm::vec3(0.5f, 0.5f, 0.5f);
+      //  enemy1->GlobalTransform().Scale() = glm::vec3(0.5f, 0.5f, 0.5f);
         enemy1->GlobalTransform().Position() = glm::vec3(15.f, 1.5f, 0.f);
     Physics::Body* enemyBody1 = enemy1->AddObject<Physics::Body>(enemySettings);
     enemyBody1->SetRestitution(0.0f);
     enemyBody1->SetCollisionLayerAndMask({1}, 0xFFFFFFFF);
-    auto* enemyAi1 = enemy1->AddObject<EnemySkeleton>();
+    auto* enemyAi1 = enemy1->AddObject<MeleeSkeleton>();
     enemyAi1->SetSurface(surface);
     enemyAi1->SetTargetNode(player->GetNode());
     enemyAi1->SetProjectileResources(cubeMesh, enemyMat);
@@ -238,10 +239,23 @@ inline void InitScene(Scene& mainScene) {
     enemyAi1->SetCapsuleVisualOffset(0.5f, 1.0f);
 
     
-    SceneNode* enemyModel = ResourceDatabase::Global->Get<GltfScene>("./res/models/szkielet6.glb")->Instantiate(&mainScene, mainScene.root, "EnemyModel");
+    SceneNode* enemyModel = ResourceDatabase::Global->Get<GltfScene>("./res/models/enemies/szkielet4.glb")->Instantiate(&mainScene, mainScene.root, "EnemyModel");
     enemyModel->SetParent(enemy1);
-    enemyModel->GlobalTransform().Scale() = glm::vec3(0.1,0.1,0.1);
+   // enemyModel->GlobalTransform().Scale() = glm::vec3(0.1,0.1,0.1);
     enemyModel->LocalTransform().Position() = glm::zero<glm::vec3>();
+
+    auto* animComp = enemyModel->GetObjectInChildren<AnimationComponent>();
+    if (animComp) {
+        spdlog::info(
+            "Found AnimationComponent in enemy model, animations count: {}",
+            animComp->animations.size());
+    } else {
+        spdlog::warn("No AnimationComponent found in enemy model");
+    }
+
+    if (animComp) {
+        enemyAi1->SetAttackAnimation(animComp);
+    }
     
 #pragma endregion
 #pragma region UI

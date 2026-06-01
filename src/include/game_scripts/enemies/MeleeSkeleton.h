@@ -20,14 +20,14 @@ class MeleeSkeleton : public EnemyBase {
 MeleeSkeleton() : EnemyBase() {
 	this->attackRange = 1.0f;
 
-	auto* hand = GetNode()->FindNode("EnemyModel/rig.001_deform/Cube.015");
+	/*auto* hand = GetNode()->FindNode("EnemyModel/rig.001_deform/Cube.015");
 
 	if (hand) {
 		sword = hand->AddObject<EnemySword>();
 	}
 	else {
 		spdlog::warn("MeleeSkeleton: could not find hand node for attack animation");
-	}
+	}*/
 
 };
 	void StartAttack();

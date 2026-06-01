@@ -757,6 +757,8 @@ void SceneGraphics::RenderMask(const RenderParams& params, Framebuffer* target) 
     glBindFramebuffer(GL_FRAMEBUFFER, target->GetHandle());
     glViewport(params.viewport.x, params.viewport.y, params.viewport.z, params.viewport.w);
 
+	glDisable(GL_DITHER);
+
     GLuint clearColor[4] = { 0, 0, 0, 0 };
     glClearBufferuiv(GL_COLOR, 1, clearColor);
     glClear(GL_DEPTH_BUFFER_BIT);
@@ -785,6 +787,7 @@ void SceneGraphics::RenderMask(const RenderParams& params, Framebuffer* target) 
         glDrawElements(render.mesh->GetDrawMode(), render.mesh->GetVertexCount(), GL_UNSIGNED_INT, nullptr);
         
     }
+	glEnable(GL_DITHER);
 
     glBindVertexArray(0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
