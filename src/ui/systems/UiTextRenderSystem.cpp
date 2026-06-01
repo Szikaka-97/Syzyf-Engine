@@ -95,6 +95,13 @@ void UiTextRenderSystem::OnPreRender() {
                             xOffset,
                             charsInCurrentLine
                         });
+
+                        startingChar += charsInCurrentLine;
+
+                        xOffset = 0.0f;
+                        charsInCurrentLine = 0;
+
+                        continue;
                     }
                 }
 
