@@ -3,6 +3,10 @@
 
 #include <glm/glm.hpp>
 
+#ifndef SYZYF_ENEMY_DEBUG_DRAW
+#define SYZYF_ENEMY_DEBUG_DRAW 0
+#endif
+
 
   void EnemySkeleton::Update() {
 
@@ -75,5 +79,7 @@
         break;
     }
 
+#if SYZYF_ENEMY_DEBUG_DRAW
     DrawDebugView();
+#endif
   }
