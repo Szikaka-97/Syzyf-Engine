@@ -50,10 +50,15 @@
         buildInputs = with pkgs; [
           zlib
           libffi
+          libclang
         ] ++ runtimeLibs;
 
         shellHook = ''
           export LD_LIBRARY_PATH=${pkgs.lib.makeLibraryPath runtimeLibs}:$LD_LIBRARY_PATH
+
+          export CPLUS_INCLUDE_PATH=$(clang++ -E -x c++ - -v < /dev/null 2>&1 | awk '/#include <...>/ {flag=1; next} /End of search list/ {flag=0} flag {print $1}' | tr '\n' ':' | sed 's/:$//')
+
+          export LIBCLANG_LIBRARY_PATH="${pkgs.lib.getLib pkgs.libclang}/lib"
         '';
       };
     };
