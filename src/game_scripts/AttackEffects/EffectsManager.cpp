@@ -2,6 +2,7 @@
 
 #include "./include/game_scripts/AttackEffects/EffectBase.h"
 #include "./include/game_scripts/enemies/EnemyBullet.h"
+#include "GltfScene.h"
 #include <TimeSystem.h>
 #include <glm/glm.hpp>
 #include <spdlog/spdlog.h>
@@ -39,8 +40,9 @@ void EffectFire::OnInit() {
     Mesh* mesh = scene->Resources()->Get<Mesh>("./res/models/effects/fire1.glb");
     SetEffectRenderer(mesh, mat);*/
 
-    auto* importer = GltfImporter::LoadScene(this->GetScene(),"./res/models/effects/fire1.glb", "fire anim");
-     importer->SetParent(GetNode());
+    auto* importer = GetScene()->Resources()->Get<GltfScene>("./res/models/effects/fire1.glb");
+    importer->Instantiate(GetScene(), GetNode(), "fire anim");
+    
     AnimationComponent* anim = GetNode()->GetObjectInChildren<AnimationComponent>();
     if (anim) {
         spdlog::info("EffectFire::OnInit: znaleziono AnimationComponent, odtwarzanie animacji");
