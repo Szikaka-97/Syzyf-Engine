@@ -20,7 +20,7 @@ public:
   ~GltfScene();
   SceneNode* Instantiate(Scene* scene, SceneNode* parent = nullptr, std::string name = "");
 private:
-  std::string filename;
+  fs::path filePath;
   std::unique_ptr<fastgltf::Asset> asset;
   std::vector<Mesh*> meshes;
   std::vector<Material*> materials;
@@ -41,4 +41,6 @@ private:
 	virtual uint64_t GetHash() const override;
 public:
   std::vector<Mesh*> GetMeshes();
+
+  void GetAnimationData(AnimationComponent::Animation& animation);
 };

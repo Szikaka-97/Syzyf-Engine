@@ -119,7 +119,7 @@ GltfScene* GltfScene::Load(const fs::path path) {
   }
   
   GltfScene* model = new GltfScene();
-  model->filename = path.stem().string();
+  model->filePath = path;
   model->asset = std::make_unique<fastgltf::Asset>(std::move(expectedAsset.get()));
   model->isSkinned = !model->asset->skins.empty();
 
@@ -145,7 +145,7 @@ GltfScene* GltfScene::Load(const fs::path path) {
 SceneNode* GltfScene::Instantiate(Scene* scene, SceneNode* parent, std::string name) {
   std::string rootName = name;
   if (rootName.empty()) {
-      rootName = this->filename;
+      rootName = this->filePath.stem().string();
   }
 
 
@@ -202,6 +202,8 @@ SceneNode* GltfScene::Instantiate(Scene* scene, SceneNode* parent, std::string n
     for (auto& gltfAnimation : asset->animations) {
       auto animation = LoadAnimation(sceneNodes, gltfAnimation, *asset);
       if (animation.has_value()) {
+        animation->participants = sceneNodes;
+        animation->source = this->filePath;
         animationComponent->animations.push_back(std::move(animation.value()));
       } else {
         continue;
@@ -928,7 +930,7 @@ std::vector<Material*> GltfScene::LoadMaterials(fastgltf::Asset& asset, bool isS
 }
 
 fs::path GltfScene::GetPath() const {
-  return "";
+  return this->filePath;
 }
 uint64_t GltfScene::GetHash() const {
   return 0;
@@ -936,4 +938,92 @@ uint64_t GltfScene::GetHash() const {
 
 std::vector<Mesh*> GltfScene::GetMeshes() {
   return this->meshes;
+}
+
+void GltfScene::GetAnimationData(AnimationComponent::Animation& animation) {
+  auto animationSearch = std::find_if(this->asset->animations.begin(), this->asset->animations.end(), [animation](const fastgltf::Animation& item) -> bool {
+    return std::string(item.name) == animation.data.name;
+  });
+
+  if (animationSearch == this->asset->animations.end()) {
+    return;
+  }
+
+  fastgltf::Animation& gltfAnimation = *animationSearch;
+
+  animation.currentKeyframes.resize(gltfAnimation.channels.size());
+  
+  for (std::size_t i = 0; i < gltfAnimation.channels.size(); ++i) {
+    fastgltf::AnimationChannel& channel = gltfAnimation.channels[i];
+    
+    if (!channel.nodeIndex.has_value()) {
+      spdlog::warn("GltfScene: Tried loading an animation track without missing target node");
+    }
+
+    AnimationComponent::Track track;
+    track.target = animation.participants[channel.nodeIndex.value()];
+
+    switch (channel.path) {
+      case fastgltf::AnimationPath::Rotation: track.property = AnimationComponent::Property::ROTATION; break;
+      case fastgltf::AnimationPath::Scale: track.property = AnimationComponent::Property::SCALE; break;
+      case fastgltf::AnimationPath::Translation: track.property = AnimationComponent::Property::POSITION; break;
+      case fastgltf::AnimationPath::Weights: track.property = AnimationComponent::Property::WEIGHTS; break;
+    }
+
+    fastgltf::AnimationSampler& sampler = gltfAnimation.samplers[channel.samplerIndex];
+
+    switch (sampler.interpolation) {
+      case fastgltf::AnimationInterpolation::CubicSpline: track.interpolation = AnimationComponent::Interpolation::CUBICSPLINE; break;
+      case fastgltf::AnimationInterpolation::Linear: track.interpolation = AnimationComponent::Interpolation::LINEAR; break;
+      case fastgltf::AnimationInterpolation::Step: track.interpolation = AnimationComponent::Interpolation::STEP; break;
+    }
+    
+    auto& inputAccessor = this->asset->accessors[sampler.inputAccessor];
+    if (!inputAccessor.bufferViewIndex.has_value()) {
+      spdlog::warn("GltfScene: Tried loading an animation track with missing input data");
+      continue;
+    }
+
+    const float maxInput = static_cast<float>(inputAccessor.max->get<double>(0));
+    if (animation.data.duration < maxInput) {
+      animation.data.duration = maxInput; 
+    }
+
+    track.inputs.resize(inputAccessor.count);
+    fastgltf::iterateAccessorWithIndex<float>(*this->asset, inputAccessor, [&](float input, std::size_t index) {
+      track.inputs[index] = input;
+    });
+
+    auto& outputAccessor = this->asset->accessors[sampler.outputAccessor];
+    if (!outputAccessor.bufferViewIndex.has_value()) {
+      spdlog::warn("GltfScene: Tried loading an animation track with missing output data");
+      continue;
+    }
+
+    if (track.property == AnimationComponent::Property::POSITION
+        || track.property == AnimationComponent::Property::SCALE) {
+      track.outputs.resize(outputAccessor.count * 3);
+      fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec3>(*this->asset, outputAccessor, [&](fastgltf::math::fvec3 output, std::size_t index) {
+        track.outputs[index * 3] = output.x();
+        track.outputs[index * 3 + 1] = output.y();
+        track.outputs[index * 3 + 2] = output.z();
+      });
+    } else if (track.property == AnimationComponent::Property::ROTATION) {
+      track.outputs.resize(outputAccessor.count * 4);
+      fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec4>(*this->asset, outputAccessor, [&](fastgltf::math::fvec4 output, std::size_t index) {
+        track.outputs[index * 4] = output.x();
+        track.outputs[index * 4 + 1] = output.y();
+        track.outputs[index * 4 + 2] = output.z();
+        track.outputs[index * 4 + 3] = output.w();
+      });
+    } else {
+      track.outputs.resize(outputAccessor.count);
+      fastgltf::iterateAccessorWithIndex<float>(*this->asset, outputAccessor, [&](float output, std::size_t index) {
+        track.outputs[index] = output;
+      });
+    }
+
+    // maybe resize at the start idk dnsfdafdfnkjdsabfksavsa
+    animation.data.tracks.push_back(track);
+  }
 }

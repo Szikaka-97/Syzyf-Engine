@@ -60,6 +60,9 @@ namespace Serialization {
 	template<>
 	glm::mat4 Deserialize(const json& json_node);
 
+	template<>
+	std::filesystem::path Deserialize(const json& json_node);
+
 	json Serialize(const glm::vec2& v);
 	json Serialize(const glm::vec3& v);
 	json Serialize(const glm::vec4& v);
@@ -74,6 +77,8 @@ namespace Serialization {
 	
 	json Serialize(const glm::mat3& v);
 	json Serialize(const glm::mat4& v);
+
+	json Serialize(const std::filesystem::path& v);
 };
 
 template <typename T>

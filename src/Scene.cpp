@@ -3,6 +3,7 @@
 #include <malloc.h>
 #include <algorithm>
 #include <stack>
+#include <string>
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/matrix_access.hpp>
@@ -18,7 +19,7 @@
 
 GameObject* MessagingHelpers_AddObjectToNode(SceneNode* node, const std::string& objectName); // Trust me bro
 SceneComponent* MessagingHelpers_AddComponentToScene(Scene* scene, const std::string& objectName); // Trust me sis
-GameObject* MessagingHelpers_AttachObjectToNode(SceneNode* node, GameObject* obj);
+void MessagingHelpers_AttachObjectToNode(SceneNode* node, GameObject* obj);
 
 
 SceneNode::SceneNode(Scene* scene):

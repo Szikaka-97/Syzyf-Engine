@@ -16,7 +16,9 @@
 #include <unordered_set>
 
 Surface::Surface(Mesh* floorMesh, float cellSize)
-    : floorMesh(floorMesh), cellSize(cellSize), m_playerInside(false) {
+    : floorMesh(floorMesh), cellSize(cellSize), m_playerInside(false) { }
+
+void Surface::Awake() {
     if (!floorMesh || floorMesh->GetSubMeshCount() == 0) {
        // spdlog::error("Surface: No valid mesh provided or mesh has no submeshes");
         return;

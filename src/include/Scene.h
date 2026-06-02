@@ -43,11 +43,11 @@ private:
 	SceneTransform transform;
 
 	SceneNode(Scene* scene);
-	SceneNode() = delete;
 
 	void RecalculateTransform();
 public:
 	~SceneNode();
+	SceneNode() = default;
 
 	SceneTransform& GetTransform();
 	SceneTransform::TransformAccess& LocalTransform();

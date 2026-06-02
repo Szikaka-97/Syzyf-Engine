@@ -59,6 +59,8 @@ SIMPLE_TYPES = [
 	"unsigned short",
 	"int",
 	"unsigned int",
+	"unsigned long long",
+	"long long",
 	"bool",
 	"float",
 	"double",
@@ -68,8 +70,12 @@ SIMPLE_TYPES = [
 
 
 INTRINSIC_SERIALIZERS = {
+	"glm::vec<2, float>": "glm::vec2",
 	"glm::vec<3, float>": "glm::vec3",
-	"glm::vec<4, float>": "glm::vec4"
+	"glm::vec<4, float>": "glm::vec4",
+	"glm::mat<3, 3, float>": "glm::mat3",
+	"glm::mat<4, 4, float>": "glm::mat4",
+	"std::filesystem::path": "std::filesystem::path"
 }
 
 
@@ -247,17 +253,21 @@ def write_array_serializer(writer: CodeWriter, field: CppField, lhs: str) -> Non
 	writer.line()
 
 	decorated_element_type = CppType.get_type(field.type).template_args[0]
-	element_type = CppType.get_type(decorated_element_type.type)
+
+	if is_simple_type(decorated_element_type.type):
+		element_type = decorated_element_type.type
+	else:
+		element_type = CppType.get_type(decorated_element_type.type)
 
 	writer.line("for (auto& element : sourceArray) {")
 	writer.more_indent()
 
 	if is_simple_type(element_type):
 		writer.line(f"resultArray.push_back(element);")
+	elif element_type.is_enum():
+		writer.line(f"resultArray.push_back(({get_enum_type(element_type)}) element);")
 	else:
-		if element_type.is_enum():
-			writer.line(f"resultArray.push_back(({get_enum_type(element_type)}) element);")
-		elif is_array_type(element_type):
+		if is_array_type(element_type):
 			# write_array_serializer(writer, field, lhs)
 			print(f"\tWARN: Nested arrays aren't supported yet: {field.name}")
 			pass
@@ -367,7 +377,7 @@ def write_array_deserializer(writer: CodeWriter, field: CppField, lhs: str) -> N
 
 	element_type: CppModifiedType = CppType.get_type(field.type).template_args[0]
 
-	writer.line(f"std::vector<{element_type.type + " *" if element_type.is_pointer else ""}>* dest = new((std::vector<{element_type.type}> *) (raw + {offset_str})) std::vector<{element_type.type + " *" if element_type.is_pointer else ""}>();")
+	writer.line(f"std::vector<{element_type.type + (" *" if element_type.is_pointer else "")}>* dest = new((std::vector<{element_type.type}> *) (raw + {offset_str})) std::vector<{element_type.type + (" *" if element_type.is_pointer else "")}>();")
 	writer.line("int i = 0;")
 
 	writer.line()
@@ -390,6 +400,7 @@ def write_array_deserializer(writer: CodeWriter, field: CppField, lhs: str) -> N
 			writer.line(f"dest->push_back(Serialization::Deserialize<{thing_type.name}>(element));")
 		elif not element_type.is_pointer:
 			if element_type.type in serialized_types:
+				writer.line("dest->push_back({});")
 				writer.line(f"InternalDeserialize{sanitize_class_name(thing_type.name)}On(&dest->operator[](i), data[\"{field.name}\"][i]);")
 			else:
 				print(f"WARN: Deserializing array of non-serializable type {thing_type.name}")

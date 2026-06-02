@@ -46,7 +46,11 @@ void* InternalDeserializeObject(const json& data) {
 	for (const auto& object : data) {
 		deserializedObjects.push_back({ InternalConstructObject(object["_class_name"], buffer), object["_class_name"] });
 
+		spdlog::warn("HERE");
+
 		size_t objectSize = TypeInfo::GetTypeInfo(object["_class_name"]).size;
+
+		spdlog::warn("PAST HERE");
 
 		if (objectSize % alignment != 0) {
 			objectSize += alignment - (objectSize % alignment);
@@ -229,6 +233,12 @@ glm::mat4 Serialization::Deserialize(const json& json_node) {
 	return result;
 }
 
+template<>
+std::filesystem::path Serialization::Deserialize(const json& json_node) {
+	return std::filesystem::path(json_node.get<std::string>());
+}
+
+
 json Serialization::Serialize(const glm::vec2& v) {
 	json result;
 
@@ -349,6 +359,10 @@ json Serialization::Serialize(const glm::mat4& v) {
 	result["_33"] = v[3][3];
 
 	return result;
+}
+
+json Serialization::Serialize(const std::filesystem::path& v) {
+	return v.string().c_str();
 }
 
 void* InternalConstructObject(const std::string& objectName, void* location) {

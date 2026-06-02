@@ -10,7 +10,7 @@
 #include <spdlog/spdlog.h>
 #include <glm/gtc/matrix_inverse.hpp>
 
-Mirror::Mirror(Mesh* mesh) {
+void Mirror::Awake() {
   SceneNode* rootNode = this->GetScene()->CreateNode(this->GetNode());
   this->cameraNode = this->GetScene()->CreateNode(rootNode);
   cameraNode->AddObject<Camera>(Camera::Perspective(
@@ -37,9 +37,9 @@ Mirror::Mirror(Mesh* mesh) {
   this->material->SetValue("uColor", glm::vec3(1, 1, 1));
   this->material->SetValue("colorTex", (Texture2D*) this->viewport.GetFramebuffer()->GetColorTexture());
 
-  auto* mirrorMesh = this->GetScene()->CreateNode(this->GetNode(), "Mirror Mesh");
-  mirrorMesh->AddObject<MeshRenderer>(mesh, this->material);
-  mirrorMesh->SetLayer(1);
+  auto* mirrorMesh = GetNode()->GetObjectInChildren<MeshRenderer>();
+  mirrorMesh->SetMaterial(this->material);
+  mirrorMesh->GetNode()->SetLayer(1);
 }
 
 void Mirror::Update() {
