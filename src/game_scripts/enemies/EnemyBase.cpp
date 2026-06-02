@@ -2,6 +2,7 @@
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
 #include <MeshRenderer.h>
 #include <TimeSystem.h>
+#include "Surface.h" 
 #include <physics/LayerMaskFilter.h>
 
 #include "./include/game_scripts/enemies/EnemyBase.h"
@@ -26,7 +27,6 @@ EnemyBase::EnemyBase()
 EnemyBase::~EnemyBase() {}
 
 void EnemyBase::Awake() {
-        // przesuñ wszystkie dzieci-modele w dó³ o offset kapsu³y
         if (m_VisualOffset == 0.0f) return;
         for (auto* child : GetNode()->GetChildren()) {
             child->LocalTransform().Position() += glm::vec3(0.f, m_VisualOffset, 0.f);
@@ -180,9 +180,6 @@ void EnemyBase::PlayAttackAnimation(std::string name) {
 void EnemyBase::OnPlayerEnteredRoom() { isPlayerInRoom = true; }
 
 void EnemyBase::OnPlayerExitedRoom() {
-  m_UsingAStar = false;
-  m_Path.clear();
-  m_StuckTimer = 0.0f;
   isPlayerInRoom = false;
 }
 
@@ -231,14 +228,6 @@ void EnemyBase::DrawDebugView() {
         JPH::Vec3(arcPoints[i].x, arcPoints[i].y, arcPoints[i].z),
         JPH::Vec3(arcPoints[i + 1].x, arcPoints[i + 1].y, arcPoints[i + 1].z),
         JPH::Color::sPurple);
-  }
-  if (m_Path.size() >= 2) {
-    for (size_t i = 0; i < m_Path.size() - 1; ++i) {
-      debugRenderer->DrawLine(
-          JPH::Vec3(m_Path[i].x, m_Path[i].y + 0.2f, m_Path[i].z),
-          JPH::Vec3(m_Path[i + 1].x, m_Path[i + 1].y + 0.2f, m_Path[i + 1].z),
-          JPH::Color::sYellow);
-    }
   }
 }
 
@@ -313,4 +302,8 @@ void EnemyBase::UpdateStatusEffects() {
         }
     }
 }
+void EnemyBase::DirectChaseWithFlock(const glm::vec3& /*flockForce*/) {
+    DirectChase();   // fallback: ignoruje flocking
+}
+
  

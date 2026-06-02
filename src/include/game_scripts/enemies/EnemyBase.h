@@ -1,7 +1,7 @@
 #pragma once
 
 #include "./include/game_scripts/enemies/AiSimplified.h"
-
+#include "./include/game_scripts/enemies/FlockingSystem.h"
 #include <./include/game_scripts/enemies/loot/LootPool.h>
 #include <typeindex>
 
@@ -52,8 +52,9 @@ private:
  
 protected:
     void UpdateStatusEffects();
-    
+    virtual void DirectChaseWithFlock(const glm::vec3& flockForce);
     float m_AttackCooldown;
+    FlockingSystem * m_FlockingSystem = nullptr;    
 public:
     EnemyBase();
     ~EnemyBase();
@@ -100,4 +101,16 @@ public:
     bool IsPetrified() const { return m_Petrify.active; }
     bool IsBurning()   const { return m_Burn.active;    }
     bool IsConfused()  const { return m_Confuse.active; }
+
+    void RegisterToFlockingSystem(FlockingSystem* system) {
+        m_FlockingSystem = system;
+        if (system) system->Register(this);
+    }
+
+    void UnregisterFromFlockingSystem() {
+        if (m_FlockingSystem) {
+            m_FlockingSystem->Unregister(this);
+            m_FlockingSystem = nullptr;
+        }
+    }
 };

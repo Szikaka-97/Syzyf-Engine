@@ -1,89 +1,69 @@
-#pragma once
+#pragma once  
 
-#include <GameObject.h>
-#include <Debug.h>
-#include "physics/Body.h"
-#include <Surface.h>
-#include <vector>
+#include <GameObject.h>  
+#include <Debug.h>  
+#include "physics/Body.h"  
+#include <vector>  
 #include <glm/vec3.hpp>
-#include "astar/NavigationGrid.h"
-#include "physics/DebugRenderer.h"
-#include "Mesh.h"
+#include "physics/DebugRenderer.h"  
+#include "Mesh.h"  
+#include "Surface.h" 
 
-///pathfinding and movement
+class AiSimplified : public GameObject {  
+private:  
+   float m_Speed         = 5.0f;  
+   float m_RotationSpeed = 2.0f;  
+   float m_PatrolTimeout = 0.0f;  
+   //
+   std::vector<glm::vec3> m_PatrolPoints;  
+   int       m_PosIndex    = 0;  
+   glm::vec3 m_WalkPoint   = {};  
+   bool      m_WalkPointSet = false;  
 
+   glm::vec3 m_AvoidForce    = {};   
+   int       m_AvoidFrameCtr = 0;    
 
-class AiSimplified : public GameObject {
-private:
-    float m_Speed;               
-    float m_RotationSpeed;  
-    //float CalculateDistance(glm::vec3 current, glm::vec3 target);
-    float m_PatrolTimeout;
-	std::vector <glm::vec3> patrolPoints;
-	int posIndex;
-     float m_PathUpdateTimer;
-    float m_ChasePathUpdateTimer = 0.0f;
-    glm::vec3 m_LastChasePosition;            
-float m_StuckThreshold = 1.5f;       
-float m_MinMovementThreshold = 0.2f;  
-       
+   void SearchWalkPoint();  
+   void LookForNextPoint();  
+   void UpdateWallAvoidance();       
 
+protected:  
+   void EnsureBody();  
+   void DirectChase();  
 
-    	void SearchWalkPoint();
-	void LookForNextPoint();
+   void  SetMovementSpeed(float s) { m_Speed = s; }  
+   float GetMovementSpeed() const  { return m_Speed; }  
 
-         glm::vec3 walkPoint;
-    bool walkPointSet;
-    float m_AvoidanceRadius = 0.6f;   // promieñ wykrywania
-float m_AvoidanceWeight = 0.7f;    // si³a unikania 
+public:  
+   AiSimplified();  
+   virtual ~AiSimplified();  
 
-     int m_CurrentPathIndex = 0;
-     std::vector<glm::vec3> FindPath(const glm::vec3& start, const glm::vec3& target);
-     std::vector<glm::vec3> GetNeighbors(const glm::vec3& node);
-     float Heuristic(const glm::vec3& a, const glm::vec3& b);
-     bool IsWalkable(const glm::vec3& point);
-     glm::vec3 GetNearestWalkable(const glm::vec3& point, float radius = 3.0f);
-     glm::vec3 ComputeSteeringDirection(glm::vec3 desiredDir, float speed);
-protected: 
-    void EnsureBody();  
-        void AstarChase();
-    void DirectChase();
-    void LockXZRotation();
-protected:
-    void  SetMovementSpeed(float s) { m_Speed = s; }
-    float GetMovementSpeed() const  { return m_Speed; }
+   glm::vec3       m_TargetPosition = {};  
+   glm::vec3       currentPos       = {};  
+   Physics::Body*  m_Body           = nullptr;  
+   SceneNode*      myNode           = nullptr;
 
-public:
-    AiSimplified();
-    virtual ~AiSimplified();
+   Surface* m_Surface = nullptr;
 
-    //void Update(); 
-        void Patrol();
-    glm::vec3 m_TargetPosition;    
-    glm::vec3 currentPos;
-        Physics::Body* m_Body;
-    SceneNode* myNode;
-        Surface* m_Surface;
-        
-    NavigationGrid* m_NavGrid = nullptr;
-            void Flee();
-                void Chase();
-    void SetTarget(glm::vec3 target);
-    void SetSurface(Surface* surface);
-    void UpdateStuckDetection(); 
-        void MoveInDirection(const glm::vec3& direction);
-                    void StopMoving();
-                         std::vector<glm::vec3> m_Path;           //current
-                         bool m_UsingAStar = false;   
-                            
-float m_StuckTimer = 0.0f;   
+   SceneNode*      m_TargetNode     = nullptr;  
 
-    void RotateNode(glm::vec3 dir);
-        Surface* GetSurface() const {return m_Surface;}
-    void SetPatrolPoints(const std::vector<glm::vec2>& points);
+   void MoveInDirection(const glm::vec3& direction);  
+   void StopMoving();  
+   void RotateNode(glm::vec3 dir);  
+   void LockXZRotation();  
+   void Flee();  
 
-    SceneNode* m_TargetNode = nullptr;
-void SetTargetNode(SceneNode* node) { m_TargetNode = node; currentPos.y = node->GlobalTransform().Position().y;}
+   void ChaseWithSteering(const glm::vec3& flockForce);  
 
-   
+   void Patrol();  
+   void SetTarget(glm::vec3 target);  
+   void SetSurface(Surface* surface);  
+   void SetTargetNode(SceneNode* node) {  
+       m_TargetNode = node;  
+       if (node) currentPos.y = node->GlobalTransform().Position().y;  
+   }  
+   void SetPatrolPoints(const std::vector<glm::vec2>& points);  
+   Surface* GetSurface() const { return m_Surface; }  
+
+   int m_AvoidInterval = 3;  
 };
