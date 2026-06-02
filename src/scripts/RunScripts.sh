@@ -22,7 +22,7 @@ if [ ! -d $cmake_binary_dir/codegen ]; then
 	mkdir $cmake_binary_dir/codegen
 fi
 
-python GenerateTypeDatabase.py $cmake_binary_dir $cmake_include_dir $cmake_binary_dir/../compile_commands.json $cmake_source_dir
+python GenerateTypeDatabase.py $cmake_source_dir $cmake_include_dir $cmake_binary_dir/../compile_commands.json $cmake_binary_dir
 
 if [ ! $? == 0 ]; then
 	exit

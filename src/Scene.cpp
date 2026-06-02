@@ -236,9 +236,15 @@ void SceneNode::Deserialize(const nlohmann::json& data) {
 	}
 	else if (data.contains("scenePtr")) {
 		this->scene = (Scene*) data["scenePtr"].get<intptr_t>();
+
+		this->id = this->scene->nextSceneNodeID;
+
+		this->parent = this->scene->root;
 	}
 	else if (this->parent) {
 		this->scene = this->parent->scene;
+
+		this->id = this->scene->nextSceneNodeID;
 	}
 
 	this->children.clear();
@@ -604,9 +610,8 @@ SceneNode* Scene::LoadPrefab(json nodePrefab) {
 	SceneNode* prefabRoot = Serialization::DeserializeObject<SceneNode>(nodePrefab);
 
 	this->root->children.push_back(prefabRoot);
-	prefabRoot->parent = this->root;
 
-	
+	this->messageTree.AddNode(prefabRoot);
 
 	return prefabRoot;
 }
