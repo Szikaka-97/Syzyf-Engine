@@ -159,7 +159,8 @@ void FilesPanel::Draw() {
                                    extension == ".geom" ||
                                    extension == ".tess_eval" ||
                                    extension == ".tess_ctrl" ||
-                                   extension == ".txt") {
+                                   extension == ".txt" ||
+                                   extension == ".prefab") {
                             std::ifstream fileStream(path);
                             if (fileStream.is_open()) {
                                 std::stringstream buffer;

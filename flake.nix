@@ -24,6 +24,7 @@
         xorg.libXext
         libxcb
         libxtst
+        dbus
       ];
     in
     {
