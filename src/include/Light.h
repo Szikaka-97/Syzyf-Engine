@@ -65,6 +65,8 @@ public:
 	Light(SpotLight lightInfo);
 	Light(DirectionalLight lightInfo);
 
+	void Awake();
+
 	void Set(PointLight lightInfo);
 	void Set(SpotLight lightInfo);
 	void Set(DirectionalLight lightInfo);

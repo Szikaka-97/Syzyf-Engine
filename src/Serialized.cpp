@@ -46,8 +46,6 @@ void* InternalDeserializeObject(const json& data) {
 	for (const auto& object : data) {
 		deserializedObjects.push_back({ InternalConstructObject(object["_class_name"], buffer), object["_class_name"] });
 
-		spdlog::info("Constructing {} at {:x}", (std::string) object["_class_name"], (intptr_t) buffer);
-
 		size_t objectSize = TypeInfo::GetTypeInfo(object["_class_name"]).size;
 
 		if (objectSize % alignment != 0) {
@@ -59,7 +57,9 @@ void* InternalDeserializeObject(const json& data) {
 
 	int i = 0;
 	for (const auto& object : data) {
-		InternalDeserializeJson(deserializedObjects[i].ptr, object);
+		if (deserializedObjects[i].ptr) {
+			InternalDeserializeJson(deserializedObjects[i].ptr, object);
+		}
 
 		i++;
 	}

@@ -48,10 +48,7 @@ spotlightAngle(0),
 intensity(1),
 linearAttenuation(1),
 quadraticAttenuation(1),
-shadowCasting(false),
-savedTransform(GlobalTransform()) {
-	this->gizmoMat = new Material(GetGizmoShader(GetScene()));
-}
+shadowCasting(false) { }
 
 Light::Light(Light::PointLight lightInfo):
 type(Light::LightType::Point),
@@ -62,10 +59,7 @@ spotlightAngle(0),
 intensity(lightInfo.intensity),
 linearAttenuation(lightInfo.linearAttenuation),
 quadraticAttenuation(lightInfo.quadraticAttenuation),
-shadowCasting(false),
-savedTransform(GlobalTransform()) {
-	this->gizmoMat = new Material(GetGizmoShader(GetScene()));
-}
+shadowCasting(false) { }
 
 Light::Light(Light::SpotLight lightInfo):
 type(Light::LightType::Spot),
@@ -76,10 +70,7 @@ spotlightAngle(lightInfo.spotlightAngle),
 intensity(lightInfo.intensity),
 linearAttenuation(lightInfo.linearAttenuation),
 quadraticAttenuation(lightInfo.quadraticAttenuation),
-shadowCasting(false),
-savedTransform(GlobalTransform()) {
-	this->gizmoMat = new Material(GetGizmoShader(GetScene()));
-}
+shadowCasting(false) { }
 
 Light::Light(Light::DirectionalLight lightInfo):
 type(Light::LightType::Directional),
@@ -90,8 +81,11 @@ spotlightAngle(0),
 intensity(lightInfo.intensity),
 linearAttenuation(0),
 quadraticAttenuation(0),
-shadowCasting(false),
-savedTransform(GlobalTransform()) {
+shadowCasting(false) { }
+
+void Light::Awake() {
+	this->savedTransform = GlobalTransform();
+
 	this->gizmoMat = new Material(GetGizmoShader(GetScene()));
 }
 

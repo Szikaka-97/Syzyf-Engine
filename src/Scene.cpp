@@ -255,7 +255,6 @@ void SceneNode::Deserialize(const nlohmann::json& data) {
 		GetTransform().LocalTransform() = Serialization::Deserialize<glm::mat4>(data["transform"]);
 	}
 
-	// spdlog::error("Attaching itself to scene: {}", this->GetID());
 	this->scene->messageTree.AddNode(this);
 
 	for (int objectIndex : data["objects"]) {
@@ -267,8 +266,6 @@ void SceneNode::Deserialize(const nlohmann::json& data) {
 			MessagingHelpers_AttachObjectToNode(this, objectPtr);
 		}
 	}
-
-	spdlog::info("Finished node deserialization");
 }
 
 const SceneNode* rootPrefabNode = nullptr; // Don't do this at home
@@ -580,8 +577,6 @@ void Scene::Deserialize(const nlohmann::json& json_node) {
 	this->messageTree.AddNode(this->root);
 	
 	this->messageTree.PropagateMessage<Message::Awake>(this->root);
-
-	spdlog::info("Finished scene deserialization");
 }
 
 nlohmann::json Scene::Serialize() const {
@@ -605,11 +600,7 @@ nlohmann::json Scene::Serialize() const {
 SceneNode* Scene::LoadPrefab(json nodePrefab) {
 	nodePrefab[0]["_data"]["scenePtr"] = (intptr_t) this;
 
-	spdlog::info("{}", nodePrefab.dump(2));
-
 	SceneNode* prefabRoot = Serialization::DeserializeObject<SceneNode>(nodePrefab);
-
-	this->root->children.push_back(prefabRoot);
 
 	this->messageTree.AddNode(prefabRoot);
 
