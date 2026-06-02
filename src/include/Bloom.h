@@ -26,6 +26,7 @@ public:
 	Bloom();
 	void Awake();
 
+	
 	void SetDirtTexture(Texture2D* texture);
 	void SetDirtIntensity(float intensity);
 

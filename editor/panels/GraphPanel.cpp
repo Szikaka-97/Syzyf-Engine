@@ -169,6 +169,9 @@ void GraphPanel::DrawContextMenu(Context& context) {
 
                 context.selectedNode = nullptr;
             }
+            if (ImGui::MenuItem("Duplicate Node")) {
+                context.selectedScene->Instantiate(context.selectedNode);
+            }
         }
         ImGui::EndPopup();
     }

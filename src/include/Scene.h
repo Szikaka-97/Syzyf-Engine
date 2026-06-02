@@ -28,7 +28,7 @@ class SceneNode {
 	friend class Scene;
 	friend class SceneTransform;
 private:
-	serialized SceneNode* parent;
+	SceneNode* parent;
 
 	serialized int id;
 	serialized std::string name;
@@ -36,7 +36,7 @@ private:
 	serialized uint8_t disabledState;
 	serialized uint8_t layer;
 
-	serialized Scene* const scene;
+	Scene* scene;
 	std::vector<GameObject*> objects;
 
 	serialized std::vector<SceneNode*> children;
@@ -116,6 +116,8 @@ public:
 
 	json Serialize() const;
 	void Deserialize(const json& data);
+
+	json SaveAsPrefab() const;
 };
 
 class Scene {
@@ -219,6 +221,11 @@ public:
 	void OnDisable();
 
 	void DrawImGui();
+
+	SceneNode* LoadPrefab(json nodePrefab);
+	SceneNode* LoadPrefab(const fs::path& prefabPath);
+
+	SceneNode* Instantiate(SceneNode* source);
 
 	static void operator delete(Scene* ptr, std::destroying_delete_t);
 

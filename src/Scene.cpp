@@ -2,6 +2,7 @@
 
 #include <malloc.h>
 #include <algorithm>
+#include <stack>
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/matrix_access.hpp>
@@ -226,6 +227,20 @@ void SceneNode::operator delete(SceneNode* ptr, std::destroying_delete_t) {
 void SceneNode::Deserialize(const nlohmann::json& data) {
 	std::erase(this->objects, nullptr);
 
+	if (data.contains("parent")) {
+		this->parent = (SceneNode*) Serialization::FetchDeserializedObject(data["parent"]);
+	}
+
+	if (data.contains("scene")) {
+		this->scene = (Scene*) Serialization::FetchDeserializedObject(data["scene"]);
+	}
+	else if (data.contains("scenePtr")) {
+		this->scene = (Scene*) data["scenePtr"].get<intptr_t>();
+	}
+	else if (this->parent) {
+		this->scene = this->parent->scene;
+	}
+
 	this->children.clear();
 	this->scene->nextSceneNodeID = std::max(this->scene->nextSceneNodeID, this->id + 1);
 
@@ -234,7 +249,7 @@ void SceneNode::Deserialize(const nlohmann::json& data) {
 		GetTransform().LocalTransform() = Serialization::Deserialize<glm::mat4>(data["transform"]);
 	}
 
-	spdlog::error("Attaching itself to scene: {}", this->GetID());
+	// spdlog::error("Attaching itself to scene: {}", this->GetID());
 	this->scene->messageTree.AddNode(this);
 
 	for (int objectIndex : data["objects"]) {
@@ -249,10 +264,20 @@ void SceneNode::Deserialize(const nlohmann::json& data) {
 
 	spdlog::info("Finished node deserialization");
 }
+
+const SceneNode* rootPrefabNode = nullptr; // Don't do this at home
+
 nlohmann::json SceneNode::Serialize() const {
 	nlohmann::json data;
 
 	data["transform"] = Serialization::Serialize(this->transform.localTransform.Value());
+
+	if (rootPrefabNode != this) {
+		data["parent"] = Serialization::QueueObjectSerialization(this->parent);
+	}
+	if (rootPrefabNode == nullptr) {
+		data["scene"] = Serialization::QueueObjectSerialization(this->scene);
+	}
 	
 	std::vector<int> serializedObjects;
 
@@ -261,6 +286,16 @@ nlohmann::json SceneNode::Serialize() const {
 	}
 
 	data["objects"] = serializedObjects;
+
+	return data;
+}
+
+nlohmann::json SceneNode::SaveAsPrefab() const {
+	rootPrefabNode = this;
+
+	json data = Serialization::Serialize(this);
+
+	rootPrefabNode = nullptr;
 
 	return data;
 }
@@ -559,4 +594,32 @@ nlohmann::json Scene::Serialize() const {
 	data["components"] = componentsData;
 	
 	return data;
+}
+
+SceneNode* Scene::LoadPrefab(json nodePrefab) {
+	nodePrefab[0]["_data"]["scenePtr"] = (intptr_t) this;
+
+	spdlog::info("{}", nodePrefab.dump(2));
+
+	SceneNode* prefabRoot = Serialization::DeserializeObject<SceneNode>(nodePrefab);
+
+	this->root->children.push_back(prefabRoot);
+	prefabRoot->parent = this->root;
+
+	
+
+	return prefabRoot;
+}
+SceneNode* Scene::LoadPrefab(const fs::path& prefabPath) {
+	std::ifstream jsonFile{prefabPath};
+
+	json prefabData = json::parse(jsonFile);
+
+	return LoadPrefab(prefabData);
+}
+
+SceneNode* Scene::Instantiate(SceneNode* source) {
+	json repr = source->SaveAsPrefab();
+
+	return LoadPrefab(repr);
 }

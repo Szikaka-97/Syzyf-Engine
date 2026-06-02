@@ -197,10 +197,14 @@ def write_field_serializer(writer: CodeWriter, field: CppField, lhs: str) -> Non
 	elif field_type.name in INTRINSIC_SERIALIZERS:
 		writer.line(lhs + f" = Serialization::Serialize(*({field_type.name} *) (data + {offset_str} + {additional_offset_str}));")
 	elif is_resource_type(field_type):
+		writer.line(f"if ((*({field_type.name}**) (data + {offset_str} + {additional_offset_str})) != nullptr) {{")
+		writer.more_indent()
 		if has_resource_serialization_methods(field_type):
 			writer.line(lhs + f" = (*({field_type.name}**) (data + {offset_str} + {additional_offset_str}))->Serialize();")
 		else:
 			writer.line(lhs + f" = (*({field_type.name}**) (data + {offset_str} + {additional_offset_str}))->GetPath();")
+		writer.less_indent()
+		writer.line("}")
 	elif not field.is_pointer:
 		if field.type in serialized_types:
 			writer.line(lhs + f" = InternalSerialize{sanitize_class_name(field.type)}(data + {offset_str} + {additional_offset_str});")

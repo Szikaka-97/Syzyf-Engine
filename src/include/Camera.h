@@ -57,7 +57,7 @@ private:
 
 	serialized Perspective perspectiveData;
 	serialized Orthographic orthoData;
-	Viewport* renderTarget;
+	Viewport* renderTarget = nullptr;
 	serialized LayerMask layerMask;
 	serialized RenderPassType passes;
 	serialized int priority;

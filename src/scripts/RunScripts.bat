@@ -22,7 +22,7 @@ if not exist %cmake_binary_dir%/codegen (
 	mkdir "%cmake_binary_dir%/codegen"
 )
 
-python GenerateTypeDatabase.py %cmake_binary_dir% %cmake_include_dir% %cmake_binary_dir%/../compile_commands.json
+python GenerateTypeDatabase.py %cmake_source_dir% %cmake_include_dir% %cmake_binary_dir%/../compile_commands.json %cmake_binary_dir%
 
 if not %ERRORLEVEL% == 0 (
 	exit

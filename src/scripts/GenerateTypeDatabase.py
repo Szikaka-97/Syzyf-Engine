@@ -17,7 +17,7 @@ clang.TemplateArgumentKind.PACK = clang.TemplateArgumentKind(9)
 SOURCE_FILES_DIRECTORY = sys.argv[1]
 HEADER_FILES_DIRECTORY = sys.argv[2]
 COMMAND_FILE = path.abspath(sys.argv[3])
-
+BINARY_FILES_DIRECTORY = sys.argv[4]
 
 class CppField:
 	def __init__(self, field_cursor: clang.Cursor, owner: clang.Type):
@@ -111,6 +111,8 @@ class CppType:
 
 	@classmethod
 	def read_type(cls, type: clang.Type) -> str:
+		type = type.get_canonical()
+		
 		name: str = type.spelling
 		
 		if name == "":
@@ -143,16 +145,23 @@ class CppType:
 
 			discard = True
 
-		if type.kind.value < 100:
+		if type.kind.value < 100 and type.kind.value != 1:
+			
+			if "<" in type.spelling:
+				print("Templatka: " + type.spelling + " " + str(type.kind.value))
 			discard = True
 
 		if type.get_declaration().kind == clang.CursorKind.NO_DECL_FOUND:
+			discard = True
+
+		if not type.get_declaration().get_definition():
 			discard = True
 
 		if "(unnamed" in type.spelling:
 			discard = True
 
 		if discard:
+
 			return name
 
 		name = cls.get_full_name(type)
@@ -186,14 +195,14 @@ class CppType:
 		for class_def in definitions:
 			type: clang.Type = class_def.type
 
-			if HEADER_FILES_DIRECTORY not in type.get_declaration().location.file.name.replace("\\", "/"):
+			if HEADER_FILES_DIRECTORY not in type.get_declaration().get_definition().location.file.name.replace("\\", "/"):
 				continue
 
 			cls.read_type(type)
 			
 	
 	def __init__(self, clang_type: clang.Type):
-		decl_cursor: clang.Cursor = clang_type.get_declaration()
+		decl_cursor: clang.Cursor = clang_type.get_declaration().get_definition()
 
 		self.cursor: clang.Cursor = decl_cursor
 		self.name: str = clang_type.spelling
@@ -207,11 +216,14 @@ class CppType:
 		self.is_enum = decl_cursor.kind == clang.CursorKind.ENUM_DECL
 		self.enum_width = clang_type.get_size() if self.is_enum else 0
 
-		if (len(list(clang_type.get_canonical().get_declaration().get_children())) == 0):
-			pass
-		# 	for token in clang_type.get_canonical().get_declaration().get_tokens():
-		# 		print(token.spelling + " " + str(token.kind))
-		# 	exit(1)
+		for template_arg_index in range(self.cursor.get_num_template_arguments()):
+			if self.cursor.get_template_argument_kind(template_arg_index) == clang.TemplateArgumentKind.INTEGRAL:
+				self.template_args.append(self.cursor.get_template_argument_value(template_arg_index))
+			else:
+				self.template_args.append(CppModifiedType(self.cursor.get_template_argument_type(template_arg_index)))
+		
+		if not decl_cursor.get_definition():
+			return
 
 		for class_part in decl_cursor.get_children():
 			if is_type_decl(class_part):
@@ -227,11 +239,6 @@ class CppType:
 			elif class_part.kind == clang.CursorKind.DESTRUCTOR:
 				self.destructor = CppMethod(class_part)
 		
-		for template_arg_index in range(self.cursor.get_num_template_arguments()):
-			if self.cursor.get_template_argument_kind(template_arg_index) == clang.TemplateArgumentKind.INTEGRAL:
-				self.template_args.append(self.cursor.get_template_argument_value(template_arg_index))
-			else:
-				self.template_args.append(CppModifiedType(self.cursor.get_template_argument_type(template_arg_index)))
 
 	@classmethod
 	def get_full_name(cls, type: clang.Type) -> str:
@@ -239,8 +246,13 @@ class CppType:
 
 		parentsStack = []
 
-		if type.get_declaration().lexical_parent:
-			parent = type.get_declaration().lexical_parent
+		if not type.get_declaration().get_definition():
+			print(type.spelling)
+
+			return type.spelling
+
+		if type.get_declaration().get_definition().lexical_parent:
+			parent = type.get_declaration().get_definition().lexical_parent
 			
 			while parent:
 				if parent.kind == clang.CursorKind.NAMESPACE or is_type_decl(parent):
@@ -278,17 +290,19 @@ class CppType:
 
 
 	def __json__(self):
+		def_cursor = self.cursor.get_definition()
+
 		rep = {}
 		rep["fields"] = self.fields
 		rep["methods"] = self.methods
 		rep["base_classes"] = self.base_classes
 		rep["constructors"] = self.constructors
 		rep["destructor"] = self.destructor
-		rep["source"] = self.cursor.location.file.name
+		rep["source"] = def_cursor.location.file.name if def_cursor else ""
 		rep["name"] = self.name
 		rep["simple_name"] = self.get_simple_name()
 		rep["template_args"] = self.template_args
-		rep["projects_own"] = HEADER_FILES_DIRECTORY in self.cursor.location.file.name.replace("\\", "/")
+		rep["projects_own"] = HEADER_FILES_DIRECTORY in def_cursor.location.file.name.replace("\\", "/") if def_cursor else False
 		rep["access"] = str_access_specifier(self.cursor.access_specifier)
 		rep["enclosing_class"] = self.enclosing_class
 		rep["enum_width"] = self.enum_width
@@ -302,13 +316,16 @@ def list_files_recursive(path: str) -> list[str]:
 
 
 def is_type_decl(cursor: clang.Cursor) -> bool:
+	if not cursor:
+		return False
+
 	return cursor.kind == clang.CursorKind.CLASS_DECL or cursor.kind == clang.CursorKind.STRUCT_DECL
 
 
 def str_full_type_name(type: clang.Type) -> str:
 	name = type.spelling
 
-	parent: clang.Cursor = type.get_declaration().lexical_parent
+	parent: clang.Cursor = type.get_declaration().get_definition().lexical_parent
 
 	if not parent:
 		return name
@@ -367,9 +384,15 @@ def main():
 	with open(COMMAND_FILE, "r") as compile_commands_file:
 		compile_commands = json.load(compile_commands_file)
 
+	print(SOURCE_FILES_DIRECTORY)
+
 	for command in compile_commands:
-		if SOURCE_FILES_DIRECTORY in command["file"]:
+		sanitized_file = command["file"].replace("\\", "/")
+
+		if SOURCE_FILES_DIRECTORY in sanitized_file:
 			consume_next = False
+
+			print("Reading compile commands from: " + command["file"])
 
 			arg: str
 			for arg in command["command"].split(" "):
@@ -412,8 +435,10 @@ def main():
 
 	CppType.read_all_types(construct_file(files, compile_args))
 	
-	with open(SOURCE_FILES_DIRECTORY + "/codegen/type_database.json", "w") as json_file:
+	with open(BINARY_FILES_DIRECTORY + "/codegen/type_database.json", "w") as json_file:
 		json.dump(CppType.all_types, json_file, indent=2, default=lambda o: o.__json__() if hasattr(o, '__json__') else None)
+
+	exit(0)
 
 	print("\tDone!")
 
