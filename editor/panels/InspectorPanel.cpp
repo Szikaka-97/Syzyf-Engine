@@ -15,7 +15,8 @@
 #include <imgui.h>
 #include <string>
 
-GameObject* MessagingHelpers_AddObjectToNode(SceneNode* node, const std::string& objectName);
+GameObject* MessagingHelpers_AddObjectToNode(SceneNode* node,
+                                             const std::string& objectName);
 std::vector<std::string> MessagingHelpers_GetAvailableGameObjects();
 
 namespace Editor {
@@ -227,6 +228,7 @@ void InspectorPanel::Draw(Context& context) {
             };
         }
 
+        GameObject* objectToRemove = nullptr;
         int index = 0;
         for (GameObject* obj : context.selectedNode->AttachedObjects()) {
             if (dynamic_cast<MousePickingBody*>(obj) != nullptr) {
@@ -234,8 +236,17 @@ void InspectorPanel::Draw(Context& context) {
             }
 
             ImGui::PushID(obj->GetID());
-            if (ImGui::TreeNode(
-                    std::format("{}: {}", index, obj->GetName()).c_str())) {
+
+            bool isNodeOpen = ImGui::TreeNodeEx(
+                std::format("{}: {}", index, obj->GetName()).c_str(),
+                ImGuiTreeNodeFlags_AllowOverlap);
+
+            ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - 50.0f);
+            if (ImGui::SmallButton("Delete")) {
+                objectToRemove = obj;
+            }
+
+            if (isNodeOpen) {
                 ImGui::Text("Object ID: %i", obj->GetID());
 
                 bool objEnabled = obj->IsEnabled();
@@ -255,6 +266,10 @@ void InspectorPanel::Draw(Context& context) {
             }
             index++;
             ImGui::PopID();
+        }
+
+        if (objectToRemove != nullptr) {
+            context.selectedNode->DeleteObject(objectToRemove);
         }
 
         ImGui::Spacing();
@@ -297,7 +312,8 @@ void InspectorPanel::Draw(Context& context) {
             std::string firstMatchObject = "";
             bool isFirstMatch = true;
 
-            for (const auto& name: MessagingHelpers_GetAvailableGameObjects()) {
+            for (const auto& name :
+                 MessagingHelpers_GetAvailableGameObjects()) {
                 std::string lowerName = name;
                 std::transform(lowerName.begin(), lowerName.end(),
                                lowerName.begin(), ::tolower);
@@ -309,7 +325,8 @@ void InspectorPanel::Draw(Context& context) {
                     }
 
                     if (ImGui::Selectable(name.c_str(), isFirstMatch)) {
-                        MessagingHelpers_AddObjectToNode(context.selectedNode, name);
+                        MessagingHelpers_AddObjectToNode(context.selectedNode,
+                                                         name);
                         ImGui::CloseCurrentPopup();
                     }
 
@@ -318,7 +335,8 @@ void InspectorPanel::Draw(Context& context) {
             }
 
             if (enterPressed && !firstMatchObject.empty()) {
-                MessagingHelpers_AddObjectToNode(context.selectedNode, firstMatchObject);
+                MessagingHelpers_AddObjectToNode(context.selectedNode,
+                                                 firstMatchObject);
                 ImGui::CloseCurrentPopup();
             }
 
