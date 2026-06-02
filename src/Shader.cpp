@@ -767,7 +767,7 @@ ShaderProgram* ShaderProgram::Load(const fs::path &shaderPath) {
 		}
 	}
 	else {
-		std::stringstream ss(shaderPath);
+		std::stringstream ss(shaderPath.string());
 
 		std::string vertexShaderPath;
 		std::string geometryShaderPath;
