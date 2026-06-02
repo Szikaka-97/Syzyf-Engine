@@ -6,6 +6,7 @@
 #include "MeshRenderer.h"
 #include "Scene.h"
 #include "Texture.h"
+#include "Light.h"
 #include "VertexSpec.h"
 #include "animation/AnimationComponent.h"
 #include "animation/SkeletonComponent.h"
@@ -96,7 +97,7 @@ GltfScene* GltfScene::Load(const fs::path path) {
     return nullptr;
   }
 
-  fastgltf::Parser parser(fastgltf::Extensions::KHR_materials_emissive_strength);
+  fastgltf::Parser parser(fastgltf::Extensions::KHR_materials_emissive_strength | fastgltf::Extensions::KHR_lights_punctual);
 
   constexpr auto gltfOptions =
     fastgltf::Options::DontRequireValidAssetMember |
@@ -118,11 +119,17 @@ GltfScene* GltfScene::Load(const fs::path path) {
   }
   
   GltfScene* model = new GltfScene();
+  model->filename = path.stem().string();
   model->asset = std::make_unique<fastgltf::Asset>(std::move(expectedAsset.get()));
   model->isSkinned = !model->asset->skins.empty();
 
-  model->materials = LoadMaterials(*model->asset, model->isSkinned);
-  
+  model->materials = LoadMaterials(*model->asset, false);
+
+  if (model->isSkinned) {
+      std::vector<Material*> skinnedMaterials = LoadMaterials(*model->asset, true);
+      model->materials.insert(model->materials.end(), skinnedMaterials.begin(), skinnedMaterials.end());
+  }
+
   model->meshes.reserve(model->asset->meshes.size());
   for (auto& gltfMesh : model->asset->meshes) {
       model->meshes.push_back(LoadMesh(gltfMesh, *model->asset, model->materials));
@@ -132,12 +139,18 @@ GltfScene* GltfScene::Load(const fs::path path) {
 }
 
 SceneNode* GltfScene::Instantiate(Scene* scene, SceneNode* parent, std::string name) {
+  std::string rootName = name;
+  if (rootName.empty()) {
+      rootName = this->filename;
+  }
+
+
   if (!asset->defaultScene.has_value()) {
     spdlog::warn("glTF file is missing a default scene.");
     return nullptr;
   }
 
-  SceneNode* root = scene->CreateNode(parent, name);
+  SceneNode* root = scene->CreateNode(parent, rootName);
   auto& nodeIndices = asset->scenes[asset->defaultScene.value()].nodeIndices;
 
   std::vector<SceneNode*> sceneNodes;
@@ -310,15 +323,17 @@ SceneNode* GltfScene::CreateNode(
   }
 
   // Camera
-  //
-  // gltf cameras look down the negative -z
-  //  so it's looking in the opposite direction i guess
-  //  couldn't rotate it here
+  
+  
   if (gltfNode.cameraIndex.has_value()) {
+    // Rotated the same way the lights are, didn't check if it works
+    SceneNode* cameraNode = scene->CreateNode(node, "Camera");
+    cameraNode->LocalTransform().Rotation() = glm::quat(glm::radians(glm::vec3(180.0f, 0.0f, 0.0f)));
+
     auto& gltfCamera = asset->cameras[gltfNode.cameraIndex.value()].camera;
     std::visit(fastgltf::visitor {
       [&](fastgltf::Camera::Orthographic& camera) {
-        node->AddObject<Camera>(Camera::Orthographic(
+        cameraNode->AddObject<Camera>(Camera::Orthographic(
           -camera.xmag,
           camera.xmag,
           camera.ymag,
@@ -328,7 +343,7 @@ SceneNode* GltfScene::CreateNode(
         ));
       },
       [&](fastgltf::Camera::Perspective& camera) {
-        node->AddObject<Camera>(Camera::Perspective(
+        cameraNode->AddObject<Camera>(Camera::Perspective(
           glm::degrees(camera.yfov),
           camera.aspectRatio.value_or(1.7f), // these should be somewhere else
           camera.znear,      // or it should fail to add the camera if these are missing
@@ -336,6 +351,45 @@ SceneNode* GltfScene::CreateNode(
         ));
       },
     }, gltfCamera);
+  }
+
+  // Lights
+  if (gltfNode.lightIndex.has_value()) {
+      auto& gltfLight = asset->lights[gltfNode.lightIndex.value()];
+
+      glm::vec3 color = glm::make_vec3(gltfLight.color.data());
+      float intensity = gltfLight.intensity;
+
+      // Lights get their own node because spot/dir lights need to be rotated 180 degrees
+      SceneNode* lightNode = scene->CreateNode(node, gltfLight.name.empty() ? "Light" : gltfLight.name.c_str());
+   
+      lightNode->LocalTransform().Rotation() = glm::quat(glm::radians(glm::vec3(180.0f, 0.0f, 0.0f)));
+
+      const float defaultLinear = 0.09f;
+      const float defaultQuadratic = 0.032f;
+      const float defaultRange = 20.0f;
+      const float defaultOuterConeAngle = 45.0f;
+      // Multiplied by 100 to match how the scene looks in blender,
+      //    not necessarily accurate
+      const float candelasToWatts = 5435.0f;
+
+      switch (gltfLight.type) {
+          case fastgltf::LightType::Directional: {
+              lightNode->AddObject<Light>(Light::DirectionalLight(color, intensity));
+              break;
+          }
+          case fastgltf::LightType::Point: {
+              float range = gltfLight.range.value_or(defaultRange);
+              lightNode->AddObject<Light>(Light::PointLight(color, range, (intensity / candelasToWatts), defaultLinear, defaultQuadratic));
+              break;
+          }
+          case fastgltf::LightType::Spot: {
+              float range = gltfLight.range.value_or(defaultRange);
+              float outerConeAngle = gltfLight.outerConeAngle.value_or(glm::radians(defaultOuterConeAngle));
+              lightNode->AddObject<Light>(Light::SpotLight(color, outerConeAngle, range, (intensity / candelasToWatts), defaultLinear, defaultQuadratic));
+              break;
+          }
+      }
   }
   
   for (auto& childIndex : gltfNode.children) {
@@ -415,10 +469,16 @@ Mesh* GltfScene::LoadMesh(fastgltf::Mesh& gltfMesh, fastgltf::Asset& asset, std:
     auto index = std::distance(gltfMesh.primitives.begin(), it);
     auto& primitive = mesh->subMeshes[index];
 
+    std::size_t baseMaterialCount = asset.materials.size() + 1;
+
     if (it->materialIndex.has_value()) {
       primitive.materialIndex = it->materialIndex.value();
     } else {
-      primitive.materialIndex = materials.size() - 1;
+      primitive.materialIndex = baseMaterialCount - 1;
+    }
+    
+    if (isSkinned) {
+        primitive.materialIndex += baseMaterialCount;
     }
 
     primitive.indexData = new unsigned int[primitive.faceCount * (unsigned int) primitive.type];

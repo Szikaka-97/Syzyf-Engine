@@ -5,9 +5,12 @@
 
 namespace Physics {
 	class VirtualCharacterController;
+	class System;
 };
 
 class Camera;
+class PickableItem;
+class PickableItemSystem;
 
 class PlayerController : public GameObject, public ImGuiDrawable {
 private:
@@ -41,12 +44,21 @@ private:
 	float throwStrengthCache = 0;
 	float throwStrengthAccum = 0;
 
+    float itemHighlightRadius = 2.0f;
+	
 	glm::vec3 GetMousePointOnGround(Camera* camera);
 	glm::vec3 GetStrengthFromVelocity();
+
+	PickableItem* highlightedItem = nullptr;
+	//  Cached systems
+	PickableItemSystem* pickableItemSystem = nullptr;
+	Physics::System* physics = nullptr;
 
 	void UpdateMovement();
 	void UpdateTargetting();
 	void UpdateThrowing();
+
+	void HandleItemInteractions();
 public:
 	static inline PlayerController* Instance() {
 		return instance;
@@ -54,6 +66,8 @@ public:
 	
 	void Awake();
 	void Update();
+	void OnEnable();
+	void OnDisable();
 
 	void TakeDamage(float damage);
 	
@@ -61,6 +75,10 @@ public:
 	void SetHealth(float newHealth);
 
 	void Die();
+
+	inline bool CanThrow() const {
+		return this->aim != nullptr;
+	}
 
 	virtual void DrawImGui() override;
 };

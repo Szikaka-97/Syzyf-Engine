@@ -45,6 +45,8 @@ void CameraSettings::Update() {
 	if (GetScene()->Input()->KeyPressed(Key::E)) {
 		this->angleY += this->cameraRotationSpeed * Time::Delta();
 	}
+
+	this->angleY = glm::mod(this->angleY, 360.f);
 	
 	if (player == nullptr) {
 		return;

@@ -23,6 +23,7 @@ in VS_OUT {
 
 uniform sampler2D colorTex;
 uniform vec4 color = vec4(1.0f, 1.0f, 1.0f, 1.0f);
+uniform float colorIntensity = 1.0f;
 uniform sampler2D colorRamp;
 uniform sampler2D depthTex;
 uniform float depthFadeDistance;
@@ -44,7 +45,7 @@ void main() {
 	vec4 color = texture(colorTex, ps_in.texcoords) * color;
     if (useColorRamp > 0) {
         vec4 colorRamp = texture(colorRamp, vec2(ps_in.lifetime, 0.0));
-        color.rgb *= colorRamp.rgb * 5.0;
+        color.rgb *= colorRamp.rgb * colorIntensity;
     }
 
     float alpha = color.a * ps_in.alpha;

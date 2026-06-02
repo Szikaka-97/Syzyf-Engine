@@ -668,6 +668,15 @@ void SceneViewPanel::DrawMenuBar(Context& context) {
     if (ImGui::RadioButton("Local", this->isGizmoLocal)) {
         this->isGizmoLocal = true;
     }
+    ImGui::SameLine();
+    if (ImGui::RadioButton("Draw Gizmos", context.mainCamera->HasPass(RenderPassType::Gizmos))) {
+        if (context.mainCamera->HasPass(RenderPassType::Gizmos)) {
+            context.mainCamera->RemovePass(RenderPassType::Gizmos);
+        }
+        else {
+            context.mainCamera->AddPass(RenderPassType::Gizmos);
+        }
+    }
 
     ImGuiStyle& style = ImGui::GetStyle();
 

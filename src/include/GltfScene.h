@@ -20,6 +20,7 @@ public:
   ~GltfScene();
   SceneNode* Instantiate(Scene* scene, SceneNode* parent = nullptr, std::string name = "");
 private:
+  std::string filename;
   std::unique_ptr<fastgltf::Asset> asset;
   std::vector<Mesh*> meshes;
   std::vector<Material*> materials;

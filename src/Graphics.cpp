@@ -347,14 +347,17 @@ void SceneGraphics::DrawGizmoMesh(const Mesh* mesh, int subMeshIndex, const Mate
 void SceneGraphics::DrawMeshInstanced(MeshRenderer* renderer, unsigned int instanceCount) {
     if (!renderer || !renderer->GetMesh()) return;
 
-    int skinningOffset = -1;
-    if (auto* skeleton = renderer->GetNode()->GetObject<SkeletonComponent>()) {
-        skinningOffset = skeleton->bufferOffset;
-    }
+    auto* skeleton = renderer->GetNode()->GetObject<SkeletonComponent>();
 
     for (int i = 0; i < renderer->GetMesh()->GetSubMeshCount(); i++) {
         const Mesh::SubMesh* mesh = &renderer->GetMesh()->SubMeshAt(i);
         const Material* material = renderer->GetMaterial(mesh->GetMaterialIndex());
+
+        int skinningOffset = -1;
+
+        if (skeleton != nullptr && glGetUniformLocation(material->GetShader()->GetHandle(), "uBoneOffset") >= 0) {
+            skinningOffset = skeleton->bufferOffset;
+        }
 
         BoundingBox bounds = mesh->GetBounds();
         if (skinningOffset >= 0) {
@@ -479,7 +482,7 @@ void SceneGraphics::Render() {
 		RenderCamera(camera);
 	}
 
-    RenderPassType passType = RenderPassType::Color | RenderPassType::DepthPrepass | RenderPassType::Gizmos | RenderPassType::Transparent | RenderPassType::Volumetric | RenderPassType::Mask;
+    RenderPassType passType = this->mainCamera->GetPasses();
     if (this->ssaoSettings.enabled) {
         passType = passType | RenderPassType::SSAO;
     }
@@ -758,7 +761,7 @@ void SceneGraphics::RenderMask(const RenderParams& params, Framebuffer* target) 
     glViewport(params.viewport.x, params.viewport.y, params.viewport.z, params.viewport.w);
 
 	glDisable(GL_DITHER);
-
+	
     GLuint clearColor[4] = { 0, 0, 0, 0 };
     glClearBufferuiv(GL_COLOR, 1, clearColor);
     glClear(GL_DEPTH_BUFFER_BIT);
@@ -787,6 +790,8 @@ void SceneGraphics::RenderMask(const RenderParams& params, Framebuffer* target) 
         glDrawElements(render.mesh->GetDrawMode(), render.mesh->GetVertexCount(), GL_UNSIGNED_INT, nullptr);
         
     }
+	glEnable(GL_DITHER);
+
 	glEnable(GL_DITHER);
 
     glBindVertexArray(0);
@@ -862,13 +867,6 @@ void SceneGraphics::RenderShadows(const ShaderGlobalUniforms& uniforms, const Re
 
         if (isMasked || isDitherHole || isDitherProximity || currentProgram == render.material->GetShader()) {
             render.material->Bind(currentProgram);
-        }
-
-        if (render.jointBufferOffset >= 0) {
-            int offsetLocation = glGetUniformLocation(currentProgram->GetHandle(), "uBoneOffset");
-            if (offsetLocation >= 0) {
-                glUniform1i(offsetLocation, render.jointBufferOffset);
-            }
         }
 
         if (render.jointBufferOffset >= 0) {
@@ -1918,7 +1916,7 @@ void SceneGraphics::RenderCamera(Camera* camera, Viewport* renderTarget) {
 	}
 
 	auto defaultParams = RenderParams(
-		RenderPassType::Color | RenderPassType::DepthPrepass,
+		camera->GetPasses(),
 		glm::vec4(
 			0,
 			0,

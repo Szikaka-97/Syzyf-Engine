@@ -3,7 +3,5 @@
 
 class PickableItem : public GameObject {
 public:
-    void OnPickUp() {
-        spdlog::info("Picked up an item");
-    }
+    virtual void OnPickUp() {}
 };

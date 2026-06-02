@@ -2,6 +2,7 @@
 
 #include "Application.h"
 #include "GameObject.h"
+#include "BaseScene.h"
 #include "TestScene.h"
 #include "ui/objects/UiLayout.h"
 #include "ui/objects/UiText.h"
@@ -19,7 +20,7 @@ class LoadingController : public GameObject {
     void Update() {
         if (framesPassed > 2) {
             Application::Get()->RequestSceneBuild(
-                [](Scene* s) { TestScene::InitScene(*s); });
+                [](Scene* s) { BaseScene::InitScene(*s); });
         }
         framesPassed++;
     }
