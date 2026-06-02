@@ -240,7 +240,7 @@ void SceneViewPanel::Draw(Context& context) {
                         context.mainCamera->SetAsMainCamera();
                     }
 
-                    if (ImGui::Selectable("Load Scene")) {
+                    if (ImGui::Selectable("+ Load Scene")) {
                         Editor::OpenLoadSceneDialog(context);
                     }
 
@@ -724,6 +724,22 @@ void SceneViewPanel::HandleDrop(Context& context) {
                     spdlog::error(
                         "Editor::SceneViewPanel::HandleDrop: Failed to "
                         "load an .obj or .fbx file");
+                }
+            } else if (droppedPath.extension() == ".prefab") {
+                SceneNode* node =
+                    context.selectedScene->LoadPrefab(droppedPath);
+
+                if (node != nullptr) {
+                    node->SetParent(context.selectedScene->GetRootNode());
+
+                    if (hasValidSpawnPosition) {
+                        node->LocalTransform().Position() = spawnPosition;
+                    }
+
+                    context.selectedNode = node;
+                } else {
+                    spdlog::error("Editor::SceneViewPanel::HandleDrop: Failed "
+                                  "to load prefab");
                 }
             }
         }

@@ -1,6 +1,7 @@
 #include "panels/GraphPanel.h"
 #include "CameraController.h"
 #include "EditorApplication.h"
+#include "FileDialogHelpers.h"
 #include "imgui.h"
 
 #include <Scene.h>
@@ -161,14 +162,7 @@ void GraphPanel::DrawContextMenu(Context& context) {
         }
 
         if (ImGui::MenuItem("Load Prefab", nullptr, false, hasScene)) {
-            if (context.selectedScene != nullptr) {
-                SceneNode* parent = context.selectedNode
-                                        ? context.selectedNode
-                                        : context.selectedScene->GetRootNode();
-                SceneNode* node = context.selectedScene->LoadPrefab(
-                    fs::path("./res/pooga.prefab"));
-                node->SetParent(parent);
-            }
+            OpenLoadPrefabDialog(context);
         }
 
         if (context.selectedNode != nullptr) {
@@ -184,8 +178,7 @@ void GraphPanel::DrawContextMenu(Context& context) {
                 context.selectedScene->Instantiate(context.selectedNode);
             }
             if (ImGui::MenuItem("Save as Prefab")) {
-                nlohmann::json j = context.selectedNode->SaveAsPrefab();
-                HandleSavePrefab(j);
+                OpenSavePrefabDialog(context);
             }
         }
         ImGui::EndPopup();
@@ -236,13 +229,6 @@ void GraphPanel::DrawContextMenu(Context& context) {
         }
 
         ImGui::EndPopup();
-    }
-}
-
-void GraphPanel::HandleSavePrefab(nlohmann::json j) {
-    std::ofstream file("./res/pooga.prefab");
-    if (file.is_open()) {
-        file << j.dump(4);
     }
 }
 } // namespace Editor

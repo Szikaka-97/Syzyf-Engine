@@ -16,7 +16,5 @@ class GraphPanel {
   private:
     void DrawGraphNode(Context& context, SceneNode& node);
     void DrawContextMenu(Context& context);
-
-    void HandleSavePrefab(nlohmann::json j);
 };
 } // namespace Editor
