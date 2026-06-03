@@ -367,11 +367,8 @@ SceneNode* GltfScene::CreateNode(
 
       const float defaultLinear = 0.09f;
       const float defaultQuadratic = 0.032f;
-      const float defaultRange = 20.0f;
-      const float defaultOuterConeAngle = 45.0f;
-      // Multiplied by 100 to match how the scene looks in blender,
-      //    not necessarily accurate
-      const float candelasToWatts = 5435.0f;
+      const float defaultRange = 9999.99f;
+      const float fromCandelas = 683.0f;
 
       switch (gltfLight.type) {
           case fastgltf::LightType::Directional: {
@@ -380,13 +377,16 @@ SceneNode* GltfScene::CreateNode(
           }
           case fastgltf::LightType::Point: {
               float range = gltfLight.range.value_or(defaultRange);
-              lightNode->AddObject<Light>(Light::PointLight(color, range, (intensity / candelasToWatts), defaultLinear, defaultQuadratic));
+              lightNode->AddObject<Light>(Light::PointLight(color, range, (intensity / fromCandelas), defaultLinear, defaultQuadratic));
               break;
           }
           case fastgltf::LightType::Spot: {
               float range = gltfLight.range.value_or(defaultRange);
-              float outerConeAngle = gltfLight.outerConeAngle.value_or(glm::radians(defaultOuterConeAngle));
-              lightNode->AddObject<Light>(Light::SpotLight(color, outerConeAngle, range, (intensity / candelasToWatts), defaultLinear, defaultQuadratic));
+
+              float outerConeAngle = gltfLight.outerConeAngle.value_or(glm::radians(0.0f));
+              float innerConeAngle = gltfLight.innerConeAngle.value_or(0.0f);
+
+              lightNode->AddObject<Light>(Light::SpotLight(color, outerConeAngle, range, (intensity / fromCandelas), defaultLinear, defaultQuadratic));
               break;
           }
       }

@@ -19,6 +19,7 @@ layout (std430, binding = 0) buffer ShadowmapInfo {
 
 uniform sampler2D Builtin_ShadowMask;
 
+#ifdef OLD_LIGHT_FALLOFF
 vec3 getLightStrength(in Light light, in vec3 worldPos) {
 	if (light.type == DIRECTIONAL_LIGHT) {
 		return light.color * light.intensity;
@@ -28,6 +29,28 @@ vec3 getLightStrength(in Light light, in vec3 worldPos) {
 
 	return light.color * (light.intensity / (1 + light.linearAttenuation * dist + light.quadraticAttenuation * dist * dist));
 }
+#else
+// Frostbite Falloff
+vec3 getLightStrength(in Light light, in vec3 worldPos) {
+	if (light.type == DIRECTIONAL_LIGHT) {
+		return light.color * light.intensity;
+	}
+
+	float dist = distance(light.position, worldPos);
+
+	float denominator = max(dist, 0.01);
+	denominator *= denominator;
+
+	// Windowing function
+	float distanceOverRadius = dist / light.range;
+	float distanceOverRadius4 = distanceOverRadius * distanceOverRadius * distanceOverRadius * distanceOverRadius;
+
+	float window = clamp(1.0 - distanceOverRadius4, 0.0, 1.0);
+	window *= window;
+
+	return (light.color * (light.intensity / denominator)) * window;
+}
+#endif
 
 #ifdef SHADING_FUNCTION
 vec3 shade(in Material mat, in vec3 worldPos, in vec3 normal, in vec3 tangent) {
@@ -107,7 +130,7 @@ vec3 shade(in Material mat, in vec3 worldPos, in vec3 normal, in vec3 tangent) {
 
 					float shadowZ = texture(Builtin_ShadowMask, uv).x;
 
-					shadowAmount += lightViewPos.z - bias > shadowZ ? 1.0 : 0.0; 
+					shadowAmount += lightViewPos.z - bias > shadowZ ? 1.0 : 0.0;
 				}
 			}
 
@@ -125,3 +148,4 @@ vec3 shade(in Material mat, in vec3 worldPos, in vec3 normal, in vec3 tangent) {
 
 #define SHADER_LIGHT_H
 #endif
+
