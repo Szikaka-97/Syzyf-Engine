@@ -1,85 +1,75 @@
 #include <game_scripts/enemies/EnemySkeleton.h>
+#include "game_scripts/enemies/FlockingSystem.h"
 #include <Scene.h>
-
 #include <glm/glm.hpp>
 
-#ifndef SYZYF_ENEMY_DEBUG_DRAW
-#define SYZYF_ENEMY_DEBUG_DRAW 0
-#endif
-
-
-  void EnemySkeleton::Update() {
-
+void EnemySkeleton::Update() {
     EnsureBody();
-    LockXZRotation();
-    // m_TargetPosition = GetObject<Player>()->GlobalTransform().Position();
-    if (m_TargetNode)
-      m_TargetPosition = m_TargetNode->GlobalTransform().Position();
-    else
-      return;
-    if (!m_NavGrid) {
-      auto grids = GetScene()->FindObjectsOfType<NavigationGrid>();
-      if (!grids.empty()) m_NavGrid = grids[0];
-    }
+    //if (!m_TargetNode || !myNode) return;
 
-    if (!myNode) return;
+    m_TargetPosition = m_TargetNode->GlobalTransform().Position();
+    currentPos       = m_Body->GetPosition();
 
-    currentPos = m_Body->GetPosition();
     myNode->GlobalTransform().Position() = currentPos;
     myNode->GlobalTransform().Rotation() = m_Body->GetRotation();
-    glm::vec3 dirToTarget = m_TargetPosition - currentPos;
 
     UpdateAttackAnimation();
-    if (m_InAttackAnimation) {
-      StopMoving();
-      return;
-    }
+    if (m_InAttackAnimation) { StopMoving(); return; }
+
     if (isPlayerInRoom) {
-      float dist = glm::distance(currentPos, m_TargetPosition);
-      if (m_hp <= 30) {
-        currentState = States::FLEEING;
-      } else if (dist <= attackRange) {
-        currentState = States::ATTACKING;
-      } else if (m_UsingAStar) {
-        currentState = States::AVOIDING_OBSTACLE;
-      } else {
-        currentState = States::CHASING;
-      }
+        float dist = glm::distance(currentPos, m_TargetPosition);
+        if      (m_hp <= 30)          currentState = States::FLEEING;
+        else if (dist <= attackRange) currentState = States::ATTACKING;
+        else                          currentState = States::CHASING;
     } else {
-      currentState = States::PATROLLING;
+        currentState = States::PATROLLING;
     }
-
-    if (currentState == States::CHASING) {
-      UpdateStuckDetection();
-    }
-
-    if (currentState != States::AVOIDING_OBSTACLE) {
-      m_UsingAStar = false;
-      m_Path.clear();
-    }
-
+     
     switch (currentState) {
-      case States::PATROLLING:
-        m_StuckTimer = 0.0f;
-        Patrol();
-        break;
-      case States::CHASING:
-        DirectChase();
-        break;
-      case States::ATTACKING:
-        StopMoving();
-        Attack();
-        break;
-      case States::FLEEING:
-        Flee();
-        Attack();
-        break;
-      case States::AVOIDING_OBSTACLE:
-        AstarChase();
-        break;
+        case States::PATROLLING: {
+                glm::vec3 patrolTarget = m_FlockingSystem->GetPatrolTarget(this);
+                m_WalkPoint    = patrolTarget;
+                m_WalkPointSet = true;
+
+                glm::vec3 dir = patrolTarget - currentPos;
+                dir.y = 0.0f;
+                float dist = glm::length(dir);
+                if (dist < 0.6f) {
+                    m_FlockingSystem->RefreshPatrolTarget(this);
+                    StopMoving();
+                } else {
+                   
+                    glm::vec3 combined   = glm::normalize(dir) +
+                        glm::clamp(flockForce, glm::vec3(-0.5f), glm::vec3(0.5f));
+                    combined.y = 0.0f;
+                    float len = glm::length(combined);
+                    if (len > 0.001f) combined /= len;
+                    MoveInDirection(combined);
+                }
+            
+            break;
+        }
+        case States::CHASING: {
+            
+            DirectChaseWithFlock(flockForce);
+            break;
+        }
+        case States::ATTACKING:
+            StopMoving();
+            Attack();
+            break;
+        case States::FLEEING:
+            Flee();
+            Attack();
+            break;
     }
 
-#if SYZYF_ENEMY_DEBUG_DRAW
-    DrawDebugView();
-#endif
-  }
+    UpdateStatusEffects();
+
+}
+
+void EnemySkeleton::DirectChaseWithFlock(const glm::vec3& flockForce) {
+    ChaseWithSteering(flockForce);
+}
+
+void EnemySkeleton::OnCollisionEnter() {}

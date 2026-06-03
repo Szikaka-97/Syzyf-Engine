@@ -14,7 +14,7 @@
 #include <physics/Helpers.h>
 #include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
 
-namespace CraftingScene {
+namespace DungeonGeneratorScene {
 	inline void InitScene(Scene& mainScene);
 }
 
@@ -591,7 +591,7 @@ public:
 			this->sceneRequested = true;
 
 			Application::Get()->RequestSceneBuild(
-				[](Scene* s) { CraftingScene::InitScene(*s); }
+				[](Scene* s) { DungeonGeneratorScene::InitScene(*s); }
 			);
 		}
 	}

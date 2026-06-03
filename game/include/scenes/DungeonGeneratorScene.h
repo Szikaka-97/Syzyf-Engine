@@ -42,6 +42,7 @@
 #include <scatter/Spawner.h>
 
 #include "Jolt/Math/Vec3.h"
+#include "game_scripts/enemies/FlockingSystem.h"
 #include <Jolt/Jolt.h>
 #include <Jolt/Physics/Body/MotionType.h>
 #include <Jolt/Physics/Character/CharacterVirtual.h>
@@ -49,6 +50,14 @@
 #include <Jolt/Physics/Collision/Shape/Shape.h>
 #include <imgui.h>
 #include <physics/VirtualCharacterController.h>
+#include <game_scripts/AimCrosshair.h>
+#include <game_scripts/ThrowableObjectPool.h>
+#include <game_scripts/enemies/FlockingSystem.h>
+
+class DungeonRoomEnabler : public GameObject {
+public:
+	
+};
 
 namespace DungeonGeneratorScene {
 class EditorCameraTag : public GameObject {};
@@ -58,6 +67,15 @@ inline void InitScene(Scene& mainScene) {
 	mainScene.AddComponent<DebugInspector>();
 	mainScene.AddComponent<AnimationSystem>();
 	auto* tweenSystem = mainScene.AddComponent<TweenSystem>();
+    mainScene.AddComponent<ThrowableObjectPool>();
+	auto* flockingSystem = mainScene.AddComponent<FlockingSystem>();
+    // Opcjonalne tunowanie:
+    flockingSystem->separationRadius = 2.5f;
+    flockingSystem->separationWeight = 1.8f;
+    flockingSystem->alignmentRadius = 5.0f;
+    flockingSystem->alignmentWeight = 0.3f;
+    flockingSystem->cohesionRadius = 6.0f;
+    flockingSystem->cohesionWeight = 0.2f;
 
 // If Visual Studio doesn't like this I'm going to give up and force you guys to
 // switch to GCC
@@ -89,17 +107,34 @@ inline void InitScene(Scene& mainScene) {
 
 #pragma endregion
 #pragma region Player
+    JPH::Ref<JPH::CharacterVirtualSettings> characterSettings =
+        new JPH::CharacterVirtualSettings();
+    characterSettings->mShape = new JPH::CapsuleShape(0.5f, 0.5f);
+    characterSettings->mShapeOffset = JPH::Vec3(0, 1, 0);
+    characterSettings->mMaxSlopeAngle = JPH::DegreesToRadians(45.0f);
 
-	JPH::Ref<JPH::CharacterVirtualSettings> characterSettings =
-		new JPH::CharacterVirtualSettings();
-	characterSettings->mShape = new JPH::CapsuleShape(0.5f, 0.5f);
-	characterSettings->mShapeOffset = JPH::Vec3(0, 1, 0);
-	characterSettings->mMaxSlopeAngle = JPH::DegreesToRadians(45.0f);
+    SceneNode* playerNode = mainScene.CreateNode("Player");
 
-	SceneNode* playerNode = mainScene.CreateNode("Player");
+    SceneNode* bimberman =
+        ResourceDatabase::Global
+            ->Get<GltfScene>("./res/models/bimbermann_throwing.glb")
+            ->Instantiate(&mainScene, mainScene.root, "Bimberman");
+    bimberman->SetParent(playerNode);
 
-	SceneNode* bimberman = ResourceDatabase::Global->Get<GltfScene>("./res/models/bimbermann_throwing.glb")->Instantiate(&mainScene, mainScene.root, "Bimberman");
-	bimberman->SetParent(playerNode);
+    auto* virtualCharacter =
+        playerNode->AddObject<Physics::VirtualCharacterController>(
+            characterSettings);
+    virtualCharacter->SetCollisionLayerAndMask({1}, 0xFFFFFFFF);
+    virtualCharacter->SetPosition(
+        playerNode->GlobalTransform().Position().Value());
+    virtualCharacter->SetGravityFactor(1);
+
+    auto* aimingAid =
+        ResourceDatabase::Global->Get<GltfScene>("./res/models/crosshair.glb")
+            ->Instantiate(&mainScene, playerNode, "Aim Reticle")
+            ->AddObject<AimCrosshair>();
+
+    auto* player = playerNode->AddObject<PlayerController>();
 
 #pragma endregion
 #pragma region Camera

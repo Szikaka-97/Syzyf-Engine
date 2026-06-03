@@ -66,6 +66,8 @@ public:
 		return instance;
 	}
 
+	PlayerController() = default;
+
 	void Awake();
 	void Update();
 	void OnEnable();

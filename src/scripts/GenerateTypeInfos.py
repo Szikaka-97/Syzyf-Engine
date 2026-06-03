@@ -12,6 +12,7 @@ data: dict[str, dict] = None
 SOURCE_TYPE_DATABASE = sys.argv[1]
 DEST_SOURCE_FILE_PATH = os.path.dirname(sys.argv[1]) + "/TypeInfo.cpp"
 
+
 class CodeWriter:
 	def __init__(self, path: str):
 		self.filename = path

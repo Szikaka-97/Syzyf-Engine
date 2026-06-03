@@ -854,6 +854,7 @@ void SceneGraphics::RenderMask(const RenderParams& params, Framebuffer* target) 
         glDrawElements(render.mesh->GetDrawMode(), render.mesh->GetVertexCount(), GL_UNSIGNED_INT, nullptr);
         
     }
+	glEnable(GL_DITHER);
 
 	glEnable(GL_DITHER);
 

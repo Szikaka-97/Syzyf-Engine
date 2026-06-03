@@ -266,6 +266,8 @@ void Surface::Update() {
 	else if (!m_playerInside && containsPlayer) {
 		m_playerInside = true;
 
+        spdlog::error("Player enter");
+
 		InformEnter();
 	}
 }

@@ -39,12 +39,12 @@ public:
 
 	int seed = 1 << 31;
 	
-	int initialStrideLength = 3;
-	int maxFirstShelfOverhang = 3;
-	int secondStrideLength = 3;
-	int secondStrideLegs = 3;
-	int maxSecondShelfOverhang = 3;
-	int lastStretchLength = 3;
+	int initialStrideLength = 2;
+	int maxFirstShelfOverhang = 1;
+	int secondStrideLength = 2;
+	int secondStrideLegs = 2;
+	int maxSecondShelfOverhang = 2;
+	int lastStretchLength = 2;
 
 	void RemakeDungeon();
 

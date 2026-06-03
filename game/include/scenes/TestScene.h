@@ -56,13 +56,16 @@
 #include <text/Font.h>
 #include <ui/objects/UiCursor.h>
 #include <ui/objects/UiInteractable.h>
+#include <ui/widgets/wheel/UiRadialWheel.h>
 #include <ui/objects/UiLayout.h>
 #include <ui/objects/UiScrollableGrid.h>
 #include <ui/objects/UiText.h>
 #include <ui/objects/UiVisual.h>
 #include <ui/systems/UiSystem.h>
-#include <ui/widgets/UiCircularBar.h>
-#include <ui/widgets/wheel/UiRadialWheel.h>
+#include <Formatters.h>
+#include <game_scripts/ThrowableObjectPool.h>
+#include "game_scripts/enemies/MeleeSkeleton.h"
+#include "game_scripts/enemies/FlockingSystem.h"
 
 #include "Jolt/Math/Vec3.h"
 #include "text/Text3D.h"
@@ -122,6 +125,39 @@ inline void InitScene(Scene& mainScene) {
     auto* surface =
         floorNode->AddObject<Surface>(floorMeshRenderer->GetMesh(), 1.0f);
     floorBody->SetCollisionLayerAndMask({0}, 0xFFFFFFFF);
+
+    auto room1 =
+        ResourceDatabase::Global->Get<GltfScene>("./res/models/floor/room1.glb")
+            ->Instantiate(&mainScene, mainScene.root, "Room 1");
+    MeshRenderer* room1MeshRenderer =
+        room1->GetObjectInChildren<MeshRenderer>();
+    auto* room1Body = room1MeshRenderer->GetNode()->AddObject<Physics::Body>(
+        JPH::BodyCreationSettings{
+            Physics::MeshShape(room1MeshRenderer->GetMesh()),
+            JPH::RVec3::sZero(), JPH::Quat::sZero(), JPH::EMotionType::Static,
+            Physics::Layers::NON_MOVING});
+    auto* room1Surface =
+        room1->AddObject<Surface>(room1MeshRenderer->GetMesh(), 1.0f);
+
+    room1Surface->GetObject<Surface>()->SetID(1);
+    room1Body->SetCollisionLayerAndMask({0}, 0xFFFFFFFF);
+
+    auto room2 =
+        ResourceDatabase::Global->Get<GltfScene>("./res/models/floor/room2.glb")
+            ->Instantiate(&mainScene, mainScene.root, "Room 2");
+    MeshRenderer* room2MeshRenderer =
+        room2->GetObjectInChildren<MeshRenderer>();
+    auto* room2Body = room2MeshRenderer->GetNode()->AddObject<Physics::Body>(
+        JPH::BodyCreationSettings{
+            Physics::MeshShape(room2MeshRenderer->GetMesh()),
+            JPH::RVec3::sZero(), JPH::Quat::sZero(), JPH::EMotionType::Static,
+            Physics::Layers::NON_MOVING});
+    auto* room2Surface =
+        room2->AddObject<Surface>(room2MeshRenderer->GetMesh(), 1.0f);
+
+    room2Surface->GetObject<Surface>()->SetID(1);
+    room2Body->SetCollisionLayerAndMask({0}, 0xFFFFFFFF);
+
 
 #pragma endregion
 #pragma region Player
@@ -189,36 +225,73 @@ inline void InitScene(Scene& mainScene) {
         {1.0f, 1.0f, 1.0f, 0.6f});
 
 #pragma endregion
-#pragma Enemy
+#pragma region Enemy
+
+        auto* flockingSystem = mainScene.AddComponent<FlockingSystem>();
+    // Opcjonalne tunowanie:
+    flockingSystem->separationRadius = 2.5f;
+    flockingSystem->separationWeight = 1.8f;
+    flockingSystem->alignmentRadius = 5.0f;
+    flockingSystem->alignmentWeight = 0.3f;
+    flockingSystem->cohesionRadius = 6.0f;
+    flockingSystem->cohesionWeight = 0.2f;
     JPH::ShapeRefC enemyShape = new JPH::CapsuleShape(0.5f, 1.0f);
-    JPH::BodyCreationSettings enemySettings(
-        enemyShape, JPH::RVec3(10.5f, 2.0f, 2.0f), JPH::Quat::sIdentity(),
+    JPH::BodyCreationSettings enemySettingsTemplate(
+        enemyShape, JPH::RVec3(0, 1.5f, 0), JPH::Quat::sIdentity(),
         JPH::EMotionType::Dynamic, Physics::Layers::MOVING);
     Material* enemyMat =
         mainScene.Resources()->Get<Material>("./res/materials/jake.mat");
     Mesh* cubeMesh =
         mainScene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
 
-    SceneNode* enemy1 = mainScene.CreateNode("Enemy 1");
-    // enemy1->GlobalTransform().Position() = glm::vec3(10.5f, 0.0f, -5.0f);
-    enemy1->GlobalTransform().Scale() = glm::vec3(0.5f, 0.5f, 0.5f);
-    enemy1->GlobalTransform().Position() = glm::vec3(15.f, 0.f, 0.f);
-    Physics::Body* enemyBody1 = enemy1->AddObject<Physics::Body>(enemySettings);
-    enemyBody1->SetRestitution(0.0f);
-    auto* enemyAi1 = enemy1->AddObject<EnemySkeleton>();
-    enemyAi1->SetSurface(surface);
-    enemyAi1->SetTargetNode(player->GetNode());
-    enemyAi1->SetProjectileResources(cubeMesh, enemyMat);
-    enemyAi1->SetAttackCooldown(1.2f);
-    enemyAi1->SetRoomID(floorNode->GetID());
+    const int enemyCount = 20;
+    const float startX = 10.0f;
+    const float startZ = -5.0f;
+    const float spacing = 3.0f;
 
-    SceneNode* enemyModel =
-        ResourceDatabase::Global->Get<GltfScene>("./res/models/szkielet6.glb")
-            ->Instantiate(&mainScene, mainScene.root, "EnemyModel");
-    enemyModel->SetParent(enemy1);
-    enemyModel->GlobalTransform().Scale() = glm::vec3(0.1, 0.1, 0.1);
-    enemyModel->LocalTransform().Position() = glm::zero<glm::vec3>();
+    for (int i = 0; i < enemyCount; ++i) {
+        std::string enemyName = "Enemy " + std::to_string(i + 1);
+        SceneNode* enemyNode = mainScene.CreateNode(enemyName);
 
+        float posX = startX + (i % 5) * spacing;
+        float posZ = startZ + (i / 5) * spacing;
+        enemyNode->GlobalTransform().Position() = glm::vec3(posX, 1.5f, posZ);
+
+        JPH::BodyCreationSettings enemySettings = enemySettingsTemplate;
+        enemySettings.mPosition = JPH::RVec3(posX, 1.5f, posZ);
+        Physics::Body* enemyBody =
+            enemyNode->AddObject<Physics::Body>(enemySettings);
+        enemyBody->SetRestitution(0.0f);
+        enemyBody->SetCollisionLayerAndMask({1}, 0xFFFFFFFF);
+
+        auto* enemyAi = enemyNode->AddObject<EnemySkeleton>();
+        enemyAi->SetSurface(surface);
+        enemyAi->SetTargetNode(player->GetNode());
+        enemyAi->SetProjectileResources(cubeMesh, enemyMat);
+        enemyAi->SetAttackCooldown(1.2f);
+        enemyAi->SetRoomID(
+            room1->GetID()); 
+        enemyAi->SetCapsuleVisualOffset(0.5f, 1.0f);
+        enemyAi->OnPlayerEnteredRoom();
+        SceneNode* enemyModel =
+            ResourceDatabase::Global
+                ->Get<GltfScene>("./res/models/not_cube3.glb")
+                ->Instantiate(&mainScene, mainScene.root,
+                              "EnemyModel_" + std::to_string(i));
+        enemyModel->SetParent(enemyNode);
+        enemyModel->LocalTransform().Position() = glm::zero<glm::vec3>();
+
+        /*auto* animComp = enemyModel->GetObjectInChildren<AnimationComponent>();
+        if (animComp) {
+            spdlog::info("Found AnimationComponent in enemy model {} , "
+                         "animations count: {}",
+                         i, animComp->animations.size());
+            enemyAi->SetAttackAnimation(animComp);
+        } else {
+            spdlog::warn("No AnimationComponent found in enemy model {}", i);
+        }*/
+        enemyAi->RegisterToFlockingSystem(flockingSystem);
+    }
 #pragma endregion
 #pragma region UI
 

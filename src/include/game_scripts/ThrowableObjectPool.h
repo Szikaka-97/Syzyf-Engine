@@ -20,7 +20,7 @@ private:
 		}
 	};
 
-	SceneNode* bottlesPoolRoot;
+	SceneNode* bottlesPoolRoot = nullptr;
 	Mesh* bottleMesh;
 	Material* bottleMaterial;
 

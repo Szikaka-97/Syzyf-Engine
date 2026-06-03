@@ -1,4 +1,4 @@
-#include <game_scripts/PlayerController.h>
+#include "game_scripts/PlayerController.h"
 
 #include <spdlog/spdlog.h>
 #include <glm/glm.hpp>
