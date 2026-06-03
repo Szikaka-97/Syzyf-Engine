@@ -460,7 +460,7 @@ void Body::ApplyAngularImpulse(const glm::vec3& impulse) {
 // Syncs the node when moving it in the editor
 void Body::SyncToNode() {
     if (!bodyCreated) {
-        spdlog::warn("Tried syncing a body that hasn't been created yet");
+        // spdlog::warn("Tried syncing a body that hasn't been created yet");
         return;
     }
     

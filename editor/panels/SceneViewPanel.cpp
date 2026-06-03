@@ -8,6 +8,7 @@
 #include "Serialized.h"
 #include "physics/Body.h"
 #include "physics/DebugRenderer.h"
+#include "FileDialogHelpers.h"
 
 #include "physics/CharacterController.h"
 #include "physics/VirtualCharacterController.h"
@@ -178,7 +179,7 @@ void SceneViewPanel::Draw(Context& context) {
 
                     for (const auto& [name, loadFunc] :
                          SceneRegistry::GetLoadRegistry()) {
-                        
+
                         if (ImGui::Selectable(name.c_str())) {
                             Scene* newScene = loadFunc();
 
@@ -186,7 +187,8 @@ void SceneViewPanel::Draw(Context& context) {
 
                             context.loadedScenes.push_back(newScene);
 
-                            auto cameras = newScene->FindObjectsOfType<Camera>();
+                            auto cameras =
+                                newScene->FindObjectsOfType<Camera>();
 
                             SceneNode* cameraNode = newScene->CreateNode();
                             cameraNode->AddObject<CameraController>();
@@ -199,6 +201,8 @@ void SceneViewPanel::Draw(Context& context) {
                                 cameraNode->GlobalTransform().Position() = {
                                     0.0f, 1.0f, 0.0f};
                             }
+
+                            context.loadedScenes.push_back(newScene);
 
                             context.mainCamera = cameraNode->GetObject<Camera>();
                             context.mainCamera->SetAsMainCamera();
@@ -217,18 +221,21 @@ void SceneViewPanel::Draw(Context& context) {
 
                         SceneNode* cameraNode = newScene->CreateNode();
                         cameraNode->AddObject<CameraController>();
-                        cameraNode->GlobalTransform().Position() = {
-                            0.0f, 1.0f, 0.0f};
+                        cameraNode->GlobalTransform().Position() = {0.0f, 1.0f,
+                                                                    0.0f};
 
                         context.loadedScenes.push_back(newScene);
 
                         context.selectedScene = newScene;
                         context.selectedNode = nullptr;
-                        context.mainCamera =
-                            cameraNode->GetObject<Camera>();
+                        context.mainCamera = cameraNode->GetObject<Camera>();
                         context.mainCamera->SetAsMainCamera();
                     }
-                    
+
+                    if (ImGui::Selectable("+ Load Scene")) {
+                        Editor::OpenLoadSceneDialog(context);
+                    }
+
                     ImGui::EndPopup();
                 }
 
@@ -271,14 +278,17 @@ void SceneViewPanel::Draw(Context& context) {
             else
                 ImGui::End();
             return;
-        }
-        else {
-            if (ImGui::IsKeyChordPressed(ImGuiKey::ImGuiMod_Ctrl | ImGuiKey::ImGuiKey_S)) {
-           	    nlohmann::json rep = Serialization::Serialize(context.selectedScene);
+        } else {
+            if (ImGui::IsKeyChordPressed(ImGuiKey::ImGuiMod_Ctrl |
+                                         ImGuiKey::ImGuiKey_S)) {
+                nlohmann::json rep =
+                    Serialization::Serialize(context.selectedScene);
 
-                spdlog::info("Root is legit: {}", context.selectedScene->root != nullptr);
+                spdlog::info("Root is legit: {}",
+                             context.selectedScene->root != nullptr);
 
-                std::ofstream sceneSave(std::format("./res/scenes/{}.scene", context.selectedScene->name));
+                std::ofstream sceneSave(std::format(
+                    "./res/scenes/{}.scene", context.selectedScene->name));
                 sceneSave << rep.dump(2);
 
                 spdlog::info("Saving scene {}", context.selectedScene->name);
