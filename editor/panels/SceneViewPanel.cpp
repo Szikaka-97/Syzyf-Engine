@@ -2,13 +2,13 @@
 #include "CameraController.h"
 #include "Commands.h"
 #include "EditorApplication.h"
+#include "FileDialogHelpers.h"
 #include "MousePickingBodySystem.h"
 #include "ParticleSpawner.h"
 #include "SceneRegistry.h"
 #include "Serialized.h"
 #include "physics/Body.h"
 #include "physics/DebugRenderer.h"
-#include "FileDialogHelpers.h"
 
 #include "physics/CharacterController.h"
 #include "physics/VirtualCharacterController.h"
@@ -194,17 +194,25 @@ void SceneViewPanel::Draw(Context& context) {
                             cameraNode->AddObject<CameraController>();
 
                             if (cameras.size() > 0) {
-                                cameraNode->GlobalTransform().Position() = cameras[0]->GlobalTransform().Position().Value();
-                                cameraNode->GlobalTransform().Rotation() = cameras[0]->GlobalTransform().Rotation().Value();
-                            }
-                            else {
+                                cameraNode->GlobalTransform().Position() =
+                                    cameras[0]
+                                        ->GlobalTransform()
+                                        .Position()
+                                        .Value();
+                                cameraNode->GlobalTransform().Rotation() =
+                                    cameras[0]
+                                        ->GlobalTransform()
+                                        .Rotation()
+                                        .Value();
+                            } else {
                                 cameraNode->GlobalTransform().Position() = {
                                     0.0f, 1.0f, 0.0f};
                             }
 
                             context.loadedScenes.push_back(newScene);
 
-                            context.mainCamera = cameraNode->GetObject<Camera>();
+                            context.mainCamera =
+                                cameraNode->GetObject<Camera>();
                             context.mainCamera->SetAsMainCamera();
 
                             context.selectedScene = newScene;
@@ -477,6 +485,14 @@ void SceneViewPanel::Draw(Context& context) {
 }
 
 void SceneViewPanel::UpdateAndRenderScene(Context& context) {
+    if (context.isNativeDialogOpen) {
+        context.selectedScene->Render();
+        if (context.state != State::Game) {
+            context.physicsDebugRenderer->Render();
+        }
+        return;
+    }
+
     if (context.state == State::Game) {
         context.selectedScene->Update();
     } else {
@@ -751,11 +767,11 @@ void SceneViewPanel::DrawMenuBar(Context& context) {
         this->isGizmoLocal = true;
     }
     ImGui::SameLine();
-    if (ImGui::RadioButton("Draw Gizmos", context.mainCamera->HasPass(RenderPassType::Gizmos))) {
+    if (ImGui::RadioButton("Draw Gizmos", context.mainCamera->HasPass(
+                                              RenderPassType::Gizmos))) {
         if (context.mainCamera->HasPass(RenderPassType::Gizmos)) {
             context.mainCamera->RemovePass(RenderPassType::Gizmos);
-        }
-        else {
+        } else {
             context.mainCamera->AddPass(RenderPassType::Gizmos);
         }
     }

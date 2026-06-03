@@ -38,6 +38,7 @@
           gdb
           wayland-scanner
           python3
+          zenity
 
           cppcheck
           include-what-you-use

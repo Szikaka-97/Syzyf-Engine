@@ -43,6 +43,28 @@ struct Context {
     State state = State::Editor;
 
     std::unique_ptr<Physics::DebugRenderer> physicsDebugRenderer;
+
+    // File dialog stuff
+    std::atomic<bool> isNativeDialogOpen = false;
+    std::mutex taskQueueMutex;
+    std::vector<std::function<void()>> mainThreadTasks;
+
+    void DispatchToMainThread(std::function<void()> task) {
+        std::lock_guard<std::mutex> lock(taskQueueMutex);
+        mainThreadTasks.push_back(std::move(task));
+    }
+
+    void ExecuteMainThreadTasks() {
+        std::vector<std::function<void()>> tasksToRun;
+        {
+            std::lock_guard<std::mutex> lock(taskQueueMutex);
+            tasksToRun = std::move(mainThreadTasks);
+        }
+
+        for (auto& task : tasksToRun) {
+            task();
+        }
+    }
 };
 
 class EditorApplication : public ::Application {
