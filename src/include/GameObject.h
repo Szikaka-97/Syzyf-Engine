@@ -9,14 +9,15 @@
 
 
 #include <Scene.h>
+#include <Messaging.h>
+#include <Serialized.h>
 
 class GameObject {
 	friend class Scene;
 private:
 	int id;
-	const std::type_info* runtimeTypeInfo;
-	bool enabled;
-	SceneNode* node;
+	serialized bool enabled;
+	serialized SceneNode* node;
 protected:
 	SceneTransform& GetTransform() const;
 	SceneTransform::TransformAccess& GlobalTransform() const;
@@ -84,5 +85,3 @@ bool GameObject::TryGetObject(T_GO*& target) const {
 // template <class T_Required>
 // 	requires std::derived_from<T_Required, GameObject>
 // class Requires { };
-
-std::string DemangleTypeName(const char* mangledName);

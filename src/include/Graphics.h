@@ -26,6 +26,7 @@ class PostProcessingSystem;
 class ReflectionProbeSystem;
 class Camera;
 class Viewport;
+class Skybox;
 
 struct RenderParams {
 	RenderPassType pass;
@@ -160,6 +161,8 @@ private:
 
     Mesh* uiQuadMesh;
 
+	Skybox* activeSkybox = nullptr;
+
 	void RenderFullscreenFrameQuad();
 	void CompositeTransparentPass();
 	void CompositeVolumetricPass();
@@ -199,6 +202,9 @@ public:
 	
 	Camera* GetMainCamera() const;
 	void SetMainCamera(Camera* camera);
+
+	void SetActiveSkybox(Skybox* skybox);
+	Skybox* GetActiveSkybox() const;
 
 	void BindUniformBuffers();
 	

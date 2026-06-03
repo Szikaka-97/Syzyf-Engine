@@ -55,17 +55,17 @@ private:
 	static float applicationTime;
 	static float deltaTime;
 
-    static float timeScale;
-    static float unscaledDeltaTime;
+	static float timeScale;
+	static float unscaledDeltaTime;
 public:
 	static const TimePoint& Now();
 	static TimePoint SystemTime();
 	static float Current();
 	static float Delta();
 
-    static void SetTimeScale(float scale);
-    static float GetTimeScale();
-    static float UnscaledDelta();
+	static void SetTimeScale(float scale);
+	static float GetTimeScale();
+	static float UnscaledDelta();
 
-    static void Update();
+	static void Update();
 };

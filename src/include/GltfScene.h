@@ -20,20 +20,29 @@ public:
   ~GltfScene();
   SceneNode* Instantiate(Scene* scene, SceneNode* parent = nullptr, std::string name = "");
 private:
-  std::string filename;
+  fs::path filePath;
   std::unique_ptr<fastgltf::Asset> asset;
   std::vector<Mesh*> meshes;
   std::vector<Material*> materials;
+  std::vector<Texture2D*> textures;
   bool isSkinned = false;
 
   SceneNode* CreateNode(fastgltf::Node& gltfNode, Scene* scene, std::vector<SceneNode*>& sceneNodes, SceneNode* parent = nullptr);
 
-  static std::vector<Material*> LoadMaterials(fastgltf::Asset& asset, bool isSkinned);
+  static std::vector<Material*> LoadMaterials(GltfScene* scene, bool isSkinned);
   static Mesh* LoadMesh(fastgltf::Mesh& mesh, fastgltf::Asset& asset, std::vector<Material*>& materials);
-  static Texture2D* LoadImage(fastgltf::Asset& asset, fastgltf::Image& image, const TextureParams loadParams);
+  static Texture2D* LoadImage(GltfScene* scene, fastgltf::Image& image, const TextureParams loadParams);
   static std::optional<AnimationComponent::Animation> LoadAnimation(std::vector<SceneNode*>& sceneNodes, fastgltf::Animation& gltfAnimation, fastgltf::Asset& asset);
 
   static TextureFilter GltfFilterToTextureFilter(fastgltf::Filter filter);
   static TextureWrap GltfWrapToTextureWrap(fastgltf::Wrap wrap);
   static void GltfSamplerToTextureParams(TextureParams& params, fastgltf::Sampler& sampler);
+  
+	virtual fs::path GetPath() const override;
+	virtual uint64_t GetHash() const override;
+public:
+  std::vector<Texture2D*> GetTextures();
+  std::vector<Mesh*> GetMeshes();
+
+  void GetAnimationData(AnimationComponent::Animation& animation);
 };

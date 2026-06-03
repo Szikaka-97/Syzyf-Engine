@@ -123,7 +123,9 @@ template<class T_GO>
 	requires std::derived_from<T_GO, GameObject>
 GameObjectSystem<T_GO>::GameObjectSystem(Scene* scene):
 GameObjectSystemBase(scene) {
-	this->objects = scene->FindObjectsOfType<T_GO>();
+	if (scene) {
+		this->objects = scene->FindObjectsOfType<T_GO>();
+	}
 }
 
 template<class T_GO>

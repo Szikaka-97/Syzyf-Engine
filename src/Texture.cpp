@@ -39,7 +39,7 @@ GLenum ToGL(TextureChannels channels) {
 		GL_RGBA,
 		GL_DEPTH_COMPONENT,
 		GL_DEPTH_STENCIL,
-        GL_RED_INTEGER,
+	        GL_RED_INTEGER,
 	};
 
 	return values[(int) channels];
@@ -140,11 +140,10 @@ GLenum Texture::CalcInternalFormat(TextureColor colorSpace, TextureFormat format
 
 	GLenum result;
 
-    if (channels == TextureChannels::GrayscaleInteger) {
-        if (format == TextureFormat::Ubyte) return GL_R8UI;
-        if (format == TextureFormat::Uint) return GL_R32UI;
-    }
-
+	if (channels == TextureChannels::GrayscaleInteger) {
+		if (format == TextureFormat::Ubyte) return GL_R8UI;
+		if (format == TextureFormat::Uint) return GL_R32UI;
+	}
 	if (channels == TextureChannels::Depth) {
 		result = GL_DEPTH_COMPONENT;
 	}
@@ -268,7 +267,7 @@ bool Texture::IsDirty() const {
 void Texture::Update() {
 	GLenum glTexType[] {
 		GL_TEXTURE_2D,
-        GL_TEXTURE_3D,
+		GL_TEXTURE_3D,
 		GL_TEXTURE_CUBE_MAP
 	};
 
@@ -311,6 +310,14 @@ void Texture::Update() {
 	glBindTexture(type, 0);
 }
 
+fs::path Texture::GetPath() const {
+	return this->path;
+}
+
+uint64_t Texture::GetHash() const {
+	return std::hash<fs::path>{}(this->path);
+}
+
 template<> Texture2D* Texture::Load<Texture2D>(const fs::path& texturePath, const TextureParams& loadParams) {
 	return Texture2D::Load(texturePath, loadParams);
 }
@@ -350,7 +357,7 @@ Texture2D::Texture2D(unsigned int width, unsigned int height, const TextureParam
 	this->dirty = true;
 
 	this->mipmapped = TextureInfoBit<bool>();
-    this->mipmapped.dirty = false;
+	this->mipmapped.dirty = false;
 	this->wrapU = TextureInfoBit<TextureWrap>();
 	this->wrapV = TextureInfoBit<TextureWrap>();
 	this->minFilter = TextureInfoBit<TextureFilter>();
@@ -375,7 +382,7 @@ Texture2D::Texture2D(unsigned int width, unsigned int height, const TextureParam
 	this->dirty = true;
 
 	this->mipmapped = TextureInfoBit<bool>();
-    this->mipmapped.dirty = false;
+	this->mipmapped.dirty = false;
 	this->wrapU = TextureInfoBit<TextureWrap>();
 	this->wrapV = TextureInfoBit<TextureWrap>();
 	this->minFilter = TextureInfoBit<TextureFilter>();
@@ -404,32 +411,33 @@ Texture2D* Texture2D::Create(unsigned char* textureData, int width, int height, 
 	
 	Texture2D* result = new Texture2D(width, height, loadParams, textureHandle);
 
-    result->Update();
+	result->Update();
 
 	return result;
 }
 
-Texture2D* Texture2D::Load(const unsigned char* data, const int length, const TextureParams loadParams, bool flip) {
-  stbi_set_flip_vertically_on_load(flip);
+Texture2D* Texture2D::Load(const unsigned char* data, const int length, const TextureParams loadParams, bool flip, const fs::path& texturePath) {
+	stbi_set_flip_vertically_on_load(flip);
 
-  int width, height, nrChannels;
-  unsigned char* textureData = nullptr;
-  
-  if (loadParams.format == TextureFormat::Float) {
-    textureData = (unsigned char*)stbi_loadf_from_memory(data, length, &width, &height, &nrChannels, loadParams.NumChannels());
-  } else {
-    textureData = stbi_load_from_memory(data, length, &width, &height, &nrChannels, loadParams.NumChannels());
-  }
+	int width, height, nrChannels;
+	unsigned char* textureData = nullptr;
+	
+	if (loadParams.format == TextureFormat::Float) {
+		textureData = (unsigned char*)stbi_loadf_from_memory(data, length, &width, &height, &nrChannels, loadParams.NumChannels());
+	} else {
+		textureData = stbi_load_from_memory(data, length, &width, &height, &nrChannels, loadParams.NumChannels());
+	}
 
-  if (!textureData) {
-    spdlog::error("Failed to load texture from data");
-    return nullptr;
-  }
+	if (!textureData) {
+		spdlog::error("Failed to load texture from data");
+		return nullptr;
+	}
 
-  Texture2D* texture = Create(textureData, width, height, loadParams);
+	Texture2D* texture = Create(textureData, width, height, loadParams);
+	texture->path = texturePath;
 
-  stbi_image_free(textureData);
-  return texture;
+	stbi_image_free(textureData);
+	return texture;
 }
 
 Texture2D* Texture2D::Load(const fs::path& texturePath, const TextureParams& loadParams, bool flip) {
@@ -450,10 +458,13 @@ Texture2D* Texture2D::Load(const fs::path& texturePath, const TextureParams& loa
 		return nullptr;
 	}
 
-  Texture2D* texture = Create(textureData, width, height, loadParams);
+	Texture2D* texture = Create(textureData, width, height, loadParams);
 	
-  stbi_image_free(textureData);
-  return texture;
+	stbi_image_free(textureData);
+
+	texture->path = texturePath;
+
+	return texture;
 }
 
 void Cubemap::Create() {
@@ -587,6 +598,8 @@ Cubemap* Cubemap::LoadEquirectangular(const fs::path& texturePath, const Texture
 	cubemapBlitProg->Dispatch(std::ceil(texSize / 8.0f), std::ceil(texSize / 8.0f), 1);
 
 	delete equTex;
+	
+	result->path = texturePath;
 
 	return result;
 }
@@ -663,6 +676,8 @@ Cubemap* Cubemap::LoadParts(const fs::path& texturePath, const TextureParams& lo
 	result->SetMagFilter(loadParams.magFilter);
 	
 	result->Update();
+	
+	result->path = texturePath;
 
 	return result;
 }
@@ -891,3 +906,114 @@ void Texture3D::SetWrapModeW(TextureWrap wrapMode) {
 	this->dirty = true;
 }
 
+json Texture2D::Serialize() const {
+	json data;
+
+	data["path"] = this->GetPath();
+
+	data["channels"] = (int) this->channels;
+	data["colorSpace"] = (int) this->colorSpace;
+	data["format"] = (int) this->format;
+	data["wrapU"] = (int) this->wrapU.value;
+	data["wrapV"] = (int) this->wrapV.value;
+	data["minFilter"] = (int) this->minFilter.value;
+	data["magFilter"] = (int) this->magFilter.value;
+
+	return data;
+}
+Texture2D* Texture2D::Deserialize(const json& data) {	
+	fs::path texPath = data["path"];
+
+	if (!fs::exists(texPath) || !fs::is_regular_file(texPath)) {
+		if (texPath.string().contains(':')) {
+			fs::path gltfPath = texPath.string().substr(0, texPath.string().find(':'));
+
+			GltfScene* gltf = ResourceDatabase::Global->Get<GltfScene>(gltfPath);
+
+			for (Texture2D* t : gltf->GetTextures()) {
+				if (t->path == texPath) {
+					return t;
+				}
+			}
+		}
+	}
+
+	TextureParams params{
+		.channels = data["channels"],
+		.colorSpace = data["colorSpace"],
+		.format = data["format"],
+		.wrapU = data["wrapU"],
+		.wrapV = data["wrapV"],
+		.minFilter = data["minFilter"],
+		.magFilter = data["magFilter"],
+	};
+
+	return ResourceDatabase::Global->Get<Texture2D>(texPath, params);
+}
+
+json Texture3D::Serialize() const {
+	json data;
+
+	data["path"] = this->GetPath();
+
+	data["channels"] = (int) this->channels;
+	data["colorSpace"] = (int) this->colorSpace;
+	data["format"] = (int) this->format;
+	data["wrapU"] = (int) this->wrapU.value;
+	data["wrapV"] = (int) this->wrapV.value;
+	data["wrapW"] = (int) this->wrapW.value;
+	data["minFilter"] = (int) this->minFilter.value;
+	data["magFilter"] = (int) this->magFilter.value;
+
+	return data;
+}
+Texture3D* Texture3D::Deserialize(const json& data) {
+	TextureParams params{
+		.channels = data["channels"],
+		.colorSpace = data["colorSpace"],
+		.format = data["format"],
+		.wrapU = data["wrapU"],
+		.wrapV = data["wrapV"],
+		.wrapW = data["wrapW"],
+		.minFilter = data["minFilter"],
+		.magFilter = data["magFilter"],
+	};
+
+	fs::path texPath = data["path"];
+
+	// return ResourceDatabase::Global->Get<Texture3D>(texPath, params);
+	return nullptr; // TODO
+}
+
+json Cubemap::Serialize() const {
+	json data;
+
+	data["path"] = this->GetPath();
+
+	data["channels"] = (int) this->channels;
+	data["colorSpace"] = (int) this->colorSpace;
+	data["format"] = (int) this->format;
+	data["wrapU"] = (int) this->wrapU.value;
+	data["wrapV"] = (int) this->wrapV.value;
+	data["wrapW"] = (int) this->wrapW.value;
+	data["minFilter"] = (int) this->minFilter.value;
+	data["magFilter"] = (int) this->magFilter.value;
+
+	return data;
+}
+Cubemap* Cubemap::Deserialize(const json& data) {
+	TextureParams params{
+		.channels = data["channels"],
+		.colorSpace = data["colorSpace"],
+		.format = data["format"],
+		.wrapU = data["wrapU"],
+		.wrapV = data["wrapV"],
+		.wrapW = data["wrapW"],
+		.minFilter = data["minFilter"],
+		.magFilter = data["magFilter"],
+	};
+
+	fs::path texPath = data["path"];
+
+	return ResourceDatabase::Global->Get<Cubemap>(texPath, params);
+}

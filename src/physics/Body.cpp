@@ -8,9 +8,16 @@
 #include "Jolt/Physics/Collision/Shape/Shape.h"
 #include <spdlog/spdlog.h>
 #include <imgui.h>
+#include <Serialization.h>
+#include <Mesh.h>
+#include <physics/Helpers.h>
 
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
+#include <Jolt/Physics/Collision/Shape/BoxShape.h>
+#include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
+#include <Jolt/Physics/Collision/Shape/PlaneShape.h>
+#include <Jolt/Physics/Collision/Shape/MeshShape.h>
 #include <Jolt/Physics/Collision/Shape/ScaledShape.h>
 #include <Jolt/Physics/Collision/Shape/ConvexHullShape.h>
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
@@ -18,7 +25,14 @@
 namespace Physics {
 using namespace JPH::literals;
 
-Body::Body() {};
+enum class BodyKind {
+  Sphere,
+  Box,
+  Capsule,
+  Plane,
+  ConvexHullMesh,
+  Mesh,
+};
 
 Body::Body(const JPH::BodyCreationSettings& settings): bodyCreationSettings(settings) {}
 
@@ -446,7 +460,7 @@ void Body::ApplyAngularImpulse(const glm::vec3& impulse) {
 // Syncs the node when moving it in the editor
 void Body::SyncToNode() {
     if (!bodyCreated) {
-        spdlog::warn("Tried syncing a body that hasn't been created yet");
+        // spdlog::warn("Tried syncing a body that hasn't been created yet");
         return;
     }
     
@@ -634,6 +648,182 @@ void Body::DrawImGui() {
     }
     ImGui::TreePop();
   }
+}
+
+json Body::Serialize() const {
+  json data;
+
+  data["collisionLayer"] = this->collisionLayer;
+  data["collisionMask"] = this->collisionMask;
+  data["mObjectLayer"] = this->bodyCreationSettings.mObjectLayer;
+  data["mMotionType"] = this->bodyCreationSettings.mMotionType;
+  data["mAllowedDOFs"] = this->bodyCreationSettings.mAllowedDOFs;
+  data["mAllowDynamicOrKinematic"] = this->bodyCreationSettings.mAllowDynamicOrKinematic;
+  data["mIsSensor"] = this->bodyCreationSettings.mIsSensor;
+  data["mCollideKinematicVsNonDynamic"] = this->bodyCreationSettings.mCollideKinematicVsNonDynamic;
+  data["mUseManifoldReduction"] = this->bodyCreationSettings.mUseManifoldReduction;
+  data["mApplyGyroscopicForce"] = this->bodyCreationSettings.mApplyGyroscopicForce;
+  data["mMotionQuality"] = this->bodyCreationSettings.mMotionQuality;
+  data["mEnhancedInternalEdgeRemoval"] = this->bodyCreationSettings.mEnhancedInternalEdgeRemoval;
+  data["mAllowSleeping"] = this->bodyCreationSettings.mAllowSleeping;
+  data["mFriction"] = this->bodyCreationSettings.mFriction;
+  data["mRestitution"] = this->bodyCreationSettings.mRestitution;
+  data["mLinearDamping"] = this->bodyCreationSettings.mLinearDamping;
+  data["mAngularDamping"] = this->bodyCreationSettings.mAngularDamping;
+  data["mMaxLinearVelocity"] = this->bodyCreationSettings.mMaxLinearVelocity;
+  data["mMaxAngularVelocity"] = this->bodyCreationSettings.mMaxAngularVelocity;
+  data["mGravityFactor"] = this->bodyCreationSettings.mGravityFactor;
+
+  data["mOverrideMassProperties"] = this->bodyCreationSettings.mOverrideMassProperties;
+  data["mInertiaMultiplier"] = this->bodyCreationSettings.mInertiaMultiplier;
+  data["mMass"] = this->bodyCreationSettings.mOverrideMassProperties != JPH::EOverrideMassProperties::CalculateMassAndInertia ? this->bodyCreationSettings.mMassPropertiesOverride.mMass : 0;
+
+  json shapeData;
+
+  const JPH::Shape* shape = this->bodyCreationSettings.GetShape();
+
+  if (dynamic_cast<const JPH::DecoratedShape *>(shape)) {
+    shape = dynamic_cast<const JPH::DecoratedShape *>(shape)->GetInnerShape();
+  }
+
+  do {
+    const JPH::SphereShape* sphere = dynamic_cast<const JPH::SphereShape*>(shape);
+
+    if (sphere) {
+      shapeData["kind"] = BodyKind::Sphere;
+      shapeData["radius"] = sphere->GetRadius();
+
+      break;
+    }
+
+    const JPH::BoxShape* box = dynamic_cast<const JPH::BoxShape*>(shape);
+
+    if (box) {
+      shapeData["kind"] = BodyKind::Box;
+      JPH::Vec3 ext = box->GetHalfExtent();
+      shapeData["halfExtent"] = Serialization::Serialize(glm::vec3(ext.GetX(), ext.GetY(), ext.GetZ()));
+
+      break;
+    }
+
+    const JPH::CapsuleShape* capsule = dynamic_cast<const JPH::CapsuleShape*>(shape);
+
+    if (capsule) {
+      shapeData["kind"] = BodyKind::Capsule;
+      shapeData["radius"] = capsule->GetRadius();
+      shapeData["halfHeight"] = capsule->GetHalfHeightOfCylinder();
+
+      break;
+    }
+
+    const JPH::PlaneShape* plane = dynamic_cast<const JPH::PlaneShape*>(shape);
+
+    if (plane) {
+      shapeData["kind"] = BodyKind::Plane;
+      JPH::Vec3 nrm = plane->GetSurfaceNormal(JPH::SubShapeID(), JPH::Vec3::sZero());
+      shapeData["normal"] = Serialization::Serialize(glm::vec3(nrm.GetX(), nrm.GetY(), nrm.GetZ()));
+
+      break;
+    }
+
+    const JPH::ConvexHullShape* hull = dynamic_cast<const JPH::ConvexHullShape*>(shape);
+
+    if (hull) {
+      shapeData["kind"] = BodyKind::ConvexHullMesh;
+      shapeData["mesh"] = ((Mesh*) hull->GetUserData())->GetPath();
+
+      break;
+    }
+
+    const JPH::MeshShape* mesh = dynamic_cast<const JPH::MeshShape*>(shape);
+
+    if (mesh) {
+      shapeData["kind"] = BodyKind::ConvexHullMesh;
+      shapeData["mesh"] = ((Mesh*) mesh->GetUserData())->GetPath();
+
+      break;
+    }
+
+    spdlog::error("Failed to create shape settings for body on node {}", GetNode()->GetName());
+  } while (false); // Because gotos are for losers
+
+  data["shape"] = shapeData;
+
+  return data;
+}
+
+void Body::Deserialize(const json& data) {
+  this->collisionLayer = data["collisionLayer"];
+  this->collisionMask = data["collisionMask"];
+  this->bodyCreationSettings.mObjectLayer = data["mObjectLayer"];
+  this->bodyCreationSettings.mMotionType = data["mMotionType"];
+  this->bodyCreationSettings.mAllowedDOFs = data["mAllowedDOFs"];
+  this->bodyCreationSettings.mAllowDynamicOrKinematic = data["mAllowDynamicOrKinematic"];
+  this->bodyCreationSettings.mIsSensor = data["mIsSensor"];
+  this->bodyCreationSettings.mCollideKinematicVsNonDynamic = data["mCollideKinematicVsNonDynamic"];
+  this->bodyCreationSettings.mUseManifoldReduction = data["mUseManifoldReduction"];
+  this->bodyCreationSettings.mApplyGyroscopicForce = data["mApplyGyroscopicForce"];
+  this->bodyCreationSettings.mMotionQuality = data["mMotionQuality"];
+  this->bodyCreationSettings.mEnhancedInternalEdgeRemoval = data["mEnhancedInternalEdgeRemoval"];
+  this->bodyCreationSettings.mAllowSleeping = data["mAllowSleeping"];
+  this->bodyCreationSettings.mFriction = data["mFriction"];
+  this->bodyCreationSettings.mRestitution = data["mRestitution"];
+  this->bodyCreationSettings.mLinearDamping = data["mLinearDamping"];
+  this->bodyCreationSettings.mAngularDamping = data["mAngularDamping"];
+  this->bodyCreationSettings.mMaxLinearVelocity = data["mMaxLinearVelocity"];
+  this->bodyCreationSettings.mMaxAngularVelocity = data["mMaxAngularVelocity"];
+  this->bodyCreationSettings.mGravityFactor = data["mGravityFactor"];
+
+  this->bodyCreationSettings.mOverrideMassProperties = data["mOverrideMassProperties"];
+  this->bodyCreationSettings.mInertiaMultiplier = data["mInertiaMultiplier"];
+
+  if (this->bodyCreationSettings.mOverrideMassProperties != JPH::EOverrideMassProperties::CalculateMassAndInertia) {
+    this->bodyCreationSettings.mMassPropertiesOverride.mMass = data["mMass"];
+  }
+
+  json shapeData = data["shape"];
+
+  switch (shapeData["kind"].get<BodyKind>()) {
+  case BodyKind::Sphere: {
+    this->bodyCreationSettings.SetShape(Physics::SphereShape(shapeData["radius"]));
+    
+    break;
+  }
+  case BodyKind::Box: {
+    glm::vec3 halfExtents = Serialization::Deserialize<glm::vec3>(shapeData["halfExtent"]);
+    this->bodyCreationSettings.SetShape(Physics::BoxShape(halfExtents));
+
+    break;
+  }
+  case BodyKind::Capsule: {
+    this->bodyCreationSettings.SetShape(Physics::CapsuleShape(
+      shapeData["halfHeight"],
+      shapeData["radius"]
+    ));
+
+    break;
+  }
+  case BodyKind::Plane: {
+    glm::vec3 nrm = Serialization::Deserialize<glm::vec3>(shapeData["normal"]);
+    this->bodyCreationSettings.SetShape(Physics::PlaneShape(nrm));
+    break;
+  }
+  case BodyKind::ConvexHullMesh: {
+    Mesh* hullMesh = ResourceDatabase::Global->Get<Mesh>(shapeData["mesh"]);
+
+    this->bodyCreationSettings.SetShape(Physics::ConvexHullMeshShape(hullMesh));
+
+    break;
+  }
+  case BodyKind::Mesh: {
+    Mesh* bodyMesh = ResourceDatabase::Global->Get<Mesh>(shapeData["mesh"]);
+
+    this->bodyCreationSettings.SetShape(Physics::MeshShape(bodyMesh));
+
+    break;
+  }
+  }
+
 }
 }
 

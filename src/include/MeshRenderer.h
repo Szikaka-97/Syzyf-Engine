@@ -9,26 +9,26 @@ class Mesh;
 class Material;
 
 enum MaskEffectBits : uint8_t {
-    None = 0,
-    XRay = 1,
-    Outline = 2,
-    Jfa = 4, 
-    Effect4 = 8, 
-    Effect5 = 16, 
-    Effect6 = 32, 
-    Effect7 = 64, 
-    Effect8 = 128, 
+	None = 0,
+	XRay = 1,
+	Outline = 2,
+	Jfa = 4, 
+	Effect4 = 8, 
+	Effect5 = 16, 
+	Effect6 = 32, 
+	Effect7 = 64, 
+	Effect8 = 128, 
 };
 
 class MeshRenderer : public GameObject, public ImGuiDrawable {
 public:
-    uint8_t maskFlags = MaskEffectBits::None;
+	uint8_t maskFlags = MaskEffectBits::None;
 private:
-	Mesh* mesh;
-	std::vector<Material*> materials;
+	serialized Mesh* mesh;
+	serialized std::vector<Material*> materials;
 
 	void ResetUniformBuffer();
-    void DrawMaskEffectCheckbox(MaskEffectBits maskEffect);
+	void DrawMaskEffectCheckbox(MaskEffectBits maskEffect);
 public:
 	MeshRenderer();
 	MeshRenderer(Mesh* mesh, Material* material);

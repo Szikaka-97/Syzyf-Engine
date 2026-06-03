@@ -1,4 +1,5 @@
 #include "panels/FilesPanel.h"
+#include "Popups.h"
 
 #include <Texture.h>
 #include <algorithm>
@@ -133,6 +134,22 @@ void FilesPanel::Draw() {
 
                 ImGui::PopStyleColor();
 
+                if (ImGui::BeginPopupContextItem("FileContextMenu")) {
+                    if (ImGui::MenuItem("Rename")) {
+                        this->pathToRename = path;
+                        strncpy(this->renameBuffer, filenameString.c_str(),
+                                sizeof(this->renameBuffer) - 1);
+                        this->renameBuffer[sizeof(this->renameBuffer) - 1] =
+                            '\0';
+                        this->openRenamePopup = true;
+                    }
+                    if (ImGui::MenuItem("Delete")) {
+                        this->pathToDelete = path;
+                        this->openDeletePopup = true;
+                    }
+                    ImGui::EndPopup();
+                }
+
                 if (clicked) {
                     if (directoryEntry.is_directory()) {
                         this->currentDirectory /= path.filename();
@@ -159,7 +176,8 @@ void FilesPanel::Draw() {
                                    extension == ".geom" ||
                                    extension == ".tess_eval" ||
                                    extension == ".tess_ctrl" ||
-                                   extension == ".txt") {
+                                   extension == ".txt" ||
+                                   extension == ".prefab") {
                             std::ifstream fileStream(path);
                             if (fileStream.is_open()) {
                                 std::stringstream buffer;
@@ -201,6 +219,37 @@ void FilesPanel::Draw() {
         }
 
         ImGui::EndTable();
+    }
+
+    // Rename/Delete popups
+    if (this->openRenamePopup) {
+        ImGui::OpenPopup("Rename File Modal");
+        this->openRenamePopup = false;
+    }
+    if (this->openDeletePopup) {
+        ImGui::OpenPopup("Delete File Modal");
+        this->openDeletePopup = false;
+    }
+
+    if (DrawRenameModal("Rename File Modal",
+                        this->pathToRename.filename().string(),
+                        this->renameBuffer, sizeof(this->renameBuffer))) {
+        fs::path newPath =
+            this->pathToRename.parent_path() / this->renameBuffer;
+        try {
+            fs::rename(this->pathToRename, newPath);
+        } catch (const fs::filesystem_error& e) {
+            spdlog::error("Rename failed: {}", e.what());
+        }
+    }
+
+    if (DrawDeleteModal("Delete File Modal",
+                        this->pathToDelete.filename().string())) {
+        try {
+            fs::remove_all(this->pathToDelete);
+        } catch (const fs::filesystem_error& e) {
+            spdlog::error("Delete failed: {}", e.what());
+        }
     }
 
     this->DrawPreviewPopup();

@@ -12,9 +12,9 @@ class AiSimplified;
 
 class Surface : public GameObject {
 private:
-    Mesh* floorMesh;
+    serialized Mesh* floorMesh;
 
-    float cellSize;
+    serialized float cellSize;
     std::vector<glm::vec3> walkablePoints;
     glm::vec3 m_center;  
     glm::vec3 m_size;
@@ -30,7 +30,7 @@ private:
     bool IsPointBlocked(const glm::vec3& point) const;
 
 public:
-
+    Surface() = default;
     Surface(Mesh* floorMesh, float cellSize = 1.0f);
     ~Surface();
 
@@ -52,6 +52,8 @@ public:
     void AddEnemy(AiSimplified* enemy) { myEnemies.push_back(enemy); }
     bool ContainsPoint (const glm::vec3& point, float margin) ;
     void DrawDebugSurface(Physics::DebugRenderer* debugRenderer, float pointSize = 0.1f, int step = 5) const;
+
+    void Awake();
 
     void Update();
 };

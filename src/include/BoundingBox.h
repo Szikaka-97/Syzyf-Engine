@@ -3,11 +3,13 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+#include <Serialized.h>
+
 struct BoundingBox {
-	glm::vec3 center;
-	glm::vec4 axisU;
-	glm::vec4 axisV;
-	glm::vec4 axisW;
+	serialized glm::vec3 center;
+	serialized glm::vec4 axisU;
+	serialized glm::vec4 axisV;
+	serialized glm::vec4 axisW;
 
 	BoundingBox() = default;
 

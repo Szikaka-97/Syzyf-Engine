@@ -1,9 +1,19 @@
-#include "Debug.h"
-#include "UniformSpec.h"
+#include "Resources.h"
+#include "Texture.h"
 #include <Material.h>
 
-#include <imgui.h>
+#include <filesystem>
+#include <fstream>
 #include <malloc.h>
+
+#include <imgui.h>
+#include <Serialization.h>
+
+#include <UniformSpec.h>
+#include <Debug.h>
+
+// #include "SerializationDecls.h"
+
 
 std::vector<Material*> Material::allMaterials;
 Texture* textureClipboard = nullptr;
@@ -278,9 +288,228 @@ void ShaderVariableStorage::RefreshVariables() {
 	this->dataBuffer = newBuffer;
 }
 
+void ShaderVariableStorage::Deserialize(const nlohmann::json& data) {
+	for (int i = 0; i < GetUniforms()->VariableCount(); i++) {
+		auto& uniform = this->GetUniforms()->VariableAt(i);
+
+		if (!data.contains(uniform.name)) {
+			continue;
+		}
+
+		switch (uniform.type) {
+		case UniformSpec::UniformType::Bool:
+			SetValue<bool>(uniform.name, data[uniform.name]);
+
+			break;
+		case UniformSpec::UniformType::Float1:
+			SetValue<float>(uniform.name, data[uniform.name]);
+
+			break;
+		case UniformSpec::UniformType::Float2:
+			SetValue(uniform.name, Serialization::Deserialize<glm::vec2>(data[uniform.name]));
+
+			break;
+		case UniformSpec::UniformType::Float3:
+			SetValue(uniform.name, Serialization::Deserialize<glm::vec3>(data[uniform.name]));
+
+			break;
+		case UniformSpec::UniformType::Float4:
+			SetValue(uniform.name, Serialization::Deserialize<glm::vec4>(data[uniform.name]));
+
+			break;
+		case UniformSpec::UniformType::Uint1:
+			SetValue<unsigned int>(uniform.name, data[uniform.name]);
+			
+			break;
+		case UniformSpec::UniformType::Uint2:
+			SetValue(uniform.name, Serialization::Deserialize<glm::uvec2>(data[uniform.name]));
+		
+			break;
+		case UniformSpec::UniformType::Uint3:
+			SetValue(uniform.name, Serialization::Deserialize<glm::uvec3>(data[uniform.name]));
+
+			break;
+		case UniformSpec::UniformType::Uint4:
+			SetValue(uniform.name, Serialization::Deserialize<glm::uvec4>(data[uniform.name]));
+
+			break;
+		case UniformSpec::UniformType::Matrix3x3:
+			SetValue(uniform.name, Serialization::Deserialize<glm::mat3>(data[uniform.name]));
+
+			break;
+		case UniformSpec::UniformType::Matrix4x4:
+			SetValue(uniform.name, Serialization::Deserialize<glm::mat4>(data[uniform.name]));
+
+			break;
+		case UniformSpec::UniformType::Sampler2D: {
+			Texture2D* tex2D = Texture2D::Deserialize(data[uniform.name]);
+
+			if (tex2D) {
+				SetValue(uniform.name, tex2D);
+			}
+
+			break;
+		}
+		case UniformSpec::UniformType::Sampler3D: {
+			// Texture3D* tex3D = ResourceDatabase::Global->Get<Texture3D>(data[uniform.name]);
+
+			// if (tex3D) {
+			// 	SetValue(uniform.name, tex3D);
+			// }
+
+			break;
+		}
+		case UniformSpec::UniformType::Cubemap: {
+			Cubemap* texCube = Cubemap::Deserialize(data[uniform.name]);
+
+			if (texCube) {
+				SetValue(uniform.name, texCube);
+			}
+
+			break;
+		}
+		case UniformSpec::UniformType::UImage2D:
+		case UniformSpec::UniformType::Image2D: {
+			Texture2D* tex2D = Texture2D::Deserialize(data[uniform.name]["tex"]);
+
+			if (tex2D) {
+				SetValue(uniform.name, tex2D, data[uniform.name]["level"]);
+			}
+
+			break;
+		}
+		case UniformSpec::UniformType::ImageCube: {
+			Cubemap* texCube = Cubemap::Deserialize(data[uniform.name]["tex"]);
+
+			if (texCube) {
+				SetValue(uniform.name, texCube, data[uniform.name]["level"]);
+			}
+
+			break;
+		}
+		case UniformSpec::UniformType::Unsupported:
+			break;
+		}
+	}
+}
+nlohmann::json ShaderVariableStorage::Serialize() const {
+	json data;
+
+	for (int i = 0; i < GetUniforms()->VariableCount(); i++) {
+		auto& uniform = this->GetUniforms()->VariableAt(i);
+
+		switch (uniform.type) {
+		case UniformSpec::UniformType::Bool:
+			data[uniform.name] = GetValue<bool>(uniform.name);
+
+			break;
+		case UniformSpec::UniformType::Float1:
+			data[uniform.name] = GetValue<float>(uniform.name);
+
+			break;
+		case UniformSpec::UniformType::Float2:
+			data[uniform.name] = Serialization::Serialize(GetValue<glm::vec2>(uniform.name));
+
+			break;
+		case UniformSpec::UniformType::Float3:
+			data[uniform.name] = Serialization::Serialize(GetValue<glm::vec3>(uniform.name));
+
+			break;
+		case UniformSpec::UniformType::Float4:
+			data[uniform.name] = Serialization::Serialize(GetValue<glm::vec4>(uniform.name));
+
+			break;
+		case UniformSpec::UniformType::Uint1:
+			data[uniform.name] = GetValue<unsigned int>(uniform.name);
+
+			break;
+		case UniformSpec::UniformType::Uint2:
+			data[uniform.name] = Serialization::Serialize(GetValue<glm::uvec2>(uniform.name));
+
+			break;
+		case UniformSpec::UniformType::Uint3:
+			data[uniform.name] = Serialization::Serialize(GetValue<glm::uvec3>(uniform.name));
+
+			break;
+		case UniformSpec::UniformType::Uint4:
+			data[uniform.name] = Serialization::Serialize(GetValue<glm::uvec4>(uniform.name));
+
+			break;
+		case UniformSpec::UniformType::Matrix3x3:
+			data[uniform.name] = Serialization::Serialize(GetValue<glm::mat3>(uniform.name));
+
+			break;
+		case UniformSpec::UniformType::Matrix4x4:
+			data[uniform.name] = Serialization::Serialize(GetValue<glm::mat4>(uniform.name));
+
+			break;
+		case UniformSpec::UniformType::Sampler2D: {
+			Texture2D* tex2D = GetValue<Texture2D>(uniform.name).tex;
+
+			if (tex2D) {
+				data[uniform.name] = tex2D->Serialize();
+			}
+
+			break;
+		}
+		case UniformSpec::UniformType::Sampler3D: {
+			Texture3D* tex3D = GetValue<Texture3D>(uniform.name).tex;
+
+			if (tex3D) {
+				data[uniform.name] = tex3D->Serialize();
+			}
+
+			break;
+		}
+		case UniformSpec::UniformType::Cubemap: {
+			Cubemap* texCube = GetValue<Cubemap>(uniform.name).tex;
+
+			if (texCube) {
+				data[uniform.name] = texCube->Serialize();
+			}
+
+			break;
+		}
+		case UniformSpec::UniformType::UImage2D:
+		case UniformSpec::UniformType::Image2D: {
+			UniformSpec::TextureUniform<Texture2D> imageTex = GetValue<Texture2D>(uniform.name);
+
+			if (imageTex.tex) {
+				data[uniform.name]["tex"] = imageTex.tex->Serialize();
+				data[uniform.name]["level"] = imageTex.level;
+			}
+
+			break;
+		}
+		case UniformSpec::UniformType::ImageCube: {
+			UniformSpec::TextureUniform<Cubemap> imageTex = GetValue<Cubemap>(uniform.name);
+
+			if (imageTex.tex) {
+				data[uniform.name]["tex"] = imageTex.tex->Serialize();
+				data[uniform.name]["level"] = imageTex.level;
+			}
+
+			break;
+		}
+		case UniformSpec::UniformType::Unsupported:
+			break;
+		}
+	}
+
+	return data;
+}
+
+Material::Material():
+shader(nullptr),
+shaderVariables(),
+name() {
+	allMaterials.push_back(this);
+}
+
 Material::Material(const ShaderProgram* shader):
 shader(shader),
-shaderVariables(shader->GetUniforms()) {
+shaderVariables(shader->GetUniforms()),
+name() {
 	allMaterials.push_back(this);
 }
 
@@ -314,6 +543,23 @@ void Material::BindStorageBuffer(const std::string& storageBufferName, GLuint bu
 }
 void Material::BindStorageBuffer(int storageBufferIndex, GLuint bufferHandle) {
 	this->shaderVariables.BindStorageBuffer(storageBufferIndex, bufferHandle);
+}
+
+void Material::Deserialize(const nlohmann::json& json_node) {
+	this->shader = ResourceDatabase::Global->Get<ShaderProgram>(json_node["shader"]);
+
+	this->shaderVariables = ShaderVariableStorage(this->shader->GetUniforms());
+
+	this->shaderVariables.Deserialize(json_node["variables"]);
+}
+nlohmann::json Material::Serialize() const {
+	json data;
+
+	data["shader"] = this->shader->Serialize();
+
+	data["variables"] = this->shaderVariables.Serialize();
+
+	return data;
 }
 
 const ShaderProgram* Material::GetShader() const {

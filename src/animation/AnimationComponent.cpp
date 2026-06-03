@@ -3,6 +3,8 @@
 #include <spdlog/spdlog.h>
 #include <imgui.h>
 
+#include <GltfScene.h>
+
 AnimationComponent::AnimationComponent() {}
 
 void AnimationComponent::Play(const std::string name) {
@@ -57,4 +59,14 @@ void AnimationComponent::DrawImGui() {
             ImGui::TreePop();
         }
     }
+}
+
+json AnimationComponent::Animation::Serialize() const {
+    return json{};
+}
+
+void AnimationComponent::Animation::Deserialize(const json& data) {
+    GltfScene* sourceScene = ResourceDatabase::Global->Get<GltfScene>(this->source);
+
+    sourceScene->GetAnimationData(*this);
 }

@@ -1,6 +1,7 @@
 #include "panels/GraphPanel.h"
 #include "CameraController.h"
 #include "EditorApplication.h"
+#include "FileDialogHelpers.h"
 #include "imgui.h"
 
 #include <Scene.h>
@@ -53,7 +54,7 @@ void GraphPanel::Draw(Context& context) {
 void GraphPanel::DrawGraphNode(Context& context, SceneNode& node) {
     // Ignore editor camera
     if (node.GetObject<CameraController>()) {
-        // return;
+        return;
     }
 
     ImGui::PushID(node.GetID());
@@ -160,6 +161,10 @@ void GraphPanel::DrawContextMenu(Context& context) {
             }
         }
 
+        if (ImGui::MenuItem("Load Prefab", nullptr, false, hasScene)) {
+            OpenLoadPrefabDialog(context);
+        }
+
         if (context.selectedNode != nullptr) {
             if (ImGui::MenuItem("Rename Node")) {
                 drawRenamePopup = true;
@@ -168,6 +173,12 @@ void GraphPanel::DrawContextMenu(Context& context) {
                 delete context.selectedNode;
 
                 context.selectedNode = nullptr;
+            }
+            if (ImGui::MenuItem("Duplicate Node")) {
+                context.selectedScene->Instantiate(context.selectedNode);
+            }
+            if (ImGui::MenuItem("Save as Prefab")) {
+                OpenSavePrefabDialog(context);
             }
         }
         ImGui::EndPopup();

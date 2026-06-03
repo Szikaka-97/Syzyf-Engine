@@ -26,4 +26,7 @@ public:
     bool useMsdf = true;
 
     static Font* Load(const std::filesystem::path& jsonPath, Texture2D* atlasTexture, bool useMsdf = true);
+	
+	virtual fs::path GetPath() const;
+	virtual uint64_t GetHash() const;
 };

@@ -21,7 +21,7 @@ void EffectFire::OnInit() {
         .Link();
 
     if (!pbrProg) {
-        spdlog::error("EffectFire: shader nie skompilowaÅ‚ siÄ™");
+        spdlog::error("EffectFire: shader nie skompilowa³ siê");
         return;
     }
 
@@ -40,16 +40,14 @@ void EffectFire::OnInit() {
     Mesh* mesh = scene->Resources()->Get<Mesh>("./res/models/effects/fire1.glb");
     SetEffectRenderer(mesh, mat);*/
 
-    auto* importer = GetScene()->Resources()->Get<GltfScene>("./res/models/effects/fire1.glb");
-    importer->Instantiate(GetScene(), GetNode(), "fire anim");
-    
+    ResourceDatabase::Global->Get<GltfScene>("./res/models/effects/fire1.glb")->Instantiate(GetScene(), GetNode(), "fire effect");
     AnimationComponent* anim = GetNode()->GetObjectInChildren<AnimationComponent>();
     if (anim) {
         spdlog::info("EffectFire::OnInit: znaleziono AnimationComponent, odtwarzanie animacji");
         anim->animations[0].looping = true;
         anim->Play("ArmatureAction"); //ArmatureAction
     } else {
-        spdlog::warn("EffectFire::OnInit: brak AnimationComponent w wÄ™Åºle");
+        spdlog::warn("EffectFire::OnInit: brak AnimationComponent w wêŸle");
     }
 }
 void EffectFire::OnApplySpecials() {
@@ -73,7 +71,7 @@ void EffectPetrify::OnInit() {
         .Link();
 
     if (!pbrProg) {
-        spdlog::error("EffectPetrify: shader nie skompilowaÅ‚ siÄ™");
+        spdlog::error("EffectPetrify: shader nie skompilowa³ siê");
         return;
     }
 
@@ -118,7 +116,7 @@ void EffectTornado::OnInit() {
         .Link();
 
     if (!pbrProg) {
-        spdlog::error("EffectTornado: shader nie skompilowaÅ‚ siÄ™");
+        spdlog::error("EffectTornado: shader nie skompilowa³ siê");
         return;
     }
 
@@ -187,7 +185,7 @@ void EffectConfuse::OnInit() {
         .Link();
 
     if (!pbrProg) {
-        spdlog::error("EffectConfuse: shader nie skompilowaÅ‚ siÄ™");
+        spdlog::error("EffectConfuse: shader nie skompilowa³ siê");
         return;
     }
 
@@ -225,34 +223,11 @@ void EffectConfuse::OnApplyToEnemy(EnemyBase* enemy) {
 }
 
 void EffectExplosion::OnInit() {
-    ShaderProgram* pbrProg = ShaderProgram::Build()
-        .WithVertexShader("./res/shaders/lit.vert")
-        .WithPixelShader("./res/shaders/pbr.frag")
-        .Link();
-
-    if (!pbrProg) {
-        spdlog::error("EffectExplosion: shader nie skompilowaÅ‚ siÄ™");
-        return;
-    }
-
-    Scene* scene = this->GetScene();
-    Texture2D* albedo = scene->Resources()->Get<Texture2D>(
-        "./res/textures/effects/explosion/efekty_DefaultMaterial_BaseColor.png",
-        Texture::ColorTextureRGB);
-    Texture2D* normal = scene->Resources()->Get<Texture2D>(
-        "./res/textures/effects/explosion/efekty_DefaultMaterial_Normal.png",
-        Texture::TechnicalMapXYZ);
-
-    Material* mat = new Material(pbrProg);
-    mat->SetValue("albedoMap", albedo);
-    mat->SetValue("normalMap", normal);
-
-    Mesh* mesh = scene->Resources()->Get<Mesh>("./res/models/effects/explode1.glb");
-    SetEffectRenderer(mesh, mat);
+    ResourceDatabase::Global->Get<GltfScene>("./res/models/effects/explode1.glb")->Instantiate(GetScene(), GetNode(), "fire effect")->GlobalTransform().Position() = GlobalTransform().Position().Value();
 }
 
 void EffectExplosion::OnApplySpecials() {
-    // Set visual node scale to GetRange() ï¿½ mirrors:
+    // Set visual node scale to GetRange() — mirrors:
     //   this.explosionRenderer.transform.localScale = Vector3.one * GetRange()
     if (myNode)
         myNode->GlobalTransform().Scale() = glm::vec3(GetRange());

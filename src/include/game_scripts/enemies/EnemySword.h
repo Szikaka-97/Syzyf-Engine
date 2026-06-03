@@ -11,6 +11,6 @@ public:
     EnemySword();
 
     void Update();
-    void OnCollisionEnter(SceneNode* other) override;
-    void OnCollisionExit(SceneNode* other) override {};
+    virtual void OnCollisionEnter(SceneNode* other) override;
+    virtual void OnCollisionExit(SceneNode* other) override {};
 };

@@ -279,7 +279,7 @@ void PlayerController::UpdateThrowing() {
 
 		if (this->throwStrengthCache > 0 && this->throwStrengthAccum < 0.7f) {
 			SceneNode* thrownBottle = GetScene()->GetComponent<ThrowableObjectPool>()->RequestThrowableObject();
-			thrownBottle->AddObject<ThrowableObject>()->SetEffect<EffectExplosion>();
+			auto* throwable = thrownBottle->AddObject<ThrowableObject>();
 
 			float forwardVelocityBoost = glm::dot(GetStrengthFromVelocity(), aimDirection);
 			if (forwardVelocityBoost < 0.0f) {
@@ -301,7 +301,10 @@ void PlayerController::UpdateThrowing() {
 			thrownBottle->GetObject<Physics::Body>()->SetPosition(this->throwPoint->GlobalTransform().Position());
 	
 			thrownBottle->SetEnabled(true);
-			
+			throwable->SetEffect<EffectExplosion>([](EffectExplosion* e) {
+				e->radius  = 3.0f;
+				e->special1 = true;   // podwaja obra�enia
+			});
 			thrownBottle->GetObject<Physics::Body>()->SetLinearVelocity(throwForce);
 
 			this->throwStrengthCache = -1;

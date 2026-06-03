@@ -1,6 +1,7 @@
 #pragma once
 
 #include <imgui.h>
+#include <nlohmann/json_fwd.hpp>
 
 class Scene;
 class SceneNode;
