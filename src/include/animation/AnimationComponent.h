@@ -28,7 +28,7 @@ public:
   };
 
   struct AnimationData {
-    std::string name = "";
+    serialized std::string name = "";
     std::vector<Track> tracks;
     float duration = 0.0f;
   };
@@ -37,19 +37,24 @@ public:
     // Required to update once after setting the time using SetTime or SetProgress
     bool isDirty = false;
 
-    AnimationData data;    
+    serialized fs::path source;
+    serialized std::vector<SceneNode*> participants;
+    serialized AnimationData data;    
 
     float timeActive = 0.0f;
     // Per track 
     std::vector<size_t> currentKeyframes;
 
-    float speed = 1.0f;
+    serialized float speed = 1.0f;
 
     bool playing = false;
     bool looping = false;
+
+    json Serialize() const;
+    void Deserialize(const json& data);
   };
 
-  std::vector<Animation> animations;
+  serialized std::vector<Animation> animations;
 public:
   AnimationComponent();
 

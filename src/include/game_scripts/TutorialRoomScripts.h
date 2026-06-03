@@ -109,8 +109,6 @@ public:
 	}
 };
 
-int TutorialStaticRatTarget::remainingRats = 0;
-
 class TutorialRatSpawnManager : public GameObject {
 private:
 	SceneNode* roomNode = nullptr;

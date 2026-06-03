@@ -25,8 +25,8 @@ public:
 
 	class SubMesh {
 		friend class Mesh;
-        friend class GltfScene;
-        friend class Text3D;
+		friend class GltfScene;
+		friend class Text3D;
 	private:
 		unsigned int faceCount;
 		unsigned int* indexData;
@@ -51,7 +51,7 @@ public:
 		unsigned int GetVertexCount() const;
 		unsigned int GetFaceCount() const;
 
-        const unsigned int* GetIndexData() const;
+		const unsigned int* GetIndexData() const;
 
 		BoundingBox GetBounds() const;
 	};
@@ -71,15 +71,18 @@ private:
 	std::vector<SubMesh> subMeshes;
 	std::vector<Material*> materials;
 	// std::map<std::string, MeshPart> parts;
-    BoundingBox bounds;
+	BoundingBox bounds;
   
-  std::vector<glm::mat4> inverseBindMatrices;
+	std::vector<glm::mat4> inverseBindMatrices;
 	
 	unsigned int materialCount;
 	unsigned int vertexCount;
 	float* vertexData;
 	unsigned int vertexStride;
 	GLuint vertexBuffer;
+	fs::path path;
+
+	GLuint UploadToGpu(const VertexSpec meshSpec);
 public:
 	Mesh() = default;
 	virtual ~Mesh();
@@ -87,17 +90,17 @@ public:
 	unsigned int GetMaterialsCount() const;
 	std::vector<Material*> GetDefaultMaterials() const;
 
-  const std::vector<glm::mat4>& GetInverseBindMatrices() const;
+	const std::vector<glm::mat4>& GetInverseBindMatrices() const;
 
 	unsigned int GetSubMeshCount() const;
 	std::vector<SubMesh> GetSubMeshes() const;
-    BoundingBox GetBounds() const;
-    void CalculateBounds();
+	BoundingBox GetBounds() const;
+	void CalculateBounds();
 
-  unsigned int GetVertexCount() const;
-  unsigned int GetVertexStride() const;
+	unsigned int GetVertexCount() const;
+	unsigned int GetVertexStride() const;
 
-  const float* GetVertexData() const;
+	const float* GetVertexData() const;
 
 	const SubMesh& SubMeshAt(unsigned int index) const;
 	const SubMesh& operator[](unsigned int index) const;
@@ -106,6 +109,7 @@ public:
 
 	static Mesh* Load(fs::path modelPath, bool loadMaterials = false);
 	// static Mesh* Create(unsigned int vertexCount, float* vertexData, unsigned int triangleCount, unsigned int* indexData, const VertexSpec& meshSpec);
-private:
-  GLuint UploadToGpu(const VertexSpec meshSpec);
+
+	virtual fs::path GetPath() const;
+	virtual uint64_t GetHash() const;
 };

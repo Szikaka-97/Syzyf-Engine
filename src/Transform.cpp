@@ -225,7 +225,7 @@ source(source) {
     }
 
 	this->value = glm::normalize(glm::quat(rotationMatrix));
-    this->initialValue = this->value;
+	this->initialValue = this->value;
 }
 
 SceneTransform::RotationAccess::~RotationAccess() {
@@ -301,7 +301,7 @@ value(
 	glm::length(glm::column(this->source.transformation, 1)),
 	glm::length(glm::column(this->source.transformation, 2))
 ) {
-    this->initialValue = this->value;
+	this->initialValue = this->value;
 }
 
 SceneTransform::ScaleAccess::~ScaleAccess() {

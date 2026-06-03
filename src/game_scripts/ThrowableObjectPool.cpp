@@ -14,8 +14,6 @@ SceneComponent(scene),
 capacity(20) {
 	this->allInstances.reserve(this->capacity);
 
-	this->bottlesPoolRoot = GetScene()->CreateNode("Bottles Pool");
-
 	this->bottleMesh = GetScene()->Resources()->Get<Mesh>("./res/models/butelka.glb");
 
 	auto bottleShader = ShaderProgram::Build()
@@ -28,6 +26,9 @@ capacity(20) {
 }
 
 SceneNode* ThrowableObjectPool::RequestThrowableObject() {
+	if (!this->bottlesPoolRoot) {
+		this->bottlesPoolRoot = GetScene()->CreateNode("Bottles Pool");
+	}
 	if (this->allInstances.size() < this->capacity) {
 		SceneNode* newBottle = GetScene()->CreateNode(this->bottlesPoolRoot, std::format("Bottle {}", this->allInstances.size()));
 

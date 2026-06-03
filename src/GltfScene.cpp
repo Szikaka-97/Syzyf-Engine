@@ -119,20 +119,24 @@ GltfScene* GltfScene::Load(const fs::path path) {
   }
   
   GltfScene* model = new GltfScene();
-  model->filename = path.stem().string();
+  model->filePath = path;
   model->asset = std::make_unique<fastgltf::Asset>(std::move(expectedAsset.get()));
   model->isSkinned = !model->asset->skins.empty();
 
-  model->materials = LoadMaterials(*model->asset, false);
+  model->materials = LoadMaterials(model, false);
 
   if (model->isSkinned) {
-      std::vector<Material*> skinnedMaterials = LoadMaterials(*model->asset, true);
+      std::vector<Material*> skinnedMaterials = LoadMaterials(model, true);
       model->materials.insert(model->materials.end(), skinnedMaterials.begin(), skinnedMaterials.end());
   }
 
   model->meshes.reserve(model->asset->meshes.size());
   for (auto& gltfMesh : model->asset->meshes) {
-      model->meshes.push_back(LoadMesh(gltfMesh, *model->asset, model->materials));
+      auto* mesh = LoadMesh(gltfMesh, *model->asset, model->materials);
+
+      mesh->path = std::format("{}:{}", path.string(), gltfMesh.name);
+
+      model->meshes.push_back(mesh);
   }
 
   return model; 
@@ -141,7 +145,7 @@ GltfScene* GltfScene::Load(const fs::path path) {
 SceneNode* GltfScene::Instantiate(Scene* scene, SceneNode* parent, std::string name) {
   std::string rootName = name;
   if (rootName.empty()) {
-      rootName = this->filename;
+      rootName = this->filePath.stem().string();
   }
 
 
@@ -198,6 +202,8 @@ SceneNode* GltfScene::Instantiate(Scene* scene, SceneNode* parent, std::string n
     for (auto& gltfAnimation : asset->animations) {
       auto animation = LoadAnimation(sceneNodes, gltfAnimation, *asset);
       if (animation.has_value()) {
+        animation->participants = sceneNodes;
+        animation->source = this->filePath;
         animationComponent->animations.push_back(std::move(animation.value()));
       } else {
         continue;
@@ -631,7 +637,9 @@ Mesh* GltfScene::LoadMesh(fastgltf::Mesh& gltfMesh, fastgltf::Asset& asset, std:
   return mesh;
 }
 
-Texture2D* GltfScene::LoadImage(fastgltf::Asset& asset, fastgltf::Image& image, const TextureParams loadParams) {
+Texture2D* GltfScene::LoadImage(GltfScene* scene, fastgltf::Image& image, const TextureParams loadParams) {
+  fastgltf::Asset& asset = *scene->asset;
+
   Texture2D* result = nullptr;
 
   std::visit(fastgltf::visitor {
@@ -644,7 +652,8 @@ Texture2D* GltfScene::LoadImage(fastgltf::Asset& asset, fastgltf::Image& image, 
       const unsigned char* data = reinterpret_cast<const unsigned char*>(vector.bytes.data());
       int length = static_cast<int>(vector.bytes.size());
       // SKIPS RESOURCE MANAGER -> no caching
-      result = Texture2D::Load(data, length, loadParams);
+      result = Texture2D::Load(data, length, loadParams, true, scene->GetPath().string() + ":" + std::string(image.name));
+      scene->textures.push_back(result);
     },
     [&](fastgltf::sources::BufferView& view) {
       auto& bufferView = asset.bufferViews[view.bufferViewIndex];
@@ -655,7 +664,8 @@ Texture2D* GltfScene::LoadImage(fastgltf::Asset& asset, fastgltf::Image& image, 
         [&](fastgltf::sources::Array& vector) {
           const unsigned char* data = reinterpret_cast<const unsigned char*>(vector.bytes.data() + bufferView.byteOffset);
           int length = static_cast<int>(bufferView.byteLength);
-          result = Texture2D::Load(data, length, loadParams);
+          result = Texture2D::Load(data, length, loadParams, true, scene->GetPath().string() + ":" + std::string(image.name));
+          scene->textures.push_back(result);
         }
       }, buffer.data);
     },
@@ -708,7 +718,9 @@ void GltfScene::GltfSamplerToTextureParams(TextureParams& params, fastgltf::Samp
   params.wrapV = GltfWrapToTextureWrap(sampler.wrapT);
 }
 
-std::vector<Material*> GltfScene::LoadMaterials(fastgltf::Asset& asset, bool isSkinned) {
+std::vector<Material*> GltfScene::LoadMaterials(GltfScene* scene, bool isSkinned) {
+  fastgltf::Asset& asset = *scene->asset;
+
   std::vector<Material*> materials;
   materials.reserve(asset.materials.size());
   ResourceDatabase* resources = ResourceDatabase::Global;
@@ -805,7 +817,7 @@ std::vector<Material*> GltfScene::LoadMaterials(fastgltf::Asset& asset, bool isS
           GltfSamplerToTextureParams(texParams, sampler);
         }
 
-        Texture2D* texture = LoadImage(asset, asset.images[imageIndex], texParams);
+        Texture2D* texture = LoadImage(scene, asset.images[imageIndex], texParams);
         material->SetValue("albedoMap", texture);
       }
     } else {
@@ -831,7 +843,7 @@ std::vector<Material*> GltfScene::LoadMaterials(fastgltf::Asset& asset, bool isS
           GltfSamplerToTextureParams(texParams, sampler);
         }
 
-        Texture2D* texture = LoadImage(asset, asset.images[imageIndex], texParams);
+        Texture2D* texture = LoadImage(scene, asset.images[imageIndex], texParams);
         material->SetValue("armMap", texture);
       }
     } else {
@@ -859,7 +871,7 @@ std::vector<Material*> GltfScene::LoadMaterials(fastgltf::Asset& asset, bool isS
           GltfSamplerToTextureParams(texParams, sampler);
         }
 
-        Texture2D* texture = LoadImage(asset, asset.images[imageIndex], texParams);
+        Texture2D* texture = LoadImage(scene, asset.images[imageIndex], texParams);
         material->SetValue("normalMap", texture);
       }
     } else {
@@ -884,7 +896,7 @@ std::vector<Material*> GltfScene::LoadMaterials(fastgltf::Asset& asset, bool isS
           GltfSamplerToTextureParams(texParams, sampler);
         }
 
-        Texture2D* texture = LoadImage(asset, asset.images[imageIndex], texParams);
+        Texture2D* texture = LoadImage(scene, asset.images[imageIndex], texParams);
         material->SetValue("emissiveMap", texture);
       }
     } else {
@@ -923,4 +935,107 @@ std::vector<Material*> GltfScene::LoadMaterials(fastgltf::Asset& asset, bool isS
     materials.push_back(defaultMaterial);
 
   return materials;
+}
+
+fs::path GltfScene::GetPath() const {
+  return this->filePath;
+}
+uint64_t GltfScene::GetHash() const {
+  return 0;
+}
+
+std::vector<Texture2D*> GltfScene::GetTextures() {
+  return this->textures;
+}
+
+std::vector<Mesh*> GltfScene::GetMeshes() {
+  return this->meshes;
+}
+
+void GltfScene::GetAnimationData(AnimationComponent::Animation& animation) {
+  auto animationSearch = std::find_if(this->asset->animations.begin(), this->asset->animations.end(), [animation](const fastgltf::Animation& item) -> bool {
+    return std::string(item.name) == animation.data.name;
+  });
+
+  if (animationSearch == this->asset->animations.end()) {
+    return;
+  }
+
+  fastgltf::Animation& gltfAnimation = *animationSearch;
+
+  animation.currentKeyframes.resize(gltfAnimation.channels.size());
+  
+  for (std::size_t i = 0; i < gltfAnimation.channels.size(); ++i) {
+    fastgltf::AnimationChannel& channel = gltfAnimation.channels[i];
+    
+    if (!channel.nodeIndex.has_value()) {
+      spdlog::warn("GltfScene: Tried loading an animation track without missing target node");
+    }
+
+    AnimationComponent::Track track;
+    track.target = animation.participants[channel.nodeIndex.value()];
+
+    switch (channel.path) {
+      case fastgltf::AnimationPath::Rotation: track.property = AnimationComponent::Property::ROTATION; break;
+      case fastgltf::AnimationPath::Scale: track.property = AnimationComponent::Property::SCALE; break;
+      case fastgltf::AnimationPath::Translation: track.property = AnimationComponent::Property::POSITION; break;
+      case fastgltf::AnimationPath::Weights: track.property = AnimationComponent::Property::WEIGHTS; break;
+    }
+
+    fastgltf::AnimationSampler& sampler = gltfAnimation.samplers[channel.samplerIndex];
+
+    switch (sampler.interpolation) {
+      case fastgltf::AnimationInterpolation::CubicSpline: track.interpolation = AnimationComponent::Interpolation::CUBICSPLINE; break;
+      case fastgltf::AnimationInterpolation::Linear: track.interpolation = AnimationComponent::Interpolation::LINEAR; break;
+      case fastgltf::AnimationInterpolation::Step: track.interpolation = AnimationComponent::Interpolation::STEP; break;
+    }
+    
+    auto& inputAccessor = this->asset->accessors[sampler.inputAccessor];
+    if (!inputAccessor.bufferViewIndex.has_value()) {
+      spdlog::warn("GltfScene: Tried loading an animation track with missing input data");
+      continue;
+    }
+
+    const float maxInput = static_cast<float>(inputAccessor.max->get<double>(0));
+    if (animation.data.duration < maxInput) {
+      animation.data.duration = maxInput; 
+    }
+
+    track.inputs.resize(inputAccessor.count);
+    fastgltf::iterateAccessorWithIndex<float>(*this->asset, inputAccessor, [&](float input, std::size_t index) {
+      track.inputs[index] = input;
+    });
+
+    auto& outputAccessor = this->asset->accessors[sampler.outputAccessor];
+    if (!outputAccessor.bufferViewIndex.has_value()) {
+      spdlog::warn("GltfScene: Tried loading an animation track with missing output data");
+      continue;
+    }
+
+    if (track.property == AnimationComponent::Property::POSITION
+        || track.property == AnimationComponent::Property::SCALE) {
+      track.outputs.resize(outputAccessor.count * 3);
+      fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec3>(*this->asset, outputAccessor, [&](fastgltf::math::fvec3 output, std::size_t index) {
+        track.outputs[index * 3] = output.x();
+        track.outputs[index * 3 + 1] = output.y();
+        track.outputs[index * 3 + 2] = output.z();
+      });
+    } else if (track.property == AnimationComponent::Property::ROTATION) {
+      track.outputs.resize(outputAccessor.count * 4);
+      fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec4>(*this->asset, outputAccessor, [&](fastgltf::math::fvec4 output, std::size_t index) {
+        track.outputs[index * 4] = output.x();
+        track.outputs[index * 4 + 1] = output.y();
+        track.outputs[index * 4 + 2] = output.z();
+        track.outputs[index * 4 + 3] = output.w();
+      });
+    } else {
+      track.outputs.resize(outputAccessor.count);
+      fastgltf::iterateAccessorWithIndex<float>(*this->asset, outputAccessor, [&](float output, std::size_t index) {
+        track.outputs[index] = output;
+      });
+    }
+
+    // maybe resize at the start idk dnsfdafdfnkjdsabfksavsa
+    animation.data.tracks.push_back(track);
+  }
 }

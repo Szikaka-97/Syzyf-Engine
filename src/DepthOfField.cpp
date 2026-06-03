@@ -6,19 +6,21 @@
 #include "imgui.h"
 
 DepthOfField::DepthOfField() {
-    this->savedResolution = GetScene()->GetGraphics()->GetScreenResolution();
+	this->downsampleShader = new ComputeShaderProgram("./res/shaders/bloom/bloom_downsample.comp");
+	this->upsampleShader = new ComputeShaderProgram("./res/shaders/dof/dof_upsample.comp");
+	this->finalShader = new ComputeShaderProgram("./res/shaders/dof/dof_composite.comp");
+    
+	glCreateTextures(GL_TEXTURE_2D, 1, &this->dofTexture);
+}
 
-    glCreateTextures(GL_TEXTURE_2D, 1, &this->dofTexture);
+void DepthOfField::Awake() {
+    this->savedResolution = GetScene()->GetGraphics()->GetScreenResolution();
 
     this->UpdateTexture();
 	glTextureParameteri(this->dofTexture, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
 	glTextureParameteri(this->dofTexture, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTextureParameteri(this->dofTexture, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTextureParameteri(this->dofTexture, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-	this->downsampleShader = new ComputeShaderProgram("./res/shaders/bloom/bloom_downsample.comp");
-	this->upsampleShader = new ComputeShaderProgram("./res/shaders/dof/dof_upsample.comp");
-	this->finalShader = new ComputeShaderProgram("./res/shaders/dof/dof_composite.comp");
 }
 
 void DepthOfField::OnPostProcess(const PostProcessParams* params) {

@@ -28,6 +28,8 @@ private:
 public:
     DepthOfField();
 
+    void Awake();
+
     virtual void OnPostProcess(const PostProcessParams* params);
 
     virtual void DrawImGui();

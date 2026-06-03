@@ -56,6 +56,34 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
 
 target_compile_definitions (${PROJECT_NAME} PRIVATE GLM_ENABLE_EXPERIMENTAL)
 
-if(MSVC)
+if (MSVC)
     target_compile_definitions(${PROJECT_NAME} PUBLIC NOMINMAX)
-endif()
+endif ()
+
+get_target_property(SYZYF_INCLUDES ${PROJECT_NAME} INCLUDE_DIRECTORIES)
+
+if (WIN32)
+	set(RUN_SCRIPTS_CMD RunScripts.bat)
+else ()
+	set(RUN_SCRIPTS_CMD RunScripts.sh)
+endif ()
+
+add_custom_command(
+	OUTPUT
+		codegen/type_database.json
+		codegen/SerializationDecls.h
+		codegen/SerializationDecls.cpp
+		codegen/MessagingDecls.cpp
+		codegen/TypeInfo.cpp
+	COMMAND "${CMAKE_SOURCE_DIR}/src/scripts/${RUN_SCRIPTS_CMD}" "${CMAKE_SOURCE_DIR}/src" "${CMAKE_SOURCE_DIR}/src/include" ${CMAKE_CURRENT_BINARY_DIR}
+	DEPENDS ${HEADER_FILES} ${CMAKE_SOURCE_DIR}/src/scripts/*
+	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/src/scripts
+	CODEGEN
+)
+
+target_sources(${PROJECT_NAME}
+	PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/codegen/SerializationDecls.h
+	PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/codegen/SerializationDecls.cpp
+	PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/codegen/MessagingDecls.cpp
+	PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/codegen/TypeInfo.cpp
+)

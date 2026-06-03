@@ -3,6 +3,7 @@
 #include <vector>
 #include <malloc.h>
 
+#include "GltfScene.h"
 #include "VertexSpec.h"
 #include "assimp/Importer.hpp"
 #include <assimp/scene.h>
@@ -208,6 +209,18 @@ const Mesh::SubMesh& Mesh::operator[](unsigned int index) const {
 
 Mesh* Mesh::Load(fs::path modelPath, bool loadMaterials) {
 	if (!fs::exists(modelPath) || !fs::is_regular_file(modelPath)) {
+		if (modelPath.string().contains(':')) {
+			fs::path gltfPath = modelPath.string().substr(0, modelPath.string().find(':'));
+
+			GltfScene* gltf = ResourceDatabase::Global->Get<GltfScene>(gltfPath);
+
+			for (Mesh* m : gltf->GetMeshes()) {
+				if (m->path == modelPath) {
+					return m;
+				}
+			}
+		}
+
 		return nullptr;
 	}
 
@@ -445,10 +458,12 @@ Mesh* Mesh::Load(fs::path modelPath, bool loadMaterials) {
 	loadedMesh->vertexCount = vertexCount;
 	loadedMesh->vertexStride = VertexSpec::Mesh.VertexSize();
 
-  loadedMesh->vertexData = vertexData;
-  loadedMesh->vertexBuffer = loadedMesh->UploadToGpu(VertexSpec::Mesh);
+	loadedMesh->vertexData = vertexData;
+	loadedMesh->vertexBuffer = loadedMesh->UploadToGpu(VertexSpec::Mesh);
 
-    loadedMesh->CalculateBounds();
+	loadedMesh->CalculateBounds();
+
+	loadedMesh->path = modelPath;
 
 	return loadedMesh;
 }
@@ -495,4 +510,12 @@ GLuint Mesh::UploadToGpu(const VertexSpec meshSpec) {
 	}
 
   return vertexBuffer;
+}
+
+fs::path Mesh::GetPath() const {
+	return this->path;
+}
+
+uint64_t Mesh::GetHash() const {
+	return std::hash<fs::path>{}(this->path);
 }

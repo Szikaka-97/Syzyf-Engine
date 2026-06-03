@@ -16,7 +16,9 @@
 #include <unordered_set>
 
 Surface::Surface(Mesh* floorMesh, float cellSize)
-    : floorMesh(floorMesh), cellSize(cellSize), m_playerInside(false) {
+    : floorMesh(floorMesh), cellSize(cellSize), m_playerInside(false) { }
+
+void Surface::Awake() {
     if (!floorMesh || floorMesh->GetSubMeshCount() == 0) {
        // spdlog::error("Surface: No valid mesh provided or mesh has no submeshes");
         return;
@@ -227,7 +229,7 @@ void Surface::DrawDebugSurface(Physics::DebugRenderer* debugRenderer, float poin
                                 JPH::Vec3(corners[3].x, corners[3].y, corners[3].z), boxColor);
         debugRenderer->DrawLine(JPH::Vec3(corners[3].x, corners[3].y, corners[3].z),
                                 JPH::Vec3(corners[0].x, corners[0].y, corners[0].z), boxColor);
-        // Górna podstawa
+        // G\F3rna podstawa
         debugRenderer->DrawLine(JPH::Vec3(corners[4].x, corners[4].y, corners[4].z),
                                 JPH::Vec3(corners[5].x, corners[5].y, corners[5].z), boxColor);
         debugRenderer->DrawLine(JPH::Vec3(corners[5].x, corners[5].y, corners[5].z),
@@ -236,7 +238,7 @@ void Surface::DrawDebugSurface(Physics::DebugRenderer* debugRenderer, float poin
                                 JPH::Vec3(corners[7].x, corners[7].y, corners[7].z), boxColor);
         debugRenderer->DrawLine(JPH::Vec3(corners[7].x, corners[7].y, corners[7].z),
                                 JPH::Vec3(corners[4].x, corners[4].y, corners[4].z), boxColor);
-        // Krawêdzie pionowe
+        // Kraw\EAdzie pionowe
         debugRenderer->DrawLine(JPH::Vec3(corners[0].x, corners[0].y, corners[0].z),
                                 JPH::Vec3(corners[4].x, corners[4].y, corners[4].z), boxColor);
         debugRenderer->DrawLine(JPH::Vec3(corners[1].x, corners[1].y, corners[1].z),

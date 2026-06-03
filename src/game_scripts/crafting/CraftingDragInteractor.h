@@ -368,6 +368,8 @@ namespace Crafting{
 
             glm::vec2 mousePosition = GetScene()->Input()->GetMousePosition();
 
+            this->viewportSize = GetScene()->GetGraphics()->GetScreenResolution();
+
             if (viewportSize.x <= 1.0f || viewportSize.y <= 1.0f){
                 spdlog::warn(
                     "CraftingDragInteractor: invalid viewport size {} x {}.",

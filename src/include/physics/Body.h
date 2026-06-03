@@ -29,7 +29,7 @@ private:
   bool bodyCreated = false;
   bool addedToWorld = false;
 public:
-  Body();
+  Body() = default;
   Body(const JPH::BodyCreationSettings& settings);
 
   virtual ~Body();
@@ -87,5 +87,8 @@ public:
   void OnDisable();
 
   void DrawImGui();
+
+  json Serialize() const;
+  void Deserialize(const json& data);
 };
 }

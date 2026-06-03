@@ -19,9 +19,9 @@ enum class RenderPassType {
 	Transparent = 32,
 	Additive = 64,
 	Volumetric = 128,
-    SSAO = 256,
-    Mask = 512,
-    UI = 1024,
+	SSAO = 256,
+	Mask = 512,
+	UI = 1024,
 };
 
 class Camera : public GameObject, public ImGuiDrawable {
@@ -30,22 +30,22 @@ public:
 		Perspective() = default;
 		Perspective(float fovyDegrees, float aspectRatio, float nearPlane, float farPlane);
 
-		float fovyDegrees = 0;
-		float aspectRatio = 0;
-		float nearPlane = 0;
-		float farPlane = 0;
+		serialized float fovyDegrees = 0;
+		serialized float aspectRatio = 0;
+		serialized float nearPlane = 0;
+		serialized float farPlane = 0;
 	};
 	struct Orthographic {
 		Orthographic() = default;
 		Orthographic(float left, float right, float top, float bottom, float znear, float zfar);
 		Orthographic(glm::vec2 viewportSize);
 
-		float left = 0;
-		float right = 0;
-		float top = 0;
-		float bottom = 0;
-		float znear = 0;
-		float zfar = 0;
+		serialized float left = 0;
+		serialized float right = 0;
+		serialized float top = 0;
+		serialized float bottom = 0;
+		serialized float znear = 0;
+		serialized float zfar = 0;
 	};
 
 	enum class CameraType {
@@ -53,17 +53,19 @@ public:
 		Orthographic
 	};
 private:
-	CameraType type;
+	serialized CameraType type;
 
-	Perspective perspectiveData;
-	Orthographic orthoData;
-	Viewport* renderTarget;
-	LayerMask layerMask;
-	RenderPassType passes;
-	int priority;
+	serialized Perspective perspectiveData;
+	serialized Orthographic orthoData;
+	Viewport* renderTarget = nullptr;
+	serialized LayerMask layerMask;
+	serialized RenderPassType passes;
+	serialized int priority;
 public:
 	static RenderPassType DefaultCameraPasses;
 	static RenderPassType DefaultMainCameraPasses;
+
+	Camera();
 
 	Camera(Perspective perspectiveData);
 	Camera(Orthographic orthoData);

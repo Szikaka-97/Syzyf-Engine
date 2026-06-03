@@ -10,12 +10,14 @@ class Mesh;
 
 class Mirror : public GameObject {
 private:
-  SceneNode* cameraNode = nullptr;
-  Viewport viewport;
-  Material* material = nullptr;
-  SceneNode* playerNode = nullptr;
+	SceneNode* cameraNode = nullptr;
+	Viewport viewport;
+	Material* material = nullptr;
+	SceneNode* playerNode = nullptr;
 public:
-  Mirror(Mesh* mesh);
+	Mirror() = default;
 
-  void Update();
+	void Awake();
+
+	void Update();
 };

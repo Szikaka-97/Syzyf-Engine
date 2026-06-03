@@ -9,6 +9,7 @@
 #include <VertexSpec.h>
 #include <UniformSpec.h>
 #include <Resources.h>
+#include <Serialized.h>
 
 namespace fs = std::filesystem;
 
@@ -119,7 +120,7 @@ public:
 	const ShaderCode& GetCode() const;
 };
 
-class ShaderProgram {
+class ShaderProgram : public Resource {
 	friend class ShaderBuilder;
 private:
 	struct ShaderAttachment {
@@ -145,6 +146,8 @@ private:
 	GLuint handle;
 
 	ShaderProgram(GLuint handle);
+
+	fs::path path;
 
 	static std::vector<ShaderProgram*> allPrograms;
 public:
@@ -173,9 +176,17 @@ public:
 
 	bool HasPragma(const std::string& pragma) const;
 
+	virtual fs::path GetPath() const;
+	virtual uint64_t GetHash() const;
+
 	void Reload();
 
 	static void ReloadAllShaders();
+
+	static ShaderProgram* Load(const fs::path& shaderPath);
+
+	json Serialize() const;
+	static ShaderProgram* Deserialize(const json& data);
 };
 
 class ComputeShaderProgram {

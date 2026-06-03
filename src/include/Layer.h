@@ -2,6 +2,8 @@
 
 #include <stdint.h>
 
+#include <Serialized.h>
+
 namespace Layer {
 	constexpr uint8_t Default = 0;
 	constexpr uint8_t UI = 1;
@@ -11,7 +13,7 @@ namespace Layer {
 struct LayerMask {
 	static constexpr uint32_t All = UINT32_MAX;
 
-	uint32_t value;
+	serialized uint32_t value;
 
 	constexpr LayerMask(uint8_t layer):
 	value(1 << layer) { }

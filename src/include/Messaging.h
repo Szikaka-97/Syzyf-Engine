@@ -14,6 +14,8 @@ namespace Message { \
 	struct MessageName : public MessageTag { constexpr static int id = LOCAL_COUNTER; }; \
 } 
 
+#ifndef __SERIALIZER_RUNNING__
+
 #define DEFINE_MESSAGE_CREATOR(MessageName) \
 template<class T> \
 	requires std::derived_from<T, GameObject> \
@@ -23,6 +25,17 @@ template<class T> \
 inline void Add##MessageName(MessageNode* node, T* object) { \
 	AddMessageReceiverInternal(node, { object, reinterpret_cast<MessageHandle>(&T::MessageName) }, Message::MessageName::id); \
 } \
+
+#else
+#define DEFINE_MESSAGE_CREATOR(MessageName) \
+template<class T> \
+	requires std::derived_from<T, GameObject> \
+inline void Add##MessageName(MessageNode* node, T* object) { } \
+template<class T> \
+	requires std::derived_from<T, GameObject> && MessageName##Receiver<T> \
+inline void Add##MessageName(MessageNode* node, T* object) { } \
+
+#endif
 
 class GameObject;
 

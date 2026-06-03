@@ -41,6 +41,13 @@ class FilesPanel {
     std::unordered_set<std::string> loadingPaths;
     std::mutex resultsMutex;
 
+    // Context menu stuff
+    std::filesystem::path pathToRename;
+    std::filesystem::path pathToDelete;
+    char renameBuffer[256] = "";
+    bool openRenamePopup = false;
+    bool openDeletePopup = false;
+
     void DrawPreviewPopup();
 
     Texture2D* GetOrCreateThumbnail(const std::filesystem::path& path);

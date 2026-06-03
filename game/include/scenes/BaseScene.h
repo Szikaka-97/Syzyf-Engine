@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Resources.h"
 #include <Scene.h>
 
 #include <Debug.h>

@@ -18,10 +18,16 @@ res/testing/
 .idea/
 
 # Clang
+.clang-format
 .cache/
 
 # Nix
 .direnv/
+
+# Python venv
+src/scripts/venv/
+src/scripts/__pycache__/
+src/codegen/
 
 #Clion
 .idea

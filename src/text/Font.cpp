@@ -54,3 +54,10 @@ Font* Font::Load(const std::filesystem::path& jsonPath, Texture2D* atlasTexture,
 
     return font;
 }
+
+fs::path Font::GetPath() const {
+    return "";
+}
+uint64_t Font::GetHash() const {
+    return 0;
+}

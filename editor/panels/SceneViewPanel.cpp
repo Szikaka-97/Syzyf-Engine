@@ -5,9 +5,10 @@
 #include "MousePickingBodySystem.h"
 #include "ParticleSpawner.h"
 #include "SceneRegistry.h"
+#include "Serialized.h"
 #include "physics/Body.h"
 #include "physics/DebugRenderer.h"
-#include "game_scripts/crafting/CraftingDragInteractor.h"
+#include "FileDialogHelpers.h"
 
 #include "physics/CharacterController.h"
 #include "physics/VirtualCharacterController.h"
@@ -17,6 +18,7 @@
 #include <SDL3/SDL_mouse.h>
 #include <glm/glm.hpp>
 #include <imgui.h>
+#include <nlohmann/json_fwd.hpp>
 #define IMVIEWGUIZMO_IMPLEMENTATION
 #include "thirdparty/ImViewGuizmo.h"
 
@@ -170,6 +172,70 @@ void SceneViewPanel::Draw(Context& context) {
                             context.mainCamera->SetAsMainCamera();
                         }
                     }
+
+                    ImGui::Separator();
+
+                    ImGui::TextDisabled("Loaded Scenes:");
+
+                    for (const auto& [name, loadFunc] :
+                         SceneRegistry::GetLoadRegistry()) {
+
+                        if (ImGui::Selectable(name.c_str())) {
+                            Scene* newScene = loadFunc();
+
+                            newScene->AddComponent<MousePickingBodySystem>();
+
+                            context.loadedScenes.push_back(newScene);
+
+                            auto cameras =
+                                newScene->FindObjectsOfType<Camera>();
+
+                            SceneNode* cameraNode = newScene->CreateNode();
+                            cameraNode->AddObject<CameraController>();
+
+                            if (cameras.size() > 0) {
+                                cameraNode->GlobalTransform().Position() = cameras[0]->GlobalTransform().Position().Value();
+                                cameraNode->GlobalTransform().Rotation() = cameras[0]->GlobalTransform().Rotation().Value();
+                            }
+                            else {
+                                cameraNode->GlobalTransform().Position() = {
+                                    0.0f, 1.0f, 0.0f};
+                            }
+
+                            context.loadedScenes.push_back(newScene);
+
+                            context.mainCamera = cameraNode->GetObject<Camera>();
+                            context.mainCamera->SetAsMainCamera();
+
+                            context.selectedScene = newScene;
+                            context.selectedNode = nullptr;
+                        }
+                    }
+
+                    ImGui::Separator();
+
+                    if (ImGui::Selectable("+ New Scene")) {
+                        Scene* newScene = Scene::CreateStandaloneScene();
+                        newScene->AddComponent<MousePickingBodySystem>();
+                        newScene->name = "New Scene";
+
+                        SceneNode* cameraNode = newScene->CreateNode();
+                        cameraNode->AddObject<CameraController>();
+                        cameraNode->GlobalTransform().Position() = {0.0f, 1.0f,
+                                                                    0.0f};
+
+                        context.loadedScenes.push_back(newScene);
+
+                        context.selectedScene = newScene;
+                        context.selectedNode = nullptr;
+                        context.mainCamera = cameraNode->GetObject<Camera>();
+                        context.mainCamera->SetAsMainCamera();
+                    }
+
+                    if (ImGui::Selectable("+ Load Scene")) {
+                        Editor::OpenLoadSceneDialog(context);
+                    }
+
                     ImGui::EndPopup();
                 }
 
@@ -212,6 +278,21 @@ void SceneViewPanel::Draw(Context& context) {
             else
                 ImGui::End();
             return;
+        } else {
+            if (ImGui::IsKeyChordPressed(ImGuiKey::ImGuiMod_Ctrl |
+                                         ImGuiKey::ImGuiKey_S)) {
+                nlohmann::json rep =
+                    Serialization::Serialize(context.selectedScene);
+
+                spdlog::info("Root is legit: {}",
+                             context.selectedScene->root != nullptr);
+
+                std::ofstream sceneSave(std::format(
+                    "./res/scenes/{}.scene", context.selectedScene->name));
+                sceneSave << rep.dump(2);
+
+                spdlog::info("Saving scene {}", context.selectedScene->name);
+            }
         }
     }
 
@@ -236,12 +317,6 @@ void SceneViewPanel::Draw(Context& context) {
     ImVec2 viewportSize = ImGui::GetContentRegionAvail();
     float resX = std::max(1.0f, viewportSize.x);
     float resY = std::max(1.0f, viewportSize.y);
-
-    for (auto* dragInteractor :
-         context.selectedScene->FindObjectsOfType<Crafting::CraftingDragInteractor>())
-    {
-        dragInteractor->SetViewportSize(glm::vec2(resX, resY));
-    }
 
     this->HandleMousePicking(context, resX, resY);
 
