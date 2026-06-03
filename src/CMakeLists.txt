@@ -48,6 +48,7 @@ target_link_libraries(${PROJECT_NAME} glm::glm)
 target_link_libraries(${PROJECT_NAME} nlohmann_json::nlohmann_json)
 target_link_libraries(${PROJECT_NAME} Jolt)
 target_link_libraries(${PROJECT_NAME} mikktspace)
+target_link_libraries(${PROJECT_NAME} OpenAL)
 
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD 
 				   COMMAND ${CMAKE_COMMAND} -E create_symlink 

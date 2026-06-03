@@ -66,6 +66,20 @@ CPMAddPackage(
         "DEBUG_RENDERER_IN_DISTRIBUTION ON"
 	    "BUILD_SHARED_LIBS ON"
 )
+CPMAddPackage(
+    NAME OpenAL
+    GITHUB_REPOSITORY kcat/openal-soft
+    GIT_TAG latest
+    OPTIONS
+        "ALSOFT_UTILS OFF"
+        "ALSOFT_EXAMPLES OFF"
+        "ALSOFT_INSTALL OFF"
+        "ALSOFT_INSTALL_CONFIG OFF"
+        "ALSOFT_INSTALL_HRTF_DATA OFF"
+        "ALSOFT_INSTALL_AMBDEC_PRESETS OFF"
+        "ALSOFT_UPDATE_BUILD_VERSION OFF"
+)
+
 if (NOT MSVC)
 target_compile_options(Jolt PRIVATE -Wno-array-bounds)
 endif ()
@@ -86,6 +100,7 @@ set_target_properties(glad
                       imgui 
                       spdlog 
                       mikktspace
+                      OpenAL
                       nlohmann_json PROPERTIES FOLDER "thirdparty")
 
 if (TARGET zlibstatic)
