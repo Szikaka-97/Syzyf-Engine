@@ -16,7 +16,6 @@
 #include <Bloom.h>
 #include <ColorGrading.h>
 #include <Fxaa.h>
-
 #include <GltfScene.h>
 
 #include <TimeSystem.h>
@@ -223,6 +222,144 @@ inline SceneNode* CreateLocalPoint(
 	return node;
 }
 
+
+inline SceneNode* CreateWorldPoint(
+	Scene& scene,
+	SceneNode* parent,
+	const std::string& nodeName,
+	const glm::vec3& worldPosition
+) {
+	SceneNode* node = scene.CreateNode(parent, nodeName);
+	node->GlobalTransform().Position() = worldPosition;
+
+	return node;
+}
+
+inline glm::vec3 LocalPointBetweenCameraNodes(
+	SceneNode* parent,
+	const std::string& standNodeName,
+	const std::string& lookNodeName,
+	float amountBetweenStandAndLook,
+	float sideOffset,
+	float upOffset
+) {
+	if (!parent) {
+		return glm::vec3(0.0f);
+	}
+
+	SceneNode* standNode =
+		FindFirstNodeByNameRecursive(parent, standNodeName);
+
+	SceneNode* lookNode =
+		FindFirstNodeByNameRecursive(parent, lookNodeName);
+
+	if (!standNode || !lookNode) {
+		return glm::vec3(0.0f);
+	}
+
+	const glm::vec3 worldUp =
+		glm::vec3(0.0f, 1.0f, 0.0f);
+
+	glm::vec3 standPosition =
+		standNode->GlobalTransform().Position().Value();
+
+	glm::vec3 lookPosition =
+		lookNode->GlobalTransform().Position().Value();
+
+	glm::vec3 forward =
+		lookPosition - standPosition;
+
+	if (glm::length(forward) < 0.001f) {
+		forward = glm::vec3(0.0f, 0.0f, 1.0f);
+	}
+
+	forward = glm::normalize(forward);
+
+	glm::vec3 right =
+		glm::cross(forward, worldUp);
+
+	if (glm::length(right) < 0.001f) {
+		right = glm::vec3(1.0f, 0.0f, 0.0f);
+	}
+
+	right = glm::normalize(right);
+
+	glm::vec3 worldPosition =
+		glm::mix(
+			standPosition,
+			lookPosition,
+			amountBetweenStandAndLook
+		) +
+		right * sideOffset +
+		worldUp * upOffset;
+
+	glm::vec4 localPosition =
+		glm::inverse(parent->GlobalTransform().Value()) *
+		glm::vec4(worldPosition, 1.0f);
+
+	return glm::vec3(localPosition);
+}
+
+
+
+inline glm::vec3 WorldPointBetweenCameraNodes(
+	SceneNode* parent,
+	const std::string& standNodeName,
+	const std::string& lookNodeName,
+	float amountBetweenStandAndLook,
+	float sideOffset,
+	float upOffset
+) {
+	if (!parent) {
+		return glm::vec3(0.0f);
+	}
+
+	SceneNode* standNode =
+		FindFirstNodeByNameRecursive(parent, standNodeName);
+
+	SceneNode* lookNode =
+		FindFirstNodeByNameRecursive(parent, lookNodeName);
+
+	if (!standNode || !lookNode) {
+		return glm::vec3(0.0f);
+	}
+
+	const glm::vec3 worldUp =
+		glm::vec3(0.0f, 1.0f, 0.0f);
+
+	glm::vec3 standPosition =
+		standNode->GlobalTransform().Position().Value();
+
+	glm::vec3 lookPosition =
+		lookNode->GlobalTransform().Position().Value();
+
+	glm::vec3 forward =
+		lookPosition - standPosition;
+
+	if (glm::length(forward) < 0.001f) {
+		forward = glm::vec3(0.0f, 0.0f, 1.0f);
+	}
+
+	forward = glm::normalize(forward);
+
+	glm::vec3 right =
+		glm::cross(forward, worldUp);
+
+	if (glm::length(right) < 0.001f) {
+		right = glm::vec3(1.0f, 0.0f, 0.0f);
+	}
+
+	right = glm::normalize(right);
+
+	return glm::mix(
+		standPosition,
+		lookPosition,
+		amountBetweenStandAndLook
+	) +
+	right * sideOffset +
+	worldUp * upOffset;
+}
+
 inline void AddRoomPhysics(SceneNode* roomNode) {
 	SceneNode* floorNode = FindFirstNodeByNameRecursive(roomNode, "Plane");
 	SceneNode* wallsColliderNode = FindFirstNodeByNameRecursive(roomNode, "Walls Collider");
@@ -324,7 +461,21 @@ inline void AddStationMeshPhysics(SceneNode* roomNode) {
 	}
 }
 
-inline void DisableEmbeddedStationNodes(SceneNode* roomNode) {
+inline bool IsNodeInsideSubtree(SceneNode* node, SceneNode* subtreeRoot) {
+	SceneNode* current = node;
+
+	while (current) {
+		if (current == subtreeRoot) {
+			return true;
+		}
+
+		current = current->GetParent();
+	}
+
+	return false;
+}
+
+inline void DisableEmbeddedStationNodes(SceneNode* roomNode, SceneNode* stationNodeToKeep) {
 	if (!roomNode) {
 		return;
 	}
@@ -344,7 +495,7 @@ inline void DisableEmbeddedStationNodes(SceneNode* roomNode) {
 	for (const std::string& nodeName : stationMeshNodes) {
 		SceneNode* node = FindFirstNodeByNameRecursive(roomNode, nodeName);
 
-		if (node) {
+		if (node && !IsNodeInsideSubtree(node, stationNodeToKeep)) {
 			node->SetEnabled(false);
 		}
 	}
@@ -362,6 +513,37 @@ inline glm::mat4 GetNodeTransformRelativeTo(SceneNode* node, SceneNode* root) {
 inline bool AlignStationModelToRoom(SceneNode* roomNode, SceneNode* stationNode) {
 	if (!roomNode || !stationNode) {
 		return false;
+	}
+
+	SceneNode* stationMarkerNode =
+		FindFirstNodeByNamesRecursive(
+			roomNode,
+			{
+				"station",
+			}
+		);
+
+	if (stationMarkerNode) {
+		glm::vec3 markerWorldPosition =
+			stationMarkerNode->GlobalTransform().Position().Value();
+
+
+		glm::quat stationRotationOffset =
+			glm::quat(
+				glm::radians(
+					glm::vec3(0.0f, 90.0f, 0.0f)
+				)
+			);
+
+		stationNode->GlobalTransform().Position() =
+			markerWorldPosition;
+
+		stationNode->GlobalTransform().Rotation() = stationRotationOffset;
+
+		stationNode->GlobalTransform().Scale() =
+			glm::vec3(1.0f);
+
+		return true;
 	}
 
 	SceneNode* roomCauldronNode =
@@ -472,7 +654,7 @@ inline SceneNode* CreateBlowerHitbox(Scene& scene, SceneNode* roomNode) {
 
 	auto* blowerBody = blowerHitboxNode->AddObject<Physics::Body>(
 		JPH::BodyCreationSettings{
-			Physics::BoxShape(glm::vec3(0.25f)),
+			Physics::BoxShape(glm::vec3(1.0f)),
 			JPH::RVec3(
 				blowerHitboxPosition.x,
 				blowerHitboxPosition.y,
@@ -536,7 +718,7 @@ inline SceneNode* CreateDoorHitbox(Scene& scene, SceneNode* roomNode) {
 
 	auto* doorBody = doorHitboxNode->AddObject<Physics::Body>(
 		JPH::BodyCreationSettings{
-			Physics::BoxShape(glm::vec3(0.6f, 0.7f, 0.25f)),
+			Physics::BoxShape(glm::vec3(1.0f)),
 			JPH::RVec3(
 				doorHitboxPosition.x,
 				doorHitboxPosition.y,
@@ -604,7 +786,7 @@ inline SceneNode* CreateValveHitbox(Scene& scene, SceneNode* roomNode) {
 
 	auto* valveBody = valveHitboxNode->AddObject<Physics::Body>(
 		JPH::BodyCreationSettings{
-			Physics::BoxShape(glm::vec3(0.3f)),
+			Physics::BoxShape(glm::vec3(1.0f)),
 			JPH::RVec3(
 				valveHitboxPosition.x,
 				valveHitboxPosition.y,
@@ -633,16 +815,39 @@ inline Material* CreateColorMaterial(const glm::vec4& color) {
 	ShaderProgram* shader =
 		ShaderProgram::Build()
 			.WithVertexShader("./res/shaders/lit.vert")
-			.WithPixelShader("./res/shaders/transparent.frag")
+			.WithPixelShader("./res/shaders/lambert color.frag")
 			.Link();
 
 	Material* material = new Material(shader);
-	material->SetValue("uColor", color);
+	material->SetValue("uColor", glm::vec3(color));
+	material->SetValue("specularValue", 0.0f);
 
 	return material;
 }
 
 inline SceneNode* CreateBottlingDebugCube(
+	Scene& scene,
+	SceneNode* parent,
+	const std::string& nodeName,
+	Mesh* mesh,
+	Material* material,
+	const glm::vec3& worldPosition,
+	const glm::vec3& localScale
+) {
+	SceneNode* node = scene.CreateNode(parent, nodeName);
+
+	node->LocalTransform().Scale() = localScale;
+	node->GlobalTransform().Position() = worldPosition;
+
+	if (mesh && material) {
+		node->AddObject<MeshRenderer>(mesh, material);
+	}
+
+	return node;
+}
+
+
+inline SceneNode* CreateBottlingLocalCube(
 	Scene& scene,
 	SceneNode* parent,
 	const std::string& nodeName,
@@ -669,16 +874,44 @@ inline void CreateBottlingStageNodes(Scene& scene, SceneNode* roomNode) {
 	}
 
 	const glm::vec3 bottleStartPoint =
-		glm::vec3(-0.88f, 0.55f, -1.23f);
+		WorldPointBetweenCameraNodes(
+			roomNode,
+			"LastStageStand",
+			"LastStageLook",
+			0.35f,
+			-0.55f,
+			-0.05f
+		);
 
 	const glm::vec3 bottleFillPoint =
-		glm::vec3(-0.06f, 0.55f, -2.45f);
+		WorldPointBetweenCameraNodes(
+			roomNode,
+			"LastStageStand",
+			"LastStageLook",
+			0.50f,
+			0.0f,
+			-0.05f
+		);
 
 	const glm::vec3 bottleEndPoint =
-		glm::vec3(0.77f, 0.55f, -3.67f);
+		WorldPointBetweenCameraNodes(
+			roomNode,
+			"LastStageStand",
+			"LastStageLook",
+			0.65f,
+			0.55f,
+			-0.05f
+		);
 
 	const glm::vec3 lanePosition =
-		glm::vec3(-0.06f, 0.35f, -2.45f);
+		WorldPointBetweenCameraNodes(
+			roomNode,
+			"LastStageStand",
+			"LastStageLook",
+			0.50f,
+			0.0f,
+			-0.25f
+		);
 
 	const glm::vec3 laneScale =
 		glm::vec3(2.8f, 0.08f, 0.45f);
@@ -687,7 +920,14 @@ inline void CreateBottlingStageNodes(Scene& scene, SceneNode* roomNode) {
 		glm::vec3(0.34f, 0.55f, 0.34f);
 
 	const glm::vec3 valveGuidePosition =
-		glm::vec3(-0.06f, 1.0f, -2.45f);
+		WorldPointBetweenCameraNodes(
+			roomNode,
+			"LastStageStand",
+			"LastStageLook",
+			0.50f,
+			0.0f,
+			0.45f
+		);
 
 	const glm::vec3 valveGuideScale =
 		glm::vec3(0.08f, 0.42f, 0.08f);
@@ -695,21 +935,21 @@ inline void CreateBottlingStageNodes(Scene& scene, SceneNode* roomNode) {
 	const glm::vec3 bottleScale =
 		glm::vec3(0.18f, 0.45f, 0.18f);
 
-	CreateLocalPoint(
+	CreateWorldPoint(
 		scene,
 		roomNode,
 		"BottleStartPoint",
 		bottleStartPoint
 	);
 
-	CreateLocalPoint(
+	CreateWorldPoint(
 		scene,
 		roomNode,
 		"BottleFillPoint",
 		bottleFillPoint
 	);
 
-	CreateLocalPoint(
+	CreateWorldPoint(
 		scene,
 		roomNode,
 		"BottleEndPoint",
@@ -781,7 +1021,7 @@ inline void CreateBottlingStageNodes(Scene& scene, SceneNode* roomNode) {
 			bottleScale
 		);
 
-		SceneNode* liquidNode = CreateBottlingDebugCube(
+		SceneNode* liquidNode = CreateBottlingLocalCube(
 			scene,
 			bottleNode,
 			"BottlingBottle_0" + std::to_string(i + 1) + "_Liquid",
@@ -848,10 +1088,12 @@ inline Crafting::DraggableCraftingItem* CreateDraggableCube(
 ) {
 	SceneNode* node = scene.CreateNode(parent, nodeName);
 
-	node->AddObject<MeshRenderer>(mesh, material);
+	if (mesh && material) {
+		node->AddObject<MeshRenderer>(mesh, material);
+	}
 
-	node->LocalTransform().Position() = position;
 	node->LocalTransform().Scale() = scale;
+	node->GlobalTransform().Position() = position;
 
 	glm::vec3 globalPosition =
 		node->GlobalTransform().Position().Value();
@@ -865,7 +1107,7 @@ inline Crafting::DraggableCraftingItem* CreateDraggableCube(
 
 	auto* body = node->AddObject<Physics::Body>(
 		JPH::BodyCreationSettings{
-			Physics::BoxShape(scale),
+			Physics::BoxShape(glm::vec3(1.0f)),
 			JPH::RVec3(globalPosition.x, globalPosition.y, globalPosition.z),
 			JPH::Quat::sIdentity(),
 			JPH::EMotionType::Kinematic,
@@ -882,7 +1124,6 @@ inline Crafting::DraggableCraftingItem* CreateDraggableCube(
 
 	return item;
 }
-
 inline SceneNode* CreatePlayer(Scene& scene, SceneNode* roomNode) {
 	JPH::Ref<JPH::CharacterVirtualSettings> characterSettings =
 		new JPH::CharacterVirtualSettings();
@@ -1074,8 +1315,8 @@ inline void CreateCraftingIngredients(Scene& scene, SceneNode* roomNode) {
 		{
 			"Burn Ingredient",
 			burnMaterial,
-			glm::vec3(-1.1f, 1.1f, 2.77f),
-			glm::vec3(0.35f),
+			WorldPointBetweenCameraNodes(roomNode, "StageOneStand", "StageOneLook", 0.74f, -0.75f, -0.20f),
+			glm::vec3(0.28f),
 			CreateMainEffectIngredient(
 				Crafting::IngredientType::Sugar,
 				"Burn",
@@ -1086,8 +1327,8 @@ inline void CreateCraftingIngredients(Scene& scene, SceneNode* roomNode) {
 		{
 			"Lightning Ingredient",
 			lightningMaterial,
-			glm::vec3(-0.4f, 1.1f, 2.76f),
-			glm::vec3(0.35f),
+			WorldPointBetweenCameraNodes(roomNode, "StageOneStand", "StageOneLook", 0.74f, -0.25f, -0.20f),
+			glm::vec3(0.28f),
 			CreateMainEffectIngredient(
 				Crafting::IngredientType::Water,
 				"Lightning",
@@ -1098,8 +1339,8 @@ inline void CreateCraftingIngredients(Scene& scene, SceneNode* roomNode) {
 		{
 			"Radius Modifier",
 			radiusMaterial,
-			glm::vec3(0.3f, 1.1f, 2.74f),
-			glm::vec3(0.35f),
+			WorldPointBetweenCameraNodes(roomNode, "StageOneStand", "StageOneLook", 0.74f, 0.25f, -0.20f),
+			glm::vec3(0.28f),
 			CreateModifierIngredient(
 				Crafting::IngredientType::Water,
 				"Radius",
@@ -1111,8 +1352,8 @@ inline void CreateCraftingIngredients(Scene& scene, SceneNode* roomNode) {
 		{
 			"Duration Modifier",
 			durationMaterial,
-			glm::vec3(1.0f, 1.1f, 2.73f),
-			glm::vec3(0.35f),
+			WorldPointBetweenCameraNodes(roomNode, "StageOneStand", "StageOneLook", 0.74f, 0.75f, -0.20f),
+			glm::vec3(0.28f),
 			CreateModifierIngredient(
 				Crafting::IngredientType::Sugar,
 				"Duration",
@@ -1217,7 +1458,7 @@ inline void InitScene(Scene& scene) {
 		return;
 	}
 
-	DisableEmbeddedStationNodes(roomNode);
+	DisableEmbeddedStationNodes(roomNode, stationNode);
 
 	AddStationMeshPhysics(stationNode);
 
@@ -1265,8 +1506,10 @@ inline void InitScene(Scene& scene) {
 
 	roomNode->AddObject<CraftingTutorialLights>();
 
-	SetupCraftingStation(scene, stationNode);
-	CreateCraftingIngredients(scene, stationNode);
+    SetupCraftingStation(scene, stationNode);
+    CreateCraftingIngredients(scene, stationNode);
+
+
 
 }
 

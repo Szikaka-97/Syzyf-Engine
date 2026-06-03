@@ -4,6 +4,7 @@
 #include "GameObject.h"
 #include "InputSystem.h"
 #include "Scene.h"
+#include "Texture.h"
 
 #include "game_scripts/CameraSettings.h"
 #include "game_scripts/crafting/BottlingStage.h"
@@ -13,6 +14,11 @@
 #include "game_scripts/crafting/CraftingNodeUtils.h"
 #include "game_scripts/crafting/DraggableCraftingItem.h"
 #include "game_scripts/crafting/HeatingStage.h"
+
+#include <text/Font.h>
+#include <ui/objects/UiLayout.h>
+#include <ui/objects/UiText.h>
+#include <ui/objects/UiVisual.h>
 
 #include <physics/Body.h>
 #include <physics/System.h>
@@ -29,6 +35,8 @@
 
 #include <string>
 #include <vector>
+#include <sstream>
+#include <iomanip>
 
 namespace Crafting{
     class CraftingStation : public GameObject{
@@ -65,6 +73,9 @@ namespace Crafting{
                 BottlingStage bottlingStage;
 
                 bool blowerClickRequested = false;
+
+                SceneNode* heatingUiRootNode = nullptr;
+                UiText* heatingUiText = nullptr;
 
           public:
                 float interactionRadius = 3.0f;
@@ -177,6 +188,9 @@ namespace Crafting{
                     SetLidInteractionEnabled(false);
                     SetDoorInteractionEnabled(false);
                     SetStationHitboxEnabled(true);
+
+                    CreateHeatingUi();
+                    SetHeatingUiEnabled(false);
                 }
 
                 void Update(){
@@ -185,10 +199,8 @@ namespace Crafting{
                     }
 
                     if (!isActive){
-                        if (IsPlayerNear()){
-                            if (GetScene()->Input()->KeyDown(Key::E)){
-                                EnterStation();
-                            }
+                        if (GetScene()->Input()->KeyDown(Key::G) || GetScene()->Input()->KeyDown(Key::E)){
+                            EnterStation();
                         }
 
                         return;
@@ -364,6 +376,8 @@ namespace Crafting{
                     bool finished =
                         heatingStage.Update(deltaTime, blowerClicked);
 
+                    UpdateHeatingUi();
+
                     if (finished){
                         FinishHeatingStage();
                     }
@@ -384,6 +398,9 @@ namespace Crafting{
 
                     heatingStage.Start();
 
+                    SetHeatingUiEnabled(true);
+                    UpdateHeatingUi();
+
                     SetIngredientsEnabled(false);
                     SetDragInteractorEnabled(true);
                     SetDoorInteractionEnabled(false);
@@ -395,6 +412,7 @@ namespace Crafting{
 
                     SetBlowerInteractionEnabled(false);
                     SetDragInteractorEnabled(true);
+                    SetHeatingUiEnabled(false);
 
                     if (cauldron){
                         cauldron->SetQuality(heatingStage.GetQuality());
@@ -738,6 +756,96 @@ namespace Crafting{
                     playerNode->SetEnabled(playerWasEnabled);
                 }
 
+
+                void CreateHeatingUi(){
+                    if (heatingUiRootNode || !GetScene()){
+                        return;
+                    }
+
+                    TextureParams fontTextureParams = {
+                        .channels = TextureChannels::RGB,
+                        .colorSpace = TextureColor::Linear,
+                        .format = TextureFormat::Ubyte,
+                        .wrapU = TextureWrap::Clamp,
+                        .wrapV = TextureWrap::Clamp,
+                        .minFilter = TextureFilter::Linear,
+                        .magFilter = TextureFilter::Linear
+                    };
+
+                    Texture2D* fontTexture =
+                        GetScene()->Resources()->Get<Texture2D>(
+                            "./res/fonts/OpenSans-Regular/OpenSans-Regular.png",
+                            fontTextureParams
+                        );
+
+                    Font* font =
+                        GetScene()->Resources()->Get<Font>(
+                            "./res/fonts/OpenSans-Regular/OpenSans-Regular.json",
+                            fontTexture
+                        );
+
+                    heatingUiRootNode =
+                        GetScene()->CreateNode("Crafting Heating UI Root");
+
+                    heatingUiRootNode->AddObject<UiLayout>(
+                        glm::ivec2(280, 110),
+                        glm::ivec2(-20, 20),
+                        20,
+                        AnchorPoint::TopRight
+                    );
+
+                    heatingUiRootNode->AddObject<UiVisual>(
+                        glm::vec4(0.0f, 0.0f, 0.0f, 0.55f)
+                    );
+
+                    SceneNode* textNode =
+                        GetScene()->CreateNode(
+                            heatingUiRootNode,
+                            "Crafting Heating UI Text"
+                        );
+
+                    textNode->AddObject<UiLayout>(
+                        glm::ivec2(260, 90),
+                        glm::ivec2(12, 8),
+                        21,
+                        AnchorPoint::TopLeft
+                    );
+
+                    heatingUiText =
+                        textNode->AddObject<UiText>("", font);
+
+                    heatingUiText->fontSize = 22.0f;
+                    heatingUiText->color = glm::vec4(1.0f, 0.93f, 0.72f, 1.0f);
+                    heatingUiText->alignment = TextAlignment::Left;
+                }
+
+                void SetHeatingUiEnabled(bool enabled){
+                    if (!heatingUiRootNode){
+                        return;
+                    }
+
+                    if (heatingUiRootNode->EnabledSelf() == enabled){
+                        return;
+                    }
+
+                    heatingUiRootNode->SetEnabled(enabled);
+                }
+
+                void UpdateHeatingUi(){
+                    if (!heatingUiText){
+                        return;
+                    }
+
+                    std::ostringstream text;
+                    text << std::fixed << std::setprecision(1);
+                    text << "Heating\n";
+                    text << "Target: " << heatingStage.tempMin << " - " << heatingStage.tempMax << " C\n";
+                    text << "Temp: " << heatingStage.GetTemperature() << " C\n";
+                    text << "Quality: " << heatingStage.GetQualityPercent() << "%";
+
+                    heatingUiText->text = text.str();
+                }
+
                 void EnterStation(){
                     SceneNode* cameraNode = GetCameraNode();
 
@@ -792,6 +900,7 @@ namespace Crafting{
                     SetBlowerInteractionEnabled(false);
                     SetDoorInteractionEnabled(false);
                     SetValveInteractionEnabled(false);
+                    SetHeatingUiEnabled(false);
                     bottlingStage.Stop();
 
                     SetDragInteractorEnabled(true);

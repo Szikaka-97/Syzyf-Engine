@@ -1,7 +1,5 @@
 #pragma once
 
-#include <spdlog/spdlog.h>
-
 namespace Crafting{
     class HeatingStage{
     public:
@@ -15,8 +13,8 @@ namespace Crafting{
 
         float coolingSpeed = 2.0f;
 
-        float tempMin = 45.0f;
-        float tempMax = 57.0f;
+        float tempMin = 5.0f;
+        float tempMax = 10.0f;
 
         float qualityLoss = 4.0f;
 
@@ -32,9 +30,6 @@ namespace Crafting{
             blowerCooldownTimer = 0.0f;
 
             finished = false;
-            wasInPerfectRange = false;
-            wasTooHot = false;
-            lastLoggedGoodSecond = -1;
         }
 
         void Start(){
@@ -47,18 +42,6 @@ namespace Crafting{
             blowerCooldownTimer = 0.0f;
 
             finished = false;
-
-            wasInPerfectRange = false;
-            wasTooHot = false;
-            lastLoggedGoodSecond = -1;
-
-            spdlog::info(
-                "Heating: start | range {}-{} | required {}s | quality {}%",
-                tempMin,
-                tempMax,
-                requiredGoodTemperatureTime,
-                qualityPercent
-            );
         }
 
         bool Update(float deltaTime, bool blowerClicked){
@@ -76,17 +59,9 @@ namespace Crafting{
 
             UpdateTemperature(deltaTime);
             UpdateQualityAndProgress(deltaTime);
-            LogImportantStateChanges();
 
             if (goodTemperatureTimer >= requiredGoodTemperatureTime){
                 finished = true;
-
-                spdlog::info(
-                    "Heating: finished | quality {}% | temp {} | time {}s",
-                    qualityPercent,
-                    temperature,
-                    totalTimer
-                );
             }
 
             return finished;
@@ -177,10 +152,6 @@ namespace Crafting{
 
         bool finished = false;
 
-        bool wasInPerfectRange = false;
-        bool wasTooHot = false;
-        int lastLoggedGoodSecond = -1;
-
         void UpdateBlowerCooldown(float deltaTime){
             if (blowerCooldownTimer <= 0.0f){
                 return;
@@ -195,11 +166,6 @@ namespace Crafting{
 
         void TryUseBlower(){
             if (!CanClickBlower()){
-                spdlog::info(
-                    "Heating: blower blocked | cooldown {:.2f}s",
-                    blowerCooldownTimer
-                );
-
                 return;
             }
 
@@ -208,12 +174,6 @@ namespace Crafting{
 
             coolingDelayTimer = coolingDelay;
             blowerCooldownTimer = clickCooldown;
-
-            spdlog::info(
-                "Heating: blower used | temp {} | next {:.2f}s",
-                temperature,
-                clickCooldown
-            );
         }
 
         void UpdateTemperature(float deltaTime){
@@ -249,55 +209,6 @@ namespace Crafting{
 
             goodTemperatureTimer =
                 Clamp(goodTemperatureTimer, 0.0f, requiredGoodTemperatureTime);
-        }
-
-        void LogImportantStateChanges(){
-            bool isInPerfectRange = IsInPerfectRange();
-            bool isTooHot = IsTooHot();
-            bool isTooCold = IsTooCold();
-
-            if (isInPerfectRange && !wasInPerfectRange){
-                spdlog::info(
-                    "Heating: good range entered | temp {}",
-                    temperature
-                );
-            }
-
-            if (isTooHot && !wasTooHot){
-                spdlog::warn(
-                    "Heating: too hot | temp {} | quality decreasing",
-                    temperature
-                );
-            }
-
-            if (!isTooHot && wasTooHot){
-                spdlog::info(
-                    "Heating: back below max | temp {} | quality {}%",
-                    temperature,
-                    qualityPercent
-                );
-            }
-
-            int currentGoodSecond =
-                static_cast<int>(goodTemperatureTimer);
-
-            if (
-                currentGoodSecond != lastLoggedGoodSecond &&
-                currentGoodSecond > 0
-            ){
-                lastLoggedGoodSecond = currentGoodSecond;
-
-                spdlog::info(
-                    "Heating: progress {}/{}s | quality {}% | temp {}",
-                    currentGoodSecond,
-                    static_cast<int>(requiredGoodTemperatureTime),
-                    qualityPercent,
-                    temperature
-                );
-            }
-
-            wasInPerfectRange = isInPerfectRange;
-            wasTooHot = isTooHot;
         }
 
         float Clamp(float value, float minValue, float maxValue) const{

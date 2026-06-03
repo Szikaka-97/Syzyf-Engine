@@ -8,7 +8,6 @@
 
 #include <glm/glm.hpp>
 #include <glm/geometric.hpp>
-#include <spdlog/spdlog.h>
 
 namespace Crafting{
   class DraggableCraftingItem : public GameObject {
@@ -25,7 +24,6 @@ namespace Crafting{
       {
         startPosition = GetNode()->GlobalTransform().Position().Value();
 
-        spdlog::info("Draggable item ready: {}", data.displayName);
       }
 
       void Update()
@@ -58,13 +56,11 @@ namespace Crafting{
 
           if (finishedMode == MotionMode::Consume)
           {
-            spdlog::info("Consumed {}.", data.displayName);
             GetNode()->SetEnabled(false);
           }
 
           if (finishedMode == MotionMode::ReturnToStart)
           {
-            spdlog::info("Returned {} to start position.", data.displayName);
           }
 
           return;
@@ -84,7 +80,6 @@ namespace Crafting{
 
         SyncPhysicsToNode();
 
-        spdlog::info("Picked up {}.", data.displayName);
       }
 
       void DragTo(const glm::vec3& position)
@@ -102,7 +97,6 @@ namespace Crafting{
 
         isDragged = false;
 
-        spdlog::info("Released {}.", data.displayName);
       }
 
       void ReturnToStart()
@@ -110,14 +104,12 @@ namespace Crafting{
         motionTargetPosition = startPosition;
         motionMode = MotionMode::ReturnToStart;
 
-        spdlog::info("Returning {} to start position.", data.displayName);
       }
 
       void Consume()
       {
         motionMode = MotionMode::None;
 
-        spdlog::info("Consumed {}.", data.displayName);
 
         GetNode()->SetEnabled(false);
       }
@@ -127,10 +119,6 @@ namespace Crafting{
         motionTargetPosition = position;
         motionMode = MotionMode::Consume;
 
-        spdlog::info(
-          "Moving {} to cauldron consume position.",
-          data.displayName
-        );
       }
 
       glm::vec3 GetStartPosition() const
@@ -149,7 +137,6 @@ namespace Crafting{
           SetWorldPosition(startPosition);
         }
 
-        spdlog::info("Reset draggable ingredient: {}.", data.displayName);
       }
 
     private:

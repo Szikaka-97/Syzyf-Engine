@@ -6,7 +6,6 @@
 #include <glm/glm.hpp>
 #include <glm/common.hpp>
 #include <glm/geometric.hpp>
-#include <spdlog/spdlog.h>
 
 #include <array>
 #include <string>
@@ -57,34 +56,22 @@ namespace Crafting{
             }
 
             if (!startPointNode){
-                spdlog::warn("BottlingStage: BottleStartPoint not found.");
             }
 
             if (!fillPointNode){
-                spdlog::warn("BottlingStage: BottleFillPoint not found.");
             }
 
             if (!endPointNode){
-                spdlog::warn("BottlingStage: BottleEndPoint not found.");
             }
 
             if (!bottlesRootNode){
-                spdlog::warn("BottlingStage: BottlingBottlesRoot not found.");
             }
 
             for (int i = 0; i < BottleCount; ++i){
                 if (!bottleNodes[i]){
-                    spdlog::warn(
-                        "BottlingStage: bottle node {} not found.",
-                        bottleNodeNames[i]
-                    );
                 }
 
                 if (!liquidNodes[i]){
-                    spdlog::warn(
-                        "BottlingStage: liquid node {} not found.",
-                        liquidNodeNames[i]
-                    );
                 }
             }
 
@@ -133,7 +120,6 @@ namespace Crafting{
             ResetBottlePositions();
             SetBottlesEnabled(false);
 
-            spdlog::info("BottlingStage: ready. Click Valve to start conveyor.");
         }
 
         void Stop(){
@@ -150,7 +136,6 @@ namespace Crafting{
             }
 
             if (!HasRequiredNodes()){
-                spdlog::warn("BottlingStage: missing required nodes.");
                 Finish();
                 return true;
             }
@@ -199,13 +184,6 @@ namespace Crafting{
                 liquidNodes[bottleIndex]->SetEnabled(true);
             }
 
-            spdlog::info(
-                "BottlingStage: bottle {}/{} filled. Filled total: {}/{}.",
-                bottleIndex + 1,
-                GetClampedRequiredFilledBottles(),
-                filledBottles,
-                GetClampedRequiredFilledBottles()
-            );
         }
 
         bool IsFinished() const{
@@ -284,7 +262,6 @@ namespace Crafting{
             ResetBottlePositions();
             SetBottlesEnabled(true);
 
-            spdlog::info("BottlingStage: conveyor started.");
         }
 
         void Finish(){
@@ -296,11 +273,6 @@ namespace Crafting{
             isActive = false;
             conveyorStarted = false;
 
-            spdlog::info(
-                "BottlingStage: finished. Filled: {} Missed: {}.",
-                filledBottles,
-                missedBottles
-            );
         }
 
         glm::vec3 GetStartPosition() const{
@@ -384,11 +356,6 @@ namespace Crafting{
             int bestBottle = FindBestBottleInFillWindow();
 
             if (bestBottle >= 0 && bestBottle != lastBottleInFillWindow){
-                spdlog::info(
-                    "BottlingStage: bottle {}/{} is in fill zone. Click Valve now.",
-                    bestBottle + 1,
-                    GetClampedRequiredFilledBottles()
-                );
             }
 
             lastBottleInFillWindow = bestBottle;
@@ -409,11 +376,6 @@ namespace Crafting{
                 if (!bottleFilled[i]){
                     ++missedBottles;
 
-                    spdlog::info(
-                        "BottlingStage: bottle {}/{} missed.",
-                        i + 1,
-                        GetClampedRequiredFilledBottles()
-                    );
                 }
             }
         }
