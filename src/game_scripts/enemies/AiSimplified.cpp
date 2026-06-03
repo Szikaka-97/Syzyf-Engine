@@ -3,30 +3,26 @@
 #include <TimeSystem.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
-#include <spdlog/spdlog.h>
-#include <physics/LayerMaskFilter.h>
-#include <physics/System.h>
 #include "Surface.h"
 
 AiSimplified::AiSimplified()
     : m_Speed(5.0f), m_RotationSpeed(2.0f) {
-    myNode = GetNode();
-    m_Body = nullptr;
+    myNode   = GetNode();
+    m_Body   = nullptr;
     m_Surface = nullptr;
+    
+  
 }
 
 AiSimplified::~AiSimplified() {}
 
 void AiSimplified::EnsureBody() {
-    if (!myNode)  myNode  = GetNode();
+    if (!myNode) myNode = GetNode();
     if (!m_Body && myNode)
         m_Body = myNode->GetObject<Physics::Body>();
 }
 
 void AiSimplified::ChaseWithSteering(const glm::vec3& flockForce) {
-    EnsureBody();
-
-    UpdateWallAvoidance();
 
     glm::vec3 toTarget = m_TargetPosition - currentPos;
     toTarget.y = 0.0f;
@@ -35,10 +31,7 @@ void AiSimplified::ChaseWithSteering(const glm::vec3& flockForce) {
 
     glm::vec3 dir = toTarget / dist;
 
-    glm::vec3 combined = dir
-        + m_AvoidForce   * 1.2f
-        + glm::clamp(flockForce, glm::vec3(-0.5f), glm::vec3(0.5f));
-
+    glm::vec3 combined = dir + glm::clamp(flockForce, glm::vec3(-0.8f), glm::vec3(0.8f));
     combined.y = 0.0f;
     float len = glm::length(combined);
     if (len > 0.001f) combined /= len;
@@ -46,52 +39,7 @@ void AiSimplified::ChaseWithSteering(const glm::vec3& flockForce) {
     MoveInDirection(combined);
 }
 
-void AiSimplified::UpdateWallAvoidance() {
-    m_AvoidFrameCtr++;
-    if (m_AvoidFrameCtr < m_AvoidInterval) return;
-    m_AvoidFrameCtr = 0;
-
-    auto* physics = GetScene()->GetComponent<Physics::System>();
-    if (!physics || !m_Body) { m_AvoidForce = {}; return; }
-
-    glm::vec3 toTarget = m_TargetPosition - currentPos;
-    toTarget.y = 0.0f;
-    float dist = glm::length(toTarget);
-    if (dist < 0.001f) { m_AvoidForce = {}; return; }
-
-    glm::vec3 fwd = toTarget / dist;
-    glm::vec3 origin = currentPos + glm::vec3(0, 0.8f, 0);
-    float lookAhead = 2.5f;  
-
-    Physics::LayerMaskFilter filter({}, false);
-    filter.IgnoreBody(m_Body->GetBodyID());
-
-    auto hit = physics->CastRay(origin, fwd * lookAhead, {}, {}, filter);
-    if (!hit.node || hit.node->GetName() == "Floor") {
-        m_AvoidForce = {};   
-        return;
-    }
-
-    glm::vec3 right = glm::normalize(glm::cross(fwd, glm::vec3(0,1,0)));
-
-    auto hitR = physics->CastRay(origin, (fwd + right * 0.7f) * lookAhead, {}, {}, filter);
-    auto hitL = physics->CastRay(origin, (fwd - right * 0.7f) * lookAhead, {}, {}, filter);
-
-    bool clearRight = !hitR.node || hitR.node->GetName() == "Floor";
-    bool clearLeft  = !hitL.node || hitL.node->GetName() == "Floor";
-
-    if (clearRight && !clearLeft)
-        m_AvoidForce = right;
-    else if (clearLeft && !clearRight)
-        m_AvoidForce = -right;
-    else if (clearRight && clearLeft)
-        m_AvoidForce = right;  
-    else
-        m_AvoidForce = -fwd * 0.5f;   
-}
-
 void AiSimplified::DirectChase() {
-    EnsureBody();
     glm::vec3 dir = m_TargetPosition - currentPos;
     dir.y = 0.0f;
     float dist = glm::length(dir);
@@ -99,11 +47,48 @@ void AiSimplified::DirectChase() {
     else StopMoving();
 }
 
+void AiSimplified::Patrol() {
+    if (!m_WalkPointSet) {
+        SearchWalkPoint();
+        return;
+    }
+
+    glm::vec3 dir = m_WalkPoint - currentPos;
+    float distance = glm::length(dir);
+
+    m_PatrolTimeout += Time::Delta();
+    if (m_PatrolTimeout > 5.0f) {
+        m_WalkPointSet  = false;
+        m_PatrolTimeout = 0.0f;
+        return;
+    }
+
+    if (distance > 0.5f) MoveInDirection(dir);
+    else { StopMoving(); m_WalkPointSet = false; }
+}
+
+void AiSimplified::SearchWalkPoint() {
+    if (!m_Surface) return;
+
+    if (!m_PatrolPoints.empty()) {
+        LookForNextPoint();
+    } else {
+        float radius = glm::length(m_Surface->GetSize()) * 0.5f;
+        m_WalkPoint   = m_Surface->GetRandomWalkPoint(m_Surface->GetCenter(), radius);
+        m_WalkPointSet = true;
+    }
+}
+
+void AiSimplified::LookForNextPoint() {
+    m_PosIndex     = (m_PosIndex + 1) % (int)m_PatrolPoints.size();
+    m_WalkPoint    = m_PatrolPoints[m_PosIndex];
+    m_WalkPointSet = true;
+}
+
 void AiSimplified::MoveInDirection(const glm::vec3& direction) {
-    EnsureBody();
     if (glm::length(direction) < 0.001f) { StopMoving(); return; }
 
-    glm::vec3 dir = glm::normalize(direction);
+    glm::vec3 dir    = glm::normalize(direction);
     glm::vec3 newVel = dir * m_Speed;
     newVel.y = m_Body->GetLinearVelocity().y;
 
@@ -120,22 +105,33 @@ void AiSimplified::MoveInDirection(const glm::vec3& direction) {
 }
 
 void AiSimplified::StopMoving() {
-    EnsureBody();
     glm::vec3 v = m_Body->GetLinearVelocity();
     m_Body->SetLinearVelocity(glm::vec3(0, v.y, 0));
 }
 
 void AiSimplified::RotateNode(glm::vec3 dir) {
-    EnsureBody();
     if (glm::length(dir) < 0.01f) return;
     dir = glm::normalize(dir);
-    float targetYaw = atan2(dir.x, dir.z);
-    glm::quat targetRot = glm::angleAxis(targetYaw, glm::vec3(0,1,0));
+    float     targetYaw = atan2(dir.x, dir.z);
+    glm::quat targetRot = glm::angleAxis(targetYaw, glm::vec3(0, 1, 0));
     glm::quat currentRot = myNode->GlobalTransform().Rotation();
     glm::quat newRot = glm::slerp(currentRot, targetRot, m_RotationSpeed * Time::Delta());
     m_Body->SetRotation(newRot);
     myNode->GlobalTransform().Rotation() = newRot;
-    m_Body->SetAngularVelocity(glm::vec3(0,0,0));
+    m_Body->SetAngularVelocity(glm::vec3(0, 0, 0));
+}
+
+void AiSimplified::LockXZRotation() {
+    if (!m_Body) return;
+    glm::quat rot = m_Body->GetRotation();
+    const float epsilon = 0.001f;
+    if (glm::abs(rot.x) > epsilon || glm::abs(rot.z) > epsilon) {
+        glm::quat corrected = glm::normalize(glm::quat(rot.w, 0.0f, rot.y, 0.0f));
+        m_Body->SetRotation(corrected);
+        myNode->GlobalTransform().Rotation() = corrected;
+        glm::vec3 angVel = m_Body->GetAngularVelocity();
+        m_Body->SetAngularVelocity(glm::vec3(0.0f, angVel.y, 0.0f));
+    }
 }
 
 void AiSimplified::Flee() {
@@ -146,50 +142,10 @@ void AiSimplified::Flee() {
     MoveInDirection(away / len);
 }
 
-void AiSimplified::Patrol() {
-    if (!m_WalkPointSet) {
-        SearchWalkPoint();
-        return;
-    }
-
-    glm::vec3 dir = m_WalkPoint - currentPos;
-    float distance = glm::length(dir);
-
-    m_PatrolTimeout += Time::Delta();
-    if (m_PatrolTimeout > 5.0f) {
-        m_WalkPointSet = false;
-        m_PatrolTimeout = 0.0f;
-        return;
-    }
-
-    if (distance > 0.5f) MoveInDirection(dir);
-    else { StopMoving(); m_WalkPointSet = false; }
-}
-
-void AiSimplified::SearchWalkPoint() {
-    if (!m_Surface) return;
-
-    if (!m_PatrolPoints.empty()) {
-        LookForNextPoint();
-    } else {
-        float radius = glm::length(m_Surface->GetSize()) * 0.5f;
-        m_WalkPoint  = m_Surface->GetRandomWalkPoint(m_Surface->GetCenter(), radius);
-        m_WalkPointSet = true;
-    }
-}
-
-void AiSimplified::LookForNextPoint() {
-    m_PosIndex = (m_PosIndex + 1) % (int)m_PatrolPoints.size();
-    m_WalkPoint    = m_PatrolPoints[m_PosIndex];
-    m_WalkPointSet = true;
-}
-
 void AiSimplified::SetTarget(glm::vec3 target) { m_TargetPosition = target; }
 
 void AiSimplified::SetSurface(Surface* surface) {
-    if (surface) { m_Surface = surface; return; }
-    auto surfaces = GetScene()->FindObjectsOfType<Surface>();
-    if (!surfaces.empty()) m_Surface = surfaces[0];
+    if (surface) { m_Surface = surface; }
 }
 
 void AiSimplified::SetPatrolPoints(const std::vector<glm::vec2>& points) {
@@ -197,23 +153,5 @@ void AiSimplified::SetPatrolPoints(const std::vector<glm::vec2>& points) {
     for (const auto& p : points) {
         float y = m_Surface ? m_Surface->GetGroundHeight(p.x, p.y) : 0.0f;
         m_PatrolPoints.push_back({p.x, y, p.y});
-    }
-}
-
-void AiSimplified::LockXZRotation() {
-    if (!m_Body) return;
-
-    glm::quat rot = m_Body->GetRotation();
-
-    const float epsilon = 0.001f;
-    if (glm::abs(rot.x) > epsilon || glm::abs(rot.z) > epsilon) {
-        glm::quat corrected = glm::quat(rot.w, 0.0f, rot.y, 0.0f);
-        corrected = glm::normalize(corrected);
-
-        m_Body->SetRotation(corrected);
-        myNode->GlobalTransform().Rotation() = corrected;
-
-        glm::vec3 angVel = m_Body->GetAngularVelocity();
-        m_Body->SetAngularVelocity(glm::vec3(0.0f, angVel.y, 0.0f));
     }
 }

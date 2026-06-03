@@ -16,9 +16,9 @@ void FlockingSystem::Register(EnemyBase* enemy) {
     int idx = (int)m_Agents.size();
     m_Agents.push_back({enemy, {}, {}, {}, -1});
     m_IndexMap[enemy] = idx;
-    m_StuckThisFrame.push_back(false);
-    m_AstarThisFrame.push_back(false);
-    spdlog::debug("FlockingSystem: registered (total={})", m_Agents.size());
+    m_PatrolTargets.push_back({});
+    m_PatrolDirty.push_back(true); 
+    spdlog::info("FlockingSystem: registered (total={})", m_Agents.size());
 }
 
 void FlockingSystem::Unregister(EnemyBase* enemy) {
@@ -29,78 +29,55 @@ void FlockingSystem::Unregister(EnemyBase* enemy) {
     int last = (int)m_Agents.size() - 1;
 
     if (idx != last) {
-        m_Agents[idx] = m_Agents[last];
+        m_Agents[idx]        = m_Agents[last];
+        m_PatrolTargets[idx] = m_PatrolTargets[last];
+        m_PatrolDirty[idx]   = m_PatrolDirty[last];
         m_IndexMap[m_Agents[idx].ptr] = idx;
-        m_StuckThisFrame[idx] = m_StuckThisFrame[last];
-        m_AstarThisFrame[idx] = m_AstarThisFrame[last];
     }
     m_Agents.pop_back();
-    m_StuckThisFrame.pop_back();
-    m_AstarThisFrame.pop_back();
+    m_PatrolTargets.pop_back();
+    m_PatrolDirty.pop_back();
     m_IndexMap.erase(it);
 }
 
 glm::vec3 FlockingSystem::GetFlockingForce(EnemyBase* enemy) const {
     auto it = m_IndexMap.find(enemy);
-    if (it == m_IndexMap.end()) return glm::vec3(0.0f);
-    return m_Agents[it->second].force;
+    return (it != m_IndexMap.end()) ? m_Agents[it->second].force : glm::vec3(0.0f);
 }
 
-bool FlockingSystem::ShouldUpdateStuck(EnemyBase* enemy) const {
+glm::vec3 FlockingSystem::GetPatrolTarget(EnemyBase* enemy) const {
     auto it = m_IndexMap.find(enemy);
-    if (it == m_IndexMap.end()) return false;
-    return m_StuckThisFrame[it->second];
+    return (it != m_IndexMap.end()) ? m_PatrolTargets[it->second] : glm::vec3(0.0f);
 }
 
-bool FlockingSystem::ShouldUpdateAstar(EnemyBase* enemy) const {
+void FlockingSystem::RefreshPatrolTarget(EnemyBase* enemy) {
     auto it = m_IndexMap.find(enemy);
-    if (it == m_IndexMap.end()) return false;
-    return m_AstarThisFrame[it->second];
+    if (it != m_IndexMap.end())
+        m_PatrolDirty[it->second] = true;
 }
 
 void FlockingSystem::OnPreUpdate() {
-    const int n = (int)m_Agents.size();
-    if (n == 0) return;
+    if (m_Agents.empty()) return;
 
-    SyncPositions();
-
-    BuildGrid();
-
-    ComputeAllForces();
-
-    std::fill(m_StuckThisFrame.begin(), m_StuckThisFrame.end(), false);
-    std::fill(m_AstarThisFrame.begin(), m_AstarThisFrame.end(), false);
-
-    for (int i = 0; i < stuckChecksPerFrame && i < n; ++i) {
-        m_StuckThisFrame[m_StuckRR % n] = true;
-        m_StuckRR = (m_StuckRR + 1) % n;
-    }
-    for (int i = 0; i < astarUpdatesPerFrame && i < n; ++i) {
-        m_AstarThisFrame[m_AstarRR % n] = true;
-        m_AstarRR = (m_AstarRR + 1) % n;
-    }
+    SyncPositions();   // pobierz pos/vel z physics body
+    BuildGrid();       // spatial hash grid
+    ComputeAllForces(); // separation + alignment + cohesion
+    UpdatePatrolTargets(); // max 2 punkty patrol/klatkę
 }
-
-void FlockingSystem::OnPostUpdate() {
-}
-
 
 void FlockingSystem::SyncPositions() {
-    for (auto& agent : m_Agents) {
-        if (agent.ptr && agent.ptr->m_Body) {
-            agent.pos = agent.ptr->currentPos;    
-            glm::vec3 v = agent.ptr->m_Body->GetLinearVelocity();
-            v.y = 0.0f;
-            agent.vel = v;
-        }
+    for (auto& a : m_Agents) {
+        if (!a.ptr || !a.ptr->m_Body) continue;
+        a.pos = a.ptr->currentPos;
+        glm::vec3 v = a.ptr->m_Body->GetLinearVelocity();
+        v.y  = 0.0f;
+        a.vel = v;
     }
 }
 
-
 int FlockingSystem::CellKey(const glm::vec3& pos) const {
-    int cx = (int)std::floor(pos.x / cellSize);
-    int cz = (int)std::floor(pos.z / cellSize);
-    cx += 1000; cz += 1000;
+    int cx = (int)std::floor(pos.x / cellSize) + 1000;
+    int cz = (int)std::floor(pos.z / cellSize) + 1000;
     return cx * 2003 + cz;
 }
 
@@ -110,9 +87,8 @@ void FlockingSystem::BuildGrid() {
     m_Cells.clear();
     m_CellAgents.resize(n);
 
-    for (int i = 0; i < n; ++i) {
+    for (int i = 0; i < n; ++i)
         m_Agents[i].cellIdx = CellKey(m_Agents[i].pos);
-    }
 
     for (int i = 0; i < n; ++i) {
         int key = m_Agents[i].cellIdx;
@@ -126,15 +102,13 @@ void FlockingSystem::BuildGrid() {
     int offset = 0;
     for (auto& cell : m_Cells) {
         cell.start = offset;
-        offset += cell.count;
-        cell.count = 0; 
+        offset    += cell.count;
+        cell.count = 0;
     }
 
     for (int i = 0; i < n; ++i) {
-        int cellIdx = m_CellLookup[m_Agents[i].cellIdx];
-        auto& cell  = m_Cells[cellIdx];
-        m_CellAgents[cell.start + cell.count] = i;
-        cell.count++;
+        auto& cell = m_Cells[m_CellLookup[m_Agents[i].cellIdx]];
+        m_CellAgents[cell.start + cell.count++] = i;
     }
 }
 
@@ -142,25 +116,22 @@ void FlockingSystem::CollectNeighbors(int agentIdx, float radius,
                                        std::vector<int>& out) const {
     out.clear();
     const glm::vec3& pos = m_Agents[agentIdx].pos;
-    float r2 = radius * radius;
-    int cellR = (int)std::ceil(radius / cellSize) + 1;
-
-    int cx = (int)std::floor(pos.x / cellSize) + 1000;
-    int cz = (int)std::floor(pos.z / cellSize) + 1000;
+    float r2     = radius * radius;
+    int   cellR  = (int)std::ceil(radius / cellSize) + 1;
+    int   cx     = (int)std::floor(pos.x / cellSize) + 1000;
+    int   cz     = (int)std::floor(pos.z / cellSize) + 1000;
 
     for (int dx = -cellR; dx <= cellR; ++dx) {
         for (int dz = -cellR; dz <= cellR; ++dz) {
-            int key = (cx + dx) * 2003 + (cz + dz);
-            auto it = m_CellLookup.find(key);
+            auto it = m_CellLookup.find((cx + dx) * 2003 + (cz + dz));
             if (it == m_CellLookup.end()) continue;
             const Cell& cell = m_Cells[it->second];
             for (int i = cell.start; i < cell.start + cell.count; ++i) {
-                int nbIdx = m_CellAgents[i];
-                if (nbIdx == agentIdx) continue;
-                glm::vec3 diff = m_Agents[nbIdx].pos - pos;
-                diff.y = 0.0f;
-                if (glm::dot(diff, diff) <= r2)
-                    out.push_back(nbIdx);
+                int nb = m_CellAgents[i];
+                if (nb == agentIdx) continue;
+                glm::vec3 d = m_Agents[nb].pos - pos;
+                d.y = 0.0f;
+                if (glm::dot(d, d) <= r2) out.push_back(nb);
             }
         }
     }
@@ -178,58 +149,72 @@ void FlockingSystem::ComputeForceFor(int idx) {
     const glm::vec3& myPos = m_Agents[idx].pos;
     const glm::vec3& myVel = m_Agents[idx].vel;
 
-    glm::vec3 separation(0.0f), alignment(0.0f), cohesion(0.0f);
-    int sepCount = 0, aliCount = 0, cohCount = 0;
+    glm::vec3 sep(0.0f), ali(0.0f), coh(0.0f);
+    int sc = 0, ac = 0, cc = 0;
 
     float sep2 = separationRadius * separationRadius;
     float ali2 = alignmentRadius  * alignmentRadius;
     float coh2 = cohesionRadius   * cohesionRadius;
 
-    for (int nbIdx : m_NeighborBuf) {
-        glm::vec3 diff = m_Agents[nbIdx].pos - myPos;
-        diff.y = 0.0f;
-        float d2 = glm::dot(diff, diff);
+    for (int nb : m_NeighborBuf) {
+        glm::vec3 d = m_Agents[nb].pos - myPos;
+        d.y = 0.0f;
+        float d2 = glm::dot(d, d);
 
-        // Separation
         if (d2 < sep2 && d2 > 0.0001f) {
             float dist = std::sqrt(d2);
-            separation -= (diff / dist) / dist; 
-            sepCount++;
+            sep -= (d / dist) / dist;
+            ++sc;
         }
-        // Alignment
-        if (d2 < ali2) {
-            alignment += m_Agents[nbIdx].vel;
-            aliCount++;
-        }
-        // Cohesion
-        if (d2 < coh2) {
-            cohesion += m_Agents[nbIdx].pos;
-            cohCount++;
-        }
+        if (d2 < ali2) { ali += m_Agents[nb].vel; ++ac; }
+        if (d2 < coh2) { coh += m_Agents[nb].pos; ++cc; }
     }
 
     glm::vec3 force(0.0f);
 
-    if (sepCount > 0) {
-        separation /= (float)sepCount;
-        float len = glm::length(separation);
-        if (len > 0.001f) force += (separation / len) * separationWeight;
+    if (sc > 0) {
+        sep /= (float)sc;
+        float l = glm::length(sep);
+        if (l > 0.001f) force += (sep / l) * separationWeight;
     }
-
-    if (aliCount > 0) {
-        alignment /= (float)aliCount;
-        glm::vec3 steer = alignment - myVel;
-        float len = glm::length(steer);
-        if (len > 0.001f) force += (steer / len) * alignmentWeight;
+    if (ac > 0) {
+        ali /= (float)ac;
+        glm::vec3 steer = ali - myVel;
+        float l = glm::length(steer);
+        if (l > 0.001f) force += (steer / l) * alignmentWeight;
     }
-
-    if (cohCount > 0) {
-        cohesion /= (float)cohCount;
-        glm::vec3 toCenter = cohesion - myPos;
-        toCenter.y = 0.0f;
-        float len = glm::length(toCenter);
-        if (len > 0.001f) force += (toCenter / len) * cohesionWeight;
+    if (cc > 0) {
+        coh /= (float)cc;
+        glm::vec3 toC = coh - myPos;
+        toC.y = 0.0f;
+        float l = glm::length(toC);
+        if (l > 0.001f) force += (toC / l) * cohesionWeight;
     }
 
     m_Agents[idx].force = force;
+}
+
+
+void FlockingSystem::UpdatePatrolTargets() {
+    const int n = (int)m_Agents.size();
+    if (n == 0) return;
+
+    int refreshed = 0;
+    const int maxPerFrame = 2;
+
+    for (int i = 0; i < n && refreshed < maxPerFrame; ++i) {
+        int idx = (m_PatrolRR + i) % n;
+        if (!m_PatrolDirty[idx]) continue;
+
+        EnemyBase* e = m_Agents[idx].ptr;
+        if (!e || !e->GetSurface()) continue;
+
+        Surface* surf   = e->GetSurface();
+        float    radius = glm::length(surf->GetSize()) * 0.5f;
+        m_PatrolTargets[idx] = surf->GetRandomWalkPoint(surf->GetCenter(), radius);
+        m_PatrolDirty[idx]   = false;
+        ++refreshed;
+    }
+
+    m_PatrolRR = (m_PatrolRR + maxPerFrame) % n;
 }

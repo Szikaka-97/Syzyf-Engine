@@ -20,8 +20,6 @@ EnemyBase::EnemyBase()
       m_ProjectileMesh(nullptr),
       m_ProjectileMaterial(nullptr),
       m_hp(100) {
-  // myNode = GetNode();
-  // m_Body = myNode->GetObject<Physics::Body>();
 }
 
 EnemyBase::~EnemyBase() {}
@@ -31,14 +29,15 @@ void EnemyBase::Awake() {
         for (auto* child : GetNode()->GetChildren()) {
             child->LocalTransform().Position() += glm::vec3(0.f, m_VisualOffset, 0.f);
         }
+        physics = GetScene()->GetComponent<Physics::System>();
+        
+  flockForce = m_FlockingSystem->GetFlockingForce(this);
     }
 
 void EnemyBase::Attack() {
-  // if (!m_TargetPosition) return;
-  if (m_InAttackAnimation) return;
 
-  glm::vec3 dirTo = m_TargetPosition - currentPos;
-  if (glm::length(dirTo) > 0.01f) RotateNode(dirTo);
+ // glm::vec3 dirTo = m_TargetPosition - currentPos;
+ // if (glm::length(dirTo) > 0.01f) RotateNode(dirTo);
 
   m_AttackTimer += Time::Delta();
   if (m_AttackTimer >= m_AttackCooldown) {
@@ -130,23 +129,22 @@ void EnemyBase::SetAnimation(const std::string& name) {
   spdlog::debug("AiNode: changed animation to {}", name);
 }
 
-bool EnemyBase::CanSeePlayer() const {
-  if (!m_Body) return false;
-  auto* physics = GetScene()->GetComponent<Physics::System>();
-  if (!physics) return false;
-
-  glm::vec3 origin = currentPos + glm::vec3(0.0f, 1.0f, 0.0f);
-  glm::vec3 dir = m_TargetPosition - origin;
-  float dist = glm::length(dir);
-  if (dist < 0.1f) return true;
-
-  Physics::LayerMaskFilter filter({}, false);
-  filter.IgnoreBody(m_Body->GetBodyID());
-
-  SceneNode* hit = physics->CastRay(origin, dir * dist, {}, {}, filter).node;
-  if (!hit) return true;
-  return (glm::vec3(hit->GlobalTransform().Position()) == m_TargetPosition);
-}
+//bool EnemyBase::CanSeePlayer() const {
+//  //if (!m_Body) return false;
+//  if (!physics) return false;
+//
+//  glm::vec3 origin = currentPos + glm::vec3(0.0f, 1.0f, 0.0f);
+//  glm::vec3 dir = m_TargetPosition - origin;
+//  float dist = glm::length(dir);
+//  if (dist < 0.1f) return true;
+//
+//  Physics::LayerMaskFilter filter({}, false);
+//  filter.IgnoreBody(m_Body->GetBodyID());
+//
+//  SceneNode* hit = physics->CastRay(origin, dir * dist, {}, {}, filter).node;
+//  if (!hit) return true;
+//  return (glm::vec3(hit->GlobalTransform().Position()) == m_TargetPosition);
+//}
 
 void EnemyBase::SetProjectileResources(Mesh* mesh, Material* material) {
   m_ProjectileMesh = mesh;
@@ -183,54 +181,54 @@ void EnemyBase::OnPlayerExitedRoom() {
   isPlayerInRoom = false;
 }
 
-void EnemyBase::DrawDebugView() {
-  if (!myNode) return;
-
-  /*auto* scene = GetScene();
-  Physics::DebugRenderer* debugRenderer = scene ?
-  scene->GetComponent<Physics::DebugRenderer>() : nullptr; if (!debugRenderer) {
-          return;
-  }*/
-  if (!myNode) return;
-  auto* debugRenderer =
-      static_cast<Physics::DebugRenderer*>(JPH::DebugRenderer::sInstance);
-  if (!debugRenderer) return;
-
-  if (m_Surface) {
-    m_Surface->DrawDebugSurface(debugRenderer, 0.5f, 1);
-  }
-
-  int segments = 24;
-
-  glm::quat rotation = myNode->GlobalTransform().Rotation();
-  glm::vec3 forward = rotation * glm::vec3(0, 0, 1);
-  forward = glm::normalize(glm::vec3(forward.x, 0, forward.z));
-
-  // glm::vec3 pos = transform;
-
-  std::vector<glm::vec3> arcPoints;
-  float startAngle = atan2(forward.x, forward.z) - fov / 2.0f;
-  for (int i = 0; i <= segments; ++i) {
-    float t = (float)i / segments;
-    float angle = startAngle + t * fov;
-    float x = sightRange * sin(angle);
-    float z = sightRange * cos(angle);
-    arcPoints.push_back(currentPos + glm::vec3(x, 0, z));
-  }
-
-  for (const auto& p : arcPoints) {
-    debugRenderer->DrawLine(JPH::Vec3(currentPos.x, currentPos.y, currentPos.z),
-                            JPH::Vec3(p.x, p.y, p.z), JPH::Color::sPurple);
-  }
-
-  for (size_t i = 0; i < arcPoints.size() - 1; ++i) {
-    debugRenderer->DrawLine(
-        JPH::Vec3(arcPoints[i].x, arcPoints[i].y, arcPoints[i].z),
-        JPH::Vec3(arcPoints[i + 1].x, arcPoints[i + 1].y, arcPoints[i + 1].z),
-        JPH::Color::sPurple);
-  }
-}
-
+//void EnemyBase::DrawDebugView() {
+//  if (!myNode) return;
+//
+//  /*auto* scene = GetScene();
+//  Physics::DebugRenderer* debugRenderer = scene ?
+//  scene->GetComponent<Physics::DebugRenderer>() : nullptr; if (!debugRenderer) {
+//          return;
+//  }*/
+//  if (!myNode) return;
+//  auto* debugRenderer =
+//      static_cast<Physics::DebugRenderer*>(JPH::DebugRenderer::sInstance);
+//  if (!debugRenderer) return;
+//
+//  if (m_Surface) {
+//    m_Surface->DrawDebugSurface(debugRenderer, 0.5f, 1);
+//  }
+//
+//  int segments = 24;
+//
+//  glm::quat rotation = myNode->GlobalTransform().Rotation();
+//  glm::vec3 forward = rotation * glm::vec3(0, 0, 1);
+//  forward = glm::normalize(glm::vec3(forward.x, 0, forward.z));
+//
+//  // glm::vec3 pos = transform;
+//
+//  std::vector<glm::vec3> arcPoints;
+//  float startAngle = atan2(forward.x, forward.z) - fov / 2.0f;
+//  for (int i = 0; i <= segments; ++i) {
+//    float t = (float)i / segments;
+//    float angle = startAngle + t * fov;
+//    float x = sightRange * sin(angle);
+//    float z = sightRange * cos(angle);
+//    arcPoints.push_back(currentPos + glm::vec3(x, 0, z));
+//  }
+//
+//  for (const auto& p : arcPoints) {
+//    debugRenderer->DrawLine(JPH::Vec3(currentPos.x, currentPos.y, currentPos.z),
+//                            JPH::Vec3(p.x, p.y, p.z), JPH::Color::sPurple);
+//  }
+//
+//  for (size_t i = 0; i < arcPoints.size() - 1; ++i) {
+//    debugRenderer->DrawLine(
+//        JPH::Vec3(arcPoints[i].x, arcPoints[i].y, arcPoints[i].z),
+//        JPH::Vec3(arcPoints[i + 1].x, arcPoints[i + 1].y, arcPoints[i + 1].z),
+//        JPH::Color::sPurple);
+//  }
+//}
+//
 void EnemyBase::TakeDamage(int damage) {
   spdlog::info("AiNode: Took {} damage", damage);
   m_hp -= damage;
@@ -302,8 +300,8 @@ void EnemyBase::UpdateStatusEffects() {
         }
     }
 }
-void EnemyBase::DirectChaseWithFlock(const glm::vec3& /*flockForce*/) {
-    DirectChase();   // fallback: ignoruje flocking
+void EnemyBase::DirectChaseWithFlock(const glm::vec3& ) {
+    DirectChase();  
 }
 
  

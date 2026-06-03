@@ -63,5 +63,5 @@ void MeleeSkeleton::UpdateAttackSequence() {
         break;
     }
 
-    DrawDebugView();
+    //DrawDebugView();
   }

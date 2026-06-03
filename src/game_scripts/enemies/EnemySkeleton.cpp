@@ -1,17 +1,15 @@
 #include <game_scripts/enemies/EnemySkeleton.h>
 #include "game_scripts/enemies/FlockingSystem.h"
 #include <Scene.h>
-#include "Surface.h" 
 #include <glm/glm.hpp>
 
 void EnemySkeleton::Update() {
     EnsureBody();
-    if (!m_TargetNode) return;
+    //if (!m_TargetNode || !myNode) return;
 
     m_TargetPosition = m_TargetNode->GlobalTransform().Position();
-    if (!myNode) return;
+    currentPos       = m_Body->GetPosition();
 
-    currentPos = m_Body->GetPosition();
     myNode->GlobalTransform().Position() = currentPos;
     myNode->GlobalTransform().Rotation() = m_Body->GetRotation();
 
@@ -26,15 +24,33 @@ void EnemySkeleton::Update() {
     } else {
         currentState = States::PATROLLING;
     }
-
+     
     switch (currentState) {
-        case States::PATROLLING:
-            Patrol();
+        case States::PATROLLING: {
+                glm::vec3 patrolTarget = m_FlockingSystem->GetPatrolTarget(this);
+                m_WalkPoint    = patrolTarget;
+                m_WalkPointSet = true;
+
+                glm::vec3 dir = patrolTarget - currentPos;
+                dir.y = 0.0f;
+                float dist = glm::length(dir);
+                if (dist < 0.6f) {
+                    m_FlockingSystem->RefreshPatrolTarget(this);
+                    StopMoving();
+                } else {
+                   
+                    glm::vec3 combined   = glm::normalize(dir) +
+                        glm::clamp(flockForce, glm::vec3(-0.5f), glm::vec3(0.5f));
+                    combined.y = 0.0f;
+                    float len = glm::length(combined);
+                    if (len > 0.001f) combined /= len;
+                    MoveInDirection(combined);
+                }
+            
             break;
+        }
         case States::CHASING: {
-            glm::vec3 flockForce = m_FlockingSystem
-                ? m_FlockingSystem->GetFlockingForce(this)
-                : glm::vec3(0.0f);
+            
             DirectChaseWithFlock(flockForce);
             break;
         }
@@ -50,9 +66,6 @@ void EnemySkeleton::Update() {
 
     UpdateStatusEffects();
 
-#ifndef NDEBUG
-    DrawDebugView();
-#endif
 }
 
 void EnemySkeleton::DirectChaseWithFlock(const glm::vec3& flockForce) {

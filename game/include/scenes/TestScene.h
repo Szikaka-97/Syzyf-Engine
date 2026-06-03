@@ -234,10 +234,6 @@ inline void InitScene(Scene& mainScene) {
     flockingSystem->alignmentWeight = 0.3f;
     flockingSystem->cohesionRadius = 6.0f;
     flockingSystem->cohesionWeight = 0.2f;
-    // Ile enemy dostaje stuck/astar check na klatkê:
-    flockingSystem->stuckChecksPerFrame = 3;
-    flockingSystem->astarUpdatesPerFrame = 2;
-
     JPH::ShapeRefC enemyShape = new JPH::CapsuleShape(0.5f, 1.0f);
     JPH::BodyCreationSettings enemySettingsTemplate(
         enemyShape, JPH::RVec3(0, 1.5f, 0), JPH::Quat::sIdentity(),
@@ -247,7 +243,7 @@ inline void InitScene(Scene& mainScene) {
     Mesh* cubeMesh =
         mainScene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
 
-    const int enemyCount = 10;
+    const int enemyCount = 20;
     const float startX = 10.0f;
     const float startZ = -5.0f;
     const float spacing = 3.0f;
@@ -275,16 +271,16 @@ inline void InitScene(Scene& mainScene) {
         enemyAi->SetRoomID(
             room1->GetID()); 
         enemyAi->SetCapsuleVisualOffset(0.5f, 1.0f);
-
+        enemyAi->OnPlayerEnteredRoom();
         SceneNode* enemyModel =
             ResourceDatabase::Global
-                ->Get<GltfScene>("./res/models/enemies/szkielet4.glb")
+                ->Get<GltfScene>("./res/models/not_cube3.glb")
                 ->Instantiate(&mainScene, mainScene.root,
                               "EnemyModel_" + std::to_string(i));
         enemyModel->SetParent(enemyNode);
         enemyModel->LocalTransform().Position() = glm::zero<glm::vec3>();
 
-        auto* animComp = enemyModel->GetObjectInChildren<AnimationComponent>();
+        /*auto* animComp = enemyModel->GetObjectInChildren<AnimationComponent>();
         if (animComp) {
             spdlog::info("Found AnimationComponent in enemy model {} , "
                          "animations count: {}",
@@ -292,7 +288,7 @@ inline void InitScene(Scene& mainScene) {
             enemyAi->SetAttackAnimation(animComp);
         } else {
             spdlog::warn("No AnimationComponent found in enemy model {}", i);
-        }
+        }*/
         enemyAi->RegisterToFlockingSystem(flockingSystem);
     }
 #pragma endregion

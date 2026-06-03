@@ -27,7 +27,7 @@ private:
     float m_AttackAnimationDuration = 1.0f;
     float m_AttackAnimationElapsed = 0.0f;
     void SetAnimation(const std::string& name);
-    bool CanSeePlayer() const;
+    //bool CanSeePlayer() const;
 
 
     struct BurnState {
@@ -50,11 +50,14 @@ private:
         bool  isPrecise     = false;
     } m_Confuse;
  
+
+
 protected:
     void UpdateStatusEffects();
     virtual void DirectChaseWithFlock(const glm::vec3& flockForce);
     float m_AttackCooldown;
-    FlockingSystem * m_FlockingSystem = nullptr;    
+    FlockingSystem * m_FlockingSystem = nullptr;   
+    glm::vec3 flockForce;
 public:
     EnemyBase();
     ~EnemyBase();
@@ -82,7 +85,7 @@ public:
     void OnPlayerEnteredRoom();
     void OnPlayerExitedRoom();
 
-    void DrawDebugView();
+    //void DrawDebugView();
 
     void TakeDamage(int damage);
 
