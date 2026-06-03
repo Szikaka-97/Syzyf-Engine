@@ -178,9 +178,9 @@ void MessageTree::AddNode(SceneNode* node) {
 		this->root = added;
 	}
 
-	for (SceneNode* child : node->GetChildren()) {
-		AddNode(child);
-	}
+	// for (SceneNode* child : node->GetChildren()) {
+	// 	AddNode(child);
+	// }
 }
 
 void MessageTree::RemoveNode(SceneNode* node) {

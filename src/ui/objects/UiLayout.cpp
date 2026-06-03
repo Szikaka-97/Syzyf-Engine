@@ -1,6 +1,9 @@
 #include "ui/objects/UiLayout.h"
 #include <imgui.h>
 
+UiLayout::UiLayout():
+UiLayout(glm::zero<glm::ivec2>()) { }
+
 UiLayout::UiLayout(glm::ivec2 size, glm::ivec2 offset, int zIndex, AnchorPoint anchorPoint) : size(size), offset(offset), zIndex(zIndex), anchorPoint(anchorPoint) {}
 
 void UiLayout::DrawImGui() {

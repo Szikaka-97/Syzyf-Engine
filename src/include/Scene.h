@@ -222,6 +222,8 @@ public:
 
 	void DrawImGui();
 
+	static Scene* LoadScene(const fs::path& scenePath);
+
 	SceneNode* LoadPrefab(json nodePrefab);
 	SceneNode* LoadPrefab(const fs::path& prefabPath);
 
@@ -348,9 +350,6 @@ void Scene::AddGameObjectInternal(SceneNode* node, T_GO* obj) {
 	obj->id = this->nextGameObjectID++;
 
 	obj->enabled = true;
-
-	this->messageTree.MessageObject<Message::Awake>(obj);
-	this->messageTree.MessageObject<Message::OnEnable>(obj);
 }
 
 
@@ -366,6 +365,9 @@ T_GO* Scene::CreateObjectOn(SceneNode* node, T_Param&&... params) {
 	T_GO* created = new(const_cast<T_GO*>(bufAsObjPtr)) T_GO(std::forward<T_Param>(params)...);
 	
 	AddGameObjectInternal<T_GO>(node, created);
+
+	this->messageTree.MessageObject<Message::Awake>(created);
+	this->messageTree.MessageObject<Message::OnEnable>(created);
 
 	return created;
 }

@@ -188,30 +188,20 @@ void SceneViewPanel::Draw(Context& context) {
 
                             auto cameras = newScene->FindObjectsOfType<Camera>();
 
-                            if (cameras.size() > 0) {
-                                Camera* mainCamera = cameras[0];
+                            SceneNode* cameraNode = newScene->CreateNode();
+                            cameraNode->AddObject<CameraController>();
 
-                                for (Camera* cam : cameras) {
-                                    if (cam->GetPriority() > mainCamera->GetPriority()) {
-                                        mainCamera = cam;
-                                    }
-                                }
-                                
-                                mainCamera->AddObject<CameraController>();
-                                context.mainCamera = mainCamera;
-                                context.mainCamera->SetAsMainCamera();
+                            if (cameras.size() > 0) {
+                                cameraNode->GlobalTransform().Position() = cameras[0]->GlobalTransform().Position().Value();
+                                cameraNode->GlobalTransform().Rotation() = cameras[0]->GlobalTransform().Rotation().Value();
                             }
                             else {
-                                SceneNode* cameraNode = newScene->CreateNode();
-                                cameraNode->AddObject<CameraController>();
                                 cameraNode->GlobalTransform().Position() = {
                                     0.0f, 1.0f, 0.0f};
-
-                                context.loadedScenes.push_back(newScene);
-
-                                context.mainCamera = cameraNode->GetObject<Camera>();
-                                context.mainCamera->SetAsMainCamera();
                             }
+
+                            context.mainCamera = cameraNode->GetObject<Camera>();
+                            context.mainCamera->SetAsMainCamera();
 
                             context.selectedScene = newScene;
                             context.selectedNode = nullptr;

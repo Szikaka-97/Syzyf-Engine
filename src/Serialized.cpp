@@ -31,7 +31,7 @@ void* InternalDeserializeObject(const json& data) {
 	deserializedObjects.reserve(data.size());
 
 	size_t totalSize = 0;
-	size_t alignment = 8;
+	size_t alignment = 16;
 
 	for (const auto& object : data) {
 		totalSize += TypeInfo::GetTypeInfo(object["_class_name"]).size;
@@ -46,11 +46,7 @@ void* InternalDeserializeObject(const json& data) {
 	for (const auto& object : data) {
 		deserializedObjects.push_back({ InternalConstructObject(object["_class_name"], buffer), object["_class_name"] });
 
-		spdlog::warn("HERE");
-
 		size_t objectSize = TypeInfo::GetTypeInfo(object["_class_name"]).size;
-
-		spdlog::warn("PAST HERE");
 
 		if (objectSize % alignment != 0) {
 			objectSize += alignment - (objectSize % alignment);

@@ -130,6 +130,7 @@ JPH::ShapeRefC MeshShape(const Mesh* mesh) {
   shapeSettings.Sanitize();
 
   JPH::Shape::ShapeResult result = shapeSettings.Create();
+  result.Get()->SetUserData((intptr_t) mesh);
 
   if (result.IsValid()) {
       return result.Get();

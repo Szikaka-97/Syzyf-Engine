@@ -335,10 +335,14 @@ def write_field_deserializer(writer: CodeWriter, field: CppField, lhs: str) -> N
 	elif field_type.name in INTRINSIC_SERIALIZERS:
 		writer.line(f"new(({field.type}*) (raw + {offset_str} + {additional_offset_str})) {field.type}{{Serialization::Deserialize<{field.type}>(data[\"{field.name}\"])}};")
 	elif is_resource_type(field_type):
+		writer.line(f"if (data.contains(\"{field.name}\")) {{")
+		writer.more_indent()
 		if has_resource_serialization_methods(field_type):
 			writer.line(f"*((void**) (raw + {offset_str} + {additional_offset_str})) = {field_type.name}::Deserialize(data[\"{field.name}\"]);")
 		else:
 			writer.line(f"*((void**) (raw + {offset_str} + {additional_offset_str})) = ResourceDatabase::Global->Get<{field_type.name}>(data[\"{field.name}\"]);")
+		writer.less_indent()
+		writer.line("}")
 	elif not field.is_pointer:
 		if field.type in serialized_types:
 			writer.line(f"InternalDeserialize{sanitize_class_name(field.type)}On(reinterpret_cast<volatile {field.type} *>(raw + {offset_str} + {additional_offset_str}), data[\"{field.name}\"]);")
@@ -652,7 +656,7 @@ def main():
 			if tp.is_abstract():
 				continue
 			
-			if any([constructor for constructor in tp.constructors if len(constructor.arguments) == 0 and constructor.access == "public"]):
+			if len(tp.constructors) == 0 or any([constructor for constructor in tp.constructors if len(constructor.arguments) == 0 and constructor.access == "public"]):
 				dest_impl.line(f"{{ \"{type_name}\", [](void* ptr) -> void* {{ return new (ptr){type_name}(); }} }},")
 			elif not tp.is_polymorphic():
 				dest_impl.line(f"{{ \"{type_name}\", [](void* ptr) -> void* {{")

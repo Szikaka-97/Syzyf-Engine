@@ -8,7 +8,9 @@ JfaOutline::JfaOutline() {
     this->seedShader = std::make_unique<ComputeShaderProgram>("./res/shaders/jfa_outline/seed.comp");
     this->jfaShader = std::make_unique<ComputeShaderProgram>("./res/shaders/jfa_outline/jfa.comp");
     this->finalShader = std::make_unique<ComputeShaderProgram>("./res/shaders/jfa_outline/final.comp");
+}
 
+void JfaOutline::Awake() {
     this->savedResolution = GetScene()->GetGraphics()->GetScreenResolution();
 
     UpdateTexture();

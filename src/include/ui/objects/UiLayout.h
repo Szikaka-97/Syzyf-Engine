@@ -23,7 +23,8 @@ public:
 
     int zIndex = 0;
 public:
-    UiLayout(glm::ivec2 size = {0, 0}, glm::ivec2 offset = {0, 0}, int zIndex = 0, AnchorPoint anchorPoint = AnchorPoint::TopLeft);
+    UiLayout();
+    UiLayout(glm::ivec2 size, glm::ivec2 offset = {0, 0}, int zIndex = 0, AnchorPoint anchorPoint = AnchorPoint::TopLeft);
 
     void DrawImGui();
 private:

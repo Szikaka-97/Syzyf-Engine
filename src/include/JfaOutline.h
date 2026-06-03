@@ -29,6 +29,8 @@ public:
     JfaOutline();
     ~JfaOutline();
 
+    void Awake();
+
     virtual void OnPostProcess(const PostProcessParams* params);
 
     virtual void DrawImGui();

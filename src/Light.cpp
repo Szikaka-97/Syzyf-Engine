@@ -84,6 +84,8 @@ quadraticAttenuation(0),
 shadowCasting(false) { }
 
 void Light::Awake() {
+	spdlog::error("Creating light!");
+
 	this->savedTransform = GlobalTransform();
 
 	this->gizmoMat = new Material(GetGizmoShader(GetScene()));

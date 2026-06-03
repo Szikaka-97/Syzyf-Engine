@@ -231,6 +231,9 @@ void SceneNode::Deserialize(const nlohmann::json& data) {
 	if (data.contains("parent")) {
 		this->parent = (SceneNode*) Serialization::FetchDeserializedObject(data["parent"]);
 	}
+	else {
+		this->parent = nullptr;
+	}
 
 	if (data.contains("scene")) {
 		this->scene = (Scene*) Serialization::FetchDeserializedObject(data["scene"]);
@@ -575,9 +578,8 @@ void Scene::Deserialize(const nlohmann::json& json_node) {
 	this->graphics = GetComponent<SceneGraphics>();
 	this->inputSystem = GetComponent<InputSystem>();
 
-	this->messageTree.AddNode(this->root);
+	// this->messageTree.AddNode(this->root);
 	
-	this->messageTree.PropagateMessage<Message::Awake>(this->root);
 }
 
 nlohmann::json Scene::Serialize() const {
@@ -596,6 +598,20 @@ nlohmann::json Scene::Serialize() const {
 	data["components"] = componentsData;
 	
 	return data;
+}
+
+Scene* Scene::LoadScene(const fs::path& scenePath) {
+	std::ifstream jsonFile{scenePath};
+
+	json sceneData = json::parse(jsonFile);
+
+	Scene* result = Serialization::DeserializeObject<Scene>(sceneData);
+	// result->messageTree.AddNode(result->root);
+	
+	result->messageTree.PropagateMessage<Message::Awake>(result->root);
+	result->messageTree.PropagateMessage<Message::OnEnable>(result->root);
+
+	return result;
 }
 
 SceneNode* Scene::LoadPrefab(json nodePrefab) {

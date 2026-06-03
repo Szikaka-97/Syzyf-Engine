@@ -51,11 +51,7 @@ class SceneRegistry {
         SceneRegistry::RegisterScene("Main Menu", MainMenu::InitScene);
         for (const auto& sceneFile : std::filesystem::directory_iterator("./res/scenes")) {
         	GetLoadRegistry()[std::format("Loaded: {}", sceneFile.path().stem().string())] = [sceneFile]() -> Scene * {
-         		std::ifstream jsonFile{sceneFile.path()};
-
-           		json sceneData = json::parse(jsonFile);
-         
-         		return Serialization::DeserializeObject<Scene>(sceneData);
+         		return Scene::LoadScene(sceneFile.path());
          	};
         }
     }

@@ -64,7 +64,9 @@ private:
     float currentTooltipAlpha = 0.0f;
 
 public:
-    UiRadialWheel() {
+    UiRadialWheel() = default;
+
+    void Awake() {
         // Tooltip setup
         this->tooltipNode = this->GetScene()->CreateNode("Tooltip Node");
         auto* visual = this->tooltipNode->AddObject<UiVisual>();
