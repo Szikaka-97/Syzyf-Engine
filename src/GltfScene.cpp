@@ -123,10 +123,10 @@ GltfScene* GltfScene::Load(const fs::path path) {
   model->asset = std::make_unique<fastgltf::Asset>(std::move(expectedAsset.get()));
   model->isSkinned = !model->asset->skins.empty();
 
-  model->materials = LoadMaterials(*model->asset, false);
+  model->materials = LoadMaterials(model, false);
 
   if (model->isSkinned) {
-      std::vector<Material*> skinnedMaterials = LoadMaterials(*model->asset, true);
+      std::vector<Material*> skinnedMaterials = LoadMaterials(model, true);
       model->materials.insert(model->materials.end(), skinnedMaterials.begin(), skinnedMaterials.end());
   }
 
@@ -635,7 +635,9 @@ Mesh* GltfScene::LoadMesh(fastgltf::Mesh& gltfMesh, fastgltf::Asset& asset, std:
   return mesh;
 }
 
-Texture2D* GltfScene::LoadImage(fastgltf::Asset& asset, fastgltf::Image& image, const TextureParams loadParams) {
+Texture2D* GltfScene::LoadImage(GltfScene* scene, fastgltf::Image& image, const TextureParams loadParams) {
+  fastgltf::Asset& asset = *scene->asset;
+
   Texture2D* result = nullptr;
 
   std::visit(fastgltf::visitor {
@@ -648,7 +650,8 @@ Texture2D* GltfScene::LoadImage(fastgltf::Asset& asset, fastgltf::Image& image, 
       const unsigned char* data = reinterpret_cast<const unsigned char*>(vector.bytes.data());
       int length = static_cast<int>(vector.bytes.size());
       // SKIPS RESOURCE MANAGER -> no caching
-      result = Texture2D::Load(data, length, loadParams);
+      result = Texture2D::Load(data, length, loadParams, true, scene->GetPath().string() + ":" + std::string(image.name));
+      scene->textures.push_back(result);
     },
     [&](fastgltf::sources::BufferView& view) {
       auto& bufferView = asset.bufferViews[view.bufferViewIndex];
@@ -659,7 +662,8 @@ Texture2D* GltfScene::LoadImage(fastgltf::Asset& asset, fastgltf::Image& image, 
         [&](fastgltf::sources::Array& vector) {
           const unsigned char* data = reinterpret_cast<const unsigned char*>(vector.bytes.data() + bufferView.byteOffset);
           int length = static_cast<int>(bufferView.byteLength);
-          result = Texture2D::Load(data, length, loadParams);
+          result = Texture2D::Load(data, length, loadParams, true, scene->GetPath().string() + ":" + std::string(image.name));
+          scene->textures.push_back(result);
         }
       }, buffer.data);
     },
@@ -712,7 +716,9 @@ void GltfScene::GltfSamplerToTextureParams(TextureParams& params, fastgltf::Samp
   params.wrapV = GltfWrapToTextureWrap(sampler.wrapT);
 }
 
-std::vector<Material*> GltfScene::LoadMaterials(fastgltf::Asset& asset, bool isSkinned) {
+std::vector<Material*> GltfScene::LoadMaterials(GltfScene* scene, bool isSkinned) {
+  fastgltf::Asset& asset = *scene->asset;
+
   std::vector<Material*> materials;
   materials.reserve(asset.materials.size());
   ResourceDatabase* resources = ResourceDatabase::Global;
@@ -809,7 +815,7 @@ std::vector<Material*> GltfScene::LoadMaterials(fastgltf::Asset& asset, bool isS
           GltfSamplerToTextureParams(texParams, sampler);
         }
 
-        Texture2D* texture = LoadImage(asset, asset.images[imageIndex], texParams);
+        Texture2D* texture = LoadImage(scene, asset.images[imageIndex], texParams);
         material->SetValue("albedoMap", texture);
       }
     } else {
@@ -835,7 +841,7 @@ std::vector<Material*> GltfScene::LoadMaterials(fastgltf::Asset& asset, bool isS
           GltfSamplerToTextureParams(texParams, sampler);
         }
 
-        Texture2D* texture = LoadImage(asset, asset.images[imageIndex], texParams);
+        Texture2D* texture = LoadImage(scene, asset.images[imageIndex], texParams);
         material->SetValue("armMap", texture);
       }
     } else {
@@ -863,7 +869,7 @@ std::vector<Material*> GltfScene::LoadMaterials(fastgltf::Asset& asset, bool isS
           GltfSamplerToTextureParams(texParams, sampler);
         }
 
-        Texture2D* texture = LoadImage(asset, asset.images[imageIndex], texParams);
+        Texture2D* texture = LoadImage(scene, asset.images[imageIndex], texParams);
         material->SetValue("normalMap", texture);
       }
     } else {
@@ -888,7 +894,7 @@ std::vector<Material*> GltfScene::LoadMaterials(fastgltf::Asset& asset, bool isS
           GltfSamplerToTextureParams(texParams, sampler);
         }
 
-        Texture2D* texture = LoadImage(asset, asset.images[imageIndex], texParams);
+        Texture2D* texture = LoadImage(scene, asset.images[imageIndex], texParams);
         material->SetValue("emissiveMap", texture);
       }
     } else {
@@ -934,6 +940,10 @@ fs::path GltfScene::GetPath() const {
 }
 uint64_t GltfScene::GetHash() const {
   return 0;
+}
+
+std::vector<Texture2D*> GltfScene::GetTextures() {
+  return this->textures;
 }
 
 std::vector<Mesh*> GltfScene::GetMeshes() {

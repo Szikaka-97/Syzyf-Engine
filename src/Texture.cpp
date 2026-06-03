@@ -416,7 +416,7 @@ Texture2D* Texture2D::Create(unsigned char* textureData, int width, int height, 
 	return result;
 }
 
-Texture2D* Texture2D::Load(const unsigned char* data, const int length, const TextureParams loadParams, bool flip) {
+Texture2D* Texture2D::Load(const unsigned char* data, const int length, const TextureParams loadParams, bool flip, const fs::path& texturePath) {
 	stbi_set_flip_vertically_on_load(flip);
 
 	int width, height, nrChannels;
@@ -434,6 +434,7 @@ Texture2D* Texture2D::Load(const unsigned char* data, const int length, const Te
 	}
 
 	Texture2D* texture = Create(textureData, width, height, loadParams);
+	texture->path = texturePath;
 
 	stbi_image_free(textureData);
 	return texture;
@@ -920,7 +921,23 @@ json Texture2D::Serialize() const {
 
 	return data;
 }
-Texture2D* Texture2D::Deserialize(const json& data) {
+Texture2D* Texture2D::Deserialize(const json& data) {	
+	fs::path texPath = data["path"];
+
+	if (!fs::exists(texPath) || !fs::is_regular_file(texPath)) {
+		if (texPath.string().contains(':')) {
+			fs::path gltfPath = texPath.string().substr(0, texPath.string().find(':'));
+
+			GltfScene* gltf = ResourceDatabase::Global->Get<GltfScene>(gltfPath);
+
+			for (Texture2D* t : gltf->GetTextures()) {
+				if (t->path == texPath) {
+					return t;
+				}
+			}
+		}
+	}
+
 	TextureParams params{
 		.channels = data["channels"],
 		.colorSpace = data["colorSpace"],
@@ -930,8 +947,6 @@ Texture2D* Texture2D::Deserialize(const json& data) {
 		.minFilter = data["minFilter"],
 		.magFilter = data["magFilter"],
 	};
-
-	fs::path texPath = data["path"];
 
 	return ResourceDatabase::Global->Get<Texture2D>(texPath, params);
 }

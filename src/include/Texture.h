@@ -180,7 +180,7 @@ public:
 
 	static Texture2D* Load(const fs::path& texturePath, const TextureParams& loadParams, bool flip = true);
 
-	static Texture2D* Load(const unsigned char* data, const int length, const TextureParams loadParams, bool flip = true);
+	static Texture2D* Load(const unsigned char* data, const int length, const TextureParams loadParams, bool flip = true, const fs::path& texturePath = "");
 
 	virtual constexpr TextureType GetType() const {
 		return TextureType::Texture2D;

@@ -89,30 +89,29 @@
     "_data": {
       "children": [
         2,
-        3,
-        12,
-        42,
-        52,
-        54,
-        161,
-        304,
-        308,
-        310,
-        316,
-        318,
-        322,
-        324,
-        328,
-        330,
-        334,
-        336
+        11,
+        41,
+        51,
+        53,
+        160,
+        303,
+        307,
+        309,
+        315,
+        317,
+        321,
+        323,
+        327,
+        329,
+        333,
+        335
       ],
       "disabledState": 0,
       "id": 0,
       "layer": 0,
       "name": "root",
       "objects": [
-        340,
+        339,
         -1
       ],
       "parent": -1,
@@ -140,47 +139,16 @@
   {
     "_class_name": "SceneNode",
     "_data": {
-      "children": [],
+      "children": [
+        3
+      ],
       "disabledState": 0,
       "id": 1,
       "layer": 0,
-      "name": "Bottles Pool",
-      "objects": [],
-      "parent": 1,
-      "scene": 0,
-      "transform": {
-        "_00": 1.0,
-        "_01": 0.0,
-        "_02": 0.0,
-        "_03": 0.0,
-        "_10": 0.0,
-        "_11": 1.0,
-        "_12": 0.0,
-        "_13": 0.0,
-        "_20": 0.0,
-        "_21": 0.0,
-        "_22": 1.0,
-        "_23": 0.0,
-        "_30": 0.0,
-        "_31": 0.0,
-        "_32": 0.0,
-        "_33": 1.0
-      }
-    }
-  },
-  {
-    "_class_name": "SceneNode",
-    "_data": {
-      "children": [
-        4
-      ],
-      "disabledState": 0,
-      "id": 2,
-      "layer": 0,
       "name": "Floor",
       "objects": [
-        9,
-        11
+        8,
+        10
       ],
       "parent": 1,
       "scene": 0,
@@ -209,15 +177,15 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 3,
+      "id": 2,
       "layer": 0,
       "name": "Plane",
       "objects": [
-        5,
-        8,
+        4,
+        7,
         -1
       ],
-      "parent": 3,
+      "parent": 2,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -244,11 +212,11 @@
     "_data": {
       "enabled": true,
       "materials": [
-        6,
-        7
+        5,
+        6
       ],
       "mesh": "./res/models/floor.glb:Plane.001",
-      "node": 4
+      "node": 3
     }
   },
   {
@@ -262,7 +230,7 @@
           "format": 0,
           "magFilter": 1,
           "minFilter": 7,
-          "path": "",
+          "path": "./res/models/floor.glb:templategrid_albedo",
           "wrapU": 1,
           "wrapV": 1
         },
@@ -404,7 +372,7 @@
       "mOverrideMassProperties": 0,
       "mRestitution": 0.0,
       "mUseManifoldReduction": true,
-      "node": 4,
+      "node": 3,
       "shape": {
         "kind": 4,
         "mesh": "./res/models/floor.glb:Plane.001"
@@ -415,8 +383,8 @@
     "_class_name": "Skybox",
     "_data": {
       "enabled": true,
-      "node": 3,
-      "skyMaterial": 10
+      "node": 2,
+      "skyMaterial": 9
     }
   },
   {
@@ -444,23 +412,23 @@
       "cellSize": 1.0,
       "enabled": true,
       "floorMesh": "./res/models/floor.glb:Plane.001",
-      "node": 3
+      "node": 2
     }
   },
   {
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        13,
-        30
+        12,
+        29
       ],
       "disabledState": 0,
-      "id": 4,
+      "id": 3,
       "layer": 0,
       "name": "Player",
       "objects": [
-        40,
-        41
+        39,
+        40
       ],
       "parent": 1,
       "scene": 0,
@@ -488,12 +456,47 @@
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        14
+        13
+      ],
+      "disabledState": 0,
+      "id": 4,
+      "layer": 0,
+      "name": "Bimberman",
+      "objects": [],
+      "parent": 11,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": 0.0,
+        "_32": 0.0,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [
+        14,
+        18,
+        20
       ],
       "disabledState": 0,
       "id": 5,
       "layer": 0,
-      "name": "Bimberman",
+      "name": "root",
       "objects": [],
       "parent": 12,
       "scene": 0,
@@ -520,51 +523,16 @@
   {
     "_class_name": "SceneNode",
     "_data": {
-      "children": [
-        15,
-        19,
-        21
-      ],
+      "children": [],
       "disabledState": 0,
       "id": 6,
       "layer": 0,
-      "name": "root",
-      "objects": [],
-      "parent": 13,
-      "scene": 0,
-      "transform": {
-        "_00": 1.0,
-        "_01": 0.0,
-        "_02": 0.0,
-        "_03": 0.0,
-        "_10": 0.0,
-        "_11": 1.0,
-        "_12": 0.0,
-        "_13": 0.0,
-        "_20": 0.0,
-        "_21": 0.0,
-        "_22": 1.0,
-        "_23": 0.0,
-        "_30": 0.0,
-        "_31": 0.0,
-        "_32": 0.0,
-        "_33": 1.0
-      }
-    }
-  },
-  {
-    "_class_name": "SceneNode",
-    "_data": {
-      "children": [],
-      "disabledState": 0,
-      "id": 7,
-      "layer": 0,
       "name": "Leg L",
       "objects": [
-        16,
+        15,
         -1
       ],
-      "parent": 14,
+      "parent": 13,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -591,11 +559,11 @@
     "_data": {
       "enabled": true,
       "materials": [
-        17,
-        18
+        16,
+        17
       ],
       "mesh": "./res/models/bimbermann_throwing.glb:Cube.007",
-      "node": 15
+      "node": 14
     }
   },
   {
@@ -729,14 +697,14 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 8,
+      "id": 7,
       "layer": 0,
       "name": "Leg R",
       "objects": [
-        20,
+        19,
         -1
       ],
-      "parent": 14,
+      "parent": 13,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -763,30 +731,30 @@
     "_data": {
       "enabled": true,
       "materials": [
-        17,
-        18
+        16,
+        17
       ],
       "mesh": "./res/models/bimbermann_throwing.glb:Cube.008",
-      "node": 19
+      "node": 18
     }
   },
   {
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        22,
-        24,
-        27
+        21,
+        23,
+        26
       ],
       "disabledState": 0,
-      "id": 9,
+      "id": 8,
       "layer": 0,
       "name": "Torso",
       "objects": [
-        29,
+        28,
         -1
       ],
-      "parent": 14,
+      "parent": 13,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -813,14 +781,14 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 10,
+      "id": 9,
       "layer": 0,
       "name": "Arm L",
       "objects": [
-        23,
+        22,
         -1
       ],
-      "parent": 21,
+      "parent": 20,
       "scene": 0,
       "transform": {
         "_00": 0.6882532835006714,
@@ -847,28 +815,28 @@
     "_data": {
       "enabled": true,
       "materials": [
-        17,
-        18
+        16,
+        17
       ],
       "mesh": "./res/models/bimbermann_throwing.glb:Cube.010",
-      "node": 22
+      "node": 21
     }
   },
   {
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        25
+        24
       ],
       "disabledState": 0,
-      "id": 11,
+      "id": 10,
       "layer": 0,
       "name": "Arm R",
       "objects": [
-        26,
+        25,
         -1
       ],
-      "parent": 21,
+      "parent": 20,
       "scene": 0,
       "transform": {
         "_00": 0.5796782970428467,
@@ -895,11 +863,11 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 12,
+      "id": 11,
       "layer": 0,
       "name": "Throw Point",
       "objects": [],
-      "parent": 24,
+      "parent": 23,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -926,11 +894,11 @@
     "_data": {
       "enabled": true,
       "materials": [
-        17,
-        18
+        16,
+        17
       ],
       "mesh": "./res/models/bimbermann_throwing.glb:Cube.009",
-      "node": 24
+      "node": 23
     }
   },
   {
@@ -938,14 +906,14 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 13,
+      "id": 12,
       "layer": 0,
       "name": "Head",
       "objects": [
-        28,
+        27,
         -1
       ],
-      "parent": 21,
+      "parent": 20,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -972,11 +940,11 @@
     "_data": {
       "enabled": true,
       "materials": [
-        17,
-        18
+        16,
+        17
       ],
       "mesh": "./res/models/bimbermann_throwing.glb:Cube.004",
-      "node": 27
+      "node": 26
     }
   },
   {
@@ -984,28 +952,28 @@
     "_data": {
       "enabled": true,
       "materials": [
-        17,
-        18
+        16,
+        17
       ],
       "mesh": "./res/models/bimbermann_throwing.glb:Cube.011",
-      "node": 21
+      "node": 20
     }
   },
   {
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        31,
-        35
+        30,
+        34
       ],
       "disabledState": 0,
-      "id": 14,
+      "id": 13,
       "layer": 0,
       "name": "Aim Reticle",
       "objects": [
-        39
+        38
       ],
-      "parent": 12,
+      "parent": 11,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -1032,14 +1000,14 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 15,
+      "id": 14,
       "layer": 0,
       "name": "Reticle",
       "objects": [
-        32,
+        31,
         -1
       ],
-      "parent": 30,
+      "parent": 29,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -1066,11 +1034,11 @@
     "_data": {
       "enabled": true,
       "materials": [
-        33,
-        34
+        32,
+        33
       ],
       "mesh": "./res/models/crosshair.glb:Cylinder",
-      "node": 31
+      "node": 30
     }
   },
   {
@@ -1203,17 +1171,17 @@
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        36
+        35
       ],
       "disabledState": 0,
-      "id": 16,
+      "id": 15,
       "layer": 0,
       "name": "Bottle",
       "objects": [
-        38,
+        37,
         -1
       ],
-      "parent": 30,
+      "parent": 29,
       "scene": 0,
       "transform": {
         "_00": 1.0683902502059937,
@@ -1240,14 +1208,14 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 17,
+      "id": 16,
       "layer": 0,
       "name": "Arrow",
       "objects": [
-        37,
+        36,
         -1
       ],
-      "parent": 35,
+      "parent": 34,
       "scene": 0,
       "transform": {
         "_00": 0.9359875917434692,
@@ -1274,11 +1242,11 @@
     "_data": {
       "enabled": true,
       "materials": [
-        33,
-        34
+        32,
+        33
       ],
       "mesh": "./res/models/crosshair.glb:Cube.002",
-      "node": 36
+      "node": 35
     }
   },
   {
@@ -1286,32 +1254,32 @@
     "_data": {
       "enabled": true,
       "materials": [
-        33,
-        34
+        32,
+        33
       ],
       "mesh": "./res/models/crosshair.glb:Cylinder.010",
-      "node": 35
+      "node": 34
     }
   },
   {
     "_class_name": "AimCrosshair",
     "_data": {
       "enabled": true,
-      "node": 30
+      "node": 29
     }
   },
   {
     "_class_name": "Physics::VirtualCharacterController",
     "_data": {
       "enabled": true,
-      "node": 12
+      "node": 11
     }
   },
   {
     "_class_name": "PlayerController",
     "_data": {
       "enabled": true,
-      "node": 12
+      "node": 11
     }
   },
   {
@@ -1319,10 +1287,11 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 18,
+      "id": 17,
       "layer": 0,
       "name": "Camera Node",
       "objects": [
+        42,
         43,
         44,
         45,
@@ -1330,8 +1299,7 @@
         47,
         48,
         49,
-        50,
-        51
+        50
       ],
       "parent": 1,
       "scene": 0,
@@ -1362,7 +1330,7 @@
       "layerMask": {
         "value": 4294967295
       },
-      "node": 42,
+      "node": 41,
       "orthoData": {
         "bottom": -8.66025447845459,
         "left": 15.396008491516113,
@@ -1386,28 +1354,28 @@
     "_class_name": "CameraSettings",
     "_data": {
       "enabled": true,
-      "node": 42
+      "node": 41
     }
   },
   {
     "_class_name": "MaskEffects",
     "_data": {
       "enabled": true,
-      "node": 42
+      "node": 41
     }
   },
   {
     "_class_name": "JfaOutline",
     "_data": {
       "enabled": true,
-      "node": 42
+      "node": 41
     }
   },
   {
     "_class_name": "DepthOfField",
     "_data": {
       "enabled": false,
-      "node": 42
+      "node": 41
     }
   },
   {
@@ -1417,7 +1385,7 @@
       "enabled": true,
       "intensity": 0.6000000238418579,
       "knee": 0.10000000149011612,
-      "node": 42,
+      "node": 41,
       "threshold": 1.5
     }
   },
@@ -1425,7 +1393,7 @@
     "_class_name": "Tonemapper",
     "_data": {
       "enabled": true,
-      "node": 42,
+      "node": 41,
       "toneOperator": 3
     }
   },
@@ -1433,14 +1401,14 @@
     "_class_name": "ColorGrading",
     "_data": {
       "enabled": true,
-      "node": 42
+      "node": 41
     }
   },
   {
     "_class_name": "Fxaa",
     "_data": {
       "enabled": true,
-      "node": 42
+      "node": 41
     }
   },
   {
@@ -1448,11 +1416,11 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 19,
+      "id": 18,
       "layer": 0,
       "name": "Sun",
       "objects": [
-        53,
+        52,
         -1
       ],
       "parent": 1,
@@ -1488,7 +1456,7 @@
       "enabled": true,
       "intensity": 2.0,
       "linearAttenuation": 0.0,
-      "node": 52,
+      "node": 51,
       "quadraticAttenuation": 0.0,
       "range": 0.0,
       "shadowCasting": true,
@@ -1500,15 +1468,15 @@
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        55
+        54
       ],
       "disabledState": 0,
-      "id": 20,
+      "id": 19,
       "layer": 0,
       "name": "Enemy 1",
       "objects": [
-        159,
-        160
+        158,
+        159
       ],
       "parent": 1,
       "scene": 0,
@@ -1536,16 +1504,16 @@
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        56
+        55
       ],
       "disabledState": 0,
-      "id": 21,
+      "id": 20,
       "layer": 0,
       "name": "EnemyModel",
       "objects": [
-        158
+        157
       ],
-      "parent": 54,
+      "parent": 53,
       "scene": 0,
       "transform": {
         "_00": 0.20000000298023224,
@@ -1571,44 +1539,44 @@
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        57,
-        113,
-        116,
-        119,
-        122,
-        125,
-        128,
-        131,
-        134,
-        137,
-        140,
-        143,
-        146,
-        149,
-        152,
-        155,
-        66,
+        56,
+        112,
+        115,
+        118,
+        121,
+        124,
+        127,
+        130,
+        133,
+        136,
+        139,
+        142,
+        145,
+        148,
+        151,
+        154,
+        65,
+        72,
         73,
         74,
-        75,
-        81,
-        87,
-        90,
+        80,
+        86,
+        89,
+        92,
         93,
-        94,
-        99,
-        102,
+        98,
+        101,
+        104,
         105,
-        106,
-        111,
-        112
+        110,
+        111
       ],
       "disabledState": 0,
-      "id": 22,
+      "id": 21,
       "layer": 0,
       "name": "rig.001_deform",
       "objects": [],
-      "parent": 55,
+      "parent": 54,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -1635,15 +1603,15 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 23,
+      "id": 22,
       "layer": 0,
       "name": "Cube",
       "objects": [
-        58,
-        65,
+        57,
+        64,
         -1
       ],
-      "parent": 56,
+      "parent": 55,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -1670,15 +1638,15 @@
     "_data": {
       "enabled": true,
       "materials": [
+        58,
         59,
         60,
         61,
         62,
-        63,
-        64
+        63
       ],
       "mesh": "./res/models/szkielet6.glb:Cube.007",
-      "node": 57
+      "node": 56
     }
   },
   {
@@ -2914,6 +2882,7 @@
       ],
       "jointMatrices": [],
       "joints": [
+        65,
         66,
         67,
         68,
@@ -2959,10 +2928,9 @@
         108,
         109,
         110,
-        111,
-        112
+        111
       ],
-      "node": 57,
+      "node": 56,
       "skeletonRoot": -1
     }
   },
@@ -2970,14 +2938,14 @@
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        67
+        66
       ],
       "disabledState": 0,
-      "id": 39,
+      "id": 38,
       "layer": 0,
       "name": "DEF-spine",
       "objects": [],
-      "parent": 56,
+      "parent": 55,
       "scene": 0,
       "transform": {
         "_00": -1.1920930376163597e-07,
@@ -3003,14 +2971,14 @@
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        68
+        67
       ],
       "disabledState": 0,
-      "id": 40,
+      "id": 39,
       "layer": 0,
       "name": "DEF-spine.001",
       "objects": [],
-      "parent": 66,
+      "parent": 65,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -3036,14 +3004,14 @@
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        69
+        68
       ],
       "disabledState": 0,
-      "id": 41,
+      "id": 40,
       "layer": 0,
       "name": "DEF-spine.002",
       "objects": [],
-      "parent": 67,
+      "parent": 66,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -3069,14 +3037,14 @@
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        70
+        69
       ],
       "disabledState": 0,
-      "id": 42,
+      "id": 41,
       "layer": 0,
       "name": "DEF-spine.003",
       "objects": [],
-      "parent": 68,
+      "parent": 67,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -3102,14 +3070,14 @@
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        71
+        70
       ],
       "disabledState": 0,
-      "id": 43,
+      "id": 42,
       "layer": 0,
       "name": "DEF-spine.004",
       "objects": [],
-      "parent": 69,
+      "parent": 68,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -3135,14 +3103,14 @@
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        72
+        71
       ],
       "disabledState": 0,
-      "id": 44,
+      "id": 43,
       "layer": 0,
       "name": "DEF-spine.005",
       "objects": [],
-      "parent": 70,
+      "parent": 69,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -3169,11 +3137,11 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 45,
+      "id": 44,
       "layer": 0,
       "name": "DEF-spine.006",
       "objects": [],
-      "parent": 71,
+      "parent": 70,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -3200,11 +3168,11 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 46,
+      "id": 45,
       "layer": 0,
       "name": "DEF-pelvis.L",
       "objects": [],
-      "parent": 56,
+      "parent": 55,
       "scene": 0,
       "transform": {
         "_00": 0.9845916032791138,
@@ -3231,11 +3199,11 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 47,
+      "id": 46,
       "layer": 0,
       "name": "DEF-pelvis.R",
       "objects": [],
-      "parent": 56,
+      "parent": 55,
       "scene": 0,
       "transform": {
         "_00": -0.9845916628837585,
@@ -3261,14 +3229,14 @@
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        76
+        75
       ],
       "disabledState": 0,
-      "id": 48,
+      "id": 47,
       "layer": 0,
       "name": "DEF-thigh.L",
       "objects": [],
-      "parent": 56,
+      "parent": 55,
       "scene": 0,
       "transform": {
         "_00": -0.5273323059082031,
@@ -3294,14 +3262,14 @@
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        77
+        76
       ],
       "disabledState": 0,
-      "id": 49,
+      "id": 48,
       "layer": 0,
       "name": "DEF-thigh.L.001",
       "objects": [],
-      "parent": 75,
+      "parent": 74,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -3327,14 +3295,14 @@
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        78
+        77
       ],
       "disabledState": 0,
-      "id": 50,
+      "id": 49,
       "layer": 0,
       "name": "DEF-shin.L",
       "objects": [],
-      "parent": 76,
+      "parent": 75,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -3360,14 +3328,14 @@
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        79
+        78
       ],
       "disabledState": 0,
-      "id": 51,
+      "id": 50,
       "layer": 0,
       "name": "DEF-shin.L.001",
       "objects": [],
-      "parent": 77,
+      "parent": 76,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -3393,14 +3361,14 @@
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        80
+        79
       ],
       "disabledState": 0,
-      "id": 52,
+      "id": 51,
       "layer": 0,
       "name": "DEF-foot.L",
       "objects": [],
-      "parent": 78,
+      "parent": 77,
       "scene": 0,
       "transform": {
         "_00": 0.7130618691444397,
@@ -3427,11 +3395,11 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 53,
+      "id": 52,
       "layer": 0,
       "name": "DEF-toe.L",
       "objects": [],
-      "parent": 79,
+      "parent": 78,
       "scene": 0,
       "transform": {
         "_00": -0.9756568074226379,
@@ -3457,14 +3425,14 @@
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        82
+        81
       ],
       "disabledState": 0,
-      "id": 54,
+      "id": 53,
       "layer": 0,
       "name": "DEF-thigh.R",
       "objects": [],
-      "parent": 56,
+      "parent": 55,
       "scene": 0,
       "transform": {
         "_00": 0.5273320078849792,
@@ -3490,14 +3458,14 @@
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        83
+        82
       ],
       "disabledState": 0,
-      "id": 55,
+      "id": 54,
       "layer": 0,
       "name": "DEF-thigh.R.001",
       "objects": [],
-      "parent": 81,
+      "parent": 80,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -3523,14 +3491,14 @@
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        84
+        83
       ],
       "disabledState": 0,
-      "id": 56,
+      "id": 55,
       "layer": 0,
       "name": "DEF-shin.R",
       "objects": [],
-      "parent": 82,
+      "parent": 81,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -3556,14 +3524,14 @@
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        85
+        84
       ],
       "disabledState": 0,
-      "id": 57,
+      "id": 56,
       "layer": 0,
       "name": "DEF-shin.R.001",
       "objects": [],
-      "parent": 83,
+      "parent": 82,
       "scene": 0,
       "transform": {
         "_00": 1.0000001192092896,
@@ -3589,14 +3557,14 @@
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        86
+        85
       ],
       "disabledState": 0,
-      "id": 58,
+      "id": 57,
       "layer": 0,
       "name": "DEF-foot.R",
       "objects": [],
-      "parent": 84,
+      "parent": 83,
       "scene": 0,
       "transform": {
         "_00": 0.7130621671676636,
@@ -3623,11 +3591,11 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 59,
+      "id": 58,
       "layer": 0,
       "name": "DEF-toe.R",
       "objects": [],
-      "parent": 85,
+      "parent": 84,
       "scene": 0,
       "transform": {
         "_00": -0.9756569266319275,
@@ -3653,14 +3621,14 @@
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        88
+        87
       ],
       "disabledState": 0,
-      "id": 60,
+      "id": 59,
       "layer": 0,
       "name": "DEF-f_middle.01.L",
       "objects": [],
-      "parent": 56,
+      "parent": 55,
       "scene": 0,
       "transform": {
         "_00": 0.3966248035430908,
@@ -3686,14 +3654,14 @@
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        89
+        88
       ],
       "disabledState": 0,
-      "id": 61,
+      "id": 60,
       "layer": 0,
       "name": "DEF-f_middle.02.L",
       "objects": [],
-      "parent": 87,
+      "parent": 86,
       "scene": 0,
       "transform": {
         "_00": 0.9992871880531311,
@@ -3720,11 +3688,11 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 62,
+      "id": 61,
       "layer": 0,
       "name": "DEF-f_middle.03.L",
       "objects": [],
-      "parent": 88,
+      "parent": 87,
       "scene": 0,
       "transform": {
         "_00": 0.9968456625938416,
@@ -3750,14 +3718,14 @@
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        91
+        90
       ],
       "disabledState": 0,
-      "id": 63,
+      "id": 62,
       "layer": 0,
       "name": "DEF-thumb.01.L",
       "objects": [],
-      "parent": 56,
+      "parent": 55,
       "scene": 0,
       "transform": {
         "_00": 0.11699867248535156,
@@ -3783,14 +3751,14 @@
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        92
+        91
       ],
       "disabledState": 0,
-      "id": 64,
+      "id": 63,
       "layer": 0,
       "name": "DEF-thumb.02.L",
       "objects": [],
-      "parent": 90,
+      "parent": 89,
       "scene": 0,
       "transform": {
         "_00": 0.9997863173484802,
@@ -3817,11 +3785,11 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 65,
+      "id": 64,
       "layer": 0,
       "name": "DEF-thumb.03.L",
       "objects": [],
-      "parent": 91,
+      "parent": 90,
       "scene": 0,
       "transform": {
         "_00": 0.9987951517105103,
@@ -3848,11 +3816,11 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 66,
+      "id": 65,
       "layer": 0,
       "name": "DEF-shoulder.L",
       "objects": [],
-      "parent": 56,
+      "parent": 55,
       "scene": 0,
       "transform": {
         "_00": 0.8582951426506042,
@@ -3878,14 +3846,14 @@
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        95
+        94
       ],
       "disabledState": 0,
-      "id": 67,
+      "id": 66,
       "layer": 0,
       "name": "DEF-upper_arm.L",
       "objects": [],
-      "parent": 56,
+      "parent": 55,
       "scene": 0,
       "transform": {
         "_00": -0.6742209196090698,
@@ -3911,14 +3879,14 @@
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        96
+        95
       ],
       "disabledState": 0,
-      "id": 68,
+      "id": 67,
       "layer": 0,
       "name": "DEF-upper_arm.L.001",
       "objects": [],
-      "parent": 94,
+      "parent": 93,
       "scene": 0,
       "transform": {
         "_00": 0.9999998807907104,
@@ -3944,14 +3912,14 @@
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        97
+        96
       ],
       "disabledState": 0,
-      "id": 69,
+      "id": 68,
       "layer": 0,
       "name": "DEF-forearm.L",
       "objects": [],
-      "parent": 95,
+      "parent": 94,
       "scene": 0,
       "transform": {
         "_00": 0.9999999403953552,
@@ -3977,14 +3945,14 @@
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        98
+        97
       ],
       "disabledState": 0,
-      "id": 70,
+      "id": 69,
       "layer": 0,
       "name": "DEF-forearm.L.001",
       "objects": [],
-      "parent": 96,
+      "parent": 95,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -4011,11 +3979,11 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 71,
+      "id": 70,
       "layer": 0,
       "name": "DEF-hand.L",
       "objects": [],
-      "parent": 97,
+      "parent": 96,
       "scene": 0,
       "transform": {
         "_00": 0.9917770028114319,
@@ -4041,14 +4009,14 @@
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        100
+        99
       ],
       "disabledState": 0,
-      "id": 72,
+      "id": 71,
       "layer": 0,
       "name": "DEF-f_middle.01.R",
       "objects": [],
-      "parent": 56,
+      "parent": 55,
       "scene": 0,
       "transform": {
         "_00": -0.3966251611709595,
@@ -4074,14 +4042,14 @@
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        101
+        100
       ],
       "disabledState": 0,
-      "id": 73,
+      "id": 72,
       "layer": 0,
       "name": "DEF-f_middle.02.R",
       "objects": [],
-      "parent": 99,
+      "parent": 98,
       "scene": 0,
       "transform": {
         "_00": 0.9992872476577759,
@@ -4108,11 +4076,11 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 74,
+      "id": 73,
       "layer": 0,
       "name": "DEF-f_middle.03.R",
       "objects": [],
-      "parent": 100,
+      "parent": 99,
       "scene": 0,
       "transform": {
         "_00": 0.9968457221984863,
@@ -4138,14 +4106,14 @@
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        103
+        102
       ],
       "disabledState": 0,
-      "id": 75,
+      "id": 74,
       "layer": 0,
       "name": "DEF-thumb.01.R",
       "objects": [],
-      "parent": 56,
+      "parent": 55,
       "scene": 0,
       "transform": {
         "_00": -0.6548570394515991,
@@ -4171,14 +4139,14 @@
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        104
+        103
       ],
       "disabledState": 0,
-      "id": 76,
+      "id": 75,
       "layer": 0,
       "name": "DEF-thumb.02.R",
       "objects": [],
-      "parent": 102,
+      "parent": 101,
       "scene": 0,
       "transform": {
         "_00": 0.9999722838401794,
@@ -4205,11 +4173,11 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 77,
+      "id": 76,
       "layer": 0,
       "name": "DEF-thumb.03.R",
       "objects": [],
-      "parent": 103,
+      "parent": 102,
       "scene": 0,
       "transform": {
         "_00": 0.9998247623443604,
@@ -4236,11 +4204,11 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 78,
+      "id": 77,
       "layer": 0,
       "name": "DEF-shoulder.R",
       "objects": [],
-      "parent": 56,
+      "parent": 55,
       "scene": 0,
       "transform": {
         "_00": -0.8582954406738281,
@@ -4266,14 +4234,14 @@
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        107
+        106
       ],
       "disabledState": 0,
-      "id": 79,
+      "id": 78,
       "layer": 0,
       "name": "DEF-upper_arm.R",
       "objects": [],
-      "parent": 56,
+      "parent": 55,
       "scene": 0,
       "transform": {
         "_00": 0.6742210388183594,
@@ -4299,14 +4267,14 @@
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        108
+        107
       ],
       "disabledState": 0,
-      "id": 80,
+      "id": 79,
       "layer": 0,
       "name": "DEF-upper_arm.R.001",
       "objects": [],
-      "parent": 106,
+      "parent": 105,
       "scene": 0,
       "transform": {
         "_00": 0.9999999403953552,
@@ -4332,14 +4300,14 @@
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        109
+        108
       ],
       "disabledState": 0,
-      "id": 81,
+      "id": 80,
       "layer": 0,
       "name": "DEF-forearm.R",
       "objects": [],
-      "parent": 107,
+      "parent": 106,
       "scene": 0,
       "transform": {
         "_00": 0.9999999403953552,
@@ -4365,14 +4333,14 @@
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        110
+        109
       ],
       "disabledState": 0,
-      "id": 82,
+      "id": 81,
       "layer": 0,
       "name": "DEF-forearm.R.001",
       "objects": [],
-      "parent": 108,
+      "parent": 107,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -4399,11 +4367,11 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 83,
+      "id": 82,
       "layer": 0,
       "name": "DEF-hand.R",
       "objects": [],
-      "parent": 109,
+      "parent": 108,
       "scene": 0,
       "transform": {
         "_00": 0.9994335174560547,
@@ -4430,11 +4398,11 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 84,
+      "id": 83,
       "layer": 0,
       "name": "DEF-breast.L",
       "objects": [],
-      "parent": 56,
+      "parent": 55,
       "scene": 0,
       "transform": {
         "_00": 0.0,
@@ -4461,11 +4429,11 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 85,
+      "id": 84,
       "layer": 0,
       "name": "DEF-breast.R",
       "objects": [],
-      "parent": 56,
+      "parent": 55,
       "scene": 0,
       "transform": {
         "_00": 0.0,
@@ -4492,15 +4460,15 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 24,
+      "id": 23,
       "layer": 0,
       "name": "Cube.001",
       "objects": [
+        113,
         114,
-        115,
         -1
       ],
-      "parent": 56,
+      "parent": 55,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -4527,15 +4495,15 @@
     "_data": {
       "enabled": true,
       "materials": [
+        58,
         59,
         60,
         61,
         62,
-        63,
-        64
+        63
       ],
       "mesh": "./res/models/szkielet6.glb:Cube.001",
-      "node": 113
+      "node": 112
     }
   },
   {
@@ -5393,6 +5361,7 @@
       ],
       "jointMatrices": [],
       "joints": [
+        65,
         66,
         67,
         68,
@@ -5438,10 +5407,967 @@
         108,
         109,
         110,
-        111,
-        112
+        111
       ],
-      "node": 113,
+      "node": 112,
+      "skeletonRoot": -1
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [],
+      "disabledState": 0,
+      "id": 24,
+      "layer": 0,
+      "name": "Cube.002",
+      "objects": [
+        116,
+        117,
+        -1
+      ],
+      "parent": 55,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": 0.0,
+        "_32": 0.0,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "MeshRenderer",
+    "_data": {
+      "enabled": true,
+      "materials": [
+        58,
+        59,
+        60,
+        61,
+        62,
+        63
+      ],
+      "mesh": "./res/models/szkielet6.glb:Cube.002",
+      "node": 115
+    }
+  },
+  {
+    "_class_name": "SkeletonComponent",
+    "_data": {
+      "bufferOffset": 0,
+      "enabled": true,
+      "inverseBindMatrices": [
+        {
+          "_00": -6.537997254696393e-09,
+          "_01": 0.2496393918991089,
+          "_02": 0.9683387875556946,
+          "_03": -0.0,
+          "_10": -2.9091234310385516e-08,
+          "_11": 0.9683387279510498,
+          "_12": -0.2496393620967865,
+          "_13": 0.0,
+          "_20": -0.9999998807907104,
+          "_21": -4.5148066618594385e-08,
+          "_22": 3.9450629429893525e-09,
+          "_23": -0.0,
+          "_30": 0.1854368895292282,
+          "_31": -9.125727653503418,
+          "_32": 3.594381093978882,
+          "_33": 1.0
+        },
+        {
+          "_00": -6.527557872004763e-08,
+          "_01": 0.12295379489660263,
+          "_02": 0.992412269115448,
+          "_03": -0.0,
+          "_10": 8.087243763554852e-09,
+          "_11": 0.992412269115448,
+          "_12": -0.12295375764369965,
+          "_13": 0.0,
+          "_20": -0.9999998807907104,
+          "_21": -1.5605982284228048e-08,
+          "_22": -6.476071945371586e-08,
+          "_23": -0.0,
+          "_30": 0.18543641269207,
+          "_31": -10.948468208312988,
+          "_32": 2.203808069229126,
+          "_33": 1.0
+        },
+        {
+          "_00": 5.418933923806435e-08,
+          "_01": -0.031812507659196854,
+          "_02": 0.9994937777519226,
+          "_03": -0.0,
+          "_10": 1.7247742123416288e-09,
+          "_11": 0.9994938373565674,
+          "_12": 0.031812552362680435,
+          "_13": 0.0,
+          "_20": -0.9999998807907104,
+          "_21": -1.5575304601611606e-08,
+          "_22": 5.280800507989625e-08,
+          "_23": -0.0,
+          "_30": 0.18543659150600433,
+          "_31": -12.441750526428223,
+          "_32": 0.28544747829437256,
+          "_33": 1.0
+        },
+        {
+          "_00": -1.0017271989681831e-07,
+          "_01": -0.028559744358062744,
+          "_02": 0.9995919466018677,
+          "_03": -0.0,
+          "_10": -2.862079240273374e-09,
+          "_11": 0.9995919466018677,
+          "_12": 0.028559789061546326,
+          "_13": 0.0,
+          "_20": -0.9999998807907104,
+          "_21": -1.5579805889842646e-08,
+          "_22": -1.0157167906754694e-07,
+          "_23": 0.0,
+          "_30": 0.18543653190135956,
+          "_31": -14.08548355102539,
+          "_32": 0.33128678798675537,
+          "_33": 1.0
+        },
+        {
+          "_00": -6.925420681369587e-09,
+          "_01": 0.36878374218940735,
+          "_02": 0.9295150637626648,
+          "_03": -0.0,
+          "_10": 2.747646554723815e-09,
+          "_11": 0.9295150637626648,
+          "_12": -0.36878371238708496,
+          "_13": 0.0,
+          "_20": -0.9999998807907104,
+          "_21": -1.4848353657725966e-08,
+          "_22": -2.541277410728071e-09,
+          "_23": -0.0,
+          "_30": 0.18543651700019836,
+          "_31": -14.49100112915039,
+          "_32": 6.5946197509765625,
+          "_33": 1.0
+        },
+        {
+          "_00": -1.655598858008034e-08,
+          "_01": 0.18659910559654236,
+          "_02": 0.9824360013008118,
+          "_03": -0.0,
+          "_10": -2.2283106915210737e-08,
+          "_11": 0.9824358820915222,
+          "_12": -0.18659913539886475,
+          "_13": 0.0,
+          "_20": -0.9999998807907104,
+          "_21": -4.0489368302587536e-08,
+          "_22": -1.0090499991122215e-08,
+          "_23": -0.0,
+          "_30": 0.1854369342327118,
+          "_31": -16.093786239624023,
+          "_32": 3.6203019618988037,
+          "_33": 1.0
+        },
+        {
+          "_00": -4.371137762859689e-08,
+          "_01": -2.9802311729554276e-08,
+          "_02": 0.9999998807907104,
+          "_03": -0.0,
+          "_10": -2.8865790169924598e-15,
+          "_11": 0.9999997615814209,
+          "_12": -1.2881054761509334e-22,
+          "_13": 0.0,
+          "_20": -0.9999998807907104,
+          "_21": -1.561222973123222e-08,
+          "_22": -4.462394542770198e-08,
+          "_23": -0.0,
+          "_30": 0.18543653190135956,
+          "_31": -17.072683334350586,
+          "_32": 0.4423219859600067,
+          "_33": 1.0
+        },
+        {
+          "_00": 0.9845917224884033,
+          "_01": 0.06245027855038643,
+          "_02": -0.1633378118276596,
+          "_03": -0.0,
+          "_10": 0.05160295218229294,
+          "_11": 0.7886993885040283,
+          "_12": 0.6126096844673157,
+          "_13": -0.0,
+          "_20": 0.1670820564031601,
+          "_21": -0.6115990281105042,
+          "_22": 0.7733240723609924,
+          "_23": -0.0,
+          "_30": 0.6506192088127136,
+          "_31": -7.488770008087158,
+          "_32": -6.30300760269165,
+          "_33": 1.0
+        },
+        {
+          "_00": -0.9845917224884033,
+          "_01": 0.06245036423206329,
+          "_02": -0.1633378118276596,
+          "_03": 0.0,
+          "_10": -0.051602866500616074,
+          "_11": 0.7886994481086731,
+          "_12": 0.6126096844673157,
+          "_13": 0.0,
+          "_20": 0.16708210110664368,
+          "_21": 0.6115992069244385,
+          "_22": -0.773324191570282,
+          "_23": -0.0,
+          "_30": -0.7125862240791321,
+          "_31": -7.715596675872803,
+          "_32": -6.0162034034729,
+          "_33": 1.0
+        },
+        {
+          "_00": -0.5273323655128479,
+          "_01": 0.08252474665641785,
+          "_02": -0.8456419706344604,
+          "_03": -0.0,
+          "_10": 0.02162296138703823,
+          "_11": -0.9936462640762329,
+          "_12": -0.1104520708322525,
+          "_13": 0.0,
+          "_20": -0.8493839502334595,
+          "_21": -0.07653022557497025,
+          "_22": 0.5221973657608032,
+          "_23": 0.0,
+          "_30": -1.7545428276062012,
+          "_31": 9.835101127624512,
+          "_32": 1.1134732961654663,
+          "_33": 1.0
+        },
+        {
+          "_00": -0.5273323059082031,
+          "_01": 0.08252476155757904,
+          "_02": -0.8456419110298157,
+          "_03": -0.0,
+          "_10": 0.021622978150844574,
+          "_11": -0.9936461448669434,
+          "_12": -0.1104520857334137,
+          "_13": 0.0,
+          "_20": -0.8493838906288147,
+          "_21": -0.07653023302555084,
+          "_22": 0.5221972465515137,
+          "_23": 0.0,
+          "_30": -1.7545428276062012,
+          "_31": 7.471888065338135,
+          "_32": 1.1134731769561768,
+          "_33": 1.0
+        },
+        {
+          "_00": -0.5273323655128479,
+          "_01": -0.09766864776611328,
+          "_02": -0.8440269827842712,
+          "_03": -0.0,
+          "_10": 0.021622980013489723,
+          "_11": -0.9945922493934631,
+          "_12": 0.10158203542232513,
+          "_13": 0.0,
+          "_20": -0.8493838906288147,
+          "_21": 0.035317130386829376,
+          "_22": 0.5265925526618958,
+          "_23": -0.0,
+          "_30": -1.7545428276062012,
+          "_31": 5.228602409362793,
+          "_32": 0.011062324978411198,
+          "_33": 1.0
+        },
+        {
+          "_00": -0.5273323655128479,
+          "_01": -0.09766870737075806,
+          "_02": -0.8440269827842712,
+          "_03": -0.0,
+          "_10": 0.021623024716973305,
+          "_11": -0.9945922493934631,
+          "_12": 0.10158206522464752,
+          "_13": 0.0,
+          "_20": -0.8493838906288147,
+          "_21": 0.03531710430979729,
+          "_22": 0.5265925526618958,
+          "_23": -0.0,
+          "_30": -1.7545430660247803,
+          "_31": 3.0467472076416016,
+          "_32": 0.011062384583055973,
+          "_33": 1.0
+        },
+        {
+          "_00": 0.21930256485939026,
+          "_01": 0.8330010771751404,
+          "_02": -0.5079525709152222,
+          "_03": -0.0,
+          "_10": -1.8626454334480513e-07,
+          "_11": -0.5206261873245239,
+          "_12": -0.8537847399711609,
+          "_13": 0.0,
+          "_20": -0.9756569266319275,
+          "_21": 0.18723729252815247,
+          "_22": -0.11417445540428162,
+          "_23": -0.0,
+          "_30": -1.3071558475494385,
+          "_31": 1.4454350471496582,
+          "_32": 0.1692453771829605,
+          "_33": 1.0
+        },
+        {
+          "_00": 9.685760460342863e-08,
+          "_01": 0.9999999403953552,
+          "_02": 8.940689610881236e-08,
+          "_03": -0.0,
+          "_10": 6.482005687757919e-07,
+          "_11": -5.960468030252741e-08,
+          "_12": 1.0,
+          "_13": 0.0,
+          "_20": 1.0000001192092896,
+          "_21": -5.960460214282648e-08,
+          "_22": -6.85453471760411e-07,
+          "_23": -0.0,
+          "_30": 1.292287826538086,
+          "_31": -0.2112443894147873,
+          "_32": -0.2453666478395462,
+          "_33": 1.0
+        },
+        {
+          "_00": 0.5273320078849792,
+          "_01": 0.08252464234828949,
+          "_02": -0.8456422090530396,
+          "_03": -0.0,
+          "_10": -0.021622976288199425,
+          "_11": -0.9936462044715881,
+          "_12": -0.11045201867818832,
+          "_13": 0.0,
+          "_20": -0.8493841290473938,
+          "_21": 0.07653012871742249,
+          "_22": -0.5221971273422241,
+          "_23": -0.0,
+          "_30": 2.069556951522827,
+          "_31": 9.806719779968262,
+          "_32": 1.3071413040161133,
+          "_33": 1.0
+        },
+        {
+          "_00": 0.5273319482803345,
+          "_01": 0.0825246199965477,
+          "_02": -0.8456422686576843,
+          "_03": -0.0,
+          "_10": -0.0216230396181345,
+          "_11": -0.9936462640762329,
+          "_12": -0.11045204102993011,
+          "_13": 0.0,
+          "_20": -0.8493841886520386,
+          "_21": 0.07653017342090607,
+          "_22": -0.5221970677375793,
+          "_23": -0.0,
+          "_30": 2.0695571899414063,
+          "_31": 7.443506240844727,
+          "_32": 1.3071411848068237,
+          "_33": 1.0
+        },
+        {
+          "_00": 0.527332067489624,
+          "_01": -0.09766878187656403,
+          "_02": -0.8440271615982056,
+          "_03": -0.0,
+          "_10": -0.02162303403019905,
+          "_11": -0.9945923089981079,
+          "_12": 0.10158205032348633,
+          "_13": 0.0,
+          "_20": -0.8493841290473938,
+          "_21": -0.03531712293624878,
+          "_22": -0.5265923142433167,
+          "_23": -0.0,
+          "_30": 2.0695571899414063,
+          "_31": 5.241700649261475,
+          "_32": 0.20636092126369476,
+          "_33": 1.0
+        },
+        {
+          "_00": 0.527332067489624,
+          "_01": -0.09766875952482224,
+          "_02": -0.8440271019935608,
+          "_03": -0.0,
+          "_10": -0.021623019129037857,
+          "_11": -0.9945922493934631,
+          "_12": 0.10158202052116394,
+          "_13": 0.0,
+          "_20": -0.849384069442749,
+          "_21": -0.03531711921095848,
+          "_22": -0.5265923142433167,
+          "_23": -0.0,
+          "_30": 2.0695571899414063,
+          "_31": 3.059844970703125,
+          "_32": 0.20636090636253357,
+          "_33": 1.0
+        },
+        {
+          "_00": -0.21930259466171265,
+          "_01": 0.8330013751983643,
+          "_02": -0.5079520344734192,
+          "_03": -0.0,
+          "_10": 4.02331437499015e-07,
+          "_11": -0.5206255912780762,
+          "_12": -0.8537852168083191,
+          "_13": 0.0,
+          "_20": -0.9756569266319275,
+          "_21": -0.1872374713420868,
+          "_22": 0.11417414247989655,
+          "_23": 0.0,
+          "_30": 1.6690009832382202,
+          "_31": 1.514876127243042,
+          "_32": 0.12690189480781555,
+          "_33": 1.0
+        },
+        {
+          "_00": 1.0058281674218961e-07,
+          "_01": 0.9999997615814209,
+          "_02": 8.940696005765858e-08,
+          "_03": -0.0,
+          "_10": -2.235175422526936e-08,
+          "_11": -8.940695295223122e-08,
+          "_12": 1.0000001192092896,
+          "_13": 0.0,
+          "_20": 1.0000001192092896,
+          "_21": -6.332992796842518e-08,
+          "_22": 8.94069742685133e-08,
+          "_23": -0.0,
+          "_30": -1.6631611585617065,
+          "_31": -0.21124428510665894,
+          "_32": -0.24536612629890442,
+          "_33": 1.0
+        },
+        {
+          "_00": 0.39662492275238037,
+          "_01": 0.3493139147758484,
+          "_02": -0.8489220142364502,
+          "_03": -0.0,
+          "_10": 0.9162087440490723,
+          "_11": -0.2080671340227127,
+          "_12": 0.34244659543037415,
+          "_13": 0.0,
+          "_20": -0.05701146274805069,
+          "_21": -0.9136125445365906,
+          "_22": -0.4025690257549286,
+          "_23": 0.0,
+          "_30": -14.618762016296387,
+          "_31": -6.49226713180542,
+          "_32": -9.98022747039795,
+          "_33": 1.0
+        },
+        {
+          "_00": 0.39485296607017517,
+          "_01": -0.05439911410212517,
+          "_02": -0.9171323180198669,
+          "_03": -0.0,
+          "_10": 0.913855791091919,
+          "_11": -0.07958648353815079,
+          "_12": 0.3981628715991974,
+          "_13": 0.0,
+          "_20": -0.09465111047029495,
+          "_21": -0.9953422546386719,
+          "_22": 0.018287936225533485,
+          "_23": 0.0,
+          "_30": -14.996455192565918,
+          "_31": -9.72253131866455,
+          "_32": -6.239517688751221,
+          "_33": 1.0
+        },
+        {
+          "_00": 0.39646902680397034,
+          "_01": 0.012010413222014904,
+          "_02": -0.9179695248603821,
+          "_03": -0.0,
+          "_10": 0.917919933795929,
+          "_11": -0.021899838000535965,
+          "_12": 0.3961609899997711,
+          "_13": 0.0,
+          "_20": -0.015345405787229538,
+          "_21": -0.999687910079956,
+          "_22": -0.019707247614860535,
+          "_23": 0.0,
+          "_30": -14.136283874511719,
+          "_31": -11.28170394897461,
+          "_32": -6.650806427001953,
+          "_33": 1.0
+        },
+        {
+          "_00": 0.11699864268302917,
+          "_01": -0.023169206455349922,
+          "_02": 0.9928618669509888,
+          "_03": -0.0,
+          "_10": -0.9905443787574768,
+          "_11": -0.0748441219329834,
+          "_12": 0.11497901380062103,
+          "_13": 0.0,
+          "_20": 0.07164590060710907,
+          "_21": -0.9969260692596436,
+          "_22": -0.031706783920526505,
+          "_23": -0.0,
+          "_30": 15.95821762084961,
+          "_31": -9.010818481445313,
+          "_32": -2.461344003677368,
+          "_33": 1.0
+        },
+        {
+          "_00": 0.10620616376399994,
+          "_01": 0.5231863260269165,
+          "_02": 0.845574676990509,
+          "_03": -0.0,
+          "_10": -0.9903284311294556,
+          "_11": -0.020693419501185417,
+          "_12": 0.1371913105249405,
+          "_13": 0.0,
+          "_20": 0.08927445113658905,
+          "_21": -0.8519670963287354,
+          "_22": 0.5159285068511963,
+          "_23": -0.0,
+          "_30": 16.146289825439453,
+          "_31": -8.932129859924316,
+          "_32": 3.0754201412200928,
+          "_33": 1.0
+        },
+        {
+          "_00": 0.1241651177406311,
+          "_01": 0.2464703470468521,
+          "_02": 0.9611636400222778,
+          "_03": -0.0,
+          "_10": -0.9913032054901123,
+          "_11": -0.011750289238989353,
+          "_12": 0.13107173144817352,
+          "_13": 0.0,
+          "_20": 0.043599262833595276,
+          "_21": -0.9690791368484497,
+          "_22": 0.2428678423166275,
+          "_23": -0.0,
+          "_30": 15.647435188293457,
+          "_31": -10.641865730285645,
+          "_32": 0.0927426740527153,
+          "_33": 1.0
+        },
+        {
+          "_00": 0.8582951426506042,
+          "_01": -0.5065231919288635,
+          "_02": -0.08224145323038101,
+          "_03": -0.0,
+          "_10": -0.0006480440497398376,
+          "_11": -0.16133564710617065,
+          "_12": 0.9868993759155273,
+          "_13": 0.0,
+          "_20": -0.5131559371948242,
+          "_21": -0.8469976782798767,
+          "_22": -0.13880185782909393,
+          "_23": -0.0,
+          "_30": 0.038619160652160645,
+          "_31": 2.480132818222046,
+          "_32": -15.195345878601074,
+          "_33": 1.0
+        },
+        {
+          "_00": -0.6742208003997803,
+          "_01": -0.038729552179574966,
+          "_02": 0.737513542175293,
+          "_03": 0.0,
+          "_10": -0.738142192363739,
+          "_11": 0.002991946879774332,
+          "_12": -0.6746385097503662,
+          "_13": 0.0,
+          "_20": 0.023921841755509377,
+          "_21": -0.9992453455924988,
+          "_22": -0.030605146661400795,
+          "_23": -0.0,
+          "_30": 11.17564868927002,
+          "_31": -1.8756194114685059,
+          "_32": 10.749194145202637,
+          "_33": 1.0
+        },
+        {
+          "_00": -0.6742208003997803,
+          "_01": -0.038729604333639145,
+          "_02": 0.737513542175293,
+          "_03": 0.0,
+          "_10": -0.738142192363739,
+          "_11": 0.0029919487424194813,
+          "_12": -0.6746385097503662,
+          "_13": 0.0,
+          "_20": 0.023921877145767212,
+          "_21": -0.9992453455924988,
+          "_22": -0.030605187639594078,
+          "_23": -0.0,
+          "_30": 11.175649642944336,
+          "_31": -3.8872334957122803,
+          "_32": 10.749194145202637,
+          "_33": 1.0
+        },
+        {
+          "_00": -0.6742209196090698,
+          "_01": 0.03902627155184746,
+          "_02": 0.737497866153717,
+          "_03": -0.0,
+          "_10": -0.738142192363739,
+          "_11": -0.06795523315668106,
+          "_12": -0.6712139844894409,
+          "_13": 0.0,
+          "_20": 0.02392186038196087,
+          "_21": -0.9969247579574585,
+          "_22": 0.07462378591299057,
+          "_23": -0.0,
+          "_30": 11.175647735595703,
+          "_31": -4.735996723175049,
+          "_32": 11.309815406799316,
+          "_33": 1.0
+        },
+        {
+          "_00": -0.6742208003997803,
+          "_01": 0.03902624174952507,
+          "_02": 0.7374979257583618,
+          "_03": -0.0,
+          "_10": -0.7381422519683838,
+          "_11": -0.06795517355203629,
+          "_12": -0.6712139248847961,
+          "_13": 0.0,
+          "_20": 0.023921845480799675,
+          "_21": -0.996924877166748,
+          "_22": 0.0746237188577652,
+          "_23": -0.0,
+          "_30": 11.17564868927002,
+          "_31": -6.68643856048584,
+          "_32": 11.309813499450684,
+          "_33": 1.0
+        },
+        {
+          "_00": -0.6812382340431213,
+          "_01": -0.011060379445552826,
+          "_02": 0.7319782972335815,
+          "_03": -0.0,
+          "_10": -0.7247193455696106,
+          "_11": 0.1514492630958557,
+          "_12": -0.6721941232681274,
+          "_13": 0.0,
+          "_20": -0.10342282801866531,
+          "_21": -0.9884032011032104,
+          "_22": -0.11118867993354797,
+          "_23": 0.0,
+          "_30": 9.72961139678955,
+          "_31": -11.924236297607422,
+          "_32": 9.515775680541992,
+          "_33": 1.0
+        },
+        {
+          "_00": -0.39662501215934753,
+          "_01": 0.349313884973526,
+          "_02": -0.8489218950271606,
+          "_03": 0.0,
+          "_10": -0.9162085056304932,
+          "_11": -0.20806720852851868,
+          "_12": 0.34244662523269653,
+          "_13": 0.0,
+          "_20": -0.05701134353876114,
+          "_21": 0.9136125445365906,
+          "_22": 0.4025689959526062,
+          "_23": -0.0,
+          "_30": 14.629651069641113,
+          "_31": -6.666859149932861,
+          "_32": -10.057159423828125,
+          "_33": 1.0
+        },
+        {
+          "_00": -0.3948589265346527,
+          "_01": -0.054398976266384125,
+          "_02": -0.9171299934387207,
+          "_03": 0.0,
+          "_10": -0.9138530492782593,
+          "_11": -0.0795866996049881,
+          "_12": 0.39816874265670776,
+          "_13": 0.0,
+          "_20": -0.09465119242668152,
+          "_21": 0.9953425526618958,
+          "_22": -0.018287193030118942,
+          "_23": -0.0,
+          "_30": 15.014500617980957,
+          "_31": -9.912741661071777,
+          "_32": -6.236120700836182,
+          "_33": 1.0
+        },
+        {
+          "_00": -0.3964691758155823,
+          "_01": 0.012010517530143261,
+          "_02": -0.9179695248603821,
+          "_03": 0.0,
+          "_10": -0.9179196953773499,
+          "_11": -0.021900029852986336,
+          "_12": 0.3961610794067383,
+          "_13": 0.0,
+          "_20": -0.015345349907875061,
+          "_21": 0.9996879696846008,
+          "_22": 0.019707338884472847,
+          "_23": -0.0,
+          "_30": 14.139211654663086,
+          "_31": -11.472742080688477,
+          "_32": -6.654573917388916,
+          "_33": 1.0
+        },
+        {
+          "_00": -0.6548589468002319,
+          "_01": 0.3121834099292755,
+          "_02": -0.6882604956626892,
+          "_03": -0.0,
+          "_10": -0.7415323853492737,
+          "_11": -0.08957717567682266,
+          "_12": 0.6649125814437866,
+          "_13": 0.0,
+          "_20": 0.14592157304286957,
+          "_21": 0.9457895159721375,
+          "_22": 0.29015403985977173,
+          "_23": -0.0,
+          "_30": 10.129158020019531,
+          "_31": -8.736019134521484,
+          "_32": -13.065505981445313,
+          "_33": 1.0
+        },
+        {
+          "_00": -0.6565673351287842,
+          "_01": 0.22724686563014984,
+          "_02": -0.7192213535308838,
+          "_03": -0.0,
+          "_10": -0.7414112687110901,
+          "_11": -0.01911981776356697,
+          "_12": 0.6707807779312134,
+          "_13": 0.0,
+          "_20": 0.13868080079555511,
+          "_21": 0.9736495018005371,
+          "_22": 0.1810365915298462,
+          "_23": -0.0,
+          "_30": 10.207179069519043,
+          "_31": -10.446549415588379,
+          "_32": -11.949419975280762,
+          "_33": 1.0
+        },
+        {
+          "_00": -0.6521194577217102,
+          "_01": 0.24647071957588196,
+          "_02": -0.7169333696365356,
+          "_03": -0.0,
+          "_10": -0.7417128086090088,
+          "_11": -0.01174959260970354,
+          "_12": 0.6706171035766602,
+          "_13": 0.0,
+          "_20": 0.15686310827732086,
+          "_21": 0.969079315662384,
+          "_22": 0.19047236442565918,
+          "_23": -0.0,
+          "_30": 10.002119064331055,
+          "_31": -11.001283645629883,
+          "_32": -12.05571460723877,
+          "_33": 1.0
+        },
+        {
+          "_00": -0.8582949638366699,
+          "_01": -0.5065228939056396,
+          "_02": -0.08224138617515564,
+          "_03": -0.0,
+          "_10": 0.0006479022558778524,
+          "_11": -0.16133569180965424,
+          "_12": 0.9868993163108826,
+          "_13": 0.0,
+          "_20": -0.5131556987762451,
+          "_21": 0.8469977974891663,
+          "_22": 0.13880187273025513,
+          "_23": -0.0,
+          "_30": 0.15169864892959595,
+          "_31": 2.1660053730010986,
+          "_32": -15.246822357177734,
+          "_33": 1.0
+        },
+        {
+          "_00": 0.6742204427719116,
+          "_01": -0.03872951120138168,
+          "_02": 0.7375137805938721,
+          "_03": -0.0,
+          "_10": 0.7381420135498047,
+          "_11": 0.002991934074088931,
+          "_12": -0.6746383905410767,
+          "_13": 0.0,
+          "_20": 0.023921791464090347,
+          "_21": 0.9992454051971436,
+          "_22": 0.030605118721723557,
+          "_23": -0.0,
+          "_30": -11.184515953063965,
+          "_31": -2.246212959289551,
+          "_32": 10.737841606140137,
+          "_33": 1.0
+        },
+        {
+          "_00": 0.6742205619812012,
+          "_01": -0.038729436695575714,
+          "_02": 0.7375136613845825,
+          "_03": -0.0,
+          "_10": 0.7381418943405151,
+          "_11": 0.0029919303487986326,
+          "_12": -0.6746385097503662,
+          "_13": 0.0,
+          "_20": 0.023921744897961617,
+          "_21": 0.9992454051971436,
+          "_22": 0.030605053529143333,
+          "_23": -0.0,
+          "_30": -11.184514999389648,
+          "_31": -4.257827281951904,
+          "_32": 10.737842559814453,
+          "_33": 1.0
+        },
+        {
+          "_00": 0.6742150783538818,
+          "_01": 0.0390264168381691,
+          "_02": 0.7375029921531677,
+          "_03": -0.0,
+          "_10": 0.7381467819213867,
+          "_11": -0.06795524060726166,
+          "_12": -0.6712084412574768,
+          "_13": 0.0,
+          "_20": 0.023922298103570938,
+          "_21": 0.9969249367713928,
+          "_22": -0.0746237188577652,
+          "_23": -0.0,
+          "_30": -11.18459701538086,
+          "_31": -5.105730056762695,
+          "_32": 11.337407112121582,
+          "_33": 1.0
+        },
+        {
+          "_00": 0.6742156147956848,
+          "_01": 0.039026372134685516,
+          "_02": 0.7375025153160095,
+          "_03": -0.0,
+          "_10": 0.7381463050842285,
+          "_11": -0.06795521080493927,
+          "_12": -0.671208918094635,
+          "_13": 0.0,
+          "_20": 0.023922251537442207,
+          "_21": 0.996924877166748,
+          "_22": -0.07462368160486221,
+          "_23": -0.0,
+          "_30": -11.184589385986328,
+          "_31": -7.05617094039917,
+          "_32": 11.337414741516113,
+          "_33": 1.0
+        },
+        {
+          "_00": 0.6653709411621094,
+          "_01": -0.27405455708503723,
+          "_02": 0.6943885684013367,
+          "_03": -0.0,
+          "_10": 0.7444249391555786,
+          "_11": 0.17407210171222687,
+          "_12": -0.6446160078048706,
+          "_13": 0.0,
+          "_20": 0.055786266922950745,
+          "_21": 0.9458295106887817,
+          "_22": 0.31983575224876404,
+          "_23": -0.0,
+          "_30": -11.606097221374512,
+          "_31": -12.329567909240723,
+          "_32": 6.930467128753662,
+          "_33": 1.0
+        },
+        {
+          "_00": -0.0,
+          "_01": 1.0,
+          "_02": 0.0,
+          "_03": -0.0,
+          "_10": 2.3152723827024602e-07,
+          "_11": -0.0,
+          "_12": 1.0,
+          "_13": 0.0,
+          "_20": 1.0,
+          "_21": -0.0,
+          "_22": -2.3152723827024602e-07,
+          "_23": -0.0,
+          "_30": 0.9409396648406982,
+          "_31": 1.1386985778808594,
+          "_32": -14.012245178222656,
+          "_33": 1.0
+        },
+        {
+          "_00": 0.0,
+          "_01": 1.0,
+          "_02": 0.0,
+          "_03": -0.0,
+          "_10": 1.421202853180148e-07,
+          "_11": -0.0,
+          "_12": 1.0,
+          "_13": 0.0,
+          "_20": 1.0,
+          "_21": -0.0,
+          "_22": -1.421202853180148e-07,
+          "_23": -0.0,
+          "_30": -1.3118181228637695,
+          "_31": 1.1386984586715698,
+          "_32": -14.012245178222656,
+          "_33": 1.0
+        }
+      ],
+      "jointMatrices": [],
+      "joints": [
+        65,
+        66,
+        67,
+        68,
+        69,
+        70,
+        71,
+        72,
+        73,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81,
+        82,
+        83,
+        84,
+        85,
+        86,
+        87,
+        88,
+        89,
+        90,
+        91,
+        92,
+        93,
+        94,
+        95,
+        96,
+        97,
+        98,
+        99,
+        100,
+        101,
+        102,
+        103,
+        104,
+        105,
+        106,
+        107,
+        108,
+        109,
+        110,
+        111
+      ],
+      "node": 115,
       "skeletonRoot": -1
     }
   },
@@ -5452,13 +6378,13 @@
       "disabledState": 0,
       "id": 25,
       "layer": 0,
-      "name": "Cube.002",
+      "name": "Cube.003",
       "objects": [
-        117,
-        118,
+        119,
+        120,
         -1
       ],
-      "parent": 56,
+      "parent": 55,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -5485,15 +6411,15 @@
     "_data": {
       "enabled": true,
       "materials": [
+        58,
         59,
         60,
         61,
         62,
-        63,
-        64
+        63
       ],
-      "mesh": "./res/models/szkielet6.glb:Cube.002",
-      "node": 116
+      "mesh": "./res/models/szkielet6.glb:Cube.003",
+      "node": 118
     }
   },
   {
@@ -6351,6 +7277,7 @@
       ],
       "jointMatrices": [],
       "joints": [
+        65,
         66,
         67,
         68,
@@ -6396,10 +7323,9 @@
         108,
         109,
         110,
-        111,
-        112
+        111
       ],
-      "node": 116,
+      "node": 118,
       "skeletonRoot": -1
     }
   },
@@ -6410,13 +7336,13 @@
       "disabledState": 0,
       "id": 26,
       "layer": 0,
-      "name": "Cube.003",
+      "name": "Cube.004",
       "objects": [
-        120,
-        121,
+        122,
+        123,
         -1
       ],
-      "parent": 56,
+      "parent": 55,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -6443,15 +7369,15 @@
     "_data": {
       "enabled": true,
       "materials": [
+        58,
         59,
         60,
         61,
         62,
-        63,
-        64
+        63
       ],
-      "mesh": "./res/models/szkielet6.glb:Cube.003",
-      "node": 119
+      "mesh": "./res/models/szkielet6.glb:Cube.004",
+      "node": 121
     }
   },
   {
@@ -7309,6 +8235,7 @@
       ],
       "jointMatrices": [],
       "joints": [
+        65,
         66,
         67,
         68,
@@ -7354,10 +8281,9 @@
         108,
         109,
         110,
-        111,
-        112
+        111
       ],
-      "node": 119,
+      "node": 121,
       "skeletonRoot": -1
     }
   },
@@ -7368,13 +8294,13 @@
       "disabledState": 0,
       "id": 27,
       "layer": 0,
-      "name": "Cube.004",
+      "name": "Cube.005",
       "objects": [
-        123,
-        124,
+        125,
+        126,
         -1
       ],
-      "parent": 56,
+      "parent": 55,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -7401,15 +8327,15 @@
     "_data": {
       "enabled": true,
       "materials": [
+        58,
         59,
         60,
         61,
         62,
-        63,
-        64
+        63
       ],
-      "mesh": "./res/models/szkielet6.glb:Cube.004",
-      "node": 122
+      "mesh": "./res/models/szkielet6.glb:Cube.005",
+      "node": 124
     }
   },
   {
@@ -8267,6 +9193,7 @@
       ],
       "jointMatrices": [],
       "joints": [
+        65,
         66,
         67,
         68,
@@ -8312,10 +9239,9 @@
         108,
         109,
         110,
-        111,
-        112
+        111
       ],
-      "node": 122,
+      "node": 124,
       "skeletonRoot": -1
     }
   },
@@ -8326,13 +9252,13 @@
       "disabledState": 0,
       "id": 28,
       "layer": 0,
-      "name": "Cube.005",
+      "name": "Cube.006",
       "objects": [
-        126,
-        127,
+        128,
+        129,
         -1
       ],
-      "parent": 56,
+      "parent": 55,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -8359,15 +9285,15 @@
     "_data": {
       "enabled": true,
       "materials": [
+        58,
         59,
         60,
         61,
         62,
-        63,
-        64
+        63
       ],
-      "mesh": "./res/models/szkielet6.glb:Cube.005",
-      "node": 125
+      "mesh": "./res/models/szkielet6.glb:Cube.006",
+      "node": 127
     }
   },
   {
@@ -9225,6 +10151,7 @@
       ],
       "jointMatrices": [],
       "joints": [
+        65,
         66,
         67,
         68,
@@ -9270,10 +10197,9 @@
         108,
         109,
         110,
-        111,
-        112
+        111
       ],
-      "node": 125,
+      "node": 127,
       "skeletonRoot": -1
     }
   },
@@ -9284,13 +10210,13 @@
       "disabledState": 0,
       "id": 29,
       "layer": 0,
-      "name": "Cube.006",
+      "name": "Cube.007",
       "objects": [
-        129,
-        130,
+        131,
+        132,
         -1
       ],
-      "parent": 56,
+      "parent": 55,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -9317,15 +10243,15 @@
     "_data": {
       "enabled": true,
       "materials": [
+        58,
         59,
         60,
         61,
         62,
-        63,
-        64
+        63
       ],
-      "mesh": "./res/models/szkielet6.glb:Cube.006",
-      "node": 128
+      "mesh": "./res/models/szkielet6.glb:Cube",
+      "node": 130
     }
   },
   {
@@ -10183,6 +11109,7 @@
       ],
       "jointMatrices": [],
       "joints": [
+        65,
         66,
         67,
         68,
@@ -10228,10 +11155,9 @@
         108,
         109,
         110,
-        111,
-        112
+        111
       ],
-      "node": 128,
+      "node": 130,
       "skeletonRoot": -1
     }
   },
@@ -10242,13 +11168,13 @@
       "disabledState": 0,
       "id": 30,
       "layer": 0,
-      "name": "Cube.007",
+      "name": "Cube.008",
       "objects": [
-        132,
-        133,
+        134,
+        135,
         -1
       ],
-      "parent": 56,
+      "parent": 55,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -10275,15 +11201,15 @@
     "_data": {
       "enabled": true,
       "materials": [
+        58,
         59,
         60,
         61,
         62,
-        63,
-        64
+        63
       ],
-      "mesh": "./res/models/szkielet6.glb:Cube",
-      "node": 131
+      "mesh": "./res/models/szkielet6.glb:Cube.008",
+      "node": 133
     }
   },
   {
@@ -11141,6 +12067,7 @@
       ],
       "jointMatrices": [],
       "joints": [
+        65,
         66,
         67,
         68,
@@ -11186,10 +12113,9 @@
         108,
         109,
         110,
-        111,
-        112
+        111
       ],
-      "node": 131,
+      "node": 133,
       "skeletonRoot": -1
     }
   },
@@ -11200,13 +12126,13 @@
       "disabledState": 0,
       "id": 31,
       "layer": 0,
-      "name": "Cube.008",
+      "name": "Cube.009",
       "objects": [
-        135,
-        136,
+        137,
+        138,
         -1
       ],
-      "parent": 56,
+      "parent": 55,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -11233,15 +12159,15 @@
     "_data": {
       "enabled": true,
       "materials": [
+        58,
         59,
         60,
         61,
         62,
-        63,
-        64
+        63
       ],
-      "mesh": "./res/models/szkielet6.glb:Cube.008",
-      "node": 134
+      "mesh": "./res/models/szkielet6.glb:Cube.009",
+      "node": 136
     }
   },
   {
@@ -12099,6 +13025,7 @@
       ],
       "jointMatrices": [],
       "joints": [
+        65,
         66,
         67,
         68,
@@ -12144,10 +13071,9 @@
         108,
         109,
         110,
-        111,
-        112
+        111
       ],
-      "node": 134,
+      "node": 136,
       "skeletonRoot": -1
     }
   },
@@ -12158,13 +13084,13 @@
       "disabledState": 0,
       "id": 32,
       "layer": 0,
-      "name": "Cube.009",
+      "name": "Cube.010",
       "objects": [
-        138,
-        139,
+        140,
+        141,
         -1
       ],
-      "parent": 56,
+      "parent": 55,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -12191,15 +13117,15 @@
     "_data": {
       "enabled": true,
       "materials": [
+        58,
         59,
         60,
         61,
         62,
-        63,
-        64
+        63
       ],
-      "mesh": "./res/models/szkielet6.glb:Cube.009",
-      "node": 137
+      "mesh": "./res/models/szkielet6.glb:Cube.010",
+      "node": 139
     }
   },
   {
@@ -13057,6 +13983,7 @@
       ],
       "jointMatrices": [],
       "joints": [
+        65,
         66,
         67,
         68,
@@ -13102,10 +14029,9 @@
         108,
         109,
         110,
-        111,
-        112
+        111
       ],
-      "node": 137,
+      "node": 139,
       "skeletonRoot": -1
     }
   },
@@ -13116,13 +14042,13 @@
       "disabledState": 0,
       "id": 33,
       "layer": 0,
-      "name": "Cube.010",
+      "name": "Cube.011",
       "objects": [
-        141,
-        142,
+        143,
+        144,
         -1
       ],
-      "parent": 56,
+      "parent": 55,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -13149,15 +14075,15 @@
     "_data": {
       "enabled": true,
       "materials": [
+        58,
         59,
         60,
         61,
         62,
-        63,
-        64
+        63
       ],
-      "mesh": "./res/models/szkielet6.glb:Cube.010",
-      "node": 140
+      "mesh": "./res/models/szkielet6.glb:Cube.011",
+      "node": 142
     }
   },
   {
@@ -14015,6 +14941,7 @@
       ],
       "jointMatrices": [],
       "joints": [
+        65,
         66,
         67,
         68,
@@ -14060,10 +14987,9 @@
         108,
         109,
         110,
-        111,
-        112
+        111
       ],
-      "node": 140,
+      "node": 142,
       "skeletonRoot": -1
     }
   },
@@ -14074,13 +15000,13 @@
       "disabledState": 0,
       "id": 34,
       "layer": 0,
-      "name": "Cube.011",
+      "name": "Cube.012",
       "objects": [
-        144,
-        145,
+        146,
+        147,
         -1
       ],
-      "parent": 56,
+      "parent": 55,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -14107,15 +15033,15 @@
     "_data": {
       "enabled": true,
       "materials": [
+        58,
         59,
         60,
         61,
         62,
-        63,
-        64
+        63
       ],
-      "mesh": "./res/models/szkielet6.glb:Cube.011",
-      "node": 143
+      "mesh": "./res/models/szkielet6.glb:Cube.012",
+      "node": 145
     }
   },
   {
@@ -14973,6 +15899,7 @@
       ],
       "jointMatrices": [],
       "joints": [
+        65,
         66,
         67,
         68,
@@ -15018,10 +15945,9 @@
         108,
         109,
         110,
-        111,
-        112
+        111
       ],
-      "node": 143,
+      "node": 145,
       "skeletonRoot": -1
     }
   },
@@ -15032,13 +15958,13 @@
       "disabledState": 0,
       "id": 35,
       "layer": 0,
-      "name": "Cube.012",
+      "name": "Cube.013",
       "objects": [
-        147,
-        148,
+        149,
+        150,
         -1
       ],
-      "parent": 56,
+      "parent": 55,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -15065,15 +15991,15 @@
     "_data": {
       "enabled": true,
       "materials": [
+        58,
         59,
         60,
         61,
         62,
-        63,
-        64
+        63
       ],
-      "mesh": "./res/models/szkielet6.glb:Cube.012",
-      "node": 146
+      "mesh": "./res/models/szkielet6.glb:Cube.013",
+      "node": 148
     }
   },
   {
@@ -15931,6 +16857,7 @@
       ],
       "jointMatrices": [],
       "joints": [
+        65,
         66,
         67,
         68,
@@ -15976,10 +16903,9 @@
         108,
         109,
         110,
-        111,
-        112
+        111
       ],
-      "node": 146,
+      "node": 148,
       "skeletonRoot": -1
     }
   },
@@ -15990,13 +16916,13 @@
       "disabledState": 0,
       "id": 36,
       "layer": 0,
-      "name": "Cube.013",
+      "name": "Cube.014",
       "objects": [
-        150,
-        151,
+        152,
+        153,
         -1
       ],
-      "parent": 56,
+      "parent": 55,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -16023,15 +16949,15 @@
     "_data": {
       "enabled": true,
       "materials": [
+        58,
         59,
         60,
         61,
         62,
-        63,
-        64
+        63
       ],
-      "mesh": "./res/models/szkielet6.glb:Cube.013",
-      "node": 149
+      "mesh": "./res/models/szkielet6.glb:Cube.014",
+      "node": 151
     }
   },
   {
@@ -16889,6 +17815,7 @@
       ],
       "jointMatrices": [],
       "joints": [
+        65,
         66,
         67,
         68,
@@ -16934,10 +17861,9 @@
         108,
         109,
         110,
-        111,
-        112
+        111
       ],
-      "node": 149,
+      "node": 151,
       "skeletonRoot": -1
     }
   },
@@ -16948,971 +17874,13 @@
       "disabledState": 0,
       "id": 37,
       "layer": 0,
-      "name": "Cube.014",
-      "objects": [
-        153,
-        154,
-        -1
-      ],
-      "parent": 56,
-      "scene": 0,
-      "transform": {
-        "_00": 1.0,
-        "_01": 0.0,
-        "_02": 0.0,
-        "_03": 0.0,
-        "_10": 0.0,
-        "_11": 1.0,
-        "_12": 0.0,
-        "_13": 0.0,
-        "_20": 0.0,
-        "_21": 0.0,
-        "_22": 1.0,
-        "_23": 0.0,
-        "_30": 0.0,
-        "_31": 0.0,
-        "_32": 0.0,
-        "_33": 1.0
-      }
-    }
-  },
-  {
-    "_class_name": "MeshRenderer",
-    "_data": {
-      "enabled": true,
-      "materials": [
-        59,
-        60,
-        61,
-        62,
-        63,
-        64
-      ],
-      "mesh": "./res/models/szkielet6.glb:Cube.014",
-      "node": 152
-    }
-  },
-  {
-    "_class_name": "SkeletonComponent",
-    "_data": {
-      "bufferOffset": 0,
-      "enabled": true,
-      "inverseBindMatrices": [
-        {
-          "_00": -6.537997254696393e-09,
-          "_01": 0.2496393918991089,
-          "_02": 0.9683387875556946,
-          "_03": -0.0,
-          "_10": -2.9091234310385516e-08,
-          "_11": 0.9683387279510498,
-          "_12": -0.2496393620967865,
-          "_13": 0.0,
-          "_20": -0.9999998807907104,
-          "_21": -4.5148066618594385e-08,
-          "_22": 3.9450629429893525e-09,
-          "_23": -0.0,
-          "_30": 0.1854368895292282,
-          "_31": -9.125727653503418,
-          "_32": 3.594381093978882,
-          "_33": 1.0
-        },
-        {
-          "_00": -6.527557872004763e-08,
-          "_01": 0.12295379489660263,
-          "_02": 0.992412269115448,
-          "_03": -0.0,
-          "_10": 8.087243763554852e-09,
-          "_11": 0.992412269115448,
-          "_12": -0.12295375764369965,
-          "_13": 0.0,
-          "_20": -0.9999998807907104,
-          "_21": -1.5605982284228048e-08,
-          "_22": -6.476071945371586e-08,
-          "_23": -0.0,
-          "_30": 0.18543641269207,
-          "_31": -10.948468208312988,
-          "_32": 2.203808069229126,
-          "_33": 1.0
-        },
-        {
-          "_00": 5.418933923806435e-08,
-          "_01": -0.031812507659196854,
-          "_02": 0.9994937777519226,
-          "_03": -0.0,
-          "_10": 1.7247742123416288e-09,
-          "_11": 0.9994938373565674,
-          "_12": 0.031812552362680435,
-          "_13": 0.0,
-          "_20": -0.9999998807907104,
-          "_21": -1.5575304601611606e-08,
-          "_22": 5.280800507989625e-08,
-          "_23": -0.0,
-          "_30": 0.18543659150600433,
-          "_31": -12.441750526428223,
-          "_32": 0.28544747829437256,
-          "_33": 1.0
-        },
-        {
-          "_00": -1.0017271989681831e-07,
-          "_01": -0.028559744358062744,
-          "_02": 0.9995919466018677,
-          "_03": -0.0,
-          "_10": -2.862079240273374e-09,
-          "_11": 0.9995919466018677,
-          "_12": 0.028559789061546326,
-          "_13": 0.0,
-          "_20": -0.9999998807907104,
-          "_21": -1.5579805889842646e-08,
-          "_22": -1.0157167906754694e-07,
-          "_23": 0.0,
-          "_30": 0.18543653190135956,
-          "_31": -14.08548355102539,
-          "_32": 0.33128678798675537,
-          "_33": 1.0
-        },
-        {
-          "_00": -6.925420681369587e-09,
-          "_01": 0.36878374218940735,
-          "_02": 0.9295150637626648,
-          "_03": -0.0,
-          "_10": 2.747646554723815e-09,
-          "_11": 0.9295150637626648,
-          "_12": -0.36878371238708496,
-          "_13": 0.0,
-          "_20": -0.9999998807907104,
-          "_21": -1.4848353657725966e-08,
-          "_22": -2.541277410728071e-09,
-          "_23": -0.0,
-          "_30": 0.18543651700019836,
-          "_31": -14.49100112915039,
-          "_32": 6.5946197509765625,
-          "_33": 1.0
-        },
-        {
-          "_00": -1.655598858008034e-08,
-          "_01": 0.18659910559654236,
-          "_02": 0.9824360013008118,
-          "_03": -0.0,
-          "_10": -2.2283106915210737e-08,
-          "_11": 0.9824358820915222,
-          "_12": -0.18659913539886475,
-          "_13": 0.0,
-          "_20": -0.9999998807907104,
-          "_21": -4.0489368302587536e-08,
-          "_22": -1.0090499991122215e-08,
-          "_23": -0.0,
-          "_30": 0.1854369342327118,
-          "_31": -16.093786239624023,
-          "_32": 3.6203019618988037,
-          "_33": 1.0
-        },
-        {
-          "_00": -4.371137762859689e-08,
-          "_01": -2.9802311729554276e-08,
-          "_02": 0.9999998807907104,
-          "_03": -0.0,
-          "_10": -2.8865790169924598e-15,
-          "_11": 0.9999997615814209,
-          "_12": -1.2881054761509334e-22,
-          "_13": 0.0,
-          "_20": -0.9999998807907104,
-          "_21": -1.561222973123222e-08,
-          "_22": -4.462394542770198e-08,
-          "_23": -0.0,
-          "_30": 0.18543653190135956,
-          "_31": -17.072683334350586,
-          "_32": 0.4423219859600067,
-          "_33": 1.0
-        },
-        {
-          "_00": 0.9845917224884033,
-          "_01": 0.06245027855038643,
-          "_02": -0.1633378118276596,
-          "_03": -0.0,
-          "_10": 0.05160295218229294,
-          "_11": 0.7886993885040283,
-          "_12": 0.6126096844673157,
-          "_13": -0.0,
-          "_20": 0.1670820564031601,
-          "_21": -0.6115990281105042,
-          "_22": 0.7733240723609924,
-          "_23": -0.0,
-          "_30": 0.6506192088127136,
-          "_31": -7.488770008087158,
-          "_32": -6.30300760269165,
-          "_33": 1.0
-        },
-        {
-          "_00": -0.9845917224884033,
-          "_01": 0.06245036423206329,
-          "_02": -0.1633378118276596,
-          "_03": 0.0,
-          "_10": -0.051602866500616074,
-          "_11": 0.7886994481086731,
-          "_12": 0.6126096844673157,
-          "_13": 0.0,
-          "_20": 0.16708210110664368,
-          "_21": 0.6115992069244385,
-          "_22": -0.773324191570282,
-          "_23": -0.0,
-          "_30": -0.7125862240791321,
-          "_31": -7.715596675872803,
-          "_32": -6.0162034034729,
-          "_33": 1.0
-        },
-        {
-          "_00": -0.5273323655128479,
-          "_01": 0.08252474665641785,
-          "_02": -0.8456419706344604,
-          "_03": -0.0,
-          "_10": 0.02162296138703823,
-          "_11": -0.9936462640762329,
-          "_12": -0.1104520708322525,
-          "_13": 0.0,
-          "_20": -0.8493839502334595,
-          "_21": -0.07653022557497025,
-          "_22": 0.5221973657608032,
-          "_23": 0.0,
-          "_30": -1.7545428276062012,
-          "_31": 9.835101127624512,
-          "_32": 1.1134732961654663,
-          "_33": 1.0
-        },
-        {
-          "_00": -0.5273323059082031,
-          "_01": 0.08252476155757904,
-          "_02": -0.8456419110298157,
-          "_03": -0.0,
-          "_10": 0.021622978150844574,
-          "_11": -0.9936461448669434,
-          "_12": -0.1104520857334137,
-          "_13": 0.0,
-          "_20": -0.8493838906288147,
-          "_21": -0.07653023302555084,
-          "_22": 0.5221972465515137,
-          "_23": 0.0,
-          "_30": -1.7545428276062012,
-          "_31": 7.471888065338135,
-          "_32": 1.1134731769561768,
-          "_33": 1.0
-        },
-        {
-          "_00": -0.5273323655128479,
-          "_01": -0.09766864776611328,
-          "_02": -0.8440269827842712,
-          "_03": -0.0,
-          "_10": 0.021622980013489723,
-          "_11": -0.9945922493934631,
-          "_12": 0.10158203542232513,
-          "_13": 0.0,
-          "_20": -0.8493838906288147,
-          "_21": 0.035317130386829376,
-          "_22": 0.5265925526618958,
-          "_23": -0.0,
-          "_30": -1.7545428276062012,
-          "_31": 5.228602409362793,
-          "_32": 0.011062324978411198,
-          "_33": 1.0
-        },
-        {
-          "_00": -0.5273323655128479,
-          "_01": -0.09766870737075806,
-          "_02": -0.8440269827842712,
-          "_03": -0.0,
-          "_10": 0.021623024716973305,
-          "_11": -0.9945922493934631,
-          "_12": 0.10158206522464752,
-          "_13": 0.0,
-          "_20": -0.8493838906288147,
-          "_21": 0.03531710430979729,
-          "_22": 0.5265925526618958,
-          "_23": -0.0,
-          "_30": -1.7545430660247803,
-          "_31": 3.0467472076416016,
-          "_32": 0.011062384583055973,
-          "_33": 1.0
-        },
-        {
-          "_00": 0.21930256485939026,
-          "_01": 0.8330010771751404,
-          "_02": -0.5079525709152222,
-          "_03": -0.0,
-          "_10": -1.8626454334480513e-07,
-          "_11": -0.5206261873245239,
-          "_12": -0.8537847399711609,
-          "_13": 0.0,
-          "_20": -0.9756569266319275,
-          "_21": 0.18723729252815247,
-          "_22": -0.11417445540428162,
-          "_23": -0.0,
-          "_30": -1.3071558475494385,
-          "_31": 1.4454350471496582,
-          "_32": 0.1692453771829605,
-          "_33": 1.0
-        },
-        {
-          "_00": 9.685760460342863e-08,
-          "_01": 0.9999999403953552,
-          "_02": 8.940689610881236e-08,
-          "_03": -0.0,
-          "_10": 6.482005687757919e-07,
-          "_11": -5.960468030252741e-08,
-          "_12": 1.0,
-          "_13": 0.0,
-          "_20": 1.0000001192092896,
-          "_21": -5.960460214282648e-08,
-          "_22": -6.85453471760411e-07,
-          "_23": -0.0,
-          "_30": 1.292287826538086,
-          "_31": -0.2112443894147873,
-          "_32": -0.2453666478395462,
-          "_33": 1.0
-        },
-        {
-          "_00": 0.5273320078849792,
-          "_01": 0.08252464234828949,
-          "_02": -0.8456422090530396,
-          "_03": -0.0,
-          "_10": -0.021622976288199425,
-          "_11": -0.9936462044715881,
-          "_12": -0.11045201867818832,
-          "_13": 0.0,
-          "_20": -0.8493841290473938,
-          "_21": 0.07653012871742249,
-          "_22": -0.5221971273422241,
-          "_23": -0.0,
-          "_30": 2.069556951522827,
-          "_31": 9.806719779968262,
-          "_32": 1.3071413040161133,
-          "_33": 1.0
-        },
-        {
-          "_00": 0.5273319482803345,
-          "_01": 0.0825246199965477,
-          "_02": -0.8456422686576843,
-          "_03": -0.0,
-          "_10": -0.0216230396181345,
-          "_11": -0.9936462640762329,
-          "_12": -0.11045204102993011,
-          "_13": 0.0,
-          "_20": -0.8493841886520386,
-          "_21": 0.07653017342090607,
-          "_22": -0.5221970677375793,
-          "_23": -0.0,
-          "_30": 2.0695571899414063,
-          "_31": 7.443506240844727,
-          "_32": 1.3071411848068237,
-          "_33": 1.0
-        },
-        {
-          "_00": 0.527332067489624,
-          "_01": -0.09766878187656403,
-          "_02": -0.8440271615982056,
-          "_03": -0.0,
-          "_10": -0.02162303403019905,
-          "_11": -0.9945923089981079,
-          "_12": 0.10158205032348633,
-          "_13": 0.0,
-          "_20": -0.8493841290473938,
-          "_21": -0.03531712293624878,
-          "_22": -0.5265923142433167,
-          "_23": -0.0,
-          "_30": 2.0695571899414063,
-          "_31": 5.241700649261475,
-          "_32": 0.20636092126369476,
-          "_33": 1.0
-        },
-        {
-          "_00": 0.527332067489624,
-          "_01": -0.09766875952482224,
-          "_02": -0.8440271019935608,
-          "_03": -0.0,
-          "_10": -0.021623019129037857,
-          "_11": -0.9945922493934631,
-          "_12": 0.10158202052116394,
-          "_13": 0.0,
-          "_20": -0.849384069442749,
-          "_21": -0.03531711921095848,
-          "_22": -0.5265923142433167,
-          "_23": -0.0,
-          "_30": 2.0695571899414063,
-          "_31": 3.059844970703125,
-          "_32": 0.20636090636253357,
-          "_33": 1.0
-        },
-        {
-          "_00": -0.21930259466171265,
-          "_01": 0.8330013751983643,
-          "_02": -0.5079520344734192,
-          "_03": -0.0,
-          "_10": 4.02331437499015e-07,
-          "_11": -0.5206255912780762,
-          "_12": -0.8537852168083191,
-          "_13": 0.0,
-          "_20": -0.9756569266319275,
-          "_21": -0.1872374713420868,
-          "_22": 0.11417414247989655,
-          "_23": 0.0,
-          "_30": 1.6690009832382202,
-          "_31": 1.514876127243042,
-          "_32": 0.12690189480781555,
-          "_33": 1.0
-        },
-        {
-          "_00": 1.0058281674218961e-07,
-          "_01": 0.9999997615814209,
-          "_02": 8.940696005765858e-08,
-          "_03": -0.0,
-          "_10": -2.235175422526936e-08,
-          "_11": -8.940695295223122e-08,
-          "_12": 1.0000001192092896,
-          "_13": 0.0,
-          "_20": 1.0000001192092896,
-          "_21": -6.332992796842518e-08,
-          "_22": 8.94069742685133e-08,
-          "_23": -0.0,
-          "_30": -1.6631611585617065,
-          "_31": -0.21124428510665894,
-          "_32": -0.24536612629890442,
-          "_33": 1.0
-        },
-        {
-          "_00": 0.39662492275238037,
-          "_01": 0.3493139147758484,
-          "_02": -0.8489220142364502,
-          "_03": -0.0,
-          "_10": 0.9162087440490723,
-          "_11": -0.2080671340227127,
-          "_12": 0.34244659543037415,
-          "_13": 0.0,
-          "_20": -0.05701146274805069,
-          "_21": -0.9136125445365906,
-          "_22": -0.4025690257549286,
-          "_23": 0.0,
-          "_30": -14.618762016296387,
-          "_31": -6.49226713180542,
-          "_32": -9.98022747039795,
-          "_33": 1.0
-        },
-        {
-          "_00": 0.39485296607017517,
-          "_01": -0.05439911410212517,
-          "_02": -0.9171323180198669,
-          "_03": -0.0,
-          "_10": 0.913855791091919,
-          "_11": -0.07958648353815079,
-          "_12": 0.3981628715991974,
-          "_13": 0.0,
-          "_20": -0.09465111047029495,
-          "_21": -0.9953422546386719,
-          "_22": 0.018287936225533485,
-          "_23": 0.0,
-          "_30": -14.996455192565918,
-          "_31": -9.72253131866455,
-          "_32": -6.239517688751221,
-          "_33": 1.0
-        },
-        {
-          "_00": 0.39646902680397034,
-          "_01": 0.012010413222014904,
-          "_02": -0.9179695248603821,
-          "_03": -0.0,
-          "_10": 0.917919933795929,
-          "_11": -0.021899838000535965,
-          "_12": 0.3961609899997711,
-          "_13": 0.0,
-          "_20": -0.015345405787229538,
-          "_21": -0.999687910079956,
-          "_22": -0.019707247614860535,
-          "_23": 0.0,
-          "_30": -14.136283874511719,
-          "_31": -11.28170394897461,
-          "_32": -6.650806427001953,
-          "_33": 1.0
-        },
-        {
-          "_00": 0.11699864268302917,
-          "_01": -0.023169206455349922,
-          "_02": 0.9928618669509888,
-          "_03": -0.0,
-          "_10": -0.9905443787574768,
-          "_11": -0.0748441219329834,
-          "_12": 0.11497901380062103,
-          "_13": 0.0,
-          "_20": 0.07164590060710907,
-          "_21": -0.9969260692596436,
-          "_22": -0.031706783920526505,
-          "_23": -0.0,
-          "_30": 15.95821762084961,
-          "_31": -9.010818481445313,
-          "_32": -2.461344003677368,
-          "_33": 1.0
-        },
-        {
-          "_00": 0.10620616376399994,
-          "_01": 0.5231863260269165,
-          "_02": 0.845574676990509,
-          "_03": -0.0,
-          "_10": -0.9903284311294556,
-          "_11": -0.020693419501185417,
-          "_12": 0.1371913105249405,
-          "_13": 0.0,
-          "_20": 0.08927445113658905,
-          "_21": -0.8519670963287354,
-          "_22": 0.5159285068511963,
-          "_23": -0.0,
-          "_30": 16.146289825439453,
-          "_31": -8.932129859924316,
-          "_32": 3.0754201412200928,
-          "_33": 1.0
-        },
-        {
-          "_00": 0.1241651177406311,
-          "_01": 0.2464703470468521,
-          "_02": 0.9611636400222778,
-          "_03": -0.0,
-          "_10": -0.9913032054901123,
-          "_11": -0.011750289238989353,
-          "_12": 0.13107173144817352,
-          "_13": 0.0,
-          "_20": 0.043599262833595276,
-          "_21": -0.9690791368484497,
-          "_22": 0.2428678423166275,
-          "_23": -0.0,
-          "_30": 15.647435188293457,
-          "_31": -10.641865730285645,
-          "_32": 0.0927426740527153,
-          "_33": 1.0
-        },
-        {
-          "_00": 0.8582951426506042,
-          "_01": -0.5065231919288635,
-          "_02": -0.08224145323038101,
-          "_03": -0.0,
-          "_10": -0.0006480440497398376,
-          "_11": -0.16133564710617065,
-          "_12": 0.9868993759155273,
-          "_13": 0.0,
-          "_20": -0.5131559371948242,
-          "_21": -0.8469976782798767,
-          "_22": -0.13880185782909393,
-          "_23": -0.0,
-          "_30": 0.038619160652160645,
-          "_31": 2.480132818222046,
-          "_32": -15.195345878601074,
-          "_33": 1.0
-        },
-        {
-          "_00": -0.6742208003997803,
-          "_01": -0.038729552179574966,
-          "_02": 0.737513542175293,
-          "_03": 0.0,
-          "_10": -0.738142192363739,
-          "_11": 0.002991946879774332,
-          "_12": -0.6746385097503662,
-          "_13": 0.0,
-          "_20": 0.023921841755509377,
-          "_21": -0.9992453455924988,
-          "_22": -0.030605146661400795,
-          "_23": -0.0,
-          "_30": 11.17564868927002,
-          "_31": -1.8756194114685059,
-          "_32": 10.749194145202637,
-          "_33": 1.0
-        },
-        {
-          "_00": -0.6742208003997803,
-          "_01": -0.038729604333639145,
-          "_02": 0.737513542175293,
-          "_03": 0.0,
-          "_10": -0.738142192363739,
-          "_11": 0.0029919487424194813,
-          "_12": -0.6746385097503662,
-          "_13": 0.0,
-          "_20": 0.023921877145767212,
-          "_21": -0.9992453455924988,
-          "_22": -0.030605187639594078,
-          "_23": -0.0,
-          "_30": 11.175649642944336,
-          "_31": -3.8872334957122803,
-          "_32": 10.749194145202637,
-          "_33": 1.0
-        },
-        {
-          "_00": -0.6742209196090698,
-          "_01": 0.03902627155184746,
-          "_02": 0.737497866153717,
-          "_03": -0.0,
-          "_10": -0.738142192363739,
-          "_11": -0.06795523315668106,
-          "_12": -0.6712139844894409,
-          "_13": 0.0,
-          "_20": 0.02392186038196087,
-          "_21": -0.9969247579574585,
-          "_22": 0.07462378591299057,
-          "_23": -0.0,
-          "_30": 11.175647735595703,
-          "_31": -4.735996723175049,
-          "_32": 11.309815406799316,
-          "_33": 1.0
-        },
-        {
-          "_00": -0.6742208003997803,
-          "_01": 0.03902624174952507,
-          "_02": 0.7374979257583618,
-          "_03": -0.0,
-          "_10": -0.7381422519683838,
-          "_11": -0.06795517355203629,
-          "_12": -0.6712139248847961,
-          "_13": 0.0,
-          "_20": 0.023921845480799675,
-          "_21": -0.996924877166748,
-          "_22": 0.0746237188577652,
-          "_23": -0.0,
-          "_30": 11.17564868927002,
-          "_31": -6.68643856048584,
-          "_32": 11.309813499450684,
-          "_33": 1.0
-        },
-        {
-          "_00": -0.6812382340431213,
-          "_01": -0.011060379445552826,
-          "_02": 0.7319782972335815,
-          "_03": -0.0,
-          "_10": -0.7247193455696106,
-          "_11": 0.1514492630958557,
-          "_12": -0.6721941232681274,
-          "_13": 0.0,
-          "_20": -0.10342282801866531,
-          "_21": -0.9884032011032104,
-          "_22": -0.11118867993354797,
-          "_23": 0.0,
-          "_30": 9.72961139678955,
-          "_31": -11.924236297607422,
-          "_32": 9.515775680541992,
-          "_33": 1.0
-        },
-        {
-          "_00": -0.39662501215934753,
-          "_01": 0.349313884973526,
-          "_02": -0.8489218950271606,
-          "_03": 0.0,
-          "_10": -0.9162085056304932,
-          "_11": -0.20806720852851868,
-          "_12": 0.34244662523269653,
-          "_13": 0.0,
-          "_20": -0.05701134353876114,
-          "_21": 0.9136125445365906,
-          "_22": 0.4025689959526062,
-          "_23": -0.0,
-          "_30": 14.629651069641113,
-          "_31": -6.666859149932861,
-          "_32": -10.057159423828125,
-          "_33": 1.0
-        },
-        {
-          "_00": -0.3948589265346527,
-          "_01": -0.054398976266384125,
-          "_02": -0.9171299934387207,
-          "_03": 0.0,
-          "_10": -0.9138530492782593,
-          "_11": -0.0795866996049881,
-          "_12": 0.39816874265670776,
-          "_13": 0.0,
-          "_20": -0.09465119242668152,
-          "_21": 0.9953425526618958,
-          "_22": -0.018287193030118942,
-          "_23": -0.0,
-          "_30": 15.014500617980957,
-          "_31": -9.912741661071777,
-          "_32": -6.236120700836182,
-          "_33": 1.0
-        },
-        {
-          "_00": -0.3964691758155823,
-          "_01": 0.012010517530143261,
-          "_02": -0.9179695248603821,
-          "_03": 0.0,
-          "_10": -0.9179196953773499,
-          "_11": -0.021900029852986336,
-          "_12": 0.3961610794067383,
-          "_13": 0.0,
-          "_20": -0.015345349907875061,
-          "_21": 0.9996879696846008,
-          "_22": 0.019707338884472847,
-          "_23": -0.0,
-          "_30": 14.139211654663086,
-          "_31": -11.472742080688477,
-          "_32": -6.654573917388916,
-          "_33": 1.0
-        },
-        {
-          "_00": -0.6548589468002319,
-          "_01": 0.3121834099292755,
-          "_02": -0.6882604956626892,
-          "_03": -0.0,
-          "_10": -0.7415323853492737,
-          "_11": -0.08957717567682266,
-          "_12": 0.6649125814437866,
-          "_13": 0.0,
-          "_20": 0.14592157304286957,
-          "_21": 0.9457895159721375,
-          "_22": 0.29015403985977173,
-          "_23": -0.0,
-          "_30": 10.129158020019531,
-          "_31": -8.736019134521484,
-          "_32": -13.065505981445313,
-          "_33": 1.0
-        },
-        {
-          "_00": -0.6565673351287842,
-          "_01": 0.22724686563014984,
-          "_02": -0.7192213535308838,
-          "_03": -0.0,
-          "_10": -0.7414112687110901,
-          "_11": -0.01911981776356697,
-          "_12": 0.6707807779312134,
-          "_13": 0.0,
-          "_20": 0.13868080079555511,
-          "_21": 0.9736495018005371,
-          "_22": 0.1810365915298462,
-          "_23": -0.0,
-          "_30": 10.207179069519043,
-          "_31": -10.446549415588379,
-          "_32": -11.949419975280762,
-          "_33": 1.0
-        },
-        {
-          "_00": -0.6521194577217102,
-          "_01": 0.24647071957588196,
-          "_02": -0.7169333696365356,
-          "_03": -0.0,
-          "_10": -0.7417128086090088,
-          "_11": -0.01174959260970354,
-          "_12": 0.6706171035766602,
-          "_13": 0.0,
-          "_20": 0.15686310827732086,
-          "_21": 0.969079315662384,
-          "_22": 0.19047236442565918,
-          "_23": -0.0,
-          "_30": 10.002119064331055,
-          "_31": -11.001283645629883,
-          "_32": -12.05571460723877,
-          "_33": 1.0
-        },
-        {
-          "_00": -0.8582949638366699,
-          "_01": -0.5065228939056396,
-          "_02": -0.08224138617515564,
-          "_03": -0.0,
-          "_10": 0.0006479022558778524,
-          "_11": -0.16133569180965424,
-          "_12": 0.9868993163108826,
-          "_13": 0.0,
-          "_20": -0.5131556987762451,
-          "_21": 0.8469977974891663,
-          "_22": 0.13880187273025513,
-          "_23": -0.0,
-          "_30": 0.15169864892959595,
-          "_31": 2.1660053730010986,
-          "_32": -15.246822357177734,
-          "_33": 1.0
-        },
-        {
-          "_00": 0.6742204427719116,
-          "_01": -0.03872951120138168,
-          "_02": 0.7375137805938721,
-          "_03": -0.0,
-          "_10": 0.7381420135498047,
-          "_11": 0.002991934074088931,
-          "_12": -0.6746383905410767,
-          "_13": 0.0,
-          "_20": 0.023921791464090347,
-          "_21": 0.9992454051971436,
-          "_22": 0.030605118721723557,
-          "_23": -0.0,
-          "_30": -11.184515953063965,
-          "_31": -2.246212959289551,
-          "_32": 10.737841606140137,
-          "_33": 1.0
-        },
-        {
-          "_00": 0.6742205619812012,
-          "_01": -0.038729436695575714,
-          "_02": 0.7375136613845825,
-          "_03": -0.0,
-          "_10": 0.7381418943405151,
-          "_11": 0.0029919303487986326,
-          "_12": -0.6746385097503662,
-          "_13": 0.0,
-          "_20": 0.023921744897961617,
-          "_21": 0.9992454051971436,
-          "_22": 0.030605053529143333,
-          "_23": -0.0,
-          "_30": -11.184514999389648,
-          "_31": -4.257827281951904,
-          "_32": 10.737842559814453,
-          "_33": 1.0
-        },
-        {
-          "_00": 0.6742150783538818,
-          "_01": 0.0390264168381691,
-          "_02": 0.7375029921531677,
-          "_03": -0.0,
-          "_10": 0.7381467819213867,
-          "_11": -0.06795524060726166,
-          "_12": -0.6712084412574768,
-          "_13": 0.0,
-          "_20": 0.023922298103570938,
-          "_21": 0.9969249367713928,
-          "_22": -0.0746237188577652,
-          "_23": -0.0,
-          "_30": -11.18459701538086,
-          "_31": -5.105730056762695,
-          "_32": 11.337407112121582,
-          "_33": 1.0
-        },
-        {
-          "_00": 0.6742156147956848,
-          "_01": 0.039026372134685516,
-          "_02": 0.7375025153160095,
-          "_03": -0.0,
-          "_10": 0.7381463050842285,
-          "_11": -0.06795521080493927,
-          "_12": -0.671208918094635,
-          "_13": 0.0,
-          "_20": 0.023922251537442207,
-          "_21": 0.996924877166748,
-          "_22": -0.07462368160486221,
-          "_23": -0.0,
-          "_30": -11.184589385986328,
-          "_31": -7.05617094039917,
-          "_32": 11.337414741516113,
-          "_33": 1.0
-        },
-        {
-          "_00": 0.6653709411621094,
-          "_01": -0.27405455708503723,
-          "_02": 0.6943885684013367,
-          "_03": -0.0,
-          "_10": 0.7444249391555786,
-          "_11": 0.17407210171222687,
-          "_12": -0.6446160078048706,
-          "_13": 0.0,
-          "_20": 0.055786266922950745,
-          "_21": 0.9458295106887817,
-          "_22": 0.31983575224876404,
-          "_23": -0.0,
-          "_30": -11.606097221374512,
-          "_31": -12.329567909240723,
-          "_32": 6.930467128753662,
-          "_33": 1.0
-        },
-        {
-          "_00": -0.0,
-          "_01": 1.0,
-          "_02": 0.0,
-          "_03": -0.0,
-          "_10": 2.3152723827024602e-07,
-          "_11": -0.0,
-          "_12": 1.0,
-          "_13": 0.0,
-          "_20": 1.0,
-          "_21": -0.0,
-          "_22": -2.3152723827024602e-07,
-          "_23": -0.0,
-          "_30": 0.9409396648406982,
-          "_31": 1.1386985778808594,
-          "_32": -14.012245178222656,
-          "_33": 1.0
-        },
-        {
-          "_00": 0.0,
-          "_01": 1.0,
-          "_02": 0.0,
-          "_03": -0.0,
-          "_10": 1.421202853180148e-07,
-          "_11": -0.0,
-          "_12": 1.0,
-          "_13": 0.0,
-          "_20": 1.0,
-          "_21": -0.0,
-          "_22": -1.421202853180148e-07,
-          "_23": -0.0,
-          "_30": -1.3118181228637695,
-          "_31": 1.1386984586715698,
-          "_32": -14.012245178222656,
-          "_33": 1.0
-        }
-      ],
-      "jointMatrices": [],
-      "joints": [
-        66,
-        67,
-        68,
-        69,
-        70,
-        71,
-        72,
-        73,
-        74,
-        75,
-        76,
-        77,
-        78,
-        79,
-        80,
-        81,
-        82,
-        83,
-        84,
-        85,
-        86,
-        87,
-        88,
-        89,
-        90,
-        91,
-        92,
-        93,
-        94,
-        95,
-        96,
-        97,
-        98,
-        99,
-        100,
-        101,
-        102,
-        103,
-        104,
-        105,
-        106,
-        107,
-        108,
-        109,
-        110,
-        111,
-        112
-      ],
-      "node": 152,
-      "skeletonRoot": -1
-    }
-  },
-  {
-    "_class_name": "SceneNode",
-    "_data": {
-      "children": [],
-      "disabledState": 0,
-      "id": 38,
-      "layer": 0,
       "name": "Cube.015",
       "objects": [
+        155,
         156,
-        157,
         -1
       ],
-      "parent": 56,
+      "parent": 55,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -17939,15 +17907,15 @@
     "_data": {
       "enabled": true,
       "materials": [
+        58,
         59,
         60,
         61,
         62,
-        63,
-        64
+        63
       ],
       "mesh": "./res/models/szkielet6.glb:Cube.015",
-      "node": 155
+      "node": 154
     }
   },
   {
@@ -18805,6 +18773,7 @@
       ],
       "jointMatrices": [],
       "joints": [
+        65,
         66,
         67,
         68,
@@ -18850,10 +18819,9 @@
         108,
         109,
         110,
-        111,
-        112
+        111
       ],
-      "node": 155,
+      "node": 154,
       "skeletonRoot": -1
     }
   },
@@ -18866,70 +18834,70 @@
             "name": "attack.001"
           },
           "participants": [
-            72,
             71,
             70,
             69,
             68,
             67,
             66,
+            65,
+            72,
             73,
-            74,
-            80,
             79,
             78,
             77,
             76,
             75,
-            86,
+            74,
             85,
             84,
             83,
             82,
             81,
-            89,
+            80,
             88,
             87,
-            92,
+            86,
             91,
             90,
-            93,
-            98,
+            89,
+            92,
             97,
             96,
             95,
             94,
-            101,
+            93,
             100,
             99,
-            104,
+            98,
             103,
             102,
-            105,
-            110,
+            101,
+            104,
             109,
             108,
             107,
             106,
+            105,
+            110,
             111,
+            56,
             112,
-            57,
-            113,
-            116,
-            119,
-            122,
-            125,
-            128,
-            131,
-            134,
-            137,
-            140,
-            143,
-            146,
-            149,
-            152,
-            155,
-            56
+            115,
+            118,
+            121,
+            124,
+            127,
+            130,
+            133,
+            136,
+            139,
+            142,
+            145,
+            148,
+            151,
+            154,
+            55
           ],
           "source": "./res/models/szkielet6.glb",
           "speed": 1.0
@@ -18939,70 +18907,70 @@
             "name": "idle"
           },
           "participants": [
-            72,
             71,
             70,
             69,
             68,
             67,
             66,
+            65,
+            72,
             73,
-            74,
-            80,
             79,
             78,
             77,
             76,
             75,
-            86,
+            74,
             85,
             84,
             83,
             82,
             81,
-            89,
+            80,
             88,
             87,
-            92,
+            86,
             91,
             90,
-            93,
-            98,
+            89,
+            92,
             97,
             96,
             95,
             94,
-            101,
+            93,
             100,
             99,
-            104,
+            98,
             103,
             102,
-            105,
-            110,
+            101,
+            104,
             109,
             108,
             107,
             106,
+            105,
+            110,
             111,
+            56,
             112,
-            57,
-            113,
-            116,
-            119,
-            122,
-            125,
-            128,
-            131,
-            134,
-            137,
-            140,
-            143,
-            146,
-            149,
-            152,
-            155,
-            56
+            115,
+            118,
+            121,
+            124,
+            127,
+            130,
+            133,
+            136,
+            139,
+            142,
+            145,
+            148,
+            151,
+            154,
+            55
           ],
           "source": "./res/models/szkielet6.glb",
           "speed": 1.0
@@ -19012,77 +18980,77 @@
             "name": "idle.001"
           },
           "participants": [
-            72,
             71,
             70,
             69,
             68,
             67,
             66,
+            65,
+            72,
             73,
-            74,
-            80,
             79,
             78,
             77,
             76,
             75,
-            86,
+            74,
             85,
             84,
             83,
             82,
             81,
-            89,
+            80,
             88,
             87,
-            92,
+            86,
             91,
             90,
-            93,
-            98,
+            89,
+            92,
             97,
             96,
             95,
             94,
-            101,
+            93,
             100,
             99,
-            104,
+            98,
             103,
             102,
-            105,
-            110,
+            101,
+            104,
             109,
             108,
             107,
             106,
+            105,
+            110,
             111,
+            56,
             112,
-            57,
-            113,
-            116,
-            119,
-            122,
-            125,
-            128,
-            131,
-            134,
-            137,
-            140,
-            143,
-            146,
-            149,
-            152,
-            155,
-            56
+            115,
+            118,
+            121,
+            124,
+            127,
+            130,
+            133,
+            136,
+            139,
+            142,
+            145,
+            148,
+            151,
+            154,
+            55
           ],
           "source": "./res/models/szkielet6.glb",
           "speed": 1.0
         }
       ],
       "enabled": true,
-      "node": 55
+      "node": 54
     }
   },
   {
@@ -19112,7 +19080,7 @@
       "mOverrideMassProperties": 0,
       "mRestitution": 0.0,
       "mUseManifoldReduction": true,
-      "node": 54,
+      "node": 53,
       "shape": {
         "halfHeight": 0.5,
         "kind": 2,
@@ -19124,20 +19092,20 @@
     "_class_name": "EnemySkeleton",
     "_data": {
       "enabled": true,
-      "node": 54
+      "node": 53
     }
   },
   {
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        162,
-        167,
-        171,
-        196
+        161,
+        166,
+        170,
+        195
       ],
       "disabledState": 0,
-      "id": 86,
+      "id": 85,
       "layer": 0,
       "name": "UI",
       "objects": [],
@@ -19168,16 +19136,16 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 87,
+      "id": 86,
       "layer": 0,
       "name": "Ui Node",
       "objects": [
+        162,
         163,
         164,
-        165,
-        166
+        165
       ],
-      "parent": 161,
+      "parent": 160,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -19203,28 +19171,28 @@
     "_class_name": "WheelTag",
     "_data": {
       "enabled": true,
-      "node": 162
+      "node": 161
     }
   },
   {
     "_class_name": "UiLayout",
     "_data": {
       "enabled": true,
-      "node": 162
+      "node": 161
     }
   },
   {
     "_class_name": "UiVisual",
     "_data": {
       "enabled": false,
-      "node": 162
+      "node": 161
     }
   },
   {
     "_class_name": "UiInteractable",
     "_data": {
       "enabled": true,
-      "node": 162
+      "node": 161
     }
   },
   {
@@ -19232,15 +19200,15 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 88,
+      "id": 87,
       "layer": 0,
       "name": "Cursor",
       "objects": [
+        167,
         168,
-        169,
-        170
+        169
       ],
-      "parent": 161,
+      "parent": 160,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -19266,44 +19234,44 @@
     "_class_name": "UiLayout",
     "_data": {
       "enabled": true,
-      "node": 167
+      "node": 166
     }
   },
   {
     "_class_name": "UiVisual",
     "_data": {
       "enabled": true,
-      "node": 167
+      "node": 166
     }
   },
   {
     "_class_name": "UiCursor",
     "_data": {
       "enabled": true,
-      "node": 167
+      "node": 166
     }
   },
   {
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        172,
-        176,
-        180,
-        184,
-        188
+        171,
+        175,
+        179,
+        183,
+        187
       ],
       "disabledState": 0,
-      "id": 89,
+      "id": 88,
       "layer": 0,
       "name": "Radial Wheel",
       "objects": [
+        191,
         192,
         193,
-        194,
-        195
+        194
       ],
-      "parent": 161,
+      "parent": 160,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -19330,15 +19298,15 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 95,
+      "id": 94,
       "layer": 0,
       "name": "ItemVisual_0",
       "objects": [
+        172,
         173,
-        174,
-        175
+        174
       ],
-      "parent": 171,
+      "parent": 170,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -19364,21 +19332,21 @@
     "_class_name": "WheelTag",
     "_data": {
       "enabled": true,
-      "node": 172
+      "node": 171
     }
   },
   {
     "_class_name": "UiVisual",
     "_data": {
       "enabled": false,
-      "node": 172
+      "node": 171
     }
   },
   {
     "_class_name": "UiLayout",
     "_data": {
       "enabled": true,
-      "node": 172
+      "node": 171
     }
   },
   {
@@ -19386,15 +19354,15 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 100,
+      "id": 99,
       "layer": 0,
       "name": "ItemVisual_1",
       "objects": [
+        176,
         177,
-        178,
-        179
+        178
       ],
-      "parent": 171,
+      "parent": 170,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -19420,21 +19388,21 @@
     "_class_name": "WheelTag",
     "_data": {
       "enabled": true,
-      "node": 176
+      "node": 175
     }
   },
   {
     "_class_name": "UiVisual",
     "_data": {
       "enabled": false,
-      "node": 176
+      "node": 175
     }
   },
   {
     "_class_name": "UiLayout",
     "_data": {
       "enabled": true,
-      "node": 176
+      "node": 175
     }
   },
   {
@@ -19442,15 +19410,15 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 105,
+      "id": 104,
       "layer": 0,
       "name": "ItemVisual_2",
       "objects": [
+        180,
         181,
-        182,
-        183
+        182
       ],
-      "parent": 171,
+      "parent": 170,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -19476,21 +19444,21 @@
     "_class_name": "WheelTag",
     "_data": {
       "enabled": true,
-      "node": 180
+      "node": 179
     }
   },
   {
     "_class_name": "UiVisual",
     "_data": {
       "enabled": false,
-      "node": 180
+      "node": 179
     }
   },
   {
     "_class_name": "UiLayout",
     "_data": {
       "enabled": true,
-      "node": 180
+      "node": 179
     }
   },
   {
@@ -19498,15 +19466,15 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 110,
+      "id": 109,
       "layer": 0,
       "name": "ItemVisual_3",
       "objects": [
+        184,
         185,
-        186,
-        187
+        186
       ],
-      "parent": 171,
+      "parent": 170,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -19532,21 +19500,21 @@
     "_class_name": "WheelTag",
     "_data": {
       "enabled": true,
-      "node": 184
+      "node": 183
     }
   },
   {
     "_class_name": "UiVisual",
     "_data": {
       "enabled": false,
-      "node": 184
+      "node": 183
     }
   },
   {
     "_class_name": "UiLayout",
     "_data": {
       "enabled": true,
-      "node": 184
+      "node": 183
     }
   },
   {
@@ -19554,15 +19522,15 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 115,
+      "id": 114,
       "layer": 0,
       "name": "ItemVisual_4",
       "objects": [
+        188,
         189,
-        190,
-        191
+        190
       ],
-      "parent": 171,
+      "parent": 170,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -19588,67 +19556,67 @@
     "_class_name": "WheelTag",
     "_data": {
       "enabled": true,
-      "node": 188
+      "node": 187
     }
   },
   {
     "_class_name": "UiVisual",
     "_data": {
       "enabled": false,
-      "node": 188
+      "node": 187
     }
   },
   {
     "_class_name": "UiLayout",
     "_data": {
       "enabled": true,
-      "node": 188
+      "node": 187
     }
   },
   {
     "_class_name": "UiLayout",
     "_data": {
       "enabled": true,
-      "node": 171
+      "node": 170
     }
   },
   {
     "_class_name": "UiVisual",
     "_data": {
       "enabled": false,
-      "node": 171
+      "node": 170
     }
   },
   {
     "_class_name": "UiRadialWheel",
     "_data": {
       "enabled": true,
-      "node": 171
+      "node": 170
     }
   },
   {
     "_class_name": "WheelTag",
     "_data": {
       "enabled": true,
-      "node": 171
+      "node": 170
     }
   },
   {
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        197
+        196
       ],
       "disabledState": 0,
-      "id": 116,
+      "id": 115,
       "layer": 0,
       "name": "Grid",
       "objects": [
+        300,
         301,
-        302,
-        303
+        302
       ],
-      "parent": 161,
+      "parent": 160,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -19674,35 +19642,71 @@
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        198,
-        203,
-        208,
-        213,
-        218,
-        223,
-        228,
-        233,
-        238,
-        243,
-        248,
-        253,
-        258,
-        263,
-        268,
-        273,
-        278,
-        283,
-        288,
-        293
+        197,
+        202,
+        207,
+        212,
+        217,
+        222,
+        227,
+        232,
+        237,
+        242,
+        247,
+        252,
+        257,
+        262,
+        267,
+        272,
+        277,
+        282,
+        287,
+        292
       ],
       "disabledState": 0,
-      "id": 117,
+      "id": 116,
       "layer": 0,
       "name": "Grid Container",
       "objects": [
+        297,
         298,
-        299,
-        300
+        299
+      ],
+      "parent": 195,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": 0.0,
+        "_32": 0.0,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [],
+      "disabledState": 0,
+      "id": 117,
+      "layer": 0,
+      "name": "Item_0",
+      "objects": [
+        198,
+        199,
+        200,
+        201
       ],
       "parent": 196,
       "scene": 0,
@@ -19727,20 +19731,48 @@
     }
   },
   {
+    "_class_name": "UiLayout",
+    "_data": {
+      "enabled": true,
+      "node": 197
+    }
+  },
+  {
+    "_class_name": "UiVisual",
+    "_data": {
+      "enabled": false,
+      "node": 197
+    }
+  },
+  {
+    "_class_name": "UiInteractable",
+    "_data": {
+      "enabled": true,
+      "node": 197
+    }
+  },
+  {
+    "_class_name": "WheelTag",
+    "_data": {
+      "enabled": true,
+      "node": 197
+    }
+  },
+  {
     "_class_name": "SceneNode",
     "_data": {
       "children": [],
       "disabledState": 0,
       "id": 118,
       "layer": 0,
-      "name": "Item_0",
+      "name": "Item_1",
       "objects": [
-        199,
-        200,
-        201,
-        202
+        203,
+        204,
+        205,
+        206
       ],
-      "parent": 197,
+      "parent": 196,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -19766,28 +19798,28 @@
     "_class_name": "UiLayout",
     "_data": {
       "enabled": true,
-      "node": 198
+      "node": 202
     }
   },
   {
     "_class_name": "UiVisual",
     "_data": {
       "enabled": false,
-      "node": 198
+      "node": 202
     }
   },
   {
     "_class_name": "UiInteractable",
     "_data": {
       "enabled": true,
-      "node": 198
+      "node": 202
     }
   },
   {
     "_class_name": "WheelTag",
     "_data": {
       "enabled": true,
-      "node": 198
+      "node": 202
     }
   },
   {
@@ -19797,14 +19829,14 @@
       "disabledState": 0,
       "id": 119,
       "layer": 0,
-      "name": "Item_1",
+      "name": "Item_2",
       "objects": [
-        204,
-        205,
-        206,
-        207
+        208,
+        209,
+        210,
+        211
       ],
-      "parent": 197,
+      "parent": 196,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -19830,28 +19862,28 @@
     "_class_name": "UiLayout",
     "_data": {
       "enabled": true,
-      "node": 203
+      "node": 207
     }
   },
   {
     "_class_name": "UiVisual",
     "_data": {
       "enabled": false,
-      "node": 203
+      "node": 207
     }
   },
   {
     "_class_name": "UiInteractable",
     "_data": {
       "enabled": true,
-      "node": 203
+      "node": 207
     }
   },
   {
     "_class_name": "WheelTag",
     "_data": {
       "enabled": true,
-      "node": 203
+      "node": 207
     }
   },
   {
@@ -19861,14 +19893,14 @@
       "disabledState": 0,
       "id": 120,
       "layer": 0,
-      "name": "Item_2",
+      "name": "Item_3",
       "objects": [
-        209,
-        210,
-        211,
-        212
+        213,
+        214,
+        215,
+        216
       ],
-      "parent": 197,
+      "parent": 196,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -19894,28 +19926,28 @@
     "_class_name": "UiLayout",
     "_data": {
       "enabled": true,
-      "node": 208
+      "node": 212
     }
   },
   {
     "_class_name": "UiVisual",
     "_data": {
       "enabled": false,
-      "node": 208
+      "node": 212
     }
   },
   {
     "_class_name": "UiInteractable",
     "_data": {
       "enabled": true,
-      "node": 208
+      "node": 212
     }
   },
   {
     "_class_name": "WheelTag",
     "_data": {
       "enabled": true,
-      "node": 208
+      "node": 212
     }
   },
   {
@@ -19925,14 +19957,14 @@
       "disabledState": 0,
       "id": 121,
       "layer": 0,
-      "name": "Item_3",
+      "name": "Item_4",
       "objects": [
-        214,
-        215,
-        216,
-        217
+        218,
+        219,
+        220,
+        221
       ],
-      "parent": 197,
+      "parent": 196,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -19958,28 +19990,28 @@
     "_class_name": "UiLayout",
     "_data": {
       "enabled": true,
-      "node": 213
+      "node": 217
     }
   },
   {
     "_class_name": "UiVisual",
     "_data": {
       "enabled": false,
-      "node": 213
+      "node": 217
     }
   },
   {
     "_class_name": "UiInteractable",
     "_data": {
       "enabled": true,
-      "node": 213
+      "node": 217
     }
   },
   {
     "_class_name": "WheelTag",
     "_data": {
       "enabled": true,
-      "node": 213
+      "node": 217
     }
   },
   {
@@ -19989,14 +20021,14 @@
       "disabledState": 0,
       "id": 122,
       "layer": 0,
-      "name": "Item_4",
+      "name": "Item_5",
       "objects": [
-        219,
-        220,
-        221,
-        222
+        223,
+        224,
+        225,
+        226
       ],
-      "parent": 197,
+      "parent": 196,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -20022,28 +20054,28 @@
     "_class_name": "UiLayout",
     "_data": {
       "enabled": true,
-      "node": 218
+      "node": 222
     }
   },
   {
     "_class_name": "UiVisual",
     "_data": {
       "enabled": false,
-      "node": 218
+      "node": 222
     }
   },
   {
     "_class_name": "UiInteractable",
     "_data": {
       "enabled": true,
-      "node": 218
+      "node": 222
     }
   },
   {
     "_class_name": "WheelTag",
     "_data": {
       "enabled": true,
-      "node": 218
+      "node": 222
     }
   },
   {
@@ -20053,14 +20085,14 @@
       "disabledState": 0,
       "id": 123,
       "layer": 0,
-      "name": "Item_5",
+      "name": "Item_6",
       "objects": [
-        224,
-        225,
-        226,
-        227
+        228,
+        229,
+        230,
+        231
       ],
-      "parent": 197,
+      "parent": 196,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -20086,28 +20118,28 @@
     "_class_name": "UiLayout",
     "_data": {
       "enabled": true,
-      "node": 223
+      "node": 227
     }
   },
   {
     "_class_name": "UiVisual",
     "_data": {
       "enabled": false,
-      "node": 223
+      "node": 227
     }
   },
   {
     "_class_name": "UiInteractable",
     "_data": {
       "enabled": true,
-      "node": 223
+      "node": 227
     }
   },
   {
     "_class_name": "WheelTag",
     "_data": {
       "enabled": true,
-      "node": 223
+      "node": 227
     }
   },
   {
@@ -20117,14 +20149,14 @@
       "disabledState": 0,
       "id": 124,
       "layer": 0,
-      "name": "Item_6",
+      "name": "Item_7",
       "objects": [
-        229,
-        230,
-        231,
-        232
+        233,
+        234,
+        235,
+        236
       ],
-      "parent": 197,
+      "parent": 196,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -20150,28 +20182,28 @@
     "_class_name": "UiLayout",
     "_data": {
       "enabled": true,
-      "node": 228
+      "node": 232
     }
   },
   {
     "_class_name": "UiVisual",
     "_data": {
       "enabled": false,
-      "node": 228
+      "node": 232
     }
   },
   {
     "_class_name": "UiInteractable",
     "_data": {
       "enabled": true,
-      "node": 228
+      "node": 232
     }
   },
   {
     "_class_name": "WheelTag",
     "_data": {
       "enabled": true,
-      "node": 228
+      "node": 232
     }
   },
   {
@@ -20181,14 +20213,14 @@
       "disabledState": 0,
       "id": 125,
       "layer": 0,
-      "name": "Item_7",
+      "name": "Item_8",
       "objects": [
-        234,
-        235,
-        236,
-        237
+        238,
+        239,
+        240,
+        241
       ],
-      "parent": 197,
+      "parent": 196,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -20214,28 +20246,28 @@
     "_class_name": "UiLayout",
     "_data": {
       "enabled": true,
-      "node": 233
+      "node": 237
     }
   },
   {
     "_class_name": "UiVisual",
     "_data": {
       "enabled": false,
-      "node": 233
+      "node": 237
     }
   },
   {
     "_class_name": "UiInteractable",
     "_data": {
       "enabled": true,
-      "node": 233
+      "node": 237
     }
   },
   {
     "_class_name": "WheelTag",
     "_data": {
       "enabled": true,
-      "node": 233
+      "node": 237
     }
   },
   {
@@ -20245,14 +20277,14 @@
       "disabledState": 0,
       "id": 126,
       "layer": 0,
-      "name": "Item_8",
+      "name": "Item_9",
       "objects": [
-        239,
-        240,
-        241,
-        242
+        243,
+        244,
+        245,
+        246
       ],
-      "parent": 197,
+      "parent": 196,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -20278,28 +20310,28 @@
     "_class_name": "UiLayout",
     "_data": {
       "enabled": true,
-      "node": 238
+      "node": 242
     }
   },
   {
     "_class_name": "UiVisual",
     "_data": {
       "enabled": false,
-      "node": 238
+      "node": 242
     }
   },
   {
     "_class_name": "UiInteractable",
     "_data": {
       "enabled": true,
-      "node": 238
+      "node": 242
     }
   },
   {
     "_class_name": "WheelTag",
     "_data": {
       "enabled": true,
-      "node": 238
+      "node": 242
     }
   },
   {
@@ -20309,14 +20341,14 @@
       "disabledState": 0,
       "id": 127,
       "layer": 0,
-      "name": "Item_9",
+      "name": "Item_10",
       "objects": [
-        244,
-        245,
-        246,
-        247
+        248,
+        249,
+        250,
+        251
       ],
-      "parent": 197,
+      "parent": 196,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -20342,28 +20374,28 @@
     "_class_name": "UiLayout",
     "_data": {
       "enabled": true,
-      "node": 243
+      "node": 247
     }
   },
   {
     "_class_name": "UiVisual",
     "_data": {
       "enabled": false,
-      "node": 243
+      "node": 247
     }
   },
   {
     "_class_name": "UiInteractable",
     "_data": {
       "enabled": true,
-      "node": 243
+      "node": 247
     }
   },
   {
     "_class_name": "WheelTag",
     "_data": {
       "enabled": true,
-      "node": 243
+      "node": 247
     }
   },
   {
@@ -20373,14 +20405,14 @@
       "disabledState": 0,
       "id": 128,
       "layer": 0,
-      "name": "Item_10",
+      "name": "Item_11",
       "objects": [
-        249,
-        250,
-        251,
-        252
+        253,
+        254,
+        255,
+        256
       ],
-      "parent": 197,
+      "parent": 196,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -20406,28 +20438,28 @@
     "_class_name": "UiLayout",
     "_data": {
       "enabled": true,
-      "node": 248
+      "node": 252
     }
   },
   {
     "_class_name": "UiVisual",
     "_data": {
       "enabled": false,
-      "node": 248
+      "node": 252
     }
   },
   {
     "_class_name": "UiInteractable",
     "_data": {
       "enabled": true,
-      "node": 248
+      "node": 252
     }
   },
   {
     "_class_name": "WheelTag",
     "_data": {
       "enabled": true,
-      "node": 248
+      "node": 252
     }
   },
   {
@@ -20437,14 +20469,14 @@
       "disabledState": 0,
       "id": 129,
       "layer": 0,
-      "name": "Item_11",
+      "name": "Item_12",
       "objects": [
-        254,
-        255,
-        256,
-        257
+        258,
+        259,
+        260,
+        261
       ],
-      "parent": 197,
+      "parent": 196,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -20470,28 +20502,28 @@
     "_class_name": "UiLayout",
     "_data": {
       "enabled": true,
-      "node": 253
+      "node": 257
     }
   },
   {
     "_class_name": "UiVisual",
     "_data": {
       "enabled": false,
-      "node": 253
+      "node": 257
     }
   },
   {
     "_class_name": "UiInteractable",
     "_data": {
       "enabled": true,
-      "node": 253
+      "node": 257
     }
   },
   {
     "_class_name": "WheelTag",
     "_data": {
       "enabled": true,
-      "node": 253
+      "node": 257
     }
   },
   {
@@ -20501,14 +20533,14 @@
       "disabledState": 0,
       "id": 130,
       "layer": 0,
-      "name": "Item_12",
+      "name": "Item_13",
       "objects": [
-        259,
-        260,
-        261,
-        262
+        263,
+        264,
+        265,
+        266
       ],
-      "parent": 197,
+      "parent": 196,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -20534,28 +20566,28 @@
     "_class_name": "UiLayout",
     "_data": {
       "enabled": true,
-      "node": 258
+      "node": 262
     }
   },
   {
     "_class_name": "UiVisual",
     "_data": {
       "enabled": false,
-      "node": 258
+      "node": 262
     }
   },
   {
     "_class_name": "UiInteractable",
     "_data": {
       "enabled": true,
-      "node": 258
+      "node": 262
     }
   },
   {
     "_class_name": "WheelTag",
     "_data": {
       "enabled": true,
-      "node": 258
+      "node": 262
     }
   },
   {
@@ -20565,14 +20597,14 @@
       "disabledState": 0,
       "id": 131,
       "layer": 0,
-      "name": "Item_13",
+      "name": "Item_14",
       "objects": [
-        264,
-        265,
-        266,
-        267
+        268,
+        269,
+        270,
+        271
       ],
-      "parent": 197,
+      "parent": 196,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -20598,28 +20630,28 @@
     "_class_name": "UiLayout",
     "_data": {
       "enabled": true,
-      "node": 263
+      "node": 267
     }
   },
   {
     "_class_name": "UiVisual",
     "_data": {
       "enabled": false,
-      "node": 263
+      "node": 267
     }
   },
   {
     "_class_name": "UiInteractable",
     "_data": {
       "enabled": true,
-      "node": 263
+      "node": 267
     }
   },
   {
     "_class_name": "WheelTag",
     "_data": {
       "enabled": true,
-      "node": 263
+      "node": 267
     }
   },
   {
@@ -20629,14 +20661,14 @@
       "disabledState": 0,
       "id": 132,
       "layer": 0,
-      "name": "Item_14",
+      "name": "Item_15",
       "objects": [
-        269,
-        270,
-        271,
-        272
+        273,
+        274,
+        275,
+        276
       ],
-      "parent": 197,
+      "parent": 196,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -20662,28 +20694,28 @@
     "_class_name": "UiLayout",
     "_data": {
       "enabled": true,
-      "node": 268
+      "node": 272
     }
   },
   {
     "_class_name": "UiVisual",
     "_data": {
       "enabled": false,
-      "node": 268
+      "node": 272
     }
   },
   {
     "_class_name": "UiInteractable",
     "_data": {
       "enabled": true,
-      "node": 268
+      "node": 272
     }
   },
   {
     "_class_name": "WheelTag",
     "_data": {
       "enabled": true,
-      "node": 268
+      "node": 272
     }
   },
   {
@@ -20693,14 +20725,14 @@
       "disabledState": 0,
       "id": 133,
       "layer": 0,
-      "name": "Item_15",
+      "name": "Item_16",
       "objects": [
-        274,
-        275,
-        276,
-        277
+        278,
+        279,
+        280,
+        281
       ],
-      "parent": 197,
+      "parent": 196,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -20726,28 +20758,28 @@
     "_class_name": "UiLayout",
     "_data": {
       "enabled": true,
-      "node": 273
+      "node": 277
     }
   },
   {
     "_class_name": "UiVisual",
     "_data": {
       "enabled": false,
-      "node": 273
+      "node": 277
     }
   },
   {
     "_class_name": "UiInteractable",
     "_data": {
       "enabled": true,
-      "node": 273
+      "node": 277
     }
   },
   {
     "_class_name": "WheelTag",
     "_data": {
       "enabled": true,
-      "node": 273
+      "node": 277
     }
   },
   {
@@ -20757,14 +20789,14 @@
       "disabledState": 0,
       "id": 134,
       "layer": 0,
-      "name": "Item_16",
+      "name": "Item_17",
       "objects": [
-        279,
-        280,
-        281,
-        282
+        283,
+        284,
+        285,
+        286
       ],
-      "parent": 197,
+      "parent": 196,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -20790,28 +20822,28 @@
     "_class_name": "UiLayout",
     "_data": {
       "enabled": true,
-      "node": 278
+      "node": 282
     }
   },
   {
     "_class_name": "UiVisual",
     "_data": {
       "enabled": false,
-      "node": 278
+      "node": 282
     }
   },
   {
     "_class_name": "UiInteractable",
     "_data": {
       "enabled": true,
-      "node": 278
+      "node": 282
     }
   },
   {
     "_class_name": "WheelTag",
     "_data": {
       "enabled": true,
-      "node": 278
+      "node": 282
     }
   },
   {
@@ -20821,14 +20853,14 @@
       "disabledState": 0,
       "id": 135,
       "layer": 0,
-      "name": "Item_17",
+      "name": "Item_18",
       "objects": [
-        284,
-        285,
-        286,
-        287
+        288,
+        289,
+        290,
+        291
       ],
-      "parent": 197,
+      "parent": 196,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -20854,28 +20886,28 @@
     "_class_name": "UiLayout",
     "_data": {
       "enabled": true,
-      "node": 283
+      "node": 287
     }
   },
   {
     "_class_name": "UiVisual",
     "_data": {
       "enabled": false,
-      "node": 283
+      "node": 287
     }
   },
   {
     "_class_name": "UiInteractable",
     "_data": {
       "enabled": true,
-      "node": 283
+      "node": 287
     }
   },
   {
     "_class_name": "WheelTag",
     "_data": {
       "enabled": true,
-      "node": 283
+      "node": 287
     }
   },
   {
@@ -20885,78 +20917,14 @@
       "disabledState": 0,
       "id": 136,
       "layer": 0,
-      "name": "Item_18",
-      "objects": [
-        289,
-        290,
-        291,
-        292
-      ],
-      "parent": 197,
-      "scene": 0,
-      "transform": {
-        "_00": 1.0,
-        "_01": 0.0,
-        "_02": 0.0,
-        "_03": 0.0,
-        "_10": 0.0,
-        "_11": 1.0,
-        "_12": 0.0,
-        "_13": 0.0,
-        "_20": 0.0,
-        "_21": 0.0,
-        "_22": 1.0,
-        "_23": 0.0,
-        "_30": 0.0,
-        "_31": 0.0,
-        "_32": 0.0,
-        "_33": 1.0
-      }
-    }
-  },
-  {
-    "_class_name": "UiLayout",
-    "_data": {
-      "enabled": true,
-      "node": 288
-    }
-  },
-  {
-    "_class_name": "UiVisual",
-    "_data": {
-      "enabled": false,
-      "node": 288
-    }
-  },
-  {
-    "_class_name": "UiInteractable",
-    "_data": {
-      "enabled": true,
-      "node": 288
-    }
-  },
-  {
-    "_class_name": "WheelTag",
-    "_data": {
-      "enabled": true,
-      "node": 288
-    }
-  },
-  {
-    "_class_name": "SceneNode",
-    "_data": {
-      "children": [],
-      "disabledState": 0,
-      "id": 137,
-      "layer": 0,
       "name": "Item_19",
       "objects": [
+        293,
         294,
         295,
-        296,
-        297
+        296
       ],
-      "parent": 197,
+      "parent": 196,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -20982,70 +20950,70 @@
     "_class_name": "UiLayout",
     "_data": {
       "enabled": true,
-      "node": 293
+      "node": 292
     }
   },
   {
     "_class_name": "UiVisual",
     "_data": {
       "enabled": false,
-      "node": 293
+      "node": 292
     }
   },
   {
     "_class_name": "UiInteractable",
     "_data": {
       "enabled": true,
-      "node": 293
+      "node": 292
     }
   },
   {
     "_class_name": "WheelTag",
     "_data": {
       "enabled": true,
-      "node": 293
+      "node": 292
     }
   },
   {
     "_class_name": "UiLayout",
     "_data": {
       "enabled": true,
-      "node": 197
+      "node": 196
     }
   },
   {
     "_class_name": "UiInteractable",
     "_data": {
       "enabled": true,
-      "node": 197
+      "node": 196
     }
   },
   {
     "_class_name": "UiScrollableGrid",
     "_data": {
       "enabled": true,
-      "node": 197
+      "node": 196
     }
   },
   {
     "_class_name": "UiLayout",
     "_data": {
       "enabled": true,
-      "node": 196
+      "node": 195
     }
   },
   {
     "_class_name": "UiVisual",
     "_data": {
       "enabled": false,
-      "node": 196
+      "node": 195
     }
   },
   {
     "_class_name": "WheelTag",
     "_data": {
       "enabled": true,
-      "node": 196
+      "node": 195
     }
   },
   {
@@ -21053,13 +21021,13 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 90,
+      "id": 89,
       "layer": 0,
       "name": "Tooltip Node",
       "objects": [
+        304,
         305,
-        306,
-        307
+        306
       ],
       "parent": 1,
       "scene": 0,
@@ -21087,21 +21055,21 @@
     "_class_name": "UiVisual",
     "_data": {
       "enabled": true,
-      "node": 304
+      "node": 303
     }
   },
   {
     "_class_name": "UiLayout",
     "_data": {
       "enabled": true,
-      "node": 304
+      "node": 303
     }
   },
   {
     "_class_name": "UiText",
     "_data": {
       "enabled": true,
-      "node": 304
+      "node": 303
     }
   },
   {
@@ -21109,11 +21077,11 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 91,
+      "id": 90,
       "layer": 0,
       "name": "ItemCamera_0",
       "objects": [
-        309
+        308
       ],
       "parent": 1,
       "scene": 0,
@@ -21144,7 +21112,7 @@
       "layerMask": {
         "value": 4
       },
-      "node": 308,
+      "node": 307,
       "orthoData": {
         "bottom": -8.66025447845459,
         "left": 8.66025447845459,
@@ -21168,10 +21136,10 @@
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        311
+        310
       ],
       "disabledState": 0,
-      "id": 92,
+      "id": 91,
       "layer": 2,
       "name": "ItemPivot_0",
       "objects": [],
@@ -21201,14 +21169,14 @@
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        312
+        311
       ],
       "disabledState": 0,
-      "id": 93,
+      "id": 92,
       "layer": 2,
       "name": "ItemModel_0",
       "objects": [],
-      "parent": 310,
+      "parent": 309,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -21235,14 +21203,14 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 94,
+      "id": 93,
       "layer": 2,
       "name": "Cylinder.009",
       "objects": [
-        313,
+        312,
         -1
       ],
-      "parent": 311,
+      "parent": 310,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -21269,11 +21237,11 @@
     "_data": {
       "enabled": true,
       "materials": [
-        314,
-        315
+        313,
+        314
       ],
       "mesh": "./res/models/butelka.glb:Cylinder.010",
-      "node": 312
+      "node": 311
     }
   },
   {
@@ -21407,11 +21375,11 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 96,
+      "id": 95,
       "layer": 0,
       "name": "ItemCamera_1",
       "objects": [
-        317
+        316
       ],
       "parent": 1,
       "scene": 0,
@@ -21442,7 +21410,7 @@
       "layerMask": {
         "value": 4
       },
-      "node": 316,
+      "node": 315,
       "orthoData": {
         "bottom": -8.66025447845459,
         "left": 8.66025447845459,
@@ -21466,10 +21434,10 @@
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        319
+        318
       ],
       "disabledState": 0,
-      "id": 97,
+      "id": 96,
       "layer": 2,
       "name": "ItemPivot_1",
       "objects": [],
@@ -21499,14 +21467,14 @@
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        320
+        319
       ],
       "disabledState": 0,
-      "id": 98,
+      "id": 97,
       "layer": 2,
       "name": "ItemModel_1",
       "objects": [],
-      "parent": 318,
+      "parent": 317,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -21533,14 +21501,14 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 99,
+      "id": 98,
       "layer": 2,
       "name": "Cylinder.009",
       "objects": [
-        321,
+        320,
         -1
       ],
-      "parent": 319,
+      "parent": 318,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -21567,11 +21535,11 @@
     "_data": {
       "enabled": true,
       "materials": [
-        314,
-        315
+        313,
+        314
       ],
       "mesh": "./res/models/butelka.glb:Cylinder.010",
-      "node": 320
+      "node": 319
     }
   },
   {
@@ -21579,11 +21547,11 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 101,
+      "id": 100,
       "layer": 0,
       "name": "ItemCamera_2",
       "objects": [
-        323
+        322
       ],
       "parent": 1,
       "scene": 0,
@@ -21614,7 +21582,7 @@
       "layerMask": {
         "value": 4
       },
-      "node": 322,
+      "node": 321,
       "orthoData": {
         "bottom": -8.66025447845459,
         "left": 8.66025447845459,
@@ -21638,10 +21606,10 @@
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        325
+        324
       ],
       "disabledState": 0,
-      "id": 102,
+      "id": 101,
       "layer": 2,
       "name": "ItemPivot_2",
       "objects": [],
@@ -21671,14 +21639,14 @@
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        326
+        325
       ],
       "disabledState": 0,
-      "id": 103,
+      "id": 102,
       "layer": 2,
       "name": "ItemModel_2",
       "objects": [],
-      "parent": 324,
+      "parent": 323,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -21705,14 +21673,14 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 104,
+      "id": 103,
       "layer": 2,
       "name": "Cylinder.009",
       "objects": [
-        327,
+        326,
         -1
       ],
-      "parent": 325,
+      "parent": 324,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -21739,11 +21707,11 @@
     "_data": {
       "enabled": true,
       "materials": [
-        314,
-        315
+        313,
+        314
       ],
       "mesh": "./res/models/butelka.glb:Cylinder.010",
-      "node": 326
+      "node": 325
     }
   },
   {
@@ -21751,11 +21719,11 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 106,
+      "id": 105,
       "layer": 0,
       "name": "ItemCamera_3",
       "objects": [
-        329
+        328
       ],
       "parent": 1,
       "scene": 0,
@@ -21786,7 +21754,7 @@
       "layerMask": {
         "value": 4
       },
-      "node": 328,
+      "node": 327,
       "orthoData": {
         "bottom": -8.66025447845459,
         "left": 8.66025447845459,
@@ -21810,10 +21778,10 @@
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        331
+        330
       ],
       "disabledState": 0,
-      "id": 107,
+      "id": 106,
       "layer": 2,
       "name": "ItemPivot_3",
       "objects": [],
@@ -21843,14 +21811,14 @@
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        332
+        331
       ],
       "disabledState": 0,
-      "id": 108,
+      "id": 107,
       "layer": 2,
       "name": "ItemModel_3",
       "objects": [],
-      "parent": 330,
+      "parent": 329,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -21877,14 +21845,14 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 109,
+      "id": 108,
       "layer": 2,
       "name": "Cylinder.009",
       "objects": [
-        333,
+        332,
         -1
       ],
-      "parent": 331,
+      "parent": 330,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -21911,11 +21879,11 @@
     "_data": {
       "enabled": true,
       "materials": [
-        314,
-        315
+        313,
+        314
       ],
       "mesh": "./res/models/butelka.glb:Cylinder.010",
-      "node": 332
+      "node": 331
     }
   },
   {
@@ -21923,11 +21891,11 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 111,
+      "id": 110,
       "layer": 0,
       "name": "ItemCamera_4",
       "objects": [
-        335
+        334
       ],
       "parent": 1,
       "scene": 0,
@@ -21958,7 +21926,7 @@
       "layerMask": {
         "value": 4
       },
-      "node": 334,
+      "node": 333,
       "orthoData": {
         "bottom": -8.66025447845459,
         "left": 8.66025447845459,
@@ -21982,10 +21950,10 @@
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        337
+        336
       ],
       "disabledState": 0,
-      "id": 112,
+      "id": 111,
       "layer": 2,
       "name": "ItemPivot_4",
       "objects": [],
@@ -22015,14 +21983,14 @@
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        338
+        337
       ],
       "disabledState": 0,
-      "id": 113,
+      "id": 112,
       "layer": 2,
       "name": "ItemModel_4",
       "objects": [],
-      "parent": 336,
+      "parent": 335,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -22049,14 +22017,14 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 114,
+      "id": 113,
       "layer": 2,
       "name": "Cylinder.009",
       "objects": [
-        339,
+        338,
         -1
       ],
-      "parent": 337,
+      "parent": 336,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -22083,11 +22051,11 @@
     "_data": {
       "enabled": true,
       "materials": [
-        314,
-        315
+        313,
+        314
       ],
       "mesh": "./res/models/butelka.glb:Cylinder.010",
-      "node": 338
+      "node": 337
     }
   },
   {
