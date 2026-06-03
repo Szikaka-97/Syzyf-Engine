@@ -22,7 +22,7 @@ if (WIN32)
     add_custom_command(
             TARGET Bimberman POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy
-            ${CMAKE_CURRENT_BINARY_DIR}/../_deps/joltphysics-build/Jolt_d.dll
+            ${CMAKE_CURRENT_BINARY_DIR}/../_deps/joltphysics-build/libJolt_d.dll
             ${CMAKE_CURRENT_BINARY_DIR}/Jolt_d.dll
     )
 
