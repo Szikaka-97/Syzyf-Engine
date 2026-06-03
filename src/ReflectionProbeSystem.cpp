@@ -57,7 +57,9 @@ void ReflectionProbeSystem::RecalculateSkyboxIBL() {
 	Skybox* sky = Skybox::GetCurrentSkybox();
 
 	if (this->skyboxProbe == nullptr) {
-		this->skyboxProbe = GetScene()->GetRootNode()->AddObject<ReflectionProbe>();
+		if (!GetScene()->GetRootNode()->TryGetObject<ReflectionProbe>(this->skyboxProbe)) {
+			this->skyboxProbe = GetScene()->GetRootNode()->AddObject<ReflectionProbe>();
+		}
 	}
 
 	if (!sky) {

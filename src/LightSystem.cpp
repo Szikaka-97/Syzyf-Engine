@@ -425,3 +425,13 @@ void LightSystem::DrawImGui() {
 	}
 }
 
+json LightSystem::Serialize() {
+	json data;
+
+	data["ambientLight"] = Serialization::Serialize(this->ambientLight);
+
+	return data;
+}
+void LightSystem::Deserialize(const json& data) {
+	this->ambientLight = Serialization::Deserialize<glm::vec4>(data["ambientLight"]);
+}
