@@ -7,6 +7,10 @@ file(GLOB_RECURSE SOURCE_FILES
 file(GLOB_RECURSE HEADER_FILES
 	 *.h
 	 *.hpp)
+
+file(GLOB SCRIPT_FILES
+	${CMAKE_SOURCE_DIR}/src/scripts/*.py
+)
 	 
 # Search for the assets files
 file(GLOB_RECURSE ASSETS_FILES 
@@ -76,7 +80,7 @@ add_custom_command(
 		codegen/MessagingDecls.cpp
 		codegen/TypeInfo.cpp
 	COMMAND "${CMAKE_SOURCE_DIR}/src/scripts/${RUN_SCRIPTS_CMD}" "${CMAKE_SOURCE_DIR}/src" "${CMAKE_SOURCE_DIR}/src/include" ${CMAKE_CURRENT_BINARY_DIR}
-	DEPENDS ${HEADER_FILES} ${CMAKE_SOURCE_DIR}/src/scripts/*
+	DEPENDS ${HEADER_FILES} ${SCRIPT_FILES}
 	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/src/scripts
 	CODEGEN
 )
