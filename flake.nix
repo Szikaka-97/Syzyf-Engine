@@ -25,6 +25,10 @@
         libxcb
         libxtst
         dbus
+
+        alsa-lib
+        libpulseaudio
+        pipewire
       ];
     in
     {

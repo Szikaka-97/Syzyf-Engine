@@ -140,6 +140,12 @@ bool Application::InitEngine() {
     ImGui_ImplSDL3_InitForOpenGL(window, glContext);
 
     // Audio
+    this->audioDevice = alcOpenDevice(nullptr);
+    if (!this->audioDevice) {
+        spdlog::error("Application::InitEngine: Failed to open OpenAL device.");
+        return false;
+    }
+
     this->audioContext = alcCreateContext(this->audioDevice, nullptr);
     if (!this->audioContext) {
         spdlog::error("Failed to create OpenAL context.");
