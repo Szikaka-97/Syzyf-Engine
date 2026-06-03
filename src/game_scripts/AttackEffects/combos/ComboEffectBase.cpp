@@ -51,6 +51,6 @@ void ComboEffectBase::SetEffectRenderer(Mesh* mesh, Material* mat) {
     if (node) {
         node->AddObject<MeshRenderer>(mesh, mat);
     } else {
-        spdlog::error("EffectBase::SetEffectRenderer: GetNode() is null – effect not attached to any node");
+        spdlog::error("EffectBase::SetEffectRenderer: GetNode() is null Â– effect not attached to any node");
     }
 }

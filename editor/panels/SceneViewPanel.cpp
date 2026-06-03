@@ -7,6 +7,7 @@
 #include "SceneRegistry.h"
 #include "physics/Body.h"
 #include "physics/DebugRenderer.h"
+#include "game_scripts/crafting/CraftingDragInteractor.h"
 
 #include "physics/CharacterController.h"
 #include "physics/VirtualCharacterController.h"
@@ -235,6 +236,12 @@ void SceneViewPanel::Draw(Context& context) {
     ImVec2 viewportSize = ImGui::GetContentRegionAvail();
     float resX = std::max(1.0f, viewportSize.x);
     float resY = std::max(1.0f, viewportSize.y);
+
+    for (auto* dragInteractor :
+         context.selectedScene->FindObjectsOfType<Crafting::CraftingDragInteractor>())
+    {
+        dragInteractor->SetViewportSize(glm::vec2(resX, resY));
+    }
 
     this->HandleMousePicking(context, resX, resY);
 

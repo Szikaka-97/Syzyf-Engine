@@ -4,8 +4,8 @@
 #include <Debug.h>
 
 namespace Physics {
-	class VirtualCharacterController;
-	class System;
+class VirtualCharacterController;
+class System;
 };
 
 class Camera;
@@ -15,7 +15,7 @@ class PickableItemSystem;
 class PlayerController : public GameObject, public ImGuiDrawable {
 private:
 	static PlayerController* instance;
-	
+
 	float wobliness = 0;
 	float woblinessFrequency = 1;
 	float speed = 5;
@@ -44,8 +44,10 @@ private:
 	float throwStrengthCache = 0;
 	float throwStrengthAccum = 0;
 
-    float itemHighlightRadius = 2.0f;
-	
+	bool throwingUnlocked = true;
+
+	float itemHighlightRadius = 2.0f;
+
 	glm::vec3 GetMousePointOnGround(Camera* camera);
 	glm::vec3 GetStrengthFromVelocity();
 
@@ -63,21 +65,33 @@ public:
 	static inline PlayerController* Instance() {
 		return instance;
 	}
-	
+
 	void Awake();
 	void Update();
 	void OnEnable();
 	void OnDisable();
 
 	void TakeDamage(float damage);
-	
+
 	float GetHealth() const;
 	void SetHealth(float newHealth);
 
 	void Die();
 
 	inline bool CanThrow() const {
-		return this->aim != nullptr;
+		return this->throwingUnlocked && this->aim != nullptr;
+	}
+
+	inline void SetThrowingUnlocked(bool unlocked) {
+		this->throwingUnlocked = unlocked;
+
+		if (!unlocked && this->aim != nullptr) {
+			this->aim->SetEnabled(false);
+		}
+	}
+
+	inline bool IsThrowingUnlocked() const {
+		return this->throwingUnlocked;
 	}
 
 	virtual void DrawImGui() override;

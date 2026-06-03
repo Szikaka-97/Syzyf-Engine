@@ -242,8 +242,8 @@ void FilesPanel::DrawPreviewPopup() {
             ImVec2 availableSize = ImGui::GetContentRegionAvail();
             availableSize.y -= 30;
 
-            ImGui::InputTextMultiline("##source", &this->previewTextContent[0],
-                                      this->previewTextContent.size(),
+            ImGui::InputTextMultiline("##source", this->previewTextContent.data(),
+                                      this->previewTextContent.size() + 1,
                                       availableSize,
                                       ImGuiInputTextFlags_ReadOnly |
                                           ImGuiInputTextFlags_AllowTabInput);

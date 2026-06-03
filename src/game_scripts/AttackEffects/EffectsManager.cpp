@@ -2,6 +2,7 @@
 
 #include "./include/game_scripts/AttackEffects/EffectBase.h"
 #include "./include/game_scripts/enemies/EnemyBullet.h"
+#include "GltfScene.h"
 #include <TimeSystem.h>
 #include <glm/glm.hpp>
 #include <spdlog/spdlog.h>
@@ -20,7 +21,7 @@ void EffectFire::OnInit() {
         .Link();
 
     if (!pbrProg) {
-        spdlog::error("EffectFire: shader nie skompilowaÅ‚ siÄ™");
+        spdlog::error("EffectFire: shader nie skompilowa³ siê");
         return;
     }
 
@@ -46,7 +47,7 @@ void EffectFire::OnInit() {
         anim->animations[0].looping = true;
         anim->Play("ArmatureAction"); //ArmatureAction
     } else {
-        spdlog::warn("EffectFire::OnInit: brak AnimationComponent w wÄ™Åºle");
+        spdlog::warn("EffectFire::OnInit: brak AnimationComponent w wêŸle");
     }
 }
 void EffectFire::OnApplySpecials() {
@@ -70,7 +71,7 @@ void EffectPetrify::OnInit() {
         .Link();
 
     if (!pbrProg) {
-        spdlog::error("EffectPetrify: shader nie skompilowaÅ‚ siÄ™");
+        spdlog::error("EffectPetrify: shader nie skompilowa³ siê");
         return;
     }
 
@@ -115,7 +116,7 @@ void EffectTornado::OnInit() {
         .Link();
 
     if (!pbrProg) {
-        spdlog::error("EffectTornado: shader nie skompilowaÅ‚ siÄ™");
+        spdlog::error("EffectTornado: shader nie skompilowa³ siê");
         return;
     }
 
@@ -184,7 +185,7 @@ void EffectConfuse::OnInit() {
         .Link();
 
     if (!pbrProg) {
-        spdlog::error("EffectConfuse: shader nie skompilowaÅ‚ siÄ™");
+        spdlog::error("EffectConfuse: shader nie skompilowa³ siê");
         return;
     }
 
@@ -226,7 +227,7 @@ void EffectExplosion::OnInit() {
 }
 
 void EffectExplosion::OnApplySpecials() {
-    // Set visual node scale to GetRange() ï¿½ mirrors:
+    // Set visual node scale to GetRange() — mirrors:
     //   this.explosionRenderer.transform.localScale = Vector3.one * GetRange()
     if (myNode)
         myNode->GlobalTransform().Scale() = glm::vec3(GetRange());

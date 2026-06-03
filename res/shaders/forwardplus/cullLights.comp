@@ -1,0 +1,159 @@
+#version 460
+
+#define LIGHTS_STRIDE 32
+
+layout (local_size_x = LIGHTS_STRIDE, local_size_y = 1, local_size_z = 1) in;
+
+#define MAX_LIGHTS_PER_TILE 256
+
+#include "shared/shared.h"
+
+struct Cluster {
+	vec4 minPoint;
+	vec4 maxPoint;
+};
+
+layout(std430, binding = 1) restrict buffer clusterSSBO {
+	Cluster clusters[];
+};
+
+layout (std430, binding = 2) restrict buffer lightsListSSBO {
+	vec4 _a;
+	int lightsCount;
+	int _c;
+	Light lightsList[];
+};
+
+layout (std430, binding = 3) restrict buffer lightIndexListSSBO {
+	uvec4 lightGridSize;
+	uint lightIndexList[];
+};
+
+layout (std430, binding = 4) restrict buffer lightIndexCounterSSBO {
+	uint lightIndexCounter;
+};
+
+layout (std430, binding = 5) restrict writeonly buffer lightGridSSBO {
+	uvec2 lightGrid[];
+};
+
+uniform mat4 viewMatrix;
+
+shared Cluster groupCluster;
+
+shared uint localLightCount;
+shared uint lightIndexStartOffset;
+shared uint localLightList[MAX_LIGHTS_PER_TILE];
+
+struct Sphere {
+	vec3 center;
+	float radius;
+};
+
+struct Cone {
+	vec3 tip;
+	float height;
+	vec3 direction;
+	float radius;
+};
+
+bool SphereIntersectsCluster(Sphere s) {
+	s.center = (viewMatrix * vec4(s.center, 1.0)).xyz;
+
+	vec3 closestPoint = clamp(s.center, groupCluster.minPoint.xyz, groupCluster.maxPoint.xyz);
+
+	float distanceSquared = dot(closestPoint - s.center, closestPoint - s.center);
+
+	return distanceSquared < s.radius * s.radius;
+}
+
+bool ConeIntersectsCluster(Cone c) {
+	return false;
+}
+
+void AppendLight(uint lightIndex) {
+	uint index = atomicAdd(localLightCount, 1);
+
+	if (index < MAX_LIGHTS_PER_TILE) {
+		localLightList[index] = lightIndex;
+	}
+}
+
+void memoryBarrierWithSync() {
+	groupMemoryBarrier();
+	barrier();
+}
+
+void main() {
+	const uvec3 gridSize = gl_NumWorkGroups;
+
+	uint clusterIndex = uint(dot(gl_WorkGroupID, vec3(1, gridSize.x, gridSize.x * gridSize.y)));
+
+	if (gl_LocalInvocationIndex == 0) {
+		localLightCount = 0;
+
+		groupCluster = clusters[clusterIndex];
+	}
+
+	memoryBarrierWithSync();
+
+	uint lowestPowerOverCount = lightsCount + LIGHTS_STRIDE - (lightsCount % LIGHTS_STRIDE);
+
+	for (uint i = gl_LocalInvocationID.x; i < lowestPowerOverCount; i += LIGHTS_STRIDE) {
+		memoryBarrierWithSync();
+
+		if (i >= lightsCount) {
+			continue;
+		}
+
+		Light l = lightsList[i];
+
+		if (l.intensity <= 0) {
+			continue;
+		}
+
+		switch (l.type) {
+		case POINT_LIGHT:
+			Sphere s;
+			s.center = l.position;
+			s.radius = l.range;
+
+			if (SphereIntersectsCluster(s)) {
+				AppendLight(i);
+			}
+
+			break;
+		case SPOT_LIGHT:
+			Cone c;
+			c.tip = l.position;
+			c.height = l.range;
+			c.direction = l.direction;
+			c.radius = tan(l.spotlightAngle) * l.range;
+
+			if (ConeIntersectsCluster(c)) {
+				AppendLight(i);
+			}
+
+			break;
+		case DIRECTIONAL_LIGHT:
+			AppendLight(i);
+			break;
+		};
+	}
+
+	if (gl_LocalInvocationIndex == 0) {
+		lightIndexStartOffset = atomicAdd(lightIndexCounter, localLightCount);
+
+		lightGrid[clusterIndex] = uvec2(lightIndexStartOffset, localLightCount);
+	}
+
+	memoryBarrierWithSync();
+
+	for (uint i = gl_LocalInvocationID.x; i < localLightCount; i += LIGHTS_STRIDE) {
+		if (i >= localLightCount) {
+			continue;
+		}
+
+		lightIndexList[lightIndexStartOffset + i] = localLightList[i];
+	}
+}

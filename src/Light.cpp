@@ -213,23 +213,23 @@ ShaderLightRep Light::GetShaderRepresentation() const {
 	return result;
 }
 
-void Light::DrawGizmos() {
-	static Mesh* directionalGizmoMesh = GetScene()->Resources()->Get<Mesh>("./res/models/directional_gizmo.obj");
-	static Mesh* spotGizmoMesh = GetScene()->Resources()->Get<Mesh>("./res/models/spot_gizmo.obj");
-	static Mesh* pointGizmoMesh = GetScene()->Resources()->Get<Mesh>("./res/models/point_gizmo.obj");
+// void Light::DrawGizmos() {
+// 	static Mesh* directionalGizmoMesh = GetScene()->Resources()->Get<Mesh>("./res/models/directional_gizmo.obj");
+// 	static Mesh* spotGizmoMesh = GetScene()->Resources()->Get<Mesh>("./res/models/spot_gizmo.obj");
+// 	static Mesh* pointGizmoMesh = GetScene()->Resources()->Get<Mesh>("./res/models/point_gizmo.obj");
 
-	this->gizmoMat->SetValue("uColor", this->color * (this->intensity * 5));
+// 	this->gizmoMat->SetValue("uColor", this->color * (this->intensity * 5));
 
-	if (this->type == LightType::Directional) {
-		GetScene()->GetGraphics()->DrawGizmoMesh(directionalGizmoMesh, 0, this->gizmoMat, GlobalTransform());
-	}
-	else if (this->type == LightType::Spot) {
-		GetScene()->GetGraphics()->DrawGizmoMesh(spotGizmoMesh, 0, this->gizmoMat, GlobalTransform());
-	}
-	else {
-		GetScene()->GetGraphics()->DrawGizmoMesh(pointGizmoMesh, 0, this->gizmoMat, GlobalTransform());
-	}
-}
+// 	if (this->type == LightType::Directional) {
+// 		GetScene()->GetGraphics()->DrawGizmoMesh(directionalGizmoMesh, 0, this->gizmoMat, GlobalTransform());
+// 	}
+// 	else if (this->type == LightType::Spot) {
+// 		GetScene()->GetGraphics()->DrawGizmoMesh(spotGizmoMesh, 0, this->gizmoMat, GlobalTransform());
+// 	}
+// 	else {
+// 		GetScene()->GetGraphics()->DrawGizmoMesh(pointGizmoMesh, 0, this->gizmoMat, GlobalTransform());
+// 	}
+// }
 
 void Light::DrawImGui() {
 	{

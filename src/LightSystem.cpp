@@ -424,4 +424,3 @@ void LightSystem::DrawImGui() {
 		ImGui::TreePop();
 	}
 }
-

@@ -14,6 +14,7 @@
 #include "physics/Body.h"
 #include "physics/ICollisionReceiver.h"
 #include "game_scripts/AttackEffects/EffectsManager.h"
+#include <game_scripts/enemies/EnemyBase.h>
 #include <Scene.h>
 #include <Resources.h>
 
@@ -118,6 +119,10 @@ public:
             return;
         }
 
+        if (CheckEnemyHit()) {
+            return;
+        }
+
         m_ElapsedTime += Time::Delta();
         if (m_ElapsedTime >= m_MaxLifetime) {
             spdlog::warn("ThrowableObject: lifetime expired, spawning effect.");
@@ -133,6 +138,13 @@ public:
         spdlog::debug("ThrowableObject: hit \"{}\"",
                       other ? other->GetName() : "<null>");
 
+        if (other != nullptr) {
+            if (EnemyBase* enemy = FindEnemyOnNodeOrParents(other)) {
+                KillEnemy(enemy);
+                return;
+            }
+        }
+
         m_ImpactPos   = GetNode()->GlobalTransform().Position();
         m_ShouldSpawn = true;
     }
@@ -141,6 +153,59 @@ public:
     void OnCollisionExit(SceneNode* /*other*/) override {}
 
 private:
+    EnemyBase* FindEnemyOnNodeOrParents(SceneNode* node) {
+        SceneNode* current = node;
+
+        while (current != nullptr) {
+            if (EnemyBase* enemy = current->GetObject<EnemyBase>()) {
+                return enemy;
+            }
+
+            current = current->GetParent();
+        }
+
+        return nullptr;
+    }
+
+    bool CheckEnemyHit() {
+        if (m_ShouldSpawn || m_DeletionCountdown > 0) {
+            return false;
+        }
+
+        glm::vec3 bottlePos = GetNode()->GlobalTransform().Position();
+
+        for (EnemyBase* enemy : GetScene()->FindObjectsOfType<EnemyBase>()) {
+            if (enemy == nullptr || enemy->myNode == nullptr) {
+                continue;
+            }
+
+            glm::vec3 enemyPos = enemy->myNode->GlobalTransform().Position();
+
+            if (glm::distance(bottlePos, enemyPos) <= 0.9f) {
+                KillEnemy(enemy);
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    void KillEnemy(EnemyBase* enemy) {
+        if (enemy == nullptr || enemy->myNode == nullptr) {
+            return;
+        }
+
+        m_ImpactPos = GetNode()->GlobalTransform().Position();
+
+        spdlog::info(
+            "ThrowableObject: bottle killed enemy \"{}\"",
+            enemy->myNode->GetName()
+        );
+
+        enemy->TakeDamage(999);
+        m_ShouldSpawn = true;
+    }
+
     void SpawnEffect() {
         Scene*     scene      = GetScene();
         SceneNode* effectNode = scene->CreateNode("ThrowableEffect");
