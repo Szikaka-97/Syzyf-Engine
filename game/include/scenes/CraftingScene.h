@@ -24,6 +24,9 @@
 
 #include "game_scripts/CameraSettings.h"
 #include "game_scripts/AimCrosshair.h"
+#include <game_scripts/PickableItemSystem.h>
+#include <game_scripts/ThrowableObjectPool.h>
+#include <ui/widgets/wheel/UiWheel.h>
 #include "game_scripts/crafting/CraftingDragInteractor.h"
 #include "game_scripts/crafting/CraftingInteractable.h"
 #include "game_scripts/crafting/DraggableCraftingItem.h"
@@ -39,6 +42,7 @@
 
 #include <physics/Body.h>
 #include <physics/System.h>
+#include <physics/Helpers.h>
 
 #include <Jolt/Jolt.h>
 #include <Jolt/Physics/Character/CharacterVirtual.h>
@@ -49,7 +53,7 @@
 #include <glm/glm.hpp>
 #include <glm/geometric.hpp>
 #include <glm/gtc/quaternion.hpp>
-#include <spdlog/spdlog.h>
+#include <glm/gtc/matrix_inverse.hpp>
 
 #include <algorithm>
 #include <string>
@@ -59,6 +63,9 @@ namespace CraftingScene {
 
 static constexpr const char* CraftingTutorialModelPath =
 	"./res/models/rooms/CraftingTutorial.glb";
+
+static constexpr const char* CraftingStationModelPath =
+	"./res/models/bimbermanMachineNameingScheme.glb";
 
 struct IngredientSpawnData {
 	std::string nodeName;
@@ -216,54 +223,6 @@ inline SceneNode* CreateLocalPoint(
 	return node;
 }
 
-inline void CreateCraftingStageCameraPoints(Scene& scene, SceneNode* roomNode) {
-	if (!roomNode) {
-		return;
-	}
-
-	CreateLocalPoint(
-		scene,
-		roomNode,
-		"IngredientCameraPoint",
-		glm::vec3(-1.5f, 3.0f, 8.8f)
-	);
-
-	CreateLocalPoint(
-		scene,
-		roomNode,
-		"IngredientCameraTarget",
-		glm::vec3(-4.2f, 1.5f, 6.6f)
-	);
-
-	CreateLocalPoint(
-		scene,
-		roomNode,
-		"HeatingCameraPoint",
-		glm::vec3(-2.4f, 2.0f, 5.0f)
-	);
-
-	CreateLocalPoint(
-		scene,
-		roomNode,
-		"HeatingCameraTarget",
-		glm::vec3(-4.0f, 1.0f, 6.6f)
-	);
-
-	CreateLocalPoint(
-		scene,
-		roomNode,
-		"BottlingCameraPoint",
-		glm::vec3(-8.2f, 1.6f, 4.4f)
-	);
-
-	CreateLocalPoint(
-		scene,
-		roomNode,
-		"BottlingCameraTarget",
-		glm::vec3(-8.0f, 0.9f, 6.6f)
-	);
-}
-
 inline void AddRoomPhysics(SceneNode* roomNode) {
 	SceneNode* floorNode = FindFirstNodeByNameRecursive(roomNode, "Plane");
 	SceneNode* wallsColliderNode = FindFirstNodeByNameRecursive(roomNode, "Walls Collider");
@@ -306,6 +265,156 @@ inline void AddRoomPhysics(SceneNode* roomNode) {
 	}
 }
 
+inline void SetInteractionBodyLayer(Physics::Body* body) {
+	if (!body) {
+		return;
+	}
+
+	body->SetCollisionLayerAndMask(
+		{Crafting::CraftingInteractionCollisionLayer},
+		0
+	);
+}
+
+inline void AddMeshPhysicsToNode(SceneNode* node) {
+	if (!node) {
+		return;
+	}
+
+	MeshRenderer* renderer = node->GetObject<MeshRenderer>();
+
+	if (!renderer || !renderer->GetMesh()) {
+		return;
+	}
+
+	auto* body = node->AddObject<Physics::Body>(
+		JPH::BodyCreationSettings{
+			Physics::MeshShape(renderer->GetMesh()),
+			JPH::RVec3::sZero(),
+			JPH::Quat::sIdentity(),
+			JPH::EMotionType::Static,
+			Physics::Layers::NON_MOVING
+		}
+	);
+
+	body->SetCollisionLayerAndMask({0}, {1});
+}
+
+inline void AddStationMeshPhysics(SceneNode* roomNode) {
+	if (!roomNode) {
+		return;
+	}
+
+	const std::vector<std::string> stationMeshNodes = {
+		"Lid",
+		"Cauldron",
+		"Reinforcement",
+		"Valve_Barrel",
+		"Knob_One",
+		"Knob_One.001",
+		"Lever",
+		"Fire_Place",
+		"Door"
+	};
+
+	for (const std::string& nodeName : stationMeshNodes) {
+		AddMeshPhysicsToNode(
+			FindFirstNodeByNameRecursive(roomNode, nodeName)
+		);
+	}
+}
+
+inline void DisableEmbeddedStationNodes(SceneNode* roomNode) {
+	if (!roomNode) {
+		return;
+	}
+
+	const std::vector<std::string> stationMeshNodes = {
+		"Lid",
+		"Cauldron",
+		"Reinforcement",
+		"Valve_Barrel",
+		"Knob_One",
+		"Knob_One.001",
+		"Lever",
+		"Fire_Place",
+		"Door"
+	};
+
+	for (const std::string& nodeName : stationMeshNodes) {
+		SceneNode* node = FindFirstNodeByNameRecursive(roomNode, nodeName);
+
+		if (node) {
+			node->SetEnabled(false);
+		}
+	}
+}
+
+inline glm::mat4 GetNodeTransformRelativeTo(SceneNode* node, SceneNode* root) {
+	if (!node || !root) {
+		return glm::mat4(1.0f);
+	}
+
+	return glm::inverse(root->GlobalTransform().Value()) *
+		node->GlobalTransform().Value();
+}
+
+inline bool AlignStationModelToRoom(SceneNode* roomNode, SceneNode* stationNode) {
+	if (!roomNode || !stationNode) {
+		return false;
+	}
+
+	SceneNode* roomCauldronNode =
+		FindFirstNodeByNameRecursive(roomNode, "Cauldron");
+
+	SceneNode* stationCauldronNode =
+		FindFirstNodeByNameRecursive(stationNode, "Cauldron");
+
+	if (!roomCauldronNode || !stationCauldronNode) {
+		return false;
+	}
+
+	glm::mat4 roomGlobalTransform =
+		roomNode->GlobalTransform().Value();
+
+	glm::mat4 roomCauldronGlobalTransform =
+		roomCauldronNode->GlobalTransform().Value();
+
+	glm::mat4 stationCauldronRelativeTransform =
+		GetNodeTransformRelativeTo(stationCauldronNode, stationNode);
+
+	glm::mat4 stationGlobalTransform =
+		roomCauldronGlobalTransform *
+		glm::inverse(stationCauldronRelativeTransform);
+
+	glm::mat4 stationLocalTransform =
+		glm::inverse(roomGlobalTransform) *
+		stationGlobalTransform;
+
+	stationNode->LocalTransform() = stationLocalTransform;
+
+	return true;
+}
+
+inline SceneNode* CreateCraftingStationModel(Scene& scene, SceneNode* roomNode) {
+	if (!roomNode) {
+		return nullptr;
+	}
+
+	SceneNode* stationNode =
+		ResourceDatabase::Global->Get<GltfScene>(
+			CraftingStationModelPath
+		)->Instantiate(&scene, roomNode, "Crafting Station");
+
+	if (!stationNode) {
+		return nullptr;
+	}
+
+	AlignStationModelToRoom(roomNode, stationNode);
+
+	return stationNode;
+}
+
 inline SceneNode* CreateStationHitbox(Scene& scene, SceneNode* roomNode) {
 	if (!roomNode) {
 		return nullptr;
@@ -315,29 +424,10 @@ inline SceneNode* CreateStationHitbox(Scene& scene, SceneNode* roomNode) {
 		scene.CreateNode(roomNode, "StationHitbox");
 
 	stationHitboxNode->LocalTransform().Position() =
-		glm::vec3(-5.2f, 1.2f, 6.6f);
+		glm::vec3(0.0f, 1.2f, 0.0f);
 
 	stationHitboxNode->LocalTransform().Scale() =
 		glm::vec3(1.0f);
-
-	glm::vec3 stationHitboxPosition =
-		stationHitboxNode->GlobalTransform().Position().Value();
-
-	auto* stationBody = stationHitboxNode->AddObject<Physics::Body>(
-		JPH::BodyCreationSettings{
-			Physics::BoxShape(glm::vec3(2.4f, 1.5f, 2.4f)),
-			JPH::RVec3(
-				stationHitboxPosition.x,
-				stationHitboxPosition.y,
-				stationHitboxPosition.z
-			),
-			JPH::Quat::sIdentity(),
-			JPH::EMotionType::Static,
-			Physics::Layers::NON_MOVING
-		}
-	);
-
-	stationBody->SetPosition(stationHitboxPosition);
 
 	return stationHitboxNode;
 }
@@ -395,6 +485,8 @@ inline SceneNode* CreateBlowerHitbox(Scene& scene, SceneNode* roomNode) {
 	);
 
 	blowerBody->SetPosition(blowerHitboxPosition);
+	blowerBody->SetIsSensor(true);
+	SetInteractionBodyLayer(blowerBody);
 
 	auto* blowerInteractable =
 		blowerHitboxNode->AddObject<Crafting::CraftingInteractable>();
@@ -457,6 +549,8 @@ inline SceneNode* CreateDoorHitbox(Scene& scene, SceneNode* roomNode) {
 	);
 
 	doorBody->SetPosition(doorHitboxPosition);
+	doorBody->SetIsSensor(true);
+	SetInteractionBodyLayer(doorBody);
 
 	auto* doorInteractable =
 		doorHitboxNode->AddObject<Crafting::CraftingInteractable>();
@@ -523,6 +617,8 @@ inline SceneNode* CreateValveHitbox(Scene& scene, SceneNode* roomNode) {
 	);
 
 	valveBody->SetPosition(valveHitboxPosition);
+	valveBody->SetIsSensor(true);
+	SetInteractionBodyLayer(valveBody);
 
 	auto* valveInteractable =
 		valveHitboxNode->AddObject<Crafting::CraftingInteractable>();
@@ -573,16 +669,16 @@ inline void CreateBottlingStageNodes(Scene& scene, SceneNode* roomNode) {
 	}
 
 	const glm::vec3 bottleStartPoint =
-		glm::vec3(-6.8f, 0.55f, 7.5f);
+		glm::vec3(-0.88f, 0.55f, -1.23f);
 
 	const glm::vec3 bottleFillPoint =
-		glm::vec3(-8.0f, 0.55f, 6.65f);
+		glm::vec3(-0.06f, 0.55f, -2.45f);
 
 	const glm::vec3 bottleEndPoint =
-		glm::vec3(-9.2f, 0.55f, 5.8f);
+		glm::vec3(0.77f, 0.55f, -3.67f);
 
 	const glm::vec3 lanePosition =
-		glm::vec3(-8.0f, 0.35f, 6.65f);
+		glm::vec3(-0.06f, 0.35f, -2.45f);
 
 	const glm::vec3 laneScale =
 		glm::vec3(2.8f, 0.08f, 0.45f);
@@ -591,7 +687,7 @@ inline void CreateBottlingStageNodes(Scene& scene, SceneNode* roomNode) {
 		glm::vec3(0.34f, 0.55f, 0.34f);
 
 	const glm::vec3 valveGuidePosition =
-		glm::vec3(-8.0f, 1.0f, 6.65f);
+		glm::vec3(-0.06f, 1.0f, -2.45f);
 
 	const glm::vec3 valveGuideScale =
 		glm::vec3(0.08f, 0.42f, 0.08f);
@@ -781,6 +877,8 @@ inline Crafting::DraggableCraftingItem* CreateDraggableCube(
 	body->SetLinearVelocity(glm::vec3(0.0f));
 	body->SetAngularVelocity(glm::vec3(0.0f));
 	body->SetPosition(globalPosition);
+	body->SetIsSensor(true);
+	SetInteractionBodyLayer(body);
 
 	return item;
 }
@@ -851,7 +949,6 @@ inline void CreateCauldronReceiver(Scene& scene, SceneNode* roomNode) {
 		FindFirstNodeByNameRecursive(roomNode, "Cauldron");
 
 	if (!cauldronNode) {
-		spdlog::error("CraftingScene: Cauldron not found.");
 		return;
 	}
 
@@ -902,7 +999,6 @@ inline void CreateLidHitbox(Scene& scene, SceneNode* roomNode) {
 		FindFirstNodeByNameRecursive(roomNode, "Lid");
 
 	if (!lidNode) {
-		spdlog::error("CraftingScene: Lid not found.");
 		return;
 	}
 
@@ -933,6 +1029,8 @@ inline void CreateLidHitbox(Scene& scene, SceneNode* roomNode) {
 	);
 
 	lidBody->SetPosition(lidHitboxPosition);
+	lidBody->SetIsSensor(true);
+	SetInteractionBodyLayer(lidBody);
 
 	auto* lidInteractable =
 		lidHitboxNode->AddObject<Crafting::CraftingInteractable>();
@@ -976,7 +1074,7 @@ inline void CreateCraftingIngredients(Scene& scene, SceneNode* roomNode) {
 		{
 			"Burn Ingredient",
 			burnMaterial,
-			glm::vec3(-2.8f, 1.1f, 7.8f),
+			glm::vec3(-1.1f, 1.1f, 2.77f),
 			glm::vec3(0.35f),
 			CreateMainEffectIngredient(
 				Crafting::IngredientType::Sugar,
@@ -988,7 +1086,7 @@ inline void CreateCraftingIngredients(Scene& scene, SceneNode* roomNode) {
 		{
 			"Lightning Ingredient",
 			lightningMaterial,
-			glm::vec3(-2.8f, 1.1f, 7.1f),
+			glm::vec3(-0.4f, 1.1f, 2.76f),
 			glm::vec3(0.35f),
 			CreateMainEffectIngredient(
 				Crafting::IngredientType::Water,
@@ -1000,7 +1098,7 @@ inline void CreateCraftingIngredients(Scene& scene, SceneNode* roomNode) {
 		{
 			"Radius Modifier",
 			radiusMaterial,
-			glm::vec3(-2.8f, 1.1f, 6.4f),
+			glm::vec3(0.3f, 1.1f, 2.74f),
 			glm::vec3(0.35f),
 			CreateModifierIngredient(
 				Crafting::IngredientType::Water,
@@ -1013,7 +1111,7 @@ inline void CreateCraftingIngredients(Scene& scene, SceneNode* roomNode) {
 		{
 			"Duration Modifier",
 			durationMaterial,
-			glm::vec3(-2.8f, 1.1f, 5.7f),
+			glm::vec3(1.0f, 1.1f, 2.73f),
 			glm::vec3(0.35f),
 			CreateModifierIngredient(
 				Crafting::IngredientType::Sugar,
@@ -1042,7 +1140,6 @@ inline void CreateCraftingIngredients(Scene& scene, SceneNode* roomNode) {
 }
 
 inline void SetupCraftingStation(Scene& scene, SceneNode* roomNode) {
-	CreateCraftingStageCameraPoints(scene, roomNode);
 	CreateStationHitbox(scene, roomNode);
 	CreateBlowerHitbox(scene, roomNode);
 	CreateDoorHitbox(scene, roomNode);
@@ -1056,11 +1153,6 @@ inline void SetupCraftingStation(Scene& scene, SceneNode* roomNode) {
 
 	craftingStation->interactionRadius = 3.0f;
 
-	craftingStation->stationCameraPosition =
-		glm::vec3(-4.2f, 5.0f, 6.6f);
-
-	craftingStation->stationCameraRotation =
-		glm::quat(glm::radians(glm::vec3(60.0f, -90.0f, 0.0f)));
 }
 
 inline void AddSkybox(Scene& scene, SceneNode* roomNode) {
@@ -1094,7 +1186,10 @@ inline void InitScene(Scene& scene) {
 	scene.AddComponent<LightSystem>();
 	scene.AddComponent<UiSystem>();
 	scene.AddComponent<AnimationSystem>();
+	scene.AddComponent<PickableItemSystem>();
 	scene.AddComponent<TweenSystem>();
+	scene.AddComponent<WheelSystem>();
+	scene.AddComponent<ThrowableObjectPool>();
 
 	if (auto* lightSystem = scene.GetComponent<LightSystem>()) {
 		lightSystem->SetAmbientLight(glm::vec4(1.0f, 0.65f, 0.25f, 0.12f));
@@ -1109,15 +1204,25 @@ inline void InitScene(Scene& scene) {
 		)->Instantiate(&scene, sceneRoot, "Crafting Tutorial Room");
 
 	if (!roomNode) {
-		spdlog::error("CraftingScene: failed to load CraftingTutorial.glb.");
 		return;
 	}
 
 	AddSkybox(scene, roomNode);
 	AddRoomPhysics(roomNode);
 
+	SceneNode* stationNode =
+		CreateCraftingStationModel(scene, roomNode);
+
+	if (!stationNode) {
+		return;
+	}
+
+	DisableEmbeddedStationNodes(roomNode);
+
+	AddStationMeshPhysics(stationNode);
+
 	SceneNode* dragInteractorNode =
-		scene.CreateNode(roomNode, "Crafting Drag Interactor");
+		scene.CreateNode(stationNode, "Crafting Drag Interactor");
 
 	dragInteractorNode->AddObject<Crafting::CraftingDragInteractor>();
 
@@ -1133,14 +1238,9 @@ inline void InitScene(Scene& scene) {
 
 	cameraNode->GetObject<Camera>()->SetAsMainCamera();
 
-	auto* cameraSettings =
-		cameraNode->AddObject<CameraSettings>(
-			playerNode->GlobalTransform().Position()
-		);
-
-	cameraSettings->height = 5.0f;
-	cameraSettings->angleY = 135.0f;
-	cameraSettings->angleX = 45.0f;
+	cameraNode->AddObject<CameraSettings>(
+		playerNode->GlobalTransform().Position()
+	)->angleY = 135;
 
 	cameraNode->AddObject<MaskEffects>();
 
@@ -1165,8 +1265,8 @@ inline void InitScene(Scene& scene) {
 
 	roomNode->AddObject<CraftingTutorialLights>();
 
-	SetupCraftingStation(scene, roomNode);
-	CreateCraftingIngredients(scene, roomNode);
+	SetupCraftingStation(scene, stationNode);
+	CreateCraftingIngredients(scene, stationNode);
 
 }
 

@@ -1,7 +1,7 @@
 #include "include/GameApplication.h"
 
 #include "imgui.h"
-#include "scenes/SplashScene.h"
+#include "scenes/CraftingScene.h"
 
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
@@ -44,7 +44,7 @@ void GameApplication::OnInit(int argc, char* argv[]) {
     this->settings.Load();
 
     Scene* newScene = Scene::CreateStandaloneScene();
-    SplashScene::InitScene(*newScene);
+    CraftingScene::InitScene(*newScene);
     this->currentScene = newScene;
     this->ApplySettings();
 }
