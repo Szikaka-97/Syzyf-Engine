@@ -60,7 +60,7 @@ inline void InitScene(Scene& mainScene) {
 	mainScene.AddComponent<WheelSystem>();
 	mainScene.AddComponent<ThrowableObjectPool>();
 
-	mainScene.GetComponent<LightSystem>()->SetAmbientLight(glm::vec4(1, 0.6, 0.3, 0.035));
+	mainScene.GetComponent<LightSystem>()->SetAmbientLight(glm::vec4(1, 0.6, 0.3, 0.3));
 
 #pragma region Room
 	SceneNode* roomNode = ResourceDatabase::Global->Get<GltfScene>(

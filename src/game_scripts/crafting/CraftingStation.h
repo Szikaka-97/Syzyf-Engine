@@ -577,10 +577,10 @@ namespace Crafting{
                     }
                 }
 
-                glm::quat LookAtRotation(
-                    const glm::vec3& cameraPosition,
-                    const glm::vec3& targetPosition
-                ){
+        glm::quat LookAtRotation(
+const glm::vec3& cameraPosition,
+const glm::vec3& targetPosition
+){
                     glm::vec3 direction =
                         targetPosition - cameraPosition;
 
@@ -591,21 +591,40 @@ namespace Crafting{
                     glm::vec3 forward =
                         glm::normalize(direction);
 
-                    glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
+                    glm::vec3 worldUp =
+                        glm::vec3(0.0f, 1.0f, 0.0f);
 
-                    if (glm::abs(glm::dot(forward,up)) > 0.98f){
-                        up = glm::vec3(0.0f, 0.0f, 1.0f);
+                    if (glm::abs(glm::dot(forward, worldUp)) > 0.98f){
+                        worldUp = glm::vec3(0.0f, 0.0f, 1.0f);
                     }
 
-                    glm::mat4 view =
-                        glm::lookAt(
-                            cameraPosition,
-                            targetPosition,
-                            up
-                        );
+                    glm::vec3 right =
+                        glm::normalize(glm::cross(worldUp, forward));
 
-                    return glm::quat_cast(glm::inverse(view)) *
-                        glm::quat(glm::radians(glm::vec3(0.0f, 180.0f, 0.0f)));
+                    glm::vec3 up =
+                        glm::normalize(glm::cross(forward, right));
+
+                    glm::mat3 rotationMatrix;
+                    rotationMatrix[0] = right;
+                    rotationMatrix[1] = up;
+                    rotationMatrix[2] = forward;
+
+                    return glm::normalize(glm::quat_cast(rotationMatrix));
+                }
+
+        SceneNode* FindStageCameraNode(const std::string& nodeName){
+                    SceneNode* node =
+                        FindNodeRecursive(GetNode(), nodeName);
+
+                    if (node){
+                        return node;
+                    }
+
+                    if (!GetScene()){
+                        return nullptr;
+                    }
+
+                    return FindNodeRecursive(GetScene()->GetRootNode(), nodeName);
                 }
 
                 void FocusCameraOnIngredientStage(){

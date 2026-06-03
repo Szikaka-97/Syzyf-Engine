@@ -392,7 +392,7 @@ public:
 				light = pointLightNode->AddObject<Light>(
 					Light::PointLight(
 						glm::vec3(1.0f, 0.5f, 0.1f),
-						10.0f,
+						18.0f,
 						0.0f,
 						0.09f,
 						0.032f

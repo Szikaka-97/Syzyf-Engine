@@ -171,7 +171,7 @@ public:
 				light = pointLightNode->AddObject<Light>(
 					Light::PointLight(
 						glm::vec3(1.0f, 0.55f, 0.18f),
-						10.0f,
+						18.0f,
 						0.0f,
 						0.09f,
 						0.032f
@@ -826,24 +826,26 @@ inline Material* CreateColorMaterial(const glm::vec4& color) {
 }
 
 inline SceneNode* CreateBottlingDebugCube(
-	Scene& scene,
-	SceneNode* parent,
-	const std::string& nodeName,
-	Mesh* mesh,
-	Material* material,
-	const glm::vec3& worldPosition,
-	const glm::vec3& localScale
+        Scene& scene,
+        SceneNode* parent,
+        const std::string& nodeName,
+        Mesh* mesh,
+        Material* material,
+        const glm::vec3& worldPosition,
+        const glm::vec3& localScale,
+        const glm::quat& worldRotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f)
 ) {
-	SceneNode* node = scene.CreateNode(parent, nodeName);
+    SceneNode* node = scene.CreateNode(parent, nodeName);
 
-	node->LocalTransform().Scale() = localScale;
-	node->GlobalTransform().Position() = worldPosition;
+    node->GlobalTransform().Position() = worldPosition;
+    node->GlobalTransform().Rotation() = worldRotation;
+    node->LocalTransform().Scale() = localScale;
 
-	if (mesh && material) {
-		node->AddObject<MeshRenderer>(mesh, material);
-	}
+    if (mesh && material) {
+        node->AddObject<MeshRenderer>(mesh, material);
+    }
 
-	return node;
+    return node;
 }
 
 
@@ -868,88 +870,157 @@ inline SceneNode* CreateBottlingLocalCube(
 	return node;
 }
 
+inline glm::vec3 SafeNormalizedAxis(
+        const glm::vec3& axis,
+        const glm::vec3& fallback
+) {
+    if (glm::length(axis) < 0.001f) {
+        return fallback;
+    }
+
+    return glm::normalize(axis);
+}
+
+// inline glm::vec3 ConveyorBeltWorldPoint(
+//         SceneNode* conveyorBeltNode,
+//         float alongOffset,
+//         float sideOffset,
+//         float upOffset
+// ) {
+//     glm::vec3 center =
+//             conveyorBeltNode->GlobalTransform().Position().Value();
+//
+//     glm::vec3 beltAlong =
+//             SafeNormalizedAxis(
+//                     conveyorBeltNode->GlobalTransform().Right(),
+//                     glm::vec3(1.0f, 0.0f, 0.0f)
+//             );
+//
+//     glm::vec3 beltSide =
+//             SafeNormalizedAxis(
+//                     conveyorBeltNode->GlobalTransform().Forward(),
+//                     glm::vec3(0.0f, 0.0f, 1.0f)
+//             );
+//
+//     glm::vec3 beltUp =
+//             SafeNormalizedAxis(
+//                     conveyorBeltNode->GlobalTransform().Up(),
+//                     glm::vec3(0.0f, 1.0f, 0.0f)
+//             );
+//
+//     return
+//             center +
+//             beltAlong * alongOffset +
+//             beltSide * sideOffset +
+//             beltUp * upOffset;
+// }
+
+// inline glm::vec3 LocalPositionRelativeTo(
+// 	SceneNode* node,
+// 	SceneNode* root
+// ) {
+// 	if (!node || !root) {
+// 		return glm::vec3(0.0f);
+// 	}
+//
+// 	glm::vec4 localPosition =
+// 		glm::inverse(root->GlobalTransform().Value()) *
+// 		glm::vec4(node->GlobalTransform().Position().Value(), 1.0f);
+//
+// 	return glm::vec3(localPosition);
+// }
+
 inline void CreateBottlingStageNodes(Scene& scene, SceneNode* roomNode) {
 	if (!roomNode) {
 		return;
 	}
 
-	const glm::vec3 bottleStartPoint =
-		WorldPointBetweenCameraNodes(
-			roomNode,
-			"LastStageStand",
-			"LastStageLook",
-			0.35f,
-			-0.55f,
-			-0.05f
-		);
+	SceneNode* conveyorBeltNode =
+		FindFirstNodeByNameRecursive(roomNode, "Conveyor_belt");
+
+	SceneNode* bottleStartNode =
+		FindFirstNodeByNameRecursive(roomNode, "Bottle_Start");
+
+	SceneNode* bottleStopNode =
+		FindFirstNodeByNameRecursive(roomNode, "Bottle_stop");
+
+	if (!conveyorBeltNode || !bottleStartNode || !bottleStopNode) {
+		return;
+	}
+
+    const glm::mat4 bottleStartTransform =
+            GetNodeTransformRelativeTo(
+                    bottleStartNode,
+                    roomNode
+            );
+
+    const glm::mat4 bottleStopTransform =
+            GetNodeTransformRelativeTo(
+                    bottleStopNode,
+                    roomNode
+            );
+
+    const glm::vec3 bottleStartPoint =
+            glm::vec3(
+                    bottleStartTransform[3]
+            );
+
+    const glm::vec3 bottleEndPoint =
+            glm::vec3(
+                    bottleStopTransform[3]
+            );
 
 	const glm::vec3 bottleFillPoint =
-		WorldPointBetweenCameraNodes(
-			roomNode,
-			"LastStageStand",
-			"LastStageLook",
-			0.50f,
-			0.0f,
-			-0.05f
-		);
-
-	const glm::vec3 bottleEndPoint =
-		WorldPointBetweenCameraNodes(
-			roomNode,
-			"LastStageStand",
-			"LastStageLook",
-			0.65f,
-			0.55f,
-			-0.05f
+		glm::mix(
+			bottleStartPoint,
+			bottleEndPoint,
+			0.5f
 		);
 
 	const glm::vec3 lanePosition =
-		WorldPointBetweenCameraNodes(
-			roomNode,
-			"LastStageStand",
-			"LastStageLook",
-			0.50f,
-			0.0f,
-			-0.25f
+		glm::mix(
+			bottleStartPoint,
+			bottleEndPoint,
+			0.5f
+		);
+
+	const glm::vec3 valveGuidePosition =
+		bottleFillPoint +
+		glm::vec3(0.0f, 0.55f, 0.0f);
+
+	const float laneLength =
+		glm::max(
+			glm::length(bottleEndPoint - bottleStartPoint),
+			0.1f
 		);
 
 	const glm::vec3 laneScale =
-		glm::vec3(2.8f, 0.08f, 0.45f);
+		glm::vec3(laneLength, 0.04f, 0.28f);
 
 	const glm::vec3 fillZoneScale =
-		glm::vec3(0.34f, 0.55f, 0.34f);
-
-	const glm::vec3 valveGuidePosition =
-		WorldPointBetweenCameraNodes(
-			roomNode,
-			"LastStageStand",
-			"LastStageLook",
-			0.50f,
-			0.0f,
-			0.45f
-		);
+		glm::vec3(0.28f, 0.45f, 0.28f);
 
 	const glm::vec3 valveGuideScale =
 		glm::vec3(0.08f, 0.42f, 0.08f);
 
 	const glm::vec3 bottleScale =
-		glm::vec3(0.18f, 0.45f, 0.18f);
+		glm::vec3(0.16f, 0.36f, 0.16f);
 
-	CreateWorldPoint(
+	CreateLocalPoint(
 		scene,
 		roomNode,
 		"BottleStartPoint",
 		bottleStartPoint
 	);
 
-	CreateWorldPoint(
+	CreateLocalPoint(
 		scene,
 		roomNode,
 		"BottleFillPoint",
 		bottleFillPoint
 	);
 
-	CreateWorldPoint(
+	CreateLocalPoint(
 		scene,
 		roomNode,
 		"BottleEndPoint",
@@ -980,7 +1051,7 @@ inline void CreateBottlingStageNodes(Scene& scene, SceneNode* roomNode) {
 	bottlesRoot->LocalTransform().Position() =
 		glm::vec3(0.0f);
 
-	CreateBottlingDebugCube(
+	CreateBottlingLocalCube(
 		scene,
 		bottlesRoot,
 		"BottlingLaneDebug",
@@ -990,7 +1061,7 @@ inline void CreateBottlingStageNodes(Scene& scene, SceneNode* roomNode) {
 		laneScale
 	);
 
-	CreateBottlingDebugCube(
+	CreateBottlingLocalCube(
 		scene,
 		bottlesRoot,
 		"BottleFillZoneDebug",
@@ -1000,7 +1071,7 @@ inline void CreateBottlingStageNodes(Scene& scene, SceneNode* roomNode) {
 		fillZoneScale
 	);
 
-	CreateBottlingDebugCube(
+	CreateBottlingLocalCube(
 		scene,
 		bottlesRoot,
 		"ValveToBottleGuideDebug",
@@ -1011,7 +1082,7 @@ inline void CreateBottlingStageNodes(Scene& scene, SceneNode* roomNode) {
 	);
 
 	for (int i = 0; i < 4; ++i) {
-		SceneNode* bottleNode = CreateBottlingDebugCube(
+		SceneNode* bottleNode = CreateBottlingLocalCube(
 			scene,
 			bottlesRoot,
 			"BottlingBottle_0" + std::to_string(i + 1),
@@ -1385,7 +1456,7 @@ inline void SetupCraftingStation(Scene& scene, SceneNode* roomNode) {
 	CreateBlowerHitbox(scene, roomNode);
 	CreateDoorHitbox(scene, roomNode);
 	CreateValveHitbox(scene, roomNode);
-	CreateBottlingStageNodes(scene, roomNode);
+	// CreateBottlingStageNodes(scene, roomNode);
 	CreateCauldronReceiver(scene, roomNode);
 	CreateLidHitbox(scene, roomNode);
 

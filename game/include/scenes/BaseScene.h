@@ -67,7 +67,7 @@ inline void InitScene(Scene& mainScene) {
 	mainScene.AddComponent<WheelSystem>();
 	mainScene.AddComponent<ThrowableObjectPool>();
 
-	mainScene.GetComponent<LightSystem>()->SetAmbientLight(glm::vec4(1, 0.6, 0.3, 0.03));
+	mainScene.GetComponent<LightSystem>()->SetAmbientLight(glm::vec4(1, 0.6, 0.3, 0.3));
 
 #pragma region Base
 	auto floorNode = ResourceDatabase::Global->Get<GltfScene>("./res/models/rooms/Base.glb")->Instantiate(&mainScene, mainScene.root, "Floor");
