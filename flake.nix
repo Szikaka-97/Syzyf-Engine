@@ -24,6 +24,7 @@
         xorg.libXext
         libxcb
         libxtst
+        dbus
       ];
     in
     {
@@ -37,6 +38,7 @@
           gdb
           wayland-scanner
           python3
+          zenity
 
           cppcheck
           include-what-you-use

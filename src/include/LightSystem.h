@@ -41,5 +41,8 @@ public:
 	virtual int Order();
 
 	virtual void DrawImGui();
+
+	virtual json Serialize();
+	virtual void Deserialize(const json& data);
 };
 

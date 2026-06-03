@@ -16,6 +16,9 @@ public:
 	Skybox();
 	Skybox(Material* skyMaterial);
 
+	void OnEnable();
+	void OnDisable();
+
 	Material* GetSkyMaterial();
 	Mesh* GetSkyMesh();
 

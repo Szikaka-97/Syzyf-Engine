@@ -91,7 +91,11 @@ void EditorApplication::OnInit(int argc, char* argv[]) {
     }
 }
 
-void EditorApplication::OnUpdate() { this->Input(); }
+void EditorApplication::OnUpdate() {
+    this->context.ExecuteMainThreadTasks();
+
+    this->Input();
+}
 
 void EditorApplication::OnRender() {}
 

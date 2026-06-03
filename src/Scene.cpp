@@ -619,7 +619,7 @@ SceneNode* Scene::LoadPrefab(json nodePrefab) {
 
 	SceneNode* prefabRoot = Serialization::DeserializeObject<SceneNode>(nodePrefab);
 
-	this->messageTree.AddNode(prefabRoot);
+	// this->messageTree.AddNode(prefabRoot);
 
 	return prefabRoot;
 }

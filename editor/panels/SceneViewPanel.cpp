@@ -2,6 +2,7 @@
 #include "CameraController.h"
 #include "Commands.h"
 #include "EditorApplication.h"
+#include "FileDialogHelpers.h"
 #include "MousePickingBodySystem.h"
 #include "ParticleSpawner.h"
 #include "SceneRegistry.h"
@@ -178,7 +179,7 @@ void SceneViewPanel::Draw(Context& context) {
 
                     for (const auto& [name, loadFunc] :
                          SceneRegistry::GetLoadRegistry()) {
-                        
+
                         if (ImGui::Selectable(name.c_str())) {
                             Scene* newScene = loadFunc();
 
@@ -186,21 +187,32 @@ void SceneViewPanel::Draw(Context& context) {
 
                             context.loadedScenes.push_back(newScene);
 
-                            auto cameras = newScene->FindObjectsOfType<Camera>();
+                            auto cameras =
+                                newScene->FindObjectsOfType<Camera>();
 
                             SceneNode* cameraNode = newScene->CreateNode();
                             cameraNode->AddObject<CameraController>();
 
                             if (cameras.size() > 0) {
-                                cameraNode->GlobalTransform().Position() = cameras[0]->GlobalTransform().Position().Value();
-                                cameraNode->GlobalTransform().Rotation() = cameras[0]->GlobalTransform().Rotation().Value();
-                            }
-                            else {
+                                cameraNode->GlobalTransform().Position() =
+                                    cameras[0]
+                                        ->GlobalTransform()
+                                        .Position()
+                                        .Value();
+                                cameraNode->GlobalTransform().Rotation() =
+                                    cameras[0]
+                                        ->GlobalTransform()
+                                        .Rotation()
+                                        .Value();
+                            } else {
                                 cameraNode->GlobalTransform().Position() = {
                                     0.0f, 1.0f, 0.0f};
                             }
 
-                            context.mainCamera = cameraNode->GetObject<Camera>();
+                            context.loadedScenes.push_back(newScene);
+
+                            context.mainCamera =
+                                cameraNode->GetObject<Camera>();
                             context.mainCamera->SetAsMainCamera();
 
                             context.selectedScene = newScene;
@@ -217,18 +229,21 @@ void SceneViewPanel::Draw(Context& context) {
 
                         SceneNode* cameraNode = newScene->CreateNode();
                         cameraNode->AddObject<CameraController>();
-                        cameraNode->GlobalTransform().Position() = {
-                            0.0f, 1.0f, 0.0f};
+                        cameraNode->GlobalTransform().Position() = {0.0f, 1.0f,
+                                                                    0.0f};
 
                         context.loadedScenes.push_back(newScene);
 
                         context.selectedScene = newScene;
                         context.selectedNode = nullptr;
-                        context.mainCamera =
-                            cameraNode->GetObject<Camera>();
+                        context.mainCamera = cameraNode->GetObject<Camera>();
                         context.mainCamera->SetAsMainCamera();
                     }
-                    
+
+                    if (ImGui::Selectable("+ Load Scene")) {
+                        Editor::OpenLoadSceneDialog(context);
+                    }
+
                     ImGui::EndPopup();
                 }
 
@@ -271,14 +286,17 @@ void SceneViewPanel::Draw(Context& context) {
             else
                 ImGui::End();
             return;
-        }
-        else {
-            if (ImGui::IsKeyChordPressed(ImGuiKey::ImGuiMod_Ctrl | ImGuiKey::ImGuiKey_S)) {
-           	    nlohmann::json rep = Serialization::Serialize(context.selectedScene);
+        } else {
+            if (ImGui::IsKeyChordPressed(ImGuiKey::ImGuiMod_Ctrl |
+                                         ImGuiKey::ImGuiKey_S)) {
+                nlohmann::json rep =
+                    Serialization::Serialize(context.selectedScene);
 
-                spdlog::info("Root is legit: {}", context.selectedScene->root != nullptr);
+                spdlog::info("Root is legit: {}",
+                             context.selectedScene->root != nullptr);
 
-                std::ofstream sceneSave(std::format("./res/scenes/{}.scene", context.selectedScene->name));
+                std::ofstream sceneSave(std::format(
+                    "./res/scenes/{}.scene", context.selectedScene->name));
                 sceneSave << rep.dump(2);
 
                 spdlog::info("Saving scene {}", context.selectedScene->name);
@@ -467,6 +485,14 @@ void SceneViewPanel::Draw(Context& context) {
 }
 
 void SceneViewPanel::UpdateAndRenderScene(Context& context) {
+    if (context.isNativeDialogOpen) {
+        context.selectedScene->Render();
+        if (context.state != State::Game) {
+            context.physicsDebugRenderer->Render();
+        }
+        return;
+    }
+
     if (context.state == State::Game) {
         context.selectedScene->Update();
     } else {
@@ -741,11 +767,11 @@ void SceneViewPanel::DrawMenuBar(Context& context) {
         this->isGizmoLocal = true;
     }
     ImGui::SameLine();
-    if (ImGui::RadioButton("Draw Gizmos", context.mainCamera->HasPass(RenderPassType::Gizmos))) {
+    if (ImGui::RadioButton("Draw Gizmos", context.mainCamera->HasPass(
+                                              RenderPassType::Gizmos))) {
         if (context.mainCamera->HasPass(RenderPassType::Gizmos)) {
             context.mainCamera->RemovePass(RenderPassType::Gizmos);
-        }
-        else {
+        } else {
             context.mainCamera->AddPass(RenderPassType::Gizmos);
         }
     }

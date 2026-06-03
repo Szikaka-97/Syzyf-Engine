@@ -232,6 +232,13 @@ void SceneGraphics::SetMainCamera(Camera* camera) {
 	this->mainCamera = camera;
 }
 
+void SceneGraphics::SetActiveSkybox(Skybox* skybox) {
+	this->activeSkybox = skybox;
+}
+Skybox* SceneGraphics::GetActiveSkybox() const {
+	return this->activeSkybox;
+}
+
 void SceneGraphics::BindUniformBuffers() {
 	glBindBufferBase(GL_UNIFORM_BUFFER, 0, this->globalUniformsBuffer);
 
@@ -1111,7 +1118,7 @@ void SceneGraphics::RenderOpaque(const ShaderGlobalUniforms& uniforms, const Ren
 
 	glBindFramebuffer(GL_FRAMEBUFFER, target->GetHandle());
 
-	Skybox* sky = Skybox::GetCurrentSkybox();
+	Skybox* sky = GetActiveSkybox();
 
 	if (!sky) {
 		glClearColor(0, 0, 0, 0);
@@ -1723,7 +1730,7 @@ void SceneGraphics::RenderGizmos(const ShaderGlobalUniforms& uniforms, const Ren
 	target->SetColorAttachmentEnabled(true);
 	glBindFramebuffer(GL_FRAMEBUFFER, target->GetHandle());
 
-	Skybox* sky = Skybox::GetCurrentSkybox();
+	Skybox* sky = GetActiveSkybox();
 
 	if (!sky) {
 		glClearColor(0, 0, 0, 0);
