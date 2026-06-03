@@ -15,6 +15,8 @@ private:
     float volume = 1.0f;
     float pitch = 1.0f;
     bool isLooping = false;
+    // For 3D audio to work the clip needs to be mono
+    //  otherwise it plays as 2D regardless of whether this is set or not
     bool is2D = false;
 
     void ApplySettings();

@@ -19,6 +19,10 @@ ALuint AudioClip::GetBufferId() {
     return this->bufferId;
 }
 
+float AudioClip::GetDuration() const {
+    return this->duration;
+}
+
 std::filesystem::path AudioClip::GetPath() const {
     return this->filePath;
 }
@@ -67,6 +71,10 @@ AudioClip* AudioClip::Load(const std::filesystem::path& path) {
     AudioClip* clip = new AudioClip();
     clip->filePath = path;
     clip->hash = std::hash<std::string>{}(pathString);
+
+    if (sampleRate > 0) {
+        clip->duration = (float)totalPCMFrameCount / (float)sampleRate;
+    }
 
     alBufferData(clip->bufferId, format, pSampleData, dataSize, sampleRate);
 

@@ -13,11 +13,14 @@ private:
     std::filesystem::path filePath;
     uint64_t hash = 0;
 
+    float duration = 0.0f;
+
     AudioClip();
 public:
     ~AudioClip();
 
     ALuint GetBufferId();
+    float GetDuration() const;
 
     virtual std::filesystem::path GetPath() const;
     virtual uint64_t GetHash() const;

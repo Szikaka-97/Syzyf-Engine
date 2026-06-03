@@ -154,6 +154,15 @@ void AudioSource::DrawImGui() {
 
     if (this->currentClip) {
         ImGui::TextWrapped("Clip: %s", this->currentClip->GetPath().string().c_str());
+
+        float duration = this->currentClip->GetDuration();
+        float scrubTime = 0.0f;
+
+        alGetSourcef(sourceId, AL_SEC_OFFSET, &scrubTime);
+
+        if (ImGui::SliderFloat("Timeline", &scrubTime, 0.0f, duration, "%.3f s")) {
+            alSourcef(sourceId, AL_SEC_OFFSET, scrubTime);
+        }
     } else {
         ImGui::Text("Clip: None assigned");
     }
