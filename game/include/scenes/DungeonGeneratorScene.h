@@ -54,6 +54,7 @@
 #include <game_scripts/ThrowableObjectPool.h>
 #include <game_scripts/enemies/FlockingSystem.h>
 
+
 class DungeonRoomEnabler : public GameObject {
 public:
 	
@@ -62,7 +63,7 @@ public:
 namespace DungeonGeneratorScene {
 class EditorCameraTag : public GameObject {};
 
-inline void InitScene(Scene& mainScene) {
+ inline void InitScene(Scene& mainScene) {
 	mainScene.AddComponent<Physics::System>();
 	mainScene.AddComponent<DebugInspector>();
 	mainScene.AddComponent<AnimationSystem>();

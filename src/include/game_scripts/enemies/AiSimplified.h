@@ -26,7 +26,6 @@ protected:
     void DirectChase();
 
     void  SetMovementSpeed(float s) { m_Speed = s; }
-    float GetMovementSpeed() const  { return m_Speed; }
 
     Physics::System* physics;
 
@@ -59,4 +58,6 @@ public:
     }
     void SetPatrolPoints(const std::vector<glm::vec2>& points);
     Surface* GetSurface() const { return m_Surface; }
+
+    float GetMovementSpeed() const  { return m_Speed; }
 };

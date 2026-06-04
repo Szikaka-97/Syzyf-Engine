@@ -14,8 +14,10 @@
 #include <physics/Helpers.h>
 #include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
 
+#include "../game/include/scenes/DungeonGeneratorScene.h"
+
 namespace DungeonGeneratorScene {
-	inline void InitScene(Scene& mainScene);
+	 void InitScene(Scene& mainScene);
 }
 
 static constexpr float RatSpawnExtraHeight = 0.0f;

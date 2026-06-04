@@ -228,7 +228,6 @@ inline void InitScene(Scene& mainScene) {
 #pragma region Enemy
 
         auto* flockingSystem = mainScene.AddComponent<FlockingSystem>();
-    // Opcjonalne tunowanie:
     flockingSystem->separationRadius = 2.5f;
     flockingSystem->separationWeight = 1.8f;
     flockingSystem->alignmentRadius = 5.0f;
@@ -244,7 +243,7 @@ inline void InitScene(Scene& mainScene) {
     Mesh* cubeMesh =
         mainScene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
 
-    const int enemyCount = 20;
+    const int enemyCount = 10;
     const float startX = 10.0f;
     const float startZ = -5.0f;
     const float spacing = 3.0f;
@@ -275,7 +274,8 @@ inline void InitScene(Scene& mainScene) {
         enemyAi->OnPlayerEnteredRoom();
         SceneNode* enemyModel =
             ResourceDatabase::Global
-                ->Get<GltfScene>("./res/models/not_cube3.glb")
+                ->Get<GltfScene>("./res/models/not_cube6.glb")
+                //->Get<GltfScene>("./res/models/enemies/szkielet4.glb")
                 ->Instantiate(&mainScene, mainScene.root,
                               "EnemyModel_" + std::to_string(i));
         enemyModel->SetParent(enemyNode);
