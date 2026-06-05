@@ -13,6 +13,8 @@ void ComboEffectBase::Init(float e1Strength, float e1MaxRange,
     duration         = dur;
     m_Elapsed        = 0.0f;
     m_Expired        = false;
+
+    OnInit();
 }
 
 void ComboEffectBase::Update() {

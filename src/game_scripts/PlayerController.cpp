@@ -15,6 +15,7 @@
 #include <physics/Body.h>
 #include <Formatters.h>
 #include <game_scripts/PickableItemSystem.h>
+#include <game_scripts/AttackEffects/combos/ComboExplodeFire.h>
 #include <physics/LayerMaskFilter.h>
 
 PlayerController* PlayerController::instance;
@@ -301,9 +302,13 @@ void PlayerController::UpdateThrowing() {
 			thrownBottle->GetObject<Physics::Body>()->SetPosition(this->throwPoint->GlobalTransform().Position());
 	
 			thrownBottle->SetEnabled(true);
-			throwable->SetEffect<EffectExplosion>([](EffectExplosion* e) {
-				e->radius  = 3.0f;
-				e->special1 = true;   // podwaja obra�enia
+			// throwable->SetEffect<EffectExplosion>([](EffectExplosion* e) {
+			// 	e->radius  = 3.0f;
+			// 	e->special1 = true;   // podwaja obra�enia
+			// });
+			throwable->SetComboEffect<ComboExplodeFire>([](ComboExplodeFire* e) {
+				//e->radius  = 3.0f;
+				//e->special1 = true;   // podwaja obra�enia
 			});
 			thrownBottle->GetObject<Physics::Body>()->SetLinearVelocity(throwForce);
 
