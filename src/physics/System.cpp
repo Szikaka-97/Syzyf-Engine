@@ -131,7 +131,11 @@ class ObjectVsBroadPhaseLayerFilterImpl
 };
 
 System::System(Scene* scene, const SystemSettings& settings)
-    : GameObjectSystem<CharacterController>(scene) {
+    : SceneComponent(scene) {
+    this->characterControllerSystem = scene->AddComponent<CharacterControllerSystem>();
+    this->virtualCharacterControllerSystem = scene->AddComponent<VirtualCharacterControllerSystem>();
+    this->bodySystem = scene->AddComponent<BodySystem>();
+
     layerGroupFilter = new GroupFilterLayerMask();
 
     tempAllocator = new JPH::TempAllocatorImpl(settings.tempAllocatorSize);
@@ -319,7 +323,6 @@ void System::OnPreUpdate() {
                 SceneNode* node1 = object1->GetNode();
                 SceneNode* node2 = object2->GetNode();
 
-                // TODO get rid of dynamic casts
                 for (GameObject* obj : node1->AttachedObjects()) {
                     if (auto* receiver =
                             dynamic_cast<ICollisionReceiver*>(obj)) {
@@ -368,7 +371,7 @@ void System::OnPreUpdate() {
         }
 
     {
-        for (auto& characterObject : IterateObjects()) {
+        for (auto& characterObject : this->characterControllerSystem->IterateObjects()) {
             characterObject->GetCharacter()->PostSimulation(
                 characterObject->maxSeparationDistance);
 
@@ -400,8 +403,7 @@ void Physics::System::DrawPhysicsDebug(DebugRenderer* debugRenderer) {
         physicsSystem->DrawConstraints(debugRenderer);
 
         for (auto& characterObject :
-             this->GetScene()
-                 ->FindObjectsOfType<VirtualCharacterController>()) {
+             this->virtualCharacterControllerSystem->IterateObjects()) {
             auto character = characterObject->GetCharacter();
 
             character->GetShape()->Draw(

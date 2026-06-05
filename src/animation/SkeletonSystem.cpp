@@ -4,8 +4,6 @@
 
 #include "Scene.h"
 
-#include <tracy/Tracy.hpp>
-
 SkeletonSystem::SkeletonSystem(Scene* scene) : GameObjectSystem<SkeletonComponent>(scene) {
   glGenBuffers(1, &this->skinningBuffer);
   spdlog::info("Skeleton system added");

@@ -1,6 +1,11 @@
 #pragma once
 
+#include "CameraController.h"
+#include "InputSystem.h"
 #include "KeyboardControls.h"
+#include "MousePickingBodySystem.h"
+#include "ParticleSpawner.h"
+#include "scatter/Spawner.h"
 
 #include <Jolt/Jolt.h>
 #include <Jolt/Physics/Collision/ObjectLayer.h>
@@ -36,6 +41,18 @@ class SceneViewPanel {
     EditorLayerFilter filter;
 
     KeyboardControls keyboardControls;
+
+    // cache
+    Scene* cachedScene = nullptr;
+    CameraController* cameraController = nullptr;
+    InputSystem* inputSystem = nullptr;
+    Physics::BodySystem* bodySystem = nullptr;
+    Physics::CharacterControllerSystem* characterControllerSystem = nullptr;
+    Physics::VirtualCharacterControllerSystem*
+        virtualCharacterControllerSystem = nullptr;
+    Scatter::SpawnerSystem* scatterSpawnerSystem = nullptr;
+    ParticleSpawnerSystem* particleSpawnerSystem = nullptr;
+    MousePickingBodySystem* mousePickingBodySystem = nullptr;
 
   public:
     void Draw(Context& context);
