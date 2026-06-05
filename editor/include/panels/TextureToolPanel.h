@@ -1,6 +1,7 @@
 #pragma once
 
 #include <FastNoiseLite.h>
+#include <glm/glm.hpp>
 
 #include <cstdint>
 #include <string>
@@ -10,6 +11,15 @@ class Texture2D;
 
 namespace Editor {
 class Context;
+
+struct ColorKey {
+    float position;
+    glm::vec4 color;
+
+    bool operator<(const ColorKey& other) const {
+        return position < other.position;
+    }
+};
 
 class TextureToolPanel {
   private:
@@ -43,12 +53,33 @@ class TextureToolPanel {
     std::uint32_t previewTextureId = 0;
     bool needsUpdate = true;
 
+    // ---- Gradient Stuff ----
+    int gradientType = 0; // 0 = 1D, 1 = 2D
+    int gradientDirection = 0;
+    int gradientResolution = 256;
+    bool gradientNeedsUpdate = true;
+
+    // 1D Gradient
+    std::vector<ColorKey> gradientKeys = {
+        {0.0f, glm::vec4(0.0f, 0.0f, 0.0f, 1.0f)},
+        {1.0f, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f)}};
+
+    std::vector<std::uint8_t> gradientTextureData;
+    Texture2D* generatedGradientTexture = nullptr;
+    std::uint32_t gradientPreviewId = 0;
+
   public:
     TextureToolPanel();
     void Draw(Context& context);
 
   private:
+    void DrawNoiseTab(Context& context);
+    void DrawGradientTab(Context& context);
+
     void GenerateNoiseTexture();
-    void SaveTextureToFile(const std::string& path);
+    void GenerateGradientTexture();
+
+    void SaveNoiseToFile(const std::string& path);
+    void SaveGradientToFile(const std::string& path);
 };
 } // namespace Editor

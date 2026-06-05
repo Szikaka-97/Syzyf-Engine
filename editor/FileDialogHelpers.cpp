@@ -318,7 +318,7 @@ static void SDLCALL SaveTextureCallback(void* userdata,
 
 void OpenSaveTextureDialog(Context& context,
                            std::function<void(std::string)> saveCallback) {
-    std::string defaultName = "NoiseTexture.png";
+    std::string defaultName = "texture.png";
     std::string defaultLocation =
         lastTextureDirectory.empty()
             ? defaultName
