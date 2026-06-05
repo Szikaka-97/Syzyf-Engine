@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Jolt/Jolt.h>
+#include "GameObjectSystem.h"
 #include "Jolt/Core/Core.h"
 #include <Jolt/Core/TempAllocator.h>
 #include <Jolt/Core/JobSystemThreadPool.h>
@@ -13,6 +14,7 @@
 
 #include "Jolt/Physics/Body/BodyFilter.h"
 #include "SceneComponent.h"
+#include "physics/CharacterController.h"
 
 class SceneNode;
 
@@ -64,7 +66,9 @@ struct BroadPhaseLayers {
   static constexpr JPH::uint NUM_LAYERS{3};
 };
 
-class System : public SceneComponent {
+// Made it a character controller system because thats the only gameobject it iterates through
+//  ideally a separate system would do this
+class System : public GameObjectSystem<CharacterController> {
 public:
   // move to private perhaps
   std::mutex collisionMutex;

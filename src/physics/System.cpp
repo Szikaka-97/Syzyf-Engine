@@ -131,7 +131,7 @@ class ObjectVsBroadPhaseLayerFilterImpl
 };
 
 System::System(Scene* scene, const SystemSettings& settings)
-    : SceneComponent(scene) {
+    : GameObjectSystem<CharacterController>(scene) {
     layerGroupFilter = new GroupFilterLayerMask();
 
     tempAllocator = new JPH::TempAllocatorImpl(settings.tempAllocatorSize);
@@ -319,6 +319,7 @@ void System::OnPreUpdate() {
                 SceneNode* node1 = object1->GetNode();
                 SceneNode* node2 = object2->GetNode();
 
+                // TODO get rid of dynamic casts
                 for (GameObject* obj : node1->AttachedObjects()) {
                     if (auto* receiver =
                             dynamic_cast<ICollisionReceiver*>(obj)) {
@@ -366,8 +367,8 @@ void System::OnPreUpdate() {
             }
         }
 
-        for (auto& characterObject :
-             this->GetScene()->FindObjectsOfType<CharacterController>()) {
+    {
+        for (auto& characterObject : IterateObjects()) {
             characterObject->GetCharacter()->PostSimulation(
                 characterObject->maxSeparationDistance);
 
@@ -381,6 +382,7 @@ void System::OnPreUpdate() {
                 glm::quat(rotation.GetW(), rotation.GetX(), rotation.GetY(),
                           rotation.GetZ());
         }
+    }
     }
     // Queue stuff
 }
@@ -416,4 +418,3 @@ void System::DrawImGui() {
     }
 }
 }; // namespace Physics
-
