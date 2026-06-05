@@ -1,8 +1,10 @@
 #include "ColorGrading.h"
 
+#include "Resources.h"
 #include "Shader.h"
 #include "Graphics.h"
 #include "Scene.h"
+#include "ImGuiTextureField.h"
 
 #include <imgui.h>
 
@@ -71,12 +73,17 @@ void ColorGrading::DrawImGui() {
         this->vignetteStrength = 0.0f;
     }
 
+    DrawTextureField("LUT Curve Texture", this->curveTexture, ImVec2(64, 64), [this](const std::string& path) {
+        if (this->curveTexture != nullptr) {
+            delete this->curveTexture;
+        }
+
+        this->curveTexture = ResourceDatabase::Global->Get<Texture2D>(path, Texture::TechnicalMapXYZ);
+    });
+
     if (this->curveTexture != nullptr) {
-        ImGui::Text("Curve Texture Enabled");
-        if (ImGui::Button("Remove Curve Texture")) {
+        if (ImGui::Button("Remove Texture")) {
             this->curveTexture = nullptr;
         }
-    } else {
-        ImGui::Text("Curve Texture Disabled");
     }
 }
