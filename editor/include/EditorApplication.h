@@ -11,6 +11,7 @@
 #include "panels/SceneViewPanel.h"
 #include "panels/StatusBar.h"
 #include "panels/SystemsDebugPanel.h"
+#include "panels/TextureToolPanel.h"
 #include "thirdparty/ImGuizmo.h"
 #include <Application.h>
 
@@ -78,6 +79,7 @@ class EditorApplication : public ::Application {
     InspectorPanel inspectorPanel;
     GraphPanel graphPanel;
     SceneViewPanel sceneViewPanel;
+    TextureToolPanel textureToolPanel;
     SystemsDebugPanel systemsDebugPanel;
     CommandHistoryPanel commandHistoryPanel;
     StatusBar statusBar;

@@ -266,4 +266,70 @@ void OpenSavePrefabDialog(Context& context) {
                            prefabFilters, 2, defaultLocation.c_str());
 }
 
+static const SDL_DialogFileFilter textureFilters[] = {
+    {"PNG Image", "png"}, {"HDR", "hdr"}, {"All Files", "*"}};
+
+static std::string lastTextureDirectory = "";
+
+struct SaveTexturePayload {
+    Context* context;
+    std::function<void(std::string)> saveFunc;
+};
+
+static void SDLCALL SaveTextureCallback(void* userdata,
+                                        const char* const* filelist,
+                                        int filter) {
+    std::unique_ptr<SaveTexturePayload> payload(
+        static_cast<SaveTexturePayload*>(userdata));
+
+    Context* context = payload->context;
+
+    if (!filelist || !filelist[0]) {
+        if (const char* err = SDL_GetError(); err && err[0] != '\0') {
+            spdlog::error("Save Texture dialog error: {}", err);
+            SDL_ClearError();
+        }
+        context->isNativeDialogOpen = false;
+        return;
+    }
+
+    std::string filePath = filelist[0];
+    auto saveFunc = payload->saveFunc;
+
+    context->DispatchToMainThread([context, filePath, saveFunc]() {
+        try {
+            fs::path savePath(filePath);
+
+            if (!savePath.has_extension() || (savePath.extension() != ".png" &&
+                                              savePath.extension() != ".hdr")) {
+                savePath.replace_extension(".png");
+            }
+
+            lastTextureDirectory = savePath.parent_path().string();
+
+            saveFunc(savePath.string());
+        } catch (const std::exception& e) {
+            spdlog::error("Failed to save texture: {}", e.what());
+        }
+
+        context->isNativeDialogOpen = false;
+    });
+}
+
+void OpenSaveTextureDialog(Context& context,
+                           std::function<void(std::string)> saveCallback) {
+    std::string defaultName = "NoiseTexture.png";
+    std::string defaultLocation =
+        lastTextureDirectory.empty()
+            ? defaultName
+            : (fs::path(lastTextureDirectory) / defaultName).string();
+
+    SaveTexturePayload* payload =
+        new SaveTexturePayload{&context, saveCallback};
+    context.isNativeDialogOpen = true;
+
+    SDL_ShowSaveFileDialog(SaveTextureCallback, payload, context.window,
+                           textureFilters, 2, defaultLocation.c_str());
+}
+
 } // namespace Editor

@@ -24,6 +24,7 @@ target_include_directories(SyzyfEditor PRIVATE
     ${CMAKE_SOURCE_DIR}/game/include/scenes
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/stb_image_resize2
+    ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/stb_image_write
 )
 
 add_custom_command(TARGET SyzyfEditor POST_BUILD
