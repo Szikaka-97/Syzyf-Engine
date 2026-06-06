@@ -20,8 +20,8 @@ in VS_OUT {
 
 #include "shared/light.h"
 
-uniform vec4 baseColorFactor;
-uniform sampler2D albedoMap;
+layout(location = 0) uniform vec4 baseColorFactor;
+layout(location = 2) uniform sampler2D albedoMap;
 
 uniform float roughnessFactor;
 uniform float metallicFactor;
@@ -31,7 +31,7 @@ uniform sampler2D normalMap;
 uniform vec3 emissiveFactor;
 uniform float emissiveStrength;
 uniform sampler2D emissiveMap;
-uniform float alphaCutoff;
+layout(location = 1) uniform float alphaCutoff;
 
 uniform samplerCube Builtin_EnvIrradianceMap;
 uniform samplerCube Builtin_EnvPrefilterMap;
@@ -111,7 +111,7 @@ void main() {
 	
     vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);
 
-	vec3 ambient = (kD * diffuse + specular) * ao;
+	vec3 ambient = (kD * diffuse + specular) * ao * (Light_AmbientLight.xyz * Light_AmbientLight.w);
 	
   vec3 emissive = texture(emissiveMap, ps_in.texcoords).xyz * emissiveFactor * emissiveStrength;
 

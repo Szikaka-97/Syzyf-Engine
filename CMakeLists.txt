@@ -1,5 +1,7 @@
-cmake_minimum_required(VERSION 3.21 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.31 FATAL_ERROR)
 project(Syzyf VERSION 1.0)
+
+cmake_policy(SET CMP0171 NEW)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -13,11 +15,10 @@ IF (WIN32)
 ENDIF()
 
 find_program(CCACHE_PATH ccache HINTS ENV PATH)
-if(CCACHE_PATH)
-  message(STATUS "Using ccache: ${CCACHE_PATH}")
+if (CCACHE_PATH)
   set(CMAKE_C_COMPILER_LAUNCHER "${CCACHE_PATH}")
   set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE_PATH}")
-endif()
+endif ()
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
@@ -48,4 +49,12 @@ option(BUILD_EDITOR "Build the Syzyf Editor" ON)
 if(BUILD_EDITOR)
     message(STATUS "Syzyf Editor build ENABLED")
     add_subdirectory(editor)
+endif()
+
+# ---- Game ----
+option(BUILD_GAME "Build Game" ON)
+
+if(BUILD_GAME)
+    message(STATUS "Game build ENABLED")
+    add_subdirectory(game)
 endif()

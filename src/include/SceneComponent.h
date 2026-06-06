@@ -1,5 +1,7 @@
 #pragma once
 
+#include <Serialized.h>
+
 class Scene;
 
 class SceneComponent {
@@ -21,4 +23,7 @@ public:
 	virtual void DrawImGui();
 
 	virtual int Order();
+
+	virtual json Serialize();
+	virtual void Deserialize(const json& data);
 };

@@ -53,12 +53,13 @@ skyboxProbe(nullptr) {
 
 void ReflectionProbeSystem::RecalculateSkyboxIBL() {
 	// Silly
-	Cubemap* skyCubemap = GetScene()->Resources()->Get<Cubemap>("./res/textures/citrus_orchard_road_puresky.hdr", Texture::HDRColorBuffer);
 
 	Skybox* sky = Skybox::GetCurrentSkybox();
 
 	if (this->skyboxProbe == nullptr) {
-		this->skyboxProbe = GetScene()->GetRootNode()->AddObject<ReflectionProbe>();
+		if (!GetScene()->GetRootNode()->TryGetObject<ReflectionProbe>(this->skyboxProbe)) {
+			this->skyboxProbe = GetScene()->GetRootNode()->AddObject<ReflectionProbe>();
+		}
 	}
 
 	if (!sky) {
@@ -68,7 +69,9 @@ void ReflectionProbeSystem::RecalculateSkyboxIBL() {
 
 		return;
 	}
-	
+
+	Cubemap* skyCubemap = sky->GetSkyMaterial()->GetValue<Cubemap>("skyboxTexture");
+
 	this->skyboxProbe->dirty = false;
 	this->skyboxProbe->irradianceMap = skyCubemap->GenerateIrradianceMap();
 	this->skyboxProbe->prefilterMap = skyCubemap->GeneratePrefilterIBLMap();

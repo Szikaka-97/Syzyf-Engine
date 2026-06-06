@@ -1,0 +1,172 @@
+[
+    {
+        "_class_name": "SceneNode",
+        "_data": {
+            "children": [],
+            "disabledState": 0,
+            "id": 114,
+            "layer": 2,
+            "name": "Cylinder.009",
+            "objects": [
+                1,
+                -1
+            ],
+            "transform": {
+                "_00": 1.0,
+                "_01": 0.0,
+                "_02": 0.0,
+                "_03": 0.0,
+                "_10": 0.0,
+                "_11": 1.0,
+                "_12": 0.0,
+                "_13": 0.0,
+                "_20": 0.0,
+                "_21": 0.0,
+                "_22": 1.0,
+                "_23": 0.0,
+                "_30": 0.0,
+                "_31": 0.0,
+                "_32": 0.0,
+                "_33": 1.0
+            }
+        }
+    },
+    {
+        "_class_name": "MeshRenderer",
+        "_data": {
+            "enabled": true,
+            "materials": [
+                2,
+                3
+            ],
+            "mesh": "./res/models/butelka.glb:Cylinder.010",
+            "node": 0
+        }
+    },
+    {
+        "_class_name": "Material",
+        "_data": {
+            "shader": "./res/shaders/gltf/lit.vert@@@@./res/shaders/gltf/pbr.frag@",
+            "variables": {
+                "albedoMap": {
+                    "channels": 3,
+                    "colorSpace": 1,
+                    "format": 0,
+                    "magFilter": 1,
+                    "minFilter": 1,
+                    "path": "./res/textures/default_color.png",
+                    "wrapU": 1,
+                    "wrapV": 1
+                },
+                "armMap": {
+                    "channels": 2,
+                    "colorSpace": 0,
+                    "format": 0,
+                    "magFilter": 1,
+                    "minFilter": 1,
+                    "path": "./res/textures/default_arm.png",
+                    "wrapU": 1,
+                    "wrapV": 1
+                },
+                "baseColorFactor": {
+                    "w": 1.0,
+                    "x": 0.12979823350906372,
+                    "y": 0.10808981955051422,
+                    "z": 0.8000315427780151
+                },
+                "emissiveFactor": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "emissiveMap": {
+                    "channels": 2,
+                    "colorSpace": 1,
+                    "format": 0,
+                    "magFilter": 1,
+                    "minFilter": 7,
+                    "path": "./res/textures/default_emissive.png",
+                    "wrapU": 1,
+                    "wrapV": 1
+                },
+                "emissiveStrength": 1.0,
+                "metallicFactor": 0.0,
+                "normalMap": {
+                    "channels": 2,
+                    "colorSpace": 0,
+                    "format": 0,
+                    "magFilter": 1,
+                    "minFilter": 1,
+                    "path": "./res/textures/default_norm.png",
+                    "wrapU": 1,
+                    "wrapV": 1
+                },
+                "roughnessFactor": 0.375,
+                "useOcclusion": false
+            }
+        }
+    },
+    {
+        "_class_name": "Material",
+        "_data": {
+            "shader": "./res/shaders/gltf/lit.vert@@@@./res/shaders/gltf/pbr.frag@",
+            "variables": {
+                "albedoMap": {
+                    "channels": 3,
+                    "colorSpace": 1,
+                    "format": 0,
+                    "magFilter": 1,
+                    "minFilter": 1,
+                    "path": "./res/textures/default_color.png",
+                    "wrapU": 1,
+                    "wrapV": 1
+                },
+                "armMap": {
+                    "channels": 2,
+                    "colorSpace": 0,
+                    "format": 0,
+                    "magFilter": 1,
+                    "minFilter": 1,
+                    "path": "./res/textures/default_arm.png",
+                    "wrapU": 1,
+                    "wrapV": 1
+                },
+                "baseColorFactor": {
+                    "w": 0.800000011920929,
+                    "x": 0.800000011920929,
+                    "y": 0.800000011920929,
+                    "z": 0.800000011920929
+                },
+                "emissiveFactor": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "emissiveMap": {
+                    "channels": 2,
+                    "colorSpace": 1,
+                    "format": 0,
+                    "magFilter": 1,
+                    "minFilter": 7,
+                    "path": "./res/textures/default_emissive.png",
+                    "wrapU": 1,
+                    "wrapV": 1
+                },
+                "emissiveStrength": 0.0,
+                "metallicFactor": 0.0,
+                "normalMap": {
+                    "channels": 2,
+                    "colorSpace": 0,
+                    "format": 0,
+                    "magFilter": 1,
+                    "minFilter": 1,
+                    "path": "./res/textures/default_norm.png",
+                    "wrapU": 1,
+                    "wrapV": 1
+                },
+                "roughnessFactor": 1.0,
+                "useOcclusion": false
+            }
+        }
+    }
+]

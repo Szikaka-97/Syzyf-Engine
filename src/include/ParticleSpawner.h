@@ -29,66 +29,72 @@ enum class AlphaMode {
 
 // somethings broken, turning off lifetimes doesnt work i dont think
 struct ParticleSpawnerSettings {
-    int maxParticles = 1024;
+    serialized int maxParticles = 1024;
 
     // Area which if exceeded teleports the particle to the opposite end
     //  maybe change it so you can control this using node's scale instead
-    glm::vec3 areaExtents = glm::vec3(50.0f);
+    serialized glm::vec3 areaExtents = glm::vec3(50.0f);
 
     // Particles will spawn at a random point in this area
     //  for now only a box shape
-    glm::vec3 emissionShapeExtents = glm::vec3(0.1f);
+    serialized glm::vec3 emissionShapeExtents = glm::vec3(0.1f);
 
-    glm::vec3 minVelocity = { 0.0f, -1.0f, 0.0f };
-    glm::vec3 maxVelocity = { 0.0f, -0.2f, 0.0f };
+    serialized glm::vec3 minVelocity = { 0.0f, -1.0f, 0.0f };
+    serialized glm::vec3 maxVelocity = { 0.0f, -0.2f, 0.0f };
 
     // in radians
-    float minInitialAngle = 0.0f;
-    float maxInitialAngle = 0.0f;
+    serialized float minInitialAngle = 0.0f;
+    serialized float maxInitialAngle = 0.0f;
 
-    float minAngularVelocity = 0.0f;
-    float maxAngularVelocity = 0.0f;
+    serialized float minAngularVelocity = 0.0f;
+    serialized float maxAngularVelocity = 0.0f;
 
-    bool rotateY = false;
+    serialized bool rotateY = false;
 
-    bool enableLifetime = false;
+    serialized bool enableLifetime = false;
     // The time until the particle 'despawns'
-    float minLifetime = 2.0f;
-    float maxLifetime = 2.0f;
+    serialized float minLifetime = 2.0f;
+    serialized float maxLifetime = 2.0f;
 
-    float minScale = 1.5f;
-    float maxScale = 1.5f;
+    serialized float minScale = 1.5f;
+    serialized float maxScale = 1.5f;
+
+    // Controls how the scale changes over the particle's lifetime
+    Texture2D* scaleCurveTexture = nullptr;
+
+    glm::vec4 color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+    float colorIntensity = 1.0f;
 
     // This is a bit silly because since you set the frag shader manually this setting doesn't really change much
     //  besides hiding the imgui options
-    AlphaMode alphaMode = AlphaMode::Disabled;
+    serialized AlphaMode alphaMode = AlphaMode::Disabled;
     // Changes whether the particles should fade out as they get closer to the camera
-    bool enableProximityFade = false;
-    float proximityFadeMin = 0.0f;
-    float proximityFadeMax = 10.0f;
+    serialized bool enableProximityFade = false;
+    serialized float proximityFadeMin = 0.0f;
+    serialized float proximityFadeMax = 10.0f;
 
     // Changes whether the particles should fade as they get closer to the particle spawner area extents
-    bool enableDistanceFade = false;
-    float distanceFadeMin = 30.0f;
-    float distanceFadeMax = 40.0f;
+    serialized bool enableDistanceFade = false;
+    serialized float distanceFadeMin = 30.0f;
+    serialized float distanceFadeMax = 40.0f;
 
-    bool enableLifetimeFade = false;
-    glm::vec2 lifetimeFadeIn = { 0.0f, 0.2f };
-    glm::vec2 lifetimeFadeOut = { 0.8f, 1.0f };
+    serialized bool enableLifetimeFade = false;
+    serialized glm::vec2 lifetimeFadeIn = { 0.0f, 0.2f };
+    serialized glm::vec2 lifetimeFadeOut = { 0.8f, 1.0f };
 
     // Fades out the intersections between the particle and scene geometry
-    bool enableDepthFade = false;
-    float depthFadeDistance = 1.5f;
+    serialized bool enableDepthFade = false;
+    serialized float depthFadeDistance = 1.5f;
 
-    BillboardMode billboardMode = BillboardMode::Disabled;
+    serialized BillboardMode billboardMode = BillboardMode::Disabled;
 
     // Teleports particles to the opposite end of the area if they go outside it
-    bool wrapAround = false;
+    serialized bool wrapAround = false;
 
-    bool continuous = false;
+    serialized bool continuous = false;
     
     // maybe have the particlespawner hold textures itself instead?
-    bool useColorRamp = false;
+    serialized bool useColorRamp = false;
 };
 
 class ParticleSpawner : public GameObject, public ImGuiDrawable {
@@ -96,19 +102,24 @@ private:
     const std::filesystem::path COMPUTE_SHADER_PATH = "res/shaders/particles/particles.comp";
     const std::filesystem::path DITHER_TEXTURE_PATH = "./res/textures/bayer/bayer16.png";
 
-    Mesh* mesh = nullptr;
-    Texture2D* ditherTexture = nullptr;
-    Material* material = nullptr;
+    serialized Mesh* mesh = nullptr;
+    serialized Texture2D* ditherTexture = nullptr;
+    serialized Material* material = nullptr;
     std::unique_ptr<ComputeShaderDispatch> computeDispatch;
 
-    ParticleSpawnerSettings settings;
+    serialized ParticleSpawnerSettings settings;
 
     std::vector<ParticleData> initialParticleData;
-    GLuint particleBuffer;
+    GLuint particleBuffer = 0;
     bool particleBufferBoundToMaterial = false;
+
+    void ReallocateParticleBuffer();
 public:
+    ParticleSpawner() = default;
     ParticleSpawner(Mesh* mesh, Material* material, ParticleSpawnerSettings = {});
     ~ParticleSpawner();
+
+    void Awake();
 
     void Update();
     void Render();

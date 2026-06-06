@@ -1,8 +1,10 @@
 #pragma once
 
 #include <concepts>
+#include <nlohmann/json_fwd.hpp>
 #include <vector>
 #include <queue>
+#include <Serialized.h>
 
 #include <spdlog/spdlog.h>
 
@@ -24,27 +26,28 @@ class Scene;
 
 class SceneNode {
 	friend class Scene;
+	friend class SceneTransform;
 private:
 	SceneNode* parent;
 
-	int id;
-	std::string name;
+	serialized int id;
+	serialized std::string name;
 
-	uint8_t disabledState;
-	uint8_t layer;
+	serialized uint8_t disabledState;
+	serialized uint8_t layer;
 
-	Scene* const scene;
+	Scene* scene;
 	std::vector<GameObject*> objects;
 
-	std::vector<SceneNode*> children;
+	serialized std::vector<SceneNode*> children;
 	SceneTransform transform;
 
 	SceneNode(Scene* scene);
-	SceneNode() = delete;
 
 	void RecalculateTransform();
 public:
 	~SceneNode();
+	SceneNode() = default;
 
 	SceneTransform& GetTransform();
 	SceneTransform::TransformAccess& LocalTransform();
@@ -110,12 +113,20 @@ public:
 	void DeleteObject(GameObject* obj);
 
 	static void operator delete(SceneNode* ptr, std::destroying_delete_t);
+
+	json Serialize() const;
+	void Deserialize(const json& data);
+
+	json SaveAsPrefab() const;
 };
 
 class Scene {
 	friend class SceneNode;
 	friend class GameObject;
+	friend class MessagingHelpers;
 public:
+	serialized std::string name = "";
+
 	int nextSceneNodeID;
 	int nextGameObjectID;
 
@@ -123,7 +134,7 @@ public:
 
 	std::vector<SceneComponent*> components;
 	MessageTree messageTree;
-	SceneNode* root;
+	serialized SceneNode* root;
 
 	InputSystem* inputSystem;
 	SceneGraphics* graphics;
@@ -137,6 +148,12 @@ public:
 	void SetGameObjectEnabledInternal(GameObject* obj, bool enabled);
 	void ChangeNodeParentInternal(SceneNode* node, SceneNode* newParent);
 	void SetNodeEnabledInTreeInternal(SceneNode* node, bool enabled);
+
+	void DeserializeGameObject(SceneNode* node, json data);
+
+	template<class T_GO, typename... T_Param>
+		requires std::derived_from<T_GO, GameObject>
+	void AddGameObjectInternal(SceneNode* node, T_GO* obj);
 
 	void AddObjectToSystems(GameObject* obj);
 public:
@@ -205,7 +222,17 @@ public:
 
 	void DrawImGui();
 
+	static Scene* LoadScene(const fs::path& scenePath);
+
+	SceneNode* LoadPrefab(json nodePrefab);
+	SceneNode* LoadPrefab(const fs::path& prefabPath);
+
+	SceneNode* Instantiate(SceneNode* source);
+
 	static void operator delete(Scene* ptr, std::destroying_delete_t);
+
+	void Deserialize(const nlohmann::json& json_node);
+	nlohmann::json Serialize() const;
 };
 
 #include <GameObject.h>
@@ -308,6 +335,24 @@ std::vector<T_GO*> SceneNode::GetAllObjectsInChildren() const {
 	return result;
 }
 
+
+template<class T_GO, typename... T_Param>
+	requires std::derived_from<T_GO, GameObject>
+void Scene::AddGameObjectInternal(SceneNode* node, T_GO* obj) {
+	obj->node = node;
+	
+	node->objects.push_back(obj);
+
+	this->messageTree.AddMessageReceiver(obj);
+
+	AddObjectToSystems(obj);
+
+	obj->id = this->nextGameObjectID++;
+
+	obj->enabled = true;
+}
+
+
 template<class T_GO, typename... T_Param>
 	requires std::derived_from<T_GO, GameObject>
 T_GO* Scene::CreateObjectOn(SceneNode* node, T_Param&&... params) {
@@ -319,18 +364,7 @@ T_GO* Scene::CreateObjectOn(SceneNode* node, T_Param&&... params) {
 
 	T_GO* created = new(const_cast<T_GO*>(bufAsObjPtr)) T_GO(std::forward<T_Param>(params)...);
 	
-	created->node = node;
-	created->runtimeTypeInfo = &typeid(T_GO);
-	
-	node->objects.push_back(created);
-
-	this->messageTree.AddMessageReceiver(created);
-
-	AddObjectToSystems(created);
-
-	created->id = this->nextGameObjectID++;
-
-	created->enabled = true;
+	AddGameObjectInternal<T_GO>(node, created);
 
 	this->messageTree.MessageObject<Message::Awake>(created);
 	this->messageTree.MessageObject<Message::OnEnable>(created);

@@ -1,15 +1,29 @@
 #include "panels/MainMenuBar.h"
-#include "Application.h"
-#include "Settings.h"
+#include "EditorApplication.h"
+#include "FileDialogHelpers.h"
+#include "MousePickingBodySystem.h"
 #include "Themes.h"
 
+#include <SDL3/SDL_dialog.h>
 #include <imgui.h>
 
 namespace Editor {
+
 void MainMenuBar::Draw(Context& context, bool& shouldClose,
                        Settings& settings) {
     if (ImGui::BeginMainMenuBar()) {
         if (ImGui::BeginMenu("File")) {
+            if (ImGui::MenuItem("Load Scene")) {
+                OpenLoadSceneDialog(context);
+            }
+
+            if (ImGui::MenuItem("Save Scene As...", nullptr, false,
+                                context.selectedScene != nullptr)) {
+                OpenSaveSceneDialog(context);
+            }
+
+            ImGui::Separator();
+
             if (ImGui::MenuItem("Exit")) {
                 shouldClose = true;
             }

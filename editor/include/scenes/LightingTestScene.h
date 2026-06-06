@@ -3,13 +3,13 @@
 #include "ColorGrading.h"
 #include "Debug.h"
 #include "GameObject.h"
-#include "GltfImporter.h"
-#include "KeyboardControls.h"
+#include "GltfScene.h"
 #include "Resources.h"
 #include "Shader.h"
 #include "Texture.h"
 #include "imgui.h"
 #include "physics/DebugRenderer.h"
+#include "physics/System.h"
 
 #include <Material.h>
 #include <Skybox.h>
@@ -30,7 +30,7 @@
 
 namespace LightingTestScene {
 
-float hue2rgb(float f1, float f2, float hue) {
+inline float hue2rgb(float f1, float f2, float hue) {
 	if (hue < 0.0)
 		hue += 1.0;
 	else if (hue > 1.0)
@@ -47,7 +47,7 @@ float hue2rgb(float f1, float f2, float hue) {
 	return res;
 }
 
-glm::vec3 hsl2rgb(glm::vec3 hsl) {
+inline glm::vec3 hsl2rgb(glm::vec3 hsl) {
 	glm::vec3 rgb;
 	
 	if (hsl.y == 0.0) {
@@ -106,10 +106,10 @@ inline void InitScene(Scene& mainScene) {
 	Material* sphereMat = new Material(sphereProg);
 	sphereMat->SetValue("uColor", glm::vec3(0, 0, 1));
 
-	auto floorNode = GltfImporter::LoadScene(&mainScene, "./res/models/rooms/room_one_lighttest.glb", "Floor");
+	auto floorNode = mainScene.resources.Get<GltfScene>("./res/models/rooms/room_one_lighttest.glb")->Instantiate(&mainScene, nullptr, "floor");
 	floorNode->AddObject<Skybox>(skyMat);
 
-	SceneNode* monkey = GltfImporter::LoadScene(&mainScene, "./res/models/big_monkey.glb", "Monkey", floorNode);
+	auto monkey = mainScene.resources.Get<GltfScene>("./res/models/rooms/big_monkey.glb")->Instantiate(&mainScene, nullptr, "Monkey");
 	monkey->GlobalTransform().Position() = glm::vec3(30, 15, -40);
 	
 	SceneNode* lightsRoot = mainScene.CreateNode("Lights root");

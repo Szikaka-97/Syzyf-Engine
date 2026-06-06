@@ -119,6 +119,8 @@ vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness) {
 	return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
 }
 
+
+
 vec3 shadePBR(in Light light, in Material mat, in vec3 worldPos, in vec3 normal, in vec3 tangent) {
 	vec3 N = normal;
 	vec3 V = normalize(Global_CameraWorldPos - worldPos);
@@ -132,20 +134,34 @@ vec3 shadePBR(in Light light, in Material mat, in vec3 worldPos, in vec3 normal,
 	float distance = light.type != DIRECTIONAL_LIGHT ? length(light.position - worldPos): 9999999;
 	vec3 radiance = getLightStrength(light, worldPos);
 
+    mat.roughness = clamp(mat.roughness, 0.045, 1.0);
+    
 	float NDF = DistributionGGX(N, H, mat.roughness);
 	float G   = GeometrySmith(N, V, L, mat.roughness);
 	vec3 F    = fresnelSchlick(max(dot(H, V), 0.0), F0);
 
+    float NdotV = max(dot(N, V), 0.0);
+    float NdotL = max(dot(N, L), 0.0);
+
 	vec3 numerator    = NDF * G * F;
-	float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.0001; 
+	float denominator = 4.0 * NdotV * NdotL + 0.0001; 
 	vec3 specular = numerator / denominator;
 
 	vec3 kS = F;
 	vec3 kD = vec3(1.0) - kS;
 	kD *= 1.0 - mat.metallic;
 
-	float NdotL = max(dot(N, L), 0.0);
-	return vec3(kD * mat.albedo / 3.1415 + specular) * radiance * NdotL;
+#ifdef LAMBERT_DIFFUSE
+    vec3 diffuse = kD * mat.albedo / 3.14159265359;
+#else
+    float LdotH = max(dot(L, H), 0.0);
+    float Fd90 = 0.5 + 2.0 * mat.roughness * LdotH * LdotH;
+    float lightScatter = 1.0 + (Fd90 - 1.0) * pow(clamp(1.0 - NdotL, 0.0, 1.0), 5.0);
+    float viewScatter = 1.0 + (Fd90 - 1.0) * pow(clamp(1.0 - NdotV, 0.0, 1.0), 5.0);
+    vec3 diffuse = kD * (mat.albedo / 3.14159265359) * lightScatter * viewScatter;
+#endif
+
+	return vec3(diffuse + specular) * radiance * NdotL;
 }
 
 #endif

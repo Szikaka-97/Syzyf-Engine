@@ -15,6 +15,7 @@ class LayerMaskFilter :public JPH::IgnoreMultipleBodiesFilter {
 
     LayerMaskFilter(std::initializer_list<uint32_t> layers, bool isIncludeMode = true);
 
+
     virtual bool ShouldCollideLocked(const JPH::Body& inBody) const override;
 };
 }

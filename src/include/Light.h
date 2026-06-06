@@ -42,17 +42,17 @@ public:
 		DirectionalLight(const glm::vec3& color, float intensity);
 	};
 private:
-	LightType type;
+	serialized LightType type;
 	mutable bool dirty;
-	glm::vec3 color;
+	serialized glm::vec3 color;
 	
-	float range;
-	float spotlightAngle;
-	float intensity;
-	float linearAttenuation;
-	float quadraticAttenuation;
+	serialized float range;
+	serialized float spotlightAngle;
+	serialized float intensity;
+	serialized float linearAttenuation;
+	serialized float quadraticAttenuation;
 
-	bool shadowCasting;
+	serialized bool shadowCasting;
 
 	mutable glm::mat4 savedTransform;
 
@@ -60,9 +60,12 @@ private:
 public:
 	virtual ~Light();
 
+	Light();
 	Light(PointLight lightInfo);
 	Light(SpotLight lightInfo);
 	Light(DirectionalLight lightInfo);
+
+	void Awake();
 
 	void Set(PointLight lightInfo);
 	void Set(SpotLight lightInfo);

@@ -1,6 +1,7 @@
 #include "panels/GraphPanel.h"
-#include "Application.h"
 #include "CameraController.h"
+#include "EditorApplication.h"
+#include "FileDialogHelpers.h"
 #include "imgui.h"
 
 #include <Scene.h>
@@ -12,6 +13,10 @@ void GraphPanel::Draw(Context& context) {
     if (context.selectedScene == nullptr) {
         ImGui::End();
         return;
+    }
+
+    if (context.state == State::Game) {
+        ImGui::BeginDisabled();
     }
 
     SceneNode* root = context.selectedScene->GetRootNode();
@@ -38,6 +43,10 @@ void GraphPanel::Draw(Context& context) {
     }
 
     this->DrawContextMenu(context);
+
+    if (context.state == State::Game) {
+        ImGui::EndDisabled();
+    }
 
     ImGui::End();
 }
@@ -117,7 +126,8 @@ void GraphPanel::DrawGraphNode(Context& context, SceneNode& node) {
                               ImVec4(0.4f, 0.4f, 0.4f, 1.0f));
     }
 
-    if (ImGui::Button(node.EnabledSelf() ? "X" : " ", ImVec2(24, ImGui::GetFrameHeight()))) {
+    if (ImGui::Button(node.EnabledSelf() ? "X" : " ",
+                      ImVec2(24, ImGui::GetFrameHeight()))) {
         node.SetEnabled(!node.EnabledSelf());
     }
 
@@ -151,6 +161,10 @@ void GraphPanel::DrawContextMenu(Context& context) {
             }
         }
 
+        if (ImGui::MenuItem("Load Prefab", nullptr, false, hasScene)) {
+            OpenLoadPrefabDialog(context);
+        }
+
         if (context.selectedNode != nullptr) {
             if (ImGui::MenuItem("Rename Node")) {
                 drawRenamePopup = true;
@@ -159,6 +173,12 @@ void GraphPanel::DrawContextMenu(Context& context) {
                 delete context.selectedNode;
 
                 context.selectedNode = nullptr;
+            }
+            if (ImGui::MenuItem("Duplicate Node")) {
+                context.selectedScene->Instantiate(context.selectedNode);
+            }
+            if (ImGui::MenuItem("Save as Prefab")) {
+                OpenSavePrefabDialog(context);
             }
         }
         ImGui::EndPopup();

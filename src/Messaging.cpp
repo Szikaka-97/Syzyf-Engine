@@ -1,3 +1,5 @@
+#include "Profiler.h"
+#include "TypeInfo.h"
 #include <Messaging.h>
 
 #include <stack>
@@ -18,8 +20,6 @@ bool MessageTree::TryFindNode(SceneNode* sceneNode, MessageTree::MessageNode** r
 
 	if (parentChain.top() != this->root->content.node) {
 		spdlog::warn("TryFindNode: Node is detached from tree - {}", sceneNode->GetID());
-
-		asm("INT3");
 
 		result = nullptr;
 
@@ -92,15 +92,19 @@ void MessageTree::PropagateMessageInternal(SceneNode* startNode, int messageId) 
 			if (child->type == 0) {
 				nodeStack.push(child);
 			}
-			else if (child->type == messageId){
+			else if (child->type == messageId && child->content.msg.receiver->IsEnabled()){
 				messengers.push(child->content.msg);
 			}
 		}
 	}
 
 	while (!messengers.empty()) {
+		Profiler::Push(TypeInfo::GetTypeInfo(typeid(*(messengers.top().receiver))).name);
+
 		messengers.top().Call();
 		
+		Profiler::Pop();
+
 		messengers.pop();
 	}
 }

@@ -9,9 +9,11 @@
 
 class SkeletonComponent : public GameObject {
 public:
-  std::vector<glm::mat4> inverseBindMatrices;
-  std::vector<SceneNode*> joints;
-  std::vector<glm::mat4> jointMatrices;
-  SceneNode* skeletonRoot = nullptr;
-  int bufferOffset = 0;
+  SkeletonComponent() = default;
+
+  serialized std::vector<glm::mat4> inverseBindMatrices;
+  serialized std::vector<SceneNode*> joints;
+  serialized std::vector<glm::mat4> jointMatrices;
+  serialized SceneNode* skeletonRoot = nullptr;
+  serialized int bufferOffset = 0;
 };

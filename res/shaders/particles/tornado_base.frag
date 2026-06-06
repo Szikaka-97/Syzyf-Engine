@@ -1,5 +1,8 @@
 #version 460
 
+#pragma transparent 
+#pragma no_cull
+
 in VS_OUT {
     vec3 worldPos;
     vec3 viewPos;
@@ -24,8 +27,7 @@ uniform uint proximityFadeMode;
 uniform float proximityFadeMin;
 uniform float proximityFadeMax;
 
-layout (location = 0) out vec4 accum;
-layout (location = 1) out float reveal;
+out vec4 fragColor;
 
 float LinearizeDepth(float depth) {
     float z = depth * 2.0 - 1.0;
@@ -67,8 +69,5 @@ void main() {
 
     if (alpha < 0.001) discard;
 
-    float weight = clamp(pow(min(1.0, alpha * 10.0) + 0.01, 3.0) * 1e8 * pow(1.0 - gl_FragCoord.z * 0.9, 3.0), 1e-2, 3e3);
-    
-    accum = vec4(color.rgb * alpha, alpha) * weight;
-    reveal = alpha;
+    fragColor = vec4(color.rgb, alpha);
 }

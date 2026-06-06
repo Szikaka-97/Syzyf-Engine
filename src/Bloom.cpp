@@ -20,7 +20,7 @@ void Bloom::UpdateTexture() {
 	glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-Bloom::Bloom() {
+void Bloom::Awake() {
 	this->savedResolution = GetScene()->GetGraphics()->GetScreenResolution();
 
 	glCreateTextures(GL_TEXTURE_2D, 1, &this->bloomTexture);
@@ -35,6 +35,8 @@ Bloom::Bloom() {
 	this->upsampleShader = new ComputeShaderProgram("./res/shaders/bloom/bloom_upsample.comp");
 	this->finalShader = new ComputeShaderProgram("./res/shaders/bloom/bloom_final.comp");
 }
+
+Bloom::Bloom() { }
 
 void Bloom::SetDirtTexture(Texture2D* texture) {
     this->dirtTexture = texture;

@@ -14,7 +14,7 @@ public:
 		GranTurismo,
 	};
 private:
-	TonemapperOperator toneOperator;
+	serialized TonemapperOperator toneOperator;
 
 	ComputeShaderDispatch* reinhardTonemapperShader;
 	ComputeShaderDispatch* acesTonemapperShader;

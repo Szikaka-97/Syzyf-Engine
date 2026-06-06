@@ -1,0 +1,1041 @@
+#include "GltfScene.h"
+
+#include "Camera.h"
+#include "Material.h"
+#include "Mesh.h"
+#include "MeshRenderer.h"
+#include "Scene.h"
+#include "Texture.h"
+#include "Light.h"
+#include "VertexSpec.h"
+#include "animation/AnimationComponent.h"
+#include "animation/SkeletonComponent.h"
+
+#include <fastgltf/math.hpp>
+#include <fastgltf/types.hpp>
+#include <fastgltf/util.hpp>
+#include <fastgltf/core.hpp>
+#include <fastgltf/tools.hpp>
+
+#include <mikktspace.h>
+#include <glm/ext/quaternion_trigonometric.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <optional>
+#include <glm/trigonometric.hpp>
+#include <spdlog/spdlog.h>
+
+namespace {
+    struct MikkTSpaceData {
+        Mesh* mesh;
+        Mesh::SubMesh* primitive;
+        int vertexStride;
+        int posOffset;
+        int normOffset;
+        int uvOffset;
+        int tangentOffset;
+    };
+
+    float* GetVertexData(const MikkTSpaceData* data, const int iFace, const int iVert) {
+        unsigned int index = data->primitive->GetIndexData()[iFace * 3 + iVert];
+        return const_cast<float*>(data->mesh->GetVertexData() + (index * data->vertexStride)); // epic
+    }
+
+    int GetNumFaces(const SMikkTSpaceContext* pContext) {
+        auto* data = static_cast<MikkTSpaceData*>(pContext->m_pUserData);
+        return data->primitive->GetFaceCount();
+    }
+
+    int GetNumVerticesOfFace(const SMikkTSpaceContext* pContext, const int iFace) {
+        return 3;
+    }
+
+    void GetPosition(const SMikkTSpaceContext* pContext, float fvPosOut[], const int iFace, const int iVert) {
+        auto* data = static_cast<MikkTSpaceData*>(pContext->m_pUserData);
+        float* v = GetVertexData(data, iFace, iVert) + data->posOffset;
+        fvPosOut[0] = v[0];
+        fvPosOut[1] = v[1];
+        fvPosOut[2] = v[2];
+    }
+
+    void GetNormal(const SMikkTSpaceContext* pContext, float fvNormOut[], const int iFace, const int iVert) {
+        auto* data = static_cast<MikkTSpaceData*>(pContext->m_pUserData);
+        float* v = GetVertexData(data, iFace, iVert) + data->normOffset;
+        fvNormOut[0] = v[0];
+        fvNormOut[1] = v[1];
+        fvNormOut[2] = v[2];
+    }
+
+    void GetTexCoord(const SMikkTSpaceContext* pContext, float fvTexcOut[], const int iFace, const int iVert) {
+        auto* data = static_cast<MikkTSpaceData*>(pContext->m_pUserData);
+        float* v = GetVertexData(data, iFace, iVert) + data->uvOffset;
+        fvTexcOut[0] = v[0];
+        fvTexcOut[1] = v[1];
+    }
+
+    void SetTSpaceBasic(const SMikkTSpaceContext* pContext, const float fvTangent[], const float fSign, const int iFace, const int iVert) {
+        auto* data = static_cast<MikkTSpaceData*>(pContext->m_pUserData);
+        float* v = GetVertexData(data, iFace, iVert) + data->tangentOffset;
+        v[0] = fvTangent[0];
+        v[1] = fvTangent[1];
+        v[2] = fvTangent[2];
+        v[3] = fSign;
+    }
+}
+
+GltfScene::~GltfScene() {
+    for (Mesh* mesh : meshes) {
+        delete mesh;
+    }
+    for (Material* material : materials) {
+        delete material;
+    }
+}
+
+GltfScene* GltfScene::Load(const fs::path path) {
+  if (!std::filesystem::exists(path)) {
+    spdlog::warn("GltfScene: File not found: {}", path.string());
+    return nullptr;
+  }
+
+  fastgltf::Parser parser(fastgltf::Extensions::KHR_materials_emissive_strength | fastgltf::Extensions::KHR_lights_punctual);
+
+  constexpr auto gltfOptions =
+    fastgltf::Options::DontRequireValidAssetMember |
+    fastgltf::Options::AllowDouble |
+    fastgltf::Options::LoadExternalImages |
+    fastgltf::Options::LoadExternalBuffers |
+    fastgltf::Options::GenerateMeshIndices;
+
+  auto gltfFile = fastgltf::MappedGltfFile::FromPath(path);
+  if (!bool(gltfFile)) {
+    spdlog::warn("Failed to open glTF file: {}\n\tPath:{}", fastgltf::getErrorMessage(gltfFile.error()), path.string());
+    return nullptr;
+  }
+
+  auto expectedAsset = parser.loadGltf(gltfFile.get(), path.parent_path(), gltfOptions);
+  if (expectedAsset.error() != fastgltf::Error::None) {
+    spdlog::warn("Failed to load glTF: {}\n\tPath: {}", fastgltf::getErrorMessage(expectedAsset.error()), path.string());
+    return nullptr;
+  }
+  
+  GltfScene* model = new GltfScene();
+  model->filePath = path;
+  model->asset = std::make_unique<fastgltf::Asset>(std::move(expectedAsset.get()));
+  model->isSkinned = !model->asset->skins.empty();
+
+  model->materials = LoadMaterials(model, false);
+
+  if (model->isSkinned) {
+      std::vector<Material*> skinnedMaterials = LoadMaterials(model, true);
+      model->materials.insert(model->materials.end(), skinnedMaterials.begin(), skinnedMaterials.end());
+  }
+
+  model->meshes.reserve(model->asset->meshes.size());
+  for (auto& gltfMesh : model->asset->meshes) {
+      auto* mesh = LoadMesh(gltfMesh, *model->asset, model->materials);
+
+      mesh->path = std::format("{}:{}", path.string(), gltfMesh.name);
+
+      model->meshes.push_back(mesh);
+  }
+
+  return model; 
+}
+
+SceneNode* GltfScene::Instantiate(Scene* scene, SceneNode* parent, std::string name) {
+  std::string rootName = name;
+  if (rootName.empty()) {
+      rootName = this->filePath.stem().string();
+  }
+
+
+  if (!asset->defaultScene.has_value()) {
+    spdlog::warn("glTF file is missing a default scene.");
+    return nullptr;
+  }
+
+  SceneNode* root = scene->CreateNode(parent, rootName);
+  auto& nodeIndices = asset->scenes[asset->defaultScene.value()].nodeIndices;
+
+  std::vector<SceneNode*> sceneNodes;
+  sceneNodes.resize(asset->nodes.size(), nullptr);
+
+  for (auto& index : nodeIndices) {
+    auto& node = asset->nodes[index];
+    SceneNode* sceneNode = CreateNode(node, scene, sceneNodes, root);
+    sceneNodes[index] = sceneNode;
+  }
+
+  for (std::size_t i = 0; i < asset->nodes.size(); ++i) {
+    auto& gltfNode = asset->nodes[i];
+
+    if (gltfNode.skinIndex.has_value() && sceneNodes[i] != nullptr) {
+      auto& gltfSkin = asset->skins[gltfNode.skinIndex.value()];
+
+      auto* skeleton = sceneNodes[i]->AddObject<SkeletonComponent>();
+
+      skeleton->joints.reserve(gltfSkin.joints.size());
+      for (std::size_t jointIndex : gltfSkin.joints) {
+        skeleton->joints.push_back(sceneNodes[jointIndex]);
+      }
+
+      skeleton->inverseBindMatrices.resize(gltfSkin.joints.size(), glm::mat4(1.0f));
+      if (gltfSkin.inverseBindMatrices.has_value()) {
+        auto& ibmAccessor = asset->accessors[gltfSkin.inverseBindMatrices.value()];
+
+        fastgltf::iterateAccessorWithIndex<fastgltf::math::fmat4x4>(*asset, ibmAccessor, [&](fastgltf::math::fmat4x4 matrix, std::size_t idx) {
+            skeleton->inverseBindMatrices[idx] = glm::make_mat4(matrix.data());
+        });
+      }
+
+      if (gltfSkin.skeleton.has_value()) {
+        skeleton->skeletonRoot = sceneNodes[gltfSkin.skeleton.value()];
+      }
+    }
+  }
+
+  // Animation
+  if (!asset->animations.empty()) {
+  root->AddObject<AnimationComponent>();
+  auto* animationComponent = root->GetObject<AnimationComponent>();
+  animationComponent->animations.reserve(asset->animations.size());
+    for (auto& gltfAnimation : asset->animations) {
+      auto animation = LoadAnimation(sceneNodes, gltfAnimation, *asset);
+      if (animation.has_value()) {
+        animation->participants = sceneNodes;
+        animation->source = this->filePath;
+        animationComponent->animations.push_back(std::move(animation.value()));
+      } else {
+        continue;
+      }
+    }
+  }
+
+  return root; 
+}
+
+std::optional<AnimationComponent::Animation> GltfScene::LoadAnimation(
+  std::vector<SceneNode*>& sceneNodes,
+  fastgltf::Animation& gltfAnimation,
+  fastgltf::Asset& asset
+  ) {
+  AnimationComponent::Animation animation;
+  animation.data.name = gltfAnimation.name;
+  animation.data.duration = 0.0f;
+  animation.currentKeyframes.resize(gltfAnimation.channels.size());
+  
+  for (std::size_t i = 0; i < gltfAnimation.channels.size(); ++i) {
+    fastgltf::AnimationChannel& channel = gltfAnimation.channels[i];
+    
+    if (!channel.nodeIndex.has_value()) {
+      spdlog::warn("GltfScene: Tried loading an animation track without missing target node");
+      return std::nullopt;
+    }
+
+    AnimationComponent::Track track;
+    track.target = sceneNodes[channel.nodeIndex.value()];
+
+    switch (channel.path) {
+      case fastgltf::AnimationPath::Rotation: track.property = AnimationComponent::Property::ROTATION; break;
+      case fastgltf::AnimationPath::Scale: track.property = AnimationComponent::Property::SCALE; break;
+      case fastgltf::AnimationPath::Translation: track.property = AnimationComponent::Property::POSITION; break;
+      case fastgltf::AnimationPath::Weights: track.property = AnimationComponent::Property::WEIGHTS; break;
+    }
+
+    fastgltf::AnimationSampler& sampler = gltfAnimation.samplers[channel.samplerIndex];
+
+    switch (sampler.interpolation) {
+      case fastgltf::AnimationInterpolation::CubicSpline: track.interpolation = AnimationComponent::Interpolation::CUBICSPLINE; break;
+      case fastgltf::AnimationInterpolation::Linear: track.interpolation = AnimationComponent::Interpolation::LINEAR; break;
+      case fastgltf::AnimationInterpolation::Step: track.interpolation = AnimationComponent::Interpolation::STEP; break;
+    }
+    
+    auto& inputAccessor = asset.accessors[sampler.inputAccessor];
+    if (!inputAccessor.bufferViewIndex.has_value()) {
+      spdlog::warn("GltfScene: Tried loading an animation track with missing input data");
+      continue;
+    }
+
+    const float maxInput = static_cast<float>(inputAccessor.max->get<double>(0));
+    if (animation.data.duration < maxInput) {
+      animation.data.duration = maxInput; 
+    }
+
+    track.inputs.resize(inputAccessor.count);
+    fastgltf::iterateAccessorWithIndex<float>(asset, inputAccessor, [&](float input, std::size_t index) {
+      track.inputs[index] = input;
+    });
+
+    auto& outputAccessor = asset.accessors[sampler.outputAccessor];
+    if (!outputAccessor.bufferViewIndex.has_value()) {
+      spdlog::warn("GltfScene: Tried loading an animation track with missing output data");
+      continue;
+    }
+
+    if (track.property == AnimationComponent::Property::POSITION
+        || track.property == AnimationComponent::Property::SCALE) {
+      track.outputs.resize(outputAccessor.count * 3);
+      fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec3>(asset, outputAccessor, [&](fastgltf::math::fvec3 output, std::size_t index) {
+        track.outputs[index * 3] = output.x();
+        track.outputs[index * 3 + 1] = output.y();
+        track.outputs[index * 3 + 2] = output.z();
+      });
+    } else if (track.property == AnimationComponent::Property::ROTATION) {
+      track.outputs.resize(outputAccessor.count * 4);
+      fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec4>(asset, outputAccessor, [&](fastgltf::math::fvec4 output, std::size_t index) {
+        track.outputs[index * 4] = output.x();
+        track.outputs[index * 4 + 1] = output.y();
+        track.outputs[index * 4 + 2] = output.z();
+        track.outputs[index * 4 + 3] = output.w();
+      });
+    } else {
+      track.outputs.resize(outputAccessor.count);
+      fastgltf::iterateAccessorWithIndex<float>(asset, outputAccessor, [&](float output, std::size_t index) {
+        track.outputs[index] = output;
+      });
+    }
+
+    // maybe resize at the start idk dnsfdafdfnkjdsabfksavsa
+    animation.data.tracks.push_back(track);
+  }
+
+  return animation;
+}
+
+SceneNode* GltfScene::CreateNode(
+    fastgltf::Node& gltfNode,
+    Scene* scene,
+    std::vector<SceneNode*>& sceneNodes,
+    SceneNode* parent
+  ) {
+  SceneNode* node = scene->CreateNode(parent, gltfNode.name.c_str());
+  
+  // LocalTransform
+  std::visit(fastgltf::visitor {
+    [&](fastgltf::TRS& trs) {
+      node->LocalTransform().Position() = glm::make_vec3(trs.translation.data());
+      node->LocalTransform().Rotation() = glm::make_quat(trs.rotation.data());
+      node->LocalTransform().Scale() = glm::make_vec3(trs.scale.data());
+    },
+    [&](fastgltf::math::fmat4x4& matrix) {
+      node->LocalTransform() = glm::make_mat4(matrix.data());
+    }
+  }, gltfNode.transform);
+
+  // Mesh
+  if (gltfNode.meshIndex.has_value()) {
+    Mesh* mesh = this->meshes[gltfNode.meshIndex.value()];
+    node->AddObject<MeshRenderer>(mesh, this->materials);
+  }
+
+  // Camera
+  
+  
+  if (gltfNode.cameraIndex.has_value()) {
+    // Rotated the same way the lights are, didn't check if it works
+    SceneNode* cameraNode = scene->CreateNode(node, "Camera");
+    cameraNode->LocalTransform().Rotation() = glm::quat(glm::radians(glm::vec3(180.0f, 0.0f, 0.0f)));
+
+    auto& gltfCamera = asset->cameras[gltfNode.cameraIndex.value()].camera;
+    std::visit(fastgltf::visitor {
+      [&](fastgltf::Camera::Orthographic& camera) {
+        cameraNode->AddObject<Camera>(Camera::Orthographic(
+          -camera.xmag,
+          camera.xmag,
+          camera.ymag,
+          -camera.ymag,
+          camera.znear,
+          camera.zfar
+        ));
+      },
+      [&](fastgltf::Camera::Perspective& camera) {
+        cameraNode->AddObject<Camera>(Camera::Perspective(
+          glm::degrees(camera.yfov),
+          camera.aspectRatio.value_or(1.7f), // these should be somewhere else
+          camera.znear,      // or it should fail to add the camera if these are missing
+          camera.zfar.value_or(300.0f)
+        ));
+      },
+    }, gltfCamera);
+  }
+
+  // Lights
+  if (gltfNode.lightIndex.has_value()) {
+      auto& gltfLight = asset->lights[gltfNode.lightIndex.value()];
+
+      glm::vec3 color = glm::make_vec3(gltfLight.color.data());
+      float intensity = gltfLight.intensity;
+
+      // Lights get their own node because spot/dir lights need to be rotated 180 degrees
+      SceneNode* lightNode = scene->CreateNode(node, gltfLight.name.empty() ? "Light" : gltfLight.name.c_str());
+   
+      lightNode->LocalTransform().Rotation() = glm::quat(glm::radians(glm::vec3(180.0f, 0.0f, 0.0f)));
+
+      const float defaultLinear = 0.09f;
+      const float defaultQuadratic = 0.032f;
+      const float defaultRange = 9999.99f;
+      const float fromCandelas = 683.0f;
+
+      switch (gltfLight.type) {
+          case fastgltf::LightType::Directional: {
+              lightNode->AddObject<Light>(Light::DirectionalLight(color, intensity));
+              break;
+          }
+          case fastgltf::LightType::Point: {
+              float range = gltfLight.range.value_or(defaultRange);
+              lightNode->AddObject<Light>(Light::PointLight(color, range, (intensity / fromCandelas), defaultLinear, defaultQuadratic));
+              break;
+          }
+          case fastgltf::LightType::Spot: {
+              float range = gltfLight.range.value_or(defaultRange);
+
+              float outerConeAngle = gltfLight.outerConeAngle.value_or(glm::radians(0.0f));
+              float innerConeAngle = gltfLight.innerConeAngle.value_or(0.0f);
+
+              lightNode->AddObject<Light>(Light::SpotLight(color, outerConeAngle, range, (intensity / fromCandelas), defaultLinear, defaultQuadratic));
+              break;
+          }
+      }
+  }
+  
+  for (auto& childIndex : gltfNode.children) {
+    auto& childNode = asset->nodes[childIndex];
+    SceneNode* sceneNode = CreateNode(childNode, scene, sceneNodes, node);
+    sceneNodes[childIndex] = sceneNode;
+  }
+
+  return node;
+}
+
+Mesh* GltfScene::LoadMesh(fastgltf::Mesh& gltfMesh, fastgltf::Asset& asset, std::vector<Material*>& materials) {
+  Mesh* mesh = new Mesh;
+  mesh->subMeshes.resize(gltfMesh.primitives.size());
+  mesh->materials = materials;
+  mesh->materialCount = materials.size(); 
+
+  std::size_t vertexCount = 0;
+  for (std::size_t primitiveIndex = 0; primitiveIndex < mesh->subMeshes.size(); ++primitiveIndex) {
+    auto& primitive = mesh->subMeshes[primitiveIndex];
+    
+    switch (gltfMesh.primitives[primitiveIndex].type) {
+      case fastgltf::PrimitiveType::Points: primitive.type = Mesh::MeshType::Points; break;
+      case fastgltf::PrimitiveType::Lines: primitive.type = Mesh::MeshType::Lines; break;
+      case fastgltf::PrimitiveType::Triangles: primitive.type = Mesh::MeshType::Triangles; break;
+      default: spdlog::warn("GltfScene: Tried loading a mesh with an unsupported primitive type: {}", gltfMesh.name); continue;
+    }
+
+    auto* positionIt = gltfMesh.primitives[primitiveIndex].findAttribute("POSITION");
+    assert(positionIt != gltfMesh.primitives[primitiveIndex].attributes.end());
+    assert(gltfMesh.primitives[primitiveIndex].indicesAccessor.has_value());
+
+    auto& positionAccessor = asset.accessors[positionIt->accessorIndex];
+    if (!positionAccessor.bufferViewIndex.has_value()) {
+      spdlog::warn("GltfScene: positionAccessor.bufferViewIndex has no value");
+      continue;
+    }
+
+    auto& indicesAccessor = asset.accessors[gltfMesh.primitives[primitiveIndex].indicesAccessor.value()];
+    if (!indicesAccessor.bufferViewIndex.has_value()) {
+      spdlog::warn("GltfScene: indicesAccessor.bufferViewIndex has no value");
+      continue;
+    }
+    
+    vertexCount += positionAccessor.count;
+    primitive.faceCount = indicesAccessor.count / (unsigned int)primitive.type;
+  }
+
+  bool isSkinned = false;
+  if (!gltfMesh.primitives.empty()) {
+    isSkinned = gltfMesh.primitives[0].findAttribute("JOINTS_0") != gltfMesh.primitives[0].attributes.end();
+  }
+
+    VertexSpec meshSpec = isSkinned ? VertexSpec::MeshSkinned : VertexSpec::Mesh;
+  mesh->vertexData = new float[vertexCount * meshSpec.VertexSize() + 3];
+  memset(mesh->vertexData, 0, vertexCount * meshSpec.VertexSize() * sizeof(float));
+  mesh->vertexCount = vertexCount;
+  mesh->vertexStride = meshSpec.VertexSize();
+
+  int vertexPointer = 0;
+  int normalOffset = meshSpec.GetLengthOf(VertexInputType::Position);
+  int binormalOffset = normalOffset + meshSpec.GetLengthOf(VertexInputType::Normal);
+  int tangentOffset = binormalOffset + meshSpec.GetLengthOf(VertexInputType::Binormal);
+  int uv1Offset = tangentOffset + meshSpec.GetLengthOf(VertexInputType::Tangent);
+  int uv2Offset = uv1Offset + meshSpec.GetLengthOf(VertexInputType::UV1);
+  int colorOffset = uv2Offset + meshSpec.GetLengthOf(VertexInputType::UV2);
+  int jointsOffset = colorOffset + meshSpec.GetLengthOf(VertexInputType::Color);
+  int weightsOffset = jointsOffset + meshSpec.GetLengthOf(VertexInputType::Weights);
+  
+  for (auto it = gltfMesh.primitives.begin(); it != gltfMesh.primitives.end(); ++it) {
+    auto* positionIt = it->findAttribute("POSITION");
+    assert(positionIt != it->attributes.end()); // ??
+    assert(it->indicesAccessor.has_value()); // Generating indices so should always be true
+
+    std::size_t baseColorTexcoordIndex = 0;
+
+    auto index = std::distance(gltfMesh.primitives.begin(), it);
+    auto& primitive = mesh->subMeshes[index];
+
+    std::size_t baseMaterialCount = asset.materials.size() + 1;
+
+    if (it->materialIndex.has_value()) {
+      primitive.materialIndex = it->materialIndex.value();
+    } else {
+      primitive.materialIndex = baseMaterialCount - 1;
+    }
+    
+    if (isSkinned) {
+        primitive.materialIndex += baseMaterialCount;
+    }
+
+    primitive.indexData = new unsigned int[primitive.faceCount * (unsigned int) primitive.type];
+
+    auto& positionAccessor = asset.accessors[positionIt->accessorIndex];
+    
+    if (positionAccessor.min.has_value() && positionAccessor.max.has_value()
+        && positionAccessor.min.value().size() == 3 && positionAccessor.max.value().size() == 3
+      ) {
+        glm::vec3 minBound(
+            static_cast<float>(positionAccessor.min->get<double>(0)),
+            static_cast<float>(positionAccessor.min->get<double>(1)),
+            static_cast<float>(positionAccessor.min->get<double>(2))
+        );
+        glm::vec3 maxBound(
+            static_cast<float>(positionAccessor.max->get<double>(0)),
+            static_cast<float>(positionAccessor.max->get<double>(1)),
+            static_cast<float>(positionAccessor.max->get<double>(2))
+        );
+
+        primitive.bounds = BoundingBox(minBound, maxBound);
+    }
+
+    if (positionIt != it->attributes.end()) {
+      auto& positionAccessor = asset.accessors[positionIt->accessorIndex];
+      fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec3>(asset, positionAccessor, [&](fastgltf::math::fvec3 position, std::size_t index) {
+        float* target = mesh->vertexData + ((vertexPointer + index) * mesh->vertexStride);
+        target[0] = position.x();
+        target[1] = position.y();
+        target[2] = position.z();
+      });
+    }
+
+    auto* normalIt = it->findAttribute("NORMAL");
+    if (normalIt != it->attributes.end()) {
+      auto& normalAccessor = asset.accessors[normalIt->accessorIndex];
+      fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec3>(asset, normalAccessor, [&](fastgltf::math::fvec3 normal, std::size_t index) {
+        float* target = mesh->vertexData + ((vertexPointer + index) * mesh->vertexStride) + normalOffset;
+        target[0] = normal.x();
+        target[1] = normal.y();
+        target[2] = normal.z();
+      });
+    }
+
+    auto* tangentIt = it->findAttribute("TANGENT");
+    if (tangentIt != it->attributes.end() && meshSpec.GetLengthOf(VertexInputType::Tangent) > 0) {
+      auto& tangentAccessor = asset.accessors[tangentIt->accessorIndex];
+      fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec4>(asset, tangentAccessor, [&](fastgltf::math::fvec4 tangent, std::size_t index) {
+        float* target = mesh->vertexData + ((vertexPointer + index) * mesh->vertexStride) + tangentOffset;
+        target[0] = tangent.x();
+        target[1] = tangent.y();
+        target[2] = tangent.z();
+        target[3] = tangent.w();
+      });
+    }
+
+    auto* texcoord0It = it->findAttribute("TEXCOORD_0");
+    if (texcoord0It != it->attributes.end() && meshSpec.GetLengthOf(VertexInputType::UV1) > 0) {
+      auto& texcoord0Accessor = asset.accessors[texcoord0It->accessorIndex];
+      fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec2>(asset, texcoord0Accessor, [&](fastgltf::math::fvec2 uv, std::size_t index) {
+        float* target = mesh->vertexData + ((vertexPointer + index) * mesh->vertexStride) + uv1Offset;
+        target[0] = uv.x();
+        target[1] = 1.0f - uv.y();
+      });
+    }
+
+    auto* texcoord1It = it->findAttribute("TEXCOORD_1");
+    if (texcoord1It != it->attributes.end() && meshSpec.GetLengthOf(VertexInputType::UV2) > 0) {
+      auto& texcoord1Accessor = asset.accessors[texcoord1It->accessorIndex];
+      fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec2>(asset, texcoord1Accessor, [&](fastgltf::math::fvec2 uv, std::size_t index) {
+        float* target = mesh->vertexData + ((vertexPointer + index) * mesh->vertexStride) + uv2Offset;
+        target[0] = uv.x();
+        target[1] = 1.0f - uv.y();
+      });
+    }
+
+    auto* colorIt = it->findAttribute("COLOR_0");
+    if (colorIt != it->attributes.end() && meshSpec.GetLengthOf(VertexInputType::Color) > 0) {
+      auto& colorAccessor = asset.accessors[colorIt->accessorIndex];
+      fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec4>(asset, colorAccessor, [&](fastgltf::math::fvec4 color, std::size_t index) {
+        float* target = mesh->vertexData + ((vertexPointer + index) * mesh->vertexStride) + colorOffset;
+        target[0] = color.x();
+        target[1] = color.y();
+        target[2] = color.z();
+        target[3] = color.w();
+      });
+    }
+
+    auto* jointsIt = it->findAttribute("JOINTS_0");
+    if (jointsIt != it->attributes.end() && meshSpec.GetLengthOf(VertexInputType::Joints) > 0) {
+      auto& jointsAccessor = asset.accessors[jointsIt->accessorIndex];
+      
+      fastgltf::iterateAccessorWithIndex<fastgltf::math::uvec4>(asset, jointsAccessor, [&](fastgltf::math::uvec4 joints, std::size_t index) {
+        float* target = mesh->vertexData + ((vertexPointer + index) * mesh->vertexStride) + jointsOffset;
+        target[0] = static_cast<float>(joints.x());
+        target[1] = static_cast<float>(joints.y());
+        target[2] = static_cast<float>(joints.z());
+        target[3] = static_cast<float>(joints.w());
+      });
+    }
+
+    auto* weightsIt = it->findAttribute("WEIGHTS_0");
+    if (weightsIt != it->attributes.end() && meshSpec.GetLengthOf(VertexInputType::Weights) > 0) {
+      auto& weightsAccessor = asset.accessors[weightsIt->accessorIndex];
+      fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec4>(asset, weightsAccessor, [&](fastgltf::math::fvec4 weights, std::size_t index) {
+        float* target = mesh->vertexData + ((vertexPointer + index) * mesh->vertexStride) + weightsOffset;
+        target[0] = weights.x();
+        target[1] = weights.y();
+        target[2] = weights.z();
+        target[3] = weights.w();
+      });
+    }
+
+    auto& indicesAccessor = asset.accessors[it->indicesAccessor.value()];
+    fastgltf::iterateAccessorWithIndex<std::uint32_t>(asset, indicesAccessor, [&](std::uint32_t ind, std::size_t index) {
+      primitive.indexData[index] = ind + vertexPointer;
+    });
+
+    if (tangentIt == it->attributes.end() && primitive.type == Mesh::MeshType::Triangles && meshSpec.GetLengthOf(VertexInputType::Tangent) > 0) {
+        MikkTSpaceData data;
+        data.mesh = mesh;
+        data.primitive = &primitive;
+        data.vertexStride = mesh->vertexStride;
+        data.posOffset = 0;
+        data.normOffset = normalOffset;
+        data.uvOffset = uv1Offset;
+        data.tangentOffset = tangentOffset;
+
+        SMikkTSpaceInterface interface = {};
+        interface.m_getNumFaces = GetNumFaces;
+        interface.m_getNumVerticesOfFace = GetNumVerticesOfFace;
+        interface.m_getPosition = GetPosition;
+        interface.m_getNormal = GetNormal;
+        interface.m_getTexCoord = GetTexCoord;
+        interface.m_setTSpaceBasic = SetTSpaceBasic;
+
+        SMikkTSpaceContext context;
+        context.m_pInterface = &interface;
+        context.m_pUserData = &data;
+
+        if (!genTangSpaceDefault(&context)) {
+            spdlog::warn("GltfScene: Failed to generate tangents using MikkTSpace for primitive.");
+        }
+    }
+    vertexPointer += positionAccessor.count;
+  }
+
+  mesh->vertexBuffer = mesh->UploadToGpu(meshSpec);
+
+  return mesh;
+}
+
+Texture2D* GltfScene::LoadImage(GltfScene* scene, fastgltf::Image& image, const TextureParams loadParams) {
+  fastgltf::Asset& asset = *scene->asset;
+
+  Texture2D* result = nullptr;
+
+  std::visit(fastgltf::visitor {
+    [](auto& arg) {},
+    [&](fastgltf::sources::URI& filePath) {
+      const std::string path(filePath.uri.path().begin(), filePath.uri.path().end());
+      result = ResourceDatabase::Global->Get<Texture2D>(path, loadParams);
+    },
+    [&](fastgltf::sources::Array& vector) {
+      const unsigned char* data = reinterpret_cast<const unsigned char*>(vector.bytes.data());
+      int length = static_cast<int>(vector.bytes.size());
+      // SKIPS RESOURCE MANAGER -> no caching
+      result = Texture2D::Load(data, length, loadParams, true, scene->GetPath().string() + ":" + std::string(image.name));
+      scene->textures.push_back(result);
+    },
+    [&](fastgltf::sources::BufferView& view) {
+      auto& bufferView = asset.bufferViews[view.bufferViewIndex];
+      auto& buffer = asset.buffers[bufferView.bufferIndex];
+
+      std::visit(fastgltf::visitor {
+        [](auto& arg) {},
+        [&](fastgltf::sources::Array& vector) {
+          const unsigned char* data = reinterpret_cast<const unsigned char*>(vector.bytes.data() + bufferView.byteOffset);
+          int length = static_cast<int>(bufferView.byteLength);
+          result = Texture2D::Load(data, length, loadParams, true, scene->GetPath().string() + ":" + std::string(image.name));
+          scene->textures.push_back(result);
+        }
+      }, buffer.data);
+    },
+  }, image.data);
+
+  return result;
+}
+
+TextureFilter GltfScene::GltfFilterToTextureFilter(fastgltf::Filter filter) {
+  switch (filter) {
+    case fastgltf::Filter::Linear:
+      return TextureFilter::Linear;
+    case fastgltf::Filter::LinearMipMapLinear:
+      return TextureFilter::LinearMipmapLinear;
+    case fastgltf::Filter::LinearMipMapNearest:
+      return TextureFilter::LinearMipmapNearest;
+    case fastgltf::Filter::Nearest:
+      return TextureFilter::Nearest;
+    case fastgltf::Filter::NearestMipMapLinear:
+      return TextureFilter::NearestMipmapLinear;
+    case fastgltf::Filter::NearestMipMapNearest:
+      return TextureFilter::NearestMipmapNearest;
+    default:
+      return TextureFilter::Linear;
+  }
+}
+
+TextureWrap GltfScene::GltfWrapToTextureWrap(fastgltf::Wrap wrap) {
+  switch (wrap) {
+    case fastgltf::Wrap::ClampToEdge:
+      return TextureWrap::Clamp;
+    case fastgltf::Wrap::MirroredRepeat:
+      return TextureWrap::MirrorRepeat;
+    case fastgltf::Wrap::Repeat:
+      return TextureWrap::Repeat;
+    default:
+      return TextureWrap::Repeat;
+  }
+}
+
+void GltfScene::GltfSamplerToTextureParams(TextureParams& params, fastgltf::Sampler& sampler) {
+  if (sampler.magFilter.has_value()) {
+    params.magFilter = GltfFilterToTextureFilter(sampler.magFilter.value()); 
+  }
+  if (sampler.minFilter.has_value()) {
+    params.minFilter = GltfFilterToTextureFilter(sampler.minFilter.value());
+  }
+
+  params.wrapU = GltfWrapToTextureWrap(sampler.wrapS);
+  params.wrapV = GltfWrapToTextureWrap(sampler.wrapT);
+}
+
+std::vector<Material*> GltfScene::LoadMaterials(GltfScene* scene, bool isSkinned) {
+  fastgltf::Asset& asset = *scene->asset;
+
+  std::vector<Material*> materials;
+  materials.reserve(asset.materials.size());
+  ResourceDatabase* resources = ResourceDatabase::Global;
+
+  const char* vertexShaderPath = isSkinned ? "./res/shaders/gltf/lit_animation.vert" : "./res/shaders/gltf/lit.vert";
+
+  auto* opaqueProg = ShaderProgram::Build()
+  .WithVertexShader(vertexShaderPath)
+  .WithPixelShader("./res/shaders/gltf/pbr.frag")
+  .Link();
+
+  auto* maskProg = ShaderProgram::Build()
+  .WithVertexShader(vertexShaderPath)
+  .WithPixelShader("./res/shaders/gltf/pbr_mask.frag")
+  .Link();
+
+  auto* blendProg = ShaderProgram::Build()
+  .WithVertexShader(vertexShaderPath)
+  .WithPixelShader("./res/shaders/gltf/pbr_blend.frag")
+  .Link();
+
+  auto* opaquePomProg = ShaderProgram::Build()
+      .WithVertexShader(vertexShaderPath)
+      .WithPixelShader("./res/shaders/gltf/pbr_pom.frag")
+      .Link();
+
+  // Could just use the regular one because it has a discard either way but w/e
+  auto* maskPomProg = ShaderProgram::Build()
+      .WithVertexShader(vertexShaderPath)
+      .WithPixelShader("./res/shaders/gltf/pbr_pom_mask.frag")
+      .Link();
+
+  auto* blendPomProg = ShaderProgram::Build()
+      .WithVertexShader(vertexShaderPath)
+      .WithPixelShader("./res/shaders/gltf/pbr_pom_blend.frag")
+      .Link();
+
+  static auto* ditherHoleProg = ShaderProgram::Build()
+      .WithVertexShader(vertexShaderPath)
+      .WithPixelShader("./res/shaders/gltf/pbr_dither_hole.frag")
+      .Link();
+
+  auto* ditherProximityProg = ShaderProgram::Build()
+      .WithVertexShader(vertexShaderPath)
+      .WithPixelShader("./res/shaders/gltf/pbr_dither_proximity.frag")
+      .Link();
+  
+  for (auto& gltfMaterial : asset.materials) {
+    Material* material = nullptr;
+
+    bool usesPom = gltfMaterial.name.find("_POM") != std::string::npos;
+    bool usesDitherHole = gltfMaterial.name.find("_DITHERHOLE") != std::string::npos;
+    bool usesDitherProximity = gltfMaterial.name.find("_DITHER") != std::string::npos;
+    Texture2D* ditherTexture = resources->Get<Texture2D>("./res/textures/bayer/bayer16.png", Texture::TechnicalMapXYZ);
+
+    if (usesDitherHole) {
+        material = new Material(ditherHoleProg);
+        material->SetValue("alphaCutoff", gltfMaterial.alphaCutoff);
+        material->SetValue("ditherTex", ditherTexture);
+    } else if (usesDitherProximity) {
+        material = new Material(ditherProximityProg);
+        material->SetValue("alphaCutoff", gltfMaterial.alphaCutoff);
+        material->SetValue("ditherTex", ditherTexture);
+    } else {
+        switch (gltfMaterial.alphaMode){
+          case fastgltf::AlphaMode::Blend:
+            spdlog::info("{} is using a blend program", gltfMaterial.name);
+            material = new Material(usesPom ? blendPomProg : blendProg);
+            break;
+          case fastgltf::AlphaMode::Opaque:
+            material = new Material(usesPom ? opaquePomProg : opaqueProg);
+            break;
+          case fastgltf::AlphaMode::Mask:
+            material = new Material(usesPom ? maskPomProg : maskProg);
+            material->SetValue("alphaCutoff", gltfMaterial.alphaCutoff);
+            break;
+        }
+    }
+
+    material->name = gltfMaterial.name;
+
+    // Diffuse
+    glm::vec4 baseColorFactor = glm::make_vec4(gltfMaterial.pbrData.baseColorFactor.data());
+    material->SetValue("baseColorFactor", baseColorFactor);
+
+    if (gltfMaterial.pbrData.baseColorTexture.has_value()) {
+      std::size_t textureIndex = gltfMaterial.pbrData.baseColorTexture->textureIndex;
+      if (asset.textures[textureIndex].imageIndex.has_value()) {
+        std::size_t imageIndex = asset.textures[textureIndex].imageIndex.value();
+
+        TextureParams texParams = Texture::ColorTextureRGBA;
+        if (asset.textures[textureIndex].samplerIndex.has_value()) {
+          auto& sampler = asset.samplers[asset.textures[textureIndex].samplerIndex.value()];
+          GltfSamplerToTextureParams(texParams, sampler);
+        }
+
+        Texture2D* texture = LoadImage(scene, asset.images[imageIndex], texParams);
+        material->SetValue("albedoMap", texture);
+      }
+    } else {
+      Texture2D* defaultAlbedo = resources->Get<Texture2D>("./res/textures/default_color.png", Texture::ColorTextureRGBA);
+      material->SetValue("albedoMap", defaultAlbedo);
+    }
+   
+    // Arm 
+    float roughnessFactor = gltfMaterial.pbrData.roughnessFactor;
+    material->SetValue("roughnessFactor", roughnessFactor);
+    float metallicFactor = gltfMaterial.pbrData.metallicFactor;
+    material->SetValue("metallicFactor", metallicFactor);
+
+    if (gltfMaterial.pbrData.metallicRoughnessTexture.has_value()) {
+      std::size_t textureIndex = gltfMaterial.pbrData.metallicRoughnessTexture->textureIndex;
+      if (asset.textures[textureIndex].imageIndex.has_value()) {
+        std::size_t imageIndex = asset.textures[textureIndex].imageIndex.value();
+
+        TextureParams texParams = Texture::TechnicalMapXYZW;
+
+        if (asset.textures[textureIndex].samplerIndex.has_value()) {
+          auto& sampler = asset.samplers[asset.textures[textureIndex].samplerIndex.value()];
+          GltfSamplerToTextureParams(texParams, sampler);
+        }
+
+        Texture2D* texture = LoadImage(scene, asset.images[imageIndex], texParams);
+        material->SetValue("armMap", texture);
+      }
+    } else {
+      Texture2D* defaultArm = resources->Get<Texture2D>("./res/textures/default_arm.png", Texture::TechnicalMapXYZ);
+      material->SetValue("armMap", defaultArm);
+    }
+
+    // Occlusion
+    // Assumes that the occlusion value is packed into the arm texture
+    //  this just checks whether the material uses it and ignores the values if it doesn't
+    if (!gltfMaterial.occlusionTexture.has_value()) {
+      material->SetValue("useOcclusion", false);
+      // I'm assuming the uv index for this and arm is the same???
+    }
+   
+    // Normal
+    if (gltfMaterial.normalTexture.has_value()) {
+      std::size_t textureIndex = gltfMaterial.normalTexture->textureIndex;
+      if (asset.textures[textureIndex].imageIndex.has_value()) {
+        std::size_t imageIndex = asset.textures[textureIndex].imageIndex.value();
+
+        TextureParams texParams = Texture::TechnicalMapXYZ;
+        if (asset.textures[textureIndex].samplerIndex.has_value()) {
+          auto& sampler = asset.samplers[asset.textures[textureIndex].samplerIndex.value()];
+          GltfSamplerToTextureParams(texParams, sampler);
+        }
+
+        Texture2D* texture = LoadImage(scene, asset.images[imageIndex], texParams);
+        material->SetValue("normalMap", texture);
+      }
+    } else {
+      Texture2D* defaultNormal = resources->Get<Texture2D>("./res/textures/default_norm.png", Texture::TechnicalMapXYZ);
+      material->SetValue("normalMap", defaultNormal);
+    }
+
+    // Emissive
+    glm::vec3 emissiveFactor = glm::make_vec3(gltfMaterial.emissiveFactor.data());
+    material->SetValue("emissiveFactor", emissiveFactor);
+    float emissiveStrength = gltfMaterial.emissiveStrength;
+    material->SetValue("emissiveStrength", emissiveStrength);
+
+    if (gltfMaterial.emissiveTexture.has_value()) {
+      std::size_t textureIndex = gltfMaterial.emissiveTexture->textureIndex;
+      if (asset.textures[textureIndex].imageIndex.has_value()) {
+        std::size_t imageIndex = asset.textures[textureIndex].imageIndex.value();
+
+        TextureParams texParams = Texture::ColorTextureRGB;
+        if (asset.textures[textureIndex].samplerIndex.has_value()) {
+          auto& sampler = asset.samplers[asset.textures[textureIndex].samplerIndex.value()];
+          GltfSamplerToTextureParams(texParams, sampler);
+        }
+
+        Texture2D* texture = LoadImage(scene, asset.images[imageIndex], texParams);
+        material->SetValue("emissiveMap", texture);
+      }
+    } else {
+      Texture2D* defaultEmissive = resources->Get<Texture2D>("./res/textures/default_emissive.png", Texture::ColorTextureRGB);
+      material->SetValue("emissiveMap", defaultEmissive);
+    }
+
+    // Default values for POM so they show up in imgui
+    if (usesPom) {
+        material->SetValue("heightScale", 0.003f);
+        material->SetValue("pomMinLayers", 8.0f);
+        material->SetValue("pomMaxLayers", 32.0f);
+    }
+
+    //  and also uv scale
+    material->SetValue("uvScale", glm::vec2(1.0f, 1.0f));
+    
+    materials.push_back(material);
+  }
+ 
+    Material* defaultMaterial = new Material(opaqueProg);
+    defaultMaterial->name = "Default Material";
+    defaultMaterial->SetValue("baseColorFactor", glm::vec4(0.8f));
+    defaultMaterial->SetValue("roughnessFactor", 1.0f);
+    defaultMaterial->SetValue("metallicFactor", 0.0f);
+
+    Texture2D* defaultAlbedo = resources->Get<Texture2D>("./res/textures/default_color.png", Texture::ColorTextureRGBA);
+    defaultMaterial->SetValue("albedoMap", defaultAlbedo);
+    Texture2D* defaultArm = resources->Get<Texture2D>("./res/textures/default_arm.png", Texture::TechnicalMapXYZ);
+    defaultMaterial->SetValue("armMap", defaultArm);
+    Texture2D* defaultNormal = resources->Get<Texture2D>("./res/textures/default_norm.png", Texture::TechnicalMapXYZ);
+    defaultMaterial->SetValue("normalMap", defaultNormal);
+    Texture2D* defaultEmissive = resources->Get<Texture2D>("./res/textures/default_emissive.png", Texture::ColorTextureRGBA);
+    defaultMaterial->SetValue("emissiveMap", defaultEmissive);
+
+    materials.push_back(defaultMaterial);
+
+  return materials;
+}
+
+fs::path GltfScene::GetPath() const {
+  return this->filePath;
+}
+uint64_t GltfScene::GetHash() const {
+  return 0;
+}
+
+std::vector<Texture2D*> GltfScene::GetTextures() {
+  return this->textures;
+}
+
+std::vector<Mesh*> GltfScene::GetMeshes() {
+  return this->meshes;
+}
+
+void GltfScene::GetAnimationData(AnimationComponent::Animation& animation) {
+  auto animationSearch = std::find_if(this->asset->animations.begin(), this->asset->animations.end(), [animation](const fastgltf::Animation& item) -> bool {
+    return std::string(item.name) == animation.data.name;
+  });
+
+  if (animationSearch == this->asset->animations.end()) {
+    return;
+  }
+
+  fastgltf::Animation& gltfAnimation = *animationSearch;
+
+  animation.currentKeyframes.resize(gltfAnimation.channels.size());
+  
+  for (std::size_t i = 0; i < gltfAnimation.channels.size(); ++i) {
+    fastgltf::AnimationChannel& channel = gltfAnimation.channels[i];
+    
+    if (!channel.nodeIndex.has_value()) {
+      spdlog::warn("GltfScene: Tried loading an animation track without missing target node");
+    }
+
+    AnimationComponent::Track track;
+    track.target = animation.participants[channel.nodeIndex.value()];
+
+    switch (channel.path) {
+      case fastgltf::AnimationPath::Rotation: track.property = AnimationComponent::Property::ROTATION; break;
+      case fastgltf::AnimationPath::Scale: track.property = AnimationComponent::Property::SCALE; break;
+      case fastgltf::AnimationPath::Translation: track.property = AnimationComponent::Property::POSITION; break;
+      case fastgltf::AnimationPath::Weights: track.property = AnimationComponent::Property::WEIGHTS; break;
+    }
+
+    fastgltf::AnimationSampler& sampler = gltfAnimation.samplers[channel.samplerIndex];
+
+    switch (sampler.interpolation) {
+      case fastgltf::AnimationInterpolation::CubicSpline: track.interpolation = AnimationComponent::Interpolation::CUBICSPLINE; break;
+      case fastgltf::AnimationInterpolation::Linear: track.interpolation = AnimationComponent::Interpolation::LINEAR; break;
+      case fastgltf::AnimationInterpolation::Step: track.interpolation = AnimationComponent::Interpolation::STEP; break;
+    }
+    
+    auto& inputAccessor = this->asset->accessors[sampler.inputAccessor];
+    if (!inputAccessor.bufferViewIndex.has_value()) {
+      spdlog::warn("GltfScene: Tried loading an animation track with missing input data");
+      continue;
+    }
+
+    const float maxInput = static_cast<float>(inputAccessor.max->get<double>(0));
+    if (animation.data.duration < maxInput) {
+      animation.data.duration = maxInput; 
+    }
+
+    track.inputs.resize(inputAccessor.count);
+    fastgltf::iterateAccessorWithIndex<float>(*this->asset, inputAccessor, [&](float input, std::size_t index) {
+      track.inputs[index] = input;
+    });
+
+    auto& outputAccessor = this->asset->accessors[sampler.outputAccessor];
+    if (!outputAccessor.bufferViewIndex.has_value()) {
+      spdlog::warn("GltfScene: Tried loading an animation track with missing output data");
+      continue;
+    }
+
+    if (track.property == AnimationComponent::Property::POSITION
+        || track.property == AnimationComponent::Property::SCALE) {
+      track.outputs.resize(outputAccessor.count * 3);
+      fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec3>(*this->asset, outputAccessor, [&](fastgltf::math::fvec3 output, std::size_t index) {
+        track.outputs[index * 3] = output.x();
+        track.outputs[index * 3 + 1] = output.y();
+        track.outputs[index * 3 + 2] = output.z();
+      });
+    } else if (track.property == AnimationComponent::Property::ROTATION) {
+      track.outputs.resize(outputAccessor.count * 4);
+      fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec4>(*this->asset, outputAccessor, [&](fastgltf::math::fvec4 output, std::size_t index) {
+        track.outputs[index * 4] = output.x();
+        track.outputs[index * 4 + 1] = output.y();
+        track.outputs[index * 4 + 2] = output.z();
+        track.outputs[index * 4 + 3] = output.w();
+      });
+    } else {
+      track.outputs.resize(outputAccessor.count);
+      fastgltf::iterateAccessorWithIndex<float>(*this->asset, outputAccessor, [&](float output, std::size_t index) {
+        track.outputs[index] = output;
+      });
+    }
+
+    // maybe resize at the start idk dnsfdafdfnkjdsabfksavsa
+    animation.data.tracks.push_back(track);
+  }
+}

@@ -8,12 +8,13 @@
 #include <spdlog/spdlog.h>
 
 #include <Resources.h>
+#include <Serialization.h>
 
 namespace fs = std::filesystem;
 
 enum class TextureType {
 	Texture2D,
-    Texture3D,
+	Texture3D,
 	Cubemap
 };
 
@@ -23,7 +24,8 @@ enum class TextureChannels {
 	RGB = 2,
 	RGBA = 3,
 	Depth = 4,
-	DepthStencil = 5
+	DepthStencil = 5,
+	GrayscaleInteger = 6
 };
 
 enum class TextureColor {
@@ -102,6 +104,8 @@ protected:
 	TextureInfoBit<TextureFilter> magFilter;
 	TextureInfoBit<bool> mipmapped;
 
+	fs::path path;
+
 	virtual void Create() = 0;
 public:
 	static constexpr TextureParams ColorTextureRGB {.channels = TextureChannels::RGB, .colorSpace = TextureColor::SRGB, .format = TextureFormat::Ubyte, .minFilter = TextureFilter::LinearMipmapLinear};
@@ -117,9 +121,9 @@ public:
 		requires (std::derived_from<T_Tex, Texture>)
 	static T_Tex* Load(const fs::path& texturePath, const TextureParams& loadParams) = delete;
 
-  template <class T_Tex>
-    requires (std::derived_from<T_Tex, Texture>)
-  static T_Tex* Load(const unsigned char* data, const int length, const TextureParams loadParams) = delete;
+	template <class T_Tex>
+		requires (std::derived_from<T_Tex, Texture>)
+	static T_Tex* Load(const unsigned char* data, const int length, const TextureParams loadParams) = delete;
 
 	template <class T_Tex>
 		requires (std::derived_from<T_Tex, Texture>)
@@ -159,6 +163,9 @@ public:
 
 	bool IsDirty() const;
 	void Update();
+
+	virtual fs::path GetPath() const;
+	virtual uint64_t GetHash() const;
 };
 
 class Texture2D : public Texture {
@@ -169,16 +176,18 @@ public:
 	Texture2D(unsigned int width, unsigned int height, const TextureParams& creationParams);
 	Texture2D(unsigned int width, unsigned int height, const TextureParams& creationParams, GLuint handle);
 
-
-  static Texture2D* Create(unsigned char* textureData, int width, int height, const TextureParams& loadParams);
+	static Texture2D* Create(unsigned char* textureData, int width, int height, const TextureParams& loadParams);
 
 	static Texture2D* Load(const fs::path& texturePath, const TextureParams& loadParams, bool flip = true);
 
-  static Texture2D* Load(const unsigned char* data, const int length, const TextureParams loadParams, bool flip = true);
+	static Texture2D* Load(const unsigned char* data, const int length, const TextureParams loadParams, bool flip = true, const fs::path& texturePath = "");
 
 	virtual constexpr TextureType GetType() const {
 		return TextureType::Texture2D;
 	}
+
+	json Serialize() const;
+	static Texture2D* Deserialize(const json& data);
 };
 
 class Texture3D : public Texture {
@@ -208,6 +217,9 @@ public:
 
 	TextureWrap GetWrapModeW() const;
 	void SetWrapModeW(TextureWrap wrapMode);
+
+	json Serialize() const;
+	static Texture3D* Deserialize(const json& data);
 };
 
 class Cubemap : public Texture {
@@ -233,6 +245,9 @@ public:
 	virtual constexpr TextureType GetType() const {
 		return TextureType::Cubemap;
 	}
+
+	json Serialize() const;
+	static Cubemap* Deserialize(const json& data);
 };
 
 template<> Texture2D* Texture::Load<Texture2D>(const fs::path& texturePath, const TextureParams& loadParams);

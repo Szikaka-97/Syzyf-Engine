@@ -1,8 +1,10 @@
 #pragma once
 
+#include "Resources.h"
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 #include <spdlog/spdlog.h>
+#include <nlohmann/json.hpp>
 
 #include <UniformSpec.h>
 #include <Shader.h>
@@ -23,6 +25,7 @@ private:
 	const UniformSpec* uniformSpec;
 	bool dirty;
 public:
+	ShaderVariableStorage() = default;
 	ShaderVariableStorage(const UniformSpec& uniformSpec);
 	
 	void Bind() const;
@@ -66,6 +69,9 @@ public:
 	const UniformSpec* GetUniforms() const;
 
 	void RefreshVariables();
+
+	nlohmann::json Serialize() const;
+	void Deserialize(const nlohmann::json& data);
 };
 
 class Material {
@@ -73,8 +79,10 @@ class Material {
 private:
 	const ShaderProgram* shader;
 	ShaderVariableStorage shaderVariables;
-
 	static std::vector<Material*> allMaterials;
+
+
+	Material();
 
 	static void OnReloadShader(ShaderProgram* shader);
 public:
@@ -82,7 +90,7 @@ public:
 
 	Material(const ShaderProgram* shader);
 
-	void Bind() const;
+	void Bind(const ShaderProgram* targetProgram = nullptr) const;
 
 	template<Blittable T>
 	T GetValue(const std::string& uniformName) const;
@@ -122,6 +130,9 @@ public:
 
 	const ShaderProgram* GetShader() const;
 	const UniformSpec* GetUniforms() const;
+
+	void Deserialize(const nlohmann::json& json_node);
+	nlohmann::json Serialize() const;
 };
 
 class ComputeDispatchData {
@@ -472,7 +483,7 @@ void ComputeDispatchData::SetUniformBuffer(int uniformBufferBinding, const T_Buf
 #pragma endregion
 
 template<> inline bool IsUniformOfRightType<bool>(UniformSpec::UniformType type) {
-  return type == UniformSpec::UniformType::Bool;
+	return type == UniformSpec::UniformType::Bool;
 }
 template<> inline bool IsUniformOfRightType<float>(UniformSpec::UniformType type) {
 	return type == UniformSpec::UniformType::Float1;

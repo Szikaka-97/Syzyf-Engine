@@ -54,10 +54,18 @@ private:
 	static TimePoint now;
 	static float applicationTime;
 	static float deltaTime;
+
+	static float timeScale;
+	static float unscaledDeltaTime;
 public:
 	static const TimePoint& Now();
 	static TimePoint SystemTime();
 	static float Current();
 	static float Delta();
-    static void Update();
+
+	static void SetTimeScale(float scale);
+	static float GetTimeScale();
+	static float UnscaledDelta();
+
+	static void Update();
 };

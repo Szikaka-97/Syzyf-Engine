@@ -6,19 +6,21 @@
 #include "imgui.h"
 
 DepthOfField::DepthOfField() {
-    this->savedResolution = GetScene()->GetGraphics()->GetScreenResolution();
+	this->downsampleShader = new ComputeShaderProgram("./res/shaders/bloom/bloom_downsample.comp");
+	this->upsampleShader = new ComputeShaderProgram("./res/shaders/dof/dof_upsample.comp");
+	this->finalShader = new ComputeShaderProgram("./res/shaders/dof/dof_composite.comp");
+    
+	glCreateTextures(GL_TEXTURE_2D, 1, &this->dofTexture);
+}
 
-    glCreateTextures(GL_TEXTURE_2D, 1, &this->dofTexture);
+void DepthOfField::Awake() {
+    this->savedResolution = GetScene()->GetGraphics()->GetScreenResolution();
 
     this->UpdateTexture();
 	glTextureParameteri(this->dofTexture, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
 	glTextureParameteri(this->dofTexture, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTextureParameteri(this->dofTexture, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTextureParameteri(this->dofTexture, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-	this->downsampleShader = new ComputeShaderProgram("./res/shaders/bloom/bloom_downsample.comp");
-	this->upsampleShader = new ComputeShaderProgram("./res/shaders/dof/dof_upsample.comp");
-	this->finalShader = new ComputeShaderProgram("./res/shaders/dof/dof_composite.comp");
 }
 
 void DepthOfField::OnPostProcess(const PostProcessParams* params) {
@@ -84,6 +86,7 @@ void DepthOfField::OnPostProcess(const PostProcessParams* params) {
 	glUniform1f(glGetUniformLocation(this->finalShader->GetHandle(), "minDistance"), this->minDistance);
 	glUniform1f(glGetUniformLocation(this->finalShader->GetHandle(), "maxDistance"), this->maxDistance);
 	glUniform1f(glGetUniformLocation(this->finalShader->GetHandle(), "focusDistance"), this->focusDistance);
+	glUniform1f(glGetUniformLocation(this->finalShader->GetHandle(), "finalMixFactor"), this->finalMixFactor);
 
     glUniform1i(glGetUniformLocation(this->finalShader->GetHandle(), "useDilution"), this->useDilution);
     glUniform1i(glGetUniformLocation(this->finalShader->GetHandle(), "size"), this->size);
@@ -100,6 +103,8 @@ void DepthOfField::DrawImGui() {
     ImGui::InputFloat("Min Distance", &this->minDistance);
     ImGui::InputFloat("Max Distance", &this->maxDistance);
     ImGui::InputFloat("Focus Distance", &this->focusDistance);
+
+    ImGui::InputFloat("Final Mix Factor", &this->finalMixFactor);
 
     ImGui::Separator();
     ImGui::Checkbox("Enable Dilution", &this->useDilution);

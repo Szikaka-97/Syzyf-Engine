@@ -10,28 +10,42 @@ struct CameraData;
 
 class Viewport;
 
+enum class RenderPassType {
+	Color = 1,
+	DepthPrepass = 2,
+	Shadows = 6,
+	Gizmos = 8,
+	PostProcessing = 16,
+	Transparent = 32,
+	Additive = 64,
+	Volumetric = 128,
+	SSAO = 256,
+	Mask = 512,
+	UI = 1024,
+};
+
 class Camera : public GameObject, public ImGuiDrawable {
 public:
 	struct Perspective {
 		Perspective() = default;
 		Perspective(float fovyDegrees, float aspectRatio, float nearPlane, float farPlane);
 
-		float fovyDegrees = 0;
-		float aspectRatio = 0;
-		float nearPlane = 0;
-		float farPlane = 0;
+		serialized float fovyDegrees = 0;
+		serialized float aspectRatio = 0;
+		serialized float nearPlane = 0;
+		serialized float farPlane = 0;
 	};
 	struct Orthographic {
 		Orthographic() = default;
 		Orthographic(float left, float right, float top, float bottom, float znear, float zfar);
 		Orthographic(glm::vec2 viewportSize);
 
-		float left = 0;
-		float right = 0;
-		float top = 0;
-		float bottom = 0;
-    float znear = 0;
-    float zfar = 0;
+		serialized float left = 0;
+		serialized float right = 0;
+		serialized float top = 0;
+		serialized float bottom = 0;
+		serialized float znear = 0;
+		serialized float zfar = 0;
 	};
 
 	enum class CameraType {
@@ -39,14 +53,20 @@ public:
 		Orthographic
 	};
 private:
-	CameraType type;
+	serialized CameraType type;
 
-	Perspective perspectiveData;
-	Orthographic orthoData;
-	Viewport* renderTarget;
-	LayerMask layerMask;
-	int priority;
+	serialized Perspective perspectiveData;
+	serialized Orthographic orthoData;
+	Viewport* renderTarget = nullptr;
+	serialized LayerMask layerMask;
+	serialized RenderPassType passes;
+	serialized int priority;
 public:
+	static RenderPassType DefaultCameraPasses;
+	static RenderPassType DefaultMainCameraPasses;
+
+	Camera();
+
 	Camera(Perspective perspectiveData);
 	Camera(Orthographic orthoData);
 	virtual ~Camera();
@@ -99,6 +119,12 @@ public:
 	void AddLayerToMask(uint8_t layer);
 	void RemoveLayerFromMask(uint8_t layer);
 
+	RenderPassType GetPasses() const;
+	void SetPasses(RenderPassType passes);
+	bool HasPass(RenderPassType pass);
+	void AddPass(RenderPassType pass);
+	void RemovePass(RenderPassType pass);
+
 	void SetAsMainCamera();
 
 	CameraData GetCameraData() const;
@@ -127,3 +153,29 @@ struct CameraData {
 	float GetNearPlane() const;
 	float GetFarPlane() const;
 };
+
+inline constexpr RenderPassType operator&(RenderPassType a, RenderPassType b) {
+	return static_cast<RenderPassType>(static_cast<int>(a) & static_cast<int>(b));
+}
+
+inline constexpr RenderPassType operator|(RenderPassType a, RenderPassType b) {
+	return static_cast<RenderPassType>(static_cast<int>(a) | static_cast<int>(b));
+}
+
+inline constexpr RenderPassType& operator|=(RenderPassType& a, RenderPassType b) {
+	a = a | b;
+
+	return a;
+}
+
+inline constexpr RenderPassType& operator&=(RenderPassType& a, RenderPassType b) {
+	a = a & b;
+
+	return a;
+}
+
+inline constexpr RenderPassType operator~(RenderPassType& a) {
+	a = static_cast<RenderPassType>(~static_cast<int>(a));
+
+	return a;
+}

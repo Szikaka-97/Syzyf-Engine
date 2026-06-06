@@ -225,7 +225,7 @@ source(source) {
     }
 
 	this->value = glm::normalize(glm::quat(rotationMatrix));
-    this->initialValue = this->value;
+	this->initialValue = this->value;
 }
 
 SceneTransform::RotationAccess::~RotationAccess() {
@@ -301,13 +301,21 @@ value(
 	glm::length(glm::column(this->source.transformation, 1)),
 	glm::length(glm::column(this->source.transformation, 2))
 ) {
-    this->initialValue = this->value;
+	this->initialValue = this->value;
 }
 
 SceneTransform::ScaleAccess::~ScaleAccess() {
     if (this->initialValue != this->value) {
         glm::vec3 oldScale = this->initialValue;
-        const float epsilon = glm::epsilon<float>();
+
+        // stops 0.0 scale from getting passed to jolt and crashing the game 
+        const float MIN_SCALE = 0.0001f;
+        if (glm::abs(this->value.x) < MIN_SCALE) this->value.x = (this->value.x < 0.0f) ? -MIN_SCALE : MIN_SCALE;
+        if (glm::abs(this->value.y) < MIN_SCALE) this->value.y = (this->value.y < 0.0f) ? -MIN_SCALE : MIN_SCALE;
+        if (glm::abs(this->value.z) < MIN_SCALE) this->value.z = (this->value.z < 0.0f) ? -MIN_SCALE : MIN_SCALE;
+        if (glm::abs(oldScale.x) < MIN_SCALE) oldScale.x = (oldScale.x < 0.0f) ? -MIN_SCALE : MIN_SCALE;
+        if (glm::abs(oldScale.y) < MIN_SCALE) oldScale.y = (oldScale.y < 0.0f) ? -MIN_SCALE : MIN_SCALE;
+        if (glm::abs(oldScale.z) < MIN_SCALE) oldScale.z = (oldScale.z < 0.0f) ? -MIN_SCALE : MIN_SCALE;
 
 	if (this->value != oldScale) {
 		this->source.transformation = glm::column(

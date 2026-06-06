@@ -40,7 +40,6 @@ ambientLight(1.0f, 1.0f, 1.0f, 0.001f) {
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->lightsBuffer);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, 32 + sizeof(ShaderLightRep) * MAX_NUM_LIGHTS, nullptr, GL_DYNAMIC_DRAW);
 
-	
 	glGenBuffers(1, &this->shadowmapsBuffer);
 
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
@@ -563,3 +562,13 @@ void LightSystem::DrawImGui() {
 	}
 }
 
+json LightSystem::Serialize() {
+	json data;
+
+	data["ambientLight"] = Serialization::Serialize(this->ambientLight);
+
+	return data;
+}
+void LightSystem::Deserialize(const json& data) {
+	this->ambientLight = Serialization::Deserialize<glm::vec4>(data["ambientLight"]);
+}
