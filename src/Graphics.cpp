@@ -1292,7 +1292,7 @@ void SceneGraphics::RenderOrderedTransparent(const ShaderGlobalUniforms& uniform
 
 	glViewport(params.viewport.x, params.viewport.y, params.viewport.z, params.viewport.w);
 	
-	glCullFace(GL_BACK);
+	// glCullFace(GL_BACK);
 	glDepthMask(false);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);

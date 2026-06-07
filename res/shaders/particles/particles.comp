@@ -128,8 +128,8 @@ void main() {
     l.position = particles[index].position.xyz;
     l.type = POINT_LIGHT;
     l.range = 1.0f;
-    l.color = hsl2rgb(random(index), 1.0f, 0.5f);
-    l.intensity = 2.0f;
+    l.color = hsl2rgb(0.1 + random(index) * 0.03, 1.0f, 0.5f);
+    l.intensity = 0.3 + sin(Global_Time * (0.3 + random(index) * 0.1) + random(index) * 7) * 0.1;
     l.linearAttenuation = 1.0f;
     l.quadraticAttenuation = 60.0f;
     l.shadowAtlasIndex = -1;

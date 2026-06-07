@@ -4,7 +4,7 @@
 
 layout (local_size_x = LIGHTS_STRIDE, local_size_y = 1, local_size_z = 1) in;
 
-#define MAX_LIGHTS_PER_TILE 256
+#define MAX_LIGHTS_PER_TILE 512
 
 #include "shared/shared.h"
 

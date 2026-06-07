@@ -62,6 +62,18 @@ Framebuffer* LightSystem::GetShadowAtlasFramebuffer() {
     return this->shadowAtlasFramebuffer;
 }
 
+GLuint LightSystem::GetLightGridHandle() {
+	return this->lightGrid;
+}
+
+GLuint LightSystem::GetLightIndexListHandle() {
+	return this->lightIndexList;
+}
+
+glm::vec3 LightSystem::GetLightGridSize() const {
+	return this->lightGridSize;
+}
+
 glm::vec4 LightSystem::GetAmbientLight() const {
     return this->ambientLight;
 }

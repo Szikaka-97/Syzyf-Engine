@@ -71,6 +71,16 @@ vec3 getLightStrength(in Light light, in vec3 worldPos) {
 }
 #endif
 
+
+vec3 calcColor(float factor) {
+	if (factor < 0.5) {
+		return mix(vec3(0, 0, 1), vec3(0, 1, 0), factor * 2);
+	}
+
+	return mix(vec3(0, 1, 1), vec3(1, 0, 0), (factor - 0.5) * 2);
+}
+
+
 #ifdef SHADING_FUNCTION
 vec3 shade(in Material mat, in vec3 worldPos, in vec3 normal, in vec3 tangent) {
 #ifndef IGNORE_AMBIENT

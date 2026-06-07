@@ -73,7 +73,7 @@ void EditorApplication::OnInit(int argc, char* argv[]) {
 
     this->context.selectedScene = Scene::CreateStandaloneScene();
     this->context.loadedScenes.push_back(this->context.selectedScene);
-    TestScene::InitScene(*this->context.selectedScene);
+    LightingTestScene::InitScene(*this->context.selectedScene);
 
     for (auto* scene : this->context.loadedScenes) {
         scene->GetGraphics()->UpdateScreenResolution(
@@ -178,7 +178,6 @@ void EditorApplication::ExecutePendingSceneChange() {
     auto cameras = newScene->FindObjectsOfType<Camera>();
     if (!cameras.empty()) {
         this->context.mainCamera = cameras.front();
-        this->context.mainCamera = nullptr;
     } else {
         this->context.mainCamera = nullptr;
         spdlog::warn("Editor: The new scene doesn't have a Camera");
