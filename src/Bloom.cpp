@@ -127,3 +127,7 @@ void Bloom::DrawImGui() {
         ImGui::InputFloat("Dirt Intensity", &this->dirtIntensity);
     }
 }
+
+int Bloom::Order() const {
+	return 4;
+}

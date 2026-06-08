@@ -60,3 +60,7 @@ void Tonemapper::DrawImGui() {
 
 	SetOperator((TonemapperOperator) currentOperator);
 }
+
+int Tonemapper::Order() const {
+	return 7;
+}

@@ -80,3 +80,7 @@ void ColorGrading::DrawImGui() {
         ImGui::Text("Curve Texture Disabled");
     }
 }
+
+int ColorGrading::Order() const {
+    return 8;
+}

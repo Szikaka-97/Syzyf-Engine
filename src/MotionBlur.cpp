@@ -52,7 +52,7 @@ void MotionBlur::OnPostProcess(const PostProcessParams* params) {
     glBindImageTexture(0, params->outputTexture->GetHandle(),
                        0, false, 0, GL_READ_WRITE, GL_RGBA16F);
 
-    // Pobranie macierzy z g³ównej kamery
+    // Pobranie macierzy z gï¿½ï¿½wnej kamery
     Camera* camera = GetScene()->GetGraphics()->GetMainCamera();
     glm::mat4 proj = camera ? camera->ProjectionMatrix() : glm::mat4(1.0f);
     glm::mat4 view = camera ? camera->ViewMatrix() : glm::mat4(1.0f);
@@ -73,7 +73,7 @@ void MotionBlur::OnPostProcess(const PostProcessParams* params) {
     glDispatchCompute((resolution.x + 7) / 8, (resolution.y + 7) / 8, 1);
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
-    // Zachowanie macierzy ViewProj na nastêpn¹ klatkê
+    // Zachowanie macierzy ViewProj na nastï¿½pnï¿½ klatkï¿½
     previousViewProjection = proj * view;
 }
 
@@ -83,4 +83,8 @@ void MotionBlur::DrawImGui() {
     ImGui::InputFloat("Separation", &separation);
     samples = glm::max(1, samples);
     separation = glm::max(0.0f, separation);
+}
+
+int MotionBlur::Order() const {
+    return 6;
 }

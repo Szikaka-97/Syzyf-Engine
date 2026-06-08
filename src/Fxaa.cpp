@@ -126,3 +126,8 @@ void Fxaa::DrawImGui()
         this->subpixTrim = 1.0f / 4.0f;
     }
 }
+
+int Fxaa::Order() const
+{
+	return 5;
+}

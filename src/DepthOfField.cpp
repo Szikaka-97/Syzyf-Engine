@@ -128,3 +128,7 @@ void DepthOfField::UpdateTexture() {
 	glGenerateMipmap(GL_TEXTURE_2D);
 	glBindTexture(GL_TEXTURE_2D, 0);
 }
+
+int DepthOfField::Order() const {
+	return 3;
+}
