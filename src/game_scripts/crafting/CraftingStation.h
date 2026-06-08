@@ -426,6 +426,8 @@ namespace Crafting{
                 void StartBottlingStage(){
                     currentStage = CraftingStage::Bottling;
 
+                    SetHeatingUiEnabled(false);
+
                     SetDoorInteractionEnabled(false);
                     SetValveInteractionEnabled(true);
                     SetDragInteractorEnabled(true);
@@ -447,29 +449,30 @@ namespace Crafting{
                     ExitStation();
                 }
 
-                std::string GetPrimaryEffectId() const{
-                    if (!cauldron){
-                        return EffectId::None;
-                    }
-
-                    for (const auto& ingredient : cauldron->GetIngredients()){
-                        if (ingredient.role == IngredientRole::MainEffect){
-                            return ingredient.effectId;
-                        }
-                    }
-
-                    return EffectId::None;
-                }
-
                 void SaveCraftedPotion(){
                     if (!cauldron || !bottlingStage.HasEnoughFilledBottles()){
                         return;
                     }
 
+                    CraftedPotionData potionData =
+                        CraftingRecipeChecker::BuildCraftedPotion(
+                            cauldron->GetIngredients(),
+                            cauldron->GetQualityPercent()
+                        );
+
                     PotionInventory::SaveLastCraftedPotion(
-                        cauldron->GetRecipeName(),
-                        GetPrimaryEffectId(),
-                        cauldron->GetQualityPercent(),
+                        potionData,
+                        bottlingStage.GetFilledBottles()
+                    );
+
+                    spdlog::error(
+                        "CraftingStation: crafted '{}' effect={} secondary={} radius={:.2f} duration={:.2f} power={:.2f} bottles={}",
+                        potionData.recipeName,
+                        potionData.primaryEffectId,
+                        potionData.secondaryEffectId,
+                        potionData.radius,
+                        potionData.duration,
+                        potionData.power,
                         bottlingStage.GetFilledBottles()
                     );
 
@@ -859,11 +862,11 @@ namespace Crafting{
                         return;
                     }
 
-                    if (heatingUiRootNode->EnabledSelf() == enabled){
-                        return;
-                    }
-
                     heatingUiRootNode->SetEnabled(enabled);
+
+                    if (!enabled && heatingUiText){
+                        heatingUiText->text = "";
+                    }
                 }
 
                 void UpdateHeatingUi(){

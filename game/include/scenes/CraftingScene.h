@@ -63,8 +63,6 @@
 #include <string>
 #include <vector>
 
-#include <spdlog/spdlog.h>
-
 namespace CraftingScene {
 
 static constexpr const char* CraftingTutorialModelPath =
@@ -620,9 +618,6 @@ inline bool AlignStationModelToRoom(SceneNode* roomNode, SceneNode* stationNode)
 			roomNode,
 			{
 				"station",
-				"Station",
-				"CraftingStation",
-				"Crafting Station"
 			}
 		);
 
@@ -971,70 +966,27 @@ inline SceneNode* CreateBottlingLocalCube(
 	return node;
 }
 
-inline SceneNode* CreateBottlingFallbackPoint(
-	Scene& scene,
-	SceneNode* parent,
-	const std::string& nodeName,
-	const glm::vec3& localPosition
-) {
-	SceneNode* node = scene.CreateNode(parent, nodeName);
-	node->LocalTransform().Position() = localPosition;
-	return node;
-}
-
 inline void CreateBottlingStageNodes(Scene& scene, SceneNode* roomNode) {
 	if (!roomNode) {
 		return;
 	}
 
 	SceneNode* bottleStartNode =
-		FindFirstNodeByNamesRecursive(
-			roomNode,
-			{
-				"Bottle_Start",
-				"BottleStartPoint"
-			}
-		);
+		FindFirstNodeByNameRecursive(roomNode, "Bottle_Start");
 
 	SceneNode* bottleStopNode =
-		FindFirstNodeByNamesRecursive(
-			roomNode,
-			{
-				"Bottle_stop",
-				"Bottle_Stop",
-				"Bottle_End",
-				"BottleEndPoint"
-			}
-		);
+		FindFirstNodeByNameRecursive(roomNode, "Bottle_stop");
 
 	SceneNode* pourButtonNode =
-		FindFirstNodeByNamesRecursive(
-			roomNode,
-			{
-				"Knob_One.001",
-				"Knob_One",
-				"BottleFillPoint"
-			}
-		);
+		FindFirstNodeByNameRecursive(roomNode, "Knob_One.001");
 
-	if (!bottleStartNode) {
-		spdlog::warn("CreateBottlingStageNodes: Bottle_Start not found. Using fallback local point.");
-		bottleStartNode = CreateBottlingFallbackPoint(
-			scene,
-			roomNode,
-			"Bottle_Start",
-			glm::vec3(1.8707f, 0.1150f, -3.3414f)
-		);
+	if (!pourButtonNode) {
+		pourButtonNode =
+			FindFirstNodeByNameRecursive(roomNode, "Knob_One");
 	}
 
-	if (!bottleStopNode) {
-		spdlog::warn("CreateBottlingStageNodes: Bottle_stop not found. Using fallback local point.");
-		bottleStopNode = CreateBottlingFallbackPoint(
-			scene,
-			roomNode,
-			"Bottle_stop",
-			glm::vec3(-1.9254f, 0.1150f, -3.3384f)
-		);
+	if (!bottleStartNode || !bottleStopNode || !pourButtonNode) {
+		return;
 	}
 
 	const glm::mat4 bottleStartTransform =
@@ -1049,6 +1001,12 @@ inline void CreateBottlingStageNodes(Scene& scene, SceneNode* roomNode) {
 			roomNode
 		);
 
+	const glm::mat4 pourButtonTransform =
+		GetNodeTransformRelativeTo(
+			pourButtonNode,
+			roomNode
+		);
+
 	const glm::vec3 bottleStartPoint =
 		glm::vec3(
 			bottleStartTransform[3]
@@ -1059,34 +1017,10 @@ inline void CreateBottlingStageNodes(Scene& scene, SceneNode* roomNode) {
 			bottleStopTransform[3]
 		);
 
-	glm::vec3 pourButtonPoint =
-		glm::mix(
-			bottleStartPoint,
-			bottleEndPoint,
-			0.5f
+	const glm::vec3 pourButtonPoint =
+		glm::vec3(
+			pourButtonTransform[3]
 		);
-
-	if (pourButtonNode) {
-		const glm::mat4 pourButtonTransform =
-			GetNodeTransformRelativeTo(
-				pourButtonNode,
-				roomNode
-			);
-
-		pourButtonPoint =
-			glm::vec3(
-				pourButtonTransform[3]
-			);
-	}
-	else {
-		spdlog::warn("CreateBottlingStageNodes: Knob_One.001 / Knob_One not found. Fill point uses center of bottle path.");
-		pourButtonNode = CreateBottlingFallbackPoint(
-			scene,
-			roomNode,
-			"Knob_One.001",
-			pourButtonPoint
-		);
-	}
 
 	const glm::vec3 path =
 		bottleEndPoint - bottleStartPoint;
@@ -1113,34 +1047,10 @@ inline void CreateBottlingStageNodes(Scene& scene, SceneNode* roomNode) {
 			fillT
 		);
 
-	const glm::vec3 pourStreamStart =
-		pourButtonPoint;
-
-	const glm::vec3 pourStreamEnd =
-		glm::vec3(
-			bottleFillPoint.x,
-			bottleFillPoint.y + 0.42f,
-			bottleFillPoint.z
-		);
-
-	const glm::vec3 pourStreamPosition =
-		glm::mix(
-			pourStreamStart,
-			pourStreamEnd,
-			0.5f
-		);
-
-	const float pourStreamHeight =
-		glm::max(
-			glm::abs(pourStreamStart.y - pourStreamEnd.y),
-			0.1f
-		);
 
 	const glm::vec3 bottleScale =
 		glm::vec3(0.16f, 0.36f, 0.16f);
 
-	const glm::vec3 pourStreamScale =
-		glm::vec3(0.055f, pourStreamHeight * 0.5f, 0.055f);
 
 	Mesh* cubeMesh =
 		scene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
@@ -1151,18 +1061,13 @@ inline void CreateBottlingStageNodes(Scene& scene, SceneNode* roomNode) {
 	Material* liquidMaterial =
 		CreateColorMaterial(glm::vec4(0.9f, 0.25f, 0.15f, 0.95f));
 
-	Material* pourStreamMaterial =
-		CreateColorMaterial(glm::vec4(1.0f, 0.85f, 0.15f, 0.75f));
 
 	SceneNode* bottlesRoot =
-		FindFirstNodeByNameRecursive(roomNode, "BottlingBottlesRoot");
-
-	if (!bottlesRoot) {
-		bottlesRoot = scene.CreateNode(roomNode, "BottlingBottlesRoot");
-	}
+		scene.CreateNode(roomNode, "BottlingBottlesRoot");
 
 	bottlesRoot->LocalTransform().Position() =
 		glm::vec3(0.0f);
+
 
 	for (int i = 0; i < 4; ++i) {
 		SceneNode* bottleNode = CreateBottlingLocalCube(
@@ -1499,7 +1404,7 @@ inline void CreateCraftingIngredients(Scene& scene, SceneNode* roomNode) {
 				Crafting::IngredientType::Water,
 				"Radius",
 				Crafting::ModifierId::Radius,
-				1.0f,
+				1.5f,
 				radiusColor
 			)
 		},
@@ -1512,7 +1417,7 @@ inline void CreateCraftingIngredients(Scene& scene, SceneNode* roomNode) {
 				Crafting::IngredientType::Sugar,
 				"Duration",
 				Crafting::ModifierId::Duration,
-				1.0f,
+				2.5f,
 				durationColor
 			)
 		}

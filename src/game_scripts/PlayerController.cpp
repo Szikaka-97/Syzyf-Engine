@@ -72,6 +72,86 @@ float ThrowStrengthEasing(float strength) {
 	return -(glm::cos(glm::pi<float>() * strength) - 1) / 2;
 }
 
+
+namespace{
+	float SecondaryEffectMultiplier(bool secondaryEffect){
+		return secondaryEffect ? 0.65f : 1.0f;
+	}
+
+	EffectBase* AddPotionEffectToNode(
+		SceneNode* node,
+		const std::string& effectId,
+		const Crafting::CraftedPotionData& potionData,
+		bool secondaryEffect
+	) {
+		float multiplier = SecondaryEffectMultiplier(secondaryEffect);
+
+		if (effectId == Crafting::EffectId::Burn) {
+			EffectFire* effect = node->AddObject<EffectFire>();
+
+			effect->radius = potionData.radius * multiplier;
+			effect->damage = potionData.power * multiplier;
+			effect->dotRemainingTime = potionData.duration * multiplier;
+			effect->ingredientCount = potionData.mainEffectCount;
+			effect->special1 = potionData.modifierCount > 0;
+			effect->special2 = potionData.modifierCount > 1;
+			effect->Init();
+
+			return effect;
+		}
+
+		if (effectId == Crafting::EffectId::Lightning) {
+			EffectExplosion* effect = node->AddObject<EffectExplosion>();
+
+			effect->strength = 1.0f;
+			effect->maxRange = potionData.radius * multiplier;
+			effect->maxDamage = potionData.power * multiplier;
+			effect->ingredientCount = potionData.mainEffectCount;
+			effect->special1 = potionData.modifierCount > 0;
+			effect->special2 = potionData.modifierCount > 1;
+			effect->Init();
+
+			return effect;
+		}
+
+		EffectExplosion* effect = node->AddObject<EffectExplosion>();
+
+		effect->strength = 1.0f;
+		effect->maxRange = potionData.radius * multiplier;
+		effect->maxDamage = potionData.power * multiplier;
+		effect->ingredientCount = potionData.mainEffectCount;
+		effect->Init();
+
+		return effect;
+	}
+
+	void SetThrowablePotionEffect(ThrowableObject* throwable){
+		Crafting::CraftedPotionData potionData = PotionInventory::GetLastCraftedPotion();
+
+		throwable->SetEffectFactory(
+			[potionData](SceneNode* node) -> EffectBase* {
+				EffectBase* primaryEffect = AddPotionEffectToNode(
+					node,
+					potionData.primaryEffectId,
+					potionData,
+					false
+				);
+
+				if (potionData.HasSecondaryEffect()) {
+					AddPotionEffectToNode(
+						node,
+						potionData.secondaryEffectId,
+						potionData,
+						true
+					);
+				}
+
+				return primaryEffect;
+			}
+		);
+	}
+}
+
 glm::vec3 PlayerController::GetMousePointOnGround(Camera* camera) {
 	glm::vec2 mousePos = GetScene()->Input()->GetMousePosition();
 	glm::vec2 screenSize = GetScene()->GetGraphics()->GetScreenResolution();
@@ -307,10 +387,7 @@ void PlayerController::UpdateThrowing() {
 			thrownBottle->GetObject<Physics::Body>()->SetPosition(this->throwPoint->GlobalTransform().Position());
 
 			thrownBottle->SetEnabled(true);
-			throwable->SetEffect<EffectExplosion>([](EffectExplosion* e) {
-				e->radius  = 3.0f;
-				e->special1 = true;   // podwaja obra�enia
-			});
+			SetThrowablePotionEffect(throwable);
 			thrownBottle->GetObject<Physics::Body>()->SetLinearVelocity(throwForce);
 
 			if (!PotionInventory::HasPotion()) {

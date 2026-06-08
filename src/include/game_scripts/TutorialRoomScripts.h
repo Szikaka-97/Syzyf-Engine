@@ -37,7 +37,8 @@ public:
 			    "Basic Potion",
 			    "Burn",
 			    100.0f,
-			    10
+			    10,
+			    false
 			);
 
 			PersistentData::Set<bool>(
