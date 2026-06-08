@@ -154,6 +154,7 @@ inline void InitScene(Scene& mainScene) {
 	cameraNode->AddObject<Bloom>();
 	cameraNode->AddObject<Tonemapper>()->SetOperator(Tonemapper::TonemapperOperator::GranTurismo);
 	cameraNode->AddObject<ColorGrading>();
+	cameraNode->AddObject<MaskEffects>();
 	cameraNode->AddObject<Fxaa>();
 #pragma endregion
 

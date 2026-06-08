@@ -161,6 +161,7 @@ inline void InitScene(Scene& mainScene) {
 	auto* dof = cameraNode->AddObject<DepthOfField>();
 	dof->SetEnabled(false);
 
+	cameraNode->AddObject<MaskEffects>();
 	cameraNode->AddObject<Bloom>();
 	cameraNode->AddObject<Tonemapper>()->SetOperator(Tonemapper::TonemapperOperator::GranTurismo);
 	cameraNode->AddObject<ColorGrading>();
