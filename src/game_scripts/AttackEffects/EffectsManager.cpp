@@ -7,12 +7,6 @@
 #include "game_scripts/AttackEffects/EffectsManager.h"
 #include "game_scripts/FireParticles.h"
 
-EffectFire::EffectFire()       = default;
-EffectPetrify::EffectPetrify() = default;
-EffectTornado::EffectTornado() = default;
-EffectConfuse::EffectConfuse() = default;
-EffectExplosion::EffectExplosion() = default;
-
 void EffectFire::OnApplySpecials() {
     if (special1) damage *= modifier;
     if (special2) dotRemainingTime *= static_cast<float>(modifier);

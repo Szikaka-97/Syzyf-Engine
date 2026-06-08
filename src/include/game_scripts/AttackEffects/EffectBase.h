@@ -12,17 +12,17 @@
 
 class EffectBase : public GameObject {
 public:
-    float radius          = 1.0f;
-    float speed           = 5.0f;
-    int   modifier        = 2;
-    int   ingredientCount = 1;
-    bool  special1        = false;
-    bool  special2        = false;
+    serialized float radius          = 1.0f;
+    serialized float speed           = 5.0f;
+    serialized int   modifier        = 2;
+    serialized int   ingredientCount = 1;
+    serialized bool  special1        = false;
+    serialized bool  special2        = false;
 
     void SetVisual(Mesh* mesh, Material* mat);
     void SetEffectRenderer(Mesh* mesh, Material* mat);
 
-    void Init();
+    void Awake();
 
     void Update();
 

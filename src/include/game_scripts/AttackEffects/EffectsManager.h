@@ -7,10 +7,10 @@
 
 class EffectFire : public EffectBase {
 public:
-    float dotRemainingTime = 5.0f;
-    float damage           = 25.0f;
-    float timeInterval     = 1.0f;
-    EffectFire();
+    serialized float dotRemainingTime = 5.0f;
+    serialized float damage           = 25.0f;
+    serialized float timeInterval     = 1.0f;
+    EffectFire() = default;
 protected:
     void OnApplySpecials() override;
     void OnApplyToEnemy(EnemyBase* enemy) override;
@@ -18,8 +18,8 @@ protected:
 
 class EffectPetrify : public EffectBase {
 public:
-    float petrifyRemainingTime = 5.0f;
-    EffectPetrify();
+    serialized float petrifyRemainingTime = 5.0f;
+    EffectPetrify() = default;
 protected:
     void OnApplySpecials() override;
     void OnApplyToEnemy(EnemyBase* enemy) override;
@@ -27,11 +27,11 @@ protected:
 
 class EffectTornado : public EffectBase {
 public:
-    float tornadoRemainingTime = 5.0f;
-    float rotationSpeed        = 90.0f;
-    float damage               = 25.0f;
-    float damageInterval       = 1.0f;
-    EffectTornado();
+    serialized float tornadoRemainingTime = 5.0f;
+    serialized float rotationSpeed        = 90.0f;
+    serialized float damage               = 25.0f;
+    serialized float damageInterval       = 1.0f;
+    EffectTornado() = default;
 protected:
     void  OnApplySpecials() override;
     void  OnApplyToEnemy(EnemyBase* /*enemy*/) override {}
@@ -44,9 +44,9 @@ private:
 
 class EffectConfuse : public EffectBase {
 public:
-    float confuseRemainingTime = 5.0f;
-    int   damage               = 25;
-    EffectConfuse();
+    serialized float confuseRemainingTime = 5.0f;
+    serialized int   damage               = 25;
+    EffectConfuse() = default;
 protected:
     void OnApplySpecials() override;
     void OnApplyToEnemy(EnemyBase* enemy) override;
@@ -54,12 +54,12 @@ protected:
 
 class EffectExplosion : public EffectBase {
 public:
-    float strength         = 0.5f;
-    float maxRange         = 10.0f;
-    float maxDamage        = 50.0f;
-    float explosionDuration = 2.5f;   // seconds
+    serialized float strength         = 0.5f;
+    serialized float maxRange         = 10.0f;
+    serialized float maxDamage        = 50.0f;
+    serialized float explosionDuration = 2.5f;   // seconds
 
-    EffectExplosion();
+    EffectExplosion() = default;
 
     float GetRange()  const { return strength * maxRange;  }
     float GetDamage() const { return strength * maxDamage; }

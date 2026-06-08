@@ -3,7 +3,7 @@
 #include <cmath>
 #include <spdlog/spdlog.h>
 
-void EffectBase::Init() {
+void EffectBase::Awake() {
     m_Lifetime = 0.0f;
 
     OnInit();

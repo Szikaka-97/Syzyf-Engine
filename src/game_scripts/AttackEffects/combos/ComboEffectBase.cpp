@@ -2,7 +2,8 @@
 #include <spdlog/spdlog.h>
 #include <MeshRenderer.h>
 
-void ComboEffectBase::Init(float e1Strength, float e1MaxRange,
+
+void ComboEffectBase::Awake(float e1Strength, float e1MaxRange,
                            float e1MaxDamage, float dur) {
     myNode = GetNode();
 

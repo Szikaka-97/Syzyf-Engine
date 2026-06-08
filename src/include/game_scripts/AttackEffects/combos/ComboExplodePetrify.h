@@ -3,6 +3,7 @@
 
 class ComboExplodePetrify : public ComboEffectBase {
 public:
+    ComboExplodePetrify() = default;
     void Update();
 
 private:

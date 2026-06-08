@@ -204,7 +204,6 @@ void ComboTornadoPetrify::Update() {
         ApplyPetrifyTo(enemy);
     }
 
-    // TODO: EnemyBullet capture (see note at top of file)
 }
 
 void ComboExplodePetrify::ApplyTo(EnemyBase* enemy) {

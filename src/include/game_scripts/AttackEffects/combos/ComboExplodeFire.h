@@ -7,11 +7,12 @@
 
 class ComboExplodeFire : public ComboEffectBase {
 public:
-  float burnDamagePerTick = 5.0f;
-  float burnInterval      = 1.0f;
-  int   debrisCount       = 7;
-  float debrisMinRange    = 3.0f;
-  float debrisMaxRange    = 15.0f;
+  ComboExplodeFire() = default;
+  serialized float burnDamagePerTick = 5.0f;
+  serialized float burnInterval      = 1.0f;
+  serialized int   debrisCount       = 7;
+  serialized float debrisMinRange    = 3.0f;
+  serialized float debrisMaxRange    = 15.0f;
 
   void Update();
 
