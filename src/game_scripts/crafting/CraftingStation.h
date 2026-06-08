@@ -7,6 +7,8 @@
 #include "Texture.h"
 
 #include "game_scripts/CameraSettings.h"
+#include "game_scripts/PlayerController.h"
+#include "game_scripts/PotionInventory.h"
 #include "game_scripts/crafting/BottlingStage.h"
 #include "game_scripts/crafting/Cauldron.h"
 #include "game_scripts/crafting/CraftingIngredientReceiver.h"
@@ -440,7 +442,40 @@ namespace Crafting{
 
                     SetValveInteractionEnabled(false);
 
+                    SaveCraftedPotion();
+
                     ExitStation();
+                }
+
+                std::string GetPrimaryEffectId() const{
+                    if (!cauldron){
+                        return EffectId::None;
+                    }
+
+                    for (const auto& ingredient : cauldron->GetIngredients()){
+                        if (ingredient.role == IngredientRole::MainEffect){
+                            return ingredient.effectId;
+                        }
+                    }
+
+                    return EffectId::None;
+                }
+
+                void SaveCraftedPotion(){
+                    if (!cauldron || !bottlingStage.HasEnoughFilledBottles()){
+                        return;
+                    }
+
+                    PotionInventory::SaveLastCraftedPotion(
+                        cauldron->GetRecipeName(),
+                        GetPrimaryEffectId(),
+                        cauldron->GetQualityPercent(),
+                        bottlingStage.GetFilledBottles()
+                    );
+
+                    if (PlayerController::Instance()){
+                        PlayerController::Instance()->SetThrowingUnlocked(true);
+                    }
                 }
 
                 void OpenLid(){

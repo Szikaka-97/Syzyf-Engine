@@ -26,6 +26,11 @@
 #include <game_scripts/PickableItemSystem.h>
 #include <game_scripts/ThrowableObjectPool.h>
 #include <ui/widgets/wheel/UiWheel.h>
+#include <ui/objects/UiLayout.h>
+#include <ui/objects/UiText.h>
+#include <text/Font.h>
+#include <PersistentData.h>
+#include <game_scripts/PotionInventory.h>
 #include "game_scripts/crafting/CraftingDragInteractor.h"
 #include "game_scripts/crafting/CraftingInteractable.h"
 #include "game_scripts/crafting/DraggableCraftingItem.h"
@@ -209,6 +214,99 @@ public:
 		}
 	}
 };
+
+class CraftingTutorialFinishedMessage : public GameObject {
+private:
+	UiText* messageText = nullptr;
+	bool messageStarted = false;
+	float showUntilTime = 0.0f;
+
+	void HideMessage() {
+		if (this->messageText == nullptr) {
+			return;
+		}
+
+		this->messageText->color.w = glm::clamp(
+			this->messageText->color.w - Time::Delta() * 2.0f,
+			0.0f,
+			1.0f
+		);
+	}
+
+	void ShowMessage() {
+		if (this->messageText == nullptr) {
+			return;
+		}
+
+		this->messageText->text =
+			"Tutorial complete\n"
+			"You can now brew new potions in your base.\n"
+			"Search the dungeon for new ingredients from monsters.\n"
+			"Return here after each expedition to craft stronger potions.";
+
+		this->messageText->color.w = 1.0f;
+		this->messageStarted = true;
+		this->showUntilTime = Time::Current() + 12.0f;
+
+		PersistentData::Set<bool>(
+			PotionInventory::ShowTutorialFinishedMessageKey,
+			false
+		);
+	}
+
+public:
+	void Awake() {
+		TextureParams fontTextureParams = {
+			.channels = TextureChannels::RGB,
+			.colorSpace = TextureColor::Linear,
+			.format = TextureFormat::Ubyte,
+			.wrapU = TextureWrap::Clamp,
+			.wrapV = TextureWrap::Clamp,
+			.minFilter = TextureFilter::Linear,
+			.magFilter = TextureFilter::Linear
+		};
+
+		Texture2D* papyrusAtlas = GetScene()->Resources()->Get<Texture2D>(
+			"./res/fonts/Papyrus/Papyrus-Regular.png",
+			fontTextureParams
+		);
+
+		Font* papyrusFont = GetScene()->Resources()->Get<Font>(
+			"./res/fonts/Papyrus/Papyrus-Regular.json",
+			papyrusAtlas,
+			true
+		);
+
+		SceneNode* uiTextNode = GetScene()->CreateNode("Crafting Tutorial Finished Message UI");
+		uiTextNode->AddObject<UiLayout>(
+			glm::uvec2(620, 220),
+			glm::ivec2(-40, 40),
+			20,
+			AnchorPoint::TopRight
+		);
+
+		this->messageText = uiTextNode->AddObject<UiText>("", papyrusFont);
+		this->messageText->fontSize = 25.0f;
+		this->messageText->alignment = TextAlignment::Right;
+		this->messageText->maxWidth = 580.0f;
+		this->messageText->color = glm::vec4(1.2f, 0.3f, 0.0f, 0.0f);
+	}
+
+	void Update() {
+		if (PersistentData::Get<bool>(PotionInventory::ShowTutorialFinishedMessageKey)) {
+			ShowMessage();
+		}
+
+		if (!this->messageStarted) {
+			return;
+		}
+
+		if (Time::Current() > this->showUntilTime) {
+			HideMessage();
+		}
+	}
+};
+
 
 inline SceneNode* CreateLocalPoint(
 	Scene& scene,
@@ -1165,7 +1263,7 @@ inline SceneNode* CreatePlayer(Scene& scene, SceneNode* roomNode) {
 		)->Instantiate(&scene, playerNode, "Aim Reticle");
 
 	aimReticle->AddObject<AimCrosshair>();
-	aimReticle->SetEnabled(false);
+	aimReticle->SetEnabled(PotionInventory::HasPotion());
 
 	auto* virtualCharacter =
 		playerNode->AddObject<Physics::VirtualCharacterController>(characterSettings);
@@ -1180,7 +1278,7 @@ inline SceneNode* CreatePlayer(Scene& scene, SceneNode* roomNode) {
 	auto* player =
 		playerNode->AddObject<PlayerController>();
 
-	player->SetThrowingUnlocked(false);
+	player->SetThrowingUnlocked(PotionInventory::HasPotion());
 
 	return playerNode;
 }
@@ -1505,6 +1603,7 @@ inline void InitScene(Scene& scene) {
 	cameraNode->AddObject<Fxaa>();
 
 	roomNode->AddObject<CraftingTutorialLights>();
+	roomNode->AddObject<CraftingTutorialFinishedMessage>();
 
     SetupCraftingStation(scene, stationNode);
     CreateCraftingIngredients(scene, stationNode);
