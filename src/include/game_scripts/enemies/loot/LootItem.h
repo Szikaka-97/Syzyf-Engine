@@ -61,7 +61,7 @@ class LootPotato : public LootItem {
 
 class LootBeetroot : public LootItem {
     public:
-    void Spawn(Scene* scene, const glm::vec3& position) {
+    void Spawn(Scene* scene, const glm::vec3& position) const {
             auto* node = scene->CreateNode("LootBeetroot");
     node->GlobalTransform().Position() = position;
     // node->AddObject<MeshRenderer>(potionMesh, potionMaterial);
@@ -71,7 +71,7 @@ class LootBeetroot : public LootItem {
 
 class LootCrystal : public LootItem {
     public:
-    void Spawn(Scene* scene, const glm::vec3& position){
+    void Spawn(Scene* scene, const glm::vec3& position) const {
             auto* node = scene->CreateNode("LootCrystal");
     node->GlobalTransform().Position() = position;
     // node->AddObject<MeshRenderer>(potionMesh, potionMaterial);

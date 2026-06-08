@@ -10,6 +10,8 @@ private:
 	SceneNode* arrow = nullptr;
 	SceneNode* bottle = nullptr;
 public:
+	AimCrosshair() = default;
+
 	void Awake();
 	void Update();
 

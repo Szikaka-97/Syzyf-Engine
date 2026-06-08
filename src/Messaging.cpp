@@ -1,3 +1,5 @@
+#include "Profiler.h"
+#include "TypeInfo.h"
 #include <Messaging.h>
 
 #include <stack>
@@ -97,8 +99,12 @@ void MessageTree::PropagateMessageInternal(SceneNode* startNode, int messageId) 
 	}
 
 	while (!messengers.empty()) {
+		Profiler::Push(TypeInfo::GetTypeInfo(typeid(*(messengers.top().receiver))).name);
+
 		messengers.top().Call();
 		
+		Profiler::Pop();
+
 		messengers.pop();
 	}
 }

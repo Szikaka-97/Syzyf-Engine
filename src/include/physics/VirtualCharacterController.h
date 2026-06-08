@@ -20,6 +20,7 @@ private:
   JPH::Ref<JPH::CharacterVirtualSettings> characterSettings;
 
 public:
+  VirtualCharacterController();
   VirtualCharacterController(const JPH::Ref<JPH::CharacterVirtualSettings>& settings);
   virtual ~VirtualCharacterController();
 
@@ -56,5 +57,8 @@ public:
   void Awake();
 
   void DrawImGui();
+
+  json Serialize() const;
+  void Deserialize(const json& data);
 };
 }

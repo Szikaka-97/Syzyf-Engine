@@ -1,8 +1,10 @@
 #include "panels/SystemsDebugPanel.h"
 #include "EditorApplication.h"
 #include "Graphics.h"
+#include "Profiler.h"
 
 #include <Scene.h>
+#include <algorithm>
 #include <imgui.h>
 #include <physics/System.h>
 
@@ -90,6 +92,35 @@ void SystemsDebugPanel::Draw(Context& context) {
             ImGui::EndPopup();
         }
     }
+
+	if (ImGui::TreeNode("Profiler")) {
+		std::vector<Profiler::ProfilerResult> results = Profiler::GrabResults();
+
+		int slashCount = -1;
+		bool levelOpen = true;
+
+		for (const auto& result : results) {
+			int newSlashCount = std::count(result.name.begin(), result.name.end(), '/');
+
+			if (newSlashCount <= slashCount && levelOpen) {
+				ImGui::TreePop();
+			}
+
+			if (newSlashCount == slashCount) {
+				levelOpen = true;
+			}
+		
+			if (levelOpen) {
+				levelOpen = ImGui::TreeNode(result.name.c_str(), "%s: %.03fms", result.name.c_str(), result.time * 1000);
+			}
+
+			slashCount = newSlashCount;
+		}
+
+		Profiler::Step();
+
+		ImGui::TreePop();
+	}
 
     ImGui::End();
 }

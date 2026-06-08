@@ -1,7 +1,7 @@
 #pragma once
 
 #include "./include/game_scripts/enemies/AiSimplified.h"
-
+#include "./include/game_scripts/enemies/FlockingSystem.h"
 #include <./include/game_scripts/enemies/loot/LootPool.h>
 #include <typeindex>
 
@@ -21,11 +21,12 @@ private:
     float sightRange = 10.0f;
     bool playerInSightRange, playerInAttackRange;
     int m_RoomID = 0;
+    float m_VisualOffset = 0.0f;
     std::string m_CurrentAnimation;
     float m_AttackAnimationDuration = 1.0f;
     float m_AttackAnimationElapsed = 0.0f;
     void SetAnimation(const std::string& name);
-    bool CanSeePlayer() const;
+    //bool CanSeePlayer() const;
 
 
     struct BurnState {
@@ -48,13 +49,20 @@ private:
         bool  isPrecise     = false;
     } m_Confuse;
  
+
+
 protected:
     void UpdateStatusEffects();
-    
+    virtual void DirectChaseWithFlock(const glm::vec3& flockForce);
     float m_AttackCooldown;
+    glm::vec3 flockForce;
 public:
     EnemyBase();
     ~EnemyBase();
+    void Awake();
+    virtual void Die();
+    FlockingSystem * m_FlockingSystem = nullptr;   
+
 
     bool m_InAttackAnimation = false;
 
@@ -68,13 +76,16 @@ public:
     int GetID() const { return m_RoomID; }
     void SetProjectileResources(Mesh* mesh, Material* material);
     void SetAttackCooldown(float cooldown);
+    void SetCapsuleVisualOffset(float halfHeight, float radius) {
+        m_VisualOffset = -(halfHeight + radius);
+    }
     void SetAttackAnimation(AnimationComponent* anim);
     void PlayAttackAnimation(std::string name);
 
     void OnPlayerEnteredRoom();
     void OnPlayerExitedRoom();
 
-    void DrawDebugView();
+    //void DrawDebugView();
 
     void TakeDamage(int damage);
 
@@ -93,6 +104,16 @@ public:
     bool IsPetrified() const { return m_Petrify.active; }
     bool IsBurning()   const { return m_Burn.active;    }
     bool IsConfused()  const { return m_Confuse.active; }
-    
-    virtual void Die();
+
+    void RegisterToFlockingSystem(FlockingSystem* system) {
+        m_FlockingSystem = system;
+        if (system) system->Register(this);
+    }
+
+    void UnregisterFromFlockingSystem() {
+        if (m_FlockingSystem) {
+            m_FlockingSystem->Unregister(this);
+            m_FlockingSystem = nullptr;
+        }
+    }
 };
