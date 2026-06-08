@@ -21,7 +21,6 @@
 #include <glm/geometric.hpp>
 #include <glm/gtc/matrix_inverse.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <spdlog/spdlog.h>
 
 #include <vector>
 
@@ -29,16 +28,6 @@ namespace Crafting{
     class CraftingDragInteractor : public GameObject{
     public:
         float interactionDistance = 100.0f;
-        glm::vec2 viewportSize = glm::vec2(1024.0f, 576.0f);
-
-        void SetViewportSize(const glm::vec2& size){
-            viewportSize = size;
-        }
-
-        void Awake(){
-            spdlog::info("CraftingDragInteractor ready.");
-            spdlog::info("CraftingDragInteractor uses physics raycast only.");
-        }
 
         void Update(){
             if (!GetScene() || !GetScene()->Input()){
@@ -69,6 +58,10 @@ namespace Crafting{
             }
 
             bool ShouldCollideLocked(const JPH::Body& inBody) const override{
+                if ((inBody.GetCollisionGroup().GetGroupID() & CraftingInteractionCollisionMask) == 0){
+                    return false;
+                }
+
                 auto* object =
                     reinterpret_cast<GameObject*>(inBody.GetUserData());
 
@@ -111,7 +104,6 @@ namespace Crafting{
             CraftingStation* station = FindActiveStation();
 
             if (!station){
-                spdlog::info("Crafting interaction: no active CraftingStation.");
                 return;
             }
 
@@ -124,7 +116,6 @@ namespace Crafting{
             Camera* camera = FindMainCamera();
 
             if (!camera){
-                spdlog::warn("CraftingDragInteractor: main camera not found.");
                 return;
             }
 
@@ -132,7 +123,6 @@ namespace Crafting{
             glm::vec3 rayDirection;
 
             if (!BuildMouseRay(camera, rayOrigin, rayDirection)){
-                spdlog::warn("CraftingDragInteractor: failed to build mouse ray.");
                 return;
             }
 
@@ -177,7 +167,6 @@ namespace Crafting{
             DraggableCraftingItem* item = FindObjectOnNodeOrParents<DraggableCraftingItem>(hit.node);
 
             if (!item){
-                spdlog::warn("Crafting drag: Ingredient interactable has no DraggableCraftingItem.");
                 return;
             }
 
@@ -189,11 +178,6 @@ namespace Crafting{
 
             heldItem = item;
             heldItem->BeginDrag();
-
-            spdlog::info(
-                "Crafting drag: picked interactable ingredient {}.",
-                item->data.displayName
-            );
 
             UpdateDraggedItem();
         }
@@ -253,22 +237,12 @@ namespace Crafting{
                 FindReceiverContainingItem(item);
 
             if (!receiver){
-                spdlog::info(
-                    "Crafting drag: {} was not released inside Cauldron receiver hitbox.",
-                    item->data.displayName
-                );
-
                 if (item->returnToStartOnInvalidDrop){
                     item->ReturnToStart();
                 }
 
                 return;
             }
-
-            spdlog::info(
-                "Crafting drag: released {} inside ingredient receiver.",
-                item->data.displayName
-            );
 
             receiver->OnCollisionEnter(item->GetNode());
         }
@@ -308,7 +282,6 @@ namespace Crafting{
             auto* physics = GetScene()->GetComponent<Physics::System>();
 
             if (!physics){
-                spdlog::warn("CraftingDragInteractor: Physics::System not found.");
                 return false;
             }
 
@@ -331,7 +304,6 @@ namespace Crafting{
                 FindInteractableOnNode(hit.node, activeMask);
 
             if (!interactable){
-                spdlog::warn("Crafting interaction: physics hit has no matching CraftingInteractable.");
                 return false;
             }
 
@@ -362,25 +334,15 @@ namespace Crafting{
         }
 
         bool BuildMouseRay(Camera* camera, glm::vec3& outOrigin, glm::vec3& outDirection){
-            if (!camera || !GetScene() || !GetScene()->Input()){
+            if (!camera || !GetScene() || !GetScene()->Input() || !GetScene()->GetGraphics()){
                 return false;
             }
 
             glm::vec2 mousePosition = GetScene()->Input()->GetMousePosition();
+            glm::vec2 screenSize = GetScene()->GetGraphics()->GetScreenResolution();
 
-            this->viewportSize = GetScene()->GetGraphics()->GetScreenResolution();
-
-            if (viewportSize.x <= 1.0f || viewportSize.y <= 1.0f){
-                spdlog::warn(
-                    "CraftingDragInteractor: invalid viewport size {} x {}.",
-                    viewportSize.x,
-                    viewportSize.y
-                );
-                return false;
-            }
-
-            float ndcX = (2.0f * mousePosition.x) / viewportSize.x - 1.0f;
-            float ndcY = 1.0f - (2.0f * mousePosition.y) / viewportSize.y;
+            float ndcX = (2.0f * mousePosition.x) / screenSize.x - 1.0f;
+            float ndcY = 1.0f - (2.0f * mousePosition.y) / screenSize.y;
 
             glm::vec4 clipSpacePosition = glm::vec4(ndcX, ndcY, -1.0f, 1.0f);
 

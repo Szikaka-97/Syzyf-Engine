@@ -24,7 +24,8 @@ namespace Crafting{
 
             int mainEffectCount = 0;
             int modifierCount = 0;
-            std::string mainEffectId = EffectId::None;
+            std::string primaryEffectId = EffectId::None;
+            std::string secondaryEffectId = EffectId::None;
 
             for (const auto& ingredient : ingredients){
                 if (ingredient.role == IngredientRole::MainEffect){
@@ -35,8 +36,11 @@ namespace Crafting{
                         return result;
                     }
 
-                    if (mainEffectId == EffectId::None){
-                        mainEffectId = ingredient.effectId;
+                    if (primaryEffectId == EffectId::None){
+                        primaryEffectId = ingredient.effectId;
+                    }
+                    else if (secondaryEffectId == EffectId::None && ingredient.effectId != primaryEffectId){
+                        secondaryEffectId = ingredient.effectId;
                     }
 
                     continue;
@@ -68,7 +72,7 @@ namespace Crafting{
             }
 
             result.valid = true;
-            result.recipeName = BuildRecipeName(mainEffectId, modifierCount);
+            result.recipeName = BuildRecipeName(primaryEffectId, secondaryEffectId, modifierCount);
             result.reason = "Recipe is valid.";
 
             return result;
@@ -80,6 +84,62 @@ namespace Crafting{
 
         static std::string GetRecipeName(const std::vector<IngredientData>& ingredients){
             return Check(ingredients).recipeName;
+        }
+
+        static CraftedPotionData BuildCraftedPotion(
+            const std::vector<IngredientData>& ingredients,
+            float qualityPercent
+        ){
+            CraftedPotionData potion;
+
+            CraftingRecipeCheckResult checkResult = Check(ingredients);
+            potion.recipeName = checkResult.recipeName;
+            potion.qualityPercent = ClampQuality(qualityPercent);
+
+            float qualityMultiplier = 0.5f + potion.qualityPercent / 100.0f;
+
+            potion.radius = 3.0f;
+            potion.duration = 4.0f;
+            potion.power = 25.0f;
+
+            for (const auto& ingredient : ingredients){
+                if (ingredient.role == IngredientRole::MainEffect){
+                    potion.mainEffectCount++;
+
+                    if (potion.primaryEffectId == EffectId::None){
+                        potion.primaryEffectId = ingredient.effectId;
+                    }
+                    else if (potion.secondaryEffectId == EffectId::None && ingredient.effectId != potion.primaryEffectId){
+                        potion.secondaryEffectId = ingredient.effectId;
+                    }
+
+                    continue;
+                }
+
+                if (ingredient.role == IngredientRole::Modifier){
+                    potion.modifierCount++;
+
+                    ApplyModifier(potion,ingredient);
+                }
+            }
+
+            potion.radius *= qualityMultiplier;
+            potion.duration *= qualityMultiplier;
+            potion.power *= qualityMultiplier;
+
+            if (potion.radius < 1.0f){
+                potion.radius = 1.0f;
+            }
+
+            if (potion.duration < 1.0f){
+                potion.duration = 1.0f;
+            }
+
+            if (potion.power < 1.0f){
+                potion.power = 1.0f;
+            }
+
+            return potion;
         }
 
         static bool IsVodkaRecipe(const std::vector<IngredientType>& ingredients){
@@ -100,8 +160,47 @@ namespace Crafting{
         }
 
     private:
-        static std::string BuildRecipeName(const std::string& mainEffectId, int modifierCount){
-            std::string name = mainEffectId + " Potion";
+        static float ClampQuality(float qualityPercent){
+            if (qualityPercent < 0.0f){
+                return 0.0f;
+            }
+
+            if (qualityPercent > 100.0f){
+                return 100.0f;
+            }
+
+            return qualityPercent;
+        }
+
+        static void ApplyModifier(CraftedPotionData& potion, const IngredientData& ingredient){
+            if (ingredient.modifierId == ModifierId::Radius){
+                potion.radius += ingredient.value;
+                return;
+            }
+
+            if (ingredient.modifierId == ModifierId::Duration){
+                potion.duration += ingredient.value;
+                return;
+            }
+
+            if (ingredient.modifierId == ModifierId::Power){
+                potion.power += ingredient.value;
+                return;
+            }
+        }
+
+        static std::string BuildRecipeName(
+            const std::string& primaryEffectId,
+            const std::string& secondaryEffectId,
+            int modifierCount
+        ){
+            std::string name = primaryEffectId;
+
+            if (secondaryEffectId != EffectId::None){
+                name += " + " + secondaryEffectId;
+            }
+
+            name += " Potion";
 
             if (modifierCount > 0){
                 name += " + " + std::to_string(modifierCount) + " modifier";

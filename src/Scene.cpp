@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <stack>
 #include <string>
+#include <Profiler.h>
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/matrix_access.hpp>
@@ -514,34 +515,74 @@ void Scene::QueueDelete(GameObject* object) {
 }
 
 void Scene::Update() {
+	Profiler::Push("Update");
+
+	Profiler::Push("PreUpdate");
+
 	for (auto& component : this->components) {
+		Profiler::Push(TypeInfo::GetTypeInfo(typeid(*component)).name);
+
 		component->OnPreUpdate();
+
+		Profiler::Pop();
 	}
+
+	Profiler::Pop();
 
 	this->messageTree.PropagateMessage<Message::Update>(this->root);
 
+	Profiler::Push("PostUpdate");
+
 	for (auto& component : this->components) {
+		Profiler::Push(TypeInfo::GetTypeInfo(typeid(*component)).name);
+
 		component->OnPostUpdate();
+
+		Profiler::Pop();
 	}
 
+	Profiler::Pop();
+
 	this->FlushQueues();
+
+	Profiler::Pop();
 }
 
 void Scene::Render() {
+	Profiler::Push("Render");
+
 	if (this->GetGraphics() == nullptr) {
 		return;
 	}
 
+	Profiler::Push("PreRender");
+
 	for (auto& component : this->components) {
+		Profiler::Push(TypeInfo::GetTypeInfo(typeid(*component)).name);
+
 		component->OnPreRender();
+
+		Profiler::Pop();
 	}
+
+	Profiler::Pop();
 
 	this->messageTree.PropagateMessage<Message::Render>(this->root);
 	this->messageTree.PropagateMessage<Message::DrawGizmos>(this->root);
 
+	Profiler::Push("PostRender");
+
 	for (auto& component : this->components) {
+		Profiler::Push(TypeInfo::GetTypeInfo(typeid(*component)).name);
+
 		component->OnPostRender();
+
+		Profiler::Pop();
 	}
+
+	Profiler::Pop();
+
+	Profiler::Pop();
 }
 
 void Scene::DrawGizmos() {

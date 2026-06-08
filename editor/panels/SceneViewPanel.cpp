@@ -485,6 +485,8 @@ void SceneViewPanel::Draw(Context& context) {
 }
 
 void SceneViewPanel::UpdateAndRenderScene(Context& context) {
+    Profiler::Push("Frame");
+
     if (context.state == State::Game) {
         context.selectedScene->Update();
     } else {
@@ -578,6 +580,8 @@ void SceneViewPanel::UpdateAndRenderScene(Context& context) {
         context.physicsDebugRenderer->Render();
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
+
+    Profiler::Pop();
 }
 
 void SceneViewPanel::HandleMousePicking(Context& context, float resX,

@@ -17,6 +17,11 @@ namespace Crafting{
 
     using CraftingInteractionMask = std::uint32_t;
 
+
+    static constexpr std::uint32_t CraftingInteractionCollisionLayer = 2;
+    static constexpr std::uint32_t CraftingInteractionCollisionMask =
+        1u << CraftingInteractionCollisionLayer;
+
     inline CraftingInteractionMask ToMask(CraftingInteractionType type){
         return static_cast<CraftingInteractionMask>(type);
     }

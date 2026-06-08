@@ -77,6 +77,8 @@
 #include <imgui.h>
 #include <physics/VirtualCharacterController.h>
 
+#include <Profiler.h>
+
 namespace TestScene {
 
 inline void InitScene(Scene& mainScene) {

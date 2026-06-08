@@ -45,6 +45,28 @@ namespace Crafting{
         glm::vec4 color = glm::vec4(1.0f);
     };
 
+    struct CraftedPotionData{
+        std::string recipeName = "Potion";
+        std::string primaryEffectId = EffectId::None;
+        std::string secondaryEffectId = EffectId::None;
+
+        int mainEffectCount = 0;
+        int modifierCount = 0;
+
+        float qualityPercent = 0.0f;
+        float radius = 3.0f;
+        float duration = 4.0f;
+        float power = 25.0f;
+
+        bool HasPrimaryEffect() const{
+            return !primaryEffectId.empty() && primaryEffectId != EffectId::None;
+        }
+
+        bool HasSecondaryEffect() const{
+            return !secondaryEffectId.empty() && secondaryEffectId != EffectId::None;
+        }
+    };
+
     inline bool IsMainEffectIngredient(const IngredientData& ingredient){
           return ingredient.role == IngredientRole::MainEffect;
     }

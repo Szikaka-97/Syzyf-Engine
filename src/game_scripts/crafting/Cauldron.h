@@ -6,7 +6,6 @@
 #include "game_scripts/crafting/CraftingRecipeChecker.h"
 
 #include <glm/glm.hpp>
-#include <spdlog/spdlog.h>
 
 #include <vector>
 
@@ -18,21 +17,12 @@ namespace Crafting{
 
           bool AddIngredient(const IngredientData& ingredient){
                 if (!CanAddIngredient(ingredient)){
-                    spdlog::warn(
-                        "Cauldron: cannot add ingredient {} with role {}.",
-                        ingredient.displayName,
-                        ToString(ingredient.role)
-                    );
 
                     return false;
                 }
 
                 ingredients.push_back(ingredient);
 
-                spdlog::info(
-                    "Cauldron: added ingredient {}.",
-                    ingredient.displayName
-                );
 
                 return true;
           }
@@ -69,7 +59,6 @@ namespace Crafting{
                 ingredients.clear();
                 qualityPercent = 0.0f;
 
-                spdlog::info("Cauldron: cleared ingredients.");
           }
 
           int CountMainEffectIngredients() const{
@@ -128,7 +117,6 @@ namespace Crafting{
 
                 qualityPercent = value;
 
-                spdlog::info("Cauldron: quality set to {}%.", qualityPercent);
           }
 
           float GetQuality() const{

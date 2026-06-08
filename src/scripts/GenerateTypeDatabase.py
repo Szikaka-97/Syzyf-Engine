@@ -161,7 +161,6 @@ class CppType:
 			discard = True
 
 		if discard:
-
 			return name
 
 		name = cls.get_full_name(type)
@@ -195,8 +194,10 @@ class CppType:
 		for class_def in definitions:
 			type: clang.Type = class_def.type
 
-			if HEADER_FILES_DIRECTORY not in type.get_declaration().get_definition().location.file.name.replace("\\", "/"):
-				continue
+			typeFilePath = os.path.abspath(type.get_declaration().get_definition().location.file.name.replace("\\", "/"))
+
+			if HEADER_FILES_DIRECTORY not in typeFilePath:
+				print("Removing type: " + type.spelling + " - " + type.get_declaration().get_definition().location.file.name.replace("\\", "/"))
 
 			cls.read_type(type)
 			
@@ -292,17 +293,21 @@ class CppType:
 	def __json__(self):
 		def_cursor = self.cursor.get_definition()
 
+
+		typeFilePath = os.path.abspath(def_cursor.location.file.name.replace("\\", "/")) if def_cursor else ""
+
+
 		rep = {}
 		rep["fields"] = self.fields
 		rep["methods"] = self.methods
 		rep["base_classes"] = self.base_classes
 		rep["constructors"] = self.constructors
 		rep["destructor"] = self.destructor
-		rep["source"] = def_cursor.location.file.name if def_cursor else ""
+		rep["source"] = typeFilePath
 		rep["name"] = self.name
 		rep["simple_name"] = self.get_simple_name()
 		rep["template_args"] = self.template_args
-		rep["projects_own"] = HEADER_FILES_DIRECTORY in def_cursor.location.file.name.replace("\\", "/") if def_cursor else False
+		rep["projects_own"] = HEADER_FILES_DIRECTORY in typeFilePath
 		rep["access"] = str_access_specifier(self.cursor.access_specifier)
 		rep["enclosing_class"] = self.enclosing_class
 		rep["enum_width"] = self.enum_width
@@ -354,7 +359,7 @@ def construct_file(files: list[str], compile_args: list[str]) -> clang.Translati
 		if os.path.isfile(h_file) and "/scenes/" not in h_file and "\\scenes\\" not in h_file:
 			compiled_file += f"#include<{os.path.relpath(h_file, HEADER_FILES_DIRECTORY)}>\n"
 	
-	
+
 	result = clang.Index.create().parse(
 		f"main.cpp",
 		["-D__SERIALIZER_RUNNING__", "-std=c++23", "-I/usr/lib/clang/18.1.3/include"] + compile_args,

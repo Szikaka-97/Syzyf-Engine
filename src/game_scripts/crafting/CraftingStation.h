@@ -4,8 +4,11 @@
 #include "GameObject.h"
 #include "InputSystem.h"
 #include "Scene.h"
+#include "Texture.h"
 
 #include "game_scripts/CameraSettings.h"
+#include "game_scripts/PlayerController.h"
+#include "game_scripts/PotionInventory.h"
 #include "game_scripts/crafting/BottlingStage.h"
 #include "game_scripts/crafting/Cauldron.h"
 #include "game_scripts/crafting/CraftingIngredientReceiver.h"
@@ -13,6 +16,11 @@
 #include "game_scripts/crafting/CraftingNodeUtils.h"
 #include "game_scripts/crafting/DraggableCraftingItem.h"
 #include "game_scripts/crafting/HeatingStage.h"
+
+#include <text/Font.h>
+#include <ui/objects/UiLayout.h>
+#include <ui/objects/UiText.h>
+#include <ui/objects/UiVisual.h>
 
 #include <physics/Body.h>
 #include <physics/System.h>
@@ -26,10 +34,11 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/matrix_inverse.hpp>
-#include <spdlog/spdlog.h>
 
 #include <string>
 #include <vector>
+#include <sstream>
+#include <iomanip>
 
 namespace Crafting{
     class CraftingStation : public GameObject{
@@ -46,8 +55,6 @@ namespace Crafting{
                 bool playerWasEnabled = true;
 
                 bool lidInteractionEnabled = false;
-                bool loggedIngredientsReady = false;
-
                 CraftingStage currentStage = CraftingStage::None;
 
                 Cauldron* cauldron = nullptr;
@@ -69,6 +76,9 @@ namespace Crafting{
 
                 bool blowerClickRequested = false;
 
+                SceneNode* heatingUiRootNode = nullptr;
+                UiText* heatingUiText = nullptr;
+
           public:
                 float interactionRadius = 3.0f;
 
@@ -76,49 +86,35 @@ namespace Crafting{
                 std::string lidHitboxNodeName = "LidHitbox";
                 std::string stationHitboxNodeName = "StationHitbox";
                 std::string blowerHitboxNodeName = "BlowerHitbox";
-                std::string doorNodeName = "Door";
                 std::string doorHitboxNodeName = "DoorHitbox";
                 std::string valveHitboxNodeName = "ValveHitbox";
 
-                std::string ingredientCameraPointNodeName = "IngredientCameraPoint";
-                std::string ingredientCameraTargetNodeName = "IngredientCameraTarget";
+                std::string ingredientCameraPointNodeName = "StageOneStand";
+                std::string ingredientCameraTargetNodeName = "StageOneLook";
 
-                std::string heatingCameraPointNodeName = "HeatingCameraPoint";
-                std::string heatingCameraTargetNodeName = "HeatingCameraTarget";
+                std::string heatingCameraPointNodeName = "StageTwoStand";
+                std::string heatingCameraTargetNodeName = "StageTwoLook";
 
-                std::string bottlingCameraPointNodeName = "BottlingCameraPoint";
-                std::string bottlingCameraTargetNodeName = "BottlingCameraTarget";
+                std::string bottlingCameraPointNodeName = "LastStageStand";
+                std::string bottlingCameraTargetNodeName = "LastStageLook";
 
                 glm::vec3 lidOpenOffset = glm::vec3(-1.5f, 0.0f, 0.0f);
 
-                glm::vec3 stationCameraPosition = glm::vec3(4.0f, 2.0f, 0.0f);
-
-                glm::quat stationCameraRotation =
-                    glm::quat(glm::radians(glm::vec3(20.0f, -90.0f, 0.0f)));
-
                 void Awake(){
-                    spdlog::info("CraftingStation loaded.");
-
                     SceneNode* cauldronNode =
-                        GetNode()->FindNode("Cauldron");
+                        FindNodeRecursive(GetNode(), "Cauldron");
 
                     if (!cauldronNode){
-                        spdlog::error("CraftingStation: Cauldron node not found.");
                         return;
                     }
 
                     cauldron =
                         cauldronNode->GetObject<Cauldron>();
 
-                    if (!cauldron){
-                        spdlog::error("CraftingStation: Cauldron component missing.");
-                    }
-
                     lidNode =
-                        GetNode()->FindNode(lidNodeName);
+                        FindNodeRecursive(GetNode(), lidNodeName);
 
                     if (!lidNode){
-                        spdlog::error("CraftingStation: Lid node not found.");
                         return;
                     }
 
@@ -127,41 +123,26 @@ namespace Crafting{
 
                     if (!lidHitboxNode){
                         lidHitboxNode =
-                            GetNode()->FindNode(lidHitboxNodeName);
+                            FindNodeRecursive(GetNode(), lidHitboxNodeName);
                     }
 
-                    if (!lidHitboxNode){
-                        spdlog::error("CraftingStation: LidHitbox node not found.");
-                    }else{
+                    if (lidHitboxNode){
                         lidHitboxIsChildOfLid =
                             IsNodeChildOf(lidHitboxNode,lidNode);
-
-                        spdlog::info("CraftingStation: LidHitbox found.");
                     }
 
                     stationHitboxNode =
-                        GetNode()->FindNode(stationHitboxNodeName);
+                        FindNodeRecursive(GetNode(), stationHitboxNodeName);
 
-                    if (!stationHitboxNode){
-                        spdlog::warn("CraftingStation: StationHitbox node not found.");
-                    }else{
+                    if (stationHitboxNode){
                         stationHitboxNode->SetEnabled(true);
                         SyncPhysicsBodyToNode(stationHitboxNode);
-
-                        spdlog::info("CraftingStation: StationHitbox found.");
                     }
 
                     blowerHitboxNode =
-                        GetNode()->FindNode(blowerHitboxNodeName);
+                        FindNodeRecursive(GetNode(), blowerHitboxNodeName);
 
-                    if (!blowerHitboxNode){
-                        blowerHitboxNode =
-                            FindNodeRecursive(GetNode(), blowerHitboxNodeName);
-                    }
-
-                    if (!blowerHitboxNode){
-                        spdlog::warn("CraftingStation: BlowerHitbox node not found.");
-                    }else{
+                    if (blowerHitboxNode){
                         blowerHitboxNode->SetEnabled(false);
 
                         if (auto* interactable = blowerHitboxNode->GetObject<CraftingInteractable>()){
@@ -169,29 +150,12 @@ namespace Crafting{
                         }
 
                         SyncPhysicsBodyToNode(blowerHitboxNode);
-
-                        glm::vec3 blowerPosition =
-                            blowerHitboxNode->GlobalTransform().Position().Value();
-
-                        spdlog::info(
-                            "CraftingStation: BlowerHitbox found at {} {} {}.",
-                            blowerPosition.x,
-                            blowerPosition.y,
-                            blowerPosition.z
-                        );
                     }
 
                     doorHitboxNode =
-                        GetNode()->FindNode(doorHitboxNodeName);
+                        FindNodeRecursive(GetNode(), doorHitboxNodeName);
 
-                    if (!doorHitboxNode){
-                        doorHitboxNode =
-                            FindNodeRecursive(GetNode(), doorHitboxNodeName);
-                    }
-
-                    if (!doorHitboxNode){
-                        spdlog::warn("CraftingStation: DoorHitbox node not found.");
-                    }else{
+                    if (doorHitboxNode){
                         doorHitboxNode->SetEnabled(false);
 
                         if (auto* interactable = doorHitboxNode->GetObject<CraftingInteractable>()){
@@ -199,41 +163,14 @@ namespace Crafting{
                         }
 
                         SyncPhysicsBodyToNode(doorHitboxNode);
-
-                        glm::vec3 doorPosition =
-                            doorHitboxNode->GlobalTransform().Position().Value();
-
-                        spdlog::info(
-                            "CraftingStation: DoorHitbox found at {} {} {}.",
-                            doorPosition.x,
-                            doorPosition.y,
-                            doorPosition.z
-                        );
                     }
 
                     valveHitboxNode =
-                        GetNode()->FindNode(valveHitboxNodeName);
+                        FindNodeRecursive(GetNode(), valveHitboxNodeName);
 
-                    if (!valveHitboxNode){
-                        valveHitboxNode =
-                            FindNodeRecursive(GetNode(), valveHitboxNodeName);
-                    }
-
-                    if (!valveHitboxNode){
-                        spdlog::warn("CraftingStation: ValveHitbox node not found.");
-                    }else{
+                    if (valveHitboxNode){
                         SetValveInteractionEnabled(false);
                         SyncPhysicsBodyToNode(valveHitboxNode);
-
-                        glm::vec3 valvePosition =
-                            valveHitboxNode->GlobalTransform().Position().Value();
-
-                        spdlog::info(
-                            "CraftingStation: ValveHitbox found at {} {} {}.",
-                            valvePosition.x,
-                            valvePosition.y,
-                            valvePosition.z
-                        );
                     }
 
                     bottlingStage.CacheNodes(GetNode());
@@ -253,6 +190,9 @@ namespace Crafting{
                     SetLidInteractionEnabled(false);
                     SetDoorInteractionEnabled(false);
                     SetStationHitboxEnabled(true);
+
+                    CreateHeatingUi();
+                    SetHeatingUiEnabled(false);
                 }
 
                 void Update(){
@@ -261,10 +201,8 @@ namespace Crafting{
                     }
 
                     if (!isActive){
-                        if (IsPlayerNear()){
-                            if (GetScene()->Input()->KeyDown(Key::E)){
-                                EnterStation();
-                            }
+                        if (GetScene()->Input()->KeyDown(Key::G) || GetScene()->Input()->KeyDown(Key::E)){
+                            EnterStation();
                         }
 
                         return;
@@ -293,7 +231,6 @@ namespace Crafting{
 
                 void ResetCraftingSession(){
                     currentStage = CraftingStage::None;
-                    loggedIngredientsReady = false;
                     blowerClickRequested = false;
 
                     heatingStage.Reset();
@@ -311,8 +248,6 @@ namespace Crafting{
                     SetValveInteractionEnabled(false);
                     SetBlowerInteractionEnabled(false);
                     CloseLid();
-
-                    spdlog::info("CraftingStation: crafting session reset.");
                 }
 
                 CraftingInteractionMask GetActiveInteractionMask() const{
@@ -390,7 +325,6 @@ namespace Crafting{
 
                 void OnLidClicked(){
                     if (!CanConfirmIngredientStageByLidClick()){
-                        spdlog::warn("CraftingStation: Lid click ignored.");
                         return;
                     }
 
@@ -401,35 +335,26 @@ namespace Crafting{
                     StartHeatingStage();
 
                     FocusCameraOnHeatingStage();
-
-                    spdlog::info("CraftingStation: ingredient stage confirmed by Lid click.");
                 }
 
                 void OnBlowerClicked(){
                     if (!CanUseBlower()){
-                        spdlog::warn("CraftingStation: Blower click ignored.");
                         return;
                     }
 
                     blowerClickRequested = true;
-
-                    spdlog::info("CraftingStation: Blower click requested.");
                 }
 
                 void OnDoorClicked(){
                     if (!CanUseDoor()){
-                        spdlog::warn("CraftingStation: Door click ignored.");
                         return;
                     }
 
                     StartBottlingStage();
-
-                    spdlog::info("CraftingStation: Door clicked. Bottling stage started.");
                 }
 
                 void OnValveClicked(){
                     if (!CanUseValve()){
-                        spdlog::warn("CraftingStation: Valve click ignored.");
                         return;
                     }
 
@@ -442,18 +367,6 @@ namespace Crafting{
                         cauldron && cauldron->CanConfirm();
 
                     SetLidInteractionEnabled(canConfirm);
-
-                    if (canConfirm && !loggedIngredientsReady){
-                        loggedIngredientsReady = true;
-
-                        spdlog::info(
-                            "CraftingStation: ingredients ready. Click Lid to start heating."
-                        );
-                    }
-
-                    if (!canConfirm){
-                        loggedIngredientsReady = false;
-                    }
                 }
 
                 void UpdateHeatingStage(){
@@ -464,6 +377,8 @@ namespace Crafting{
 
                     bool finished =
                         heatingStage.Update(deltaTime, blowerClicked);
+
+                    UpdateHeatingUi();
 
                     if (finished){
                         FinishHeatingStage();
@@ -485,37 +400,33 @@ namespace Crafting{
 
                     heatingStage.Start();
 
+                    SetHeatingUiEnabled(true);
+                    UpdateHeatingUi();
+
                     SetIngredientsEnabled(false);
                     SetDragInteractorEnabled(true);
                     SetDoorInteractionEnabled(false);
-
                     SetBlowerInteractionEnabled(true);
-
-                    spdlog::info("CraftingStation: heating stage started.");
                 }
 
                 void FinishHeatingStage(){
                     currentStage = CraftingStage::Finished;
 
                     SetBlowerInteractionEnabled(false);
-
                     SetDragInteractorEnabled(true);
+                    SetHeatingUiEnabled(false);
 
                     if (cauldron){
                         cauldron->SetQuality(heatingStage.GetQuality());
                     }
 
                     SetDoorInteractionEnabled(true);
-
-                    spdlog::info(
-                        "CraftingStation: heating finished. Quality: {} Temperature: {}. Click Door to continue.",
-                        heatingStage.GetQuality(),
-                        heatingStage.GetTemperature()
-                    );
                 }
 
                 void StartBottlingStage(){
                     currentStage = CraftingStage::Bottling;
+
+                    SetHeatingUiEnabled(false);
 
                     SetDoorInteractionEnabled(false);
                     SetValveInteractionEnabled(true);
@@ -524,8 +435,6 @@ namespace Crafting{
                     bottlingStage.Start();
 
                     FocusCameraOnBottlingStage();
-
-                    spdlog::info("CraftingStation: bottling stage active.");
                 }
 
                 void FinishBottlingStage(){
@@ -535,21 +444,41 @@ namespace Crafting{
 
                     SetValveInteractionEnabled(false);
 
-                    const bool success = bottlingStage.HasEnoughFilledBottles();
-                    const std::string recipeName = cauldron ? cauldron->GetRecipeName() : "Unknown";
-                    const float quality = cauldron ? cauldron->GetQualityPercent() : 0.0f;
-
-                    spdlog::info(
-                        "CraftingStation: bottling finished. Result: {} | Recipe: {} | Quality: {}% | Filled bottles: {}/{} | Missed bottles: {}.",
-                        success ? "success" : "failed",
-                        recipeName,
-                        quality,
-                        bottlingStage.GetFilledBottles(),
-                        bottlingStage.GetRequiredFilledBottles(),
-                        bottlingStage.GetMissedBottles()
-                    );
+                    SaveCraftedPotion();
 
                     ExitStation();
+                }
+
+                void SaveCraftedPotion(){
+                    if (!cauldron || !bottlingStage.HasEnoughFilledBottles()){
+                        return;
+                    }
+
+                    CraftedPotionData potionData =
+                        CraftingRecipeChecker::BuildCraftedPotion(
+                            cauldron->GetIngredients(),
+                            cauldron->GetQualityPercent()
+                        );
+
+                    PotionInventory::SaveLastCraftedPotion(
+                        potionData,
+                        bottlingStage.GetFilledBottles()
+                    );
+
+                    spdlog::error(
+                        "CraftingStation: crafted '{}' effect={} secondary={} radius={:.2f} duration={:.2f} power={:.2f} bottles={}",
+                        potionData.recipeName,
+                        potionData.primaryEffectId,
+                        potionData.secondaryEffectId,
+                        potionData.radius,
+                        potionData.duration,
+                        potionData.power,
+                        bottlingStage.GetFilledBottles()
+                    );
+
+                    if (PlayerController::Instance()){
+                        PlayerController::Instance()->SetThrowingUnlocked(true);
+                    }
                 }
 
                 void OpenLid(){
@@ -560,8 +489,6 @@ namespace Crafting{
                     SetLidLocalPosition(
                         lidClosedLocalPosition + lidOpenOffset
                     );
-
-                    spdlog::info("CraftingStation: Lid opened.");
                 }
 
                 void CloseLid(){
@@ -570,8 +497,6 @@ namespace Crafting{
                     }
 
                     SetLidLocalPosition(lidClosedLocalPosition);
-
-                    spdlog::info("CraftingStation: Lid closed.");
                 }
 
                 void SetLidInteractionEnabled(bool enabled){
@@ -604,30 +529,21 @@ namespace Crafting{
                             SyncPhysicsBodyToNode(lidHitboxNode);
                         }
                     }
-
-                    spdlog::info(
-                        "CraftingStation: Lid interaction {}.",
-                        enabled ? "enabled" : "disabled"
-                    );
                 }
 
                 void SetDoorInteractionEnabled(bool enabled){
-                    SetInteractionNodeEnabled(doorHitboxNode, enabled, "Door");
+                    SetInteractionNodeEnabled(doorHitboxNode, enabled);
                 }
 
                 void SetValveInteractionEnabled(bool enabled){
-                    SetInteractionNodeEnabled(valveHitboxNode, enabled, "Valve");
+                    SetInteractionNodeEnabled(valveHitboxNode, enabled);
                 }
 
                 void SetBlowerInteractionEnabled(bool enabled){
-                    SetInteractionNodeEnabled(blowerHitboxNode, enabled, "Blower");
+                    SetInteractionNodeEnabled(blowerHitboxNode, enabled);
                 }
 
-                void SetInteractionNodeEnabled(
-                    SceneNode* node,
-                    bool enabled,
-                    const char* debugName
-                ){
+                void SetInteractionNodeEnabled(SceneNode* node, bool enabled){
                     if (!node){
                         return;
                     }
@@ -643,12 +559,6 @@ namespace Crafting{
                     if (enabled){
                         SyncPhysicsBodyToNode(node);
                     }
-
-                    spdlog::info(
-                        "CraftingStation: {} interaction {}.",
-                        debugName,
-                        enabled ? "enabled" : "disabled"
-                    );
                 }
 
                 void SetStationHitboxEnabled(bool enabled){
@@ -665,11 +575,6 @@ namespace Crafting{
                     if (enabled){
                         SyncPhysicsBodyToNode(stationHitboxNode);
                     }
-
-                    spdlog::info(
-                        "CraftingStation: StationHitbox {}.",
-                        enabled ? "enabled" : "disabled"
-                    );
                 }
 
                 void SetDragInteractorEnabled(bool enabled){
@@ -678,7 +583,7 @@ namespace Crafting{
                     }
 
                     SceneNode* dragInteractorNode =
-                        GetScene()->FindNode("Crafting Root/Root/Crafting Drag Interactor");
+                        FindNodeRecursive(GetNode(), "Crafting Drag Interactor");
 
                     if (!dragInteractorNode){
                         return;
@@ -689,15 +594,9 @@ namespace Crafting{
                     }
 
                     dragInteractorNode->SetEnabled(enabled);
-
-                    spdlog::info(
-                        "CraftingStation: drag interactor {}.",
-                        enabled ? "enabled" : "disabled"
-                    );
                 }
 
                 void SetLidLocalPosition(const glm::vec3& localPosition){
-
                     glm::vec3 lidDelta =
                         localPosition - lidClosedLocalPosition;
 
@@ -724,11 +623,7 @@ namespace Crafting{
                         targetPosition - cameraPosition;
 
                     if (glm::length(direction) < 0.0001f){
-                        spdlog::warn(
-                            "CraftingStation: camera point and target are too close. Using fallback rotation."
-                        );
-
-                        return stationCameraRotation;
+                        return glm::quat(1.0f,0.0f,0.0f,0.0f);
                     }
 
                     glm::vec3 forward =
@@ -754,72 +649,41 @@ namespace Crafting{
                 void FocusCameraOnIngredientStage(){
                     FocusCameraOnStage(
                         ingredientCameraPointNodeName,
-                        ingredientCameraTargetNodeName,
-                        "ingredient"
+                        ingredientCameraTargetNodeName
                     );
                 }
 
                 void FocusCameraOnHeatingStage(){
                     FocusCameraOnStage(
                         heatingCameraPointNodeName,
-                        heatingCameraTargetNodeName,
-                        "heating"
+                        heatingCameraTargetNodeName
                     );
                 }
 
                 void FocusCameraOnBottlingStage(){
                     FocusCameraOnStage(
                         bottlingCameraPointNodeName,
-                        bottlingCameraTargetNodeName,
-                        "bottling"
+                        bottlingCameraTargetNodeName
                     );
                 }
 
                 void FocusCameraOnStage(
                     const std::string& pointNodeName,
-                    const std::string& targetNodeName,
-                    const std::string& stageName
+                    const std::string& targetNodeName
                 ){
                     SceneNode* cameraNode = GetCameraNode();
 
                     if (!cameraNode){
-                        spdlog::warn("CraftingStation: Camera Node missing in FocusCameraOnStage.");
                         return;
                     }
 
                     SceneNode* cameraPointNode =
-                        GetNode()->FindNode(pointNodeName);
+                        FindNodeRecursive(GetNode(), pointNodeName);
 
                     SceneNode* cameraTargetNode =
-                        GetNode()->FindNode(targetNodeName);
-
-                    if (!cameraPointNode){
-                        spdlog::warn(
-                            "CraftingStation: missing {} camera point node: {}",
-                            stageName,
-                            pointNodeName
-                        );
-                    }
-
-                    if (!cameraTargetNode){
-                        spdlog::warn(
-                            "CraftingStation: missing {} camera target node: {}",
-                            stageName,
-                            targetNodeName
-                        );
-                    }
+                        FindNodeRecursive(GetNode(), targetNodeName);
 
                     if (!cameraPointNode || !cameraTargetNode){
-                        spdlog::warn(
-                            "CraftingStation: camera point or target missing. Using fallback camera transform."
-                        );
-
-                        cameraNode->GlobalTransform().Position() =
-                            stationCameraPosition;
-
-                        cameraNode->GlobalTransform().Rotation() =
-                            stationCameraRotation;
-
                         return;
                     }
 
@@ -828,22 +692,6 @@ namespace Crafting{
 
                     glm::vec3 targetPosition =
                         cameraTargetNode->GlobalTransform().Position().Value();
-
-                    spdlog::info(
-                        "CraftingStation: using {} camera point global position: {} {} {}",
-                        stageName,
-                        cameraPosition.x,
-                        cameraPosition.y,
-                        cameraPosition.z
-                    );
-
-                    spdlog::info(
-                        "CraftingStation: using {} camera target global position: {} {} {}",
-                        stageName,
-                        targetPosition.x,
-                        targetPosition.y,
-                        targetPosition.z
-                    );
 
                     cameraNode->GlobalTransform().Position() =
                         cameraPosition;
@@ -885,7 +733,7 @@ namespace Crafting{
                 }
 
                 SceneNode* GetIngredientsRootNode(){
-                    return GetScene()->FindNode("Crafting Root/Root/Crafting Ingredients");
+                    return FindNodeRecursive(GetNode(), "Crafting Ingredients");
                 }
 
                 bool IsPlayerNear(){
@@ -903,7 +751,9 @@ namespace Crafting{
                         playerNode->GlobalTransform().Position().Value();
 
                     glm::vec3 stationPos =
-                        GetNode()->GlobalTransform().Position().Value();
+                        stationHitboxNode
+                            ? stationHitboxNode->GlobalTransform().Position().Value()
+                            : GetNode()->GlobalTransform().Position().Value();
 
                     return glm::distance(playerPos, stationPos) <= interactionRadius;
                 }
@@ -944,18 +794,106 @@ namespace Crafting{
                     playerNode->SetEnabled(playerWasEnabled);
                 }
 
+
+                void CreateHeatingUi(){
+                    if (heatingUiRootNode || !GetScene()){
+                        return;
+                    }
+
+                    TextureParams fontTextureParams = {
+                        .channels = TextureChannels::RGB,
+                        .colorSpace = TextureColor::Linear,
+                        .format = TextureFormat::Ubyte,
+                        .wrapU = TextureWrap::Clamp,
+                        .wrapV = TextureWrap::Clamp,
+                        .minFilter = TextureFilter::Linear,
+                        .magFilter = TextureFilter::Linear
+                    };
+
+                    Texture2D* fontTexture =
+                        GetScene()->Resources()->Get<Texture2D>(
+                            "./res/fonts/OpenSans-Regular/OpenSans-Regular.png",
+                            fontTextureParams
+                        );
+
+                    Font* font =
+                        GetScene()->Resources()->Get<Font>(
+                            "./res/fonts/OpenSans-Regular/OpenSans-Regular.json",
+                            fontTexture
+                        );
+
+                    heatingUiRootNode =
+                        GetScene()->CreateNode("Crafting Heating UI Root");
+
+                    heatingUiRootNode->AddObject<UiLayout>(
+                        glm::ivec2(280, 110),
+                        glm::ivec2(-20, 20),
+                        20,
+                        AnchorPoint::TopRight
+                    );
+
+                    heatingUiRootNode->AddObject<UiVisual>(
+                        glm::vec4(0.0f, 0.0f, 0.0f, 0.55f)
+                    );
+
+                    SceneNode* textNode =
+                        GetScene()->CreateNode(
+                            heatingUiRootNode,
+                            "Crafting Heating UI Text"
+                        );
+
+                    textNode->AddObject<UiLayout>(
+                        glm::ivec2(260, 90),
+                        glm::ivec2(12, 8),
+                        21,
+                        AnchorPoint::TopLeft
+                    );
+
+                    heatingUiText =
+                        textNode->AddObject<UiText>("", font);
+
+                    heatingUiText->fontSize = 22.0f;
+                    heatingUiText->color = glm::vec4(1.0f, 0.93f, 0.72f, 1.0f);
+                    heatingUiText->alignment = TextAlignment::Left;
+                }
+
+                void SetHeatingUiEnabled(bool enabled){
+                    if (!heatingUiRootNode){
+                        return;
+                    }
+
+                    heatingUiRootNode->SetEnabled(enabled);
+
+                    if (!enabled && heatingUiText){
+                        heatingUiText->text = "";
+                    }
+                }
+
+                void UpdateHeatingUi(){
+                    if (!heatingUiText){
+                        return;
+                    }
+
+                    std::ostringstream text;
+                    text << std::fixed << std::setprecision(1);
+                    text << "Heating\n";
+                    text << "Target: " << heatingStage.tempMin << " - " << heatingStage.tempMax << " C\n";
+                    text << "Temp: " << heatingStage.GetTemperature() << " C\n";
+                    text << "Quality: " << heatingStage.GetQualityPercent() << "%";
+
+                    heatingUiText->text = text.str();
+                }
+
                 void EnterStation(){
                     SceneNode* cameraNode = GetCameraNode();
 
                     if (!cameraNode){
-                        spdlog::warn("CraftingStation: Camera Node not found.");
                         return;
                     }
 
                     Camera* camera = cameraNode->GetObject<Camera>();
 
                     if (!camera){
-                        spdlog::warn("CraftingStation: Camera component not found on Camera Node.");
                         return;
                     }
 
@@ -970,7 +908,6 @@ namespace Crafting{
                     SetLidInteractionEnabled(false);
                     SetDoorInteractionEnabled(false);
                     SetValveInteractionEnabled(false);
-
                     SetBlowerInteractionEnabled(false);
 
                     OpenLid();
@@ -987,24 +924,21 @@ namespace Crafting{
                     isActive = true;
 
                     GetScene()->Input()->SetMouseLocked(false);
-
-                    spdlog::info("CraftingStation: entered station view.");
                 }
 
                 void ExitStation(){
                     SceneNode* cameraNode = GetCameraNode();
 
                     if (!cameraNode){
-                        spdlog::warn("CraftingStation: Camera Node not found.");
                         return;
                     }
 
                     ResetCraftingSession();
 
                     SetBlowerInteractionEnabled(false);
-
                     SetDoorInteractionEnabled(false);
                     SetValveInteractionEnabled(false);
+                    SetHeatingUiEnabled(false);
                     bottlingStage.Stop();
 
                     SetDragInteractorEnabled(true);
@@ -1024,8 +958,6 @@ namespace Crafting{
                     isActive = false;
 
                     GetScene()->Input()->SetMouseLocked(false);
-
-                    spdlog::info("CraftingStation: exited station view.");
                 }
     };
 }
