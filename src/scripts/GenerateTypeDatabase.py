@@ -294,7 +294,7 @@ class CppType:
 		def_cursor = self.cursor.get_definition()
 
 
-		typeFilePath = os.path.abspath(def_cursor.location.file.name.replace("\\", "/")) if def_cursor else ""
+		typeFilePath = os.path.abspath(def_cursor.location.file.name.replace("\\", "/")).replace("\\", "/") if def_cursor else ""
 
 
 		rep = {}
