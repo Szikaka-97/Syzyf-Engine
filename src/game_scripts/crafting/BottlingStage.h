@@ -6,9 +6,13 @@
 #include <glm/glm.hpp>
 #include <glm/common.hpp>
 #include <glm/geometric.hpp>
+#include <glm/matrix.hpp>
 
 #include <array>
+#include <initializer_list>
 #include <string>
+
+#include <spdlog/spdlog.h>
 
 namespace Crafting{
     class BottlingStage{
@@ -19,13 +23,13 @@ namespace Crafting{
 
         float bottleTravelTime = 4.0f;
         float bottleSpawnDelay = 0.85f;
-        float fillZoneRadius = 0.28f;
+        float fillWindowRadius = 0.28f;
 
         glm::vec3 bottleVisualOffset = glm::vec3(0.0f, 0.22f, 0.0f);
 
-        std::string startPointNodeName = "BottleStartPoint";
-        std::string fillPointNodeName = "BottleFillPoint";
-        std::string endPointNodeName = "BottleEndPoint";
+        std::string startPointNodeName = "Bottle_Start";
+        std::string endPointNodeName = "Bottle_stop";
+        std::string pourButtonNodeName = "Knob_One.001";
         std::string bottlesRootNodeName = "BottlingBottlesRoot";
 
         std::array<std::string,BottleCount> bottleNodeNames = {
@@ -45,35 +49,38 @@ namespace Crafting{
         void CacheNodes(SceneNode* stationRootNode){
             rootNode = stationRootNode;
 
-            startPointNode = FindNodeRecursive(rootNode,startPointNodeName);
-            fillPointNode = FindNodeRecursive(rootNode,fillPointNodeName);
-            endPointNode = FindNodeRecursive(rootNode,endPointNodeName);
-            bottlesRootNode = FindNodeRecursive(rootNode,bottlesRootNodeName);
+            startPointNode = FindFirstExistingNode({
+                startPointNodeName,
+                "Bottle_Start",
+                "BottleStartPoint"
+            });
+
+            endPointNode = FindFirstExistingNode({
+                endPointNodeName,
+                "Bottle_stop",
+                "Bottle_Stop",
+                "Bottle_End",
+                "BottleEndPoint"
+            });
+
+            pourButtonNode = FindFirstExistingNode({
+                pourButtonNodeName,
+                "Knob_One.001",
+                "Knob_One",
+                "BottleFillPoint"
+            });
+
+            bottlesRootNode = FindFirstExistingNode({
+                bottlesRootNodeName,
+                "BottlingBottlesRoot"
+            });
 
             for (int i = 0; i < BottleCount; ++i){
                 bottleNodes[i] = FindNodeRecursive(rootNode,bottleNodeNames[i]);
                 liquidNodes[i] = FindNodeRecursive(rootNode,liquidNodeNames[i]);
             }
 
-            if (!startPointNode){
-            }
-
-            if (!fillPointNode){
-            }
-
-            if (!endPointNode){
-            }
-
-            if (!bottlesRootNode){
-            }
-
-            for (int i = 0; i < BottleCount; ++i){
-                if (!bottleNodes[i]){
-                }
-
-                if (!liquidNodes[i]){
-                }
-            }
+            LogMissingRequiredNodes();
 
             SetVisualsEnabled(false);
         }
@@ -209,8 +216,8 @@ namespace Crafting{
     private:
         SceneNode* rootNode = nullptr;
         SceneNode* startPointNode = nullptr;
-        SceneNode* fillPointNode = nullptr;
         SceneNode* endPointNode = nullptr;
+        SceneNode* pourButtonNode = nullptr;
         SceneNode* bottlesRootNode = nullptr;
 
         std::array<SceneNode*,BottleCount> bottleNodes = {};
@@ -229,8 +236,67 @@ namespace Crafting{
 
         float stageTimer = 0.0f;
 
+        SceneNode* FindFirstExistingNode(std::initializer_list<std::string> nodeNames) const{
+            for (const std::string& nodeName : nodeNames){
+                SceneNode* node = FindNodeRecursive(rootNode,nodeName);
+
+                if (node){
+                    return node;
+                }
+            }
+
+            return nullptr;
+        }
+
+        void LogMissingRequiredNodes() const{
+            if (!rootNode){
+                spdlog::warn("BottlingStage: root node is missing.");
+                return;
+            }
+
+            if (!startPointNode){
+                spdlog::warn("BottlingStage: missing Bottle_Start / BottleStartPoint node.");
+            }
+
+            if (!endPointNode){
+                spdlog::warn("BottlingStage: missing Bottle_stop / Bottle_Stop / BottleEndPoint node.");
+            }
+
+            if (!pourButtonNode){
+                spdlog::warn("BottlingStage: missing Knob_One.001 / Knob_One / BottleFillPoint node.");
+            }
+
+            if (!bottlesRootNode){
+                spdlog::warn("BottlingStage: missing BottlingBottlesRoot node. CreateBottlingStageNodes was probably not called.");
+            }
+
+            for (int i = 0; i < BottleCount; ++i){
+                if (!bottleNodes[i]){
+                    spdlog::warn("BottlingStage: missing bottle visual node {}.",bottleNodeNames[i]);
+                }
+
+                if (!liquidNodes[i]){
+                    spdlog::warn("BottlingStage: missing liquid visual node {}.",liquidNodeNames[i]);
+                }
+            }
+        }
+
         bool HasRequiredNodes() const{
-            return startPointNode && fillPointNode && endPointNode;
+            if (!rootNode || !startPointNode || !endPointNode || !pourButtonNode){
+                return false;
+            }
+
+            if (!bottlesRootNode){
+                return false;
+            }
+
+            for (int i = 0; i < BottleCount; ++i){
+                if (!bottleNodes[i] || !liquidNodes[i]){
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         int GetClampedRequiredFilledBottles() const{
@@ -275,16 +341,79 @@ namespace Crafting{
 
         }
 
-        glm::vec3 GetStartPosition() const{
-            return startPointNode->LocalTransform().Position().Value();
+        glm::vec3 GetNodePositionInRootSpace(SceneNode* node) const{
+            if (!node || !rootNode){
+                return glm::vec3(0.0f);
+            }
+
+            glm::vec4 localPosition =
+                glm::inverse(rootNode->GlobalTransform().Value()) *
+                glm::vec4(node->GlobalTransform().Position().Value(), 1.0f);
+
+            return glm::vec3(localPosition);
         }
 
-        glm::vec3 GetFillPosition() const{
-            return fillPointNode->LocalTransform().Position().Value();
+        glm::vec3 ConvertRootSpacePositionToNodeParent(SceneNode* node,const glm::vec3& rootSpacePosition) const{
+            if (!node || !rootNode || !node->GetParent()){
+                return rootSpacePosition;
+            }
+
+            glm::vec4 worldPosition =
+                rootNode->GlobalTransform().Value() *
+                glm::vec4(rootSpacePosition, 1.0f);
+
+            glm::vec4 parentLocalPosition =
+                glm::inverse(node->GetParent()->GlobalTransform().Value()) *
+                worldPosition;
+
+            return glm::vec3(parentLocalPosition);
+        }
+
+        glm::vec3 GetStartPosition() const{
+            return GetNodePositionInRootSpace(startPointNode);
         }
 
         glm::vec3 GetEndPosition() const{
-            return endPointNode->LocalTransform().Position().Value();
+            return GetNodePositionInRootSpace(endPointNode);
+        }
+
+        float GetPathLength() const{
+            return glm::length(
+                GetEndPosition() -
+                GetStartPosition()
+            );
+        }
+
+        float GetProjectedTOnBottlePath(const glm::vec3& position) const{
+            glm::vec3 startPosition = GetStartPosition();
+            glm::vec3 endPosition = GetEndPosition();
+            glm::vec3 path = endPosition - startPosition;
+
+            float pathLengthSquared = glm::dot(path,path);
+
+            if (pathLengthSquared < 0.0001f){
+                return 0.5f;
+            }
+
+            float t =
+                glm::dot(position - startPosition,path) /
+                pathLengthSquared;
+
+            return glm::clamp(t,0.0f,1.0f);
+        }
+
+        float GetFillT() const{
+            return GetProjectedTOnBottlePath(
+                GetNodePositionInRootSpace(pourButtonNode)
+            );
+        }
+
+        glm::vec3 GetFillPosition() const{
+            return glm::mix(
+                GetStartPosition(),
+                GetEndPosition(),
+                GetFillT()
+            );
         }
 
         float GetBottleElapsedTime(int bottleIndex) const{
@@ -317,16 +446,28 @@ namespace Crafting{
             return GetBottlePathPositionAt(bottleIndex) + bottleVisualOffset;
         }
 
+        void SetBottlePosition(SceneNode* bottleNode,const glm::vec3& rootSpacePosition){
+            if (!bottleNode){
+                return;
+            }
+
+            bottleNode->LocalTransform().Position() =
+                ConvertRootSpacePositionToNodeParent(
+                    bottleNode,
+                    rootSpacePosition
+                );
+        }
+
         void ResetBottlePositions(){
             if (!HasRequiredNodes()){
                 return;
             }
 
             for (int i = 0; i < BottleCount; ++i){
-                if (bottleNodes[i]){
-                    bottleNodes[i]->LocalTransform().Position() =
-                        GetStartPosition() + bottleVisualOffset;
-                }
+                SetBottlePosition(
+                    bottleNodes[i],
+                    GetStartPosition() + bottleVisualOffset
+                );
 
                 if (liquidNodes[i]){
                     liquidNodes[i]->SetEnabled(false);
@@ -341,22 +482,23 @@ namespace Crafting{
                 }
 
                 if (GetBottleElapsedTime(i) < 0.0f){
-                    bottleNodes[i]->LocalTransform().Position() =
-                        GetStartPosition() + bottleVisualOffset;
+                    SetBottlePosition(
+                        bottleNodes[i],
+                        GetStartPosition() + bottleVisualOffset
+                    );
 
                     continue;
                 }
 
-                bottleNodes[i]->LocalTransform().Position() =
-                    GetBottleVisualPositionAt(i);
+                SetBottlePosition(
+                    bottleNodes[i],
+                    GetBottleVisualPositionAt(i)
+                );
             }
         }
 
         void UpdateFillWindowState(){
             int bestBottle = FindBestBottleInFillWindow();
-
-            if (bestBottle >= 0 && bestBottle != lastBottleInFillWindow){
-            }
 
             lastBottleInFillWindow = bestBottle;
         }
@@ -392,7 +534,7 @@ namespace Crafting{
 
         int FindBestBottleInFillWindow() const{
             int bestIndex = -1;
-            float bestDistance = fillZoneRadius;
+            float bestDistance = fillWindowRadius;
 
             glm::vec3 fillPosition = GetFillPosition();
 
@@ -413,7 +555,7 @@ namespace Crafting{
                     GetBottlePathPositionAt(i);
 
                 float distance =
-                    glm::distance(bottlePathPosition, fillPosition);
+                    glm::distance(bottlePathPosition,fillPosition);
 
                 if (distance <= bestDistance){
                     bestDistance = distance;

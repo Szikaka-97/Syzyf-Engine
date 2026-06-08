@@ -63,6 +63,8 @@
 #include <string>
 #include <vector>
 
+#include <spdlog/spdlog.h>
+
 namespace CraftingScene {
 
 static constexpr const char* CraftingTutorialModelPath =
@@ -618,6 +620,9 @@ inline bool AlignStationModelToRoom(SceneNode* roomNode, SceneNode* stationNode)
 			roomNode,
 			{
 				"station",
+				"Station",
+				"CraftingStation",
+				"Crafting Station"
 			}
 		);
 
@@ -966,93 +971,176 @@ inline SceneNode* CreateBottlingLocalCube(
 	return node;
 }
 
+inline SceneNode* CreateBottlingFallbackPoint(
+	Scene& scene,
+	SceneNode* parent,
+	const std::string& nodeName,
+	const glm::vec3& localPosition
+) {
+	SceneNode* node = scene.CreateNode(parent, nodeName);
+	node->LocalTransform().Position() = localPosition;
+	return node;
+}
+
 inline void CreateBottlingStageNodes(Scene& scene, SceneNode* roomNode) {
 	if (!roomNode) {
 		return;
 	}
 
-	const glm::vec3 bottleStartPoint =
-		WorldPointBetweenCameraNodes(
+	SceneNode* bottleStartNode =
+		FindFirstNodeByNamesRecursive(
 			roomNode,
-			"LastStageStand",
-			"LastStageLook",
-			0.35f,
-			-0.55f,
-			-0.05f
+			{
+				"Bottle_Start",
+				"BottleStartPoint"
+			}
 		);
 
-	const glm::vec3 bottleFillPoint =
-		WorldPointBetweenCameraNodes(
+	SceneNode* bottleStopNode =
+		FindFirstNodeByNamesRecursive(
 			roomNode,
-			"LastStageStand",
-			"LastStageLook",
-			0.50f,
-			0.0f,
-			-0.05f
+			{
+				"Bottle_stop",
+				"Bottle_Stop",
+				"Bottle_End",
+				"BottleEndPoint"
+			}
+		);
+
+	SceneNode* pourButtonNode =
+		FindFirstNodeByNamesRecursive(
+			roomNode,
+			{
+				"Knob_One.001",
+				"Knob_One",
+				"BottleFillPoint"
+			}
+		);
+
+	if (!bottleStartNode) {
+		spdlog::warn("CreateBottlingStageNodes: Bottle_Start not found. Using fallback local point.");
+		bottleStartNode = CreateBottlingFallbackPoint(
+			scene,
+			roomNode,
+			"Bottle_Start",
+			glm::vec3(1.8707f, 0.1150f, -3.3414f)
+		);
+	}
+
+	if (!bottleStopNode) {
+		spdlog::warn("CreateBottlingStageNodes: Bottle_stop not found. Using fallback local point.");
+		bottleStopNode = CreateBottlingFallbackPoint(
+			scene,
+			roomNode,
+			"Bottle_stop",
+			glm::vec3(-1.9254f, 0.1150f, -3.3384f)
+		);
+	}
+
+	const glm::mat4 bottleStartTransform =
+		GetNodeTransformRelativeTo(
+			bottleStartNode,
+			roomNode
+		);
+
+	const glm::mat4 bottleStopTransform =
+		GetNodeTransformRelativeTo(
+			bottleStopNode,
+			roomNode
+		);
+
+	const glm::vec3 bottleStartPoint =
+		glm::vec3(
+			bottleStartTransform[3]
 		);
 
 	const glm::vec3 bottleEndPoint =
-		WorldPointBetweenCameraNodes(
-			roomNode,
-			"LastStageStand",
-			"LastStageLook",
-			0.65f,
-			0.55f,
-			-0.05f
+		glm::vec3(
+			bottleStopTransform[3]
 		);
 
-	const glm::vec3 lanePosition =
-		WorldPointBetweenCameraNodes(
-			roomNode,
-			"LastStageStand",
-			"LastStageLook",
-			0.50f,
-			0.0f,
-			-0.25f
+	glm::vec3 pourButtonPoint =
+		glm::mix(
+			bottleStartPoint,
+			bottleEndPoint,
+			0.5f
 		);
 
-	const glm::vec3 laneScale =
-		glm::vec3(2.8f, 0.08f, 0.45f);
+	if (pourButtonNode) {
+		const glm::mat4 pourButtonTransform =
+			GetNodeTransformRelativeTo(
+				pourButtonNode,
+				roomNode
+			);
 
-	const glm::vec3 fillZoneScale =
-		glm::vec3(0.34f, 0.55f, 0.34f);
-
-	const glm::vec3 valveGuidePosition =
-		WorldPointBetweenCameraNodes(
+		pourButtonPoint =
+			glm::vec3(
+				pourButtonTransform[3]
+			);
+	}
+	else {
+		spdlog::warn("CreateBottlingStageNodes: Knob_One.001 / Knob_One not found. Fill point uses center of bottle path.");
+		pourButtonNode = CreateBottlingFallbackPoint(
+			scene,
 			roomNode,
-			"LastStageStand",
-			"LastStageLook",
-			0.50f,
-			0.0f,
-			0.45f
+			"Knob_One.001",
+			pourButtonPoint
+		);
+	}
+
+	const glm::vec3 path =
+		bottleEndPoint - bottleStartPoint;
+
+	float fillT = 0.5f;
+
+	const float pathLengthSquared =
+		glm::dot(path,path);
+
+	if (pathLengthSquared > 0.0001f) {
+		fillT =
+			glm::clamp(
+				glm::dot(pourButtonPoint - bottleStartPoint,path) /
+				pathLengthSquared,
+				0.0f,
+				1.0f
+			);
+	}
+
+	const glm::vec3 bottleFillPoint =
+		glm::mix(
+			bottleStartPoint,
+			bottleEndPoint,
+			fillT
 		);
 
-	const glm::vec3 valveGuideScale =
-		glm::vec3(0.08f, 0.42f, 0.08f);
+	const glm::vec3 pourStreamStart =
+		pourButtonPoint;
+
+	const glm::vec3 pourStreamEnd =
+		glm::vec3(
+			bottleFillPoint.x,
+			bottleFillPoint.y + 0.42f,
+			bottleFillPoint.z
+		);
+
+	const glm::vec3 pourStreamPosition =
+		glm::mix(
+			pourStreamStart,
+			pourStreamEnd,
+			0.5f
+		);
+
+	const float pourStreamHeight =
+		glm::max(
+			glm::abs(pourStreamStart.y - pourStreamEnd.y),
+			0.1f
+		);
 
 	const glm::vec3 bottleScale =
-		glm::vec3(0.18f, 0.45f, 0.18f);
+		glm::vec3(0.16f, 0.36f, 0.16f);
 
-	CreateWorldPoint(
-		scene,
-		roomNode,
-		"BottleStartPoint",
-		bottleStartPoint
-	);
-
-	CreateWorldPoint(
-		scene,
-		roomNode,
-		"BottleFillPoint",
-		bottleFillPoint
-	);
-
-	CreateWorldPoint(
-		scene,
-		roomNode,
-		"BottleEndPoint",
-		bottleEndPoint
-	);
+	const glm::vec3 pourStreamScale =
+		glm::vec3(0.055f, pourStreamHeight * 0.5f, 0.055f);
 
 	Mesh* cubeMesh =
 		scene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
@@ -1060,56 +1148,24 @@ inline void CreateBottlingStageNodes(Scene& scene, SceneNode* roomNode) {
 	Material* bottleMaterial =
 		CreateColorMaterial(glm::vec4(0.35f, 0.75f, 1.0f, 0.9f));
 
-	Material* fillZoneMaterial =
-		CreateColorMaterial(glm::vec4(0.1f, 1.0f, 0.25f, 0.45f));
-
-	Material* beltMaterial =
-		CreateColorMaterial(glm::vec4(0.6f, 0.6f, 0.6f, 0.35f));
-
 	Material* liquidMaterial =
 		CreateColorMaterial(glm::vec4(0.9f, 0.25f, 0.15f, 0.95f));
 
-	Material* valveGuideMaterial =
-		CreateColorMaterial(glm::vec4(1.0f, 0.85f, 0.15f, 0.45f));
+	Material* pourStreamMaterial =
+		CreateColorMaterial(glm::vec4(1.0f, 0.85f, 0.15f, 0.75f));
 
 	SceneNode* bottlesRoot =
-		scene.CreateNode(roomNode, "BottlingBottlesRoot");
+		FindFirstNodeByNameRecursive(roomNode, "BottlingBottlesRoot");
+
+	if (!bottlesRoot) {
+		bottlesRoot = scene.CreateNode(roomNode, "BottlingBottlesRoot");
+	}
 
 	bottlesRoot->LocalTransform().Position() =
 		glm::vec3(0.0f);
 
-	CreateBottlingDebugCube(
-		scene,
-		bottlesRoot,
-		"BottlingLaneDebug",
-		cubeMesh,
-		beltMaterial,
-		lanePosition,
-		laneScale
-	);
-
-	CreateBottlingDebugCube(
-		scene,
-		bottlesRoot,
-		"BottleFillZoneDebug",
-		cubeMesh,
-		fillZoneMaterial,
-		bottleFillPoint,
-		fillZoneScale
-	);
-
-	CreateBottlingDebugCube(
-		scene,
-		bottlesRoot,
-		"ValveToBottleGuideDebug",
-		cubeMesh,
-		valveGuideMaterial,
-		valveGuidePosition,
-		valveGuideScale
-	);
-
 	for (int i = 0; i < 4; ++i) {
-		SceneNode* bottleNode = CreateBottlingDebugCube(
+		SceneNode* bottleNode = CreateBottlingLocalCube(
 			scene,
 			bottlesRoot,
 			"BottlingBottle_0" + std::to_string(i + 1),
