@@ -6,7 +6,6 @@
 #include "MousePickingBodySystem.h"
 #include "ParticleSpawner.h"
 #include "SceneRegistry.h"
-#include "Serialized.h"
 #include "physics/Body.h"
 #include "physics/DebugRenderer.h"
 

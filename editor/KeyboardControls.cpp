@@ -13,6 +13,7 @@
 namespace Editor {
 
 void KeyboardControls::Run(Context& context) {
+    return;
     SwitchInputMode(context);
     SwitchAxis();
 

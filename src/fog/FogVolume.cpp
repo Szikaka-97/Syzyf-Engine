@@ -48,6 +48,21 @@ void FogVolume::Render() {
       this->material->SetValue("useColorRamp", false);
   }
 
+  if (this->velocityTexture != nullptr) {
+      glm::vec3 scale = this->GlobalTransform().Scale().Value();
+      glm::vec3 position = this->GlobalTransform().Position().Value();
+
+      this->material->SetValue("useVelocityTex", true);
+      this->material->SetValue("velocityTex", this->velocityTexture);
+
+      this->material->SetValue("simCenter", position);
+
+      this->material->SetValue("simSize", glm::vec2(scale.x, scale.z));
+      this->material->SetValue("velocityStrength", this->velocityStrength);
+  } else {
+      this->material->SetValue("useVelocityTex", false);
+  }
+
   std::vector<int> intersectingLightIndices;
   auto* lights = GetScene()->GetGraphics()->GetLightSystem()->GetAllObjects();
 

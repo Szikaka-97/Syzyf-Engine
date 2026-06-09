@@ -1,14 +1,17 @@
 #pragma once
 
 #include "DepthOfField.h"
+#include "FastNoiseLite.h"
 #include "GameObjectSystem.h"
 #include "GltfScene.h"
 #include "JfaOutline.h"
 #include "LightSystem.h"
+#include "Noise3D.h"
 #include "Resources.h"
 #include "audio/AudioClip.h"
 #include "audio/AudioSource.h"
 #include "audio/AudioSystem.h"
+#include "fog/FluidSimulation.h"
 #include "fog/Fog.h"
 #include "game_scripts/PickableItemSystem.h"
 #include "ui/widgets/wheel/UiWheel.h"
@@ -309,5 +312,36 @@ inline void InitScene(Scene& mainScene) {
     SceneNode* audio = mainScene.CreateNode("Audio");
     audio->AddObject<AudioSource>(
         mainScene.Resources()->Get<AudioClip>("./res/audio/Click.wav"));
+
+    SceneNode* fogNode = mainScene.CreateNode("Fog Volume");
+    fogNode->GlobalTransform().Position() = glm::vec3(0.0, 0.5f, 0.0f);
+    fogNode->GlobalTransform().Scale() = glm::vec3(30.0f, 1.0f, 30.0f);
+
+    auto* fluidSim = fogNode->AddObject<FluidSimulation>();
+    auto* fogVolume = fogNode->AddObject<FogVolume>();
+
+    FastNoiseLite noise;
+    noise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
+    noise.SetFrequency(0.05f);
+    noise.SetFractalType(FastNoiseLite::FractalType_FBm);
+    noise.SetFractalOctaves(3);
+
+    float noiseTexSize = 64.0f;
+    Texture3D* generatedNoise =
+        Noise3D::Create3DNoiseTexture(noise, noiseTexSize, true);
+
+    fogVolume->noiseTexture = generatedNoise;
+    fogVolume->stepSize = 0.015f;
+    fogVolume->scatteringDensity = 2.0f;
+    fogVolume->absorptionDensity = 2.0f;
+    fogVolume->scatteringColor = {124.0f / 255.0f, 0.0f, 1.0f};
+    fogVolume->emissiveStrength = 0.784;
+    fogVolume->noiseScale = 0.090f;
+    fogVolume->velocityTexture = fluidSim->GetVelocityMap();
+    fogVolume->velocityStrength = 5.0f;
+
+    fluidSim->damping = 0.948f;
+    fluidSim->playerRadius = 0.033f;
+    fluidSim->interactionStrength = 0.840f;
 }
 } // namespace TestScene
