@@ -9,7 +9,7 @@
 
 class Texture2D;
 
-bool DrawTextureField(const char* label, Texture2D* currentTexture, ImVec2 size, const std::function<void(const std::string&)>& onFileSelected) {
+inline bool DrawTextureField(const char* label, Texture2D* currentTexture, ImVec2 size, const std::function<void(const std::string&)>& onFileSelected) {
     bool updated = false;
 
     ImGui::PushID(label);
@@ -17,7 +17,7 @@ bool DrawTextureField(const char* label, Texture2D* currentTexture, ImVec2 size,
     if (currentTexture != nullptr) {
         ImGui::ImageButton("##preview", (void*)(intptr_t)currentTexture->GetHandle(), size);
     } else {
-        ImGui::Button("Drop texture here", size);
+        ImGui::Button("Drop", size);
     }
 
     if (ImGui::BeginDragDropTarget()) {

@@ -188,6 +188,16 @@ void ParticleSpawner::DrawImGui() {
     if (this->mesh == nullptr || this->material == nullptr) {
         ImGui::BeginDisabled();
     }
+
+    if (this->material != nullptr) {
+        if (ImGui::CollapsingHeader("Material")) {
+            ImGui::Spacing();
+            Debug::Property(*this->material, "Material Properties");
+            ImGui::Spacing();
+            ImGui::Separator();
+        }
+    }
+
     const char* billboardModes[] = { "Disabled", "Enabled", "Z" };
     int currentBillboardMode = static_cast<int>(this->settings.billboardMode);
     if (ImGui::Combo("Billboard Mode", &currentBillboardMode, billboardModes, IM_ARRAYSIZE(billboardModes))) {
@@ -214,6 +224,8 @@ void ParticleSpawner::DrawImGui() {
         if (this->settings.enableDepthFade == true) {
             ImGui::InputFloat("Depth Fade Distance", &this->settings.depthFadeDistance);
         }
+
+        ImGui::Checkbox("Use Color Ramp", &this->settings.useColorRamp);
     }
 
     ImGui::Checkbox("Rotate Y", &this->settings.rotateY);
