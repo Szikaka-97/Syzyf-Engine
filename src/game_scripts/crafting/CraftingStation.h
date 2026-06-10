@@ -101,6 +101,21 @@ namespace Crafting{
                 Text3D* stageTwoTemperatureText = nullptr;
                 std::array<SceneNode*, 5> qualityStarNodes = {};
 
+                SceneNode* lastStagePotionPanelNode = nullptr;
+                Text3D* lastStagePotionInfoText = nullptr;
+                glm::vec3 lastStagePotionPanelDefaultPosition = glm::vec3(0.0f);
+                glm::vec3 lastStagePotionPanelHiddenPosition = glm::vec3(0.0f);
+                std::array<SceneNode*, 5> lastStagePotionStarNodes = {};
+                std::array<glm::vec3, 5> lastStagePotionStarDefaultPositions = {};
+                std::array<glm::vec3, 5> lastStagePotionStarHiddenPositions = {};
+                int lastStagePotionVisibleStars = 0;
+                float lastStagePotionPanelSlide = 0.0f;
+                bool lastStagePotionPanelVisible = false;
+                bool lastStagePotionTextVisible = false;
+                std::string lastStagePotionResultText;
+                bool craftedPotionDataValid = false;
+                CraftedPotionData craftedPotionData;
+
                 SceneNode* stageOneUiNode = nullptr;
                 SceneNode* stageTwoUiNode = nullptr;
                 SceneNode* lastStageUiNode = nullptr;
@@ -204,7 +219,17 @@ namespace Crafting{
                     }
 
                     valveHitboxNode =
-                        FindNodeRecursive(GetNode(), valveHitboxNodeName);
+                        FindNodeRecursive(GetNode(), "Knob_One.001");
+
+                    if (!valveHitboxNode){
+                        valveHitboxNode =
+                            FindNodeRecursive(GetNode(), "Knob_One");
+                    }
+
+                    if (!valveHitboxNode){
+                        valveHitboxNode =
+                            FindNodeRecursive(GetNode(), valveHitboxNodeName);
+                    }
 
                     if (valveHitboxNode){
                         SetValveInteractionEnabled(false);
@@ -255,6 +280,54 @@ namespace Crafting{
                     qualityStarNodes[4] =
                         FindNodeRecursive(GetNode(), "Star.005");
 
+                    lastStagePotionPanelNode =
+                        FindNodeRecursive(GetNode(), "quality_metter.001");
+
+                    if (lastStagePotionPanelNode){
+                        lastStagePotionPanelDefaultPosition =
+                            lastStagePotionPanelNode->LocalTransform().Position().Value();
+
+                        lastStagePotionPanelHiddenPosition =
+                            lastStagePotionPanelDefaultPosition + glm::vec3(0.0f, -0.55f, 0.0f);
+
+                        lastStagePotionPanelNode->LocalTransform().Position() =
+                            lastStagePotionPanelHiddenPosition;
+
+                        lastStagePotionPanelNode->SetEnabled(false);
+                    }
+
+                    lastStagePotionStarNodes[0] =
+                        FindNodeRecursive(GetNode(), "Star.006");
+
+                    lastStagePotionStarNodes[1] =
+                        FindNodeRecursive(GetNode(), "Star.007");
+
+                    lastStagePotionStarNodes[2] =
+                        FindNodeRecursive(GetNode(), "Star.008");
+
+                    lastStagePotionStarNodes[3] =
+                        FindNodeRecursive(GetNode(), "Star.009");
+
+                    lastStagePotionStarNodes[4] =
+                        FindNodeRecursive(GetNode(), "Star.010");
+
+                    for (int i = 0; i < 5; i++){
+                        if (!lastStagePotionStarNodes[i]){
+                            continue;
+                        }
+
+                        lastStagePotionStarDefaultPositions[i] =
+                            lastStagePotionStarNodes[i]->LocalTransform().Position().Value();
+
+                        lastStagePotionStarHiddenPositions[i] =
+                            lastStagePotionStarDefaultPositions[i] + glm::vec3(0.0f, -0.55f, 0.0f);
+
+                        lastStagePotionStarNodes[i]->LocalTransform().Position() =
+                            lastStagePotionStarHiddenPositions[i];
+
+                        lastStagePotionStarNodes[i]->SetEnabled(false);
+                    }
+
                     if (bellowNode){
                         bellowDefaultScale =
                             bellowNode->LocalTransform().Scale().Value();
@@ -292,6 +365,7 @@ namespace Crafting{
 
                     CreateStageOneModelTexts();
                     CreateStageTwoModelTexts();
+                    CreateLastStageModelTexts();
                     UpdateInventorySlotTexts();
                     UpdateCauldronSlotTexts();
                     UpdateHeatingModelUi();
@@ -377,6 +451,33 @@ namespace Crafting{
                 void ResetCraftingSession(){
                     currentStage = CraftingStage::None;
                     blowerClickRequested = false;
+                    craftedPotionDataValid = false;
+                    lastStagePotionPanelVisible = false;
+                    lastStagePotionTextVisible = false;
+                    lastStagePotionResultText.clear();
+                    lastStagePotionPanelSlide = 0.0f;
+
+                    if (lastStagePotionPanelNode){
+                        lastStagePotionPanelNode->SetEnabled(false);
+                        lastStagePotionPanelNode->LocalTransform().Position() =
+                            lastStagePotionPanelHiddenPosition;
+                    }
+
+                    if (lastStagePotionInfoText){
+                        lastStagePotionInfoText->SetText("");
+                    }
+
+                    lastStagePotionVisibleStars = 0;
+
+                    for (int i = 0; i < 5; i++){
+                        if (!lastStagePotionStarNodes[i]){
+                            continue;
+                        }
+
+                        lastStagePotionStarNodes[i]->SetEnabled(false);
+                        lastStagePotionStarNodes[i]->LocalTransform().Position() =
+                            lastStagePotionStarHiddenPositions[i];
+                    }
 
                     if (stageOneUiNode){
                         stageOneUiNode->SetEnabled(false);
@@ -582,6 +683,11 @@ namespace Crafting{
 
                     if (currentStage == CraftingStage::Finished){
                         OnDoorClicked();
+                        return;
+                    }
+
+                    if (currentStage == CraftingStage::Bottling && lastStagePotionPanelVisible){
+                        ExitStation();
                     }
                 }
 
@@ -867,6 +973,151 @@ namespace Crafting{
                     );
                 }
 
+                void CreateLastStageModelTexts(){
+                    if (!GetScene()){
+                        return;
+                    }
+
+                    Font* font = LoadModelUiFont();
+
+                    lastStagePotionInfoText = CreateModelText(
+                        lastStagePotionPanelNode,
+                        "LastStagePotionInfoText",
+                        "",
+                        font,
+                        glm::vec3(0.0f, 0.05f, 0.08f),
+                        0.024f
+                    );
+                }
+
+                void UpdateLastStagePotionPanel(float deltaTime){
+                    if (!lastStagePotionPanelNode || !lastStagePotionPanelVisible){
+                        return;
+                    }
+
+                    lastStagePotionPanelSlide =
+                        glm::clamp(
+                            lastStagePotionPanelSlide + deltaTime * 1.75f,
+                            0.0f,
+                            1.0f
+                        );
+
+                    float smoothSlide =
+                        lastStagePotionPanelSlide * lastStagePotionPanelSlide *
+                        (3.0f - 2.0f * lastStagePotionPanelSlide);
+
+                    lastStagePotionPanelNode->LocalTransform().Position() =
+                        glm::mix(
+                            lastStagePotionPanelHiddenPosition,
+                            lastStagePotionPanelDefaultPosition,
+                            smoothSlide
+                        );
+
+                    for (int i = 0; i < 5; i++){
+                        if (!lastStagePotionStarNodes[i]){
+                            continue;
+                        }
+
+                        lastStagePotionStarNodes[i]->LocalTransform().Position() =
+                            glm::mix(
+                                lastStagePotionStarHiddenPositions[i],
+                                lastStagePotionStarDefaultPositions[i],
+                                smoothSlide
+                            );
+                    }
+
+                    if (lastStagePotionPanelSlide >= 1.0f && !lastStagePotionTextVisible){
+                        if (lastStagePotionInfoText){
+                            lastStagePotionInfoText->SetText(lastStagePotionResultText);
+                        }
+
+                        lastStagePotionTextVisible = true;
+                    }
+                }
+
+                void ShowLastStagePotionPanel(){
+                    lastStagePotionPanelVisible = true;
+                    lastStagePotionTextVisible = false;
+                    lastStagePotionResultText.clear();
+                    lastStagePotionPanelSlide = 0.0f;
+
+                    if (lastStagePotionPanelNode){
+                        lastStagePotionPanelNode->SetEnabled(true);
+                        lastStagePotionPanelNode->LocalTransform().Position() =
+                            lastStagePotionPanelHiddenPosition;
+                    }
+
+                    for (int i = 0; i < 5; i++){
+                        if (!lastStagePotionStarNodes[i]){
+                            continue;
+                        }
+
+                        lastStagePotionStarNodes[i]->SetEnabled(false);
+                        lastStagePotionStarNodes[i]->LocalTransform().Position() =
+                            lastStagePotionStarHiddenPositions[i];
+                    }
+
+                    if (!lastStagePotionInfoText){
+                        return;
+                    }
+
+                    lastStagePotionInfoText->SetText("");
+
+                    std::ostringstream text;
+                    text << std::fixed << std::setprecision(2);
+
+                    if (!craftedPotionDataValid){
+                        text << "potion failed\n";
+                        text << "bottles=" << bottlingStage.GetFilledBottles() << "/" << bottlingStage.GetRequiredFilledBottles();
+
+                        lastStagePotionResultText = text.str();
+                        return;
+                    }
+
+                    float qualityPercent = 0.0f;
+
+                    if (cauldron){
+                        qualityPercent = cauldron->GetQualityPercent();
+                    }
+
+                    lastStagePotionVisibleStars = 0;
+
+                    if (qualityPercent > 80.0f){
+                        lastStagePotionVisibleStars = 5;
+                    }
+                    else if (qualityPercent > 60.0f){
+                        lastStagePotionVisibleStars = 4;
+                    }
+                    else if (qualityPercent > 40.0f){
+                        lastStagePotionVisibleStars = 3;
+                    }
+                    else if (qualityPercent > 20.0f){
+                        lastStagePotionVisibleStars = 2;
+                    }
+                    else if (qualityPercent > 0.0f){
+                        lastStagePotionVisibleStars = 1;
+                    }
+
+                    for (int i = 0; i < 5; i++){
+                        if (!lastStagePotionStarNodes[i]){
+                            continue;
+                        }
+
+                        lastStagePotionStarNodes[i]->SetEnabled(i < lastStagePotionVisibleStars);
+                    }
+
+                    text << "effect=" << craftedPotionData.primaryEffectId << "\n";
+
+                    if (craftedPotionData.secondaryEffectId != EffectId::None){
+                        text << "secondary=" << craftedPotionData.secondaryEffectId << "\n";
+                    }
+
+                    text << "radius=" << craftedPotionData.radius << " power=" << craftedPotionData.power << "\n";
+                    text << "duration=" << craftedPotionData.duration << " bottles=" << bottlingStage.GetFilledBottles();
+
+                    lastStagePotionResultText = text.str();
+                }
+
                 void UpdateQualityStars(){
                     float qualityPercent =
                         heatingStage.GetQualityPercent();
@@ -1006,7 +1257,9 @@ namespace Crafting{
 
                     bool finished = bottlingStage.Update(deltaTime);
 
-                    if (finished){
+                    UpdateLastStagePotionPanel(deltaTime);
+
+                    if (finished && !lastStagePotionPanelVisible){
                         FinishBottlingStage();
                     }
                 }
@@ -1121,6 +1374,34 @@ namespace Crafting{
                         lastStageCameraLightNode->SetEnabled(true);
                     }
 
+                    craftedPotionDataValid = false;
+                    lastStagePotionPanelVisible = false;
+                    lastStagePotionTextVisible = false;
+                    lastStagePotionResultText.clear();
+                    lastStagePotionPanelSlide = 0.0f;
+
+                    if (lastStagePotionPanelNode){
+                        lastStagePotionPanelNode->SetEnabled(false);
+                        lastStagePotionPanelNode->LocalTransform().Position() =
+                            lastStagePotionPanelHiddenPosition;
+                    }
+
+                    if (lastStagePotionInfoText){
+                        lastStagePotionInfoText->SetText("");
+                    }
+
+                    lastStagePotionVisibleStars = 0;
+
+                    for (int i = 0; i < 5; i++){
+                        if (!lastStagePotionStarNodes[i]){
+                            continue;
+                        }
+
+                        lastStagePotionStarNodes[i]->SetEnabled(false);
+                        lastStagePotionStarNodes[i]->LocalTransform().Position() =
+                            lastStagePotionStarHiddenPositions[i];
+                    }
+
                     SetHeatingUiEnabled(false);
 
                     SetDoorInteractionEnabled(false);
@@ -1138,36 +1419,40 @@ namespace Crafting{
                     }
 
                     SetValveInteractionEnabled(false);
+                    bottlingStage.Stop();
 
                     SaveCraftedPotion();
-
-                    ExitStation();
+                    ShowLastStagePotionPanel();
                 }
 
                 void SaveCraftedPotion(){
+                    craftedPotionDataValid = false;
+
                     if (!cauldron || !bottlingStage.HasEnoughFilledBottles()){
                         return;
                     }
 
-                    CraftedPotionData potionData =
+                    craftedPotionData =
                         CraftingRecipeChecker::BuildCraftedPotion(
                             cauldron->GetIngredients(),
                             cauldron->GetQualityPercent()
                         );
 
+                    craftedPotionDataValid = true;
+
                     PotionInventory::SaveLastCraftedPotion(
-                        potionData,
+                        craftedPotionData,
                         bottlingStage.GetFilledBottles()
                     );
 
                     spdlog::error(
                         "CraftingStation: crafted '{}' effect={} secondary={} radius={:.2f} duration={:.2f} power={:.2f} bottles={}",
-                        potionData.recipeName,
-                        potionData.primaryEffectId,
-                        potionData.secondaryEffectId,
-                        potionData.radius,
-                        potionData.duration,
-                        potionData.power,
+                        craftedPotionData.recipeName,
+                        craftedPotionData.primaryEffectId,
+                        craftedPotionData.secondaryEffectId,
+                        craftedPotionData.radius,
+                        craftedPotionData.duration,
+                        craftedPotionData.power,
                         bottlingStage.GetFilledBottles()
                     );
 

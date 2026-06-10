@@ -891,59 +891,50 @@ namespace CraftingScene {
 	    }
 
 	    if (!valveNode) {
-		    valveNode = roomNode;
+		    valveNode = FindFirstNodeByNameRecursive(roomNode, "Valve_Barrel");
 	    }
 
-	    SceneNode* valveHitboxNode =
-		    scene.CreateNode(valveNode, "ValveHitbox");
+	    if (!valveNode) {
+		    return nullptr;
+	    }
 
-	    valveHitboxNode->LocalTransform().Position() =
-		    glm::vec3(0.0f);
+	    MeshRenderer* renderer =
+		    valveNode->GetObject<MeshRenderer>();
 
-	    valveHitboxNode->LocalTransform().Scale() =
-		    glm::vec3(0.35f);
-
-	    Mesh* cubeMesh =
-		    scene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
-
-	    Material* valveMaterial =
-		    CreateColorMaterial(glm::vec4(1.0f, 0.85f, 0.15f, 0.45f));
-
-	    if (cubeMesh && valveMaterial) {
-		    valveHitboxNode->AddObject<MeshRenderer>(
-			    cubeMesh,
-			    valveMaterial
+	    if (renderer && renderer->GetMesh() && !valveNode->GetObject<Physics::Body>()) {
+		    auto* valveBody = valveNode->AddObject<Physics::Body>(
+			    JPH::BodyCreationSettings{
+				    Physics::MeshShape(renderer->GetMesh()),
+				    JPH::RVec3::sZero(),
+				    JPH::Quat::sIdentity(),
+				    JPH::EMotionType::Static,
+				    Physics::Layers::NON_MOVING
+			    }
 		    );
+
+		    valveBody->SetIsSensor(true);
+		    SetInteractionBodyLayer(valveBody);
+		    valveBody->SetPosition(valveNode->GlobalTransform().Position().Value());
+		    valveBody->SetRotation(valveNode->GlobalTransform().Rotation().Value());
 	    }
-
-	    glm::vec3 valveHitboxPosition =
-		    valveHitboxNode->GlobalTransform().Position().Value();
-
-	    auto* valveBody = valveHitboxNode->AddObject<Physics::Body>(
-		    JPH::BodyCreationSettings{
-			    Physics::BoxShape(glm::vec3(1.0f)),
-			    JPH::RVec3(
-				    valveHitboxPosition.x,
-				    valveHitboxPosition.y,
-				    valveHitboxPosition.z
-			    ),
-			    JPH::Quat::sIdentity(),
-			    JPH::EMotionType::Static,
-			    Physics::Layers::NON_MOVING
-		    }
-	    );
-
-	    valveBody->SetPosition(valveHitboxPosition);
-	    valveBody->SetIsSensor(true);
-	    SetInteractionBodyLayer(valveBody);
+	    else if (auto* valveBody = valveNode->GetObject<Physics::Body>()) {
+		    valveBody->SetIsSensor(true);
+		    SetInteractionBodyLayer(valveBody);
+		    valveBody->SetPosition(valveNode->GlobalTransform().Position().Value());
+		    valveBody->SetRotation(valveNode->GlobalTransform().Rotation().Value());
+	    }
 
 	    auto* valveInteractable =
-		    valveHitboxNode->AddObject<Crafting::CraftingInteractable>();
+		    valveNode->GetObject<Crafting::CraftingInteractable>();
+
+	    if (!valveInteractable) {
+		    valveInteractable = valveNode->AddObject<Crafting::CraftingInteractable>();
+	    }
 
 	    valveInteractable->type = Crafting::CraftingInteractionType::Valve;
 	    valveInteractable->interactionEnabled = false;
 
-	    return valveHitboxNode;
+	    return valveNode;
     }
 
     inline void CreateUiButtonInteractable(
