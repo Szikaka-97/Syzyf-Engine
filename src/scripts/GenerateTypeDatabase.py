@@ -224,18 +224,21 @@ class CppType:
 			return
 
 		for class_part in decl_cursor.get_children():
-			if is_type_decl(class_part):
-				CppType.read_type(class_part.type)
-			elif class_part.kind == clang.CursorKind.FIELD_DECL:
-				self.fields.append(CppField(class_part, clang_type))
-			elif class_part.kind == clang.CursorKind.CXX_METHOD:
-				self.methods.append(CppMethod(class_part))
-			elif class_part.kind == clang.CursorKind.CXX_BASE_SPECIFIER:
-				self.base_classes.append(CppType.read_type(class_part.type))
-			elif class_part.kind == clang.CursorKind.CONSTRUCTOR:
-				self.constructors.append(CppMethod(class_part))
-			elif class_part.kind == clang.CursorKind.DESTRUCTOR:
-				self.destructor = CppMethod(class_part)
+			try:
+				if is_type_decl(class_part):
+					CppType.read_type(class_part.type)
+				elif class_part.kind == clang.CursorKind.FIELD_DECL:
+					self.fields.append(CppField(class_part, clang_type))
+				elif class_part.kind == clang.CursorKind.CXX_METHOD:
+					self.methods.append(CppMethod(class_part))
+				elif class_part.kind == clang.CursorKind.CXX_BASE_SPECIFIER:
+					self.base_classes.append(CppType.read_type(class_part.type))
+				elif class_part.kind == clang.CursorKind.CONSTRUCTOR:
+					self.constructors.append(CppMethod(class_part))
+				elif class_part.kind == clang.CursorKind.DESTRUCTOR:
+					self.destructor = CppMethod(class_part)
+			except:
+				pass
 		
 
 	@classmethod
