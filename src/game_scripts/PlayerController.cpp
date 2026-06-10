@@ -264,7 +264,9 @@ void PlayerController::UpdateTargetting() {
 	this->characterRoot->LocalTransform().Rotation() = glm::angleAxis(this->aimBearing, glm::vec3(0, 1, 0));
 
 	if (!this->CanThrow()) {
-		this->aim->SetEnabled(false);
+		if (this->aim) {
+			this->aim->SetEnabled(false);
+		}
 
 		return;
 	}
