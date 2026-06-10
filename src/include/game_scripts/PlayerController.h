@@ -80,9 +80,7 @@ public:
 
 	void Die();
 
-	inline bool CanThrow() const {
-		return this->throwingUnlocked && this->aim != nullptr;
-	}
+	bool CanThrow() const;
 
 	inline void SetThrowingUnlocked(bool unlocked) {
 		this->throwingUnlocked = unlocked;

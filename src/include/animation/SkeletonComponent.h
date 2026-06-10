@@ -11,6 +11,8 @@ class SkeletonComponent : public GameObject {
 public:
   SkeletonComponent() = default;
 
+  void Awake();
+
   serialized std::vector<glm::mat4> inverseBindMatrices;
   serialized std::vector<SceneNode*> joints;
   serialized std::vector<glm::mat4> jointMatrices;

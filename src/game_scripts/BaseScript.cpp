@@ -271,7 +271,7 @@ void BaseTutorialManager::Update() {
 
 		CameraSettings* cam = GetScene()->FindObjectsOfType<CameraSettings>()[0];
 
-		if (cam->angleY > 180) {
+		if (cam->GetAngleY() >= 180) {
 			this->playerFoundKey = true;
 		}
 	}
@@ -294,13 +294,22 @@ void BaseTutorialManager::Update() {
 	}
 
 	if (this->playerGotCloseToKey) {
-		this->tutorialText->SetText("Use G to pick up objects that are near you");
+		this->tutorialText->SetText("Use F to pick up objects that are near you");
 
 		if (!PersistentData::Get<bool>("Base_PlayerPickedUpKey")) {
 			this->tutorialText->color.w = glm::clamp(this->tutorialText->color.w + Time::Delta(), 0.f, 1.f);
 		}
 		else {
 			this->tutorialText->color.w = glm::clamp(this->tutorialText->color.w - Time::Delta(), 0.f, 1.f);
+		}
+	}
+
+	if (PersistentData::Get<bool>("Base_PlayerPickedUpKey")) {
+		if (!GetObject<BaseScript>()->gateLowering) {
+			GetNode()->FindNode("Exit Gate/Exit Gate Lock")->GetObject<MeshRenderer>()->maskFlags = MaskEffectBits::Outline;
+		}
+		else {
+			GetNode()->FindNode("Exit Gate/Exit Gate Lock")->GetObject<MeshRenderer>()->maskFlags = 0;
 		}
 	}
 }

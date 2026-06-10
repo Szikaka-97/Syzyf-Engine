@@ -388,7 +388,7 @@ void SceneGraphics::DrawMeshInstanced(MeshRenderer* renderer, unsigned int insta
 		drawnMesh = GetErrorMesh();
 	}
 
-    auto* skeleton = renderer->GetNode()->GetObject<SkeletonComponent>();
+    auto* skeleton = renderer->GetSkeleton();
 
     for (int i = 0; i < drawnMesh->GetSubMeshCount(); i++) {
         const Mesh::SubMesh* mesh = &drawnMesh->SubMeshAt(i);

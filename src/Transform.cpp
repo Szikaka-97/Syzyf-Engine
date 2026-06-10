@@ -49,7 +49,7 @@ void SceneTransform::ClearDirty() {
 }
  
 SceneTransform::TransformAccess::TransformAccess(SceneTransform& source) :
-dirty(false),
+dirty(true),
 source(source),
 transformation(glm::identity<glm::mat4>()) { }
 

@@ -68,19 +68,19 @@ inline void InitScene(Scene& mainScene) {
 	mainScene.AddComponent<WheelSystem>();
 	mainScene.AddComponent<ThrowableObjectPool>();
 
-	mainScene.GetComponent<LightSystem>()->SetAmbientLight(glm::vec4(1, 0.6, 0.3, 0.03));
+	mainScene.GetComponent<LightSystem>()->SetAmbientLight(glm::vec4(1, 0.6, 0.3, 0.13));
 
 #pragma region Base
 	auto floorNode = ResourceDatabase::Global->Get<GltfScene>("./res/models/rooms/Base.glb")->Instantiate(&mainScene, mainScene.root, "Floor");
-	MeshRenderer* floorMeshRenderer = floorNode->GetObjectInChildren<MeshRenderer>();
-	auto* floorBody = floorMeshRenderer->GetNode()->AddObject<Physics::Body>(
-		JPH::BodyCreationSettings{
-			Physics::MeshShape(floorMeshRenderer->GetMesh()),
-			JPH::RVec3::sZero(), JPH::Quat::sZero(), JPH::EMotionType::Static,
-			Physics::Layers::NON_MOVING
-		}
-	);
-	floorBody->SetCollisionLayerAndMask({0}, 0xFFFFFFFF);
+	// MeshRenderer* floorMeshRenderer = floorNode->GetObjectInChildren<MeshRenderer>();
+	// auto* floorBody = floorMeshRenderer->GetNode()->AddObject<Physics::Body>(
+	// 	JPH::BodyCreationSettings{
+	// 		Physics::MeshShape(floorMeshRenderer->GetMesh()),
+	// 		JPH::RVec3::sZero(), JPH::Quat::sZero(), JPH::EMotionType::Static,
+	// 		Physics::Layers::NON_MOVING
+	// 	}
+	// );
+	// floorBody->SetCollisionLayerAndMask({0}, 0xFFFFFFFF);
 
 	ShaderProgram* skyProg = ShaderProgram::Build()
 	.WithVertexShader(("./res/shaders/skybox.vert"))
@@ -114,7 +114,7 @@ inline void InitScene(Scene& mainScene) {
 	floorNode->AddObject<BaseScript>();
 	floorNode->AddObject<BaseLights>();
 	floorNode->AddObject<BaseTutorialManager>();
-        floorNode->AddObject<BaseExitToTutorialThrowingRoom>();
+	floorNode->AddObject<BaseExitToTutorialThrowingRoom>();
 #pragma endregion
 
 #pragma region Player
@@ -144,7 +144,7 @@ inline void InitScene(Scene& mainScene) {
 #pragma region Camera
 	SceneNode* cameraNode = mainScene.CreateNode("Camera Node");
 	cameraNode->AddObject<Camera>(Camera::Perspective(60.0f, 16.0f / 9.0f, 0.1f, 200.0f));
-	cameraNode->AddObject<CameraSettings>(playerNode->GlobalTransform().Position())->angleY = 135;
+	cameraNode->AddObject<CameraSettings>(playerNode->GlobalTransform().Position(), 5, 135);
 	cameraNode->AddObject<MaskEffects>();
 	auto* jfa = cameraNode->AddObject<JfaOutline>();
 	jfa->outlineThickness = 4.0f;

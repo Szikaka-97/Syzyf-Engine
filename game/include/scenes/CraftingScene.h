@@ -58,7 +58,6 @@
 #include <glm/geometric.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/matrix_inverse.hpp>
-#include <spdlog/spdlog.h>
 
 #include <algorithm>
 #include <string>
@@ -1725,9 +1724,11 @@ namespace CraftingScene {
 
 	    cameraNode->GetObject<Camera>()->SetAsMainCamera();
 
-	    cameraNode->AddObject<CameraSettings>(
-		    playerNode->GlobalTransform().Position()
-	    )->angleY = 135;
+	cameraNode->AddObject<CameraSettings>(
+		playerNode->GlobalTransform().Position(),
+		5,
+		135
+	);
 
 	    cameraNode->AddObject<MaskEffects>();
 

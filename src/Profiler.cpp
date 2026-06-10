@@ -6,11 +6,11 @@
 
 #include <spdlog/spdlog.h>
 
-std::map<std::string, Profiler::ProfilerData> Profiler::profilerNodes;
+std::map<std::filesystem::path, Profiler::ProfilerData> Profiler::profilerNodes;
 
 std::stack<Profiler::ProfilerData> Profiler::profilerStack;
 
-Profiler::ProfilerData::ProfilerData(const std::string& name):
+Profiler::ProfilerData::ProfilerData(const std::filesystem::path& name):
 name(name),
 times() { }
 
@@ -27,13 +27,13 @@ void Profiler::Step() {
 }
 
 void Profiler::Push(const std::string &name) {
-	std::string fullName;
+	std::filesystem::path fullName;
 
 	if (profilerStack.empty()) {
 		fullName = name;
 	}
 	else {
-		fullName = std::format("{}/{}", profilerStack.top().name, name);
+		fullName = profilerStack.top().name / name;
 	}
 
 	profilerStack.push(ProfilerData(fullName));
