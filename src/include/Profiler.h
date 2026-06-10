@@ -2,7 +2,7 @@
 
 #include <chrono>
 #include <stack>
-#include <functional>
+#include <filesystem>
 #include <map>
 
 class Profiler {
@@ -10,18 +10,18 @@ private:
 	static constexpr int FrameMemory = 10;
 
 	struct ProfilerData {
-		std::string name = "";
+		std::filesystem::path name = "";
 		std::chrono::nanoseconds times[FrameMemory] = {};
 
 		ProfilerData() = default;
-		ProfilerData(const std::string& name);
+		ProfilerData(const std::filesystem::path& name);
 	};
 
-	static std::map<std::string, ProfilerData> profilerNodes;
+	static std::map<std::filesystem::path, ProfilerData> profilerNodes;
 	static std::stack<ProfilerData> profilerStack;
 public:
 	struct ProfilerResult {
-		std::string name = "";
+		std::filesystem::path name = "";
 		double time;
 	};
 
