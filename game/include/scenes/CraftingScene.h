@@ -58,6 +58,7 @@
 #include <glm/geometric.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/matrix_inverse.hpp>
+#include <spdlog/spdlog.h>
 
 #include <algorithm>
 #include <string>
@@ -69,7 +70,7 @@ static constexpr const char* CraftingTutorialModelPath =
 	"./res/models/rooms/CraftingTutorial.glb";
 
 static constexpr const char* CraftingStationModelPath =
-	"./res/models/bimbermanMachineNameingScheme.glb";
+	"./res/models/Bimbermachine.glb";
 
 struct IngredientSpawnData {
 	std::string nodeName;
@@ -119,6 +120,26 @@ inline SceneNode* FindFirstNodeByNamesRecursive(SceneNode* node, const std::vect
 	}
 
 	return nullptr;
+}
+
+inline SceneNode* FindStationMarkerNode(SceneNode* roomNode) {
+	return FindFirstNodeByNamesRecursive(
+		roomNode,
+		{
+			"CraftingStationPoint",
+			"Crafting_Station_Point",
+			"CraftingStationSpawn",
+			"Crafting_Station_Spawn",
+			"BimberMachinePoint",
+			"Bimber_Machine_Point",
+			"MachinePoint",
+			"Machine_Point",
+			"StationPoint",
+			"Station_Point",
+			"station",
+			"Station"
+		}
+	);
 }
 
 inline void CollectPointLightsRecursive(SceneNode* node, std::vector<SceneNode*>& pointLights) {
@@ -549,7 +570,13 @@ inline void AddStationMeshPhysics(SceneNode* roomNode) {
 		"Knob_One.001",
 		"Lever",
 		"Fire_Place",
-		"Door"
+		"Door",
+		"ramka",
+		"ramka.001",
+		"ramka.002",
+		"device",
+		"bellow",
+		"Cube"
 	};
 
 	for (const std::string& nodeName : stationMeshNodes) {
@@ -587,7 +614,13 @@ inline void DisableEmbeddedStationNodes(SceneNode* roomNode, SceneNode* stationN
 		"Knob_One.001",
 		"Lever",
 		"Fire_Place",
-		"Door"
+		"Door",
+		"ramka",
+		"ramka.001",
+		"ramka.002",
+		"device",
+		"bellow",
+		"Cube"
 	};
 
 	for (const std::string& nodeName : stationMeshNodes) {
@@ -614,32 +647,17 @@ inline bool AlignStationModelToRoom(SceneNode* roomNode, SceneNode* stationNode)
 	}
 
 	SceneNode* stationMarkerNode =
-		FindFirstNodeByNamesRecursive(
-			roomNode,
-			{
-				"station",
-			}
-		);
+		FindStationMarkerNode(roomNode);
 
 	if (stationMarkerNode) {
-		glm::vec3 markerWorldPosition =
+		stationNode->GlobalTransform().Position() =
 			stationMarkerNode->GlobalTransform().Position().Value();
 
-
-		glm::quat stationRotationOffset =
-			glm::quat(
-				glm::radians(
-					glm::vec3(0.0f, 90.0f, 0.0f)
-				)
-			);
-
-		stationNode->GlobalTransform().Position() =
-			markerWorldPosition;
-
-		stationNode->GlobalTransform().Rotation() = stationRotationOffset;
+		stationNode->GlobalTransform().Rotation() =
+		    stationMarkerNode->GlobalTransform().Rotation().Value() + glm::quat(glm::radians(glm::vec3(0.0f, 360.0f, 0.0f)));
 
 		stationNode->GlobalTransform().Scale() =
-			glm::vec3(1.0f);
+			stationMarkerNode->GlobalTransform().Scale().Value();
 
 		return true;
 	}
@@ -651,6 +669,10 @@ inline bool AlignStationModelToRoom(SceneNode* roomNode, SceneNode* stationNode)
 		FindFirstNodeByNameRecursive(stationNode, "Cauldron");
 
 	if (!roomCauldronNode || !stationCauldronNode) {
+		spdlog::error(
+			"CraftingScene: missing crafting machine marker and cannot fallback to Cauldron alignment."
+		);
+
 		return false;
 	}
 
@@ -681,10 +703,22 @@ inline SceneNode* CreateCraftingStationModel(Scene& scene, SceneNode* roomNode) 
 		return nullptr;
 	}
 
-	SceneNode* stationNode =
+	GltfScene* stationModel =
 		ResourceDatabase::Global->Get<GltfScene>(
 			CraftingStationModelPath
-		)->Instantiate(&scene, roomNode, "Crafting Station");
+		);
+
+	if (!stationModel) {
+		spdlog::error(
+			"CraftingScene: cannot load crafting machine model '{}'.",
+			CraftingStationModelPath
+		);
+
+		return nullptr;
+	}
+
+	SceneNode* stationNode =
+		stationModel->Instantiate(&scene, roomNode, "Crafting Station");
 
 	if (!stationNode) {
 		return nullptr;
@@ -717,19 +751,22 @@ inline SceneNode* CreateBlowerHitbox(Scene& scene, SceneNode* roomNode) {
 		return nullptr;
 	}
 
-	SceneNode* firePlaceNode =
-		FindFirstNodeByNameRecursive(roomNode, "Fire_Place");
+	SceneNode* blowerNode =
+		FindFirstNodeByNameRecursive(roomNode, "bellow");
 
-	if (!firePlaceNode) {
+	if (!blowerNode) {
+		blowerNode = FindFirstNodeByNameRecursive(roomNode, "Fire_Place");
+	}
 
-		firePlaceNode = roomNode;
+	if (!blowerNode) {
+		blowerNode = roomNode;
 	}
 
 	SceneNode* blowerHitboxNode =
-		scene.CreateNode(firePlaceNode, "BlowerHitbox");
+		scene.CreateNode(blowerNode, "BlowerHitbox");
 
 	blowerHitboxNode->LocalTransform().Position() =
-		glm::vec3(0.0f, 0.15f, 0.0f);
+		glm::vec3(0.0f);
 
 	blowerHitboxNode->LocalTransform().Scale() =
 		glm::vec3(0.45f);
