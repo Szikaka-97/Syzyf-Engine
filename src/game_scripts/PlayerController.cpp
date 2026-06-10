@@ -434,7 +434,7 @@ void PlayerController::HandleItemInteractions() {
 	}
 
 	// On interact
-	if (this->GetScene()->Input()->KeyDown(Key::G) && this->highlightedItem != nullptr) {
+	if (this->GetScene()->Input()->KeyDown(Key::F) && this->highlightedItem != nullptr) {
 		this->highlightedItem->OnPickUp();
 		delete this->highlightedItem->GetNode();
 		this->highlightedItem = nullptr;
