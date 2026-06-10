@@ -37,6 +37,9 @@ public:
 	Scene* GetScene();
 
 	bool IsEnabled() const;
+
+	bool EnabledSelf() const;
+	
 	void SetEnabled(bool enabled);
 
 	template<class T_GO>
