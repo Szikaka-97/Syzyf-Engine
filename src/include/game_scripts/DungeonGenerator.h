@@ -20,6 +20,7 @@ private:
 		glm::vec2 position;
 		RoomShape type;
 		int orientation;
+		SceneNode* room;
 	};
 
 	struct RoomPrefab {
@@ -30,7 +31,7 @@ private:
 
 	std::vector<RoomPrefab> roomPrefabs;
 
-	std::vector<SceneNode*> dungeonRooms;
+	std::vector<PlacedRoom> dungeonRooms;
 	std::queue<PlacedRoom> roomsToSpawn;
 
 	SceneNode* PlaceRoom();
@@ -48,6 +49,7 @@ public:
 
 	void RemakeDungeon();
 
+	void Update();
 	void Render();
 
 	virtual void DrawImGui() override;
