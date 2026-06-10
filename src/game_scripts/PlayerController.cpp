@@ -264,6 +264,8 @@ void PlayerController::UpdateTargetting() {
 	this->characterRoot->LocalTransform().Rotation() = glm::angleAxis(this->aimBearing, glm::vec3(0, 1, 0));
 
 	if (!this->CanThrow()) {
+		this->aim->SetEnabled(false);
+
 		return;
 	}
 
@@ -473,6 +475,10 @@ void PlayerController::Die() {
 	spdlog::info("Player is dead!");
 
 	delete this;
+}
+
+bool PlayerController::CanThrow() const {
+	return this->throwingUnlocked && this->aim != nullptr && PotionInventory::HasPotion();
 }
 
 void PlayerController::DrawImGui() {
