@@ -65,15 +65,15 @@ static void APIENTRY glDebugOutput(
 
 	switch (severity) {
 		case GL_DEBUG_SEVERITY_HIGH:
-			if (source != GL_DEBUG_SOURCE_SHADER_COMPILER) { // Shader errors handled separately
-				spdlog::error("GL {} {}: {} ({})", sourceString, typeString, message, id);
-			
-				//asm("INT3");
-				//For now this line is commented because it breaks the engin
-				//[2026-06-08 22:26:56.500] [Bimberman] [error] GL API Error: GL_INVALID_OPERATION error generated. <location> is invalid.
-				//(1282)
-				//throw 1;
-			}
+			// if (source != GL_DEBUG_SOURCE_SHADER_COMPILER) { // Shader errors handled separately
+			// 	spdlog::error("GL {} {}: {} ({})", sourceString, typeString, message, id);
+			//
+			// 	//asm("INT3");
+			// 	//For now this line is commented because it breaks the engin
+			// 	//[2026-06-08 22:26:56.500] [Bimberman] [error] GL API Error: GL_INVALID_OPERATION error generated. <location> is invalid.
+			// 	//(1282)
+			// 	//throw 1;
+			// }
 
 			break;
 		case GL_DEBUG_SEVERITY_MEDIUM:
