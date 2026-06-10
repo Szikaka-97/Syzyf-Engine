@@ -90,6 +90,17 @@ namespace Crafting{
                 SceneNode* heatingUiRootNode = nullptr;
                 UiText* heatingUiText = nullptr;
 
+                SceneNode* bellowNode = nullptr;
+                SceneNode* bladeNode = nullptr;
+                SceneNode* qualityMeterNode = nullptr;
+
+                glm::vec3 bellowDefaultScale = glm::vec3(1.0f);
+                float bellowAnimationAmount = 0.0f;
+
+                Text3D* stageTwoQualityText = nullptr;
+                Text3D* stageTwoTemperatureText = nullptr;
+                std::array<SceneNode*, 5> qualityStarNodes = {};
+
                 SceneNode* stageOneUiNode = nullptr;
                 SceneNode* stageTwoUiNode = nullptr;
                 SceneNode* lastStageUiNode = nullptr;
@@ -220,6 +231,35 @@ namespace Crafting{
                     lastStageCameraLightNode =
                         FindNodeRecursive(GetNode(), "LastStageCameraLight");
 
+                    bellowNode =
+                        FindNodeRecursive(GetNode(), "bellow");
+
+                    bladeNode =
+                        FindNodeRecursive(GetNode(), "blade");
+
+                    qualityMeterNode =
+                        FindNodeRecursive(GetNode(), "quality_metter");
+
+                    qualityStarNodes[0] =
+                        FindNodeRecursive(GetNode(), "Star.001");
+
+                    qualityStarNodes[1] =
+                        FindNodeRecursive(GetNode(), "Star.002");
+
+                    qualityStarNodes[2] =
+                        FindNodeRecursive(GetNode(), "Star.003");
+
+                    qualityStarNodes[3] =
+                        FindNodeRecursive(GetNode(), "Star.004");
+
+                    qualityStarNodes[4] =
+                        FindNodeRecursive(GetNode(), "Star.005");
+
+                    if (bellowNode){
+                        bellowDefaultScale =
+                            bellowNode->LocalTransform().Scale().Value();
+                    }
+
                     playerInventory[0] = CreateMainEffectIngredientData(
                         IngredientType::Sugar,
                         "Burn",
@@ -251,8 +291,10 @@ namespace Crafting{
                     );
 
                     CreateStageOneModelTexts();
+                    CreateStageTwoModelTexts();
                     UpdateInventorySlotTexts();
                     UpdateCauldronSlotTexts();
+                    UpdateHeatingModelUi();
 
                     lidClosedLocalPosition =
                         lidNode->LocalTransform().Position().Value();
@@ -485,6 +527,7 @@ namespace Crafting{
                     }
 
                     blowerClickRequested = true;
+                    bellowAnimationAmount = 1.0f;
                 }
 
                 void OnDoorClicked(){
@@ -798,6 +841,110 @@ namespace Crafting{
                     );
                 }
 
+                void CreateStageTwoModelTexts(){
+                    if (!GetScene()){
+                        return;
+                    }
+
+                    Font* font = LoadModelUiFont();
+
+                    stageTwoQualityText = CreateModelText(
+                        qualityMeterNode,
+                        "StageTwoQualityText",
+                        "",
+                        font,
+                        glm::vec3(0.0f, 0.05f, 0.08f),
+                        0.045f
+                    );
+
+                    stageTwoTemperatureText = CreateModelText(
+                        bladeNode,
+                        "StageTwoTemperatureText",
+                        "",
+                        font,
+                        glm::vec3(0.0f, 0.06f, 0.12f),
+                        0.04f
+                    );
+                }
+
+                void UpdateQualityStars(){
+                    float qualityPercent =
+                        heatingStage.GetQualityPercent();
+
+                    int visibleStars = 0;
+
+                    if (qualityPercent > 80.0f){
+                        visibleStars = 5;
+                    }
+                    else if (qualityPercent > 60.0f){
+                        visibleStars = 4;
+                    }
+                    else if (qualityPercent > 40.0f){
+                        visibleStars = 3;
+                    }
+                    else if (qualityPercent > 20.0f){
+                        visibleStars = 2;
+                    }
+                    else if (qualityPercent > 0.0f){
+                        visibleStars = 1;
+                    }
+
+                    for (int i = 0; i < 5; i++){
+                        if (!qualityStarNodes[i]){
+                            continue;
+                        }
+
+                        qualityStarNodes[i]->SetEnabled(i < visibleStars);
+                    }
+                }
+
+                void UpdateBellowAnimation(float deltaTime){
+                    if (!bellowNode){
+                        return;
+                    }
+
+                    if (bellowAnimationAmount > 0.0f){
+                        bellowAnimationAmount =
+                            glm::clamp(
+                                bellowAnimationAmount - deltaTime * 3.5f,
+                                0.0f,
+                                1.0f
+                            );
+                    }
+
+                    glm::vec3 compressedScale = bellowDefaultScale;
+                    compressedScale.y *= 0.55f;
+
+                    bellowNode->LocalTransform().Scale() =
+                        glm::mix(
+                            bellowDefaultScale,
+                            compressedScale,
+                            bellowAnimationAmount
+                        );
+                }
+
+                void UpdateHeatingModelUi(){
+                    std::ostringstream qualityText;
+                    qualityText << std::fixed << std::setprecision(1);
+                    qualityText << "Heating\n";
+                    qualityText << "Quality: " << heatingStage.GetQualityPercent() << "%";
+
+                    if (stageTwoQualityText){
+                        stageTwoQualityText->SetText(qualityText.str());
+                    }
+
+                    std::ostringstream temperatureText;
+                    temperatureText << std::fixed << std::setprecision(1);
+                    temperatureText << "Temp: " << heatingStage.GetTemperature() << " C\n";
+                    temperatureText << "Range: " << heatingStage.tempMin << " - " << heatingStage.tempMax << " C";
+
+                    if (stageTwoTemperatureText){
+                        stageTwoTemperatureText->SetText(temperatureText.str());
+                    }
+
+                    UpdateQualityStars();
+                }
+
                 void UpdateInventorySlotTexts(){
                     for (int i = 0; i < 4; i++){
                         if (!inventorySlotTexts[i]){
@@ -846,7 +993,8 @@ namespace Crafting{
                     bool finished =
                         heatingStage.Update(deltaTime, blowerClicked);
 
-                    UpdateHeatingUi();
+                    UpdateBellowAnimation(deltaTime);
+                    UpdateHeatingModelUi();
 
                     if (finished){
                         FinishHeatingStage();
@@ -892,8 +1040,15 @@ namespace Crafting{
 
                     heatingStage.Start();
 
-                    SetHeatingUiEnabled(true);
-                    UpdateHeatingUi();
+                    bellowAnimationAmount = 0.0f;
+
+                    if (bellowNode){
+                        bellowNode->LocalTransform().Scale() =
+                            bellowDefaultScale;
+                    }
+
+                    SetHeatingUiEnabled(false);
+                    UpdateHeatingModelUi();
 
                     SetIngredientsEnabled(false);
                     SetDragInteractorEnabled(true);
