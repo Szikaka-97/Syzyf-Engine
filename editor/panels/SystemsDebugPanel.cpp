@@ -120,8 +120,6 @@ void SystemsDebugPanel::Draw(Context& context) {
             nlohmann::json* jsonNode = &profilerRoot;
 
             for (auto piece : node.name) {
-                spdlog::info("{}", piece.string());
-
                 if (jsonNode->contains(piece.string())) {
                     jsonNode = &(*jsonNode)[piece.string()];
                 }
@@ -132,8 +130,6 @@ void SystemsDebugPanel::Draw(Context& context) {
 
             (*jsonNode)["_value"] = node.time;
         }
-
-        // ImGui::TextWrapped("%s", profilerRoot.dump(2).c_str());
 
         DrawProfilerInfo(profilerRoot["Frame"], "Frame");
 

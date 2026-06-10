@@ -48,8 +48,6 @@ void CameraSettings::Update() {
 
 	this->targetAngleY = glm::mod(this->targetAngleY, 360.f);
 
-	spdlog::info(this->angleY);
-	
 	this->angleY = Math::MoveTowardsDegrees(this->angleY, this->targetAngleY, this->cameraRotationSpeed * Time::Delta());
 
 	if (player == nullptr) {
