@@ -7,12 +7,17 @@
 #include <MeshRenderer.h>
 #include <Scene.h>
 #include <SceneComponent.h>
+#include <EditorApplication.h>
 
 namespace Editor {
 MousePickingBodySystem::MousePickingBodySystem(Scene* scene)
     : SceneComponent(scene) {}
 
-void MousePickingBodySystem::OnPreUpdate() {
+void MousePickingBodySystem::OnPreUpdate() {    
+    if (EditorApplication::ApplicationInstance()->GetContext().state == State::Game) {
+        return;
+    }
+
     UpdateBodies(GetScene()->GetRootNode());
 }
 

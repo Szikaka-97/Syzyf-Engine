@@ -17,6 +17,8 @@
 
 namespace Editor {
 
+EditorApplication* EditorApplication::instance;
+
 void EditorApplication::InitSpdlog() {
     auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
     auto imgui_sink = std::make_shared<ImGuiConsoleSink<std::mutex>>();
@@ -191,6 +193,10 @@ void EditorApplication::ExecutePendingSceneChange() {
 
     this->isSceneChangeRequested = false;
     this->pendingSceneInitFunc = nullptr;
+}
+
+EditorApplication* EditorApplication::ApplicationInstance() {
+    return instance;
 }
 
 } // namespace Editor

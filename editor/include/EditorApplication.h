@@ -60,9 +60,15 @@ class EditorApplication : public ::Application {
     CommandHistoryPanel commandHistoryPanel;
     StatusBar statusBar;
 
+    static EditorApplication* instance;
   public:
-    EditorApplication() : ::Application("Syzyf Editor", 1280, 720) {}
+    EditorApplication() : ::Application("Syzyf Editor", 1280, 720) {
+      instance = this;
+    }
 
+    static EditorApplication* ApplicationInstance();
+
+    inline Context& GetContext() { return this->context; }
   protected:
     void OnInit(int argc = 0, char* argv[] = nullptr) override;
     void OnUpdate() override;
