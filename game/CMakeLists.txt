@@ -6,6 +6,8 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${GAME_HEADER_FILES})
 
 add_executable(Bimberman ${GAME_SOURCE_FILES} ${GAME_HEADER_FILES})
 
+target_link_options(Bimberman PRIVATE "-Wl,--allow-multiple-definition")
+target_compile_definitions(Bimberman PRIVATE GLM_ENABLE_EXPERIMENTAL)
 target_link_libraries(Bimberman PRIVATE Syzyf)
 
 target_include_directories(Bimberman PRIVATE

@@ -2,6 +2,7 @@
 
 #include "Debug.h"
 #include "GameObject.h"
+#include "GameObjectSystem.h"
 #include "Mesh.h"
 #include "Material.h"
 #include "scatter/modifiers/ArrayModifier.h"
@@ -61,6 +62,7 @@ public:
     Settings Build();
 };
 
+
 class Spawner : public GameObject, public ImGuiDrawable {
 private:
     Mesh* mesh = nullptr;
@@ -91,5 +93,10 @@ private:
     void UploadToGPU();
     void InitCulling();
     const char* GetModifierName(const ModifierSettings& modifier);
+};
+
+class SpawnerSystem : public GameObjectSystem<Spawner> {
+public:
+    SpawnerSystem(Scene* scene) : GameObjectSystem<Spawner>(scene) {}
 };
 }

@@ -1,6 +1,8 @@
 #pragma once
 
 #include <Jolt/Jolt.h>
+#include "GameObject.h"
+#include "GameObjectSystem.h"
 #include "Jolt/Core/Core.h"
 #include <Jolt/Core/TempAllocator.h>
 #include <Jolt/Core/JobSystemThreadPool.h>
@@ -13,6 +15,9 @@
 
 #include "Jolt/Physics/Body/BodyFilter.h"
 #include "SceneComponent.h"
+#include "physics/Body.h"
+#include "physics/CharacterController.h"
+#include "physics/VirtualCharacterController.h"
 
 class SceneNode;
 
@@ -64,12 +69,29 @@ struct BroadPhaseLayers {
   static constexpr JPH::uint NUM_LAYERS{3};
 };
 
+class CharacterControllerSystem : public GameObjectSystem<CharacterController> {
+    public:
+    CharacterControllerSystem(Scene* scene) : GameObjectSystem<CharacterController>(scene) {}
+};
+class VirtualCharacterControllerSystem : public GameObjectSystem<VirtualCharacterController> {
+    public:
+    VirtualCharacterControllerSystem(Scene* scene) : GameObjectSystem<VirtualCharacterController>(scene) {}
+};
+class BodySystem : public GameObjectSystem<Body> {
+    public:
+    BodySystem(Scene* scene) : GameObjectSystem<Body>(scene) {}
+};
+
 class System : public SceneComponent {
 public:
   // move to private perhaps
   std::mutex collisionMutex;
   std::vector<CollisionData> collisionQueue;
 private:
+  CharacterControllerSystem* characterControllerSystem = nullptr;
+  VirtualCharacterControllerSystem* virtualCharacterControllerSystem = nullptr;
+  BodySystem* bodySystem = nullptr;
+
   bool drawDebug = false;
   bool firstFrame = true;
 

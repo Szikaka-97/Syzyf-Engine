@@ -230,7 +230,6 @@ inline void InitScene(Scene& mainScene) {
 #pragma region Enemy
 
         auto* flockingSystem = mainScene.AddComponent<FlockingSystem>();
-    // Opcjonalne tunowanie:
     flockingSystem->separationRadius = 2.5f;
     flockingSystem->separationWeight = 1.8f;
     flockingSystem->alignmentRadius = 5.0f;
@@ -246,7 +245,7 @@ inline void InitScene(Scene& mainScene) {
     Mesh* cubeMesh =
         mainScene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
 
-    const int enemyCount = 20;
+    const int enemyCount = 10;
     const float startX = 10.0f;
     const float startZ = -5.0f;
     const float spacing = 3.0f;
@@ -266,22 +265,23 @@ inline void InitScene(Scene& mainScene) {
         enemyBody->SetRestitution(0.0f);
         enemyBody->SetCollisionLayerAndMask({1}, 0xFFFFFFFF);
 
-        auto* enemyAi = enemyNode->AddObject<EnemySkeleton>();
-        enemyAi->SetSurface(surface);
-        enemyAi->SetTargetNode(player->GetNode());
-        enemyAi->SetProjectileResources(cubeMesh, enemyMat);
-        enemyAi->SetAttackCooldown(1.2f);
-        enemyAi->SetRoomID(
-            room1->GetID()); 
-        enemyAi->SetCapsuleVisualOffset(0.5f, 1.0f);
-        enemyAi->OnPlayerEnteredRoom();
-        SceneNode* enemyModel =
-            ResourceDatabase::Global
-                ->Get<GltfScene>("./res/models/not_cube3.glb")
-                ->Instantiate(&mainScene, mainScene.root,
-                              "EnemyModel_" + std::to_string(i));
-        enemyModel->SetParent(enemyNode);
-        enemyModel->LocalTransform().Position() = glm::zero<glm::vec3>();
+        // auto* enemyAi = enemyNode->AddObject<EnemySkeleton>();
+        // enemyAi->SetSurface(surface);
+        // enemyAi->SetTargetNode(player->GetNode());
+        // enemyAi->SetProjectileResources(cubeMesh, enemyMat);
+        // enemyAi->SetAttackCooldown(1.2f);
+        // enemyAi->SetRoomID(
+        //     room1->GetID()); 
+        // enemyAi->SetCapsuleVisualOffset(0.5f, 1.0f);
+        // enemyAi->OnPlayerEnteredRoom();
+        // SceneNode* enemyModel =
+        //     ResourceDatabase::Global
+        //         ->Get<GltfScene>("./res/models/not_cube6.glb")
+        //         //->Get<GltfScene>("./res/models/enemies/szkielet4.glb")
+        //         ->Instantiate(&mainScene, mainScene.root,
+        //                       "EnemyModel_" + std::to_string(i));
+        // enemyModel->SetParent(enemyNode);
+        // enemyModel->LocalTransform().Position() = glm::zero<glm::vec3>();
 
         /*auto* animComp = enemyModel->GetObjectInChildren<AnimationComponent>();
         if (animComp) {
@@ -292,7 +292,7 @@ inline void InitScene(Scene& mainScene) {
         } else {
             spdlog::warn("No AnimationComponent found in enemy model {}", i);
         }*/
-        enemyAi->RegisterToFlockingSystem(flockingSystem);
+        // enemyAi->RegisterToFlockingSystem(flockingSystem);
     }
 #pragma endregion
 #pragma region UI

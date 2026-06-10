@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.31 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.30.5 FATAL_ERROR)
 project(Syzyf VERSION 1.0)
 
 cmake_policy(SET CMP0171 NEW)

@@ -10,7 +10,7 @@
 class EnemySkeleton : public EnemyBase {
  public:
   void Update();
-void DirectChaseWithFlock(const glm::vec3 & flockForce);
+//void DirectChaseWithFlock(const glm::vec3 & flockForce);
   void OnCollisionEnter();
   LootPool& GetLootPool() override {return LootPool::GetSkeletonLootPool();}
 };

@@ -5,16 +5,20 @@
 
 void EnemySkeleton::Update() {
     EnsureBody();
-    //if (!m_TargetNode || !myNode) return;
+    //if (!m_Body || !myNode || !m_TargetNode) return;
 
     m_TargetPosition = m_TargetNode->GlobalTransform().Position();
     currentPos       = m_Body->GetPosition();
-
     myNode->GlobalTransform().Position() = currentPos;
     myNode->GlobalTransform().Rotation() = m_Body->GetRotation();
 
+    UpdateStatusEffects();
     UpdateAttackAnimation();
-    if (m_InAttackAnimation) { StopMoving(); return; }
+
+    if (m_InAttackAnimation) {
+        StopMoving();
+        return;
+    }
 
     if (isPlayerInRoom) {
         float dist = glm::distance(currentPos, m_TargetPosition);
@@ -24,52 +28,15 @@ void EnemySkeleton::Update() {
     } else {
         currentState = States::PATROLLING;
     }
-     
-    switch (currentState) {
-        case States::PATROLLING: {
-                glm::vec3 patrolTarget = m_FlockingSystem->GetPatrolTarget(this);
-                m_WalkPoint    = patrolTarget;
-                m_WalkPointSet = true;
 
-                glm::vec3 dir = patrolTarget - currentPos;
-                dir.y = 0.0f;
-                float dist = glm::length(dir);
-                if (dist < 0.6f) {
-                    m_FlockingSystem->RefreshPatrolTarget(this);
-                    StopMoving();
-                } else {
-                   
-                    glm::vec3 combined   = glm::normalize(dir) +
-                        glm::clamp(flockForce, glm::vec3(-0.5f), glm::vec3(0.5f));
-                    combined.y = 0.0f;
-                    float len = glm::length(combined);
-                    if (len > 0.001f) combined /= len;
-                    MoveInDirection(combined);
-                }
-            
-            break;
-        }
-        case States::CHASING: {
-            
-            DirectChaseWithFlock(flockForce);
-            break;
-        }
-        case States::ATTACKING:
-            StopMoving();
-            Attack();
-            break;
-        case States::FLEEING:
-            Flee();
-            Attack();
-            break;
+    if (currentState == States::ATTACKING) {
+        StopMoving();
+        Attack();
     }
-
-    UpdateStatusEffects();
-
 }
 
-void EnemySkeleton::DirectChaseWithFlock(const glm::vec3& flockForce) {
-    ChaseWithSteering(flockForce);
-}
+// void EnemySkeleton::DirectChaseWithFlock(const glm::vec3& flockForce) {
+//     ChaseWithSteering(flockForce);
+// }
 
 void EnemySkeleton::OnCollisionEnter() {}

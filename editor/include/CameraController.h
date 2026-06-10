@@ -7,8 +7,8 @@
 #include <GameObject.h>
 #include <Graphics.h>
 #include <InputSystem.h>
-#include <TimeSystem.h>
 #include <Serialization.h>
+#include <TimeSystem.h>
 
 // When replacing the Mover with this, fix the gizmo as well
 class CameraController : public DoNotSerializeNode, public ImGuiDrawable {

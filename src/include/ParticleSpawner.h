@@ -2,6 +2,7 @@
 
 #include "Debug.h"
 #include "GameObject.h"
+#include "GameObjectSystem.h"
 #include "Material.h"
 #include "Mesh.h"
 #include "Shader.h"
@@ -125,4 +126,9 @@ public:
     void Render();
 
     void DrawImGui();
+};
+
+class ParticleSpawnerSystem : public GameObjectSystem<ParticleSpawner> {
+public:
+    ParticleSpawnerSystem(Scene* scene) : GameObjectSystem<ParticleSpawner>(scene) {}
 };

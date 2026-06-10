@@ -2,7 +2,7 @@
 
 #include "GameObjectSystem.h"
 #include "game_scripts/PickableItem.h"
-#define GLM_ENABLE_EXPERIMENTAL
+//#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/norm.hpp>
 
 class PickableItemSystem : public GameObjectSystem<PickableItem> {

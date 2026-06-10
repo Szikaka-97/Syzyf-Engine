@@ -9,6 +9,8 @@ class SkeletonSystem : public GameObjectSystem<SkeletonComponent> {
 private:
   GLuint skinningBuffer;
   std::size_t currentBufferSize = 0;
+
+  std::vector<glm::mat4> batchedMatrices;
 public:
   SkeletonSystem(Scene* scene);
 
