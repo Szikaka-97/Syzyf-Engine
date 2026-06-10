@@ -18,6 +18,7 @@
 #include "game_scripts/crafting/HeatingStage.h"
 
 #include <text/Font.h>
+#include <text/Text3D.h>
 #include <ui/objects/UiLayout.h>
 #include <ui/objects/UiText.h>
 #include <ui/objects/UiVisual.h>
@@ -35,10 +36,12 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/matrix_inverse.hpp>
 
+#include <array>
 #include <string>
 #include <vector>
 #include <sstream>
 #include <iomanip>
+#include <spdlog/spdlog.h>
 
 namespace Crafting{
     class CraftingStation : public GameObject{
@@ -53,6 +56,14 @@ namespace Crafting{
 
                 bool isActive = false;
                 bool playerWasEnabled = true;
+
+                bool savedCameraTransformValid = false;
+                glm::vec3 savedCameraPosition = glm::vec3(0.0f);
+                glm::quat savedCameraRotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
+                float savedCameraFov = 60.0f;
+                float savedCameraAspectRatio = 16.0f / 9.0f;
+                float savedCameraNearPlane = 0.1f;
+                float savedCameraFarPlane = 200.0f;
 
                 bool lidInteractionEnabled = false;
                 CraftingStage currentStage = CraftingStage::None;
@@ -79,6 +90,20 @@ namespace Crafting{
                 SceneNode* heatingUiRootNode = nullptr;
                 UiText* heatingUiText = nullptr;
 
+                SceneNode* stageOneUiNode = nullptr;
+                SceneNode* stageTwoUiNode = nullptr;
+                SceneNode* lastStageUiNode = nullptr;
+
+                SceneNode* stageOneCameraLightNode = nullptr;
+                SceneNode* stageTwoCameraLightNode = nullptr;
+                SceneNode* lastStageCameraLightNode = nullptr;
+
+                int inventoryPage = 0;
+
+                std::array<Crafting::IngredientData, 4> playerInventory = {};
+                std::array<Text3D*, 4> inventorySlotTexts = {};
+                std::array<Text3D*, 4> cauldronSlotTexts = {};
+
           public:
                 float interactionRadius = 3.0f;
 
@@ -98,7 +123,9 @@ namespace Crafting{
                 std::string bottlingCameraPointNodeName = "LastStageStand";
                 std::string bottlingCameraTargetNodeName = "LastStageLook";
 
-                glm::vec3 lidOpenOffset = glm::vec3(-1.5f, 0.0f, 0.0f);
+                std::string ingredientCameraNodeName = "StageOneCamera";
+                std::string heatingCameraNodeName = "StageTwoCamera";
+                std::string bottlingCameraNodeName = "LastStageCamera";
 
                 void Awake(){
                     SceneNode* cauldronNode =
@@ -175,6 +202,58 @@ namespace Crafting{
 
                     bottlingStage.CacheNodes(GetNode());
 
+                    stageOneUiNode =
+                        FindNodeRecursive(GetNode(), "StageOneUI");
+
+                    stageTwoUiNode =
+                        FindNodeRecursive(GetNode(), "StageTwoUI");
+
+                    lastStageUiNode =
+                        FindNodeRecursive(GetNode(), "LastStageUI");
+
+                    stageOneCameraLightNode =
+                        FindNodeRecursive(GetNode(), "StageOneCameraLight");
+
+                    stageTwoCameraLightNode =
+                        FindNodeRecursive(GetNode(), "StageTwoCameraLight");
+
+                    lastStageCameraLightNode =
+                        FindNodeRecursive(GetNode(), "LastStageCameraLight");
+
+                    playerInventory[0] = CreateMainEffectIngredientData(
+                        IngredientType::Sugar,
+                        "Burn",
+                        EffectId::Burn,
+                        glm::vec4(1.0f, 0.1f, 0.1f, 1.0f)
+                    );
+
+                    playerInventory[1] = CreateMainEffectIngredientData(
+                        IngredientType::Water,
+                        "Lightning",
+                        EffectId::Lightning,
+                        glm::vec4(1.0f, 1.0f, 0.1f, 1.0f)
+                    );
+
+                    playerInventory[2] = CreateModifierIngredientData(
+                        IngredientType::Water,
+                        "Radius",
+                        ModifierId::Radius,
+                        1.5f,
+                        glm::vec4(0.1f, 0.8f, 0.2f, 1.0f)
+                    );
+
+                    playerInventory[3] = CreateModifierIngredientData(
+                        IngredientType::Sugar,
+                        "Duration",
+                        ModifierId::Duration,
+                        2.5f,
+                        glm::vec4(0.1f, 0.3f, 1.0f, 1.0f)
+                    );
+
+                    CreateStageOneModelTexts();
+                    UpdateInventorySlotTexts();
+                    UpdateCauldronSlotTexts();
+
                     lidClosedLocalPosition =
                         lidNode->LocalTransform().Position().Value();
 
@@ -193,6 +272,30 @@ namespace Crafting{
 
                     CreateHeatingUi();
                     SetHeatingUiEnabled(false);
+
+                    if (stageOneUiNode){
+                        stageOneUiNode->SetEnabled(false);
+                    }
+
+                    if (stageTwoUiNode){
+                        stageTwoUiNode->SetEnabled(false);
+                    }
+
+                    if (lastStageUiNode){
+                        lastStageUiNode->SetEnabled(false);
+                    }
+
+                    if (stageOneCameraLightNode){
+                        stageOneCameraLightNode->SetEnabled(false);
+                    }
+
+                    if (stageTwoCameraLightNode){
+                        stageTwoCameraLightNode->SetEnabled(false);
+                    }
+
+                    if (lastStageCameraLightNode){
+                        lastStageCameraLightNode->SetEnabled(false);
+                    }
                 }
 
                 void Update(){
@@ -233,12 +336,38 @@ namespace Crafting{
                     currentStage = CraftingStage::None;
                     blowerClickRequested = false;
 
+                    if (stageOneUiNode){
+                        stageOneUiNode->SetEnabled(false);
+                    }
+
+                    if (stageTwoUiNode){
+                        stageTwoUiNode->SetEnabled(false);
+                    }
+
+                    if (lastStageUiNode){
+                        lastStageUiNode->SetEnabled(false);
+                    }
+
+                    if (stageOneCameraLightNode){
+                        stageOneCameraLightNode->SetEnabled(false);
+                    }
+
+                    if (stageTwoCameraLightNode){
+                        stageTwoCameraLightNode->SetEnabled(false);
+                    }
+
+                    if (lastStageCameraLightNode){
+                        lastStageCameraLightNode->SetEnabled(false);
+                    }
+
                     heatingStage.Reset();
                     bottlingStage.Reset();
 
                     if (cauldron){
                         cauldron->Clear();
                     }
+
+                    UpdateCauldronSlotTexts();
 
                     ClearIngredientReceivers();
                     ResetDraggableIngredients();
@@ -255,8 +384,17 @@ namespace Crafting{
                         return ToMask(CraftingInteractionType::None);
                     }
 
+                    CraftingInteractionMask uiMask =
+                        CraftingInteractionType::UiBack |
+                        CraftingInteractionType::UiInfo |
+                        CraftingInteractionType::UiNext;
+
                     if (currentStage == CraftingStage::Ingredients){
-                        CraftingInteractionMask mask = ToMask(CraftingInteractionType::Ingredient);
+                        CraftingInteractionMask mask =
+                            ToMask(CraftingInteractionType::Ingredient) |
+                            uiMask |
+                            CraftingInteractionType::InventoryNextPage |
+                            CraftingInteractionType::InventoryPreviousPage;
 
                         if (CanConfirmIngredientStageByLidClick()){
                             mask = mask | CraftingInteractionType::Lid;
@@ -266,23 +404,27 @@ namespace Crafting{
                     }
 
                     if (currentStage == CraftingStage::Heating){
-                        return ToMask(CraftingInteractionType::Blower);
+                        return ToMask(CraftingInteractionType::Blower) | uiMask;
                     }
 
                     if (currentStage == CraftingStage::Finished){
+                        CraftingInteractionMask mask = uiMask;
+
                         if (CanUseDoor()){
-                            return ToMask(CraftingInteractionType::Door);
+                            mask = mask | CraftingInteractionType::Door;
                         }
 
-                        return ToMask(CraftingInteractionType::None);
+                        return mask;
                     }
 
                     if (currentStage == CraftingStage::Bottling){
+                        CraftingInteractionMask mask = uiMask;
+
                         if (CanUseValve()){
-                            return ToMask(CraftingInteractionType::Valve);
+                            mask = mask | CraftingInteractionType::Valve;
                         }
 
-                        return ToMask(CraftingInteractionType::None);
+                        return mask;
                     }
 
                     return ToMask(CraftingInteractionType::None);
@@ -361,12 +503,338 @@ namespace Crafting{
                     bottlingStage.TryFillCurrentBottle();
                 }
 
+                void OnUiBackClicked(){
+                    if (!isActive){
+                        return;
+                    }
+
+                    ExitStation();
+                }
+
+                void OnUiInfoClicked(){
+                    if (!isActive){
+                        return;
+                    }
+
+                    if (currentStage == CraftingStage::Ingredients){
+                        spdlog::info("Crafting UI Info: drag ingredients from backpack slots into the cauldron.");
+                    }
+                    else if (currentStage == CraftingStage::Heating){
+                        spdlog::info("Crafting UI Info: click the blower to keep the temperature inside the target range.");
+                    }
+                    else if (currentStage == CraftingStage::Bottling){
+                        spdlog::info("Crafting UI Info: click the valve while a bottle is in the fill zone.");
+                    }
+                }
+
+                void OnUiNextClicked(){
+                    if (!isActive){
+                        return;
+                    }
+
+                    if (currentStage == CraftingStage::Ingredients){
+                        OnLidClicked();
+                        return;
+                    }
+
+                    if (currentStage == CraftingStage::Finished){
+                        OnDoorClicked();
+                    }
+                }
+
+                void OnInventoryNextPageClicked(){
+                    if (!isActive || currentStage != CraftingStage::Ingredients){
+                        return;
+                    }
+
+                    inventoryPage = 0;
+                    UpdateInventorySlotTexts();
+                }
+
+                void OnInventoryPreviousPageClicked(){
+                    if (!isActive || currentStage != CraftingStage::Ingredients){
+                        return;
+                    }
+
+                    inventoryPage = 0;
+                    UpdateInventorySlotTexts();
+                }
+
           private:
+                IngredientData CreateMainEffectIngredientData(
+                    IngredientType ingredientType,
+                    const std::string& displayName,
+                    const std::string& effectId,
+                    const glm::vec4& color
+                ){
+                    IngredientData data;
+                    data.type = ingredientType;
+                    data.displayName = displayName;
+                    data.role = IngredientRole::MainEffect;
+                    data.effectId = effectId;
+                    data.modifierId = ModifierId::None;
+                    data.value = 1.0f;
+                    data.color = color;
+
+                    return data;
+                }
+
+                IngredientData CreateModifierIngredientData(
+                    IngredientType ingredientType,
+                    const std::string& displayName,
+                    const std::string& modifierId,
+                    float value,
+                    const glm::vec4& color
+                ){
+                    IngredientData data;
+                    data.type = ingredientType;
+                    data.displayName = displayName;
+                    data.role = IngredientRole::Modifier;
+                    data.effectId = EffectId::None;
+                    data.modifierId = modifierId;
+                    data.value = value;
+                    data.color = color;
+
+                    return data;
+                }
+
+                Font* LoadModelUiFont(){
+                    TextureParams fontTextureParams = {
+                        .channels = TextureChannels::RGB,
+                        .colorSpace = TextureColor::Linear,
+                        .format = TextureFormat::Ubyte,
+                        .wrapU = TextureWrap::Clamp,
+                        .wrapV = TextureWrap::Clamp,
+                        .minFilter = TextureFilter::Linear,
+                        .magFilter = TextureFilter::Linear
+                    };
+
+                    Texture2D* fontTexture =
+                        GetScene()->Resources()->Get<Texture2D>(
+                            "./res/fonts/OpenSans-Regular/OpenSans-Regular.png",
+                            fontTextureParams
+                        );
+
+                    return GetScene()->Resources()->Get<Font>(
+                        "./res/fonts/OpenSans-Regular/OpenSans-Regular.json",
+                        fontTexture
+                    );
+                }
+
+                Text3D* CreateModelText(
+                    SceneNode* parent,
+                    const std::string& nodeName,
+                    const std::string& text,
+                    Font* font,
+                    const glm::vec3& localPosition,
+                    float scale
+                ){
+                    if (!parent || !font || !GetScene()){
+                        return nullptr;
+                    }
+
+                    SceneNode* textNode =
+                        GetScene()->CreateNode(parent, nodeName);
+
+                    textNode->LocalTransform().Position() = localPosition;
+                    textNode->GlobalTransform().Scale() = glm::vec3(scale);
+
+                    auto* text3d =
+                        textNode->AddObject<Text3D>(text, font);
+
+                    text3d->color = glm::vec4(1.25f, 0.88f, 0.35f, 1.0f);
+                    text3d->billboardMode = BillboardMode::Enabled;
+                    text3d->SetAlignment(TextAlignment::Middle);
+
+                    return text3d;
+                }
+
+                void CreateStageOneModelTexts(){
+                    if (!GetScene()){
+                        return;
+                    }
+
+                    Font* font = LoadModelUiFont();
+
+                    const std::array<std::string, 4> inventorySlots = {
+                        "slot_bigger",
+                        "slot_bigger.001",
+                        "slot_bigger.002",
+                        "slot_bigger.003"
+                    };
+
+                    const std::array<std::string, 4> cauldronSlots = {
+                        "slot_bigger.004",
+                        "slot_bigger.005",
+                        "slot_bigger.006",
+                        "slot_bigger.007"
+                    };
+
+                    for (int i = 0; i < 4; i++){
+                        SceneNode* slotNode =
+                            FindNodeRecursive(GetNode(), inventorySlots[i]);
+
+                        inventorySlotTexts[i] = CreateModelText(
+                            slotNode,
+                            "InventorySlotText_" + std::to_string(i),
+                            "",
+                            font,
+                            glm::vec3(0.0f, 0.04f, 0.06f),
+                            0.055f
+                        );
+                    }
+
+                    for (int i = 0; i < 4; i++){
+                        SceneNode* slotNode =
+                            FindNodeRecursive(GetNode(), cauldronSlots[i]);
+
+                        cauldronSlotTexts[i] = CreateModelText(
+                            slotNode,
+                            "CauldronSlotText_" + std::to_string(i),
+                            "Empty",
+                            font,
+                            glm::vec3(0.0f, 0.04f, 0.06f),
+                            0.05f
+                        );
+                    }
+
+                    CreateModelText(
+                        FindNodeRecursive(GetNode(), "przycisk_back"),
+                        "StageOneBackLabel",
+                        "Back",
+                        font,
+                        glm::vec3(0.0f, 0.04f, 0.05f),
+                        0.055f
+                    );
+
+                    CreateModelText(
+                        FindNodeRecursive(GetNode(), "przycisk_info"),
+                        "StageOneInfoLabel",
+                        "Info",
+                        font,
+                        glm::vec3(0.0f, 0.04f, 0.05f),
+                        0.055f
+                    );
+
+                    CreateModelText(
+                        FindNodeRecursive(GetNode(), "przycisk_next"),
+                        "StageOneNextLabel",
+                        "Brew",
+                        font,
+                        glm::vec3(0.0f, 0.04f, 0.05f),
+                        0.055f
+                    );
+
+                    CreateModelText(
+                        FindNodeRecursive(GetNode(), "przycisk_next_page"),
+                        "InventoryNextPageLabel",
+                        "Down",
+                        font,
+                        glm::vec3(0.0f, 0.04f, 0.05f),
+                        0.045f
+                    );
+
+                    CreateModelText(
+                        FindNodeRecursive(GetNode(), "przycisk_previous_page"),
+                        "InventoryPreviousPageLabel",
+                        "Up",
+                        font,
+                        glm::vec3(0.0f, 0.04f, 0.05f),
+                        0.045f
+                    );
+
+                    CreateModelText(
+                        FindNodeRecursive(GetNode(), "przycisk_back.001"),
+                        "StageTwoBackLabel",
+                        "Back",
+                        font,
+                        glm::vec3(0.0f, 0.03f, 0.04f),
+                        0.045f
+                    );
+
+                    CreateModelText(
+                        FindNodeRecursive(GetNode(), "przycisk_info.001"),
+                        "StageTwoInfoLabel",
+                        "Info",
+                        font,
+                        glm::vec3(0.0f, 0.03f, 0.04f),
+                        0.045f
+                    );
+
+                    CreateModelText(
+                        FindNodeRecursive(GetNode(), "przycisk_next.001"),
+                        "StageTwoNextLabel",
+                        "Next",
+                        font,
+                        glm::vec3(0.0f, 0.03f, 0.04f),
+                        0.045f
+                    );
+
+                    CreateModelText(
+                        FindNodeRecursive(GetNode(), "przycisk_back.002"),
+                        "LastStageBackLabel",
+                        "Back",
+                        font,
+                        glm::vec3(0.0f, 0.03f, 0.04f),
+                        0.045f
+                    );
+
+                    CreateModelText(
+                        FindNodeRecursive(GetNode(), "przycisk_info.002"),
+                        "LastStageInfoLabel",
+                        "Info",
+                        font,
+                        glm::vec3(0.0f, 0.03f, 0.04f),
+                        0.045f
+                    );
+
+                    CreateModelText(
+                        FindNodeRecursive(GetNode(), "przycisk_next.002"),
+                        "LastStageNextLabel",
+                        "Done",
+                        font,
+                        glm::vec3(0.0f, 0.03f, 0.04f),
+                        0.045f
+                    );
+                }
+
+                void UpdateInventorySlotTexts(){
+                    for (int i = 0; i < 4; i++){
+                        if (!inventorySlotTexts[i]){
+                            continue;
+                        }
+
+                        inventorySlotTexts[i]->SetText(playerInventory[i].displayName);
+                    }
+                }
+
+                void UpdateCauldronSlotTexts(){
+                    const std::vector<IngredientData>* ingredients = nullptr;
+
+                    if (cauldron){
+                        ingredients = &cauldron->GetIngredients();
+                    }
+
+                    for (int i = 0; i < 4; i++){
+                        if (!cauldronSlotTexts[i]){
+                            continue;
+                        }
+
+                        if (!ingredients || i >= static_cast<int>(ingredients->size())){
+                            cauldronSlotTexts[i]->SetText("Empty");
+                            continue;
+                        }
+
+                        cauldronSlotTexts[i]->SetText((*ingredients)[i].displayName);
+                    }
+                }
+
                 void UpdateIngredientsStage(){
                     bool canConfirm =
                         cauldron && cauldron->CanConfirm();
 
                     SetLidInteractionEnabled(canConfirm);
+                    UpdateCauldronSlotTexts();
                 }
 
                 void UpdateHeatingStage(){
@@ -398,6 +866,30 @@ namespace Crafting{
                 void StartHeatingStage(){
                     currentStage = CraftingStage::Heating;
 
+                    if (stageOneUiNode){
+                        stageOneUiNode->SetEnabled(false);
+                    }
+
+                    if (stageTwoUiNode){
+                        stageTwoUiNode->SetEnabled(true);
+                    }
+
+                    if (lastStageUiNode){
+                        lastStageUiNode->SetEnabled(false);
+                    }
+
+                    if (stageOneCameraLightNode){
+                        stageOneCameraLightNode->SetEnabled(false);
+                    }
+
+                    if (stageTwoCameraLightNode){
+                        stageTwoCameraLightNode->SetEnabled(true);
+                    }
+
+                    if (lastStageCameraLightNode){
+                        lastStageCameraLightNode->SetEnabled(false);
+                    }
+
                     heatingStage.Start();
 
                     SetHeatingUiEnabled(true);
@@ -412,6 +904,30 @@ namespace Crafting{
                 void FinishHeatingStage(){
                     currentStage = CraftingStage::Finished;
 
+                    if (stageOneUiNode){
+                        stageOneUiNode->SetEnabled(false);
+                    }
+
+                    if (stageTwoUiNode){
+                        stageTwoUiNode->SetEnabled(true);
+                    }
+
+                    if (lastStageUiNode){
+                        lastStageUiNode->SetEnabled(false);
+                    }
+
+                    if (stageOneCameraLightNode){
+                        stageOneCameraLightNode->SetEnabled(false);
+                    }
+
+                    if (stageTwoCameraLightNode){
+                        stageTwoCameraLightNode->SetEnabled(true);
+                    }
+
+                    if (lastStageCameraLightNode){
+                        lastStageCameraLightNode->SetEnabled(false);
+                    }
+
                     SetBlowerInteractionEnabled(false);
                     SetDragInteractorEnabled(true);
                     SetHeatingUiEnabled(false);
@@ -425,6 +941,30 @@ namespace Crafting{
 
                 void StartBottlingStage(){
                     currentStage = CraftingStage::Bottling;
+
+                    if (stageOneUiNode){
+                        stageOneUiNode->SetEnabled(false);
+                    }
+
+                    if (stageTwoUiNode){
+                        stageTwoUiNode->SetEnabled(false);
+                    }
+
+                    if (lastStageUiNode){
+                        lastStageUiNode->SetEnabled(true);
+                    }
+
+                    if (stageOneCameraLightNode){
+                        stageOneCameraLightNode->SetEnabled(false);
+                    }
+
+                    if (stageTwoCameraLightNode){
+                        stageTwoCameraLightNode->SetEnabled(false);
+                    }
+
+                    if (lastStageCameraLightNode){
+                        lastStageCameraLightNode->SetEnabled(true);
+                    }
 
                     SetHeatingUiEnabled(false);
 
@@ -486,9 +1026,22 @@ namespace Crafting{
                         return;
                     }
 
-                    SetLidLocalPosition(
-                        lidClosedLocalPosition + lidOpenOffset
-                    );
+                    lidNode->LocalTransform().Position() =
+                        lidClosedLocalPosition;
+
+                    lidNode->LocalTransform().Rotation() =
+                        glm::quat(glm::radians(glm::vec3(0.0f, -120.0f, 0.0f)));
+
+                    SyncPhysicsBodyToNode(lidNode);
+
+                    if (lidHitboxNode){
+                        if (!lidHitboxIsChildOfLid){
+                            lidHitboxNode->LocalTransform().Position() =
+                                lidHitboxClosedLocalPosition;
+                        }
+
+                        SyncPhysicsBodyToNode(lidHitboxNode);
+                    }
                 }
 
                 void CloseLid(){
@@ -496,7 +1049,22 @@ namespace Crafting{
                         return;
                     }
 
-                    SetLidLocalPosition(lidClosedLocalPosition);
+                    lidNode->LocalTransform().Position() =
+                        lidClosedLocalPosition;
+
+                    lidNode->LocalTransform().Rotation() =
+                        glm::quat(glm::radians(glm::vec3(0.0f, -90.0f, 0.0f)));
+
+                    SyncPhysicsBodyToNode(lidNode);
+
+                    if (lidHitboxNode){
+                        if (!lidHitboxIsChildOfLid){
+                            lidHitboxNode->LocalTransform().Position() =
+                                lidHitboxClosedLocalPosition;
+                        }
+
+                        SyncPhysicsBodyToNode(lidHitboxNode);
+                    }
                 }
 
                 void SetLidInteractionEnabled(bool enabled){
@@ -596,25 +1164,6 @@ namespace Crafting{
                     dragInteractorNode->SetEnabled(enabled);
                 }
 
-                void SetLidLocalPosition(const glm::vec3& localPosition){
-                    glm::vec3 lidDelta =
-                        localPosition - lidClosedLocalPosition;
-
-                    lidNode->LocalTransform().Position() =
-                        localPosition;
-
-                    SyncPhysicsBodyToNode(lidNode);
-
-                    if (lidHitboxNode){
-                        if (!lidHitboxIsChildOfLid){
-                            lidHitboxNode->LocalTransform().Position() =
-                                lidHitboxClosedLocalPosition + lidDelta;
-                        }
-
-                        SyncPhysicsBodyToNode(lidHitboxNode);
-                    }
-                }
-
                 glm::quat LookAtRotation(
                     const glm::vec3& cameraPosition,
                     const glm::vec3& targetPosition
@@ -647,6 +1196,10 @@ namespace Crafting{
                 }
 
                 void FocusCameraOnIngredientStage(){
+                    if (FocusCameraOnBlenderCamera(ingredientCameraNodeName)){
+                        return;
+                    }
+
                     FocusCameraOnStage(
                         ingredientCameraPointNodeName,
                         ingredientCameraTargetNodeName
@@ -654,6 +1207,10 @@ namespace Crafting{
                 }
 
                 void FocusCameraOnHeatingStage(){
+                    if (FocusCameraOnBlenderCamera(heatingCameraNodeName)){
+                        return;
+                    }
+
                     FocusCameraOnStage(
                         heatingCameraPointNodeName,
                         heatingCameraTargetNodeName
@@ -661,10 +1218,67 @@ namespace Crafting{
                 }
 
                 void FocusCameraOnBottlingStage(){
+                    if (FocusCameraOnBlenderCamera(bottlingCameraNodeName)){
+                        return;
+                    }
+
                     FocusCameraOnStage(
                         bottlingCameraPointNodeName,
                         bottlingCameraTargetNodeName
                     );
+                }
+
+                bool FocusCameraOnBlenderCamera(const std::string& blenderCameraNodeName){
+                    SceneNode* cameraNode = GetCameraNode();
+
+                    if (!cameraNode){
+                        return false;
+                    }
+
+                    SceneNode* blenderCameraRootNode =
+                        FindNodeRecursive(GetNode(), blenderCameraNodeName);
+
+                    if (!blenderCameraRootNode){
+                        return false;
+                    }
+
+                    SceneNode* blenderCameraNode =
+                        FindNodeRecursive(blenderCameraRootNode, "Camera");
+
+                    if (!blenderCameraNode){
+                        blenderCameraNode = blenderCameraRootNode;
+                    }
+
+                    Camera* runtimeCamera =
+                        cameraNode->GetObject<Camera>();
+
+                    Camera* blenderCamera =
+                        blenderCameraNode->GetObject<Camera>();
+
+                    cameraNode->GlobalTransform().Position() =
+                        blenderCameraNode->GlobalTransform().Position().Value();
+
+                    cameraNode->GlobalTransform().Rotation() =
+                        blenderCameraNode->GlobalTransform().Rotation().Value();
+
+                    if (runtimeCamera && blenderCamera){
+                        runtimeCamera->MakePerspective(
+                            blenderCamera->GetFov(),
+                            blenderCamera->GetAspectRatio(),
+                            blenderCamera->GetNearPlane(),
+                            blenderCamera->GetFarPlane()
+                        );
+                    }
+                    else if (runtimeCamera){
+                        runtimeCamera->MakePerspective(
+                            22.895f,
+                            16.0f / 9.0f,
+                            0.1f,
+                            1000.0f
+                        );
+                    }
+
+                    return true;
                 }
 
                 void FocusCameraOnStage(
@@ -897,12 +1511,48 @@ namespace Crafting{
                         return;
                     }
 
+                    savedCameraPosition =
+                        cameraNode->GlobalTransform().Position().Value();
+
+                    savedCameraRotation =
+                        cameraNode->GlobalTransform().Rotation().Value();
+
+                    savedCameraFov = camera->GetFov();
+                    savedCameraAspectRatio = camera->GetAspectRatio();
+                    savedCameraNearPlane = camera->GetNearPlane();
+                    savedCameraFarPlane = camera->GetFarPlane();
+                    savedCameraTransformValid = true;
+
                     if (auto* cameraSettings = cameraNode->GetObject<CameraSettings>()){
                         cameraSettings->SetEnabled(false);
                     }
 
                     ResetCraftingSession();
                     currentStage = CraftingStage::Ingredients;
+
+                    if (stageOneUiNode){
+                        stageOneUiNode->SetEnabled(true);
+                    }
+
+                    if (stageTwoUiNode){
+                        stageTwoUiNode->SetEnabled(false);
+                    }
+
+                    if (lastStageUiNode){
+                        lastStageUiNode->SetEnabled(false);
+                    }
+
+                    if (stageOneCameraLightNode){
+                        stageOneCameraLightNode->SetEnabled(true);
+                    }
+
+                    if (stageTwoCameraLightNode){
+                        stageTwoCameraLightNode->SetEnabled(false);
+                    }
+
+                    if (lastStageCameraLightNode){
+                        lastStageCameraLightNode->SetEnabled(false);
+                    }
 
                     SetDragInteractorEnabled(true);
                     SetLidInteractionEnabled(false);
@@ -951,8 +1601,54 @@ namespace Crafting{
                     EnablePlayer();
                     SetIngredientsEnabled(false);
 
+                    if (stageOneUiNode){
+                        stageOneUiNode->SetEnabled(false);
+                    }
+
+                    if (stageTwoUiNode){
+                        stageTwoUiNode->SetEnabled(false);
+                    }
+
+                    if (lastStageUiNode){
+                        lastStageUiNode->SetEnabled(false);
+                    }
+
+                    if (stageOneCameraLightNode){
+                        stageOneCameraLightNode->SetEnabled(false);
+                    }
+
+                    if (stageTwoCameraLightNode){
+                        stageTwoCameraLightNode->SetEnabled(false);
+                    }
+
+                    if (lastStageCameraLightNode){
+                        lastStageCameraLightNode->SetEnabled(false);
+                    }
+
+                    Camera* camera = cameraNode->GetObject<Camera>();
+
+                    if (savedCameraTransformValid){
+                        cameraNode->GlobalTransform().Position() =
+                            savedCameraPosition;
+
+                        cameraNode->GlobalTransform().Rotation() =
+                            savedCameraRotation;
+
+                        if (camera){
+                            camera->MakePerspective(
+                                savedCameraFov,
+                                savedCameraAspectRatio,
+                                savedCameraNearPlane,
+                                savedCameraFarPlane
+                            );
+                        }
+
+                        savedCameraTransformValid = false;
+                    }
+
                     if (auto* cameraSettings = cameraNode->GetObject<CameraSettings>()){
                         cameraSettings->SetEnabled(true);
+                        cameraSettings->Update();
                     }
 
                     isActive = false;

@@ -12,7 +12,12 @@ namespace Crafting{
         Lid        = 1 << 1,
         Blower     = 1 << 2,
         Door       = 1 << 3,
-        Valve      = 1 << 4
+        Valve      = 1 << 4,
+        UiBack     = 1 << 5,
+        UiInfo     = 1 << 6,
+        UiNext     = 1 << 7,
+        InventoryNextPage = 1 << 8,
+        InventoryPreviousPage = 1 << 9
     };
 
     using CraftingInteractionMask = std::uint32_t;

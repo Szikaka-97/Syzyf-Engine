@@ -11,6 +11,7 @@
 #include "game_scripts/crafting/CraftingIngredientReceiver.h"
 #include "game_scripts/crafting/CraftingStation.h"
 #include "game_scripts/crafting/CraftingNodeUtils.h"
+#include "MeshRenderer.h"
 
 #include <physics/System.h>
 
@@ -23,6 +24,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <vector>
+#include <utility>
 
 namespace Crafting{
     class CraftingDragInteractor : public GameObject{
@@ -33,6 +35,8 @@ namespace Crafting{
             if (!GetScene() || !GetScene()->Input()){
                 return;
             }
+
+            UpdateHoverHighlight();
 
             if (GetScene()->Input()->ButtonDown(MouseButton::Left)){
                 TryBeginInteraction();
@@ -99,6 +103,97 @@ namespace Crafting{
         DraggableCraftingItem* heldItem = nullptr;
         float dragPlaneY = 0.0f;
         glm::vec3 grabOffset = glm::vec3(0.0f);
+        std::vector<std::pair<MeshRenderer*, uint8_t>> highlightedRenderers;
+
+        void ClearHoverHighlight(){
+            for (auto& highlightedRenderer : highlightedRenderers){
+                if (highlightedRenderer.first){
+                    highlightedRenderer.first->maskFlags = highlightedRenderer.second;
+                }
+            }
+
+            highlightedRenderers.clear();
+        }
+
+        void CollectMeshRenderersRecursive(SceneNode* node, std::vector<MeshRenderer*>& renderers){
+            if (!node){
+                return;
+            }
+
+            if (auto* renderer = node->GetObject<MeshRenderer>()){
+                renderers.push_back(renderer);
+            }
+
+            for (SceneNode* child : node->GetChildren()){
+                CollectMeshRenderersRecursive(child, renderers);
+            }
+        }
+
+        void SetHoverHighlight(SceneNode* node){
+            ClearHoverHighlight();
+
+            std::vector<MeshRenderer*> renderers;
+            CollectMeshRenderersRecursive(node, renderers);
+
+            for (auto* renderer : renderers){
+                if (!renderer){
+                    continue;
+                }
+
+                highlightedRenderers.push_back({renderer, renderer->maskFlags});
+                renderer->maskFlags = renderer->maskFlags | MaskEffectBits::Jfa;
+            }
+        }
+
+        void UpdateHoverHighlight(){
+            if (heldItem){
+                ClearHoverHighlight();
+                return;
+            }
+
+            CraftingStation* station = FindActiveStation();
+
+            if (!station){
+                ClearHoverHighlight();
+                return;
+            }
+
+            CraftingInteractionMask activeMask = station->GetActiveInteractionMask();
+
+            if (activeMask == ToMask(CraftingInteractionType::None)){
+                ClearHoverHighlight();
+                return;
+            }
+
+            Camera* camera = FindMainCamera();
+
+            if (!camera){
+                ClearHoverHighlight();
+                return;
+            }
+
+            glm::vec3 rayOrigin;
+            glm::vec3 rayDirection;
+
+            if (!BuildMouseRay(camera, rayOrigin, rayDirection)){
+                ClearHoverHighlight();
+                return;
+            }
+
+            InteractableHit hit;
+
+            if (!RaycastInteractablePhysics(rayOrigin, rayDirection, activeMask, hit)){
+                ClearHoverHighlight();
+                return;
+            }
+
+            if (!hit.interactable || !hit.interactable->GetNode()){
+                ClearHoverHighlight();
+                return;
+            }
+
+            SetHoverHighlight(hit.interactable->GetNode());
+        }
 
         void TryBeginInteraction(){
             CraftingStation* station = FindActiveStation();
@@ -157,6 +252,26 @@ namespace Crafting{
                     station->OnValveClicked();
                     break;
 
+                case CraftingInteractionType::UiBack:
+                    station->OnUiBackClicked();
+                    break;
+
+                case CraftingInteractionType::UiInfo:
+                    station->OnUiInfoClicked();
+                    break;
+
+                case CraftingInteractionType::UiNext:
+                    station->OnUiNextClicked();
+                    break;
+
+                case CraftingInteractionType::InventoryNextPage:
+                    station->OnInventoryNextPageClicked();
+                    break;
+
+                case CraftingInteractionType::InventoryPreviousPage:
+                    station->OnInventoryPreviousPageClicked();
+                    break;
+
                 case CraftingInteractionType::None:
                 default:
                     break;
@@ -174,7 +289,7 @@ namespace Crafting{
                 item->GetNode()->GlobalTransform().Position().Value();
 
             dragPlaneY = hit.position.y;
-            grabOffset = itemPosition - hit.position;
+            grabOffset = glm::vec3(0.0f);
 
             heldItem = item;
             heldItem->BeginDrag();
