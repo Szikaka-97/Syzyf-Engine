@@ -39,10 +39,10 @@ void CameraSettings::Update() {
 
 	if (this->angleY == this->targetAngleY) {
 		if (GetScene()->Input()->KeyDown(Key::Q)) {
-			this->targetAngleY -= 90;
+			this->targetAngleY -= 45;
 		}
 		if (GetScene()->Input()->KeyDown(Key::E)) {
-			this->targetAngleY += 90;
+			this->targetAngleY += 45;
 		}
 	}
 
