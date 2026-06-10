@@ -15,4 +15,6 @@ public:
 
 	Framebuffer* GetPostProcessBuffer();
 	void SetPostProcessBuffer(Framebuffer* val);
+	
+	virtual void RegisterObject(GameObject* obj);
 };

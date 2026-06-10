@@ -15,4 +15,6 @@ struct PostProcessParams {
 class PostProcessEffect : public GameObject {
 public:
 	virtual void OnPostProcess(const PostProcessParams* params) = 0;
+
+	virtual int Order() const = 0;
 };

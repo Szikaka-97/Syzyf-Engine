@@ -71,3 +71,7 @@ void Fog::DrawImGui() {
         ImGui::DragFloat("Density", &this->density, 0.001f, 0.0f, 1.0f);
     }
 }
+
+int Fog::Order() const {
+    return 0;
+}

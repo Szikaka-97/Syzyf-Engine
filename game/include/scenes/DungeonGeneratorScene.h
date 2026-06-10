@@ -144,8 +144,8 @@ class EditorCameraTag : public GameObject {};
 	cameraNode->AddObject<Camera>(
 		Camera::Perspective(60.0f, 16.0f / 9.0f, 0.1f, 200.0f));
 	auto* cameraController = cameraNode->AddObject<CameraSettings>(playerNode->GlobalTransform().Position());
-	cameraController->angleY = 135;
-	cameraController->height = 10;
+	cameraController->SetAngleY(135);
+	cameraController->SetHeight(10);
 	cameraNode->AddObject<Bloom>();
 	cameraNode->AddObject<Tonemapper>()->SetOperator(
 		Tonemapper::TonemapperOperator::GranTurismo);

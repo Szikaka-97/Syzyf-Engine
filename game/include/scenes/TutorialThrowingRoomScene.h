@@ -151,7 +151,7 @@ inline void InitScene(Scene& mainScene) {
 #pragma region Camera
 	SceneNode* cameraNode = mainScene.CreateNode("Camera Node");
 	cameraNode->AddObject<Camera>(Camera::Perspective(60.0f, 16.0f / 9.0f, 0.1f, 200.0f));
-	cameraNode->AddObject<CameraSettings>(playerNode->GlobalTransform().Position())->angleY = 180;
+	cameraNode->AddObject<CameraSettings>(playerNode->GlobalTransform().Position(), 7, 215);
 	cameraNode->AddObject<MaskEffects>();
 
 	auto* jfa = cameraNode->AddObject<JfaOutline>();
@@ -161,6 +161,7 @@ inline void InitScene(Scene& mainScene) {
 	auto* dof = cameraNode->AddObject<DepthOfField>();
 	dof->SetEnabled(false);
 
+	cameraNode->AddObject<MaskEffects>();
 	cameraNode->AddObject<Bloom>();
 	cameraNode->AddObject<Tonemapper>()->SetOperator(Tonemapper::TonemapperOperator::GranTurismo);
 	cameraNode->AddObject<ColorGrading>();

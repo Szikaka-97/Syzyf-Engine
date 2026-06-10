@@ -12,7 +12,6 @@
 #include <vector>
 
 #include <glm/glm.hpp>
-#include <spdlog/spdlog.h>
 
 namespace Crafting{
     class CraftingIngredientReceiver :
@@ -50,12 +49,10 @@ namespace Crafting{
             auto* cauldron = FindObjectOnNodeOrParents<Cauldron>(GetNode());
 
             if (!cauldron){
-                spdlog::warn("CraftingIngredientReceiver: Cauldron component missing.");
                 return;
             }
 
             if (item->data.role == IngredientRole::None){
-                spdlog::warn("CraftingIngredientReceiver: ignored ingredient with role None.");
                 item->ReturnToStart();
                 return;
             }
@@ -72,7 +69,6 @@ namespace Crafting{
             insertedItemNodes.push_back(itemNode);
             insertedIngredients.push_back(item->data.type);
 
-            spdlog::info("Inserted ingredient: {}",item->data.displayName);
 
             glm::vec3 consumePosition =
                 GetNode()->GlobalTransform().Position().Value() + ingredientConsumeOffset;

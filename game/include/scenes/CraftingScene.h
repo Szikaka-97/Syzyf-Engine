@@ -16,7 +16,6 @@
 #include <Bloom.h>
 #include <ColorGrading.h>
 #include <Fxaa.h>
-
 #include <GltfScene.h>
 
 #include <TimeSystem.h>
@@ -24,6 +23,14 @@
 
 #include "game_scripts/CameraSettings.h"
 #include "game_scripts/AimCrosshair.h"
+#include <game_scripts/PickableItemSystem.h>
+#include <game_scripts/ThrowableObjectPool.h>
+#include <ui/widgets/wheel/UiWheel.h>
+#include <ui/objects/UiLayout.h>
+#include <ui/objects/UiText.h>
+#include <text/Font.h>
+#include <PersistentData.h>
+#include <game_scripts/PotionInventory.h>
 #include "game_scripts/crafting/CraftingDragInteractor.h"
 #include "game_scripts/crafting/CraftingInteractable.h"
 #include "game_scripts/crafting/DraggableCraftingItem.h"
@@ -39,6 +46,7 @@
 
 #include <physics/Body.h>
 #include <physics/System.h>
+#include <physics/Helpers.h>
 
 #include <Jolt/Jolt.h>
 #include <Jolt/Physics/Character/CharacterVirtual.h>
@@ -49,7 +57,7 @@
 #include <glm/glm.hpp>
 #include <glm/geometric.hpp>
 #include <glm/gtc/quaternion.hpp>
-#include <spdlog/spdlog.h>
+#include <glm/gtc/matrix_inverse.hpp>
 
 #include <algorithm>
 #include <string>
@@ -59,6 +67,9 @@ namespace CraftingScene {
 
 static constexpr const char* CraftingTutorialModelPath =
 	"./res/models/rooms/CraftingTutorial.glb";
+
+static constexpr const char* CraftingStationModelPath =
+	"./res/models/bimbermanMachineNameingScheme.glb";
 
 struct IngredientSpawnData {
 	std::string nodeName;
@@ -204,6 +215,99 @@ public:
 	}
 };
 
+class CraftingTutorialFinishedMessage : public GameObject {
+private:
+	UiText* messageText = nullptr;
+	bool messageStarted = false;
+	float showUntilTime = 0.0f;
+
+	void HideMessage() {
+		if (this->messageText == nullptr) {
+			return;
+		}
+
+		this->messageText->color.w = glm::clamp(
+			this->messageText->color.w - Time::Delta() * 2.0f,
+			0.0f,
+			1.0f
+		);
+	}
+
+	void ShowMessage() {
+		if (this->messageText == nullptr) {
+			return;
+		}
+
+		this->messageText->text =
+			"Tutorial complete\n"
+			"You can now brew new potions in your base.\n"
+			"Search the dungeon for new ingredients from monsters.\n"
+			"Return here after each expedition to craft stronger potions.";
+
+		this->messageText->color.w = 1.0f;
+		this->messageStarted = true;
+		this->showUntilTime = Time::Current() + 12.0f;
+
+		PersistentData::Set<bool>(
+			PotionInventory::ShowTutorialFinishedMessageKey,
+			false
+		);
+	}
+
+public:
+	void Awake() {
+		TextureParams fontTextureParams = {
+			.channels = TextureChannels::RGB,
+			.colorSpace = TextureColor::Linear,
+			.format = TextureFormat::Ubyte,
+			.wrapU = TextureWrap::Clamp,
+			.wrapV = TextureWrap::Clamp,
+			.minFilter = TextureFilter::Linear,
+			.magFilter = TextureFilter::Linear
+		};
+
+		Texture2D* papyrusAtlas = GetScene()->Resources()->Get<Texture2D>(
+			"./res/fonts/Papyrus/Papyrus-Regular.png",
+			fontTextureParams
+		);
+
+		Font* papyrusFont = GetScene()->Resources()->Get<Font>(
+			"./res/fonts/Papyrus/Papyrus-Regular.json",
+			papyrusAtlas,
+			true
+		);
+
+		SceneNode* uiTextNode = GetScene()->CreateNode("Crafting Tutorial Finished Message UI");
+		uiTextNode->AddObject<UiLayout>(
+			glm::uvec2(620, 220),
+			glm::ivec2(-40, 40),
+			20,
+			AnchorPoint::TopRight
+		);
+
+		this->messageText = uiTextNode->AddObject<UiText>("", papyrusFont);
+		this->messageText->fontSize = 25.0f;
+		this->messageText->alignment = TextAlignment::Right;
+		this->messageText->maxWidth = 580.0f;
+		this->messageText->color = glm::vec4(1.2f, 0.3f, 0.0f, 0.0f);
+	}
+
+	void Update() {
+		if (PersistentData::Get<bool>(PotionInventory::ShowTutorialFinishedMessageKey)) {
+			ShowMessage();
+		}
+
+		if (!this->messageStarted) {
+			return;
+		}
+
+		if (Time::Current() > this->showUntilTime) {
+			HideMessage();
+		}
+	}
+};
+
+
 inline SceneNode* CreateLocalPoint(
 	Scene& scene,
 	SceneNode* parent,
@@ -216,52 +320,142 @@ inline SceneNode* CreateLocalPoint(
 	return node;
 }
 
-inline void CreateCraftingStageCameraPoints(Scene& scene, SceneNode* roomNode) {
-	if (!roomNode) {
-		return;
+
+inline SceneNode* CreateWorldPoint(
+	Scene& scene,
+	SceneNode* parent,
+	const std::string& nodeName,
+	const glm::vec3& worldPosition
+) {
+	SceneNode* node = scene.CreateNode(parent, nodeName);
+	node->GlobalTransform().Position() = worldPosition;
+
+	return node;
+}
+
+inline glm::vec3 LocalPointBetweenCameraNodes(
+	SceneNode* parent,
+	const std::string& standNodeName,
+	const std::string& lookNodeName,
+	float amountBetweenStandAndLook,
+	float sideOffset,
+	float upOffset
+) {
+	if (!parent) {
+		return glm::vec3(0.0f);
 	}
 
-	CreateLocalPoint(
-		scene,
-		roomNode,
-		"IngredientCameraPoint",
-		glm::vec3(-1.5f, 3.0f, 8.8f)
-	);
+	SceneNode* standNode =
+		FindFirstNodeByNameRecursive(parent, standNodeName);
 
-	CreateLocalPoint(
-		scene,
-		roomNode,
-		"IngredientCameraTarget",
-		glm::vec3(-4.2f, 1.5f, 6.6f)
-	);
+	SceneNode* lookNode =
+		FindFirstNodeByNameRecursive(parent, lookNodeName);
 
-	CreateLocalPoint(
-		scene,
-		roomNode,
-		"HeatingCameraPoint",
-		glm::vec3(-2.4f, 2.0f, 5.0f)
-	);
+	if (!standNode || !lookNode) {
+		return glm::vec3(0.0f);
+	}
 
-	CreateLocalPoint(
-		scene,
-		roomNode,
-		"HeatingCameraTarget",
-		glm::vec3(-4.0f, 1.0f, 6.6f)
-	);
+	const glm::vec3 worldUp =
+		glm::vec3(0.0f, 1.0f, 0.0f);
 
-	CreateLocalPoint(
-		scene,
-		roomNode,
-		"BottlingCameraPoint",
-		glm::vec3(-8.2f, 1.6f, 4.4f)
-	);
+	glm::vec3 standPosition =
+		standNode->GlobalTransform().Position().Value();
 
-	CreateLocalPoint(
-		scene,
-		roomNode,
-		"BottlingCameraTarget",
-		glm::vec3(-8.0f, 0.9f, 6.6f)
-	);
+	glm::vec3 lookPosition =
+		lookNode->GlobalTransform().Position().Value();
+
+	glm::vec3 forward =
+		lookPosition - standPosition;
+
+	if (glm::length(forward) < 0.001f) {
+		forward = glm::vec3(0.0f, 0.0f, 1.0f);
+	}
+
+	forward = glm::normalize(forward);
+
+	glm::vec3 right =
+		glm::cross(forward, worldUp);
+
+	if (glm::length(right) < 0.001f) {
+		right = glm::vec3(1.0f, 0.0f, 0.0f);
+	}
+
+	right = glm::normalize(right);
+
+	glm::vec3 worldPosition =
+		glm::mix(
+			standPosition,
+			lookPosition,
+			amountBetweenStandAndLook
+		) +
+		right * sideOffset +
+		worldUp * upOffset;
+
+	glm::vec4 localPosition =
+		glm::inverse(parent->GlobalTransform().Value()) *
+		glm::vec4(worldPosition, 1.0f);
+
+	return glm::vec3(localPosition);
+}
+
+
+
+inline glm::vec3 WorldPointBetweenCameraNodes(
+	SceneNode* parent,
+	const std::string& standNodeName,
+	const std::string& lookNodeName,
+	float amountBetweenStandAndLook,
+	float sideOffset,
+	float upOffset
+) {
+	if (!parent) {
+		return glm::vec3(0.0f);
+	}
+
+	SceneNode* standNode =
+		FindFirstNodeByNameRecursive(parent, standNodeName);
+
+	SceneNode* lookNode =
+		FindFirstNodeByNameRecursive(parent, lookNodeName);
+
+	if (!standNode || !lookNode) {
+		return glm::vec3(0.0f);
+	}
+
+	const glm::vec3 worldUp =
+		glm::vec3(0.0f, 1.0f, 0.0f);
+
+	glm::vec3 standPosition =
+		standNode->GlobalTransform().Position().Value();
+
+	glm::vec3 lookPosition =
+		lookNode->GlobalTransform().Position().Value();
+
+	glm::vec3 forward =
+		lookPosition - standPosition;
+
+	if (glm::length(forward) < 0.001f) {
+		forward = glm::vec3(0.0f, 0.0f, 1.0f);
+	}
+
+	forward = glm::normalize(forward);
+
+	glm::vec3 right =
+		glm::cross(forward, worldUp);
+
+	if (glm::length(right) < 0.001f) {
+		right = glm::vec3(1.0f, 0.0f, 0.0f);
+	}
+
+	right = glm::normalize(right);
+
+	return glm::mix(
+		standPosition,
+		lookPosition,
+		amountBetweenStandAndLook
+	) +
+	right * sideOffset +
+	worldUp * upOffset;
 }
 
 inline void AddRoomPhysics(SceneNode* roomNode) {
@@ -306,6 +500,201 @@ inline void AddRoomPhysics(SceneNode* roomNode) {
 	}
 }
 
+inline void SetInteractionBodyLayer(Physics::Body* body) {
+	if (!body) {
+		return;
+	}
+
+	body->SetCollisionLayerAndMask(
+		{Crafting::CraftingInteractionCollisionLayer},
+		0
+	);
+}
+
+inline void AddMeshPhysicsToNode(SceneNode* node) {
+	if (!node) {
+		return;
+	}
+
+	MeshRenderer* renderer = node->GetObject<MeshRenderer>();
+
+	if (!renderer || !renderer->GetMesh()) {
+		return;
+	}
+
+	auto* body = node->AddObject<Physics::Body>(
+		JPH::BodyCreationSettings{
+			Physics::MeshShape(renderer->GetMesh()),
+			JPH::RVec3::sZero(),
+			JPH::Quat::sIdentity(),
+			JPH::EMotionType::Static,
+			Physics::Layers::NON_MOVING
+		}
+	);
+
+	body->SetCollisionLayerAndMask({0}, {1});
+}
+
+inline void AddStationMeshPhysics(SceneNode* roomNode) {
+	if (!roomNode) {
+		return;
+	}
+
+	const std::vector<std::string> stationMeshNodes = {
+		"Lid",
+		"Cauldron",
+		"Reinforcement",
+		"Valve_Barrel",
+		"Knob_One",
+		"Knob_One.001",
+		"Lever",
+		"Fire_Place",
+		"Door"
+	};
+
+	for (const std::string& nodeName : stationMeshNodes) {
+		AddMeshPhysicsToNode(
+			FindFirstNodeByNameRecursive(roomNode, nodeName)
+		);
+	}
+}
+
+inline bool IsNodeInsideSubtree(SceneNode* node, SceneNode* subtreeRoot) {
+	SceneNode* current = node;
+
+	while (current) {
+		if (current == subtreeRoot) {
+			return true;
+		}
+
+		current = current->GetParent();
+	}
+
+	return false;
+}
+
+inline void DisableEmbeddedStationNodes(SceneNode* roomNode, SceneNode* stationNodeToKeep) {
+	if (!roomNode) {
+		return;
+	}
+
+	const std::vector<std::string> stationMeshNodes = {
+		"Lid",
+		"Cauldron",
+		"Reinforcement",
+		"Valve_Barrel",
+		"Knob_One",
+		"Knob_One.001",
+		"Lever",
+		"Fire_Place",
+		"Door"
+	};
+
+	for (const std::string& nodeName : stationMeshNodes) {
+		SceneNode* node = FindFirstNodeByNameRecursive(roomNode, nodeName);
+
+		if (node && !IsNodeInsideSubtree(node, stationNodeToKeep)) {
+			node->SetEnabled(false);
+		}
+	}
+}
+
+inline glm::mat4 GetNodeTransformRelativeTo(SceneNode* node, SceneNode* root) {
+	if (!node || !root) {
+		return glm::mat4(1.0f);
+	}
+
+	return glm::inverse(root->GlobalTransform().Value()) *
+		node->GlobalTransform().Value();
+}
+
+inline bool AlignStationModelToRoom(SceneNode* roomNode, SceneNode* stationNode) {
+	if (!roomNode || !stationNode) {
+		return false;
+	}
+
+	SceneNode* stationMarkerNode =
+		FindFirstNodeByNamesRecursive(
+			roomNode,
+			{
+				"station",
+			}
+		);
+
+	if (stationMarkerNode) {
+		glm::vec3 markerWorldPosition =
+			stationMarkerNode->GlobalTransform().Position().Value();
+
+
+		glm::quat stationRotationOffset =
+			glm::quat(
+				glm::radians(
+					glm::vec3(0.0f, 90.0f, 0.0f)
+				)
+			);
+
+		stationNode->GlobalTransform().Position() =
+			markerWorldPosition;
+
+		stationNode->GlobalTransform().Rotation() = stationRotationOffset;
+
+		stationNode->GlobalTransform().Scale() =
+			glm::vec3(1.0f);
+
+		return true;
+	}
+
+	SceneNode* roomCauldronNode =
+		FindFirstNodeByNameRecursive(roomNode, "Cauldron");
+
+	SceneNode* stationCauldronNode =
+		FindFirstNodeByNameRecursive(stationNode, "Cauldron");
+
+	if (!roomCauldronNode || !stationCauldronNode) {
+		return false;
+	}
+
+	glm::mat4 roomGlobalTransform =
+		roomNode->GlobalTransform().Value();
+
+	glm::mat4 roomCauldronGlobalTransform =
+		roomCauldronNode->GlobalTransform().Value();
+
+	glm::mat4 stationCauldronRelativeTransform =
+		GetNodeTransformRelativeTo(stationCauldronNode, stationNode);
+
+	glm::mat4 stationGlobalTransform =
+		roomCauldronGlobalTransform *
+		glm::inverse(stationCauldronRelativeTransform);
+
+	glm::mat4 stationLocalTransform =
+		glm::inverse(roomGlobalTransform) *
+		stationGlobalTransform;
+
+	stationNode->LocalTransform() = stationLocalTransform;
+
+	return true;
+}
+
+inline SceneNode* CreateCraftingStationModel(Scene& scene, SceneNode* roomNode) {
+	if (!roomNode) {
+		return nullptr;
+	}
+
+	SceneNode* stationNode =
+		ResourceDatabase::Global->Get<GltfScene>(
+			CraftingStationModelPath
+		)->Instantiate(&scene, roomNode, "Crafting Station");
+
+	if (!stationNode) {
+		return nullptr;
+	}
+
+	AlignStationModelToRoom(roomNode, stationNode);
+
+	return stationNode;
+}
+
 inline SceneNode* CreateStationHitbox(Scene& scene, SceneNode* roomNode) {
 	if (!roomNode) {
 		return nullptr;
@@ -315,29 +704,10 @@ inline SceneNode* CreateStationHitbox(Scene& scene, SceneNode* roomNode) {
 		scene.CreateNode(roomNode, "StationHitbox");
 
 	stationHitboxNode->LocalTransform().Position() =
-		glm::vec3(-5.2f, 1.2f, 6.6f);
+		glm::vec3(0.0f, 1.2f, 0.0f);
 
 	stationHitboxNode->LocalTransform().Scale() =
 		glm::vec3(1.0f);
-
-	glm::vec3 stationHitboxPosition =
-		stationHitboxNode->GlobalTransform().Position().Value();
-
-	auto* stationBody = stationHitboxNode->AddObject<Physics::Body>(
-		JPH::BodyCreationSettings{
-			Physics::BoxShape(glm::vec3(2.4f, 1.5f, 2.4f)),
-			JPH::RVec3(
-				stationHitboxPosition.x,
-				stationHitboxPosition.y,
-				stationHitboxPosition.z
-			),
-			JPH::Quat::sIdentity(),
-			JPH::EMotionType::Static,
-			Physics::Layers::NON_MOVING
-		}
-	);
-
-	stationBody->SetPosition(stationHitboxPosition);
 
 	return stationHitboxNode;
 }
@@ -382,7 +752,7 @@ inline SceneNode* CreateBlowerHitbox(Scene& scene, SceneNode* roomNode) {
 
 	auto* blowerBody = blowerHitboxNode->AddObject<Physics::Body>(
 		JPH::BodyCreationSettings{
-			Physics::BoxShape(glm::vec3(0.25f)),
+			Physics::BoxShape(glm::vec3(1.0f)),
 			JPH::RVec3(
 				blowerHitboxPosition.x,
 				blowerHitboxPosition.y,
@@ -395,6 +765,8 @@ inline SceneNode* CreateBlowerHitbox(Scene& scene, SceneNode* roomNode) {
 	);
 
 	blowerBody->SetPosition(blowerHitboxPosition);
+	blowerBody->SetIsSensor(true);
+	SetInteractionBodyLayer(blowerBody);
 
 	auto* blowerInteractable =
 		blowerHitboxNode->AddObject<Crafting::CraftingInteractable>();
@@ -444,7 +816,7 @@ inline SceneNode* CreateDoorHitbox(Scene& scene, SceneNode* roomNode) {
 
 	auto* doorBody = doorHitboxNode->AddObject<Physics::Body>(
 		JPH::BodyCreationSettings{
-			Physics::BoxShape(glm::vec3(0.6f, 0.7f, 0.25f)),
+			Physics::BoxShape(glm::vec3(1.0f)),
 			JPH::RVec3(
 				doorHitboxPosition.x,
 				doorHitboxPosition.y,
@@ -457,6 +829,8 @@ inline SceneNode* CreateDoorHitbox(Scene& scene, SceneNode* roomNode) {
 	);
 
 	doorBody->SetPosition(doorHitboxPosition);
+	doorBody->SetIsSensor(true);
+	SetInteractionBodyLayer(doorBody);
 
 	auto* doorInteractable =
 		doorHitboxNode->AddObject<Crafting::CraftingInteractable>();
@@ -510,7 +884,7 @@ inline SceneNode* CreateValveHitbox(Scene& scene, SceneNode* roomNode) {
 
 	auto* valveBody = valveHitboxNode->AddObject<Physics::Body>(
 		JPH::BodyCreationSettings{
-			Physics::BoxShape(glm::vec3(0.3f)),
+			Physics::BoxShape(glm::vec3(1.0f)),
 			JPH::RVec3(
 				valveHitboxPosition.x,
 				valveHitboxPosition.y,
@@ -523,6 +897,8 @@ inline SceneNode* CreateValveHitbox(Scene& scene, SceneNode* roomNode) {
 	);
 
 	valveBody->SetPosition(valveHitboxPosition);
+	valveBody->SetIsSensor(true);
+	SetInteractionBodyLayer(valveBody);
 
 	auto* valveInteractable =
 		valveHitboxNode->AddObject<Crafting::CraftingInteractable>();
@@ -537,16 +913,39 @@ inline Material* CreateColorMaterial(const glm::vec4& color) {
 	ShaderProgram* shader =
 		ShaderProgram::Build()
 			.WithVertexShader("./res/shaders/lit.vert")
-			.WithPixelShader("./res/shaders/transparent.frag")
+			.WithPixelShader("./res/shaders/lambert color.frag")
 			.Link();
 
 	Material* material = new Material(shader);
-	material->SetValue("uColor", color);
+	material->SetValue("uColor", glm::vec3(color));
+	material->SetValue("specularValue", 0.0f);
 
 	return material;
 }
 
 inline SceneNode* CreateBottlingDebugCube(
+	Scene& scene,
+	SceneNode* parent,
+	const std::string& nodeName,
+	Mesh* mesh,
+	Material* material,
+	const glm::vec3& worldPosition,
+	const glm::vec3& localScale
+) {
+	SceneNode* node = scene.CreateNode(parent, nodeName);
+
+	node->LocalTransform().Scale() = localScale;
+	node->GlobalTransform().Position() = worldPosition;
+
+	if (mesh && material) {
+		node->AddObject<MeshRenderer>(mesh, material);
+	}
+
+	return node;
+}
+
+
+inline SceneNode* CreateBottlingLocalCube(
 	Scene& scene,
 	SceneNode* parent,
 	const std::string& nodeName,
@@ -572,53 +971,86 @@ inline void CreateBottlingStageNodes(Scene& scene, SceneNode* roomNode) {
 		return;
 	}
 
-	const glm::vec3 bottleStartPoint =
-		glm::vec3(-6.8f, 0.55f, 7.5f);
+	SceneNode* bottleStartNode =
+		FindFirstNodeByNameRecursive(roomNode, "Bottle_Start");
 
-	const glm::vec3 bottleFillPoint =
-		glm::vec3(-8.0f, 0.55f, 6.65f);
+	SceneNode* bottleStopNode =
+		FindFirstNodeByNameRecursive(roomNode, "Bottle_stop");
+
+	SceneNode* pourButtonNode =
+		FindFirstNodeByNameRecursive(roomNode, "Knob_One.001");
+
+	if (!pourButtonNode) {
+		pourButtonNode =
+			FindFirstNodeByNameRecursive(roomNode, "Knob_One");
+	}
+
+	if (!bottleStartNode || !bottleStopNode || !pourButtonNode) {
+		return;
+	}
+
+	const glm::mat4 bottleStartTransform =
+		GetNodeTransformRelativeTo(
+			bottleStartNode,
+			roomNode
+		);
+
+	const glm::mat4 bottleStopTransform =
+		GetNodeTransformRelativeTo(
+			bottleStopNode,
+			roomNode
+		);
+
+	const glm::mat4 pourButtonTransform =
+		GetNodeTransformRelativeTo(
+			pourButtonNode,
+			roomNode
+		);
+
+	const glm::vec3 bottleStartPoint =
+		glm::vec3(
+			bottleStartTransform[3]
+		);
 
 	const glm::vec3 bottleEndPoint =
-		glm::vec3(-9.2f, 0.55f, 5.8f);
+		glm::vec3(
+			bottleStopTransform[3]
+		);
 
-	const glm::vec3 lanePosition =
-		glm::vec3(-8.0f, 0.35f, 6.65f);
+	const glm::vec3 pourButtonPoint =
+		glm::vec3(
+			pourButtonTransform[3]
+		);
 
-	const glm::vec3 laneScale =
-		glm::vec3(2.8f, 0.08f, 0.45f);
+	const glm::vec3 path =
+		bottleEndPoint - bottleStartPoint;
 
-	const glm::vec3 fillZoneScale =
-		glm::vec3(0.34f, 0.55f, 0.34f);
+	float fillT = 0.5f;
 
-	const glm::vec3 valveGuidePosition =
-		glm::vec3(-8.0f, 1.0f, 6.65f);
+	const float pathLengthSquared =
+		glm::dot(path,path);
 
-	const glm::vec3 valveGuideScale =
-		glm::vec3(0.08f, 0.42f, 0.08f);
+	if (pathLengthSquared > 0.0001f) {
+		fillT =
+			glm::clamp(
+				glm::dot(pourButtonPoint - bottleStartPoint,path) /
+				pathLengthSquared,
+				0.0f,
+				1.0f
+			);
+	}
+
+	const glm::vec3 bottleFillPoint =
+		glm::mix(
+			bottleStartPoint,
+			bottleEndPoint,
+			fillT
+		);
+
 
 	const glm::vec3 bottleScale =
-		glm::vec3(0.18f, 0.45f, 0.18f);
+		glm::vec3(0.16f, 0.36f, 0.16f);
 
-	CreateLocalPoint(
-		scene,
-		roomNode,
-		"BottleStartPoint",
-		bottleStartPoint
-	);
-
-	CreateLocalPoint(
-		scene,
-		roomNode,
-		"BottleFillPoint",
-		bottleFillPoint
-	);
-
-	CreateLocalPoint(
-		scene,
-		roomNode,
-		"BottleEndPoint",
-		bottleEndPoint
-	);
 
 	Mesh* cubeMesh =
 		scene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
@@ -626,17 +1058,9 @@ inline void CreateBottlingStageNodes(Scene& scene, SceneNode* roomNode) {
 	Material* bottleMaterial =
 		CreateColorMaterial(glm::vec4(0.35f, 0.75f, 1.0f, 0.9f));
 
-	Material* fillZoneMaterial =
-		CreateColorMaterial(glm::vec4(0.1f, 1.0f, 0.25f, 0.45f));
-
-	Material* beltMaterial =
-		CreateColorMaterial(glm::vec4(0.6f, 0.6f, 0.6f, 0.35f));
-
 	Material* liquidMaterial =
 		CreateColorMaterial(glm::vec4(0.9f, 0.25f, 0.15f, 0.95f));
 
-	Material* valveGuideMaterial =
-		CreateColorMaterial(glm::vec4(1.0f, 0.85f, 0.15f, 0.45f));
 
 	SceneNode* bottlesRoot =
 		scene.CreateNode(roomNode, "BottlingBottlesRoot");
@@ -644,38 +1068,9 @@ inline void CreateBottlingStageNodes(Scene& scene, SceneNode* roomNode) {
 	bottlesRoot->LocalTransform().Position() =
 		glm::vec3(0.0f);
 
-	CreateBottlingDebugCube(
-		scene,
-		bottlesRoot,
-		"BottlingLaneDebug",
-		cubeMesh,
-		beltMaterial,
-		lanePosition,
-		laneScale
-	);
-
-	CreateBottlingDebugCube(
-		scene,
-		bottlesRoot,
-		"BottleFillZoneDebug",
-		cubeMesh,
-		fillZoneMaterial,
-		bottleFillPoint,
-		fillZoneScale
-	);
-
-	CreateBottlingDebugCube(
-		scene,
-		bottlesRoot,
-		"ValveToBottleGuideDebug",
-		cubeMesh,
-		valveGuideMaterial,
-		valveGuidePosition,
-		valveGuideScale
-	);
 
 	for (int i = 0; i < 4; ++i) {
-		SceneNode* bottleNode = CreateBottlingDebugCube(
+		SceneNode* bottleNode = CreateBottlingLocalCube(
 			scene,
 			bottlesRoot,
 			"BottlingBottle_0" + std::to_string(i + 1),
@@ -685,7 +1080,7 @@ inline void CreateBottlingStageNodes(Scene& scene, SceneNode* roomNode) {
 			bottleScale
 		);
 
-		SceneNode* liquidNode = CreateBottlingDebugCube(
+		SceneNode* liquidNode = CreateBottlingLocalCube(
 			scene,
 			bottleNode,
 			"BottlingBottle_0" + std::to_string(i + 1) + "_Liquid",
@@ -752,10 +1147,12 @@ inline Crafting::DraggableCraftingItem* CreateDraggableCube(
 ) {
 	SceneNode* node = scene.CreateNode(parent, nodeName);
 
-	node->AddObject<MeshRenderer>(mesh, material);
+	if (mesh && material) {
+		node->AddObject<MeshRenderer>(mesh, material);
+	}
 
-	node->LocalTransform().Position() = position;
 	node->LocalTransform().Scale() = scale;
+	node->GlobalTransform().Position() = position;
 
 	glm::vec3 globalPosition =
 		node->GlobalTransform().Position().Value();
@@ -769,7 +1166,7 @@ inline Crafting::DraggableCraftingItem* CreateDraggableCube(
 
 	auto* body = node->AddObject<Physics::Body>(
 		JPH::BodyCreationSettings{
-			Physics::BoxShape(scale),
+			Physics::BoxShape(glm::vec3(1.0f)),
 			JPH::RVec3(globalPosition.x, globalPosition.y, globalPosition.z),
 			JPH::Quat::sIdentity(),
 			JPH::EMotionType::Kinematic,
@@ -781,10 +1178,11 @@ inline Crafting::DraggableCraftingItem* CreateDraggableCube(
 	body->SetLinearVelocity(glm::vec3(0.0f));
 	body->SetAngularVelocity(glm::vec3(0.0f));
 	body->SetPosition(globalPosition);
+	body->SetIsSensor(true);
+	SetInteractionBodyLayer(body);
 
 	return item;
 }
-
 inline SceneNode* CreatePlayer(Scene& scene, SceneNode* roomNode) {
 	JPH::Ref<JPH::CharacterVirtualSettings> characterSettings =
 		new JPH::CharacterVirtualSettings();
@@ -826,7 +1224,7 @@ inline SceneNode* CreatePlayer(Scene& scene, SceneNode* roomNode) {
 		)->Instantiate(&scene, playerNode, "Aim Reticle");
 
 	aimReticle->AddObject<AimCrosshair>();
-	aimReticle->SetEnabled(false);
+	aimReticle->SetEnabled(PotionInventory::HasPotion());
 
 	auto* virtualCharacter =
 		playerNode->AddObject<Physics::VirtualCharacterController>(characterSettings);
@@ -841,7 +1239,7 @@ inline SceneNode* CreatePlayer(Scene& scene, SceneNode* roomNode) {
 	auto* player =
 		playerNode->AddObject<PlayerController>();
 
-	player->SetThrowingUnlocked(false);
+	player->SetThrowingUnlocked(PotionInventory::HasPotion());
 
 	return playerNode;
 }
@@ -851,7 +1249,6 @@ inline void CreateCauldronReceiver(Scene& scene, SceneNode* roomNode) {
 		FindFirstNodeByNameRecursive(roomNode, "Cauldron");
 
 	if (!cauldronNode) {
-		spdlog::error("CraftingScene: Cauldron not found.");
 		return;
 	}
 
@@ -902,7 +1299,6 @@ inline void CreateLidHitbox(Scene& scene, SceneNode* roomNode) {
 		FindFirstNodeByNameRecursive(roomNode, "Lid");
 
 	if (!lidNode) {
-		spdlog::error("CraftingScene: Lid not found.");
 		return;
 	}
 
@@ -933,6 +1329,8 @@ inline void CreateLidHitbox(Scene& scene, SceneNode* roomNode) {
 	);
 
 	lidBody->SetPosition(lidHitboxPosition);
+	lidBody->SetIsSensor(true);
+	SetInteractionBodyLayer(lidBody);
 
 	auto* lidInteractable =
 		lidHitboxNode->AddObject<Crafting::CraftingInteractable>();
@@ -976,8 +1374,8 @@ inline void CreateCraftingIngredients(Scene& scene, SceneNode* roomNode) {
 		{
 			"Burn Ingredient",
 			burnMaterial,
-			glm::vec3(-2.8f, 1.1f, 7.8f),
-			glm::vec3(0.35f),
+			WorldPointBetweenCameraNodes(roomNode, "StageOneStand", "StageOneLook", 0.74f, -0.75f, -0.20f),
+			glm::vec3(0.28f),
 			CreateMainEffectIngredient(
 				Crafting::IngredientType::Sugar,
 				"Burn",
@@ -988,8 +1386,8 @@ inline void CreateCraftingIngredients(Scene& scene, SceneNode* roomNode) {
 		{
 			"Lightning Ingredient",
 			lightningMaterial,
-			glm::vec3(-2.8f, 1.1f, 7.1f),
-			glm::vec3(0.35f),
+			WorldPointBetweenCameraNodes(roomNode, "StageOneStand", "StageOneLook", 0.74f, -0.25f, -0.20f),
+			glm::vec3(0.28f),
 			CreateMainEffectIngredient(
 				Crafting::IngredientType::Water,
 				"Lightning",
@@ -1000,26 +1398,26 @@ inline void CreateCraftingIngredients(Scene& scene, SceneNode* roomNode) {
 		{
 			"Radius Modifier",
 			radiusMaterial,
-			glm::vec3(-2.8f, 1.1f, 6.4f),
-			glm::vec3(0.35f),
+			WorldPointBetweenCameraNodes(roomNode, "StageOneStand", "StageOneLook", 0.74f, 0.25f, -0.20f),
+			glm::vec3(0.28f),
 			CreateModifierIngredient(
 				Crafting::IngredientType::Water,
 				"Radius",
 				Crafting::ModifierId::Radius,
-				1.0f,
+				1.5f,
 				radiusColor
 			)
 		},
 		{
 			"Duration Modifier",
 			durationMaterial,
-			glm::vec3(-2.8f, 1.1f, 5.7f),
-			glm::vec3(0.35f),
+			WorldPointBetweenCameraNodes(roomNode, "StageOneStand", "StageOneLook", 0.74f, 0.75f, -0.20f),
+			glm::vec3(0.28f),
 			CreateModifierIngredient(
 				Crafting::IngredientType::Sugar,
 				"Duration",
 				Crafting::ModifierId::Duration,
-				1.0f,
+				2.5f,
 				durationColor
 			)
 		}
@@ -1042,7 +1440,6 @@ inline void CreateCraftingIngredients(Scene& scene, SceneNode* roomNode) {
 }
 
 inline void SetupCraftingStation(Scene& scene, SceneNode* roomNode) {
-	CreateCraftingStageCameraPoints(scene, roomNode);
 	CreateStationHitbox(scene, roomNode);
 	CreateBlowerHitbox(scene, roomNode);
 	CreateDoorHitbox(scene, roomNode);
@@ -1056,11 +1453,6 @@ inline void SetupCraftingStation(Scene& scene, SceneNode* roomNode) {
 
 	craftingStation->interactionRadius = 3.0f;
 
-	craftingStation->stationCameraPosition =
-		glm::vec3(-4.2f, 5.0f, 6.6f);
-
-	craftingStation->stationCameraRotation =
-		glm::quat(glm::radians(glm::vec3(60.0f, -90.0f, 0.0f)));
 }
 
 inline void AddSkybox(Scene& scene, SceneNode* roomNode) {
@@ -1094,7 +1486,10 @@ inline void InitScene(Scene& scene) {
 	scene.AddComponent<LightSystem>();
 	scene.AddComponent<UiSystem>();
 	scene.AddComponent<AnimationSystem>();
+	scene.AddComponent<PickableItemSystem>();
 	scene.AddComponent<TweenSystem>();
+	scene.AddComponent<WheelSystem>();
+	scene.AddComponent<ThrowableObjectPool>();
 
 	if (auto* lightSystem = scene.GetComponent<LightSystem>()) {
 		lightSystem->SetAmbientLight(glm::vec4(1.0f, 0.65f, 0.25f, 0.12f));
@@ -1109,15 +1504,25 @@ inline void InitScene(Scene& scene) {
 		)->Instantiate(&scene, sceneRoot, "Crafting Tutorial Room");
 
 	if (!roomNode) {
-		spdlog::error("CraftingScene: failed to load CraftingTutorial.glb.");
 		return;
 	}
 
 	AddSkybox(scene, roomNode);
 	AddRoomPhysics(roomNode);
 
+	SceneNode* stationNode =
+		CreateCraftingStationModel(scene, roomNode);
+
+	if (!stationNode) {
+		return;
+	}
+
+	DisableEmbeddedStationNodes(roomNode, stationNode);
+
+	AddStationMeshPhysics(stationNode);
+
 	SceneNode* dragInteractorNode =
-		scene.CreateNode(roomNode, "Crafting Drag Interactor");
+		scene.CreateNode(stationNode, "Crafting Drag Interactor");
 
 	dragInteractorNode->AddObject<Crafting::CraftingDragInteractor>();
 
@@ -1133,14 +1538,11 @@ inline void InitScene(Scene& scene) {
 
 	cameraNode->GetObject<Camera>()->SetAsMainCamera();
 
-	auto* cameraSettings =
-		cameraNode->AddObject<CameraSettings>(
-			playerNode->GlobalTransform().Position()
-		);
-
-	cameraSettings->height = 5.0f;
-	cameraSettings->angleY = 135.0f;
-	cameraSettings->angleX = 45.0f;
+	cameraNode->AddObject<CameraSettings>(
+		playerNode->GlobalTransform().Position(),
+		5,
+		135
+	);
 
 	cameraNode->AddObject<MaskEffects>();
 
@@ -1164,9 +1566,12 @@ inline void InitScene(Scene& scene) {
 	cameraNode->AddObject<Fxaa>();
 
 	roomNode->AddObject<CraftingTutorialLights>();
+	roomNode->AddObject<CraftingTutorialFinishedMessage>();
 
-	SetupCraftingStation(scene, roomNode);
-	CreateCraftingIngredients(scene, roomNode);
+    SetupCraftingStation(scene, stationNode);
+    CreateCraftingIngredients(scene, stationNode);
+
+
 
 }
 

@@ -143,3 +143,7 @@ void JfaOutline::UpdateTexture() {
     glTextureParameteri(this->pongTexture, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTextureParameteri(this->pongTexture, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE); 
 }
+
+int JfaOutline::Order() const {
+    return 1;
+}

@@ -29,4 +29,6 @@ public:
     void SetCurveTexture(Texture2D* texture);
 
     virtual void DrawImGui() override;
+
+	virtual int Order() const override;
 };

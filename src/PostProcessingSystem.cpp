@@ -20,3 +20,11 @@ Framebuffer* PostProcessingSystem::GetPostProcessBuffer() {
 void PostProcessingSystem::SetPostProcessBuffer(Framebuffer* val) {
 	this->postProcessFramebuffer = val;
 }
+
+void PostProcessingSystem::RegisterObject(GameObject* obj) { 
+	GameObjectSystem<PostProcessEffect>::RegisterObject(obj);
+
+	std::sort(GetAllObjects()->begin(), GetAllObjects()->end(), [](PostProcessEffect * a, PostProcessEffect * b) -> bool {
+		return a->Order() < b->Order();
+	});
+}

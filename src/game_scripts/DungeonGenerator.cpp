@@ -37,7 +37,7 @@ void DungeonGenerator::RemakeDungeon() {
 	Random rng;
 
 	for (auto room : this->dungeonRooms) {
-		delete room;
+		delete room.room;
 	}
 
 	this->dungeonRooms.clear();
@@ -220,7 +220,7 @@ void SpawnEnemy(SceneNode* position) {
     Mesh* cubeMesh =
         position->GetScene()->Resources()->Get<Mesh>("./res/models/not_cube.obj");
 
-    SceneNode* enemy1 = position->GetScene()->CreateNode("Enemy 1");
+    SceneNode* enemy1 = position->GetScene()->CreateNode(position, "Enemy 1");
     // enemy1->GlobalTransform().Position() = glm::vec3(10.5f, 0.0f, -5.0f);
     enemy1->GlobalTransform().Scale() = glm::vec3(0.5f, 0.5f, 0.5f);
     enemy1->GlobalTransform().Position() = position->GlobalTransform().Position().Value() + glm::vec3(0, 1, 0);
@@ -243,6 +243,22 @@ void SpawnEnemy(SceneNode* position) {
     enemyModel->SetParent(enemy1);
     enemyModel->GlobalTransform().Scale() = glm::vec3(0.1, 0.1, 0.1);
     enemyModel->LocalTransform().Position() = glm::zero<glm::vec3>();
+}
+
+void DungeonGenerator::Update() {
+	glm::vec3 playerPosition = PlayerController::Instance()->GlobalTransform().Position();
+
+	for (auto room : this->dungeonRooms) {
+		glm::vec3 roomCenter = glm::vec3(room.position.y, 0, room.position.x) * glm::vec3(this->gridSize);
+
+		glm::vec3 dist = glm::abs(roomCenter - playerPosition);
+
+		dist.y = 0;
+
+		if (dist.x > this->gridSize * 1.5 || dist.z > this->gridSize * 1.5) {
+			room.room->SetEnabled(false);
+		}
+	}
 }
 
 void DungeonGenerator::Render() {
@@ -305,7 +321,9 @@ void DungeonGenerator::Render() {
 				}
 			}
 
-			this->dungeonRooms.push_back(spawnedRoom);
+			room.room = spawnedRoom;
+
+			this->dungeonRooms.push_back(room);
 		}
 	}
 }

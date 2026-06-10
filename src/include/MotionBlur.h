@@ -17,6 +17,8 @@ public:
     void SetSamples(int samples);
     void SetSeparation(float separation);
      bool      enabled = true;
+
+	virtual int Order() const override;
 private:
     ComputeShaderProgram* motionBlurShader;
 
@@ -24,7 +26,7 @@ private:
     bool      firstFrame = true;
 
    
-    int       samples = 32;            // liczba próbek
+    int       samples = 32;            // liczba prï¿½bek
     float     separation = 0.01f;       // skala separacji wektora ruchu
 
     void UpdateUniforms();

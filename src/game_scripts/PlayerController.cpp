@@ -8,14 +8,16 @@
 #include <TimeSystem.h>
 #include <Camera.h>
 #include <Graphics.h>
+#include <MathHelpers.h>
 #include <game_scripts/ThrowableObjectPool.h>
 #include <game_scripts/AttackEffects/EffectsManager.h>
+#include <game_scripts/AttackEffects/combos/ComboExplodeFire.h>
 #include <game_scripts/ThrowableObject.h>
 #include <physics/VirtualCharacterController.h>
 #include <physics/Body.h>
 #include <Formatters.h>
 #include <game_scripts/PickableItemSystem.h>
-#include <game_scripts/AttackEffects/combos/ComboExplodeFire.h>
+#include <game_scripts/PotionInventory.h>
 #include <physics/LayerMaskFilter.h>
 
 PlayerController* PlayerController::instance;
@@ -72,6 +74,86 @@ float ThrowStrengthEasing(float strength) {
 	return -(glm::cos(glm::pi<float>() * strength) - 1) / 2;
 }
 
+
+namespace{
+	float SecondaryEffectMultiplier(bool secondaryEffect){
+		return secondaryEffect ? 0.65f : 1.0f;
+	}
+
+	EffectBase* AddPotionEffectToNode(
+		SceneNode* node,
+		const std::string& effectId,
+		const Crafting::CraftedPotionData& potionData,
+		bool secondaryEffect
+	) {
+		float multiplier = SecondaryEffectMultiplier(secondaryEffect);
+
+		if (effectId == Crafting::EffectId::Burn) {
+			EffectFire* effect = node->AddObject<EffectFire>();
+
+			effect->radius = potionData.radius * multiplier;
+			effect->damage = potionData.power * multiplier;
+			effect->dotRemainingTime = potionData.duration * multiplier;
+			effect->ingredientCount = potionData.mainEffectCount;
+			effect->special1 = potionData.modifierCount > 0;
+			effect->special2 = potionData.modifierCount > 1;
+			effect->Awake();
+
+			return effect;
+		}
+
+		if (effectId == Crafting::EffectId::Lightning) {
+			EffectExplosion* effect = node->AddObject<EffectExplosion>();
+
+			effect->strength = 1.0f;
+			effect->maxRange = potionData.radius * multiplier;
+			effect->maxDamage = potionData.power * multiplier;
+			effect->ingredientCount = potionData.mainEffectCount;
+			effect->special1 = potionData.modifierCount > 0;
+			effect->special2 = potionData.modifierCount > 1;
+			effect->Awake();
+
+			return effect;
+		}
+
+		EffectExplosion* effect = node->AddObject<EffectExplosion>();
+
+		effect->strength = 1.0f;
+		effect->maxRange = potionData.radius * multiplier;
+		effect->maxDamage = potionData.power * multiplier;
+		effect->ingredientCount = potionData.mainEffectCount;
+		effect->Awake();
+
+		return effect;
+	}
+
+	void SetThrowablePotionEffect(ThrowableObject* throwable){
+		Crafting::CraftedPotionData potionData = PotionInventory::GetLastCraftedPotion();
+
+		throwable->SetEffectFactory(
+			[potionData](SceneNode* node) -> EffectBase* {
+				EffectBase* primaryEffect = AddPotionEffectToNode(
+					node,
+					potionData.primaryEffectId,
+					potionData,
+					false
+				);
+
+				if (potionData.HasSecondaryEffect()) {
+					AddPotionEffectToNode(
+						node,
+						potionData.secondaryEffectId,
+						potionData,
+						true
+					);
+				}
+
+				return primaryEffect;
+			}
+		);
+	}
+}
+
 glm::vec3 PlayerController::GetMousePointOnGround(Camera* camera) {
 	glm::vec2 mousePos = GetScene()->Input()->GetMousePosition();
 	glm::vec2 screenSize = GetScene()->GetGraphics()->GetScreenResolution();
@@ -111,7 +193,7 @@ glm::vec3 PlayerController::GetStrengthFromVelocity() {
 
 void PlayerController::Awake() {
 	this->charController = GetObject<Physics::VirtualCharacterController>();
-	
+
 	this->torso = GetNode()->FindNode("Bimberman/root/Torso");
 	assert(this->torso);
 
@@ -195,7 +277,7 @@ void PlayerController::UpdateMovement() {
 	bodyDragDirection = glm::inverse(this->torso->GetParent()->GlobalTransform().Value()) * glm::vec4(bodyDragDirection, 0);
 
 	glm::vec3 a = glm::cross(glm::vec3(0, 1, 0), bodyDragDirection);
-	
+
 	if (glm::length(a) > glm::epsilon<float>()) {
 		fromTo.x = a.x;
 		fromTo.y = a.y;
@@ -226,8 +308,8 @@ void PlayerController::UpdateTargetting() {
 
 	float targetBearing = glm::atan(aimDir.x, aimDir.z);
 
-	this->aimBearing = MoveTowardsAngle(this->aimBearing, targetBearing, Time::Delta() * this->aimSpeed);
-	
+	this->aimBearing = Math::MoveTowardsAngle(this->aimBearing, targetBearing, Time::Delta() * this->aimSpeed);
+
 	this->characterRoot->LocalTransform().Rotation() = glm::angleAxis(this->aimBearing, glm::vec3(0, 1, 0));
 
 	if (!this->CanThrow()) {
@@ -276,9 +358,14 @@ void PlayerController::UpdateThrowing() {
 			this->throwStrengthCache = this->throwStrengthAccum;
 		}
 
-		this->throwStrengthAccum = MoveTowards(this->throwStrengthAccum, 0, Time::Delta() * 10);
+		this->throwStrengthAccum = Math::MoveTowards(this->throwStrengthAccum, 0, Time::Delta() * 10);
 
 		if (this->throwStrengthCache > 0 && this->throwStrengthAccum < 0.7f) {
+			if (!PotionInventory::ConsumePotion()) {
+				this->throwStrengthCache = -1;
+				return;
+			}
+
 			SceneNode* thrownBottle = GetScene()->GetComponent<ThrowableObjectPool>()->RequestThrowableObject();
 			auto* throwable = thrownBottle->AddObject<ThrowableObject>();
 
@@ -286,10 +373,10 @@ void PlayerController::UpdateThrowing() {
 			if (forwardVelocityBoost < 0.0f) {
 				forwardVelocityBoost = 0.0f;
 			}
-			
+
 			float finalThrowDist = glm::mix(minThrowDistance, maxThrowDistance, ThrowStrengthEasing(this->throwStrengthCache));
 			glm::vec3 hitPoint = aimDirection * (finalThrowDist + forwardVelocityBoost);
-			
+
 			float speedX = glm::length(hitPoint) / this->flightTime;
 
 			float speedY = ((9.8 / 2) * this->flightTime * this->flightTime - glm::dot(this->throwPoint->GlobalTransform().Position().Value(), glm::vec3(0, 1, 0))) / this->flightTime;
@@ -298,19 +385,16 @@ void PlayerController::UpdateThrowing() {
 			throwDirection.y = 0;
 
 			glm::vec3 throwForce = glm::normalize(throwDirection) * speedX + glm::vec3(0, 1, 0) * speedY;
-			
+
 			thrownBottle->GetObject<Physics::Body>()->SetPosition(this->throwPoint->GlobalTransform().Position());
-	
+
 			thrownBottle->SetEnabled(true);
-			// throwable->SetEffect<EffectExplosion>([](EffectExplosion* e) {
-			// 	e->radius  = 3.0f;
-			// 	e->special1 = true;   // podwaja obra�enia
-			// });
-			throwable->SetComboEffect<ComboExplodeFire>([](ComboExplodeFire* e) {
-				//e->radius  = 3.0f;
-				//e->special1 = true;   // podwaja obra�enia
-			});
+			SetThrowablePotionEffect(throwable);
 			thrownBottle->GetObject<Physics::Body>()->SetLinearVelocity(throwForce);
+
+			if (!PotionInventory::HasPotion()) {
+				SetThrowingUnlocked(false);
+			}
 
 			this->throwStrengthCache = -1;
 		}

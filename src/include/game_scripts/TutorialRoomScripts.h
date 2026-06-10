@@ -8,16 +8,15 @@
 #include <Application.h>
 #include <game_scripts/PickableItem.h>
 #include <game_scripts/PlayerController.h>
+#include <game_scripts/PotionInventory.h>
 #include <game_scripts/enemies/EnemyBase.h>
 #include <ui/objects/UiText.h>
 #include <ui/objects/UiLayout.h>
 #include <physics/Helpers.h>
 #include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
 
-#include "../game/include/scenes/DungeonGeneratorScene.h"
-
-namespace DungeonGeneratorScene {
-	 void InitScene(Scene& mainScene);
+namespace CraftingScene {
+inline void InitScene(Scene& mainScene);
 }
 
 static constexpr float RatSpawnExtraHeight = 0.0f;
@@ -32,6 +31,21 @@ class TutorialBottlePickup : public PickableItem {
 public:
 	virtual void OnPickUp() override {
 		PersistentData::Set<bool>("TutorialThrowingRoom_PlayerTookBottles", true);
+
+		if (!PotionInventory::HasPotion()) {
+			PotionInventory::SaveLastCraftedPotion(
+			    "Basic Potion",
+			    "Burn",
+			    100.0f,
+			    10,
+			    false
+			);
+
+			PersistentData::Set<bool>(
+			    PotionInventory::ShowTutorialFinishedMessageKey,
+			    false
+			);
+		}
 
 		if (PlayerController::Instance()) {
 			PlayerController::Instance()->SetThrowingUnlocked(true);
@@ -102,6 +116,7 @@ public:
 
 	virtual void Die() override {
 		remainingRats--;
+		PotionInventory::GiveRatLoot();
 
 		EnemyBase::Die();
 	}
@@ -593,7 +608,7 @@ public:
 			this->sceneRequested = true;
 
 			Application::Get()->RequestSceneBuild(
-				[](Scene* s) { DungeonGeneratorScene::InitScene(*s); }
+				[](Scene* s) { CraftingScene::InitScene(*s); }
 			);
 		}
 	}
