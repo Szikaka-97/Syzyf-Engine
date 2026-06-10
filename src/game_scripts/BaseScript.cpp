@@ -271,7 +271,7 @@ void BaseTutorialManager::Update() {
 
 		CameraSettings* cam = GetScene()->FindObjectsOfType<CameraSettings>()[0];
 
-		if (cam->angleY > 180) {
+		if (cam->GetAngleY() > 180) {
 			this->playerFoundKey = true;
 		}
 	}
