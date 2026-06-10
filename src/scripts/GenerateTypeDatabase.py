@@ -196,9 +196,6 @@ class CppType:
 
 			typeFilePath = os.path.abspath(type.get_declaration().get_definition().location.file.name.replace("\\", "/"))
 
-			if HEADER_FILES_DIRECTORY not in typeFilePath:
-				print("Removing type: " + type.spelling + " - " + type.get_declaration().get_definition().location.file.name.replace("\\", "/"))
-
 			cls.read_type(type)
 			
 	
