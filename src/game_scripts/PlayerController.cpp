@@ -362,18 +362,12 @@ void PlayerController::UpdateThrowing() {
 
 		this->throwStrengthAccum = Math::MoveTowards(this->throwStrengthAccum, 0, Time::Delta() * 10);
 
-		spdlog::error("{} - {}", this->throwStrengthCache, this->throwStrengthAccum);
-
 		if (this->throwStrengthCache > 0 && this->throwStrengthAccum < 0.7f) {
-			spdlog::error("BOOYA");
-
 			if (!PotionInventory::ConsumePotion()) {
 				this->throwStrengthCache = -1;
 				return;
 			}
 
-			spdlog::error("BOOYA 2");
-			
 			SceneNode* thrownBottle = GetScene()->GetComponent<ThrowableObjectPool>()->RequestThrowableObject();
 			auto* throwable = thrownBottle->AddObject<ThrowableObject>();
 
