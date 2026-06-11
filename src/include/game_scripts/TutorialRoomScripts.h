@@ -256,7 +256,7 @@ public:
 
 		if (!this->playerTookBottles) {
 			if (IsPlayerCloseToBottles()) {
-				ShowPrompt("Find the bottles\nPress G to pick them up");
+				ShowPrompt("Find the bottles\nPress F to pick them up");
 			}
 			else {
 				HidePrompt();
@@ -613,6 +613,9 @@ public:
 
 		if (distanceToTrigger < this->triggerRadius) {
 			this->sceneRequested = true;
+
+			PersistentData::Set<bool>("CraftingScene_ReturnedFromThrowingTutorial", true);
+			PersistentData::Set<bool>("CraftingScene_AutoEnterCrafting", true);
 
 			Application::Get()->RequestSceneBuild(
 				[](Scene* s) { CraftingScene::InitScene(*s); }

@@ -2,6 +2,7 @@
 
 #include "imgui.h"
 #include "scenes/CraftingScene.h"
+#include "scenes/DungeonGeneratorScene.h"
 #include "scenes/SplashScene.h"
 
 #include <spdlog/sinks/stdout_color_sinks.h>
