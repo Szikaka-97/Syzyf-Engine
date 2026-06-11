@@ -18,6 +18,25 @@ SceneNode* DungeonGenerator::PlaceRoom() {
 	return nullptr;
 }
 
+DungeonGenerator::RoomPrefab* DungeonGenerator::GetPrefabWithTag(const std::string& tag) {
+	auto roomIt = std::find_if(this->roomPrefabs.begin(), this->roomPrefabs.end(), [&tag](RoomPrefab prefab) -> bool { return prefab.HasTag(tag); } );
+
+	if (roomIt != this->roomPrefabs.end()) {
+		return &*roomIt;
+	}
+
+	return nullptr;
+}
+DungeonGenerator::RoomPrefab* DungeonGenerator::GetPrefabWithShape(RoomShape shape) {
+	auto roomIt = std::find_if(this->roomPrefabs.begin(), this->roomPrefabs.end(), [&shape](RoomPrefab prefab) -> bool { return prefab.shape == shape; } );
+
+	if (roomIt != this->roomPrefabs.end()) {
+		return &*roomIt;
+	}
+
+	return nullptr;
+}
+
 struct glmvec2compare {
 	constexpr bool operator()(const glm::vec2& a, const glm::vec2& b) const {
 		if (a.y == b.y) {
@@ -245,6 +264,55 @@ void SpawnEnemy(SceneNode* position) {
     enemyModel->LocalTransform().Position() = glm::zero<glm::vec3>();
 }
 
+void DungeonGenerator::Awake() {
+	for (const auto& roomFile : std::filesystem::directory_iterator(this->rootRoomPath)) {
+		if (roomFile.path().extension() == ".glb") {
+			RoomPrefab prefab;
+
+			prefab.prefab = GetScene()->Resources()->Get<GltfScene>(roomFile);
+
+			SceneNode* instantiatedRoom = prefab.prefab->Instantiate(GetScene(), nullptr, roomFile.path().stem().string());
+
+			for (SceneNode* child : instantiatedRoom->GetChildren()) {
+				if (child->GetName() == "ROOM_SHAPE_O") {
+					prefab.shape = RoomShape::DeadEnd;
+				}
+				else if (child->GetName() == "ROOM_SHAPE_I") {
+					prefab.shape = RoomShape::Corridor;
+				}
+				else if (child->GetName() == "ROOM_SHAPE_L") {
+					prefab.shape = RoomShape::Corner;
+				}
+				else if (child->GetName() == "ROOM_SHAPE_T") {
+					prefab.shape = RoomShape::TShape;
+				}
+				else if (child->GetName() == "ROOM_SHAPE_X") {
+					prefab.shape = RoomShape::Cross;
+				}
+				else if (child->GetName().starts_with("ROOM_SIZE_")) {
+					std::stringstream sizeString(child->GetName().substr(10));
+
+					std::string sizeX;
+					std::string sizeY;
+
+					std::getline(sizeString, sizeX, 'x');
+					std::getline(sizeString, sizeY);
+
+					prefab.size.x = std::stof(sizeX);
+					prefab.size.y = std::stof(sizeY);
+				}
+				else if (child->GetName().starts_with("ROOM_TAG_")) {
+					prefab.tags.push_back(child->GetName().substr(9));
+				}
+			}
+
+			this->roomPrefabs.push_back(prefab);
+
+			delete instantiatedRoom;
+		}
+	}
+}
+
 void DungeonGenerator::Update() {
 	glm::vec3 playerPosition = PlayerController::Instance()->GlobalTransform().Position();
 
@@ -271,22 +339,10 @@ void DungeonGenerator::Render() {
 		GltfScene* roomPrefab = nullptr;
 
 		if (room.position == glm::vec2(0, 0)) {
-			roomPrefab = ResourceDatabase::Global->Get<GltfScene>("./res/models/rooms/Room Start.glb");
+			roomPrefab = GetPrefabWithTag("START")->prefab;
 		}
-		else if (room.type == RoomShape::Corridor) {
-			roomPrefab = ResourceDatabase::Global->Get<GltfScene>("./res/models/rooms/Room Corridor.glb");
-		}
-		else if (room.type == RoomShape::DeadEnd) {
-			roomPrefab = ResourceDatabase::Global->Get<GltfScene>("./res/models/rooms/Room DeadEnd.glb");
-		}
-		else if (room.type == RoomShape::TShape) {
-			roomPrefab = ResourceDatabase::Global->Get<GltfScene>("./res/models/rooms/Room T.glb");
-		}
-		else if (room.type == RoomShape::Corner) {
-			roomPrefab = ResourceDatabase::Global->Get<GltfScene>("./res/models/rooms/Room L.glb");
-		}
-		else if (room.type == RoomShape::Cross) {
-			roomPrefab = ResourceDatabase::Global->Get<GltfScene>("./res/models/rooms/Room Cross.glb");
+		else {
+			roomPrefab = GetPrefabWithShape(room.type)->prefab;
 		}
 
 		roomCounter++;
