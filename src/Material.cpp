@@ -601,23 +601,34 @@ const UniformSpec* ComputeDispatchData::GetUniforms() const {
 }
 
 template<> bool Debug::Property<Material>(Material& mat, const std::string &name) {
-	if (ImGui::TreeNode(std::format("Shader").c_str())) {
+    bool materialChanged = false;
+
+    ImGui::PushID(&mat);
+
+    char nameBuf[256];
+    strncpy(nameBuf, mat.name.c_str(), sizeof(nameBuf));
+    if (ImGui::InputText("Name", nameBuf, sizeof(nameBuf))) {
+        mat.name = nameBuf;
+        materialChanged = true;
+    }
+
+    ImGui::Separator();
+
+	if (ImGui::CollapsingHeader("Shader Information")) {
 		const ShaderProgram* shader = mat.GetShader();
 
 		ImGui::Text("Vertex shader: %s", shader->GetVertexShader().GetName().c_str());
-		ImGui::Text("Geometry shader: %s", shader->GetGeometryShader().GetName().c_str());
-		ImGui::Text("Tess control shader: %s", shader->GetTessCtrlShader().GetName().c_str());
-		ImGui::Text("Tess evaluation shader: %s", shader->GetTessEvalShader().GetName().c_str());
+		// ImGui::Text("Geometry shader: %s", shader->GetGeometryShader().GetName().c_str());
+		// ImGui::Text("Tess control shader: %s", shader->GetTessCtrlShader().GetName().c_str());
+		// ImGui::Text("Tess evaluation shader: %s", shader->GetTessEvalShader().GetName().c_str());
 		ImGui::Text("Fragment shader: %s", shader->GetPixelShader().GetName().c_str());
 
-		if (ImGui::Button("Reload")) {
+		if (ImGui::Button("Reload", ImVec2(-1, 0))) {
 			const_cast<ShaderProgram*>(shader)->Reload();
 		}
-
-		ImGui::TreePop();
 	}
 
-	if (ImGui::TreeNode(std::format("Properties").c_str())) {
+	if (ImGui::CollapsingHeader("Properties", ImGuiTreeNodeFlags_DefaultOpen)) {
 		for (int j = 0; j < mat.GetUniforms()->VariableCount(); j++) {
 			auto& uniform = mat.GetUniforms()->VariableAt(j);
 
@@ -650,21 +661,41 @@ template<> bool Debug::Property<Material>(Material& mat, const std::string &name
 			}
 			case UniformSpec::UniformType::Float3: {
 				glm::vec3 val = mat.GetValue<glm::vec3>(j);
-				
-				if (Debug::Property(val, uniform.name)) {
-					mat.SetValue(j, val);
-				}
-				
-				break;
+
+                std::string lowerName = uniform.name;
+                std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(), ::tolower);
+
+                if (lowerName.find("color") != std::string::npos || lowerName.find("albedo") != std::string::npos) {
+                    if (ImGui::ColorEdit3(uniform.name.c_str(), &val[0])) {
+                        mat.SetValue(j, val);
+                        materialChanged = true;
+                    }
+                } else {
+                    if (ImGui::DragFloat3(uniform.name.c_str(), &val[0], 0.01f)) {
+                        mat.SetValue(j, val);
+                        materialChanged = true;
+                    }
+                }
+                break;
 			}
 			case UniformSpec::UniformType::Float4: {
 				glm::vec4 val = mat.GetValue<glm::vec4>(j);
-				
-				if (Debug::Property(val, uniform.name)) {
-					mat.SetValue(j, val);
-				}
-				
-				break;
+
+                std::string lowerName = uniform.name;
+                std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(), ::tolower);
+
+                if (lowerName.find("color") != std::string::npos || lowerName.find("albedo") != std::string::npos) {
+                    if (ImGui::ColorEdit4(uniform.name.c_str(), &val[0])) {
+                        mat.SetValue(j, val);
+                        materialChanged = true;
+                    }
+                } else {
+                    if (ImGui::DragFloat4(uniform.name.c_str(), &val[0], 0.01f)) {
+                        mat.SetValue(j, val);
+                        materialChanged = true;
+                    }
+                }
+                break;
 			}
 			case UniformSpec::UniformType::Uint1: {
 				unsigned int val = mat.GetValue<unsigned int>(j);
@@ -720,7 +751,32 @@ template<> bool Debug::Property<Material>(Material& mat, const std::string &name
 				
 				break;
 			}
-			case UniformSpec::UniformType::Sampler2D:
+            case UniformSpec::UniformType::Sampler2D: {
+                Texture2D* tex = mat.GetValue<Texture2D>(j);
+                bool updated = DrawTextureField(uniform.name.c_str(), tex, ImVec2(64, 64), [&mat, j](const std::string& path) {
+                    
+                    std::string normalizedPath = path;
+                    std::replace(normalizedPath.begin(), normalizedPath.end(), '\\', '/');
+
+                    Texture2D* loadedTex = ResourceDatabase::Global->Get<Texture2D>(normalizedPath, Texture::ColorTextureRGBA);
+                    
+                    if (!loadedTex && normalizedPath.starts_with("./")) {
+                        loadedTex = ResourceDatabase::Global->Get<Texture2D>(normalizedPath.substr(2));
+                    }
+                    if (!loadedTex && !normalizedPath.starts_with("./")) {
+                        loadedTex = ResourceDatabase::Global->Get<Texture2D>("./" + normalizedPath);
+                    }
+
+                    if (loadedTex) {
+                        mat.SetValue<Texture2D>(j, loadedTex);
+                    } else {
+                        spdlog::warn("Material Editor: Failed to load texture at path {}", normalizedPath);
+                    }
+                });
+
+                if (updated) materialChanged = true;
+                break;
+            }
 			case UniformSpec::UniformType::Cubemap: {
 				Texture* tex = nullptr;
 
@@ -758,18 +814,14 @@ template<> bool Debug::Property<Material>(Material& mat, const std::string &name
 
 				break;
 			}
-			case UniformSpec::UniformType::Image2D:
-			case UniformSpec::UniformType::ImageCube:
-			case UniformSpec::UniformType::UImage2D:
-			case UniformSpec::UniformType::Unsupported:
-				break;
+            default:
+                break;
 			}
 
 			ImGui::PopID();
 		}
-
-		ImGui::TreePop();
 	}
 
-	return false;
+    ImGui::PopID();
+	return materialChanged;
 }

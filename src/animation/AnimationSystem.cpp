@@ -6,6 +6,7 @@
 #include "Scene.h"
 
 #include <glm/ext/quaternion_common.hpp>
+#include <algorithm>
 
 glm::quat cubicSpline(const glm::quat previousPoint, const glm::quat previousTangent, const glm::quat nextPoint, const glm::quat nextTangent, const float interpolationValue) {
   const float t = interpolationValue;
@@ -38,6 +39,8 @@ void AnimationSystem::OnPreUpdate() {
   const float deltaTime = Time::Delta(); 
 
   for (auto* object : IterateObjects()) {
+    std::vector<AnimationComponent::Animation*> activeAnimations;
+
     for (auto& animation : object->animations) {
       if (!animation.playing && !animation.isDirty)
         continue;
@@ -60,26 +63,39 @@ void AnimationSystem::OnPreUpdate() {
       }
 
       animation.isDirty = false;
+      activeAnimations.push_back(&animation);
+    }
 
-      for (std::size_t i = 0; i < animation.data.tracks.size(); ++i) {
-        auto& track = animation.data.tracks[i];
+    if (activeAnimations.empty()) continue;
+
+    std::stable_sort(activeAnimations.begin(), activeAnimations.end(), [](const auto* a, const auto* b) {
+        return a->layerIndex < b->layerIndex;
+    });
+
+    for (auto* animation : activeAnimations) {
+      for (std::size_t i = 0; i < animation->data.tracks.size(); ++i) {
+        auto& track = animation->data.tracks[i];
 
         std::size_t lowerIndex = 0;
         std::size_t upperIndex = 0;
-        if (animation.timeActive < track.inputs.front()) {
+        if (animation->timeActive < track.inputs.front()) {
           lowerIndex = 0;
           upperIndex = 0;
-        } else if (animation.timeActive >= track.inputs.back()) {
+        } else if (animation->timeActive >= track.inputs.back()) {
           lowerIndex = track.inputs.size() - 1;
           upperIndex = lowerIndex;
         } else {
-          while (animation.currentKeyframes[i] < track.inputs.size() - 1
-            && animation.timeActive >= track.inputs[animation.currentKeyframes[i] + 1]) {
-            animation.currentKeyframes[i] += 1;
+          while (animation->currentKeyframes[i] < track.inputs.size() - 1
+            && animation->timeActive >= track.inputs[animation->currentKeyframes[i] + 1]) {
+            animation->currentKeyframes[i] += 1;
           }
 
-          lowerIndex = animation.currentKeyframes[i];
-          upperIndex = animation.currentKeyframes[i] + 1;
+          lowerIndex = animation->currentKeyframes[i];
+          upperIndex = animation->currentKeyframes[i] + 1;
+        }
+
+        if (!animation->boneMask.empty() && animation->boneMask.find(track.target) == animation->boneMask.end()) {
+            continue;
         }
 
         switch (track.property) {
@@ -94,60 +110,62 @@ void AnimationSystem::OnPreUpdate() {
                 track.outputs[lowerIndex * 4 + 2],
               };
 
-              // Skips interpolation if the track hasn't started yet/ended already 
               if (upperIndex == lowerIndex) {
                 rotation = lower;
-                track.target->LocalTransform().Rotation() = rotation;
-                break;
+              } else {
+                const float keyFrameDuration = track.inputs[upperIndex] - track.inputs[lowerIndex];
+                const float keyFrameTimeActive = animation->timeActive - track.inputs[lowerIndex];
+                const float interpolationValue = keyFrameTimeActive / keyFrameDuration;
+
+                glm::quat upper = {
+                  track.outputs[upperIndex * 4 + 3],
+                  track.outputs[upperIndex * 4],
+                  track.outputs[upperIndex * 4 + 1],
+                  track.outputs[upperIndex * 4 + 2],
+                };
+ 
+                switch (track.interpolation) {
+                  case AnimationComponent::Interpolation::LINEAR:
+                    rotation = glm::slerp(lower, upper, interpolationValue);
+                    break;
+                  case AnimationComponent::Interpolation::STEP:
+                    rotation = lower;
+                    break;
+                  case AnimationComponent::Interpolation::CUBICSPLINE:
+                    glm::quat lowerValue = {
+                      track.outputs[lowerIndex * 4 + 7],
+                      track.outputs[lowerIndex * 4 + 4],
+                      track.outputs[lowerIndex * 4 + 5],
+                      track.outputs[lowerIndex * 4 + 6],
+                    };
+                    glm::quat lowerOutputTangent = {
+                      track.outputs[lowerIndex * 4 + 11],
+                      track.outputs[lowerIndex * 4 + 8],
+                      track.outputs[lowerIndex * 4 + 9],
+                      track.outputs[lowerIndex * 4 + 10],
+                    };
+
+                    glm::quat upperInputTangent = upper;
+                    glm::quat upperValue = {
+                      track.outputs[upperIndex * 4 + 7],
+                      track.outputs[upperIndex * 4 + 4],
+                      track.outputs[upperIndex * 4 + 5],
+                      track.outputs[upperIndex * 4 + 6],
+                    };
+
+                    glm::quat previousTangent = keyFrameDuration * lowerOutputTangent;
+                    glm::quat nextTangent = keyFrameDuration * upperInputTangent;
+
+                    rotation = glm::normalize(cubicSpline(lowerValue, previousTangent, upperValue, nextTangent, interpolationValue));
+                    break;
+                }
               }
 
-              const float keyFrameDuration = track.inputs[upperIndex] - track.inputs[lowerIndex];
-              const float keyFrameTimeActive = animation.timeActive - track.inputs[lowerIndex];
-              const float interpolationValue = keyFrameTimeActive / keyFrameDuration;
-
-              glm::quat upper = {
-                track.outputs[upperIndex * 4 + 3],
-                track.outputs[upperIndex * 4],
-                track.outputs[upperIndex * 4 + 1],
-                track.outputs[upperIndex * 4 + 2],
-              };
- 
-              switch (track.interpolation) {
-                case AnimationComponent::Interpolation::LINEAR:
-                  rotation = glm::slerp(lower, upper, interpolationValue);
-                  break;
-                case AnimationComponent::Interpolation::STEP:
-                  rotation = lower;
-                  break;
-                case AnimationComponent::Interpolation::CUBICSPLINE:
-                  glm::quat lowerValue = {
-                    track.outputs[lowerIndex * 4 + 7],
-                    track.outputs[lowerIndex * 4 + 4],
-                    track.outputs[lowerIndex * 4 + 5],
-                    track.outputs[lowerIndex * 4 + 6],
-                  };
-                  glm::quat lowerOutputTangent = {
-                    track.outputs[lowerIndex * 4 + 11],
-                    track.outputs[lowerIndex * 4 + 8],
-                    track.outputs[lowerIndex * 4 + 9],
-                    track.outputs[lowerIndex * 4 + 10],
-                  };
-
-                  glm::quat upperInputTangent = upper;
-                  glm::quat upperValue = {
-                    track.outputs[upperIndex * 4 + 7],
-                    track.outputs[upperIndex * 4 + 4],
-                    track.outputs[upperIndex * 4 + 5],
-                    track.outputs[upperIndex * 4 + 6],
-                  };
-
-                  glm::quat previousTangent = keyFrameDuration * lowerOutputTangent;
-                  glm::quat nextTangent = keyFrameDuration * upperInputTangent;
-
-                  rotation = glm::normalize(cubicSpline(lowerValue, previousTangent, upperValue, nextTangent, interpolationValue));
-                  break;
-                }
-              track.target->LocalTransform().Rotation() = rotation;
+              if (animation->blendWeight >= 1.0f) {
+                  track.target->LocalTransform().Rotation() = rotation;
+              } else {
+                  track.target->LocalTransform().Rotation() = glm::slerp(track.target->LocalTransform().Rotation().Value(), rotation, animation->blendWeight);
+              }
               break;
             }
           case AnimationComponent::Property::POSITION:
@@ -162,53 +180,56 @@ void AnimationSystem::OnPreUpdate() {
 
               if (upperIndex == lowerIndex) {
                 position = lower;
-                track.target->LocalTransform().Position() = position;
-                break;
+              } else {
+                const float keyFrameDuration = track.inputs[upperIndex] - track.inputs[lowerIndex];
+                const float keyFrameTimeActive = animation->timeActive - track.inputs[lowerIndex];
+                const float interpolationValue = keyFrameTimeActive / keyFrameDuration;
+
+                glm::vec3 upper = {
+                  track.outputs[upperIndex * 3],
+                  track.outputs[upperIndex * 3 + 1],
+                  track.outputs[upperIndex * 3 + 2],
+                };
+ 
+                switch (track.interpolation) {
+                  case AnimationComponent::Interpolation::LINEAR:
+                    position = glm::mix(lower, upper, interpolationValue);
+                    break;
+                  case AnimationComponent::Interpolation::STEP:
+                    position = lower;
+                    break;
+                  case AnimationComponent::Interpolation::CUBICSPLINE:
+                    glm::vec3 lowerValue = {
+                      track.outputs[lowerIndex * 3 + 3],
+                      track.outputs[lowerIndex * 3 + 4],
+                      track.outputs[lowerIndex * 3 + 5],
+                    };
+                    glm::vec3 lowerOutputTangent = {
+                      track.outputs[lowerIndex * 3 + 6],
+                      track.outputs[lowerIndex * 3 + 7],
+                      track.outputs[lowerIndex * 3 + 8],
+                    };
+
+                    glm::vec3 upperInputTangent = upper;
+                    glm::vec3 upperValue = {
+                      track.outputs[upperIndex * 3 + 3],
+                      track.outputs[upperIndex * 3 + 4],
+                      track.outputs[upperIndex * 3 + 5],
+                    };
+
+                    glm::vec3 previousTangent = keyFrameDuration * lowerOutputTangent;
+                    glm::vec3 nextTangent = keyFrameDuration * upperInputTangent;
+
+                    position = cubicSpline(lowerValue, previousTangent, upperValue, nextTangent, interpolationValue);
+                    break;
+                }
               }
 
-              const float keyFrameDuration = track.inputs[upperIndex] - track.inputs[lowerIndex];
-              const float keyFrameTimeActive = animation.timeActive - track.inputs[lowerIndex];
-              const float interpolationValue = keyFrameTimeActive / keyFrameDuration;
-
-              glm::vec3 upper = {
-                track.outputs[upperIndex * 3],
-                track.outputs[upperIndex * 3 + 1],
-                track.outputs[upperIndex * 3 + 2],
-              };
- 
-              switch (track.interpolation) {
-                case AnimationComponent::Interpolation::LINEAR:
-                  position = glm::mix(lower, upper, interpolationValue);
-                  break;
-                case AnimationComponent::Interpolation::STEP:
-                  position = lower;
-                  break;
-                case AnimationComponent::Interpolation::CUBICSPLINE:
-                  glm::vec3 lowerValue = {
-                    track.outputs[lowerIndex * 3 + 3],
-                    track.outputs[lowerIndex * 3 + 4],
-                    track.outputs[lowerIndex * 3 + 5],
-                  };
-                  glm::vec3 lowerOutputTangent = {
-                    track.outputs[lowerIndex * 3 + 6],
-                    track.outputs[lowerIndex * 3 + 7],
-                    track.outputs[lowerIndex * 3 + 8],
-                  };
-
-                  glm::vec3 upperInputTangent = upper;
-                  glm::vec3 upperValue = {
-                    track.outputs[upperIndex * 3 + 3],
-                    track.outputs[upperIndex * 3 + 4],
-                    track.outputs[upperIndex * 3 + 5],
-                  };
-
-                  glm::vec3 previousTangent = keyFrameDuration * lowerOutputTangent;
-                  glm::vec3 nextTangent = keyFrameDuration * upperInputTangent;
-
-                  position = cubicSpline(lowerValue, previousTangent, upperValue, nextTangent, interpolationValue);
-                  break;
-                }
-              track.target->LocalTransform().Position() = position;
+              if (animation->blendWeight >= 1.0f) {
+                  track.target->LocalTransform().Position() = position;
+              } else {
+                  track.target->LocalTransform().Position() = glm::mix(track.target->LocalTransform().Position().Value(), position, animation->blendWeight);
+              }
               break;
             }
           case AnimationComponent::Property::SCALE:
@@ -223,53 +244,56 @@ void AnimationSystem::OnPreUpdate() {
 
               if (upperIndex == lowerIndex) {
                 scale = lower;
-                track.target->LocalTransform().Scale() = scale;
-                break;
+              } else {
+                const float keyFrameDuration = track.inputs[upperIndex] - track.inputs[lowerIndex];
+                const float keyFrameTimeActive = animation->timeActive - track.inputs[lowerIndex];
+                const float interpolationValue = keyFrameTimeActive / keyFrameDuration;
+
+                glm::vec3 upper = {
+                  track.outputs[upperIndex * 3],
+                  track.outputs[upperIndex * 3 + 1],
+                  track.outputs[upperIndex * 3 + 2],
+                };
+ 
+                switch (track.interpolation) {
+                  case AnimationComponent::Interpolation::LINEAR:
+                    scale = glm::mix(lower, upper, interpolationValue);
+                    break;
+                  case AnimationComponent::Interpolation::STEP:
+                    scale = lower;
+                    break;
+                  case AnimationComponent::Interpolation::CUBICSPLINE:
+                    glm::vec3 lowerValue = {
+                      track.outputs[lowerIndex * 3 + 3],
+                      track.outputs[lowerIndex * 3 + 4],
+                      track.outputs[lowerIndex * 3 + 5],
+                    };
+                    glm::vec3 lowerOutputTangent = {
+                      track.outputs[lowerIndex * 3 + 6],
+                      track.outputs[lowerIndex * 3 + 7],
+                      track.outputs[lowerIndex * 3 + 8],
+                    };
+
+                    glm::vec3 upperInputTangent = upper;
+                    glm::vec3 upperValue = {
+                      track.outputs[upperIndex * 3 + 3],
+                      track.outputs[upperIndex * 3 + 4],
+                      track.outputs[upperIndex * 3 + 5],
+                    };
+
+                    glm::vec3 previousTangent = keyFrameDuration * lowerOutputTangent;
+                    glm::vec3 nextTangent = keyFrameDuration * upperInputTangent;
+
+                    scale = cubicSpline(lowerValue, previousTangent, upperValue, nextTangent, interpolationValue);
+                    break;
+                }
               }
 
-              const float keyFrameDuration = track.inputs[upperIndex] - track.inputs[lowerIndex];
-              const float keyFrameTimeActive = animation.timeActive - track.inputs[lowerIndex];
-              const float interpolationValue = keyFrameTimeActive / keyFrameDuration;
-
-              glm::vec3 upper = {
-                track.outputs[upperIndex * 3],
-                track.outputs[upperIndex * 3 + 1],
-                track.outputs[upperIndex * 3 + 2],
-              };
- 
-              switch (track.interpolation) {
-                case AnimationComponent::Interpolation::LINEAR:
-                  scale = glm::mix(lower, upper, interpolationValue);
-                  break;
-                case AnimationComponent::Interpolation::STEP:
-                  scale = lower;
-                  break;
-                case AnimationComponent::Interpolation::CUBICSPLINE:
-                  glm::vec3 lowerValue = {
-                    track.outputs[lowerIndex * 3 + 3],
-                    track.outputs[lowerIndex * 3 + 4],
-                    track.outputs[lowerIndex * 3 + 5],
-                  };
-                  glm::vec3 lowerOutputTangent = {
-                    track.outputs[lowerIndex * 3 + 6],
-                    track.outputs[lowerIndex * 3 + 7],
-                    track.outputs[lowerIndex * 3 + 8],
-                  };
-
-                  glm::vec3 upperInputTangent = upper;
-                  glm::vec3 upperValue = {
-                    track.outputs[upperIndex * 3 + 3],
-                    track.outputs[upperIndex * 3 + 4],
-                    track.outputs[upperIndex * 3 + 5],
-                  };
-
-                  glm::vec3 previousTangent = keyFrameDuration * lowerOutputTangent;
-                  glm::vec3 nextTangent = keyFrameDuration * upperInputTangent;
-
-                  scale = cubicSpline(lowerValue, previousTangent, upperValue, nextTangent, interpolationValue);
-                  break;
-                }
-              track.target->LocalTransform().Scale() = scale;
+              if (animation->blendWeight >= 1.0f) {
+                  track.target->LocalTransform().Scale() = scale;
+              } else {
+                  track.target->LocalTransform().Scale() = glm::mix(track.target->LocalTransform().Scale().Value(), scale, animation->blendWeight);
+              }
               break;
             }
           case AnimationComponent::Property::WEIGHTS:
@@ -279,7 +303,7 @@ void AnimationSystem::OnPreUpdate() {
       }
     }
   }
-};
+}
 
 void AnimationSystem::UnregisterObjectForced(GameObject* obj) {
   //TODO: Make it a bit more efficient

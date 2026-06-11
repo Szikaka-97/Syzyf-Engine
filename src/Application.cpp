@@ -1,4 +1,5 @@
 #include "Application.h"
+#include "alc.h"
 #include "physics/Jolt.h"
 
 #include <Scene.h>
@@ -140,12 +141,44 @@ bool Application::InitEngine() {
     ImGui_ImplOpenGL3_Init("#version 460");
     ImGui_ImplSDL3_InitForOpenGL(window, glContext);
 
+    // Audio
+    this->audioDevice = alcOpenDevice(nullptr);
+    if (!this->audioDevice) {
+        spdlog::error("Application::InitEngine: Failed to open OpenAL device.");
+        return false;
+    }
+
+    this->audioContext = alcCreateContext(this->audioDevice, nullptr);
+    if (!this->audioContext) {
+        spdlog::error("Failed to create OpenAL context.");
+        alcCloseDevice(this->audioDevice);
+        return false;
+    }
+
+    if (!alcMakeContextCurrent(this->audioContext)) {
+        spdlog::error("Failed to make OpenAL context current.");
+        alcDestroyContext(this->audioContext);
+        alcCloseDevice(this->audioDevice);
+        return false;
+    }
+
     return true;
 }
 
 void Application::ShutdownEngine() {
     if (this->currentScene) {
         delete this->currentScene;
+    }
+
+    if (this->audioContext) {
+        alcMakeContextCurrent(nullptr);
+        alcDestroyContext(this->audioContext);
+        this->audioContext = nullptr;
+    }
+
+    if (this->audioDevice) {
+        alcCloseDevice(this->audioDevice);
+        this->audioDevice = nullptr;
     }
 
     ImGui::DestroyPlatformWindows();

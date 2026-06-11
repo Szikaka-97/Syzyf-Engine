@@ -6,7 +6,6 @@
 #include "MousePickingBodySystem.h"
 #include "ParticleSpawner.h"
 #include "SceneRegistry.h"
-#include "Serialized.h"
 #include "physics/Body.h"
 #include "physics/DebugRenderer.h"
 
@@ -486,6 +485,13 @@ void SceneViewPanel::Draw(Context& context) {
 
 void SceneViewPanel::UpdateAndRenderScene(Context& context) {
     Profiler::Push("Frame");
+    if (context.isNativeDialogOpen) {
+        context.selectedScene->Render();
+        if (context.state != State::Game) {
+            context.physicsDebugRenderer->Render();
+        }
+        return;
+    }
 
     if (context.state == State::Game) {
         context.selectedScene->Update();

@@ -42,6 +42,41 @@ void AnimationComponent::SetProgress(const std::string& name, float percent) {
     }
 }
 
+void AnimationComponent::SetAnimationLayer(const std::string& name, int layer) {
+    for (auto& animation : this->animations) {
+        if (animation.data.name == name) {
+            animation.layerIndex = layer;
+            return;
+        }
+    }
+}
+
+void AnimationComponent::SetAnimationMask(const std::string& name, SceneNode* maskRoot) {
+    for (auto& animation : this->animations) {
+        if (animation.data.name == name) {
+            animation.boneMask.clear();
+
+            if (maskRoot == nullptr) {
+                return;
+            }
+
+            std::function<void(SceneNode*)> addNodeAndChildren = [&](SceneNode* node) {
+                if (!node) return;
+
+                animation.boneMask.insert(node);
+
+                for (SceneNode* child : node->GetChildren()) {
+                    addNodeAndChildren(child);
+                }
+            };
+
+            addNodeAndChildren(maskRoot);
+            
+            return;
+        }
+    }
+}
+
 void AnimationComponent::DrawImGui() {
     for (auto& animation : this->animations) {
         if (ImGui::TreeNode(animation.data.name.c_str())) {

@@ -93,7 +93,11 @@ void EditorApplication::OnInit(int argc, char* argv[]) {
     }
 }
 
-void EditorApplication::OnUpdate() { this->Input(); }
+void EditorApplication::OnUpdate() {
+    this->context.ExecuteMainThreadTasks();
+
+    this->Input();
+}
 
 void EditorApplication::OnRender() {}
 
@@ -143,6 +147,7 @@ void EditorApplication::DrawPanels() {
     this->inspectorPanel.Draw(this->context);
     this->filesPanel.Draw();
     this->consolePanel.Draw(this->context);
+    this->textureToolPanel.Draw(this->context);
     this->sceneViewPanel.Draw(this->context);
 }
 

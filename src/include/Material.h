@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Resources.h"
+#include "ImGuiTextureField.h"
+
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 #include <spdlog/spdlog.h>
