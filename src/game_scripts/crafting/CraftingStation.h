@@ -89,6 +89,10 @@ namespace Crafting{
 
                 SceneNode* heatingUiRootNode = nullptr;
                 UiText* heatingUiText = nullptr;
+                SceneNode* dungeonPromptUiNode = nullptr;
+                UiText* dungeonPromptText = nullptr;
+                bool dungeonPromptMessageVisible = false;
+                float dungeonPromptShowUntilTime = 0.0f;
 
                 SceneNode* bellowNode = nullptr;
                 SceneNode* bladeNode = nullptr;
@@ -361,6 +365,8 @@ namespace Crafting{
 
                     CreateHeatingUi();
                     SetHeatingUiEnabled(false);
+                    CreateDungeonPromptUi();
+                    HideDungeonPromptMessage();
 
                     if (stageOneUiNode){
                         stageOneUiNode->SetEnabled(false);
@@ -391,6 +397,8 @@ namespace Crafting{
                     if (!GetScene() || !GetScene()->Input()){
                         return;
                     }
+
+                    UpdateDungeonPromptMessage();
 
                     if (!isActive){
                         if (enterStationOnFirstUpdate){
@@ -435,6 +443,7 @@ namespace Crafting{
                     lastStagePotionTextVisible = false;
                     lastStagePotionResultText.clear();
                     lastStagePotionPanelSlide = 0.0f;
+                    HideDungeonPromptMessage();
 
                     if (lastStagePotionPanelNode){
                         lastStagePotionPanelNode->SetEnabled(false);
@@ -670,6 +679,8 @@ namespace Crafting{
 
                     if (currentStage == CraftingStage::Bottling && lastStagePotionPanelVisible){
                         ExitStation();
+                        ShowDungeonPromptMessage();
+                        return;
                     }
                 }
 
@@ -2080,6 +2091,100 @@ namespace Crafting{
                     text << "Quality: " << heatingStage.GetQualityPercent() << "%";
 
                     heatingUiText->text = text.str();
+                }
+
+                void CreateDungeonPromptUi(){
+                    if (!GetScene()){
+                        return;
+                    }
+
+                    Font* font = LoadModelUiFont();
+
+                    if (!font){
+                        return;
+                    }
+
+                    dungeonPromptUiNode =
+                        GetScene()->CreateNode("Crafting Dungeon Prompt UI Root");
+
+                    dungeonPromptUiNode->AddObject<UiLayout>(
+                        glm::ivec2(900, 190),
+                        glm::ivec2(0, 0),
+                        80,
+                        AnchorPoint::Center
+                    );
+
+                    SceneNode* textNode =
+                        GetScene()->CreateNode(
+                            dungeonPromptUiNode,
+                            "Crafting Dungeon Prompt UI Text"
+                        );
+
+                    textNode->AddObject<UiLayout>(
+                        glm::ivec2(860, 150),
+                        glm::ivec2(20, 20),
+                        81,
+                        AnchorPoint::TopLeft
+                    );
+
+                    dungeonPromptText =
+                        textNode->AddObject<UiText>("", font);
+
+                    dungeonPromptText->fontSize = 34.0f;
+                    dungeonPromptText->color = glm::vec4(1.0f, 0.93f, 0.72f, 0.0f);
+                    dungeonPromptText->alignment = TextAlignment::Middle;
+                    dungeonPromptText->maxWidth = 860.0f;
+
+                    dungeonPromptUiNode->SetEnabled(false);
+                }
+
+                void ShowDungeonPromptMessage(){
+                    if (!dungeonPromptUiNode || !dungeonPromptText){
+                        return;
+                    }
+
+                    dungeonPromptUiNode->SetEnabled(true);
+                    dungeonPromptText->text =
+                        "All that remains is to enter the dungeon\n"
+                        "and use your brew.";
+                    dungeonPromptText->color.w = 1.0f;
+
+                    dungeonPromptMessageVisible = true;
+                    dungeonPromptShowUntilTime = Time::Current() + 4.0f;
+                }
+
+                void HideDungeonPromptMessage(){
+                    dungeonPromptMessageVisible = false;
+                    dungeonPromptShowUntilTime = 0.0f;
+
+                    if (dungeonPromptText){
+                        dungeonPromptText->text = "";
+                        dungeonPromptText->color.w = 0.0f;
+                    }
+
+                    if (dungeonPromptUiNode){
+                        dungeonPromptUiNode->SetEnabled(false);
+                    }
+                }
+
+                void UpdateDungeonPromptMessage(){
+                    if (!dungeonPromptMessageVisible || !dungeonPromptText){
+                        return;
+                    }
+
+                    if (Time::Current() <= dungeonPromptShowUntilTime){
+                        return;
+                    }
+
+                    dungeonPromptText->color.w = glm::clamp(
+                        dungeonPromptText->color.w - Time::Delta() * 1.5f,
+                        0.0f,
+                        1.0f
+                    );
+
+                    if (dungeonPromptText->color.w <= 0.0f){
+                        HideDungeonPromptMessage();
+                    }
                 }
 
                 void EnterStation(){
