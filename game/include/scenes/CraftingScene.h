@@ -66,8 +66,8 @@
 
 namespace CraftingScene {
 
-    static constexpr const char* CraftingTutorialModelPath =
-	    "./res/models/rooms/CraftingTutorial.glb";
+    static constexpr const char* CraftingRoomModelPath =
+	    "./res/models/rooms/Base_final_version.glb";
 
     static constexpr const char* CraftingStationModelPath =
 	    "./res/models/Bimbermachine.glb";
@@ -142,12 +142,20 @@ namespace CraftingScene {
 	    );
     }
 
+    inline bool IsRoomPointLightNodeName(const std::string& name) {
+	    return
+		    name == "Point" ||
+		    name.rfind("Point.", 0) == 0 ||
+		    name == "PointLight" ||
+		    name.rfind("PointLight.", 0) == 0;
+    }
+
     inline void CollectPointLightsRecursive(SceneNode* node, std::vector<SceneNode*>& pointLights) {
 	    if (!node) {
 		    return;
 	    }
 
-	    if (node->GetName().rfind("PointLight", 0) == 0) {
+	    if (IsRoomPointLightNodeName(node->GetName())) {
 		    pointLights.push_back(node);
 	    }
 
@@ -157,28 +165,40 @@ namespace CraftingScene {
     }
 
     inline int GetPointLightIndex(const std::string& name) {
-	    const std::string prefix = "PointLight.";
-
-	    if (name.rfind(prefix, 0) != 0) {
-		    return 999999;
-	    }
-
 	    try {
-		    return std::stoi(name.substr(prefix.size()));
+		    if (name == "Point" || name == "PointLight") {
+			    return 0;
+		    }
+
+		    const std::string pointPrefix = "Point.";
+		    const std::string pointLightPrefix = "PointLight.";
+
+		    if (name.rfind(pointPrefix, 0) == 0) {
+			    return std::stoi(name.substr(pointPrefix.size()));
+		    }
+
+		    if (name.rfind(pointLightPrefix, 0) == 0) {
+			    return std::stoi(name.substr(pointLightPrefix.size()));
+		    }
 	    }
 	    catch (...) {
-		    return 999999;
 	    }
+
+	    return 999999;
     }
 
-    class CraftingTutorialLights : public GameObject {
+    class CraftingRoomLights : public GameObject {
     private:
+	    static constexpr const char* BaseRoomVisitedKey =
+		    "Crafting_BaseRoomVisited";
+
 	    std::vector<Light*> lights;
 	    std::vector<float> baseIntensities;
 
+	    bool firstRoomVisit = false;
 	    float lightsOnTime = 0.0f;
-	    float sequenceDelay = 0.45f;
-	    float fadeDuration = 1.0f;
+	    float sequenceDelay = 0.25f;
+	    float fadeDuration = 0.6f;
 
     public:
 	    void Awake() {
@@ -189,6 +209,14 @@ namespace CraftingScene {
 		    std::sort(pointLightNodes.begin(), pointLightNodes.end(), [](SceneNode* a, SceneNode* b) {
 			    return GetPointLightIndex(a->GetName()) < GetPointLightIndex(b->GetName());
 		    });
+
+		    this->firstRoomVisit =
+			    !PersistentData::Get<bool>(BaseRoomVisitedKey);
+
+		    PersistentData::Set<bool>(
+			    BaseRoomVisitedKey,
+			    true
+		    );
 
 		    for (SceneNode* pointLightNode : pointLightNodes) {
 			    Light* light = nullptr;
@@ -205,13 +233,24 @@ namespace CraftingScene {
 				    );
 			    }
 
-			    light->SetIntensity(0.0f);
+			    if (this->firstRoomVisit) {
+				    light->SetIntensity(0.0f);
+			    }
+			    else {
+				    light->SetIntensity(3.0f);
+			    }
 
 			    this->lights.push_back(light);
 			    this->baseIntensities.push_back(3.0f);
 		    }
 
 		    this->lightsOnTime = Time::Current();
+
+		    spdlog::info(
+			    "CraftingScene: loaded {} room point lights. firstRoomVisit={}.",
+			    this->lights.size(),
+			    this->firstRoomVisit
+		    );
 	    }
 
 	    void Update() {
@@ -224,17 +263,22 @@ namespace CraftingScene {
 			    float targetIntensity =
 				    this->baseIntensities[index] + flicker;
 
-			    float turnOnAmount =
-				    glm::clamp(
-					    (Time::Current() - this->lightsOnTime - float(index) * this->sequenceDelay) / this->fadeDuration,
-					    0.0f,
-					    1.0f
-				    );
+			    float turnOnAmount = 1.0f;
+
+			    if (this->firstRoomVisit) {
+				    turnOnAmount =
+					    glm::clamp(
+						    (Time::Current() - this->lightsOnTime - float(index) * this->sequenceDelay) / this->fadeDuration,
+						    0.0f,
+						    1.0f
+					    );
+			    }
 
 			    light->SetIntensity(targetIntensity * turnOnAmount);
 		    }
 	    }
     };
+
 
     class CraftingTutorialFinishedMessage : public GameObject {
     private:
@@ -479,46 +523,101 @@ namespace CraftingScene {
 	    worldUp * upOffset;
     }
 
+    inline bool StartsWith(const std::string& text, const std::string& prefix) {
+	    return text.rfind(prefix, 0) == 0;
+    }
+
+    inline bool IsRoomColliderNodeName(const std::string& name) {
+	    return
+		    name == "Floor" ||
+		    name == "floor" ||
+		    name == "Walls" ||
+		    StartsWith(name, "Plane") ||
+		    StartsWith(name, "Cube.") ||
+		    StartsWith(name, "Schody") ||
+		    StartsWith(name, "Taboret") ||
+		    StartsWith(name, "Stół") ||
+		    StartsWith(name, "Worek") ||
+		    StartsWith(name, "Szafka") ||
+		    StartsWith(name, "Skrzynka") ||
+		    StartsWith(name, "Skrzynia") ||
+		    StartsWith(name, "beczka") ||
+		    StartsWith(name, "Rura") ||
+		    StartsWith(name, "pochodnia");
+    }
+
+    inline void CollectRoomColliderNodesRecursive(SceneNode* node, std::vector<SceneNode*>& colliderNodes) {
+	    if (!node) {
+		    return;
+	    }
+
+	    if (IsRoomColliderNodeName(node->GetName())) {
+		    colliderNodes.push_back(node);
+	    }
+
+	    for (SceneNode* child : node->GetChildren()) {
+		    CollectRoomColliderNodesRecursive(child, colliderNodes);
+	    }
+    }
+
+    inline void AddStaticRoomCollider(SceneNode* colliderNode) {
+	    if (!colliderNode) {
+		    return;
+	    }
+
+	    MeshRenderer* renderer =
+		    FindMeshRenderer(colliderNode);
+
+	    if (!renderer || !renderer->GetMesh()) {
+		    spdlog::warn(
+			    "CraftingScene: room collider node '{}' has no mesh renderer.",
+			    colliderNode->GetName()
+		    );
+
+		    return;
+	    }
+
+	    SceneNode* bodyNode =
+		    renderer->GetNode();
+
+	    if (bodyNode->GetObject<Physics::Body>()) {
+		    return;
+	    }
+
+	    auto* body = bodyNode->AddObject<Physics::Body>(
+		    JPH::BodyCreationSettings{
+			    Physics::MeshShape(renderer->GetMesh()),
+			    JPH::RVec3::sZero(),
+			    JPH::Quat::sIdentity(),
+			    JPH::EMotionType::Static,
+			    Physics::Layers::NON_MOVING
+		    }
+	    );
+
+	    body->SetCollisionLayerAndMask({0}, 0xFFFFFFFF);
+
+	    spdlog::info(
+		    "CraftingScene: added room collider to '{}'.",
+		    colliderNode->GetName()
+	    );
+    }
+
     inline void AddRoomPhysics(SceneNode* roomNode) {
-	    SceneNode* floorNode = FindFirstNodeByNameRecursive(roomNode, "Plane");
-	    SceneNode* wallsColliderNode = FindFirstNodeByNameRecursive(roomNode, "Walls Collider");
-
-	    if (floorNode) {
-		    MeshRenderer* floorRenderer = FindMeshRenderer(floorNode);
-
-		    if (floorRenderer) {
-			    auto* floorBody = floorRenderer->GetNode()->AddObject<Physics::Body>(
-				    JPH::BodyCreationSettings{
-					    Physics::MeshShape(floorRenderer->GetMesh()),
-					    JPH::RVec3::sZero(),
-					    JPH::Quat::sIdentity(),
-					    JPH::EMotionType::Static,
-					    Physics::Layers::NON_MOVING
-				    }
-			    );
-
-			    floorBody->SetCollisionLayerAndMask({0}, 0xFFFFFFFF);
-		    }
-
+	    if (!roomNode) {
+		    return;
 	    }
 
-	    if (wallsColliderNode) {
-		    MeshRenderer* wallsRenderer = FindMeshRenderer(wallsColliderNode);
+	    std::vector<SceneNode*> colliderNodes;
+	    CollectRoomColliderNodesRecursive(roomNode, colliderNodes);
 
-		    if (wallsRenderer) {
-			    auto* wallsBody = wallsRenderer->GetNode()->AddObject<Physics::Body>(
-				    JPH::BodyCreationSettings{
-					    Physics::MeshShape(wallsRenderer->GetMesh()),
-					    JPH::RVec3::sZero(),
-					    JPH::Quat::sIdentity(),
-					    JPH::EMotionType::Static,
-					    Physics::Layers::NON_MOVING
-				    }
-			    );
-
-			    wallsBody->SetCollisionLayerAndMask({0}, 0xFFFFFFFF);
-		    }
+	    for (SceneNode* colliderNode : colliderNodes) {
+		    AddStaticRoomCollider(colliderNode);
 	    }
+
+	    spdlog::info(
+		    "CraftingScene: room colliders requested for {} nodes.",
+		    colliderNodes.size()
+	    );
     }
 
     inline void SetInteractionBodyLayer(Physics::Body* body) {
@@ -1360,7 +1459,7 @@ namespace CraftingScene {
 	    }
 	    else {
 		    playerNode->GlobalTransform().Position() =
-			    glm::vec3(1.7f, 0.0f, -10.4f);
+			    glm::vec3(4.0f, 0.0f, -1.0f);
 	    }
 
 	    auto* virtualCharacter =
@@ -1637,8 +1736,8 @@ namespace CraftingScene {
 
 	    SceneNode* roomNode =
 		    ResourceDatabase::Global->Get<GltfScene>(
-			    CraftingTutorialModelPath
-		    )->Instantiate(&scene, sceneRoot, "Crafting Tutorial Room");
+			    CraftingRoomModelPath
+		    )->Instantiate(&scene, sceneRoot, "Crafting Base Room");
 
 	    if (!roomNode) {
 		    return;
@@ -1779,7 +1878,7 @@ namespace CraftingScene {
 	    cameraNode->AddObject<ColorGrading>();
 	    cameraNode->AddObject<Fxaa>();
 
-	    roomNode->AddObject<CraftingTutorialLights>();
+	    roomNode->AddObject<CraftingRoomLights>();
 	    roomNode->AddObject<CraftingTutorialFinishedMessage>();
 
         SetupCraftingStation(scene, stationNode);
