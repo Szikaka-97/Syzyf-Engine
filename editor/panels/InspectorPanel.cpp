@@ -269,7 +269,7 @@ void InspectorPanel::Draw(Context& context) {
         }
 
         if (objectToRemove != nullptr) {
-            context.selectedNode->DeleteObject(objectToRemove);
+            delete objectToRemove;
         }
 
         ImGui::Spacing();

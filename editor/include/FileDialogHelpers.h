@@ -1,5 +1,8 @@
 #pragma once
 
+#include <functional>
+#include <string>
+
 class SceneNode;
 
 namespace Editor {
@@ -10,4 +13,7 @@ void OpenSaveSceneDialog(Context& context);
 
 void OpenLoadPrefabDialog(Context& context);
 void OpenSavePrefabDialog(Context& context);
+
+void OpenSaveTextureDialog(Context& context,
+                           std::function<void(std::string)> saveCallback);
 } // namespace Editor

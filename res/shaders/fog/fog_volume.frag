@@ -33,6 +33,12 @@ uniform sampler2D colorRamp;
 uniform bool useColorRamp;
 uniform float resolutionScale;
 
+uniform sampler2D velocityTex;
+uniform bool useVelocityTex;
+uniform vec3 simCenter;
+uniform vec2 simSize;
+uniform float velocityStrength;
+
 uniform int intersectingLightCount;
 uniform int intersectingLightIndices[128];
 
@@ -130,9 +136,25 @@ void main() {
     float transmittance = 1.0;
 
     for (float l = 0; l < rayDistance; l += finalStepSize) {
+        vec3 noiseSamplePos = marchPos;
+
+        if (useVelocityTex) {
+            vec2 simUV = vec2(
+                (marchPos.x - (simCenter.x - simSize.x * 0.5)) / simSize.x,
+                (marchPos.z - (simCenter.z - simSize.y * 0.5)) / simSize.y
+            );
+
+            if (simUV.x >= 0.0 && simUV.x <= 1.0 && simUV.y >= 0.0 && simUV.y <= 1.0) {
+                vec2 windVelocity = texture(velocityTex, simUV).xy;
+
+                noiseSamplePos.x -= windVelocity.x * velocityStrength;
+                noiseSamplePos.z -= windVelocity.y * velocityStrength;
+            }
+        }
+
         float rawNoise = 1.0f;
         if (useNoiseTex) {
-          rawNoise = texture(noiseTex, (marchPos * noiseScale) + (windDirection * Global_Time)).r;
+          rawNoise = texture(noiseTex, (noiseSamplePos * noiseScale) + (windDirection * Global_Time)).r;
         }
 
         float noiseValue = max(0.0, rawNoise - coverage) * sharpness;

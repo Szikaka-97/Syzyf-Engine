@@ -27,6 +27,8 @@
         dbus
 
         alsa-lib
+        libpulseaudio
+        pipewire
       ];
     in
     {
@@ -41,6 +43,7 @@
           wayland-scanner
           python3
           tracy-wayland
+          zenity
 
           cppcheck
           include-what-you-use

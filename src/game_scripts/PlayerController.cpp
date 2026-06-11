@@ -272,7 +272,7 @@ void PlayerController::UpdateTargetting() {
 	}
 
 	this->aim->LocalTransform().Position() = glm::angleAxis(this->aimBearing, glm::vec3(0, 1, 0)) * glm::vec3(0, 0, 1);
-	this->aim->SetEnabled(GetScene()->Input()->ButtonPressed(0));
+	// this->aim->SetEnabled(GetScene()->Input()->ButtonPressed(0));
 }
 
 void PlayerController::UpdateThrowing() {
@@ -282,9 +282,9 @@ void PlayerController::UpdateThrowing() {
 
 	float throwOomph = 0;
 
-	if (GetScene()->Input()->ButtonPressed(0)) {
-		throwOomph = 1;
-	}
+	// if (GetScene()->Input()->ButtonPressed(0)) {
+	// 	throwOomph = 1;
+	// }
 
 	glm::vec3 aimDirection = glm::angleAxis(this->aimBearing, glm::vec3(0, 1, 0)) * glm::vec3(0, 0, 1);
 

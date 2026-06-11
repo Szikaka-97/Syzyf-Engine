@@ -31,6 +31,12 @@ target_include_directories(mikktspace PRIVATE ${MIKKTSPACE_DIR})
 # fastnoiselite
 set(FASTNOISELITE_DIR ${CMAKE_CURRENT_LIST_DIR}/fastnoiselite CACHE INTERNAL "")
 
+# dr_libs
+set(DR_LIBS_DIR ${CMAKE_CURRENT_LIST_DIR}/dr_libs)
+set(dr_libs_SOURCE_DIR ${DR_LIBS_DIR}/include CACHE INTERNAL "")
+add_library(dr_libs STATIC ${DR_LIBS_DIR}/src/dr_libs.cpp)
+target_include_directories(dr_libs PRIVATE ${DR_LIBS_DIR}/include)
+
 # other
 CPMAddPackage("gh:assimp/assimp@6.0.4")
 CPMAddPackage("gh:glfw/glfw#3.4")
@@ -78,8 +84,23 @@ CPMAddPackage(
     GIT_TAG v0.11.1
     OPTIONS ${TRACY_OPTIONS}
 )
+CPMAddPackage(
+    NAME OpenAL
+    GITHUB_REPOSITORY kcat/openal-soft
+    GIT_TAG 1.25.2
+    OPTIONS
+        "ALSOFT_UTILS OFF"
+        "ALSOFT_EXAMPLES OFF"
+        "ALSOFT_INSTALL OFF"
+        "ALSOFT_INSTALL_CONFIG OFF"
+        "ALSOFT_INSTALL_HRTF_DATA OFF"
+        "ALSOFT_INSTALL_AMBDEC_PRESETS OFF"
+        "ALSOFT_UPDATE_BUILD_VERSION OFF"
+)
+
 if (NOT MSVC)
 target_compile_options(Jolt PRIVATE -Wno-array-bounds)
+target_compile_options(OpenAL PRIVATE -Wno-function-effects)
 endif ()
 
 set(imgui_SOURCE_DIR ${imgui_SOURCE_DIR} CACHE INTERNAL "")
@@ -98,6 +119,8 @@ set_target_properties(glad
                       imgui 
                       spdlog 
                       mikktspace
+                      OpenAL
+                      dr_libs
                       nlohmann_json PROPERTIES FOLDER "thirdparty")
 
 if (TARGET zlibstatic)

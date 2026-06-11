@@ -91,7 +91,7 @@ void MeshRenderer::DrawImGui() {
 
 			ImGui::PushID(i);
 
-			if (ImGui::TreeNode(std::format("{}", i).c_str())) {
+			if (ImGui::TreeNode(mat->name.c_str())) {
 				Debug::Property(*mat, "");
 
 				ImGui::TreePop();

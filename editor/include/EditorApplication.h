@@ -11,6 +11,7 @@
 #include "panels/SceneViewPanel.h"
 #include "panels/StatusBar.h"
 #include "panels/SystemsDebugPanel.h"
+#include "panels/TextureToolPanel.h"
 #include "thirdparty/ImGuizmo.h"
 #include <Application.h>
 
@@ -43,6 +44,28 @@ struct Context {
     State state = State::Editor;
 
     std::unique_ptr<Physics::DebugRenderer> physicsDebugRenderer;
+
+    // File dialog stuff
+    std::atomic<bool> isNativeDialogOpen = false;
+    std::mutex taskQueueMutex;
+    std::vector<std::function<void()>> mainThreadTasks;
+
+    void DispatchToMainThread(std::function<void()> task) {
+        std::lock_guard<std::mutex> lock(taskQueueMutex);
+        mainThreadTasks.push_back(std::move(task));
+    }
+
+    void ExecuteMainThreadTasks() {
+        std::vector<std::function<void()>> tasksToRun;
+        {
+            std::lock_guard<std::mutex> lock(taskQueueMutex);
+            tasksToRun = std::move(mainThreadTasks);
+        }
+
+        for (auto& task : tasksToRun) {
+            task();
+        }
+    }
 };
 
 class EditorApplication : public ::Application {
@@ -56,6 +79,7 @@ class EditorApplication : public ::Application {
     InspectorPanel inspectorPanel;
     GraphPanel graphPanel;
     SceneViewPanel sceneViewPanel;
+    TextureToolPanel textureToolPanel;
     SystemsDebugPanel systemsDebugPanel;
     CommandHistoryPanel commandHistoryPanel;
     StatusBar statusBar;
