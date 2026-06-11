@@ -62,6 +62,15 @@ inline void InitScene(Scene& mainScene) {
 
 	mainScene.GetComponent<LightSystem>()->SetAmbientLight(glm::vec4(1, 0.6, 0.3, 0.035));
 
+    auto* flockingSystem = mainScene.AddComponent<FlockingSystem>();
+    flockingSystem->separationRadius = 2.5f;
+    flockingSystem->separationWeight = 1.8f;
+    flockingSystem->alignmentRadius = 5.0f;
+    flockingSystem->alignmentWeight = 0.3f;
+    flockingSystem->cohesionRadius = 6.0f;
+    flockingSystem->cohesionWeight = 0.2f;
+    spdlog::error("init");
+
 #pragma region Room
 	SceneNode* roomNode = ResourceDatabase::Global->Get<GltfScene>(
 		"./res/models/rooms/TutorialThrowingRoom.glb"

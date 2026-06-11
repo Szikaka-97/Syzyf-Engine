@@ -357,7 +357,7 @@ void DungeonGenerator::Update() {
 
 			for (SceneNode* child : spawnedRoom->GetChildren()) {
 				if (child->GetName().starts_with("ENEMY_SPAWN_")) {
-					// SpawnEnemy(child);
+					SpawnEnemy(child);
 				}
 			}
 
@@ -376,7 +376,7 @@ void DungeonGenerator::Update() {
 
 		dist.y = 0;
 
-		if (dist.x < this->gridSize * 1.0 && dist.z < this->gridSize * 1.0) {
+		if (dist.x < this->gridSize * 1.5 && dist.z < this->gridSize * 1.5) {
 			room.room->SetEnabled(true);
 		}
 		else {

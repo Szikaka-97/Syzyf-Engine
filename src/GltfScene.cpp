@@ -382,6 +382,7 @@ SceneNode* GltfScene::CreateNode(
       SceneNode* lightNode = scene->CreateNode(node, gltfLight.name.empty() ? "Light" : gltfLight.name.c_str());
    
       lightNode->LocalTransform().Rotation() = glm::quat(glm::radians(glm::vec3(180.0f, 0.0f, 0.0f)));
+      lightNode->LocalTransform().Position() = glm::vec3(0, 0, 0);
 
       const float defaultLinear = 0.09f;
       const float defaultQuadratic = 0.032f;

@@ -4,8 +4,9 @@
 #include <glm/glm.hpp>
 
 void EnemySkeleton::Update() {
+    //spdlog::error("update");
     EnsureBody();
-    //if (!m_Body || !myNode || !m_TargetNode) return;
+    if (!m_Body || !myNode || !m_TargetNode) return;
 
     m_TargetPosition = m_TargetNode->GlobalTransform().Position();
     currentPos       = m_Body->GetPosition();
@@ -16,11 +17,13 @@ void EnemySkeleton::Update() {
     UpdateAttackAnimation();
 
     if (m_InAttackAnimation) {
+        //spdlog::error("anim");
         StopMoving();
         return;
     }
 
     if (isPlayerInRoom) {
+        //spdlog::error("player");
         float dist = glm::distance(currentPos, m_TargetPosition);
         if      (m_hp <= 30)          currentState = States::FLEEING;
         else if (dist <= attackRange) currentState = States::ATTACKING;
@@ -33,6 +36,7 @@ void EnemySkeleton::Update() {
         StopMoving();
         Attack();
     }
+    //spdlog::error("end");
 }
 
 // void EnemySkeleton::DirectChaseWithFlock(const glm::vec3& flockForce) {

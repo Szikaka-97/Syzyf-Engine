@@ -3,17 +3,19 @@
 
 class ComboTornadoConfuse : public ComboEffectBase {
 public:
-    float maxTornadoRadius = 5.0f;
-    float rotationSpeed    = 90.0f;  // degrees/s
-    int   ingredientCount  = 1;
+    ComboTornadoConfuse() = default;
 
-    /// Wywo³aj po Init() — ustawia skalê wêz³a na podstawie effect2Strength.
+    serialized float maxTornadoRadius = 5.0f;
+    serialized float rotationSpeed    = 90.0f;
+    serialized int   ingredientCount  = 1;
+
+    serialized float m_TornadoRadius = 0.0f;
+
     void InitTornado();
 
     void Update();
 
 private:
-    float m_TornadoRadius = 0.0f;
 
     void ApplyConfuseTo(EnemyBase* enemy);
     void ScanAndHandleBullets();
