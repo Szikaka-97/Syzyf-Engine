@@ -14,6 +14,7 @@
 #include "MeshRenderer.h"
 
 #include <physics/System.h>
+#include <TimeSystem.h>
 
 #include <Jolt/Physics/Body/Body.h>
 #include <Jolt/Physics/Body/BodyFilter.h>
@@ -25,6 +26,7 @@
 
 #include <vector>
 #include <utility>
+#include <cmath>
 
 namespace Crafting{
     class CraftingDragInteractor : public GameObject{
@@ -35,6 +37,8 @@ namespace Crafting{
             if (!GetScene() || !GetScene()->Input()){
                 return;
             }
+
+            blinkTime += Time::Delta();
 
             UpdateHoverHighlight();
 
@@ -102,6 +106,7 @@ namespace Crafting{
 
         DraggableCraftingItem* heldItem = nullptr;
         float dragPlaneY = 0.0f;
+        float blinkTime = 0.0f;
         glm::vec3 grabOffset = glm::vec3(0.0f);
         std::vector<std::pair<MeshRenderer*, uint8_t>> highlightedRenderers;
 
@@ -113,6 +118,16 @@ namespace Crafting{
             }
 
             highlightedRenderers.clear();
+        }
+
+        bool IsRendererAlreadyHighlighted(MeshRenderer* renderer) const{
+            for (const auto& highlightedRenderer : highlightedRenderers){
+                if (highlightedRenderer.first == renderer){
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         void CollectMeshRenderersRecursive(SceneNode* node, std::vector<MeshRenderer*>& renderers){
@@ -129,19 +144,81 @@ namespace Crafting{
             }
         }
 
-        void SetHoverHighlight(SceneNode* node){
-            ClearHoverHighlight();
+        void AddOutlineForNode(SceneNode* node){
+            if (!node){
+                return;
+            }
 
             std::vector<MeshRenderer*> renderers;
             CollectMeshRenderersRecursive(node, renderers);
+
+            if (renderers.empty() && node->GetParent()){
+                CollectMeshRenderersRecursive(node->GetParent(), renderers);
+            }
 
             for (auto* renderer : renderers){
                 if (!renderer){
                     continue;
                 }
 
+                if (IsRendererAlreadyHighlighted(renderer)){
+                    continue;
+                }
+
                 highlightedRenderers.push_back({renderer, renderer->maskFlags});
                 renderer->maskFlags = renderer->maskFlags | MaskEffectBits::Jfa;
+            }
+        }
+
+        void SetHoverHighlight(SceneNode* node){
+            ClearHoverHighlight();
+            AddOutlineForNode(node);
+        }
+
+        void CollectBlinkingInteractableNodesRecursive(
+            SceneNode* node,
+            CraftingInteractionMask activeMask,
+            std::vector<SceneNode*>& interactableNodes
+        ){
+            if (!node || !node->IsEnabled()){
+                return;
+            }
+
+            if (auto* interactable = node->GetObject<CraftingInteractable>()){
+                if (interactable->MatchesMask(activeMask) && interactable->ShouldBlinkOutline()){
+                    interactableNodes.push_back(node);
+                }
+            }
+
+            for (SceneNode* child : node->GetChildren()){
+                CollectBlinkingInteractableNodesRecursive(
+                    child,
+                    activeMask,
+                    interactableNodes
+                );
+            }
+        }
+
+        void SetBlinkHighlight(CraftingStation* station, CraftingInteractionMask activeMask){
+            ClearHoverHighlight();
+
+            float blink =
+                0.5f + 0.5f * std::sin(blinkTime * 3.0f);
+
+            if (blink < 0.35f){
+                return;
+            }
+
+            std::vector<SceneNode*> interactableNodes;
+
+            CollectBlinkingInteractableNodesRecursive(
+                station->GetNode(),
+                activeMask,
+                interactableNodes
+            );
+
+            for (SceneNode* interactableNode : interactableNodes){
+                AddOutlineForNode(interactableNode);
             }
         }
 
@@ -176,19 +253,19 @@ namespace Crafting{
             glm::vec3 rayDirection;
 
             if (!BuildMouseRay(camera, rayOrigin, rayDirection)){
-                ClearHoverHighlight();
+                SetBlinkHighlight(station, activeMask);
                 return;
             }
 
             InteractableHit hit;
 
             if (!RaycastInteractablePhysics(rayOrigin, rayDirection, activeMask, hit)){
-                ClearHoverHighlight();
+                SetBlinkHighlight(station, activeMask);
                 return;
             }
 
             if (!hit.interactable || !hit.interactable->GetNode()){
-                ClearHoverHighlight();
+                SetBlinkHighlight(station, activeMask);
                 return;
             }
 

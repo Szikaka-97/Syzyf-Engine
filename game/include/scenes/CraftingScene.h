@@ -917,19 +917,6 @@ namespace CraftingScene {
 	    blowerHitboxNode->LocalTransform().Scale() =
 		    glm::vec3(0.45f);
 
-	    Mesh* cubeMesh =
-		    scene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
-
-	    Material* blowerMaterial =
-		    CreateColorMaterial(glm::vec4(0.85f, 0.2f, 1.0f, 0.45f));
-
-	    if (cubeMesh && blowerMaterial) {
-		    blowerHitboxNode->AddObject<MeshRenderer>(
-			    cubeMesh,
-			    blowerMaterial
-		    );
-	    }
-
 	    glm::vec3 blowerHitboxPosition =
 		    blowerHitboxNode->GlobalTransform().Position().Value();
 
@@ -956,6 +943,7 @@ namespace CraftingScene {
 
 	    blowerInteractable->type = Crafting::CraftingInteractionType::Blower;
 	    blowerInteractable->interactionEnabled = false;
+	    blowerInteractable->blinkOutline = true;
 
 	    return blowerHitboxNode;
     }
@@ -1015,6 +1003,7 @@ namespace CraftingScene {
 
 	    valveInteractable->type = Crafting::CraftingInteractionType::Valve;
 	    valveInteractable->interactionEnabled = false;
+	    valveInteractable->blinkOutline = true;
 
 	    return valveNode;
     }
@@ -1620,6 +1609,7 @@ namespace CraftingScene {
 	    auto* interactable = node->AddObject<Crafting::CraftingInteractable>();
 	    interactable->type = Crafting::CraftingInteractionType::Ingredient;
 	    interactable->interactionEnabled = true;
+	    interactable->blinkOutline = false;
 
 	    glm::vec3 globalPosition =
 		    node->GlobalTransform().Position().Value();
@@ -1821,6 +1811,7 @@ namespace CraftingScene {
 
 	    lidInteractable->type = Crafting::CraftingInteractionType::Lid;
 	    lidInteractable->interactionEnabled = false;
+	    lidInteractable->blinkOutline = true;
     }
 
     inline void CreateCraftingIngredients(Scene& scene, SceneNode* roomNode) {

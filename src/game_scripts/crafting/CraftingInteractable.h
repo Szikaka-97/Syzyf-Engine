@@ -56,6 +56,7 @@ namespace Crafting{
     public:
         CraftingInteractionType type = CraftingInteractionType::None;
         bool interactionEnabled = true;
+        bool blinkOutline = false;
 
         bool IsInteractionEnabled() const{
             return interactionEnabled;
@@ -67,6 +68,10 @@ namespace Crafting{
 
         bool MatchesMask(CraftingInteractionMask mask) const{
             return interactionEnabled && HasInteraction(mask,type);
+        }
+
+        bool ShouldBlinkOutline() const{
+            return blinkOutline;
         }
     };
 }
