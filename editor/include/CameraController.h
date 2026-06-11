@@ -15,7 +15,7 @@ class CameraController : public DoNotSerializeNode, public ImGuiDrawable {
   private:
     float pitch;
     float rotation;
-    bool movementEnabled;
+    bool movementEnabled = false;
     int mode;
     float movementSpeed = 10.0f;
     float mouseSensitivity = 1.0f;
