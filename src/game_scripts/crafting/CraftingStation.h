@@ -132,6 +132,7 @@ namespace Crafting{
 
           public:
                 float interactionRadius = 3.0f;
+                bool enterStationOnFirstUpdate = false;
 
                 std::string lidNodeName = "Lid";
                 std::string lidHitboxNodeName = "LidHitbox";
@@ -420,7 +421,13 @@ namespace Crafting{
                     }
 
                     if (!isActive){
-                        if (GetScene()->Input()->KeyDown(Key::G) || GetScene()->Input()->KeyDown(Key::E)){
+                        if (enterStationOnFirstUpdate){
+                            enterStationOnFirstUpdate = false;
+                            EnterStation();
+                            return;
+                        }
+
+                        if (GetScene()->Input()->KeyDown(Key::F) && IsPlayerNear()){
                             EnterStation();
                         }
 

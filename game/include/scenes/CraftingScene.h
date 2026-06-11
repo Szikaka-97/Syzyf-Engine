@@ -30,7 +30,10 @@
 #include <ui/objects/UiText.h>
 #include <text/Font.h>
 #include <PersistentData.h>
+#include <Application.h>
+#include <fog/FogVolume.h>
 #include <game_scripts/PotionInventory.h>
+#include "DungeonGeneratorScene.h"
 #include "game_scripts/crafting/CraftingDragInteractor.h"
 #include "game_scripts/crafting/CraftingInteractable.h"
 #include "game_scripts/crafting/DraggableCraftingItem.h"
@@ -1367,6 +1370,245 @@ namespace CraftingScene {
 	    return data;
     }
 
+
+
+    class DungeonEntryPrompt : public GameObject {
+    private:
+        SceneNode* dungeonEntryNode = nullptr;
+        UiText* promptText = nullptr;
+        bool confirmationVisible = false;
+        bool sceneRequested = false;
+        float interactionRadius = 2.6f;
+
+        void HidePrompt() {
+            if (!this->promptText) {
+                return;
+            }
+
+            this->promptText->color.w = glm::clamp(
+                this->promptText->color.w - Time::Delta() * 4.0f,
+                0.0f,
+                1.0f
+            );
+        }
+
+        void ShowPrompt(const std::string& text) {
+            if (!this->promptText) {
+                return;
+            }
+
+            this->promptText->text = text;
+            this->promptText->color.w = glm::clamp(
+                this->promptText->color.w + Time::Delta() * 4.0f,
+                0.0f,
+                1.0f
+            );
+        }
+
+        bool IsPlayerNearDungeonEntry() const {
+            if (!this->dungeonEntryNode || PlayerController::Instance() == nullptr) {
+                return false;
+            }
+
+            return glm::distance(
+                PlayerController::Instance()->GlobalTransform().Position().Value(),
+                this->dungeonEntryNode->GlobalTransform().Position().Value()
+            ) <= this->interactionRadius;
+        }
+
+        void EnterDungeon() {
+            if (this->sceneRequested) {
+                return;
+            }
+
+            this->sceneRequested = true;
+            this->confirmationVisible = false;
+
+            PersistentData::Set<bool>("CraftingScene_AutoEnterCrafting", false);
+            PersistentData::Set<bool>("CraftingScene_ReturnedFromThrowingTutorial", false);
+
+            Application::Get()->RequestSceneBuild(
+                [](Scene* s) { DungeonGeneratorScene::InitScene(*s); }
+            );
+        }
+
+    public:
+        void Awake() {
+            this->dungeonEntryNode =
+                FindFirstNodeByNamesRecursive(
+                    GetNode(),
+                    {
+                        "DungeonEntry",
+                        "Dungeon Entry",
+                        "Dungeon_Entry",
+                        "DungeonEntryPoint",
+                        "Dungeon_Entry_Point"
+                    }
+                );
+
+            if (!this->dungeonEntryNode) {
+                spdlog::warn("CraftingScene: DungeonEntry node not found. Dungeon prompt disabled.");
+                return;
+            }
+
+            TextureParams fontTextureParams = {
+                .channels = TextureChannels::RGB,
+                .colorSpace = TextureColor::Linear,
+                .format = TextureFormat::Ubyte,
+                .wrapU = TextureWrap::Clamp,
+                .wrapV = TextureWrap::Clamp,
+                .minFilter = TextureFilter::Linear,
+                .magFilter = TextureFilter::Linear
+            };
+
+            Texture2D* papyrusAtlas = GetScene()->Resources()->Get<Texture2D>(
+                "./res/fonts/Papyrus/Papyrus-Regular.png",
+                fontTextureParams
+            );
+
+            Font* papyrusFont = GetScene()->Resources()->Get<Font>(
+                "./res/fonts/Papyrus/Papyrus-Regular.json",
+                papyrusAtlas,
+                true
+            );
+
+            SceneNode* uiTextNode = GetScene()->CreateNode("Dungeon Entry Prompt UI");
+            uiTextNode->AddObject<UiLayout>(
+                glm::uvec2(520, 150),
+                glm::ivec2(-40, 270),
+                20,
+                AnchorPoint::TopRight
+            );
+
+            this->promptText = uiTextNode->AddObject<UiText>("", papyrusFont);
+            this->promptText->fontSize = 26.0f;
+            this->promptText->alignment = TextAlignment::Right;
+            this->promptText->maxWidth = 480.0f;
+            this->promptText->color = glm::vec4(1.2f, 0.3f, 0.0f, 0.0f);
+        }
+
+        void Update() {
+            if (this->sceneRequested || !this->promptText || !this->dungeonEntryNode) {
+                return;
+            }
+
+            bool playerNear = IsPlayerNearDungeonEntry();
+
+            if (!playerNear) {
+                this->confirmationVisible = false;
+                HidePrompt();
+                return;
+            }
+
+            if (!this->confirmationVisible) {
+                ShowPrompt("Dungeon entrance\nPress F to enter");
+
+                if (GetScene()->Input()->KeyDown(Key::F)) {
+                    this->confirmationVisible = true;
+                }
+
+                return;
+            }
+
+            ShowPrompt("Enter the dungeon?\nY / Enter - yes\nN / Esc - no");
+
+            if (GetScene()->Input()->KeyDown(Key::Y) || GetScene()->Input()->KeyDown(Key::Enter) || GetScene()->Input()->KeyDown(Key::NumpadEnter)) {
+                EnterDungeon();
+                return;
+            }
+
+            if (GetScene()->Input()->KeyDown(Key::N) || GetScene()->Input()->KeyDown(Key::Escape)) {
+                this->confirmationVisible = false;
+            }
+        }
+    };
+
+
+    inline void HideMeshRenderersRecursive(SceneNode* node) {
+        if (!node) {
+            return;
+        }
+
+        if (auto* renderer = node->GetObject<MeshRenderer>()) {
+            renderer->SetEnabled(false);
+        }
+
+        for (SceneNode* child : node->GetChildren()) {
+            HideMeshRenderersRecursive(child);
+        }
+    }
+
+    inline void CreateFogVolumeAtFogPoint(Scene& scene, SceneNode* roomNode) {
+        if (!roomNode) {
+            return;
+        }
+
+        SceneNode* dungeonEntryNode =
+            FindFirstNodeByNamesRecursive(
+                roomNode,
+                {
+                    "DungeonEntry",
+                    "Dungeon Entry",
+                    "Dungeon_Entry",
+                    "DungeonEntryPoint",
+                    "Dungeon_Entry_Point"
+                }
+            );
+
+        SceneNode* fogPointNode =
+            FindFirstNodeByNamesRecursive(
+                roomNode,
+                {
+                    "Fog",
+                    "fog",
+                    "FogPoint",
+                    "Fog_Point",
+                    "Fog Volume",
+                    "FogVolume"
+                }
+            );
+
+        SceneNode* fogSourceNode = dungeonEntryNode;
+
+        if (!fogSourceNode) {
+            fogSourceNode = fogPointNode;
+        }
+
+        if (!fogSourceNode) {
+            spdlog::warn("CraftingScene: DungeonEntry/Fog point not found. Fog volume was not created.");
+            return;
+        }
+
+        if (dungeonEntryNode) {
+            HideMeshRenderersRecursive(dungeonEntryNode);
+        }
+
+        SceneNode* fogNode =
+            scene.CreateNode(roomNode, "Dungeon Entry Fog Volume");
+
+        fogNode->GlobalTransform().Position() =
+            fogSourceNode->GlobalTransform().Position().Value();
+
+        glm::vec3 fogScale =
+            fogSourceNode->GlobalTransform().Scale().Value();
+
+        if (glm::length(fogScale) < 0.01f) {
+            fogScale = glm::vec3(8.0f, 3.0f, 8.0f);
+        }
+
+        fogScale *= glm::vec3(1.9f, 1.45f, 1.9f);
+
+        fogNode->GlobalTransform().Scale() = fogScale;
+
+        auto* fogVolume = fogNode->AddObject<FogVolume>();
+        fogVolume->stepSize = 0.045f;
+        fogVolume->scatteringDensity = 1.35f;
+        fogVolume->absorptionDensity = 0.18f;
+        fogVolume->scatteringColor = glm::vec3(0.8f, 0.72f, 0.58f);
+        fogVolume->coverage = 0.92f;
+        fogVolume->sharpness = 3.5f;
+    }
+
     inline Crafting::DraggableCraftingItem* CreateDraggableCube(
 	    Scene& scene,
 	    SceneNode* parent,
@@ -1441,17 +1683,37 @@ namespace CraftingScene {
 	    aimReticle->AddObject<AimCrosshair>();
 	    aimReticle->SetEnabled(PotionInventory::HasPotion());
 
-	    SceneNode* spawnNode =
-		    FindFirstNodeByNamesRecursive(
-			    roomNode,
-			    {
-				    "spawn",
-				    "Spawn",
-				    "PlayerSpawn",
-				    "Exit Gate.001",
-				    "Entrance"
-			    }
-		    );
+	    bool returnedFromThrowingTutorial =
+		    PersistentData::Get<bool>("CraftingScene_ReturnedFromThrowingTutorial");
+
+	    SceneNode* spawnNode = nullptr;
+
+	    if (returnedFromThrowingTutorial) {
+		    spawnNode =
+			    FindFirstNodeByNamesRecursive(
+				    roomNode,
+				    {
+					    "PlayerReturnSpawn",
+					    "Player_Return_Spawn",
+					    "ThrowingTutorialReturnSpawn",
+					    "Throwing_Tutorial_Return_Spawn",
+					    "DungeonEntrySpawn",
+					    "Dungeon_Entry_Spawn",
+					    "DungeonEntry",
+					    "Dungeon Entry"
+				    }
+			    );
+	    }
+
+	    if (!spawnNode) {
+		    spawnNode =
+			    FindFirstNodeByNamesRecursive(
+				    roomNode,
+				    {
+					    "Spawn",
+				    }
+			    );
+	    }
 
 	    if (spawnNode) {
 		    playerNode->GlobalTransform().Position() =
@@ -1687,7 +1949,11 @@ namespace CraftingScene {
 	    auto* craftingStation =
 		    roomNode->AddObject<Crafting::CraftingStation>();
 
-	    craftingStation->interactionRadius = 3.0f;
+	    craftingStation->interactionRadius = 2.6f;
+	    craftingStation->enterStationOnFirstUpdate =
+		    PersistentData::Get<bool>("CraftingScene_AutoEnterCrafting");
+
+	    PersistentData::Set<bool>("CraftingScene_AutoEnterCrafting", false);
 
     }
 
@@ -1745,6 +2011,7 @@ namespace CraftingScene {
 
 	    AddSkybox(scene, roomNode);
 	    AddRoomPhysics(roomNode);
+	    CreateFogVolumeAtFogPoint(scene, roomNode);
 
 	    SceneNode* stationNode =
 		    CreateCraftingStationModel(scene, roomNode);
@@ -1880,6 +2147,7 @@ namespace CraftingScene {
 
 	    roomNode->AddObject<CraftingRoomLights>();
 	    roomNode->AddObject<CraftingTutorialFinishedMessage>();
+	    roomNode->AddObject<DungeonEntryPrompt>();
 
         SetupCraftingStation(scene, stationNode);
         CreateCraftingIngredients(scene, stationNode);
