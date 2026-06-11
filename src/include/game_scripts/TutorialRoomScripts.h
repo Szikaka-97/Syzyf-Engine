@@ -38,9 +38,9 @@ public:
 		if (!PotionInventory::HasPotion()) {
 			PotionInventory::SaveLastCraftedPotion(
 			    "Basic Potion",
-			    "Burn",
+			    "Explosion",
 			    100.0f,
-			    10,
+			    999,
 			    false
 			);
 
@@ -88,7 +88,7 @@ public:
 	}
 
 	void Update() {
-		EnemySkeleton::Update();
+		// EnemySkeleton::Update();
 		// this->myNode = GetNode();
 		// this->currentPos = GetNode()->GlobalTransform().Position().Value();
 		//

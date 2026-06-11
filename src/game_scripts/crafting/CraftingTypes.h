@@ -20,6 +20,7 @@ namespace Crafting{
 
     namespace EffectId{
         inline const std::string None = "None";
+        inline const std::string Explosion = "Explosion";
         inline const std::string Burn = "Burn";
         inline const std::string Lightning = "Lightning";
     }

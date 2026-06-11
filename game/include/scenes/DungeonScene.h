@@ -93,15 +93,6 @@ inline void InitScene(Scene& mainScene) {
 	mainScene.GetRootNode()->AddObject<Skybox>(skyMat);
 
 #pragma endregion
-#pragma region Generator
-
-	SceneNode* generatorNode = mainScene.CreateNode("Dungeon Generator");
-	
-	auto* dungeon = generatorNode->AddObject<DungeonGenerator>();
-
-	dungeon->RemakeDungeon();
-
-#pragma endregion
 #pragma region Player
     JPH::Ref<JPH::CharacterVirtualSettings> characterSettings =
         new JPH::CharacterVirtualSettings();
@@ -151,6 +142,15 @@ inline void InitScene(Scene& mainScene) {
 #pragma region Miscellaneous
 	mainScene.GetComponent<LightSystem>()->SetAmbientLight(
 		{1.0f, 1.0f, 1.0f, 0.1f});
+#pragma endregion
+#pragma region Generator
+
+	SceneNode* generatorNode = mainScene.CreateNode("Dungeon Generator");
+	
+	auto* dungeon = generatorNode->AddObject<DungeonGenerator>();
+
+	dungeon->RemakeDungeon();
+
 #pragma endregion
 
 	return;

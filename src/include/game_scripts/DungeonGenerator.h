@@ -8,6 +8,13 @@
 
 class GltfScene;
 
+class ElevatorScript : public GameObject {
+private:
+	
+public:
+	void Update();
+};
+
 class DungeonGenerator : public GameObject, public ImGuiDrawable {
 private:
 	enum class RoomShape {
@@ -55,7 +62,7 @@ public:
 
 	int seed = 1 << 31;
 	
-	int initialStrideLength = 2;
+	int initialStrideLength = 4;
 	int maxFirstShelfOverhang = 1;
 	int secondStrideLength = 2;
 	int secondStrideLegs = 2;

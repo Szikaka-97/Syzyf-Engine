@@ -14,6 +14,27 @@
 #include <physics/Body.h>
 #include <game_scripts/enemies/EnemySkeleton.h>
 
+#include <MathHelpers.h>
+#include <TimeSystem.h>
+
+void ElevatorScript::Update() {
+	glm::vec3 pos = GlobalTransform().Position();
+
+	if (pos.y > 0) {
+		pos.y = Math::MoveTowards(pos.y, 0, Time::Delta());
+
+		PlayerController::Instance()->GlobalTransform().Position() = GlobalTransform().Position().Value();
+		
+		GlobalTransform().Position() = pos;
+	}
+	else {
+		PlayerController::Instance()->SetEnabled(true);
+
+		delete this;
+	}
+
+}
+
 SceneNode* DungeonGenerator::PlaceRoom() {
 	return nullptr;
 }
@@ -335,10 +356,19 @@ void DungeonGenerator::Update() {
 			spdlog::info("Room coords: {}", room.position);
 
 			SceneNode* spawnedRoom = roomPrefab->Instantiate(GetScene(), GetNode(), std::format("Room {}", roomCounter));
-			
+
 			spawnedRoom->GlobalTransform().Position() = GlobalTransform().Position() + glm::vec3(room.position.y, 0, room.position.x) * glm::vec3(this->gridSize);
 			spawnedRoom->GlobalTransform().Rotation() = glm::vec3(0, glm::radians(-90.0f * room.orientation), 0);
 
+			if (room.position == glm::vec2(0, 0)) {
+				auto* elevatorNode = spawnedRoom->FindNode("Elevator");
+				// elevatorNode->AddObject<ElevatorScript>();
+				elevatorNode->GlobalTransform().Position() = glm::vec3(0, 0, 0);
+
+				// PlayerController::Instance()->SetEnabled(false);
+				// PlayerController::Instance()->GlobalTransform().Position() = elevatorNode->GlobalTransform().Position().Value();
+			}
+			
 			SceneNode* floorNode = nullptr;
 
 			if (spawnedRoom->TryFindNode("floor", &floorNode)) {

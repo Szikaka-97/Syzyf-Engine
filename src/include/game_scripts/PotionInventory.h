@@ -135,7 +135,7 @@ namespace PotionInventory{
         potionData.primaryEffectId = PersistentData::Get<std::string>(LastEffectIdKey);
 
         if (potionData.primaryEffectId.empty()){
-            potionData.primaryEffectId = Crafting::EffectId::Burn;
+            potionData.primaryEffectId = Crafting::EffectId::Explosion;
         }
 
         potionData.secondaryEffectId = PersistentData::Get<std::string>(LastSecondaryEffectIdKey);
