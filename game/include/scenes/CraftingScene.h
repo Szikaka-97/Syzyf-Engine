@@ -33,7 +33,7 @@
 #include <Application.h>
 #include <fog/FogVolume.h>
 #include <game_scripts/PotionInventory.h>
-#include "DungeonGeneratorScene.h"
+#include "DungeonScene.h"
 #include "game_scripts/crafting/CraftingDragInteractor.h"
 #include "game_scripts/crafting/CraftingInteractable.h"
 #include "game_scripts/crafting/DraggableCraftingItem.h"
@@ -1374,7 +1374,7 @@ namespace CraftingScene {
             PersistentData::Set<bool>("CraftingScene_ReturnedFromThrowingTutorial", false);
 
             Application::Get()->RequestSceneBuild(
-                [](Scene* s) { DungeonGeneratorScene::InitScene(*s); }
+                [](Scene* s) { DungeonScene::InitScene(*s); }
             );
         }
 
