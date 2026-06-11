@@ -3,8 +3,8 @@
 #include <game_scripts/PlayerController.h>
 #include <InputSystem.h>
 #include <TimeSystem.h>
+#include <MathHelpers.h>
 
-#include <glm/ext/scalar_constants.hpp>
 #include <imgui.h>
 
 float RayPlaneIntersection(float height, glm::vec3 start, glm::vec3 direction) {
@@ -28,32 +28,35 @@ CameraSettings::CameraSettings(glm::vec3 target, float height, float angleY, flo
 target(target),
 height(height),
 angleY(angleY),
+targetAngleY(angleY),
 angleX(angleX) { }
 
-CameraSettings::CameraSettings(SceneNode* targetNode):
-target(targetNode->GlobalTransform().Position()),
-height(5),
-angleY(0),
-angleX(45) {}
+CameraSettings::CameraSettings(SceneNode* targetNode, float height, float angleY, float angleX):
+CameraSettings(targetNode->GlobalTransform().Position(), height, angleY, angleX) {}
 
 void CameraSettings::Update() {
 	auto* player = PlayerController::Instance();
 
-	if (GetScene()->Input()->KeyPressed(Key::Q)) {
-		this->angleY -= this->cameraRotationSpeed * Time::Delta();
-	}
-	if (GetScene()->Input()->KeyPressed(Key::E)) {
-		this->angleY += this->cameraRotationSpeed * Time::Delta();
+	if (this->angleY == this->targetAngleY) {
+		if (GetScene()->Input()->KeyDown(Key::Q)) {
+			this->targetAngleY -= 45;
+		}
+		if (GetScene()->Input()->KeyDown(Key::E)) {
+			this->targetAngleY += 45;
+		}
 	}
 
-	this->angleY = glm::mod(this->angleY, 360.f);
+	this->targetAngleY = glm::mod(this->targetAngleY, 360.f);
+
+	spdlog::info(this->angleY);
 	
+	this->angleY = Math::MoveTowardsDegrees(this->angleY, this->targetAngleY, this->cameraRotationSpeed * Time::Delta());
+
 	if (player == nullptr) {
 		return;
 	}
 
 	this->target = player->GlobalTransform().Position();
-
 	
 	glm::vec3 forward = GlobalTransform().Forward();
 	forward.y = 0.0f;
@@ -92,7 +95,29 @@ void CameraSettings::Update() {
 
 void CameraSettings::DrawImGui() {
 	ImGui::InputFloat("height", &this->height);
+	ImGui::InputFloat("targetAngleY", &this->targetAngleY);
 	ImGui::InputFloat("angleY", &this->angleY);
 	ImGui::InputFloat("angleX", &this->angleX);
 	ImGui::InputFloat("rotationSpeed", &this->cameraRotationSpeed);
+}
+
+void CameraSettings::SetHeight(float targetHeight) {
+	this->height = targetHeight;
+}
+
+void CameraSettings::SetAngleY(float targetAngle) {
+	this->targetAngleY = targetAngle;
+	this->angleY = targetAngle;
+}
+
+void CameraSettings::SetTargetAngleY(float targetAngle) {
+	this->targetAngleY = targetAngle;
+}
+
+float CameraSettings::GetHeight() const {
+	return this->height;
+}
+
+float CameraSettings::GetAngleY() const {
+	return this->angleY;
 }

@@ -46,3 +46,7 @@ void MaskEffects::DrawImGui() {
     ImGui::ColorEdit4("Outline Color", &this->outlineColor[0]);
     ImGui::InputFloat("Outline Intensity", &this->outlineIntensity);
 }
+
+int MaskEffects::Order() const {
+    return 2;
+}

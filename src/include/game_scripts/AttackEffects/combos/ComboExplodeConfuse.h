@@ -3,7 +3,8 @@
 
 class ComboExplodeConfuse : public ComboEffectBase {
 public:
-    int ingredientCount = 1;  // 1 = random walk, 2 = attack nearest enemy
+    ComboExplodeConfuse() = default;
+    serialized int ingredientCount = 1;
 
     void Update();
 

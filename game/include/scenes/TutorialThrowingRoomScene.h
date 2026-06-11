@@ -62,6 +62,15 @@ inline void InitScene(Scene& mainScene) {
 
 	mainScene.GetComponent<LightSystem>()->SetAmbientLight(glm::vec4(1, 0.6, 0.3, 0.035));
 
+    auto* flockingSystem = mainScene.AddComponent<FlockingSystem>();
+    flockingSystem->separationRadius = 2.5f;
+    flockingSystem->separationWeight = 1.8f;
+    flockingSystem->alignmentRadius = 5.0f;
+    flockingSystem->alignmentWeight = 0.3f;
+    flockingSystem->cohesionRadius = 6.0f;
+    flockingSystem->cohesionWeight = 0.2f;
+    spdlog::error("init");
+
 #pragma region Room
 	SceneNode* roomNode = ResourceDatabase::Global->Get<GltfScene>(
 		"./res/models/rooms/TutorialThrowingRoom.glb"
@@ -151,7 +160,7 @@ inline void InitScene(Scene& mainScene) {
 #pragma region Camera
 	SceneNode* cameraNode = mainScene.CreateNode("Camera Node");
 	cameraNode->AddObject<Camera>(Camera::Perspective(60.0f, 16.0f / 9.0f, 0.1f, 200.0f));
-	cameraNode->AddObject<CameraSettings>(playerNode->GlobalTransform().Position())->angleY = 180;
+	cameraNode->AddObject<CameraSettings>(playerNode->GlobalTransform().Position(), 7, 215);
 	cameraNode->AddObject<MaskEffects>();
 
 	auto* jfa = cameraNode->AddObject<JfaOutline>();
@@ -161,6 +170,7 @@ inline void InitScene(Scene& mainScene) {
 	auto* dof = cameraNode->AddObject<DepthOfField>();
 	dof->SetEnabled(false);
 
+	cameraNode->AddObject<MaskEffects>();
 	cameraNode->AddObject<Bloom>();
 	cameraNode->AddObject<Tonemapper>()->SetOperator(Tonemapper::TonemapperOperator::GranTurismo);
 	cameraNode->AddObject<ColorGrading>();

@@ -82,7 +82,7 @@ protected:
 	template<typename T>
 	struct TextureInfoBit {
 		T value = (T) 0;
-		bool dirty = false;
+		bool dirty = true;
 
 		TextureInfoBit() = default;
 	};

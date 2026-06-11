@@ -28,7 +28,7 @@ public:
 };
 
 class BaseScript : public GameObject { // Move to own file later
-private:
+public:
 	SceneNode* gate;
 	glm::vec3 exitVolume;
 	SceneNode* key;

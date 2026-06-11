@@ -8,8 +8,10 @@
 #include <TimeSystem.h>
 #include <Camera.h>
 #include <Graphics.h>
+#include <MathHelpers.h>
 #include <game_scripts/ThrowableObjectPool.h>
 #include <game_scripts/AttackEffects/EffectsManager.h>
+#include <game_scripts/AttackEffects/combos/ComboExplodeFire.h>
 #include <game_scripts/ThrowableObject.h>
 #include <physics/VirtualCharacterController.h>
 #include <physics/Body.h>
@@ -95,7 +97,7 @@ namespace{
 			effect->ingredientCount = potionData.mainEffectCount;
 			effect->special1 = potionData.modifierCount > 0;
 			effect->special2 = potionData.modifierCount > 1;
-			effect->Init();
+			effect->Awake();
 
 			return effect;
 		}
@@ -109,7 +111,7 @@ namespace{
 			effect->ingredientCount = potionData.mainEffectCount;
 			effect->special1 = potionData.modifierCount > 0;
 			effect->special2 = potionData.modifierCount > 1;
-			effect->Init();
+			effect->Awake();
 
 			return effect;
 		}
@@ -120,7 +122,7 @@ namespace{
 		effect->maxRange = potionData.radius * multiplier;
 		effect->maxDamage = potionData.power * multiplier;
 		effect->ingredientCount = potionData.mainEffectCount;
-		effect->Init();
+		effect->Awake();
 
 		return effect;
 	}
@@ -306,7 +308,7 @@ void PlayerController::UpdateTargetting() {
 
 	float targetBearing = glm::atan(aimDir.x, aimDir.z);
 
-	this->aimBearing = MoveTowardsAngle(this->aimBearing, targetBearing, Time::Delta() * this->aimSpeed);
+	this->aimBearing = Math::MoveTowardsAngle(this->aimBearing, targetBearing, Time::Delta() * this->aimSpeed);
 
 	this->characterRoot->LocalTransform().Rotation() = glm::angleAxis(this->aimBearing, glm::vec3(0, 1, 0));
 
@@ -356,7 +358,7 @@ void PlayerController::UpdateThrowing() {
 			this->throwStrengthCache = this->throwStrengthAccum;
 		}
 
-		this->throwStrengthAccum = MoveTowards(this->throwStrengthAccum, 0, Time::Delta() * 10);
+		this->throwStrengthAccum = Math::MoveTowards(this->throwStrengthAccum, 0, Time::Delta() * 10);
 
 		if (this->throwStrengthCache > 0 && this->throwStrengthAccum < 0.7f) {
 			if (!PotionInventory::ConsumePotion()) {

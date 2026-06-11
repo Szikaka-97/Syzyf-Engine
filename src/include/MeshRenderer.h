@@ -7,6 +7,7 @@
 
 class Mesh;
 class Material;
+class SkeletonComponent;
 
 enum MaskEffectBits : uint8_t {
 	None = 0,
@@ -26,6 +27,7 @@ public:
 private:
 	serialized Mesh* mesh;
 	serialized std::vector<Material*> materials;
+	SkeletonComponent* skeleton;
 
 	void ResetUniformBuffer();
 	void DrawMaskEffectCheckbox(MaskEffectBits maskEffect);
@@ -42,6 +44,9 @@ public:
 	Material* GetMaterial(int materialIndex = 0);
 
 	void SetMaterial(Material* newMaterial, int materialIndex = 0);
+
+	SkeletonComponent* GetSkeleton();
+	void SetSkeleton(SkeletonComponent* skeleton);
 
 	void Render() const;
 

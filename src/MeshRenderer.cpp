@@ -62,6 +62,13 @@ void MeshRenderer::SetMaterial(Material* newMaterial, int materialIndex) {
 	this->materials[materialIndex] = newMaterial;
 }
 
+SkeletonComponent* MeshRenderer::GetSkeleton() {
+	return this->skeleton;
+}
+void MeshRenderer::SetSkeleton(SkeletonComponent* skeleton) {
+	this->skeleton = skeleton;
+}
+
 void MeshRenderer::Render() const {
 	this->GetScene()->GetGraphics()->DrawMesh(const_cast<MeshRenderer*>(this));
 }

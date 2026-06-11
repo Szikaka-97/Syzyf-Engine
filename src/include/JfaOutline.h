@@ -34,6 +34,8 @@ public:
     virtual void OnPostProcess(const PostProcessParams* params);
 
     virtual void DrawImGui();
+
+	virtual int Order() const override;
 private:
     void UpdateTexture();
 };

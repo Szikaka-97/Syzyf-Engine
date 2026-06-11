@@ -25,4 +25,6 @@ public:
 
   virtual void OnPostProcess(const PostProcessParams* params) override;
   virtual void DrawImGui() override;
+
+	virtual int Order() const override;
 };

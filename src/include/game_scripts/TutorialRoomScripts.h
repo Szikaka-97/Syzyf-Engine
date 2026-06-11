@@ -1,5 +1,8 @@
 #pragma once
 
+#include "enemies/EnemySkeleton.h"
+
+
 #include <Scene.h>
 #include <PersistentData.h>
 #include <TimeSystem.h>
@@ -8,16 +11,15 @@
 #include <Application.h>
 #include <game_scripts/PickableItem.h>
 #include <game_scripts/PlayerController.h>
+#include <game_scripts/PotionInventory.h>
 #include <game_scripts/enemies/EnemyBase.h>
 #include <ui/objects/UiText.h>
 #include <ui/objects/UiLayout.h>
 #include <physics/Helpers.h>
 #include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
 
-#include "../game/include/scenes/DungeonGeneratorScene.h"
-
-namespace DungeonGeneratorScene {
-	 void InitScene(Scene& mainScene);
+namespace CraftingScene {
+inline void InitScene(Scene& mainScene);
 }
 
 static constexpr float RatSpawnExtraHeight = 0.0f;
@@ -33,13 +35,28 @@ public:
 	virtual void OnPickUp() override {
 		PersistentData::Set<bool>("TutorialThrowingRoom_PlayerTookBottles", true);
 
+		if (!PotionInventory::HasPotion()) {
+			PotionInventory::SaveLastCraftedPotion(
+			    "Basic Potion",
+			    "Burn",
+			    100.0f,
+			    10,
+			    false
+			);
+
+			PersistentData::Set<bool>(
+			    PotionInventory::ShowTutorialFinishedMessageKey,
+			    false
+			);
+		}
+
 		if (PlayerController::Instance()) {
 			PlayerController::Instance()->SetThrowingUnlocked(true);
 		}
 	}
 };
 
-class TutorialStaticRatTarget : public EnemyBase {
+class TutorialStaticRatTarget : public EnemySkeleton {
 private:
 	SceneNode* playerNode = nullptr;
 
@@ -71,39 +88,44 @@ public:
 	}
 
 	void Update() {
-		this->myNode = GetNode();
-		this->currentPos = GetNode()->GlobalTransform().Position().Value();
-
-		if (this->playerNode == nullptr) {
-			return;
-		}
-
-		if (!PersistentData::Get<bool>("TutorialThrowingRoom_PlayerTookBottles")) {
-			return;
-		}
-
-		if (this->damageTimer > 0.0f) {
-			this->damageTimer -= Time::Delta();
-			return;
-		}
-
-		float distanceToPlayer = glm::distance(
-			GetNode()->GlobalTransform().Position().Value(),
-			this->playerNode->GlobalTransform().Position().Value()
-		);
-
-		if (distanceToPlayer <= this->damageRange) {
-			if (auto* player = this->playerNode->GetObject<PlayerController>()) {
-				player->TakeDamage(this->damage);
-				this->damageTimer = this->damageCooldown;
-			}
-		}
+		EnemySkeleton::Update();
+		// this->myNode = GetNode();
+		// this->currentPos = GetNode()->GlobalTransform().Position().Value();
+		//
+		// if (this->playerNode == nullptr) {
+		// 	return;
+		// }
+		//
+		// if (!PersistentData::Get<bool>("TutorialThrowingRoom_PlayerTookBottles")) {
+		// 	return;
+		// }
+		//
+		// if (this->damageTimer > 0.0f) {
+		// 	this->damageTimer -= Time::Delta();
+		// 	return;
+		// }
+		//
+		// float distanceToPlayer = glm::distance(
+		// 	GetNode()->GlobalTransform().Position().Value(),
+		// 	this->playerNode->GlobalTransform().Position().Value()
+		// );
+		//
+		// if (distanceToPlayer <= this->damageRange) {
+		// 	if (auto* player = this->playerNode->GetObject<PlayerController>()) {
+		// 		player->TakeDamage(this->damage);
+		// 		this->damageTimer = this->damageCooldown;
+		// 	}
+		// }
 	}
 
 	virtual void Die() override {
 		remainingRats--;
+		PotionInventory::GiveRatLoot();
 
+		//spdlog::error("died3");
 		EnemyBase::Die();
+
+		spdlog::error("died4");
 	}
 
 	LootPool& GetLootPool() override {
@@ -593,7 +615,7 @@ public:
 			this->sceneRequested = true;
 
 			Application::Get()->RequestSceneBuild(
-				[](Scene* s) { DungeonGeneratorScene::InitScene(*s); }
+				[](Scene* s) { CraftingScene::InitScene(*s); }
 			);
 		}
 	}
@@ -656,8 +678,8 @@ inline void SpawnRatAt(Scene& mainScene, SceneNode* spawnNode, SceneNode* player
 		ratShape,
 		JPH::RVec3(spawnPosition.x, spawnPosition.y, spawnPosition.z),
 		JPH::Quat::sIdentity(),
-		JPH::EMotionType::Static,
-		Physics::Layers::NON_MOVING
+		JPH::EMotionType::Dynamic,
+		Physics::Layers::MOVING
 	);
 
 	Physics::Body* ratBody = ratNode->AddObject<Physics::Body>(ratSettings);
@@ -671,6 +693,18 @@ inline void SpawnRatAt(Scene& mainScene, SceneNode* spawnNode, SceneNode* player
 		1.6f,
 		1.0f
 	);
+
+	auto* skeleton = ratNode->AddObject<EnemySkeleton>();
+	skeleton->SetTargetNode(playerNode);
+	skeleton->SetSurface(surface);
+
+	if (auto* fs = mainScene.GetComponent<FlockingSystem>()) {
+		spdlog::error("reg");
+		skeleton->RegisterToFlockingSystem(fs);
+	}
+
+
+	skeleton->OnPlayerEnteredRoom();
 }
 
 inline void SpawnTutorialRats(Scene& mainScene, SceneNode* roomNode, SceneNode* playerNode, Surface* surface) {

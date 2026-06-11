@@ -1539,8 +1539,10 @@ inline void InitScene(Scene& scene) {
 	cameraNode->GetObject<Camera>()->SetAsMainCamera();
 
 	cameraNode->AddObject<CameraSettings>(
-		playerNode->GlobalTransform().Position()
-	)->angleY = 135;
+		playerNode->GlobalTransform().Position(),
+		5,
+		135
+	);
 
 	cameraNode->AddObject<MaskEffects>();
 

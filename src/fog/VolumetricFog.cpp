@@ -75,3 +75,7 @@ void VolumetricFog::DrawImGui() {
   // k = 0 isotropic, k > 0 forward scattering (like fog or dust), k < 0 backward scattering
   ImGui::SliderFloat("Anisotropy", &this->k, -0.99f, 0.99f);
 }
+
+int VolumetricFog::Order() const {
+  return 0;
+}
