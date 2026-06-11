@@ -166,50 +166,62 @@ SceneNode* GltfScene::Instantiate(Scene* scene, SceneNode* parent, std::string n
     sceneNodes[index] = sceneNode;
   }
 
+  std::vector<SkeletonComponent*> instantiatedSkins(asset->skins.size(), nullptr);
+
   for (std::size_t i = 0; i < asset->nodes.size(); ++i) {
     auto& gltfNode = asset->nodes[i];
 
     if (gltfNode.skinIndex.has_value() && sceneNodes[i] != nullptr) {
-      auto& gltfSkin = asset->skins[gltfNode.skinIndex.value()];
+      std::size_t skinIndex = gltfNode.skinIndex.value();
 
-      auto* skeleton = sceneNodes[i]->AddObject<SkeletonComponent>();
+      if (instantiatedSkins[skinIndex] == nullptr) {
+        auto& gltfSkin = asset->skins[skinIndex];
 
-      skeleton->joints.reserve(gltfSkin.joints.size());
-      for (std::size_t jointIndex : gltfSkin.joints) {
-        skeleton->joints.push_back(sceneNodes[jointIndex]);
-      }
+        auto* skeleton = sceneNodes[i]->AddObject<SkeletonComponent>();
+        instantiatedSkins[skinIndex] = skeleton;
 
-      skeleton->inverseBindMatrices.resize(gltfSkin.joints.size(), glm::mat4(1.0f));
-      if (gltfSkin.inverseBindMatrices.has_value()) {
-        auto& ibmAccessor = asset->accessors[gltfSkin.inverseBindMatrices.value()];
+        skeleton->joints.reserve(gltfSkin.joints.size());
+        for (std::size_t jointIndex : gltfSkin.joints) {
+          skeleton->joints.push_back(sceneNodes[jointIndex]);
+        }
+
+        skeleton->inverseBindMatrices.resize(gltfSkin.joints.size(), glm::mat4(1.0f));
+        if (gltfSkin.inverseBindMatrices.has_value()) {
+          auto& ibmAccessor = asset->accessors[gltfSkin.inverseBindMatrices.value()];
 
         fastgltf::iterateAccessorWithIndex<fastgltf::math::fmat4x4>(*asset, ibmAccessor, [&](fastgltf::math::fmat4x4 matrix, std::size_t idx) {
-            skeleton->inverseBindMatrices[idx] = glm::make_mat4(matrix.data());
+          skeleton->inverseBindMatrices[idx] = glm::make_mat4(matrix.data());
         });
+        }
+
+        if (gltfSkin.skeleton.has_value()) {
+          skeleton->skeletonRoot = sceneNodes[gltfSkin.skeleton.value()];
+        }
       }
 
-      if (gltfSkin.skeleton.has_value()) {
-        skeleton->skeletonRoot = sceneNodes[gltfSkin.skeleton.value()];
+      MeshRenderer* renderer = sceneNodes[i]->GetObject<MeshRenderer>();
+      if (renderer != nullptr) {
+          renderer->SetSkeleton(instantiatedSkins[skinIndex]);
       }
     }
   }
 
   // Animation
   if (!asset->animations.empty()) {
-  root->AddObject<AnimationComponent>();
-  auto* animationComponent = root->GetObject<AnimationComponent>();
-  animationComponent->animations.reserve(asset->animations.size());
-    for (auto& gltfAnimation : asset->animations) {
-      auto animation = LoadAnimation(sceneNodes, gltfAnimation, *asset);
-      if (animation.has_value()) {
-        animation->participants = sceneNodes;
-        animation->source = this->filePath;
-        animationComponent->animations.push_back(std::move(animation.value()));
-      } else {
-        continue;
+    root->AddObject<AnimationComponent>();
+    auto* animationComponent = root->GetObject<AnimationComponent>();
+    animationComponent->animations.reserve(asset->animations.size());
+      for (auto& gltfAnimation : asset->animations) {
+        auto animation = LoadAnimation(sceneNodes, gltfAnimation, *asset);
+        if (animation.has_value()) {
+          animation->participants = sceneNodes;
+          animation->source = this->filePath;
+          animationComponent->animations.push_back(std::move(animation.value()));
+        } else {
+          continue;
+        }
       }
     }
-  }
 
   return root; 
 }
