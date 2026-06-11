@@ -8,7 +8,7 @@
 
 #include "game_scripts/CameraSettings.h"
 #include "game_scripts/PlayerController.h"
-#include "game_scripts/PotionInventory.h"
+#include "../../include/game_scripts/PotionInventory.h"
 #include "game_scripts/crafting/BottlingStage.h"
 #include "game_scripts/crafting/Cauldron.h"
 #include "game_scripts/crafting/CraftingIngredientReceiver.h"
@@ -126,7 +126,7 @@ namespace Crafting{
 
                 int inventoryPage = 0;
 
-                std::array<Crafting::IngredientData, 4> playerInventory = {};
+                std::vector<PotionInventory::IngredientInventoryEntry> playerInventory;
                 std::array<Text3D*, 4> inventorySlotTexts = {};
                 std::array<Text3D*, 4> cauldronSlotTexts = {};
 
@@ -334,35 +334,7 @@ namespace Crafting{
                             bellowNode->LocalTransform().Scale().Value();
                     }
 
-                    playerInventory[0] = CreateMainEffectIngredientData(
-                        IngredientType::Sugar,
-                        "Burn",
-                        EffectId::Burn,
-                        glm::vec4(1.0f, 0.1f, 0.1f, 1.0f)
-                    );
-
-                    playerInventory[1] = CreateMainEffectIngredientData(
-                        IngredientType::Water,
-                        "Lightning",
-                        EffectId::Lightning,
-                        glm::vec4(1.0f, 1.0f, 0.1f, 1.0f)
-                    );
-
-                    playerInventory[2] = CreateModifierIngredientData(
-                        IngredientType::Water,
-                        "Radius",
-                        ModifierId::Radius,
-                        1.5f,
-                        glm::vec4(0.1f, 0.8f, 0.2f, 1.0f)
-                    );
-
-                    playerInventory[3] = CreateModifierIngredientData(
-                        IngredientType::Sugar,
-                        "Duration",
-                        ModifierId::Duration,
-                        2.5f,
-                        glm::vec4(0.1f, 0.3f, 1.0f, 1.0f)
-                    );
+                    RefreshPlayerInventoryFromPersistent();
 
                     CreateStageOneModelTexts();
                     CreateStageTwoModelTexts();
@@ -521,6 +493,9 @@ namespace Crafting{
 
                     ClearIngredientReceivers();
                     ResetDraggableIngredients();
+                    RefreshPlayerInventoryFromPersistent();
+                    UpdateInventorySlotTexts();
+                    UpdateVisibleInventoryItems();
 
                     SetLidInteractionEnabled(false);
                     SetDoorInteractionEnabled(false);
@@ -689,7 +664,7 @@ namespace Crafting{
                     }
 
                     if (currentStage == CraftingStage::Finished){
-                        OnDoorClicked();
+                        StartBottlingStage();
                         return;
                     }
 
@@ -703,8 +678,16 @@ namespace Crafting{
                         return;
                     }
 
-                    inventoryPage = 0;
+                    int maxPage = GetMaxInventoryPage();
+
+                    inventoryPage++;
+
+                    if (inventoryPage > maxPage){
+                        inventoryPage = 0;
+                    }
+
                     UpdateInventorySlotTexts();
+                    UpdateVisibleInventoryItems();
                 }
 
                 void OnInventoryPreviousPageClicked(){
@@ -712,8 +695,16 @@ namespace Crafting{
                         return;
                     }
 
-                    inventoryPage = 0;
+                    int maxPage = GetMaxInventoryPage();
+
+                    inventoryPage--;
+
+                    if (inventoryPage < 0){
+                        inventoryPage = maxPage;
+                    }
+
                     UpdateInventorySlotTexts();
+                    UpdateVisibleInventoryItems();
                 }
 
           private:
@@ -812,33 +803,12 @@ namespace Crafting{
 
                     Font* font = LoadModelUiFont();
 
-                    const std::array<std::string, 4> inventorySlots = {
-                        "slot_bigger",
-                        "slot_bigger.001",
-                        "slot_bigger.002",
-                        "slot_bigger.003"
-                    };
-
                     const std::array<std::string, 4> cauldronSlots = {
                         "slot_bigger.004",
                         "slot_bigger.005",
                         "slot_bigger.006",
                         "slot_bigger.007"
                     };
-
-                    for (int i = 0; i < 4; i++){
-                        SceneNode* slotNode =
-                            FindNodeRecursive(GetNode(), inventorySlots[i]);
-
-                        inventorySlotTexts[i] = CreateModelText(
-                            slotNode,
-                            "InventorySlotText_" + std::to_string(i),
-                            "",
-                            font,
-                            glm::vec3(0.0f, 0.04f, 0.06f),
-                            0.055f
-                        );
-                    }
 
                     for (int i = 0; i < 4; i++){
                         SceneNode* slotNode =
@@ -850,7 +820,7 @@ namespace Crafting{
                             "Empty",
                             font,
                             glm::vec3(0.0f, 0.04f, 0.06f),
-                            0.05f
+                            0.035f
                         );
                     }
 
@@ -860,7 +830,7 @@ namespace Crafting{
                         "Back",
                         font,
                         glm::vec3(0.0f, 0.04f, 0.05f),
-                        0.055f
+                        0.035f
                     );
 
                     CreateModelText(
@@ -869,7 +839,7 @@ namespace Crafting{
                         "Info",
                         font,
                         glm::vec3(0.0f, 0.04f, 0.05f),
-                        0.055f
+                        0.035f
                     );
 
                     CreateModelText(
@@ -887,7 +857,7 @@ namespace Crafting{
                         "Down",
                         font,
                         glm::vec3(0.0f, 0.04f, 0.05f),
-                        0.045f
+                        0.035f
                     );
 
                     CreateModelText(
@@ -896,7 +866,7 @@ namespace Crafting{
                         "Up",
                         font,
                         glm::vec3(0.0f, 0.04f, 0.05f),
-                        0.045f
+                        0.035f
                     );
 
                     CreateModelText(
@@ -905,7 +875,7 @@ namespace Crafting{
                         "Back",
                         font,
                         glm::vec3(0.0f, 0.03f, 0.04f),
-                        0.045f
+                        0.035f
                     );
 
                     CreateModelText(
@@ -914,7 +884,7 @@ namespace Crafting{
                         "Info",
                         font,
                         glm::vec3(0.0f, 0.03f, 0.04f),
-                        0.045f
+                        0.035f
                     );
 
                     CreateModelText(
@@ -923,7 +893,7 @@ namespace Crafting{
                         "Next",
                         font,
                         glm::vec3(0.0f, 0.03f, 0.04f),
-                        0.045f
+                        0.035f
                     );
 
                     CreateModelText(
@@ -932,7 +902,7 @@ namespace Crafting{
                         "Back",
                         font,
                         glm::vec3(0.0f, 0.03f, 0.04f),
-                        0.045f
+                        0.035f
                     );
 
                     CreateModelText(
@@ -941,7 +911,7 @@ namespace Crafting{
                         "Info",
                         font,
                         glm::vec3(0.0f, 0.03f, 0.04f),
-                        0.045f
+                        0.035f
                     );
 
                     CreateModelText(
@@ -950,7 +920,7 @@ namespace Crafting{
                         "Done",
                         font,
                         glm::vec3(0.0f, 0.03f, 0.04f),
-                        0.045f
+                        0.035f
                     );
                 }
 
@@ -1203,13 +1173,146 @@ namespace Crafting{
                     UpdateQualityStars();
                 }
 
+                void RefreshPlayerInventoryFromPersistent(){
+                    PotionInventory::EnsureStartingIngredients();
+                    playerInventory = PotionInventory::GetOwnedIngredientDefinitions();
+                    ClampInventoryPage();
+                }
+
+                int GetMaxInventoryPage() const{
+                    if (playerInventory.empty()){
+                        return 0;
+                    }
+
+                    return static_cast<int>((playerInventory.size() - 1) / 4);
+                }
+
+                void ClampInventoryPage(){
+                    int maxPage = GetMaxInventoryPage();
+
+                    if (inventoryPage < 0){
+                        inventoryPage = 0;
+                    }
+
+                    if (inventoryPage > maxPage){
+                        inventoryPage = maxPage;
+                    }
+                }
+
+                int GetInventoryIndexForSlot(int slotIndex) const{
+                    return inventoryPage * 4 + slotIndex;
+                }
+
+                SceneNode* GetInventorySlotNode(int slotIndex){
+                    const std::array<std::string, 4> inventorySlots = {
+                        "slot_bigger",
+                        "slot_bigger.001",
+                        "slot_bigger.002",
+                        "slot_bigger.003"
+                    };
+
+                    if (slotIndex < 0 || slotIndex >= static_cast<int>(inventorySlots.size())){
+                        return nullptr;
+                    }
+
+                    return FindNodeRecursive(GetNode(), inventorySlots[slotIndex]);
+                }
+
+                DraggableCraftingItem* FindInventoryItemByKey(
+                    const std::string& inventoryKey,
+                    const std::vector<DraggableCraftingItem*>& items
+                ){
+                    for (auto* item : items){
+                        if (!item){
+                            continue;
+                        }
+
+                        if (item->inventoryKey == inventoryKey){
+                            return item;
+                        }
+                    }
+
+                    return nullptr;
+                }
+
                 void UpdateInventorySlotTexts(){
+                    ClampInventoryPage();
+
                     for (int i = 0; i < 4; i++){
                         if (!inventorySlotTexts[i]){
                             continue;
                         }
 
-                        inventorySlotTexts[i]->SetText(playerInventory[i].displayName);
+                        int inventoryIndex = GetInventoryIndexForSlot(i);
+
+                        if (inventoryIndex < 0 || inventoryIndex >= static_cast<int>(playerInventory.size())){
+                            inventorySlotTexts[i]->SetText("Empty");
+                            continue;
+                        }
+
+                        const PotionInventory::IngredientInventoryEntry& entry =
+                            playerInventory[inventoryIndex];
+
+                        std::ostringstream text;
+                        text << entry.displayName;
+                        text << " x" << PotionInventory::GetIngredientCount(entry.inventoryKey);
+
+                        inventorySlotTexts[i]->SetText(text.str());
+                    }
+                }
+
+                void UpdateVisibleInventoryItems(){
+                    SceneNode* ingredientsRootNode = GetIngredientsRootNode();
+
+                    if (!ingredientsRootNode){
+                        return;
+                    }
+
+                    std::vector<DraggableCraftingItem*> items;
+                    CollectObjectsRecursive<DraggableCraftingItem>(ingredientsRootNode, items);
+
+                    for (auto* item : items){
+                        if (!item){
+                            continue;
+                        }
+
+                        item->SetInventoryVisible(false);
+                    }
+
+                    ClampInventoryPage();
+
+                    for (int slotIndex = 0; slotIndex < 4; slotIndex++){
+                        int inventoryIndex = GetInventoryIndexForSlot(slotIndex);
+
+                        if (inventoryIndex < 0 || inventoryIndex >= static_cast<int>(playerInventory.size())){
+                            continue;
+                        }
+
+                        const PotionInventory::IngredientInventoryEntry& entry =
+                            playerInventory[inventoryIndex];
+
+                        DraggableCraftingItem* item =
+                            FindInventoryItemByKey(entry.inventoryKey, items);
+
+                        if (!item){
+                            spdlog::warn(
+                                "CraftingStation: inventory item '{}' has no scene model.",
+                                entry.displayName
+                            );
+                            continue;
+                        }
+
+                        SceneNode* slotNode = GetInventorySlotNode(slotIndex);
+
+                        if (!slotNode){
+                            continue;
+                        }
+
+                        item->data = entry.data;
+                        item->SetStartPosition(
+                            slotNode->GlobalTransform().Position().Value()
+                        );
+                        item->SetInventoryVisible(true);
                     }
                 }
 
@@ -2051,6 +2154,9 @@ namespace Crafting{
 
                     DisablePlayer();
                     SetIngredientsEnabled(true);
+                    RefreshPlayerInventoryFromPersistent();
+                    UpdateInventorySlotTexts();
+                    UpdateVisibleInventoryItems();
 
                     isActive = true;
 

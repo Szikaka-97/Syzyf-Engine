@@ -786,9 +786,9 @@ inline void InitScene(Scene& mainScene) {
                                 .minFilter = TextureFilter::Linear,
                                 .magFilter = TextureFilter::Linear};
     Texture2D* fontAtlas = mainScene.Resources()->Get<Texture2D>(
-        "./res/fonts/Papyrus/Papyrus-Regular.png", fontParams);
+        "./res/fonts/OpenSans-Regular/OpenSans-Regular.png", fontParams);
     Font* font = mainScene.Resources()->Get<Font>(
-        "./res/fonts/Papyrus/Papyrus-Regular.json", fontAtlas, true);
+        "./res/fonts/OpenSans-Regular/OpenSans-Regular.json", fontAtlas, true);
 
     SceneNode* logicNode = mainScene.CreateNode("MainMenu Logic");
     auto* controller = logicNode->AddObject<MainMenuController>();
@@ -837,33 +837,6 @@ inline void InitScene(Scene& mainScene) {
 
     SceneNode* bottleTextsGroup =
         mainScene.CreateNode("Main Menu Bottle Texts");
-
-    CreateBottleText(
-        mainScene,
-        bottleTextsGroup,
-        "Start Bottle Text",
-        "Start",
-        font,
-        &controller->playTextLayout
-    );
-
-    CreateBottleText(
-        mainScene,
-        bottleTextsGroup,
-        "Settings Bottle Text",
-        "Settings",
-        font,
-        &controller->optionsTextLayout
-    );
-
-    CreateBottleText(
-        mainScene,
-        bottleTextsGroup,
-        "Quit Bottle Text",
-        "Quit",
-        font,
-        &controller->quitTextLayout
-    );
 
     UiOptionsMenu* optionsUi = OptionsMenu::Build(mainScene, font);
     controller->optionsController = optionsUi;

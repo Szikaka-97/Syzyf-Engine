@@ -77,9 +77,13 @@ namespace CraftingScene {
 
     struct IngredientSpawnData {
 	    std::string nodeName;
-	    Material* material = nullptr;
+	    std::string inventoryKey;
+	    std::string modelPath;
 	    glm::vec3 position = glm::vec3(0.0f);
-	    glm::vec3 scale = glm::vec3(1.0f);
+	    glm::vec3 modelScale = glm::vec3(1.0f);
+	    glm::vec3 modelRotationEuler = glm::vec3(0.0f);
+	    glm::vec3 modelOffset = glm::vec3(0.0f);
+	    glm::vec3 interactionHalfExtents = glm::vec3(0.07f, 0.08f, 0.07f);
 	    Crafting::IngredientData ingredientData;
     };
 
@@ -285,9 +289,12 @@ namespace CraftingScene {
 
     class CraftingTutorialFinishedMessage : public GameObject {
     private:
-	    UiText* messageText = nullptr;
-	    bool messageStarted = false;
-	    float showUntilTime = 0.0f;
+        static constexpr const char* TutorialFinishedMessageAlreadyShownKey =
+            "CraftingScene_TutorialFinishedMessageAlreadyShown";
+
+            UiText* messageText = nullptr;
+            bool messageStarted = false;
+            float showUntilTime = 0.0f;
 
 	    void HideMessage() {
 		    if (this->messageText == nullptr) {
@@ -301,10 +308,23 @@ namespace CraftingScene {
 		    );
 	    }
 
-	    void ShowMessage() {
-		    if (this->messageText == nullptr) {
-			    return;
-		    }
+            void ShowMessage() {
+                if (this->messageText == nullptr) {
+                    return;
+                }
+
+                if (PersistentData::Get<bool>(TutorialFinishedMessageAlreadyShownKey)) {
+                    PersistentData::Set<bool>(
+                        PotionInventory::ShowTutorialFinishedMessageKey,
+                        false
+                    );
+
+                    return;
+                }
+
+                if (!PersistentData::Get<bool>(PotionInventory::ShowTutorialFinishedMessageKey)) {
+                    return;
+                }
 
 		    this->messageText->text =
 			    "Tutorial complete\n"
@@ -315,6 +335,8 @@ namespace CraftingScene {
 		    this->messageText->color.w = 1.0f;
 		    this->messageStarted = true;
 		    this->showUntilTime = Time::Current() + 12.0f;
+
+                PersistentData::Set<bool>(TutorialFinishedMessageAlreadyShownKey,true);
 
 		    PersistentData::Set<bool>(
 			    PotionInventory::ShowTutorialFinishedMessageKey,
@@ -358,12 +380,11 @@ namespace CraftingScene {
 		    this->messageText->alignment = TextAlignment::Right;
 		    this->messageText->maxWidth = 580.0f;
 		    this->messageText->color = glm::vec4(1.2f, 0.3f, 0.0f, 0.0f);
+
+                ShowMessage();
 	    }
 
 	    void Update() {
-		    if (PersistentData::Get<bool>(PotionInventory::ShowTutorialFinishedMessageKey)) {
-			    ShowMessage();
-		    }
 
 		    if (!this->messageStarted) {
 			    return;
@@ -937,70 +958,6 @@ namespace CraftingScene {
 	    blowerInteractable->interactionEnabled = false;
 
 	    return blowerHitboxNode;
-    }
-
-    inline SceneNode* CreateDoorHitbox(Scene& scene, SceneNode* roomNode) {
-	    if (!roomNode) {
-		    return nullptr;
-	    }
-
-	    SceneNode* doorNode =
-		    FindFirstNodeByNameRecursive(roomNode, "Door");
-
-	    if (!doorNode) {
-		    return nullptr;
-	    }
-
-	    SceneNode* doorHitboxNode =
-		    scene.CreateNode(doorNode, "DoorHitbox");
-
-	    doorHitboxNode->LocalTransform().Position() =
-		    glm::vec3(0.0f);
-
-	    doorHitboxNode->LocalTransform().Scale() =
-		    glm::vec3(0.7f, 0.8f, 0.35f);
-
-	    Mesh* cubeMesh =
-		    scene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
-
-	    Material* doorMaterial =
-		    CreateColorMaterial(glm::vec4(0.2f, 0.7f, 1.0f, 0.45f));
-
-	    if (cubeMesh && doorMaterial) {
-		    doorHitboxNode->AddObject<MeshRenderer>(
-			    cubeMesh,
-			    doorMaterial
-		    );
-	    }
-
-	    glm::vec3 doorHitboxPosition =
-		    doorHitboxNode->GlobalTransform().Position().Value();
-
-	    auto* doorBody = doorHitboxNode->AddObject<Physics::Body>(
-		    JPH::BodyCreationSettings{
-			    Physics::BoxShape(glm::vec3(1.0f)),
-			    JPH::RVec3(
-				    doorHitboxPosition.x,
-				    doorHitboxPosition.y,
-				    doorHitboxPosition.z
-			    ),
-			    JPH::Quat::sIdentity(),
-			    JPH::EMotionType::Static,
-			    Physics::Layers::NON_MOVING
-		    }
-	    );
-
-	    doorBody->SetPosition(doorHitboxPosition);
-	    doorBody->SetIsSensor(true);
-	    SetInteractionBodyLayer(doorBody);
-
-	    auto* doorInteractable =
-		    doorHitboxNode->AddObject<Crafting::CraftingInteractable>();
-
-	    doorInteractable->type = Crafting::CraftingInteractionType::Door;
-	    doorInteractable->interactionEnabled = false;
-
-	    return doorHitboxNode;
     }
 
     inline SceneNode* CreateValveHitbox(Scene& scene, SceneNode* roomNode) {
@@ -1609,38 +1566,67 @@ namespace CraftingScene {
         fogVolume->sharpness = 3.5f;
     }
 
-    inline Crafting::DraggableCraftingItem* CreateDraggableCube(
+    inline Crafting::DraggableCraftingItem* CreateDraggableIngredientModel(
 	    Scene& scene,
 	    SceneNode* parent,
-	    const std::string& nodeName,
-	    Mesh* mesh,
-	    Material* material,
-	    const glm::vec3& position,
-	    const glm::vec3& scale,
-	    const Crafting::IngredientData& ingredientData
+	    const IngredientSpawnData& spawn
     ) {
-	    SceneNode* node = scene.CreateNode(parent, nodeName);
+	    SceneNode* node = scene.CreateNode(parent, spawn.nodeName);
+	    node->GlobalTransform().Position() = spawn.position;
 
-	    if (mesh && material) {
-		    node->AddObject<MeshRenderer>(mesh, material);
+	    GltfScene* ingredientModel =
+		    ResourceDatabase::Global->Get<GltfScene>(
+			    spawn.modelPath
+		    );
+
+	    if (!ingredientModel) {
+		    spdlog::error(
+			    "CraftingScene: cannot load ingredient model '{}'.",
+			    spawn.modelPath
+		    );
+
+		    return nullptr;
 	    }
 
-	    node->LocalTransform().Scale() = scale;
-	    node->GlobalTransform().Position() = position;
+	    SceneNode* modelNode =
+		    ingredientModel->Instantiate(
+			    &scene,
+			    node,
+			    spawn.nodeName + " Model"
+		    );
 
-	    glm::vec3 globalPosition =
-		    node->GlobalTransform().Position().Value();
+	    if (!modelNode) {
+		    spdlog::error(
+			    "CraftingScene: failed to instantiate ingredient model '{}'.",
+			    spawn.modelPath
+		    );
+
+		    return nullptr;
+	    }
+
+	    modelNode->LocalTransform().Position() =
+		    spawn.modelOffset;
+
+	    modelNode->LocalTransform().Scale() =
+		    spawn.modelScale;
+
+	    modelNode->LocalTransform().Rotation() =
+		    glm::quat(glm::radians(spawn.modelRotationEuler));
 
 	    auto* item = node->AddObject<Crafting::DraggableCraftingItem>();
-	    item->data = ingredientData;
+	    item->inventoryKey = spawn.inventoryKey;
+	    item->data = spawn.ingredientData;
 
 	    auto* interactable = node->AddObject<Crafting::CraftingInteractable>();
 	    interactable->type = Crafting::CraftingInteractionType::Ingredient;
 	    interactable->interactionEnabled = true;
 
+	    glm::vec3 globalPosition =
+		    node->GlobalTransform().Position().Value();
+
 	    auto* body = node->AddObject<Physics::Body>(
 		    JPH::BodyCreationSettings{
-			    Physics::BoxShape(glm::vec3(1.0f)),
+			    Physics::BoxShape(spawn.interactionHalfExtents),
 			    JPH::RVec3(globalPosition.x, globalPosition.y, globalPosition.z),
 			    JPH::Quat::sIdentity(),
 			    JPH::EMotionType::Kinematic,
@@ -1681,7 +1667,7 @@ namespace CraftingScene {
 		    )->Instantiate(&scene, playerNode, "Aim Reticle");
 
 	    aimReticle->AddObject<AimCrosshair>();
-	    aimReticle->SetEnabled(PotionInventory::HasPotion());
+	    aimReticle->SetEnabled(false);
 
 	    bool returnedFromThrowingTutorial =
 		    PersistentData::Get<bool>("CraftingScene_ReturnedFromThrowingTutorial");
@@ -1737,7 +1723,7 @@ namespace CraftingScene {
 	    auto* player =
 		    playerNode->AddObject<PlayerController>();
 
-	    player->SetThrowingUnlocked(PotionInventory::HasPotion());
+	    player->SetThrowingUnlocked(false);
 
 	    return playerNode;
     }
@@ -1838,100 +1824,63 @@ namespace CraftingScene {
     }
 
     inline void CreateCraftingIngredients(Scene& scene, SceneNode* roomNode) {
-	    Mesh* cubeMesh =
-		    scene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
-
-	    const glm::vec4 burnColor =
-		    glm::vec4(1.0f, 0.1f, 0.1f, 1.0f);
-
-	    const glm::vec4 lightningColor =
-		    glm::vec4(1.0f, 1.0f, 0.1f, 1.0f);
-
-	    const glm::vec4 radiusColor =
-		    glm::vec4(0.1f, 0.8f, 0.2f, 1.0f);
-
-	    const glm::vec4 durationColor =
-		    glm::vec4(0.1f, 0.3f, 1.0f, 1.0f);
-
-	    Material* burnMaterial =
-		    CreateColorMaterial(burnColor);
-
-	    Material* lightningMaterial =
-		    CreateColorMaterial(lightningColor);
-
-	    Material* radiusMaterial =
-		    CreateColorMaterial(radiusColor);
-
-	    Material* durationMaterial =
-		    CreateColorMaterial(durationColor);
-
 	    SceneNode* ingredientsRootNode =
 		    scene.CreateNode(roomNode, "Crafting Ingredients");
 
-	    const std::vector<IngredientSpawnData> ingredientSpawns = {
-		    {
-			    "Burn Ingredient",
-			    burnMaterial,
-			    GetCraftingSlotWorldPosition(roomNode, "slot_bigger", WorldPointBetweenCameraNodes(roomNode, "StageOneStand", "StageOneLook", 0.74f, -0.75f, -0.20f)),
-			    glm::vec3(0.12f),
-			    CreateMainEffectIngredient(
-				    Crafting::IngredientType::Sugar,
-				    "Burn",
-				    Crafting::EffectId::Burn,
-				    burnColor
-			    )
-		    },
-		    {
-			    "Lightning Ingredient",
-			    lightningMaterial,
-			    GetCraftingSlotWorldPosition(roomNode, "slot_bigger.001", WorldPointBetweenCameraNodes(roomNode, "StageOneStand", "StageOneLook", 0.74f, -0.25f, -0.20f)),
-			    glm::vec3(0.12f),
-			    CreateMainEffectIngredient(
-				    Crafting::IngredientType::Water,
-				    "Lightning",
-				    Crafting::EffectId::Lightning,
-				    lightningColor
-			    )
-		    },
-		    {
-			    "Radius Modifier",
-			    radiusMaterial,
-			    GetCraftingSlotWorldPosition(roomNode, "slot_bigger.002", WorldPointBetweenCameraNodes(roomNode, "StageOneStand", "StageOneLook", 0.74f, 0.25f, -0.20f)),
-			    glm::vec3(0.12f),
-			    CreateModifierIngredient(
-				    Crafting::IngredientType::Water,
-				    "Radius",
-				    Crafting::ModifierId::Radius,
-				    1.5f,
-				    radiusColor
-			    )
-		    },
-		    {
-			    "Duration Modifier",
-			    durationMaterial,
-			    GetCraftingSlotWorldPosition(roomNode, "slot_bigger.003", WorldPointBetweenCameraNodes(roomNode, "StageOneStand", "StageOneLook", 0.74f, 0.75f, -0.20f)),
-			    glm::vec3(0.12f),
-			    CreateModifierIngredient(
-				    Crafting::IngredientType::Sugar,
-				    "Duration",
-				    Crafting::ModifierId::Duration,
-				    2.5f,
-				    durationColor
-			    )
-		    }
+	    const std::array<std::string, 4> inventorySlots = {
+		    "slot_bigger",
+		    "slot_bigger.001",
+		    "slot_bigger.002",
+		    "slot_bigger.003"
 	    };
 
-	    for (const IngredientSpawnData& spawn : ingredientSpawns) {
-		    CreateDraggableCube(
-			    scene,
-			    ingredientsRootNode,
-			    spawn.nodeName,
-			    cubeMesh,
-			    spawn.material,
-			    spawn.position,
-			    spawn.scale,
-			    spawn.ingredientData
-		    );
+	    std::vector<PotionInventory::IngredientInventoryEntry> ingredientDefinitions =
+		    PotionInventory::GetAllIngredientDefinitions();
+
+	    for (int index = 0; index < static_cast<int>(ingredientDefinitions.size()); index++) {
+		    const PotionInventory::IngredientInventoryEntry& ingredient =
+			    ingredientDefinitions[index];
+
+		    int slotIndex = index % 4;
+
+		    glm::vec3 slotPosition =
+			    WorldPointBetweenCameraNodes(
+				    roomNode,
+				    "StageOneStand",
+				    "StageOneLook",
+				    0.74f,
+				    -0.75f + float(slotIndex) * 0.5f,
+				    -0.20f
+			    );
+
+		    SceneNode* slotNode =
+			    FindFirstNodeByNameRecursive(roomNode, inventorySlots[slotIndex]);
+
+		    if (slotNode) {
+			    slotPosition = slotNode->GlobalTransform().Position().Value();
+		    }
+
+		    IngredientSpawnData spawn;
+		    spawn.nodeName = ingredient.displayName + " Ingredient";
+		    spawn.inventoryKey = ingredient.inventoryKey;
+		    spawn.modelPath = ingredient.modelPath;
+		    spawn.position = slotPosition;
+		    spawn.modelScale = glm::vec3(0.42f);
+		    spawn.modelRotationEuler = glm::vec3(0.0f, 0.0f, 0.0f);
+		    spawn.modelOffset = glm::vec3(0.0f);
+		    spawn.interactionHalfExtents = glm::vec3(0.07f, 0.08f, 0.07f);
+		    spawn.ingredientData = ingredient.data;
+
+		    Crafting::DraggableCraftingItem* item =
+			    CreateDraggableIngredientModel(
+				    scene,
+				    ingredientsRootNode,
+				    spawn
+			    );
+
+		    if (item && item->GetNode()) {
+			    item->GetNode()->SetEnabled(false);
+		    }
 	    }
 
 	    ingredientsRootNode->SetEnabled(false);
@@ -1940,7 +1889,6 @@ namespace CraftingScene {
     inline void SetupCraftingStation(Scene& scene, SceneNode* roomNode) {
 	    CreateStationHitbox(scene, roomNode);
 	    CreateBlowerHitbox(scene, roomNode);
-	    CreateDoorHitbox(scene, roomNode);
 	    CreateValveHitbox(scene, roomNode);
 	    CreateBottlingStageNodes(scene, roomNode);
 	    CreateCauldronReceiver(scene, roomNode);
@@ -1950,11 +1898,18 @@ namespace CraftingScene {
 		    roomNode->AddObject<Crafting::CraftingStation>();
 
 	    craftingStation->interactionRadius = 2.6f;
+
+	    bool returnedFromThrowingTutorial =
+		    PersistentData::Get<bool>("CraftingScene_ReturnedFromThrowingTutorial");
+
+	    bool shouldAutoEnterCrafting =
+		    PersistentData::Get<bool>("CraftingScene_AutoEnterCrafting") &&
+		    !returnedFromThrowingTutorial;
+
 	    craftingStation->enterStationOnFirstUpdate =
-		    PersistentData::Get<bool>("CraftingScene_AutoEnterCrafting");
+		    shouldAutoEnterCrafting;
 
 	    PersistentData::Set<bool>("CraftingScene_AutoEnterCrafting", false);
-
     }
 
     inline void AddSkybox(Scene& scene, SceneNode* roomNode) {
@@ -1988,10 +1943,8 @@ namespace CraftingScene {
 	    scene.AddComponent<LightSystem>();
 	    scene.AddComponent<UiSystem>();
 	    scene.AddComponent<AnimationSystem>();
-	    scene.AddComponent<PickableItemSystem>();
 	    scene.AddComponent<TweenSystem>();
 	    scene.AddComponent<WheelSystem>();
-	    scene.AddComponent<ThrowableObjectPool>();
 
 	    if (auto* lightSystem = scene.GetComponent<LightSystem>()) {
 		    lightSystem->SetAmbientLight(glm::vec4(1.0f, 0.65f, 0.25f, 0.12f));
