@@ -6,6 +6,8 @@
 #include <GameObject.h>
 #include <Random.h>
 
+class GltfScene;
+
 class DungeonGenerator : public GameObject, public ImGuiDrawable {
 private:
 	enum class RoomShape {
@@ -24,9 +26,15 @@ private:
 	};
 
 	struct RoomPrefab {
-		SceneNode* prefab;
+		GltfScene* prefab;
 		RoomShape shape;
 		std::string name;
+		std::vector<std::string> tags;
+		glm::vec2 size;
+
+		inline bool HasTag(const std::string& tag) {
+			return std::find(this->tags.begin(), this->tags.end(), tag) != this->tags.end();
+		}
 	};
 
 	std::vector<RoomPrefab> roomPrefabs;
@@ -35,7 +43,14 @@ private:
 	std::queue<PlacedRoom> roomsToSpawn;
 
 	SceneNode* PlaceRoom();
+
+	RoomPrefab* GetPrefabWithTag(const std::string& tag);
+	RoomPrefab* GetPrefabWithShape(RoomShape shape);
 public:
+	DungeonGenerator() = default;
+
+	std::filesystem::path rootRoomPath = "./res/models/rooms/gardens";
+
 	float gridSize = 40;
 
 	int seed = 1 << 31;
@@ -46,6 +61,8 @@ public:
 	int secondStrideLegs = 2;
 	int maxSecondShelfOverhang = 2;
 	int lastStretchLength = 2;
+
+	void Awake();
 
 	void RemakeDungeon();
 

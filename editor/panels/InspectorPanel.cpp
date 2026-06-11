@@ -231,6 +231,10 @@ void InspectorPanel::Draw(Context& context) {
         GameObject* objectToRemove = nullptr;
         int index = 0;
         for (GameObject* obj : context.selectedNode->AttachedObjects()) {
+            if (obj == nullptr) {
+                context.selectedNode = nullptr;
+                break;
+            }
             if (dynamic_cast<MousePickingBody*>(obj) != nullptr) {
                 continue;
             }

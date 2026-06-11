@@ -389,5 +389,9 @@ inline void InitScene(Scene& mainScene) {
             }
         }
     }
+
+    SceneNode* audio = mainScene.CreateNode("Audio");
+    audio->AddObject<AudioSource>(
+        mainScene.Resources()->Get<AudioClip>("./res/audio/Click.wav"));
 }
 } // namespace TestScene

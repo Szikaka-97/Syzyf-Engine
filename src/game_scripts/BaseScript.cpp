@@ -12,7 +12,7 @@
 #include <text/Font.h>
 #include <game_scripts/CameraSettings.h>
 #include <game_scripts/PlayerController.h>
-#include "../../game/include/scenes/TutorialThrowingRoomScene.h"
+#include "../../game/include/scenes/DungeonScene.h"
 
 int GetBasePointLightIndex(const std::string& name) {
 	const std::string prefix = "PointLight.";
@@ -342,7 +342,10 @@ void BaseExitToTutorialThrowingRoom::Update() {
 			spdlog::error("BUILD");
 
 			Application::Get()->RequestSceneBuild(
-			[](Scene* s) { TutorialThrowingRoomScene::InitScene(*s); }
+			[](Scene* s) {
+				DungeonScene::InitScene(*s);
+				// TutorialThrowingRoomScene::InitScene(*s);
+			}
 			);
 	}
 }
