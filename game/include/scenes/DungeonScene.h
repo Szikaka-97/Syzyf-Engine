@@ -80,7 +80,7 @@ inline void InitScene(Scene& mainScene) {
 	.Link();
 
 	Cubemap* skyCubemap = mainScene.Resources()->Get<Cubemap>(
-		"./res/textures/skybox_showcase.hdr",
+		"./res/textures/null_skybox.hdr",
 		Texture::HDRColorBuffer
 	);
 	skyCubemap->SetWrapModeU(TextureWrap::Clamp);
@@ -132,7 +132,7 @@ inline void InitScene(Scene& mainScene) {
 		Camera::Perspective(60.0f, 16.0f / 9.0f, 0.1f, 40.0f));
 	auto* cameraController = cameraNode->AddObject<CameraSettings>(playerNode->GlobalTransform().Position());
 	cameraController->SetAngleY(225);
-	cameraController->SetHeight(10);
+	cameraController->SetHeight(7);
 	cameraNode->AddObject<Bloom>();
 	cameraNode->AddObject<Tonemapper>()->SetOperator(
 		Tonemapper::TonemapperOperator::GranTurismo);
