@@ -58,6 +58,7 @@
 #include <glm/geometric.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/matrix_inverse.hpp>
+#include <spdlog/spdlog.h>
 
 #include <algorithm>
 #include <string>
@@ -617,9 +618,7 @@ namespace CraftingScene {
 		    "ramka",
 		    "ramka.001",
 		    "ramka.002",
-		    "device",
-		    "bellow",
-		    "Cube"
+		    "device"
 	    };
 
 	    for (const std::string& nodeName : stationMeshNodes) {
@@ -736,8 +735,33 @@ namespace CraftingScene {
 	    SceneNode* stationHitboxNode =
 		    scene.CreateNode(roomNode, "StationHitbox");
 
-	    stationHitboxNode->LocalTransform().Position() =
-		    glm::vec3(0.0f, 1.2f, 0.0f);
+	    SceneNode* stationCenterNode =
+		    FindFirstNodeByNameRecursive(roomNode, "Cauldron");
+
+	    if (!stationCenterNode) {
+		    stationCenterNode =
+			    FindFirstNodeByNameRecursive(roomNode, "Fire_Place");
+	    }
+
+	    if (!stationCenterNode) {
+		    stationCenterNode =
+			    FindFirstNodeByNameRecursive(roomNode, "Door");
+	    }
+
+	    if (stationCenterNode) {
+		    glm::vec3 position =
+			    stationCenterNode->GlobalTransform().Position().Value();
+
+		    position.y =
+			    roomNode->GlobalTransform().Position().Value().y + 1.2f;
+
+		    stationHitboxNode->GlobalTransform().Position() =
+			    position;
+	    }
+	    else {
+		    stationHitboxNode->LocalTransform().Position() =
+			    glm::vec3(0.0f, 1.2f, 0.0f);
+	    }
 
 	    stationHitboxNode->LocalTransform().Scale() =
 		    glm::vec3(1.0f);
@@ -1302,6 +1326,22 @@ namespace CraftingScene {
 
 	    SceneNode* playerNode = scene.CreateNode("Player");
 
+	    SceneNode* bimberman = ResourceDatabase::Global->Get<GltfScene>(
+		    "./res/models/bimbermann_throwing.glb"
+	    )->Instantiate(&scene, scene.root, "Bimberman");
+
+	    if (bimberman) {
+		    bimberman->SetParent(playerNode);
+	    }
+
+	    SceneNode* aimReticle =
+		    ResourceDatabase::Global->Get<GltfScene>(
+			    "./res/models/crosshair.glb"
+		    )->Instantiate(&scene, playerNode, "Aim Reticle");
+
+	    aimReticle->AddObject<AimCrosshair>();
+	    aimReticle->SetEnabled(PotionInventory::HasPotion());
+
 	    SceneNode* spawnNode =
 		    FindFirstNodeByNamesRecursive(
 			    roomNode,
@@ -1322,18 +1362,6 @@ namespace CraftingScene {
 		    playerNode->GlobalTransform().Position() =
 			    glm::vec3(1.7f, 0.0f, -10.4f);
 	    }
-
-	    ResourceDatabase::Global->Get<GltfScene>(
-		    "./res/models/bimbermann_throwing.glb"
-	    )->Instantiate(&scene, playerNode, "Bimberman");
-
-	    SceneNode* aimReticle =
-		    ResourceDatabase::Global->Get<GltfScene>(
-			    "./res/models/crosshair.glb"
-		    )->Instantiate(&scene, playerNode, "Aim Reticle");
-
-	    aimReticle->AddObject<AimCrosshair>();
-	    aimReticle->SetEnabled(PotionInventory::HasPotion());
 
 	    auto* virtualCharacter =
 		    playerNode->AddObject<Physics::VirtualCharacterController>(characterSettings);
@@ -1724,11 +1752,11 @@ namespace CraftingScene {
 
 	    cameraNode->GetObject<Camera>()->SetAsMainCamera();
 
-	cameraNode->AddObject<CameraSettings>(
-		playerNode->GlobalTransform().Position(),
-		5,
-		135
-	);
+	    cameraNode->AddObject<CameraSettings>(
+		    playerNode->GlobalTransform().Position(),
+		    7,
+		    135
+	    );
 
 	    cameraNode->AddObject<MaskEffects>();
 

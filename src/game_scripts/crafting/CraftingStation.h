@@ -1668,10 +1668,29 @@ namespace Crafting{
                     );
                 }
 
+                SceneNode* FindCameraNodeWithCameraObject(SceneNode* rootNode){
+                    if (!rootNode){
+                        return nullptr;
+                    }
+
+                    if (rootNode->GetObject<Camera>()){
+                        return rootNode;
+                    }
+
+                    for (SceneNode* child : rootNode->GetChildren()){
+                        if (SceneNode* foundNode = FindCameraNodeWithCameraObject(child)){
+                            return foundNode;
+                        }
+                    }
+
+                    return nullptr;
+                }
+
                 bool FocusCameraOnBlenderCamera(const std::string& blenderCameraNodeName){
                     SceneNode* cameraNode = GetCameraNode();
 
                     if (!cameraNode){
+                        spdlog::warn("CraftingStation: runtime camera node not found.");
                         return false;
                     }
 
@@ -1679,27 +1698,42 @@ namespace Crafting{
                         FindNodeRecursive(GetNode(), blenderCameraNodeName);
 
                     if (!blenderCameraRootNode){
+                        spdlog::warn(
+                            "CraftingStation: camera root '{}' not found under station '{}'.",
+                            blenderCameraNodeName,
+                            GetNode() ? GetNode()->GetName() : "null"
+                        );
+
                         return false;
                     }
 
-                    SceneNode* blenderCameraNode =
-                        FindNodeRecursive(blenderCameraRootNode, "Camera");
-
-                    if (!blenderCameraNode){
-                        blenderCameraNode = blenderCameraRootNode;
-                    }
+                    SceneNode* blenderCameraDataNode =
+                        FindCameraNodeWithCameraObject(blenderCameraRootNode);
 
                     Camera* runtimeCamera =
                         cameraNode->GetObject<Camera>();
 
-                    Camera* blenderCamera =
-                        blenderCameraNode->GetObject<Camera>();
+                    Camera* blenderCamera = nullptr;
+
+                    if (blenderCameraDataNode){
+                        blenderCamera = blenderCameraDataNode->GetObject<Camera>();
+                    }
+
+                    glm::vec3 cameraPosition =
+                        blenderCameraRootNode->GlobalTransform().Position().Value();
+
+                    glm::quat cameraRotation =
+                        blenderCameraRootNode->GlobalTransform().Rotation().Value() *
+                        glm::quat(glm::radians(glm::vec3(180.0f, 0.0f, 0.0f)));
 
                     cameraNode->GlobalTransform().Position() =
-                        blenderCameraNode->GlobalTransform().Position().Value();
+                        cameraPosition;
 
                     cameraNode->GlobalTransform().Rotation() =
-                        blenderCameraNode->GlobalTransform().Rotation().Value();
+                        cameraRotation;
+
+                    glm::vec3 cameraForward =
+                        cameraNode->GlobalTransform().Forward();
 
                     if (runtimeCamera && blenderCamera){
                         runtimeCamera->MakePerspective(
