@@ -101,6 +101,7 @@ inline void InitScene(Scene& mainScene) {
     characterSettings->mMaxSlopeAngle = JPH::DegreesToRadians(45.0f);
 
     SceneNode* playerNode = mainScene.CreateNode("Player");
+	playerNode->GlobalTransform().Position() = glm::vec3(3, 0, 0);
 
     SceneNode* bimberman =
         ResourceDatabase::Global
