@@ -12,6 +12,7 @@ private:
 	struct ProfilerData {
 		std::filesystem::path name = "";
 		std::chrono::nanoseconds times[FrameMemory] = {};
+		int count;
 
 		ProfilerData() = default;
 		ProfilerData(const std::filesystem::path& name);
@@ -23,6 +24,7 @@ public:
 	struct ProfilerResult {
 		std::filesystem::path name = "";
 		double time;
+		int count;
 	};
 
 	static void Step();

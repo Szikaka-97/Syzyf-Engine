@@ -23,6 +23,8 @@ void Profiler::Step() {
 		}
 
 		node.times[FrameMemory - 1] = std::chrono::nanoseconds(0);
+
+		node.count = 0;
 	}
 }
 
@@ -47,11 +49,14 @@ void Profiler::Pop() {
 	ProfilerData& node = profilerStack.top();
 
 	node.times[FrameMemory - 1] = std::chrono::high_resolution_clock::now().time_since_epoch() - node.times[FrameMemory - 1];
+	
+	node.count++;
 
 	auto it = profilerNodes.find(node.name);
 
 	if (it != profilerNodes.end()) {
 		it->second.times[FrameMemory - 1] += node.times[FrameMemory - 1];
+		it->second.count++;
 	}
 	else {
 		profilerNodes[node.name] = node;
@@ -71,7 +76,7 @@ std::vector<Profiler::ProfilerResult> Profiler::GrabResults() {
 			eventTime += (double) pair.second.times[i].count() / 1'000'000'000.0;
 		}
 
-		result.push_back({ pair.first, eventTime / FrameMemory });
+		result.push_back({ pair.first, eventTime / FrameMemory, pair.second.count });
 	}
 
 	return result;

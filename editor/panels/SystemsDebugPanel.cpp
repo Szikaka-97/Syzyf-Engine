@@ -14,7 +14,7 @@ std::vector<std::string> MessagingHelpers_GetAvailableComponents(); // I love ho
 
 void DrawProfilerInfo(nlohmann::json node, std::string name) {
     if (node.size() > 1) {
-        if (ImGui::TreeNode(name.c_str(), "%s: %.03fms", name.c_str(), node["_value"].get<float>() * 1000)) {
+        if (ImGui::TreeNode(name.c_str(), "%s: %.03fms (%i)", name.c_str(), node["_time"].get<float>() * 1000, node["_count"].get<int>())) {
             for (auto child : node.items()) {
                 if (child.value().is_object()) {
                     DrawProfilerInfo(child.value(), child.key());
@@ -25,7 +25,7 @@ void DrawProfilerInfo(nlohmann::json node, std::string name) {
         }
     }
     else {
-        ImGui::Text("%s: %.03fms", name.c_str(), node["_value"].get<float>() * 1000);
+        ImGui::Text("%s: %.03fms (%i)", name.c_str(), node["_time"].get<float>() * 1000, node["_count"].get<int>());
     }
 }
 
@@ -128,7 +128,8 @@ void SystemsDebugPanel::Draw(Context& context) {
                 }
             }
 
-            (*jsonNode)["_value"] = node.time;
+            (*jsonNode)["_time"] = node.time;
+            (*jsonNode)["_count"] = node.count;
         }
 
         DrawProfilerInfo(profilerRoot["Frame"], "Frame");
