@@ -17,6 +17,47 @@
 #include <MathHelpers.h>
 #include <TimeSystem.h>
 
+DungeonRoomScript::DungeonRoomScript() {
+	this->surface = GetNode()->FindNode("floor")->GetObject<Surface>();
+
+	for (auto* node : GetNode()->GetChildren()) {
+		if (node->GetName().starts_with("gate")) {
+			this->doors.push_back(node);
+		}
+	}
+}
+
+void DungeonRoomScript::Update() {
+	if (this->surface->PlayerInside()) {
+		this->timeout -= Time::Delta();
+
+		if (this->timeout > 0) {
+			return;
+		}
+
+		if (this->surface->GetEnemies().size() > 0) {
+			for (auto* door : this->doors) {
+				glm::vec3 pos = door->GetObject<Physics::Body>()->GetPosition();
+				
+				pos.y = Math::MoveTowards(pos.y, 1.4f, Time::Delta() * 10);
+
+				door->GetObject<Physics::Body>()->SetPosition(pos);
+				door->GlobalTransform().Position() = pos;
+			}
+		}
+		else {
+			for (auto* door : this->doors) {
+				glm::vec3 pos = door->GetObject<Physics::Body>()->GetPosition();
+				
+				pos.y = Math::MoveTowards(pos.y, 3.8f, Time::Delta() * 10);
+
+				door->GetObject<Physics::Body>()->SetPosition(pos);
+				door->GlobalTransform().Position() = pos;
+			}
+		}
+	}
+}
+
 void ElevatorScript::Update() {
 	glm::vec3 pos = GlobalTransform().Position();
 
@@ -250,7 +291,7 @@ void DungeonGenerator::RemakeDungeon() {
 	}
 }
 
-void SpawnEnemy(SceneNode* position) {
+EnemyBase* SpawnEnemy(SceneNode* position) {
 	JPH::ShapeRefC enemyShape = new JPH::CapsuleShape(0.5f, 1.0f);
     JPH::BodyCreationSettings enemySettings(
         enemyShape, JPH::RVec3(10.5f, 2.0f, 2.0f), JPH::Quat::sIdentity(),
@@ -268,12 +309,10 @@ void SpawnEnemy(SceneNode* position) {
     enemyBody1->SetRestitution(0.0f);
     auto* enemyAi1 = enemy1->AddObject<EnemySkeleton>();
     enemyAi1->SetProjectileResources(cubeMesh, enemyMat);
-    enemyAi1->SetSurface(position->GetParent()->GetObjectInChildren<Surface>());
     enemyAi1->SetProjectileResources(cubeMesh, enemyMat);
 	enemyAi1->SetTargetNode(PlayerController::Instance()->GetNode());
     enemyAi1->SetAttackCooldown(1.2f);
 	enemyAi1->m_FlockingSystem = position->GetScene()->GetComponent<FlockingSystem>();
-	enemyAi1->SetRoomID(enemyAi1->GetSurface()->GetID());
 
     enemyAi1->RegisterToFlockingSystem(position->GetScene()->GetComponent<FlockingSystem>());
 
@@ -283,6 +322,8 @@ void SpawnEnemy(SceneNode* position) {
     enemyModel->SetParent(enemy1);
     enemyModel->GlobalTransform().Scale() = glm::vec3(0.1, 0.1, 0.1);
     enemyModel->LocalTransform().Position() = glm::zero<glm::vec3>();
+
+	return enemyAi1;
 }
 
 void DungeonGenerator::Awake() {
@@ -360,6 +401,12 @@ void DungeonGenerator::Update() {
 			spawnedRoom->GlobalTransform().Position() = GlobalTransform().Position() + glm::vec3(room.position.y, 0, room.position.x) * glm::vec3(this->gridSize);
 			spawnedRoom->GlobalTransform().Rotation() = glm::vec3(0, glm::radians(-90.0f * room.orientation), 0);
 
+			SceneNode* floorNode = nullptr;
+
+			if (spawnedRoom->TryFindNode("floor", &floorNode)) {
+				floorNode->AddObject<Surface>(floorNode->GetObject<MeshRenderer>()->GetMesh(), 1);
+			}
+
 			if (room.position == glm::vec2(0, 0)) {
 				auto* elevatorNode = spawnedRoom->FindNode("Elevator");
 				// elevatorNode->AddObject<ElevatorScript>();
@@ -368,13 +415,10 @@ void DungeonGenerator::Update() {
 				// PlayerController::Instance()->SetEnabled(false);
 				// PlayerController::Instance()->GlobalTransform().Position() = elevatorNode->GlobalTransform().Position().Value();
 			}
-			
-			SceneNode* floorNode = nullptr;
-
-			if (spawnedRoom->TryFindNode("floor", &floorNode)) {
-				floorNode->AddObject<Surface>(floorNode->GetObject<MeshRenderer>()->GetMesh(), 1);
+			else {
+				spawnedRoom->AddObject<DungeonRoomScript>();
 			}
-
+			
 			for (MeshRenderer* mesh : spawnedRoom->GetAllObjectsInChildren<MeshRenderer>()) {
 				auto* body = mesh->GetNode()->AddObject<Physics::Body>(
 				JPH::BodyCreationSettings{
@@ -387,7 +431,11 @@ void DungeonGenerator::Update() {
 
 			for (SceneNode* child : spawnedRoom->GetChildren()) {
 				if (child->GetName().starts_with("ENEMY_SPAWN_")) {
-					SpawnEnemy(child);
+					auto* enemy = SpawnEnemy(child);
+
+					enemy->SetSurface(floorNode->GetObject<Surface>());
+					enemy->SetRoomID(enemy->GetSurface()->GetID());
+					floorNode->GetObject<Surface>()->AddEnemy(enemy);
 				}
 			}
 

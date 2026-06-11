@@ -7,11 +7,23 @@
 #include <Random.h>
 
 class GltfScene;
+class Surface;
 
 class ElevatorScript : public GameObject {
 private:
 	
 public:
+	void Update();
+};
+
+class DungeonRoomScript : public GameObject {
+private:
+	std::vector<SceneNode*> doors;
+	Surface* surface;
+	float timeout = 1;
+public:
+	DungeonRoomScript();
+
 	void Update();
 };
 

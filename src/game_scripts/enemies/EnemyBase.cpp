@@ -64,6 +64,10 @@ void EnemyBase::Die() {
     //spdlog::error("died");
     GetScene()->QueueDelete(myNode);
     myNode = nullptr;
+
+    if (this->m_Surface) {
+      this->m_Surface->RemoveEnemy(this);
+    }
   }
 }
 

@@ -10,7 +10,7 @@ class Mesh;
 class AiNode;
 class AiSimplified;
 
-class Surface : public GameObject {
+class Surface : public GameObject, public ImGuiDrawable {
 private:
     serialized Mesh* floorMesh;
 
@@ -50,10 +50,15 @@ public:
     void SetID(int id) { m_RoomID = id; }
     void SetEnemies(const std::vector<AiSimplified*>& enemies) { myEnemies = enemies; }
     void AddEnemy(AiSimplified* enemy) { myEnemies.push_back(enemy); }
+    void RemoveEnemy(AiSimplified* enemy) { std::erase(myEnemies, enemy); }
     bool ContainsPoint (const glm::vec3& point, float margin) ;
     void DrawDebugSurface(Physics::DebugRenderer* debugRenderer, float pointSize = 0.1f, int step = 5) const;
+
+    bool PlayerInside() const;
 
     void Awake();
 
     void Update();
+
+    virtual void DrawImGui() override;
 };
