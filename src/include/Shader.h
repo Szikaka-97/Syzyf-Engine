@@ -75,7 +75,8 @@ public:
 	ShaderBuilder& WithKeyword(const std::string& keyword, const std::string& keywordValue);
 	ShaderBuilder& WithKeyword(const std::string& keyword, int keywordValue);
 	ShaderBuilder& WithKeyword(const std::string& keyword, float keywordValue);
-
+	
+	ShaderProgram* Load();
 	ShaderProgram* Link();
 };
 

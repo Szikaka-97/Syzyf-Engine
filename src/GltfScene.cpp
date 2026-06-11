@@ -730,43 +730,43 @@ std::vector<Material*> GltfScene::LoadMaterials(GltfScene* scene, bool isSkinned
   auto* opaqueProg = ShaderProgram::Build()
   .WithVertexShader(vertexShaderPath)
   .WithPixelShader("./res/shaders/gltf/pbr.frag")
-  .Link();
+  .Load();
 
   auto* maskProg = ShaderProgram::Build()
   .WithVertexShader(vertexShaderPath)
   .WithPixelShader("./res/shaders/gltf/pbr_mask.frag")
-  .Link();
+  .Load();
 
   auto* blendProg = ShaderProgram::Build()
   .WithVertexShader(vertexShaderPath)
   .WithPixelShader("./res/shaders/gltf/pbr_blend.frag")
-  .Link();
+  .Load();
 
   auto* opaquePomProg = ShaderProgram::Build()
       .WithVertexShader(vertexShaderPath)
       .WithPixelShader("./res/shaders/gltf/pbr_pom.frag")
-      .Link();
+      .Load();
 
   // Could just use the regular one because it has a discard either way but w/e
   auto* maskPomProg = ShaderProgram::Build()
       .WithVertexShader(vertexShaderPath)
       .WithPixelShader("./res/shaders/gltf/pbr_pom_mask.frag")
-      .Link();
+      .Load();
 
   auto* blendPomProg = ShaderProgram::Build()
       .WithVertexShader(vertexShaderPath)
       .WithPixelShader("./res/shaders/gltf/pbr_pom_blend.frag")
-      .Link();
+      .Load();
 
   static auto* ditherHoleProg = ShaderProgram::Build()
       .WithVertexShader(vertexShaderPath)
       .WithPixelShader("./res/shaders/gltf/pbr_dither_hole.frag")
-      .Link();
+      .Load();
 
   auto* ditherProximityProg = ShaderProgram::Build()
       .WithVertexShader(vertexShaderPath)
       .WithPixelShader("./res/shaders/gltf/pbr_dither_proximity.frag")
-      .Link();
+      .Load();
   
   for (auto& gltfMaterial : asset.materials) {
     Material* material = nullptr;
