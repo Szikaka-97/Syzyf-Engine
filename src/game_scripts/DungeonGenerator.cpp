@@ -308,28 +308,12 @@ void DungeonGenerator::Awake() {
 
 			this->roomPrefabs.push_back(prefab);
 
-			delete instantiatedRoom;
+			instantiatedRoom->SetEnabled(false);
 		}
 	}
 }
 
 void DungeonGenerator::Update() {
-	glm::vec3 playerPosition = PlayerController::Instance()->GlobalTransform().Position();
-
-	for (auto room : this->dungeonRooms) {
-		glm::vec3 roomCenter = glm::vec3(room.position.y, 0, room.position.x) * glm::vec3(this->gridSize);
-
-		glm::vec3 dist = glm::abs(roomCenter - playerPosition);
-
-		dist.y = 0;
-
-		if (dist.x > this->gridSize * 1.5 || dist.z > this->gridSize * 1.5) {
-			room.room->SetEnabled(false);
-		}
-	}
-}
-
-void DungeonGenerator::Render() {
 	static int roomCounter = 0;
 
 	if (!this->roomsToSpawn.empty()) {
@@ -373,7 +357,7 @@ void DungeonGenerator::Render() {
 
 			for (SceneNode* child : spawnedRoom->GetChildren()) {
 				if (child->GetName().starts_with("ENEMY_SPAWN_")) {
-					SpawnEnemy(child);
+					// SpawnEnemy(child);
 				}
 			}
 
@@ -382,6 +366,27 @@ void DungeonGenerator::Render() {
 			this->dungeonRooms.push_back(room);
 		}
 	}
+
+	glm::vec3 playerPosition = PlayerController::Instance()->GlobalTransform().Position();
+
+	for (auto room : this->dungeonRooms) {
+		glm::vec3 roomCenter = glm::vec3(room.position.y, 0, room.position.x) * glm::vec3(this->gridSize);
+
+		glm::vec3 dist = glm::abs(roomCenter - playerPosition);
+
+		dist.y = 0;
+
+		if (dist.x < this->gridSize * 1.0 && dist.z < this->gridSize * 1.0) {
+			room.room->SetEnabled(true);
+		}
+		else {
+			room.room->SetEnabled(false);
+		}
+	}
+}
+
+void DungeonGenerator::Render() {
+	
 }
 
 void DungeonGenerator::DrawImGui() {

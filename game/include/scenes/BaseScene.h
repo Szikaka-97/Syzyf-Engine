@@ -72,15 +72,15 @@ inline void InitScene(Scene& mainScene) {
 
 #pragma region Base
 	auto floorNode = ResourceDatabase::Global->Get<GltfScene>("./res/models/rooms/Base.glb")->Instantiate(&mainScene, mainScene.root, "Floor");
-	// MeshRenderer* floorMeshRenderer = floorNode->GetObjectInChildren<MeshRenderer>();
-	// auto* floorBody = floorMeshRenderer->GetNode()->AddObject<Physics::Body>(
-	// 	JPH::BodyCreationSettings{
-	// 		Physics::MeshShape(floorMeshRenderer->GetMesh()),
-	// 		JPH::RVec3::sZero(), JPH::Quat::sZero(), JPH::EMotionType::Static,
-	// 		Physics::Layers::NON_MOVING
-	// 	}
-	// );
-	// floorBody->SetCollisionLayerAndMask({0}, 0xFFFFFFFF);
+	MeshRenderer* floorMeshRenderer = floorNode->FindNode("floor")->GetObject<MeshRenderer>();
+	auto* floorBody = floorMeshRenderer->GetNode()->AddObject<Physics::Body>(
+		JPH::BodyCreationSettings{
+			Physics::MeshShape(floorMeshRenderer->GetMesh()),
+			JPH::RVec3::sZero(), JPH::Quat::sZero(), JPH::EMotionType::Static,
+			Physics::Layers::NON_MOVING
+		}
+	);
+	floorBody->SetCollisionLayerAndMask({0}, 0xFFFFFFFF);
 
 	ShaderProgram* skyProg = ShaderProgram::Build()
 	.WithVertexShader(("./res/shaders/skybox.vert"))
@@ -131,7 +131,7 @@ inline void InitScene(Scene& mainScene) {
 
 	bimberman->SetParent(playerNode);
 
-	playerNode->GlobalTransform().Position() = glm::vec3(4, 0, -1);
+	playerNode->GlobalTransform().Position() = glm::vec3(4, 0.0f, -1);
 
 	auto* virtualCharacter = playerNode->AddObject<Physics::VirtualCharacterController>(characterSettings);
 	virtualCharacter->SetCollisionLayerAndMask({1}, 0xFFFFFFFF);

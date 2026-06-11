@@ -239,6 +239,8 @@ void PlayerController::UpdateMovement() {
 	}
 
 	this->torso->LocalTransform().Rotation() = fromTo;
+
+	// this->charController->Move(glm::vec3(0, -10, 0), Time::Delta());
 }
 
 void PlayerController::UpdateTargetting() {
