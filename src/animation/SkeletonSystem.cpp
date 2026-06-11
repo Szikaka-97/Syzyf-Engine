@@ -1,6 +1,7 @@
 #include "animation/SkeletonSystem.h"
 #include "GameObjectSystem.h"
 #include "animation/SkeletonComponent.h"
+#include "tracy/Tracy.hpp"
 
 #include "Scene.h"
 
@@ -10,9 +11,14 @@ SkeletonSystem::SkeletonSystem(Scene* scene) : GameObjectSystem<SkeletonComponen
 }
 
 void SkeletonSystem::OnPreUpdate() {
+  ZoneScopedN("SkeletonSystem::OnPreUpdate");
   std::size_t totalJoints = 0;
-  for (auto* skeleton : IterateObjects()) {
-    totalJoints += skeleton->joints.size();
+
+  {
+    ZoneScopedN("Count Joints");
+    for (auto* skeleton : IterateObjects()) {
+      totalJoints += skeleton->joints.size();
+    }
   }
 
   if (totalJoints == 0) {
@@ -24,16 +30,20 @@ void SkeletonSystem::OnPreUpdate() {
   }
 
   int currentOffset = 0;
-  for (auto* skeleton : IterateObjects()) {
-      skeleton->bufferOffset = currentOffset;
+  {
+    ZoneScopedN("Compute Matrices");
+      for (auto* skeleton : IterateObjects()) {
+        ZoneScopedN("Process Single Skeleton");
 
-      if (skeleton->jointMatrices.size() != skeleton->joints.size()) {
+        skeleton->bufferOffset = currentOffset;
+
+        if (skeleton->jointMatrices.size() != skeleton->joints.size()) {
           skeleton->jointMatrices.resize(skeleton->joints.size());
-      }
+        }
 
-      glm::mat4 inverseMeshGlobal = glm::inverse(skeleton->GetNode()->GlobalTransform().Value());
+        glm::mat4 inverseMeshGlobal = glm::inverse(skeleton->GetNode()->GlobalTransform().Value());
 
-      for (std::size_t i = 0; i < skeleton->joints.size(); ++i) {
+        for (std::size_t i = 0; i < skeleton->joints.size(); ++i) {
           SceneNode* jointNode = skeleton->joints[i];
           glm::mat4 jointGlobal = jointNode->GlobalTransform().Value();
           glm::mat4 ibm = skeleton->inverseBindMatrices[i];
@@ -43,21 +53,25 @@ void SkeletonSystem::OnPreUpdate() {
           skeleton->jointMatrices[i] = finalMatrix;
 
           batchedMatrices[currentOffset + i] = finalMatrix;
-      }
+        }
 
-      currentOffset += skeleton->joints.size();
+        currentOffset += skeleton->joints.size();
+      }
   }
 
-  glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->skinningBuffer);
+  {
+    ZoneScopedN("OpenGL Upload");
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->skinningBuffer);
 
-  std::size_t requiredSize = totalJoints * sizeof(glm::mat4);
-  if (this->currentBufferSize < requiredSize) {
+    std::size_t requiredSize = totalJoints * sizeof(glm::mat4);
+    if (this->currentBufferSize < requiredSize) {
       glBufferData(GL_SHADER_STORAGE_BUFFER, requiredSize, nullptr, GL_DYNAMIC_DRAW);
       this->currentBufferSize = requiredSize;
-  }
+    }
 
-  glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, requiredSize, batchedMatrices.data());
-  glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, requiredSize, batchedMatrices.data());
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+  }
 }
 
 GLuint SkeletonSystem::GetSkinningBufferHandle() {

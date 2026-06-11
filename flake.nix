@@ -25,6 +25,8 @@
         libxcb
         libxtst
         dbus
+
+        alsa-lib
       ];
     in
     {
@@ -38,6 +40,7 @@
           gdb
           wayland-scanner
           python3
+          tracy-wayland
 
           cppcheck
           include-what-you-use

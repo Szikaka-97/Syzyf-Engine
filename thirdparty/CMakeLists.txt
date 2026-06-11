@@ -66,6 +66,18 @@ CPMAddPackage(
         "DEBUG_RENDERER_IN_DISTRIBUTION ON"
 	    "BUILD_SHARED_LIBS ON"
 )
+
+if (ENABLE_TRACY)
+    set(TRACY_OPTIONS "TRACY_ENABLE ON" "TRACY_CALLSTACK ON")
+else()
+    set(TRACY_OPTIONS "TRACY_ENABLE OFF" "TRACY_CALLSTACK OFF")
+endif()
+CPMAddPackage(
+    NAME tracy
+    GITHUB_REPOSITORY wolfpld/tracy
+    GIT_TAG v0.11.1
+    OPTIONS ${TRACY_OPTIONS}
+)
 if (NOT MSVC)
 target_compile_options(Jolt PRIVATE -Wno-array-bounds)
 endif ()
