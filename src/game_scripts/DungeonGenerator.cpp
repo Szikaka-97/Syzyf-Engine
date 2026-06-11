@@ -357,7 +357,7 @@ void DungeonGenerator::Render() {
 
 			SceneNode* floorNode = nullptr;
 
-			if (spawnedRoom->TryFindNode("FLOOR", &floorNode)) {
+			if (spawnedRoom->TryFindNode("floor", &floorNode)) {
 				floorNode->AddObject<Surface>(floorNode->GetObject<MeshRenderer>()->GetMesh(), 1);
 			}
 
@@ -372,7 +372,7 @@ void DungeonGenerator::Render() {
 			}
 
 			for (SceneNode* child : spawnedRoom->GetChildren()) {
-				if (child->GetName().starts_with("ENEMY_SPAWN_Skeleton")) {
+				if (child->GetName().starts_with("ENEMY_SPAWN_")) {
 					SpawnEnemy(child);
 				}
 			}
