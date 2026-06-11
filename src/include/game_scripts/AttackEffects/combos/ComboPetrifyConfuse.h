@@ -3,7 +3,9 @@
 
 class ComboPetrifyConfuse : public ComboEffectBase {
 public:
-    int ingredientCount = 1;
+    ComboPetrifyConfuse() = default;
+
+    serialized int ingredientCount = 1;
 
     void Update();
 

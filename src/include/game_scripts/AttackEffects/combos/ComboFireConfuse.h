@@ -3,7 +3,8 @@
 
 class ComboFireConfuse : public ComboEffectBase {
 public:
-    int ingredientCount = 1;
+    ComboFireConfuse() = default;
+    serialized int ingredientCount = 1;
 
     void Update();
 

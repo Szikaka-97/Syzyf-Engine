@@ -52,14 +52,16 @@ void EnemyBase::Attack() {
 }
 
 void EnemyBase::Die() {
+
+  //spdlog::error("died2");
   if (myNode) {
 
-     /* std::mt19937 m_Rng{std::random_device{}()};
+      std::mt19937 m_Rng{std::random_device{}()};
       int rnd = m_Rng() % 5;
       for (int i = 0; i <= rnd; ++i) {
           DropLoot();
-      }*/
-
+      }
+    //spdlog::error("died");
     GetScene()->QueueDelete(myNode);
     myNode = nullptr;
   }

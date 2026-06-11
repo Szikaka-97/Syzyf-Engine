@@ -11,6 +11,7 @@
 #include <MathHelpers.h>
 #include <game_scripts/ThrowableObjectPool.h>
 #include <game_scripts/AttackEffects/EffectsManager.h>
+#include <game_scripts/AttackEffects/combos/ComboExplodeFire.h>
 #include <game_scripts/ThrowableObject.h>
 #include <physics/VirtualCharacterController.h>
 #include <physics/Body.h>
@@ -20,6 +21,54 @@
 #include <physics/LayerMaskFilter.h>
 
 PlayerController* PlayerController::instance;
+
+float MoveTowards(float current, float target, float maxDelta) {
+	maxDelta = glm::abs(maxDelta);
+
+	if (current < target) {
+		current += maxDelta;
+
+		if (current > target) {
+			return target;
+		}
+		else {
+			return current;
+		}
+	}
+	else {
+		current -= maxDelta;
+
+		if (current < target) {
+			return target;
+		}
+		else {
+			return current;
+		}
+	}
+}
+
+float MoveTowardsAngle(float current, float target, float maxDelta) {
+	current = glm::mod(current, glm::tau<float>());
+	target = glm::mod(target, glm::tau<float>());
+
+	maxDelta = glm::abs(maxDelta);
+
+	if (glm::abs(target - current) <= glm::pi<float>()) {
+		return MoveTowards(current, target, maxDelta);
+	}
+	else {
+		if (current < target) {
+			current += glm::tau<float>();
+		}
+		else {
+			target += glm::tau<float>();
+		}
+
+		current = MoveTowards(current, target, maxDelta);
+
+		return glm::mod(current, glm::tau<float>());
+	}
+}
 
 float ThrowStrengthEasing(float strength) {
 	return -(glm::cos(glm::pi<float>() * strength) - 1) / 2;
@@ -48,7 +97,7 @@ namespace{
 			effect->ingredientCount = potionData.mainEffectCount;
 			effect->special1 = potionData.modifierCount > 0;
 			effect->special2 = potionData.modifierCount > 1;
-			effect->Init();
+			effect->Awake();
 
 			return effect;
 		}
@@ -62,7 +111,7 @@ namespace{
 			effect->ingredientCount = potionData.mainEffectCount;
 			effect->special1 = potionData.modifierCount > 0;
 			effect->special2 = potionData.modifierCount > 1;
-			effect->Init();
+			effect->Awake();
 
 			return effect;
 		}
@@ -73,7 +122,7 @@ namespace{
 		effect->maxRange = potionData.radius * multiplier;
 		effect->maxDamage = potionData.power * multiplier;
 		effect->ingredientCount = potionData.mainEffectCount;
-		effect->Init();
+		effect->Awake();
 
 		return effect;
 	}

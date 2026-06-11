@@ -18,15 +18,17 @@ enum class EffectType {
 
 class ComboEffectBase : public GameObject {
 public:
-    float duration        = 2.0f;
-    float effect1Strength = 0.5f;  // [0..1]
-    float maxEffect1Range = 5.0f;
-    float maxEffect1Damage = 30.0f;
+
+    ComboEffectBase() = default ;
+
+    serialized float duration        = 2.0f;
+    serialized float effect1Strength = 0.5f;
+    serialized float maxEffect1Range = 5.0f;
+    serialized float maxEffect1Damage = 30.0f;
  
-    float effect2Strength = 0.5f;
- 
-    // Must be called once after adding to a node
-    void Init(float e1Strength, float e1MaxRange, float e1MaxDamage,
+    serialized float effect2Strength = 0.5f;
+
+    void Awake(float e1Strength, float e1MaxRange, float e1MaxDamage,
               float dur = 2.0f);
  
     float GetRange()  const { return effect1Strength * maxEffect1Range; }
@@ -49,4 +51,5 @@ protected:
     SceneNode* myNode = GetNode();
  
     std::unordered_set<EnemyBase*> m_HitEnemies;
+    virtual void  OnInit()                    {}
 };

@@ -19,6 +19,32 @@ class LootBone : public LootItem {
         void Spawn(Scene* scene, const glm::vec3& position) const override{
             auto* node = scene->CreateNode("LootBone");
     node->GlobalTransform().Position() = position;
+
+            ShaderProgram* pbrProg = ShaderProgram::Build()
+                .WithVertexShader("./res/shaders/lit.vert")
+                .WithPixelShader("./res/shaders/pbr.frag")
+                .Link();
+
+
+            //Scene* scene = this->GetScene();
+            Texture2D* albedo = scene->Resources()->Get<Texture2D>(
+                "./res/textures/material_preview/worn-shiny-metal-albedo.png",
+                Texture::ColorTextureRGB);
+            Texture2D* normal = scene->Resources()->Get<Texture2D>(
+                "./res/textures/material_preview/worn-shiny-metal-Normal-ogl.png",
+                Texture::TechnicalMapXYZ);
+            Texture2D* arm = scene->Resources()->Get<Texture2D>(
+                "./res/textures/material_preview/worn-shiny-metal-arm.png",
+                Texture::TechnicalMapXYZ);
+
+            Material* mat = new Material(pbrProg);
+            mat->SetValue("albedoMap", albedo);
+            mat->SetValue("normalMap", normal);
+            mat->SetValue("armMap",    arm);
+
+            Mesh* mesh = scene->Resources()->Get<Mesh>("./res/models/jake_tangents.glb");
+
+            node->AddObject<MeshRenderer>(mesh, mat);
     // node->AddObject<MeshRenderer>(potionMesh, potionMaterial);
     // node->AddObject<PickupScript>();
     }

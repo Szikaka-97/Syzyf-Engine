@@ -1,3 +1,4 @@
+#include "./include/game_scripts/AttackEffects/combos/ComboExplodeFire.h"
 #include "./include/game_scripts/AttackEffects/combos/ComboFirePetrify.h"
 #include "./include/game_scripts/AttackEffects/combos/ComboFireTornado.h"
 #include "./include/game_scripts/AttackEffects/combos/ComboTornadoPetrify.h"
@@ -26,11 +27,111 @@ static void SetXZScale(SceneNode* node, float radius) {
     node->GlobalTransform().Scale() = glm::vec3(radius, s.y, radius);
 }
 
+void ComboExplodeFire::OnInit() {
+    SceneNode* explosionModel =
+            ResourceDatabase::Global
+    ->Get<GltfScene>("./res/models/effects/explode1.glb")
+->Instantiate(GetScene(), GetNode(), "explosion effect");
+    explosionModel->GlobalTransform().Scale()=glm::vec3(1.0f,1.0f,1.0f);
+    GetNode()->GlobalTransform().Scale()=glm::vec3(1.0f,1.0f,1.0f);
+}
 
-// =============================================================================
-//  ComboFirePetrify
-//  Fire + Petrify — DOT + slow, one-shot per enemy
-// =============================================================================
+void ComboExplodeFire::ApplyTo(EnemyBase* enemy) {
+    enemy->TakeDamage(static_cast<int>(GetDamage()));
+
+    float actualBurnDmg = burnDamagePerTick * effect2Strength;
+    float burnDuration  = duration * effect2Strength;
+    enemy->ApplyBurn(actualBurnDmg, burnDuration, burnInterval);
+
+    spdlog::debug("ComboExplodeFire: hit enemy â€” dmg={:.0f}, burn={:.1f}/s for {:.1f}s",
+                  GetDamage(), actualBurnDmg, burnDuration);
+}
+
+void ComboExplodeFire::SpawnDebris() {
+    static const float g = 9.81f;
+
+    const int count = std::clamp(debrisCount, 5, 10);
+    m_Debris.reserve(count);
+
+    std::uniform_real_distribution<float> angleDist(0.0f, glm::two_pi<float>());
+    std::uniform_real_distribution<float> rangeDist(debrisMinRange, debrisMaxRange);
+
+    glm::vec3 origin = GetFlatPosition();
+
+    for (int i = 0; i < count; ++i) {
+        float angle = angleDist(m_Rng);
+        float range = rangeDist(m_Rng);
+        float v     = std::sqrt(range * g);
+
+        glm::vec3 horiz(std::cos(angle), 0.0f, std::sin(angle));
+
+        constexpr float cos45 = 0.7071068f;
+        glm::vec3 vel = horiz * (v * cos45) + glm::vec3(0.0f, v * cos45, 0.0f);
+
+        SceneNode* fireNode = GetScene()->CreateNode("Fire");
+        fireNode->GlobalTransform().Position() = origin;
+        fireNode->AddObject<FireParticles>();
+
+        m_Debris.push_back({ fireNode, vel, false });
+    }
+
+    spdlog::info("ComboExplodeFire: spawned {} fire debris (range {:.1f}â€“{:.1f})",
+                 count, debrisMinRange, debrisMaxRange);
+}
+
+void ComboExplodeFire::UpdateDebris(float dt) {
+    static const float g = 9.81f;
+    float groundY = GetFlatPosition().y;
+
+    for (auto& d : m_Debris) {
+        if (d.landed || !d.node) continue;
+
+        d.velocity.y -= g * dt;
+        glm::vec3 pos  = d.node->GlobalTransform().Position();
+        pos            += d.velocity * dt;
+
+        if (pos.y <= groundY) {
+            pos.y      = groundY;
+            d.velocity = glm::vec3(0.0f);
+            d.landed   = true;
+        }
+
+        d.node->GlobalTransform().Position() = pos;
+    }
+}
+
+void ComboExplodeFire::CleanupDebris() {
+    for (auto& d : m_Debris)
+        if (d.node) GetScene()->QueueDelete(d.node);
+    m_Debris.clear();
+}
+
+void ComboExplodeFire::Update() {
+    ComboEffectBase::Update();
+
+    if (m_Expired) return;
+
+    if (!m_Initialized) {
+        SceneNode* explosionModel = ResourceDatabase::Global
+            ->Get<GltfScene>("./res/models/effects/explode1.glb")
+            ->Instantiate(GetScene(), GetNode(), "explosion effect");
+
+        if (explosionModel) {
+            explosionModel->GlobalTransform().Scale() = glm::vec3(1.0f, 1.0f, 1.0f);
+        }
+
+        if (GetNode()) {
+            GetNode()->GlobalTransform().Scale() = glm::vec3(1.0f, 1.0f, 1.0f);
+        }
+
+        SpawnDebris();
+
+        m_Initialized = true;
+    }
+
+    UpdateDebris(Time::Delta());
+}
+
 void ComboFirePetrify::ApplyTo(EnemyBase* enemy) {
     float burnDuration = duration * (1.0f - effect2Strength);
     enemy->ApplyBurn(GetDamage(), burnDuration);
@@ -53,11 +154,6 @@ void ComboFirePetrify::Update() {
     }
 }
 
-
-// =============================================================================
-//  ComboFireTornado
-//  Fire + Tornado — rotating area, DOT on entry, bullet capture
-// =============================================================================
 void ComboFireTornado::InitTornado() {
     m_TornadoRadius = effect2Strength * maxTornadoRadius;
     SetXZScale(myNode, m_TornadoRadius);
@@ -85,11 +181,6 @@ void ComboFireTornado::Update() {
     //       bullet->BulletInTornadoAction(myNode, m_TornadoRadius, rotationSpeed)
 }
 
-
-// =============================================================================
-//  ComboTornadoPetrify
-//  Tornado + Petrify — rotating area, slow on entry, bullet capture
-// =============================================================================
 void ComboTornadoPetrify::InitTornado() {
     m_TornadoRadius = effect2Strength * maxTornadoRadius;
     SetXZScale(myNode, m_TornadoRadius);
@@ -113,14 +204,8 @@ void ComboTornadoPetrify::Update() {
         ApplyPetrifyTo(enemy);
     }
 
-    // TODO: EnemyBullet capture (see note at top of file)
 }
 
-
-// =============================================================================
-//  ComboExplodePetrify
-//  Explode + Petrify — expanding radius, instant damage + slow, one-shot
-// =============================================================================
 void ComboExplodePetrify::ApplyTo(EnemyBase* enemy) {
     enemy->TakeDamage(static_cast<int>(GetDamage()));
 
@@ -147,11 +232,6 @@ void ComboExplodePetrify::Update() {
     }
 }
 
-
-// =============================================================================
-//  ComboExplodeTornado
-//  Explode + Tornado — rotating area, instant damage on entry, bullet capture
-// =============================================================================
 void ComboExplodeTornado::InitTornado() {
     m_TornadoRadius = effect2Strength * maxTornadoRadius;
     SetXZScale(myNode, m_TornadoRadius);
@@ -184,7 +264,7 @@ void ComboExplodeConfuse::ApplyTo(EnemyBase* enemy) {
     float confuseDur = duration * effect2Strength;
     enemy->ApplyConfuse(confuseDur, PreciseFromCount(ingredientCount));
 
-    spdlog::debug("ComboExplodeConfuse: hit enemy — dmg={:.0f}, confuseDur={:.1f}s",
+    spdlog::debug("ComboExplodeConfuse: hit enemy ï¿½ dmg={:.0f}, confuseDur={:.1f}s",
                   GetDamage(), confuseDur);
 }
 
