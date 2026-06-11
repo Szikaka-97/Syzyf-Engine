@@ -43,6 +43,7 @@ public:
     serialized AnimationData data;
 
     // Bone masking/layers
+    // TODO Serializacja
     std::unordered_set<SceneNode*> boneMask;
     int layerIndex = 0;
     float blendWeight = 1.0f;

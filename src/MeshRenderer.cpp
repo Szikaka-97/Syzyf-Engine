@@ -6,6 +6,7 @@
 #include <Scene.h>
 #include <Graphics.h>
 #include <glm/gtc/matrix_access.hpp>
+#include <tracy/Tracy.hpp>
 
 MeshRenderer::MeshRenderer():
 mesh(),

@@ -28,6 +28,8 @@
 #include "include/Framebuffer.h"
 #include "include/Shader.h"
 
+#include <tracy/Tracy.hpp>
+
 #include <utility>
 
 #define LIGHT_GRID_SIZE 16
@@ -411,7 +413,7 @@ void SceneGraphics::DrawMeshInstanced(MeshRenderer* renderer, unsigned int insta
 
         RenderNode node = RenderNode(mesh, material, renderer->GlobalTransform().Value(), bounds, renderer->GetNode()->GetLayer());
         node.jointBufferOffset = skinningOffset;
-		
+	
         if (material->GetShader()->HasPragma("transparent")) {
             EnqueueOrderedTransparent(node);
         } else if (material->GetShader()->HasPragma("oit_transparent")) {
@@ -532,6 +534,19 @@ void SceneGraphics::DrawUiText(const glm::mat4& worldMatrix, const glm::vec2& si
 }
 
 void SceneGraphics::Render() {
+    std::sort(this->opaqueRenders.begin(), this->opaqueRenders.end());
+    std::sort(this->gizmoRenders.begin(), this->gizmoRenders.end());
+    std::sort(this->oitTransparentRenders.begin(), this->oitTransparentRenders.end());
+
+    if (this->mainCamera) {
+        std::sort(this->transparentRenders.begin(), this->transparentRenders.end(), [this](const RenderNode& a, const RenderNode& b) -> bool {
+            glm::vec3 cameraPosition = this->mainCamera->GlobalTransform().Position().Value();
+            float distanceA = glm::distance(cameraPosition, a.bounds.GetCenter());
+            float distanceB = glm::distance(cameraPosition, b.bounds.GetCenter());
+            return distanceA < distanceB;
+        });
+    }
+
 	std::sort(GetAllObjects()->begin(), GetAllObjects()->end(), [](auto a, auto b) -> bool {
 		return a->GetPriority() > b->GetPriority();
 	});
@@ -588,30 +603,15 @@ void SceneGraphics::Render() {
 
 void SceneGraphics::EnqueueOpaque(const RenderNode& node) {
 	this->opaqueRenders.push_back(node);
-
-	std::sort(this->opaqueRenders.begin(), this->opaqueRenders.end());
 }
 void SceneGraphics::EnqueueGizmo(const RenderNode& node) {
 	this->gizmoRenders.push_back(node);
-
-	std::sort(this->gizmoRenders.begin(), this->gizmoRenders.end());
 }
 void SceneGraphics::EnqueueOrderedTransparent(const RenderNode& node) {
 	this->transparentRenders.push_back(node);
-
-	std::sort(this->transparentRenders.begin(), this->transparentRenders.end(), [this](const RenderNode& a, const RenderNode& b) -> bool {
-		glm::vec3 cameraPos = this->mainCamera->GlobalTransform().Position();
-
-		float distA = glm::distance(cameraPos, a.bounds.GetCenter());
-		float distB = glm::distance(cameraPos, b.bounds.GetCenter());
-
-		return distA < distB;
-	});
 }
 void SceneGraphics::EnqueueOITransparent(const RenderNode& node) {
 	this->oitTransparentRenders.push_back(node);
-
-	std::sort(this->oitTransparentRenders.begin(), this->oitTransparentRenders.end());
 }
 void SceneGraphics::EnqueueAdditive(const RenderNode& node) {
 	this->additiveRenders.push_back(node);
