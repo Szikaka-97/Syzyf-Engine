@@ -27,6 +27,7 @@
 #include <vector>
 #include <utility>
 #include <cmath>
+#include <limits>
 
 namespace Crafting{
     class CraftingDragInteractor : public GameObject{
@@ -259,7 +260,8 @@ namespace Crafting{
 
             InteractableHit hit;
 
-            if (!RaycastInteractablePhysics(rayOrigin, rayDirection, activeMask, hit)){
+            if (!RaycastInteractablePhysics(rayOrigin, rayDirection, activeMask, hit) &&
+                !RaycastUiButtonScreenFallback(station, camera, activeMask, hit)){
                 SetBlinkHighlight(station, activeMask);
                 return;
             }
@@ -300,7 +302,8 @@ namespace Crafting{
 
             InteractableHit hit;
 
-            if (!RaycastInteractablePhysics(rayOrigin, rayDirection, activeMask, hit)){
+            if (!RaycastInteractablePhysics(rayOrigin, rayDirection, activeMask, hit) &&
+                !RaycastUiButtonScreenFallback(station, camera, activeMask, hit)){
                 return;
             }
 
@@ -463,6 +466,152 @@ namespace Crafting{
             }
 
             return nullptr;
+        }
+
+
+        bool IsUiScreenFallbackType(CraftingInteractionType type) const{
+            return
+                type == CraftingInteractionType::UiBack ||
+                type == CraftingInteractionType::UiInfo ||
+                type == CraftingInteractionType::UiNext ||
+                type == CraftingInteractionType::InventoryNextPage ||
+                type == CraftingInteractionType::InventoryPreviousPage;
+        }
+
+        bool IsNodeAndParentsEnabled(SceneNode* node) const{
+            SceneNode* current = node;
+
+            while (current){
+                if (!current->IsEnabled()){
+                    return false;
+                }
+
+                current = current->GetParent();
+            }
+
+            return true;
+        }
+
+        void CollectUiButtonInteractablesRecursive(
+            SceneNode* node,
+            CraftingInteractionMask activeMask,
+            std::vector<CraftingInteractable*>& interactables
+        ){
+            if (!node || !IsNodeAndParentsEnabled(node)){
+                return;
+            }
+
+            if (auto* interactable = node->GetObject<CraftingInteractable>()){
+                if (interactable->MatchesMask(activeMask) &&
+                    IsUiScreenFallbackType(interactable->type)){
+                    interactables.push_back(interactable);
+                }
+            }
+
+            for (SceneNode* child : node->GetChildren()){
+                CollectUiButtonInteractablesRecursive(child, activeMask, interactables);
+            }
+        }
+
+        bool ProjectWorldToScreen(
+            Camera* camera,
+            const glm::vec3& worldPosition,
+            glm::vec2& outScreenPosition
+        ) const{
+            if (!camera || !GetScene() || !GetScene()->GetGraphics()){
+                return false;
+            }
+
+            glm::vec2 screenSize = GetScene()->GetGraphics()->GetScreenResolution();
+
+            if (screenSize.x <= 0.0f || screenSize.y <= 0.0f){
+                return false;
+            }
+
+            glm::vec4 clipPosition =
+                camera->ProjectionMatrix() *
+                camera->ViewMatrix() *
+                glm::vec4(worldPosition, 1.0f);
+
+            if (clipPosition.w <= 0.0001f){
+                return false;
+            }
+
+            glm::vec3 ndc = glm::vec3(clipPosition) / clipPosition.w;
+
+            if (ndc.x < -1.15f || ndc.x > 1.15f ||
+                ndc.y < -1.15f || ndc.y > 1.15f ||
+                ndc.z < -1.15f || ndc.z > 1.15f){
+                return false;
+            }
+
+            outScreenPosition.x = (ndc.x * 0.5f + 0.5f) * screenSize.x;
+            outScreenPosition.y = (1.0f - (ndc.y * 0.5f + 0.5f)) * screenSize.y;
+            return true;
+        }
+
+        bool RaycastUiButtonScreenFallback(
+            CraftingStation* station,
+            Camera* camera,
+            CraftingInteractionMask activeMask,
+            InteractableHit& outHit
+        ){
+            if (!station || !camera || !GetScene() || !GetScene()->Input()){
+                return false;
+            }
+
+            std::vector<CraftingInteractable*> interactables;
+
+            CollectUiButtonInteractablesRecursive(
+                station->GetNode(),
+                activeMask,
+                interactables
+            );
+
+            if (interactables.empty()){
+                return false;
+            }
+
+            glm::vec2 mousePosition = GetScene()->Input()->GetMousePosition();
+            CraftingInteractable* bestInteractable = nullptr;
+            glm::vec3 bestPosition = glm::vec3(0.0f);
+            float bestDistanceSq = std::numeric_limits<float>::max();
+            const float maxDistance = 80.0f;
+            const float maxDistanceSq = maxDistance * maxDistance;
+
+            for (auto* interactable : interactables){
+                if (!interactable || !interactable->GetNode()){
+                    continue;
+                }
+
+                glm::vec3 worldPosition =
+                    interactable->GetNode()->GlobalTransform().Position().Value();
+                glm::vec2 screenPosition;
+
+                if (!ProjectWorldToScreen(camera, worldPosition, screenPosition)){
+                    continue;
+                }
+
+                glm::vec2 delta = screenPosition - mousePosition;
+                float distanceSq = glm::dot(delta, delta);
+
+                if (distanceSq > maxDistanceSq || distanceSq >= bestDistanceSq){
+                    continue;
+                }
+
+                bestDistanceSq = distanceSq;
+                bestInteractable = interactable;
+                bestPosition = worldPosition;
+            }
+
+            if (!bestInteractable){
+                return false;
+            }
+
+            outHit.interactable = bestInteractable;
+            outHit.node = bestInteractable->GetNode();
+            outHit.position = bestPosition;
+            return true;
         }
 
         bool RaycastInteractablePhysics(

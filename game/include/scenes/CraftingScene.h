@@ -1008,6 +1008,28 @@ namespace CraftingScene {
 	    return valveNode;
     }
 
+    inline glm::vec3 GetUiButtonLocalHitboxHalfExtents(SceneNode* node) {
+	    glm::vec3 wantedWorldHalfExtents =
+		    glm::vec3(0.28f, 0.16f, 0.08f);
+
+	    if (!node) {
+		    return wantedWorldHalfExtents;
+	    }
+
+	    glm::vec3 globalScale =
+		    node->GlobalTransform().Scale().Value();
+
+	    globalScale.x = std::max(std::abs(globalScale.x), 0.001f);
+	    globalScale.y = std::max(std::abs(globalScale.y), 0.001f);
+	    globalScale.z = std::max(std::abs(globalScale.z), 0.001f);
+
+	    return glm::vec3(
+		    wantedWorldHalfExtents.x / globalScale.x,
+		    wantedWorldHalfExtents.y / globalScale.y,
+		    wantedWorldHalfExtents.z / globalScale.z
+	    );
+    }
+
     inline void CreateUiButtonInteractable(
 	    SceneNode* rootNode,
 	    const std::string& nodeName,
@@ -1020,29 +1042,25 @@ namespace CraftingScene {
 		    return;
 	    }
 
-	    MeshRenderer* renderer =
-		    node->GetObject<MeshRenderer>();
+	    auto* body =
+		    node->GetObject<Physics::Body>();
 
-	    if (!renderer || !renderer->GetMesh()) {
-		    return;
-	    }
-
-	    if (!node->GetObject<Physics::Body>()) {
-		    auto* body = node->AddObject<Physics::Body>(
+	    if (!body) {
+		    body = node->AddObject<Physics::Body>(
 			    JPH::BodyCreationSettings{
-				    Physics::MeshShape(renderer->GetMesh()),
+				    Physics::BoxShape(GetUiButtonLocalHitboxHalfExtents(node)),
 				    JPH::RVec3::sZero(),
 				    JPH::Quat::sIdentity(),
 				    JPH::EMotionType::Static,
 				    Physics::Layers::NON_MOVING
 			    }
 		    );
-
-		    body->SetIsSensor(true);
-		    SetInteractionBodyLayer(body);
-		    body->SetPosition(node->GlobalTransform().Position().Value());
-		    body->SetRotation(node->GlobalTransform().Rotation().Value());
 	    }
+
+	    body->SetIsSensor(true);
+	    SetInteractionBodyLayer(body);
+	    body->SetPosition(node->GlobalTransform().Position().Value());
+	    body->SetRotation(node->GlobalTransform().Rotation().Value());
 
 	    auto* interactable =
 		    node->GetObject<Crafting::CraftingInteractable>();
