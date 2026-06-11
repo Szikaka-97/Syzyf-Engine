@@ -13,6 +13,8 @@
 #include <game_scripts/AimCrosshair.h>
 #include <game_scripts/PlayerController.h>
 
+#include "game_scripts/enemies/FlockingSystem.h"
+#include "game_scripts/enemies/MeleeSkeleton.h"
 #include <Bloom.h>
 #include <Camera.h>
 #include <ColorGrading.h>
@@ -56,16 +58,12 @@
 #include <text/Font.h>
 #include <ui/objects/UiCursor.h>
 #include <ui/objects/UiInteractable.h>
-#include <ui/widgets/wheel/UiRadialWheel.h>
 #include <ui/objects/UiLayout.h>
 #include <ui/objects/UiScrollableGrid.h>
 #include <ui/objects/UiText.h>
 #include <ui/objects/UiVisual.h>
 #include <ui/systems/UiSystem.h>
-#include <Formatters.h>
-#include <game_scripts/ThrowableObjectPool.h>
-#include "game_scripts/enemies/MeleeSkeleton.h"
-#include "game_scripts/enemies/FlockingSystem.h"
+#include <ui/widgets/wheel/UiRadialWheel.h>
 
 #include "Jolt/Math/Vec3.h"
 #include "text/Text3D.h"
@@ -160,7 +158,6 @@ inline void InitScene(Scene& mainScene) {
     room2Surface->GetObject<Surface>()->SetID(1);
     room2Body->SetCollisionLayerAndMask({0}, 0xFFFFFFFF);
 
-
 #pragma endregion
 #pragma region Player
 
@@ -229,7 +226,7 @@ inline void InitScene(Scene& mainScene) {
 #pragma endregion
 #pragma region Enemy
 
-        auto* flockingSystem = mainScene.AddComponent<FlockingSystem>();
+    auto* flockingSystem = mainScene.AddComponent<FlockingSystem>();
     flockingSystem->separationRadius = 2.5f;
     flockingSystem->separationWeight = 1.8f;
     flockingSystem->alignmentRadius = 5.0f;
@@ -271,7 +268,7 @@ inline void InitScene(Scene& mainScene) {
         // enemyAi->SetProjectileResources(cubeMesh, enemyMat);
         // enemyAi->SetAttackCooldown(1.2f);
         // enemyAi->SetRoomID(
-        //     room1->GetID()); 
+        //     room1->GetID());
         // enemyAi->SetCapsuleVisualOffset(0.5f, 1.0f);
         // enemyAi->OnPlayerEnteredRoom();
         // SceneNode* enemyModel =
@@ -283,8 +280,8 @@ inline void InitScene(Scene& mainScene) {
         // enemyModel->SetParent(enemyNode);
         // enemyModel->LocalTransform().Position() = glm::zero<glm::vec3>();
 
-        /*auto* animComp = enemyModel->GetObjectInChildren<AnimationComponent>();
-        if (animComp) {
+        /*auto* animComp =
+        enemyModel->GetObjectInChildren<AnimationComponent>(); if (animComp) {
             spdlog::info("Found AnimationComponent in enemy model {} , "
                          "animations count: {}",
                          i, animComp->animations.size());
@@ -382,5 +379,35 @@ inline void InitScene(Scene& mainScene) {
     SceneNode* sprayNode = mainScene.CreateNode("Fire");
     sprayNode->GlobalTransform().Position() = {0.0f, 0.0f, 0.0f};
     sprayNode->AddObject<FireParticles>();
+
+    // Szkielet blendowanie
+    SceneNode* skeletonNode =
+        ResourceDatabase::Global
+            ->Get<GltfScene>("./res/models/enemies/szkielet4.glb")
+            ->Instantiate(&mainScene, mainScene.root, "SkeletonNode");
+
+    auto* animComp = skeletonNode->GetObjectInChildren<AnimationComponent>();
+    if (animComp) {
+        animComp->SetAnimationLayer("walk.001", 0);
+        animComp->SetAnimationLayer("attack.001", 1);
+
+        SceneNode* spineNode = skeletonNode->FindNode("rig_deform/DEF-spine");
+        if (spineNode) {
+            animComp->SetAnimationMask("attack.001", spineNode);
+        }
+
+        animComp->Play("walk.001");
+        animComp->Play("attack.001");
+
+        for (auto& anim : animComp->animations) {
+            if (anim.data.name == "walk.001" ||
+                anim.data.name == "attack.001") {
+                anim.looping = true;
+            }
+            if (anim.data.name == "attack.001") {
+                anim.blendWeight = 1.0f;
+            }
+        }
+    }
 }
 } // namespace TestScene
