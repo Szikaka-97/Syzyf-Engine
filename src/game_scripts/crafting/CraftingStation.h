@@ -599,8 +599,9 @@ namespace Crafting{
                         valveHitboxNode->IsEnabled();
                 }
 
-                void OnLidClicked(){
-                    if (!CanConfirmIngredientStageByLidClick()){
+                void ConfirmIngredientStage(){
+                    if (!cauldron || !cauldron->CanConfirm()){
+                        spdlog::info("Crafting UI Next: add at least one main ingredient before brewing.");
                         return;
                     }
 
@@ -611,6 +612,14 @@ namespace Crafting{
                     StartHeatingStage();
 
                     FocusCameraOnHeatingStage();
+                }
+
+                void OnLidClicked(){
+                    if (!CanConfirmIngredientStageByLidClick()){
+                        return;
+                    }
+
+                    ConfirmIngredientStage();
                 }
 
                 void OnBlowerClicked(){
@@ -668,7 +677,13 @@ namespace Crafting{
                     }
 
                     if (currentStage == CraftingStage::Ingredients){
-                        OnLidClicked();
+                        ConfirmIngredientStage();
+                        return;
+                    }
+
+                    if (currentStage == CraftingStage::Heating){
+                        FinishHeatingStage();
+                        StartBottlingStage();
                         return;
                     }
 
