@@ -10,15 +10,7 @@ layout (IN_NORMAL) in vec3 vNormal;
 layout (IN_TANGENT) in vec3 vTangent;
 layout (IN_UV1) in vec2 vUVCoords;
 
-struct ParticleData {
-    vec4 position; // w is size
-    vec4 velocity;
-    vec4 lifetime;
-};
-
-layout(std430, binding = 3) buffer ParticleBuffer {
-    ParticleData particles[];
-};
+#include "particles/shared/buffer.glsl"
 
 out VS_OUT {
 	vec3 worldPos;
@@ -32,7 +24,6 @@ out VS_OUT {
 } vs_out;
 
 uniform vec3 areaCenter;
-
 // change later
 uniform uint billboardMode;
 
@@ -42,7 +33,6 @@ uniform uint useScaleCurve;
 uniform uint distanceFadeMode;
 uniform float distanceFadeMin;
 uniform float distanceFadeMax;
-
 uniform uint lifetimeFadeMode;
 uniform vec2 lifetimeFadeIn;
 uniform vec2 lifetimeFadeOut;
@@ -82,6 +72,7 @@ void main() {
     vs_out.lifetime = clamp(lifetime.x / lifetime.y, 0.0, 1.0);
 
     float size = particle.w;
+
     if (useScaleCurve > 0) {
         float scaleMultiplier = texture(scaleCurveTex, vec2(vs_out.lifetime, 0.5)).r;
         size *= scaleMultiplier;
@@ -113,7 +104,6 @@ void main() {
             + worldCameraRight * rotatedPosition.x * size
             + worldCameraUp * rotatedPosition.y * size
             + worldCameraForward * rotatedPosition.z * size;
-
         vs_out.normal = cross(worldCameraRight, worldCameraUp);
     } else {
 	    vs_out.worldPos = (mat3(Object_ModelMatrix) * rotatedPosition * size) + particlePosition;
@@ -130,7 +120,6 @@ void main() {
     // Distance fade
 
     vs_out.alpha = 1.0;
-
     if (distanceFadeMode > 0) {
         float distanceToCenter = length(particlePosition - areaCenter);
         vs_out.alpha *= 1.0 - smoothstep(distanceFadeMin, distanceFadeMax, distanceToCenter);
