@@ -13,11 +13,24 @@
 #include "../res/shaders/shared/shared.h"
 #include "../res/shaders/shared/uniforms.h"
 
-constexpr int MAX_NUM_LIGHTS = 128;
+constexpr int MAX_NUM_LIGHTS = 16384;
+constexpr int LIGHTS_PER_CLUSTER = 256;
+
+struct alignas(16) Cluster {
+	glm::vec4 minPoint;
+	glm::vec4 maxPoint;
+};
+
 
 LightSystem::LightSystem(Scene* scene):
 GameObjectSystem<Light>(scene),
 lightsBuffer(0),
+shadowmapsBuffer(0),
+clustersBuffer(0),
+lightIndexList(0),
+lightIndexCounter(0),
+lightGrid(0),
+lightGridSize(16, 8, 20),
 shadowmapAtlasSize(4096),
 directionalLightCascadeCount(6),
 ambientLight(1.0f, 1.0f, 1.0f, 0.001f) {
@@ -30,6 +43,8 @@ ambientLight(1.0f, 1.0f, 1.0f, 0.001f) {
 	glGenBuffers(1, &this->shadowmapsBuffer);
 
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+	RebuildLightGridBuffers();
 }
 
 void LightSystem::ChangeShadowAtlasResolution(int newResolution) {
@@ -45,6 +60,18 @@ GLuint LightSystem::GetShadowmapsBufferHandle() {
 
 Framebuffer* LightSystem::GetShadowAtlasFramebuffer() {
     return this->shadowAtlasFramebuffer;
+}
+
+GLuint LightSystem::GetLightGridHandle() {
+	return this->lightGrid;
+}
+
+GLuint LightSystem::GetLightIndexListHandle() {
+	return this->lightIndexList;
+}
+
+glm::vec3 LightSystem::GetLightGridSize() const {
+	return this->lightGridSize;
 }
 
 glm::vec4 LightSystem::GetAmbientLight() const {
@@ -245,7 +272,110 @@ void LightSystem::DoPointLightShadowmap(Light* light, ShadowMapRegion* shadowmap
 	}
 }
 
-void LightSystem::OnPostRender() {
+void LightSystem::RebuildLightGridBuffers() {
+	if (!this->clustersBuffer) {
+		glCreateBuffers(1, &this->clustersBuffer);
+	}
+
+	unsigned int totalLightGridSize = lightGridSize.x * lightGridSize.y * lightGridSize.z;
+
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->clustersBuffer);
+
+	glBufferData(GL_SHADER_STORAGE_BUFFER,  totalLightGridSize * sizeof(Cluster), nullptr, GL_DYNAMIC_DRAW);	
+
+	if (!this->lightIndexList) {
+		glCreateBuffers(1, &this->lightIndexList);
+	}
+
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->lightIndexList);
+
+	glBufferData(GL_SHADER_STORAGE_BUFFER, totalLightGridSize * LIGHTS_PER_CLUSTER * sizeof(unsigned int) + sizeof(glm::vec4), nullptr, GL_DYNAMIC_DRAW);
+
+	glm::uvec4 gridSize = glm::uvec4(this->lightGridSize, 0);
+
+	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(glm::uvec4), &gridSize);
+
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+	
+	if (!this->lightIndexCounter) {
+		glCreateBuffers(1, &this->lightIndexCounter);
+	}
+
+	if (!this->lightGrid) {
+		glCreateBuffers(1, &this->lightGrid);
+	}
+
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->lightGrid);
+
+	glBufferData(GL_SHADER_STORAGE_BUFFER, totalLightGridSize * sizeof(glm::uvec2), nullptr, GL_DYNAMIC_DRAW);
+
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+}
+void LightSystem::CalculateLightClusters() {
+	static ComputeShaderProgram* clusterCalculationProg = new ComputeShaderProgram("./res/shaders/forwardplus/computeClusters.comp");
+	
+	const Camera* cam = GetScene()->GetGraphics()->GetMainCamera();
+
+	if (!this->clustersBuffer) {
+		glCreateBuffers(1, &this->clustersBuffer);
+	}
+
+	glUseProgram(clusterCalculationProg->GetHandle());
+	
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, this->clustersBuffer);
+
+	glUniform1f(glGetUniformLocation(clusterCalculationProg->GetHandle(), "zNear"), cam->GetNearPlane());
+	glUniform1f(glGetUniformLocation(clusterCalculationProg->GetHandle(), "zFar"), cam->GetFarPlane());
+
+	glm::mat4 invProj = glm::inverse(cam->ProjectionMatrix());
+
+	glUniformMatrix4fv(glGetUniformLocation(clusterCalculationProg->GetHandle(), "inverseProjection"), 1, false, &invProj[0][0]);
+	glUniform2ui(glGetUniformLocation(clusterCalculationProg->GetHandle(), "screenDimensions"), GetScene()->GetGraphics()->GetScreenResolution().x, GetScene()->GetGraphics()->GetScreenResolution().y);
+
+	glDispatchCompute(this->lightGridSize.x, this->lightGridSize.y, this->lightGridSize.z);
+
+	glMemoryBarrier(GL_ALL_BARRIER_BITS);
+}
+void LightSystem::CullLights() {
+	static ComputeShaderProgram* lightCullingProg = new ComputeShaderProgram("./res/shaders/forwardplus/cullLights.comp");
+
+	const Camera* cam = GetScene()->GetGraphics()->GetMainCamera();
+
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->lightIndexCounter);
+
+	unsigned int zero = 0;
+
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(unsigned int), &zero, GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+	glUseProgram(lightCullingProg->GetHandle());
+
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, this->clustersBuffer);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, GetLightsBufferHandle());
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, this->lightIndexList);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, this->lightIndexCounter);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, this->lightGrid);
+
+	glm::mat4 viewMatrix = cam->ViewMatrix();
+
+	glUniformMatrix4fv(glGetUniformLocation(lightCullingProg->GetHandle(), "viewMatrix"), 1, false, &viewMatrix[0][0]);
+
+	glDispatchCompute(this->lightGridSize.x, this->lightGridSize.y, this->lightGridSize.z);
+
+	glMemoryBarrier(GL_ALL_BARRIER_BITS);
+
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, 0);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, 0);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, 0);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, 0);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, 0);
+}
+
+void LightSystem::OnPostRender() {	
+	CalculateLightClusters();
+
+	CullLights();
+
 	glBindFramebuffer(GL_FRAMEBUFFER, this->shadowAtlasFramebuffer->GetHandle());
 	glClear(GL_DEPTH_BUFFER_BIT);
 
@@ -395,6 +525,9 @@ void LightSystem::OnPostRender() {
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, this->lightIndexList);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, this->lightGrid);
 }
 
 int LightSystem::Order() {
@@ -418,6 +551,22 @@ void LightSystem::DrawImGui() {
 		if (ImGui::IsItemDeactivatedAfterEdit() && ImGui::IsKeyPressed(ImGuiKey_Enter)) {
 			if (newShadowmapResolution != this->shadowmapAtlasSize) {
 				ChangeShadowAtlasResolution(newShadowmapResolution);
+			}
+		}
+
+		ImGui::Separator();
+
+		glm::ivec3 newLightGridSize = this->lightGridSize;
+
+		ImGui::InputInt3("Light Grid Dimentions", &newLightGridSize[0]);
+
+		newLightGridSize = glm::clamp(newLightGridSize, 0, 64);
+
+		if (ImGui::IsItemDeactivatedAfterEdit() && ImGui::IsKeyPressed(ImGuiKey_Enter)) {
+			if (this->lightGridSize != glm::uvec3(newLightGridSize)) {
+				this->lightGridSize = newLightGridSize;
+	
+				RebuildLightGridBuffers();
 			}
 		}
 

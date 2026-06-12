@@ -45,6 +45,8 @@ public:
 	GLuint GetLightGridHandle();
 	GLuint GetLightIndexListHandle();
 
+	glm::vec3 GetLightGridSize() const;
+
     glm::vec4 GetAmbientLight() const;
     void SetAmbientLight(glm::vec4 ambientLight);
 
