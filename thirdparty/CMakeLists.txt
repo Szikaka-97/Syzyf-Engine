@@ -39,7 +39,6 @@ target_include_directories(dr_libs PRIVATE ${DR_LIBS_DIR}/include)
 
 # other
 CPMAddPackage("gh:assimp/assimp@6.0.4")
-CPMAddPackage("gh:glfw/glfw#3.4")
 CPMAddPackage("gh:g-truc/glm#1.0.3")
 CPMAddPackage("gh:ocornut/imgui#v1.92.5-docking")
 CPMAddPackage("gh:gabime/spdlog@1.17.0")
@@ -113,14 +112,14 @@ add_library(imgui STATIC ${imgui_SOURCE_DIR}/imgui.cpp
 set_target_properties(glad
                       stb_image
                       stb_include
-                      assimp 
-                      glfw 
-                      glm 
-                      imgui 
-                      spdlog 
+                      assimp
+                      glm
+                      imgui
+                      spdlog
                       mikktspace
                       OpenAL
                       dr_libs
+                      SDL3-static
                       nlohmann_json PROPERTIES FOLDER "thirdparty")
 
 if (TARGET zlibstatic)
