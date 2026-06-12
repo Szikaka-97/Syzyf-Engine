@@ -5,6 +5,7 @@
   float ao = 1.0f;
   vec2 screenUV = gl_FragCoord.xy / Global_Resolution.xy; 
   float ssao = texture(Builtin_AOMap, screenUV).r;
+  vec3 ssgi = texture(Builtin_SSGIMap, screenUV).rgb;
 
   if (useOcclusion) {
     ao = arm.r;
@@ -38,7 +39,11 @@
     vec2 brdf = texture(Builtin_BRDFConvolutionMap, vec2(max(dot(N, V), 0.0), mat.roughness)).rg;
 	
     vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);
-	vec3 ambient = (kD * diffuse + specular) * ao + mat.albedo * (Light_AmbientLight.xyz * Light_AmbientLight.w);
+
+    vec3 bounceLight = ssgi * mat.albedo * kD;
+    vec3 ambient = (kD * diffuse + specular + bounceLight) * ao;
+    ambient += mat.albedo * (Light_AmbientLight.xyz * Light_AmbientLight.w);
+
 	vec3 emissive = texture(emissiveMap, texCoords).xyz * emissiveFactor * emissiveStrength;
 
   fragColor.xyz += ambient + emissive;

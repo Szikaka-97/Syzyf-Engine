@@ -41,14 +41,13 @@ class SceneGraphics : public GameObjectSystem<Camera> {
 public:
     struct SSAOSettings {
         bool enabled = true;
-        // max kernel size is hardcoded to 64
-        int kernelSize = 32;
-        float radius = 1.5f;
-        float bias = 0.025f;
-        float power = 4.0f;
-        int blurRange = 2;
-        // Should be private but i dnt care
-        float resolutionScale = 1.0f;
+        int raySteps = 64;
+        float bias = 0.08f;
+        float radius = 1.4f;
+        float power = 2.3f;
+        int blurRange = 4;
+        float ssgiIntensity = 1.7f;
+        float resolutionScale = 0.5f;
     };
 
     SSAOSettings ssaoSettings;
@@ -154,7 +153,6 @@ private:
 	ShaderGlobalUniforms currentUniforms;
     Shaders shaders;
 
-    std::vector<glm::vec3> ssaoKernel;
     std::unique_ptr<Texture2D> ssaoNoiseTexture;
 
     float volumetricPassResolutionScale = 1.0f;

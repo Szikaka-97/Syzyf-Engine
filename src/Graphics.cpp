@@ -138,11 +138,20 @@ currentUniforms() {
         .colorSpace = TextureColor::Linear,
         .format = TextureFormat::Ubyte
     };
+    TextureParams ssgiParams = {
+        .channels = TextureChannels::RGB,
+        .colorSpace = TextureColor::Linear,
+        .format = TextureFormat::Float32
+    };
+
     this->ssaoFramebuffer = new Framebuffer(Framebuffer::Attachment::None, 0, 0);
     this->ssaoFramebuffer->CreateCustomAttachment(0, ssaoParams);
+    this->ssaoFramebuffer->CreateCustomAttachment(1, ssgiParams);
+
     this->ssaoBlurFramebuffer = new Framebuffer(Framebuffer::Attachment::None, 0, 0);
     this->ssaoBlurFramebuffer->CreateCustomAttachment(0, ssaoParams);
-	
+    this->ssaoBlurFramebuffer->CreateCustomAttachment(1, ssgiParams);
+
 	this->opaquePassFramebuffer->CreateColorAttachment(true, false);
 	this->opaquePassFramebuffer->CreateDepthAttachment(false, false);
 
@@ -767,6 +776,7 @@ void SceneGraphics::RenderSSAO(const RenderParams& params, Framebuffer* target) 
     glUniform1i(glGetUniformLocation(shaderHandle, "depthTex"), 0);
     glUniform1i(glGetUniformLocation(shaderHandle, "normalTex"), 1);
     glUniform1i(glGetUniformLocation(shaderHandle, "noiseTex"), 2);
+    glUniform1i(glGetUniformLocation(shaderHandle, "colorTex"), 3);
 
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, this->GetMainFramebuffer()->GetDepthTexture()->GetHandle());
@@ -774,17 +784,17 @@ void SceneGraphics::RenderSSAO(const RenderParams& params, Framebuffer* target) 
 	glBindTexture(GL_TEXTURE_2D, this->GetMainFramebuffer()->GetCustomAttachmentTexture(0)->GetHandle());
 	glActiveTexture(GL_TEXTURE2);
 	glBindTexture(GL_TEXTURE_2D, this->ssaoNoiseTexture->GetHandle());
-
-    int kernelLocation = glGetUniformLocation(shaderHandle, "samples");
-    glUniform3fv(kernelLocation, 64, &this->ssaoKernel[0][0]);
+    glActiveTexture(GL_TEXTURE3);
+    glBindTexture(GL_TEXTURE_2D, this->opaquePassFramebuffer->GetColorTexture()->GetHandle());
 
     glm::vec2 resolution = target->GetSize();
     glUniform2fv(glGetUniformLocation(shaderHandle, "resolution"), 1, &resolution[0]);
 
-    glUniform1i(glGetUniformLocation(shaderHandle, "kernelSize"), this->ssaoSettings.kernelSize);
-    glUniform1f(glGetUniformLocation(shaderHandle, "radius"), this->ssaoSettings.radius);
+    glUniform1i(glGetUniformLocation(shaderHandle, "raySteps"), this->ssaoSettings.raySteps);
     glUniform1f(glGetUniformLocation(shaderHandle, "bias"), this->ssaoSettings.bias);
+    glUniform1f(glGetUniformLocation(shaderHandle, "radius"), this->ssaoSettings.radius);
     glUniform1f(glGetUniformLocation(shaderHandle, "power"), this->ssaoSettings.power);
+    glUniform1f(glGetUniformLocation(shaderHandle, "ssgiIntensity"), this->ssaoSettings.ssgiIntensity);
 
     glDrawElements(GL_TRIANGLES, quadMesh->SubMeshAt(0).GetVertexCount(), GL_UNSIGNED_INT, nullptr);
 
@@ -805,8 +815,19 @@ void SceneGraphics::RenderSSAOBlur(const RenderParams& params, Framebuffer* targ
 
     glUniform1i(glGetUniformLocation(this->shaders.ssaoBlurShader->GetHandle(), "ssaoTex"), 0);
     glActiveTexture(GL_TEXTURE0);
-
     glBindTexture(GL_TEXTURE_2D, this->ssaoFramebuffer->GetCustomAttachmentTexture(0)->GetHandle());
+
+    glUniform1i(glGetUniformLocation(this->shaders.ssaoBlurShader->GetHandle(), "ssgiTex"), 1);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, this->ssaoFramebuffer->GetCustomAttachmentTexture(1)->GetHandle());
+
+    glUniform1i(glGetUniformLocation(this->shaders.ssaoBlurShader->GetHandle(), "depthTex"), 2);
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, this->GetMainFramebuffer()->GetDepthTexture()->GetHandle());
+
+    glUniform1i(glGetUniformLocation(this->shaders.ssaoBlurShader->GetHandle(), "normalTex"), 3);
+    glActiveTexture(GL_TEXTURE3);
+    glBindTexture(GL_TEXTURE_2D, this->opaquePassFramebuffer->GetCustomAttachmentTexture(0)->GetHandle());
 
     glUniform1i(glGetUniformLocation(this->shaders.ssaoBlurShader->GetHandle(), "blurRange"), this->ssaoSettings.blurRange);
     
@@ -1234,6 +1255,19 @@ void SceneGraphics::RenderOpaque(const ShaderGlobalUniforms& uniforms, const Ren
                 glBindTexture(GL_TEXTURE_2D, fallbackTexture->GetHandle());
             }
             glUniform1i(aoMapUniformLocation, 27);
+        }
+
+        int ssgiMapUniformLocation = glGetUniformLocation(currentProg->GetHandle(), "Builtin_SSGIMap");
+        if (ssgiMapUniformLocation >= 0) {
+            glActiveTexture(GL_TEXTURE26);
+
+            if (this->ssaoSettings.enabled) {
+                glBindTexture(GL_TEXTURE_2D, this->ssaoBlurFramebuffer->GetCustomAttachmentTexture(1)->GetHandle());
+            } else {
+                static Texture2D* fallbackTexture = this->GetScene()->Resources()->Get<Texture2D>("./res/textures/default_gi.png", Texture::ColorTextureRGB);
+                glBindTexture(GL_TEXTURE_2D, fallbackTexture->GetHandle());
+            }
+            glUniform1i(ssgiMapUniformLocation, 26);
         }
 
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, render.instanceSSBO);
@@ -2048,6 +2082,13 @@ void SceneGraphics::RenderCamera(Camera* camera, Viewport* renderTarget, const R
 		RenderMask(activeParams, this->maskFramebuffer);
 	}
 
+	if ((params.pass & RenderPassType::Color) == RenderPassType::Color) {
+        activeParams.clearDepth = false;
+		activeParams.pass = RenderPassType(RenderPassType::Color);
+	
+		RenderOpaque(activeParams, renderTarget->GetFramebuffer());
+	}
+
     if ((params.pass & RenderPassType::SSAO) == RenderPassType::SSAO) {
         activeParams.clearDepth = false;
         activeParams.pass = RenderPassType::SSAO;
@@ -2056,13 +2097,6 @@ void SceneGraphics::RenderCamera(Camera* camera, Viewport* renderTarget, const R
 
         RenderSSAOBlur(activeParams, this->ssaoBlurFramebuffer);
     }
-
-	if ((params.pass & RenderPassType::Color) == RenderPassType::Color) {
-        activeParams.clearDepth = false;
-		activeParams.pass = RenderPassType(RenderPassType::Color);
-	
-		RenderOpaque(activeParams, renderTarget->GetFramebuffer());
-	}
 
 	if (camera == this->mainCamera && (params.pass & RenderPassType::Volumetric) == RenderPassType::Volumetric) {
 		activeParams.pass = RenderPassType(RenderPassType::Volumetric);
@@ -2120,11 +2154,12 @@ void SceneGraphics::DrawImGui() {
             ImGui::Checkbox("Enable SSAO", &this->ssaoSettings.enabled);
 
             ImGui::BeginDisabled(!this->ssaoSettings.enabled);
-            ImGui::SliderInt("Kernel Size", &this->ssaoSettings.kernelSize, 8, 64);
+            ImGui::SliderInt("Ray Steps", &this->ssaoSettings.raySteps, 8, 256);
             ImGui::SliderFloat("Radius", &this->ssaoSettings.radius, 0.1f, 5.0f);
-            ImGui::SliderFloat("Bias", &this->ssaoSettings.bias, 0.001f, 0.1f, "%.4f");
+            ImGui::SliderFloat("Bias", &this->ssaoSettings.bias, 0.0f, 0.5f);
             ImGui::SliderFloat("Power", &this->ssaoSettings.power, 0.1f, 5.0f);
             ImGui::SliderInt("Blur Range", &this->ssaoSettings.blurRange, 1, 4);
+            ImGui::SliderFloat("SSGI Intensity", &this->ssaoSettings.ssgiIntensity, 0.0f, 10.0f);
 
             // Scale 
             const char* scaleNames[] = { "100%", "75%", "50%", "25%" };
@@ -2181,24 +2216,8 @@ int SceneGraphics::Order() {
 
 // Based on learnopengl.com
 void SceneGraphics::GenerateSSAOKernelAndTexture() {
-    // Kernel
     std::uniform_real_distribution<float> randomFloats(0.0, 1.0); // random floats between [0.0, 1.0]
     std::default_random_engine generator;
-    for (unsigned int i = 0; i < 64; ++i)
-    {
-        glm::vec3 sample(
-            randomFloats(generator) * 2.0 - 1.0, 
-            randomFloats(generator) * 2.0 - 1.0, 
-            randomFloats(generator)
-        );
-        sample  = glm::normalize(sample);
-        sample *= randomFloats(generator);
-        float scale = float(i) / 64.0f;
-
-        scale = std::lerp(0.1f, 1.0f, scale * scale);
-        sample *= scale;
-        this->ssaoKernel.push_back(sample);
-    }
 
     // Texture
     std::vector<glm::vec3> ssaoNoise;
