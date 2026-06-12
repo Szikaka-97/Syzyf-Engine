@@ -33,7 +33,9 @@ struct Context {
     SDL_GLContext glContext = nullptr;
 
     ImFont* consoleFont = nullptr;
-    CommandHistory commandHistory;
+
+    std::unordered_map<Scene*, std::unique_ptr<CommandHistory>>
+        commandHistories;
 
     std::vector<Scene*> loadedScenes;
     Scene* selectedScene = nullptr;
@@ -66,6 +68,13 @@ struct Context {
             task();
         }
     }
+
+    CommandHistory& GetCommandHistory(Scene* scene) {
+        if (commandHistories.find(scene) == commandHistories.end()) {
+            commandHistories[scene] = std::make_unique<CommandHistory>();
+        }
+        return *commandHistories[scene];
+    }
 };
 
 class EditorApplication : public ::Application {
@@ -85,14 +94,16 @@ class EditorApplication : public ::Application {
     StatusBar statusBar;
 
     static EditorApplication* instance;
+
   public:
     EditorApplication() : ::Application("Syzyf Editor", 1280, 720) {
-      instance = this;
+        instance = this;
     }
 
     static EditorApplication* ApplicationInstance();
 
     inline Context& GetContext() { return this->context; }
+
   protected:
     void OnInit(int argc = 0, char* argv[] = nullptr) override;
     void OnUpdate() override;

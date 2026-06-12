@@ -252,6 +252,8 @@ void SceneViewPanel::Draw(Context& context) {
                 for (Scene* sceneToClose : scenesToClose) {
                     std::erase(context.loadedScenes, sceneToClose);
 
+                    context.commandHistories.erase(sceneToClose);
+
                     if (context.selectedScene == sceneToClose) {
                         context.selectedScene = nullptr;
                         context.selectedNode = nullptr;
@@ -416,8 +418,8 @@ void SceneViewPanel::Draw(Context& context) {
             } else if (this->wasViewGuizmoUsed) {
                 this->wasViewGuizmoUsed = false;
 
-                context.commandHistory.ExecuteCommand(
-                    std::make_unique<TransformCommand>(
+                context.GetCommandHistory(context.selectedScene)
+                    .ExecuteCommand(std::make_unique<TransformCommand>(
                         context.selectedNode, this->initialLocalTransform,
                         context.selectedNode->LocalTransform().Value()));
             }
@@ -896,23 +898,35 @@ void SceneViewPanel::DrawMenuBar(Context& context) {
     }
 
     ImGui::SameLine();
-    if (context.commandHistory.CanUndo()) {
-        if (ImGui::Button("<")) {
-            context.commandHistory.Undo();
+
+    if (context.selectedScene) {
+        CommandHistory& commandHistory =
+            context.GetCommandHistory(context.selectedScene);
+
+        if (commandHistory.CanUndo()) {
+            if (ImGui::Button("<")) {
+                commandHistory.Undo();
+            }
+        } else {
+            ImGui::BeginDisabled();
+            ImGui::Button("<");
+            ImGui::EndDisabled();
+        }
+
+        ImGui::SameLine();
+        if (commandHistory.CanRedo()) {
+            if (ImGui::Button(">")) {
+                commandHistory.Redo();
+            }
+        } else {
+            ImGui::BeginDisabled();
+            ImGui::Button(">");
+            ImGui::EndDisabled();
         }
     } else {
         ImGui::BeginDisabled();
         ImGui::Button("<");
-        ImGui::EndDisabled();
-    }
-
-    ImGui::SameLine();
-    if (context.commandHistory.CanRedo()) {
-        if (ImGui::Button(">")) {
-            context.commandHistory.Redo();
-        }
-    } else {
-        ImGui::BeginDisabled();
+        ImGui::SameLine();
         ImGui::Button(">");
         ImGui::EndDisabled();
     }

@@ -3,7 +3,6 @@
 #include "ComponentRegistry.h"
 #include "MousePickingBodySystem.h"
 #include "SceneRegistry.h"
-#include "TestScene.h"
 #include "Themes.h"
 
 #include "thirdparty/ImGuizmo.h"
@@ -129,13 +128,18 @@ void EditorApplication::OnShutdown() {
 }
 
 void EditorApplication::Input() {
-    if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Z,
-                        ImGuiInputFlags_RouteGlobal)) {
-        this->context.commandHistory.Undo();
-    }
-    if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_Z,
-                        ImGuiInputFlags_RouteGlobal)) {
-        this->context.commandHistory.Redo();
+    if (context.selectedScene) {
+        CommandHistory& commandHistory =
+            context.GetCommandHistory(context.selectedScene);
+
+        if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Z,
+                            ImGuiInputFlags_RouteGlobal)) {
+            commandHistory.Undo();
+        }
+        if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_Z,
+                            ImGuiInputFlags_RouteGlobal)) {
+            commandHistory.Redo();
+        }
     }
 }
 
@@ -199,8 +203,6 @@ void EditorApplication::ExecutePendingSceneChange() {
     this->pendingSceneInitFunc = nullptr;
 }
 
-EditorApplication* EditorApplication::ApplicationInstance() {
-    return instance;
-}
+EditorApplication* EditorApplication::ApplicationInstance() { return instance; }
 
 } // namespace Editor

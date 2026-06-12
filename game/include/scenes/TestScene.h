@@ -371,7 +371,8 @@ inline void InitScene(Scene& mainScene) {
         animComp->SetAnimationLayer("walk.001", 0);
         animComp->SetAnimationLayer("attack.001", 1);
 
-        SceneNode* spineNode = skeletonNode->FindNode("rig_deform/DEF-spine");
+        SceneNode* spineNode =
+            skeletonNode->FindNode("rig_deform/DEF-upper_arm.L");
         if (spineNode) {
             animComp->SetAnimationMask("attack.001", spineNode);
         }

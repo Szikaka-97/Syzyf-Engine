@@ -77,8 +77,8 @@ void InspectorPanel::Draw(Context& context) {
                 context.selectedNode->GlobalTransform().Position() = position;
             }
             if (ImGui::IsItemDeactivatedAfterEdit()) {
-                context.commandHistory.ExecuteCommand(
-                    std::make_unique<TranslateCommand>(
+                context.GetCommandHistory(context.selectedScene)
+                    .ExecuteCommand(std::make_unique<TranslateCommand>(
                         context.selectedNode, this->initialPosition, position));
             }
 
@@ -93,8 +93,8 @@ void InspectorPanel::Draw(Context& context) {
                 context.selectedNode->GlobalTransform().Position() = position;
             }
             if (ImGui::IsItemDeactivatedAfterEdit()) {
-                context.commandHistory.ExecuteCommand(
-                    std::make_unique<TranslateCommand>(
+                context.GetCommandHistory(context.selectedScene)
+                    .ExecuteCommand(std::make_unique<TranslateCommand>(
                         context.selectedNode, this->initialPosition,
                         context.selectedNode->GlobalTransform().Position()));
             }
@@ -114,8 +114,8 @@ void InspectorPanel::Draw(Context& context) {
                     glm::quat(glm::radians(rotationEuler));
             }
             if (ImGui::IsItemDeactivatedAfterEdit()) {
-                context.commandHistory.ExecuteCommand(
-                    std::make_unique<RotateCommand>(
+                context.GetCommandHistory(context.selectedScene)
+                    .ExecuteCommand(std::make_unique<RotateCommand>(
                         context.selectedNode, initialRotation,
                         context.selectedNode->GlobalTransform()
                             .Rotation()
@@ -138,8 +138,8 @@ void InspectorPanel::Draw(Context& context) {
                                    glm::vec3(0, 0, 1));
             }
             if (ImGui::IsItemDeactivatedAfterEdit()) {
-                context.commandHistory.ExecuteCommand(
-                    std::make_unique<RotateCommand>(
+                context.GetCommandHistory(context.selectedScene)
+                    .ExecuteCommand(std::make_unique<RotateCommand>(
                         context.selectedNode, this->initialRotation,
                         context.selectedNode->GlobalTransform()
                             .Rotation()
@@ -158,8 +158,8 @@ void InspectorPanel::Draw(Context& context) {
                 context.selectedNode->GlobalTransform().Scale() = scale;
             }
             if (ImGui::IsItemDeactivatedAfterEdit()) {
-                context.commandHistory.ExecuteCommand(
-                    std::make_unique<ScaleCommand>(
+                context.GetCommandHistory(context.selectedScene)
+                    .ExecuteCommand(std::make_unique<ScaleCommand>(
                         context.selectedNode, this->initialScale,
                         context.selectedNode->GlobalTransform()
                             .Scale()
@@ -188,8 +188,8 @@ void InspectorPanel::Draw(Context& context) {
                 context.selectedNode->GlobalTransform().Scale() = scale;
             }
             if (ImGui::IsItemDeactivatedAfterEdit()) {
-                context.commandHistory.ExecuteCommand(
-                    std::make_unique<ScaleCommand>(
+                context.GetCommandHistory(context.selectedScene)
+                    .ExecuteCommand(std::make_unique<ScaleCommand>(
                         context.selectedNode, this->initialScale,
                         context.selectedNode->GlobalTransform()
                             .Scale()

@@ -1,9 +1,10 @@
 ﻿#include "CommandHistory.h"
 
 #include <Scene.h>
-#include <Scene.h>                 // ✅ SceneNode
-#include <glm/glm.hpp>             // ✅ glm::mat4, glm::vec3
-#include <glm/gtc/quaternion.hpp>  // ✅ glm::quat
+
+#include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
+#include <imgui.h>
 
 namespace Editor {
 
@@ -28,6 +29,12 @@ class TransformCommand : public ICommand {
     }
 
     std::string GetName() const override { return "Transform"; }
+
+    void ShowTooltip() const override {
+        ImGui::BeginTooltip();
+        ImGui::Text("Transform Action");
+        ImGui::EndTooltip();
+    }
 };
 
 class TranslateCommand : public ICommand {
@@ -50,6 +57,17 @@ class TranslateCommand : public ICommand {
     }
 
     std::string GetName() const override { return "Translate"; }
+
+    void ShowTooltip() const override {
+        ImGui::BeginTooltip();
+        ImGui::Text("Translate Action");
+        ImGui::Separator();
+        ImGui::Text("Current/New Position: (%f, %f, %f)", newPosition.x,
+                    newPosition.y, newPosition.z);
+        ImGui::Text("Previous Position:    (%f, %f, %f)", oldPosition.x,
+                    oldPosition.y, oldPosition.z);
+        ImGui::EndTooltip();
+    }
 };
 
 class RotateCommand : public ICommand {
@@ -72,6 +90,17 @@ class RotateCommand : public ICommand {
     }
 
     std::string GetName() const override { return "Rotate"; }
+
+    void ShowTooltip() const override {
+        ImGui::BeginTooltip();
+        ImGui::Text("Translate Action");
+        ImGui::Separator();
+        ImGui::Text("Current/New Position: (%f, %f, %f)", newRotation.x,
+                    newRotation.y, newRotation.z);
+        ImGui::Text("Previous Position:    (%f, %f, %f)", oldRotation.x,
+                    oldRotation.y, oldRotation.z);
+        ImGui::EndTooltip();
+    }
 };
 
 class ScaleCommand : public ICommand {
@@ -93,5 +122,16 @@ class ScaleCommand : public ICommand {
     }
 
     std::string GetName() const override { return "Scale"; }
+
+    void ShowTooltip() const override {
+        ImGui::BeginTooltip();
+        ImGui::Text("Translate Action");
+        ImGui::Separator();
+        ImGui::Text("Current/New Position: (%f, %f, %f)", newScale.x,
+                    newScale.y, newScale.z);
+        ImGui::Text("Previous Position:    (%f, %f, %f)", oldScale.x,
+                    oldScale.y, oldScale.z);
+        ImGui::EndTooltip();
+    }
 };
 } // namespace Editor
