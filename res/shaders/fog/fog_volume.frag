@@ -224,8 +224,7 @@ void main() {
                 vec2 uvLocal = clamp(vec2((lightViewPos.x + 1) * 0.5, (lightViewPos.y + 1) * 0.5), 0, 1);
                 vec2 uv = mix(mask.start, mask.end, uvLocal);
 
-                float shadowZ = texture(Builtin_ShadowMask, uv).x;
-                visibility = (lightViewPos.z - bias > shadowZ) ? 0.0 : 1.0;
+                visibility = texture(Builtin_ShadowMask, vec3(uv, lightViewPos.z - bias)); 
             }
 
             vec3 lightStrength = getLightStrength(light, marchPos);

@@ -36,6 +36,12 @@ directionalLightCascadeCount(6),
 ambientLight(1.0f, 1.0f, 1.0f, 0.001f) {
 	this->shadowAtlasFramebuffer = new Framebuffer(Framebuffer::Attachment::Depth, shadowmapAtlasSize, shadowmapAtlasSize);
 
+    // This enables sampler2DShadow
+    glBindTexture(GL_TEXTURE_2D, this->shadowAtlasFramebuffer->GetDepthTexture()->GetHandle());
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
 	glGenBuffers(1, &this->lightsBuffer);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->lightsBuffer);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, 32 + sizeof(ShaderLightRep) * MAX_NUM_LIGHTS, nullptr, GL_DYNAMIC_DRAW);
@@ -514,6 +520,8 @@ void LightSystem::OnPostRender() {
 	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(this->ambientLight), &this->ambientLight);
 	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 16, sizeof(lightIndex), &lightIndex);
 	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 20, sizeof(this->directionalLightCascadeCount), &this->directionalLightCascadeCount);
+    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 24, sizeof(this->shadowSamplesCount), &this->shadowSamplesCount);
+    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 28, sizeof(this->shadowFilterRadius), &this->shadowFilterRadius);
 
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, this->lightsBuffer);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
@@ -543,6 +551,11 @@ void LightSystem::DrawImGui() {
 		ImGui::Text("Active lights: %i", (int) this->GetAllObjects()->size());
 
 		ImGui::Separator();
+
+        ImGui::SliderInt("Shadow Samples", &this->shadowSamplesCount, 1, 64);
+        ImGui::SliderFloat("Shadow Blur Radius", &this->shadowFilterRadius, 0.1f, 10.0f);
+
+        ImGui::Separator();
 
 		int newShadowmapResolution = this->shadowmapAtlasSize;
 

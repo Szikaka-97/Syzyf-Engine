@@ -23,6 +23,9 @@ private:
 	int shadowmapAtlasSize;
 	int directionalLightCascadeCount;
 
+    int shadowSamplesCount = 16;
+    float shadowFilterRadius = 2.5f;
+
     glm::vec4 ambientLight;
 
 	glm::uvec3 lightGridSize;
