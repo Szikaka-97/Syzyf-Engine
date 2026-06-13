@@ -18,6 +18,10 @@
 Surface::Surface(Mesh* floorMesh, float cellSize)
     : floorMesh(floorMesh), cellSize(cellSize), m_playerInside(false) { }
 
+bool Surface::PlayerInside() const {
+    return this->m_playerInside;
+}
+
 void Surface::Awake() {
     if (!floorMesh || floorMesh->GetSubMeshCount() == 0) {
        // spdlog::error("Surface: No valid mesh provided or mesh has no submeshes");
@@ -270,4 +274,8 @@ void Surface::Update() {
 
 		InformEnter();
 	}
+}
+
+void Surface::DrawImGui() {
+    ImGui::LabelText("Enemy count", "%zu", this->myEnemies.size());
 }

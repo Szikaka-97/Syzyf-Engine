@@ -132,6 +132,10 @@ class ObjectVsBroadPhaseLayerFilterImpl
 
 System::System(Scene* scene, const SystemSettings& settings)
     : SceneComponent(scene) {
+    this->characterControllerSystem = scene->AddComponent<CharacterControllerSystem>();
+    this->virtualCharacterControllerSystem = scene->AddComponent<VirtualCharacterControllerSystem>();
+    this->bodySystem = scene->AddComponent<BodySystem>();
+
     layerGroupFilter = new GroupFilterLayerMask();
 
     tempAllocator = new JPH::TempAllocatorImpl(settings.tempAllocatorSize);
@@ -366,8 +370,8 @@ void System::OnPreUpdate() {
             }
         }
 
-        for (auto& characterObject :
-             this->GetScene()->FindObjectsOfType<CharacterController>()) {
+    {
+        for (auto& characterObject : this->characterControllerSystem->IterateObjects()) {
             characterObject->GetCharacter()->PostSimulation(
                 characterObject->maxSeparationDistance);
 
@@ -381,6 +385,7 @@ void System::OnPreUpdate() {
                 glm::quat(rotation.GetW(), rotation.GetX(), rotation.GetY(),
                           rotation.GetZ());
         }
+    }
     }
     // Queue stuff
 }
@@ -398,8 +403,7 @@ void Physics::System::DrawPhysicsDebug(DebugRenderer* debugRenderer) {
         physicsSystem->DrawConstraints(debugRenderer);
 
         for (auto& characterObject :
-             this->GetScene()
-                 ->FindObjectsOfType<VirtualCharacterController>()) {
+             this->virtualCharacterControllerSystem->IterateObjects()) {
             auto character = characterObject->GetCharacter();
 
             character->GetShape()->Draw(
@@ -416,4 +420,3 @@ void System::DrawImGui() {
     }
 }
 }; // namespace Physics
-

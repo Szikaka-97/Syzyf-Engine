@@ -39,17 +39,15 @@ void CameraSettings::Update() {
 
 	if (this->angleY == this->targetAngleY) {
 		if (GetScene()->Input()->KeyDown(Key::Q)) {
-			this->targetAngleY -= 45;
+			this->targetAngleY += 45;
 		}
 		if (GetScene()->Input()->KeyDown(Key::E)) {
-			this->targetAngleY += 45;
+			this->targetAngleY -= 45;
 		}
 	}
 
 	this->targetAngleY = glm::mod(this->targetAngleY, 360.f);
 
-	spdlog::info(this->angleY);
-	
 	this->angleY = Math::MoveTowardsDegrees(this->angleY, this->targetAngleY, this->cameraRotationSpeed * Time::Delta());
 
 	if (player == nullptr) {

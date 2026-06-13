@@ -7,15 +7,15 @@
 #include <GameObject.h>
 #include <Graphics.h>
 #include <InputSystem.h>
-#include <TimeSystem.h>
 #include <Serialization.h>
+#include <TimeSystem.h>
 
 // When replacing the Mover with this, fix the gizmo as well
 class CameraController : public DoNotSerializeNode, public ImGuiDrawable {
   private:
     float pitch;
     float rotation;
-    bool movementEnabled;
+    bool movementEnabled = false;
     int mode;
     float movementSpeed = 10.0f;
     float mouseSensitivity = 1.0f;

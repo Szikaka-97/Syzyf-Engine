@@ -201,7 +201,7 @@ void InspectorPanel::Draw(Context& context) {
 
         AnimationComponent* animationComponent =
             context.selectedNode->GetObject<AnimationComponent>();
-        if (animationComponent != nullptr) {
+        if (animationComponent != nullptr && animationComponent->IsEnabled()) {
             if (ImGui::TreeNodeEx("Animation",
                                   ImGuiTreeNodeFlags_DefaultOpen)) {
                 int animationIndex = 0;
@@ -231,6 +231,10 @@ void InspectorPanel::Draw(Context& context) {
         GameObject* objectToRemove = nullptr;
         int index = 0;
         for (GameObject* obj : context.selectedNode->AttachedObjects()) {
+            if (obj == nullptr) {
+                context.selectedNode = nullptr;
+                break;
+            }
             if (dynamic_cast<MousePickingBody*>(obj) != nullptr) {
                 continue;
             }
@@ -249,7 +253,7 @@ void InspectorPanel::Draw(Context& context) {
             if (isNodeOpen) {
                 ImGui::Text("Object ID: %i", obj->GetID());
 
-                bool objEnabled = obj->IsEnabled();
+                bool objEnabled = obj->EnabledSelf();
 
                 ImGui::Checkbox("Enabled", &objEnabled);
 
@@ -269,7 +273,7 @@ void InspectorPanel::Draw(Context& context) {
         }
 
         if (objectToRemove != nullptr) {
-            context.selectedNode->DeleteObject(objectToRemove);
+            delete objectToRemove;
         }
 
         ImGui::Spacing();

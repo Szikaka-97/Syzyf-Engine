@@ -312,20 +312,22 @@ void PlayerController::UpdateTargetting() {
 
 	this->characterRoot->LocalTransform().Rotation() = glm::angleAxis(this->aimBearing, glm::vec3(0, 1, 0));
 
-	// if (!this->CanThrow()) {
-	// 	this->aim->SetEnabled(false);
-	//
-	// 	return;
-	// }
+	if (!this->CanThrow()) {
+		if (this->aim) {
+			this->aim->SetEnabled(false);
+		}
+
+		return;
+	}
 
 	this->aim->LocalTransform().Position() = glm::angleAxis(this->aimBearing, glm::vec3(0, 1, 0)) * glm::vec3(0, 0, 1);
 	this->aim->SetEnabled(GetScene()->Input()->ButtonPressed(0));
 }
 
 void PlayerController::UpdateThrowing() {
-	// if (!this->CanThrow()) {
-	// 	return;
-	// }
+	if (!this->CanThrow()) {
+		return;
+	}
 
 	float throwOomph = 0;
 
@@ -394,9 +396,9 @@ void PlayerController::UpdateThrowing() {
 			SetThrowablePotionEffect(throwable);
 			thrownBottle->GetObject<Physics::Body>()->SetLinearVelocity(throwForce);
 
-			// if (!PotionInventory::HasPotion()) {
-			// 	SetThrowingUnlocked(false);
-			// }
+			if (!PotionInventory::HasPotion()) {
+				SetThrowingUnlocked(false);
+			}
 
 			this->throwStrengthCache = -1;
 		}
@@ -481,7 +483,7 @@ void PlayerController::HandleItemInteractions() {
 	}
 
 	// On interact
-	if (this->GetScene()->Input()->KeyDown(Key::G) && this->highlightedItem != nullptr) {
+	if (this->GetScene()->Input()->KeyDown(Key::F) && this->highlightedItem != nullptr) {
 		this->highlightedItem->OnPickUp();
 		delete this->highlightedItem->GetNode();
 		this->highlightedItem = nullptr;

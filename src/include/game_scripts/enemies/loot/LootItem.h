@@ -4,6 +4,7 @@
 #include <MeshRenderer.h>
 #include <Shader.h>
 #include <Material.h>
+#include <GltfScene.h>
 
 class SceneNode;
 class Scene;
@@ -17,10 +18,8 @@ public:
 class LootBone : public LootItem {
     public:
         void Spawn(Scene* scene, const glm::vec3& position) const override{
-            auto* node = scene->CreateNode("LootBone");
-    node->GlobalTransform().Position() = position;
-    // node->AddObject<MeshRenderer>(potionMesh, potionMaterial);
-    // node->AddObject<PickupScript>();
+            SceneNode* node = scene->Resources()->Get<GltfScene>("./res/models/ingredients/bone.glb")->Instantiate(scene, nullptr, "bone");
+            node->GlobalTransform().Position() = position;
     }
 };
 

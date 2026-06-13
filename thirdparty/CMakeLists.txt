@@ -31,9 +31,14 @@ target_include_directories(mikktspace PRIVATE ${MIKKTSPACE_DIR})
 # fastnoiselite
 set(FASTNOISELITE_DIR ${CMAKE_CURRENT_LIST_DIR}/fastnoiselite CACHE INTERNAL "")
 
+# dr_libs
+set(DR_LIBS_DIR ${CMAKE_CURRENT_LIST_DIR}/dr_libs)
+set(dr_libs_SOURCE_DIR ${DR_LIBS_DIR}/include CACHE INTERNAL "")
+add_library(dr_libs STATIC ${DR_LIBS_DIR}/src/dr_libs.cpp)
+target_include_directories(dr_libs PRIVATE ${DR_LIBS_DIR}/include)
+
 # other
 CPMAddPackage("gh:assimp/assimp@6.0.4")
-CPMAddPackage("gh:glfw/glfw#3.4")
 CPMAddPackage("gh:g-truc/glm#1.0.3")
 CPMAddPackage("gh:ocornut/imgui#v1.92.5-docking")
 CPMAddPackage("gh:gabime/spdlog@1.17.0")
@@ -66,8 +71,35 @@ CPMAddPackage(
         "DEBUG_RENDERER_IN_DISTRIBUTION ON"
 	    "BUILD_SHARED_LIBS ON"
 )
+
+if (ENABLE_TRACY)
+    set(TRACY_OPTIONS "TRACY_ENABLE ON" "TRACY_CALLSTACK ON")
+else()
+    set(TRACY_OPTIONS "TRACY_ENABLE OFF" "TRACY_CALLSTACK OFF")
+endif()
+CPMAddPackage(
+    NAME tracy
+    GITHUB_REPOSITORY wolfpld/tracy
+    GIT_TAG v0.11.1
+    OPTIONS ${TRACY_OPTIONS}
+)
+CPMAddPackage(
+    NAME OpenAL
+    GITHUB_REPOSITORY kcat/openal-soft
+    GIT_TAG 1.25.2
+    OPTIONS
+        "ALSOFT_UTILS OFF"
+        "ALSOFT_EXAMPLES OFF"
+        "ALSOFT_INSTALL OFF"
+        "ALSOFT_INSTALL_CONFIG OFF"
+        "ALSOFT_INSTALL_HRTF_DATA OFF"
+        "ALSOFT_INSTALL_AMBDEC_PRESETS OFF"
+        "ALSOFT_UPDATE_BUILD_VERSION OFF"
+)
+
 if (NOT MSVC)
 target_compile_options(Jolt PRIVATE -Wno-array-bounds)
+target_compile_options(OpenAL PRIVATE -Wno-function-effects)
 endif ()
 
 set(imgui_SOURCE_DIR ${imgui_SOURCE_DIR} CACHE INTERNAL "")
@@ -80,12 +112,14 @@ add_library(imgui STATIC ${imgui_SOURCE_DIR}/imgui.cpp
 set_target_properties(glad
                       stb_image
                       stb_include
-                      assimp 
-                      glfw 
-                      glm 
-                      imgui 
-                      spdlog 
+                      assimp
+                      glm
+                      imgui
+                      spdlog
                       mikktspace
+                      OpenAL
+                      dr_libs
+                      SDL3-static
                       nlohmann_json PROPERTIES FOLDER "thirdparty")
 
 if (TARGET zlibstatic)

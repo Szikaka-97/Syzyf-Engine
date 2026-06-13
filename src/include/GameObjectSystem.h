@@ -67,7 +67,7 @@ public:
 		iterator& operator++() {
 			do {
 				this->valuePtr++;
-			} while(*this != *this->guardPtr && !this->includeInactive && !(*this->valuePtr)->IsEnabled());
+			} while(*this != *this->guardPtr && (!this->includeInactive && !(*this->valuePtr)->IsEnabled()));
 
 			return *this;
 		}

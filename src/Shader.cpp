@@ -299,6 +299,24 @@ GLuint CompileShader(const Shader& shader, std::map<std::string, std::string>& k
 	return handle;
 }
 
+ShaderProgram* ShaderBuilder::Load() {
+	std::stringstream ss;
+
+	ss << this->vertexShaderPath.string() << '@';
+	ss << this->geometryShaderPath.string() << '@';
+	ss << this->tessCtrlShaderPath.string() << '@';
+	ss << this->tessEvalShaderPath.string() << '@';
+	ss << this->pixelShaderPath.string() << '@';
+
+	for (const auto& keyword : this->keywordOverrides) {
+		ss << keyword.first << ":" << keyword.second << '@';
+	}
+
+	std::string shaderCode = ss.str();
+
+	return ResourceDatabase::Global->Get<ShaderProgram>(shaderCode);
+}
+
 ShaderProgram* ShaderBuilder::Link() {
 	Shader vertexShader,
 	       geometryShader,

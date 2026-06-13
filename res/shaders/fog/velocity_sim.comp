@@ -1,0 +1,43 @@
+#version 460 core
+
+layout (local_size_x = 16, local_size_y = 16) in;
+
+layout (binding = 0) uniform sampler2D texVelocityRead;
+layout (binding = 1, rg16f) uniform writeonly image2D texVelocityWrite;
+
+uniform vec2 playerPosUV;
+uniform vec2 playerVelocity;
+uniform float playerRadius;
+uniform float dt;
+uniform float damping;
+uniform vec2 simSize;
+
+void main() {
+    ivec2 texCoords = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 texSize = imageSize(texVelocityWrite);
+
+    if (texCoords.x >= texSize.x || texCoords.y >= texSize.y) return;
+
+    vec2 uv = (vec2(texCoords) + 0.5) / vec2(texSize);
+    vec2 texelSize = 1.0 / vec2(texSize);
+
+    vec2 currentVelocity = texture(texVelocityRead, uv).xy;
+    vec2 left  = texture(texVelocityRead, uv + vec2(-texelSize.x, 0.0)).xy;
+    vec2 right = texture(texVelocityRead, uv + vec2(texelSize.x, 0.0)).xy;
+    vec2 up    = texture(texVelocityRead, uv + vec2(0.0, -texelSize.y)).xy;
+    vec2 down  = texture(texVelocityRead, uv + vec2(0.0, texelSize.y)).xy;
+
+    vec2 backUV = uv - ((currentVelocity * dt) / simSize);
+    vec2 nextVelocity = texture(texVelocityRead, backUV).xy;
+
+    float dist = distance(uv, playerPosUV);
+    if (dist < playerRadius) {
+        float influence = 1.0 - (dist / playerRadius);
+        influence = influence * influence; 
+        nextVelocity += playerVelocity * influence * dt;
+    }
+
+    nextVelocity *= damping;
+
+    imageStore(texVelocityWrite, texCoords, vec4(nextVelocity, 0.0, 1.0));
+}

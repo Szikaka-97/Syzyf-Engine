@@ -1,11 +1,12 @@
 #pragma once
 
+#include "CraftingScene.h"
 #include "Graphics.h"
 #include "InputSystem.h"
-#include "Serialization.h"
-#include "DungeonGeneratorScene.h"
-#include "TestScene.h"
 #include "MainMenuScene.h"
+#include "Serialization.h"
+#include "DungeonScene.h"
+#include "TestScene.h"
 #include "examples/particles_and_scatter.h"
 #include "examples/tweens.h"
 #include "examples/ui.h"
@@ -42,13 +43,14 @@ class SceneRegistry {
     static void RegisterScenes() {
         SceneRegistry::RegisterScene("Test Scene", TestScene::InitScene);
         SceneRegistry::RegisterScene("Dungeon Generator",
-                                     DungeonGeneratorScene::InitScene);
+                                     DungeonScene::InitScene);
         SceneRegistry::RegisterScene("Example: UI", ExampleUi::InitScene);
         SceneRegistry::RegisterScene("Example: Particles And Scatter",
                                      ExampleParticlesAndScatter::InitScene);
         SceneRegistry::RegisterScene("Example: Tweens",
                                      ExampleTweens::InitScene);
         SceneRegistry::RegisterScene("Main Menu", MainMenu::InitScene);
+        SceneRegistry::RegisterScene("Crafting Scene", CraftingScene::InitScene);
         for (const auto& sceneFile : std::filesystem::directory_iterator("./res/scenes")) {
         	GetLoadRegistry()[std::format("Loaded: {}", sceneFile.path().stem().string())] = [sceneFile]() -> Scene * {
          		return Scene::LoadScene(sceneFile.path());

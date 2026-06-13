@@ -1,3 +1,5 @@
+#pragma once
+
 #include <MeshRenderer.h>
 #include <Scene.h>
 #include <SceneComponent.h>

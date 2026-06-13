@@ -211,7 +211,8 @@ void EffectExplosion::OnInit() {
             ResourceDatabase::Global
     ->Get<GltfScene>("./res/models/effects/explode1.glb")
 ->Instantiate(GetScene(), GetNode(), "explosion effect");
-    explosionModel->GlobalTransform().Scale()=glm::vec3(1.f,1.5f,1.5f);
+    explosionModel->GlobalTransform().Scale()=glm::vec3(1.0f,1.0f,1.0f);
+    explosionModel->LocalTransform().Position() = glm::vec3(0, 0, 0);
     GetNode()->GlobalTransform().Scale()=glm::vec3(1.0f,1.0f,1.0f);
 
     auto* animComp = explosionModel->GetObjectInChildren<AnimationComponent>();

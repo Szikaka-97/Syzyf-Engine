@@ -55,8 +55,13 @@ Scene* GameObject::GetScene() {
 }
 
 bool GameObject::IsEnabled() const {
+	return EnabledSelf() && this->node->IsEnabled();
+}
+
+bool GameObject::EnabledSelf() const {
 	return this->enabled;
 }
+
 void GameObject::SetEnabled(bool enabled) {
 	if (enabled == this->enabled) {
 		return;

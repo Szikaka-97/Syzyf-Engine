@@ -6,11 +6,6 @@ set(CMAKE_DEBUG_POSTFIX "_d")
 set(CMAKE_DISABLE_IN_SOURCE_BUILD ON)
 set(CMAKE_DISABLE_SOURCE_CHANGES ON)
 
-set(GLFW_BUILD_EXAMPLES OFF CACHE INTERNAL "Build the GLFW example programs")
-set(GLFW_BUILD_TESTS    OFF CACHE INTERNAL "Build the GLFW test programs")
-set(GLFW_BUILD_DOCS     OFF CACHE INTERNAL "Build the GLFW documentation")
-set(GLFW_INSTALL        OFF CACHE INTERNAL "Generate installation target")
-
 # Set Assimp variables
 set(BUILD_SHARED_LIBS                     OFF CACHE INTERNAL "Build package with shared libraries.")
 set(ASSIMP_NO_EXPORT                      ON  CACHE BOOL "")

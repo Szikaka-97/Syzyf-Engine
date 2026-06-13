@@ -6,11 +6,11 @@
 
 #include <spdlog/spdlog.h>
 
-std::map<std::string, Profiler::ProfilerData> Profiler::profilerNodes;
+std::map<std::filesystem::path, Profiler::ProfilerData> Profiler::profilerNodes;
 
 std::stack<Profiler::ProfilerData> Profiler::profilerStack;
 
-Profiler::ProfilerData::ProfilerData(const std::string& name):
+Profiler::ProfilerData::ProfilerData(const std::filesystem::path& name):
 name(name),
 times() { }
 
@@ -23,17 +23,19 @@ void Profiler::Step() {
 		}
 
 		node.times[FrameMemory - 1] = std::chrono::nanoseconds(0);
+
+		node.count = 0;
 	}
 }
 
 void Profiler::Push(const std::string &name) {
-	std::string fullName;
+	std::filesystem::path fullName;
 
 	if (profilerStack.empty()) {
 		fullName = name;
 	}
 	else {
-		fullName = std::format("{}/{}", profilerStack.top().name, name);
+		fullName = profilerStack.top().name / name;
 	}
 
 	profilerStack.push(ProfilerData(fullName));
@@ -47,11 +49,14 @@ void Profiler::Pop() {
 	ProfilerData& node = profilerStack.top();
 
 	node.times[FrameMemory - 1] = std::chrono::high_resolution_clock::now().time_since_epoch() - node.times[FrameMemory - 1];
+	
+	node.count++;
 
 	auto it = profilerNodes.find(node.name);
 
 	if (it != profilerNodes.end()) {
 		it->second.times[FrameMemory - 1] += node.times[FrameMemory - 1];
+		it->second.count++;
 	}
 	else {
 		profilerNodes[node.name] = node;
@@ -71,7 +76,7 @@ std::vector<Profiler::ProfilerResult> Profiler::GrabResults() {
 			eventTime += (double) pair.second.times[i].count() / 1'000'000'000.0;
 		}
 
-		result.push_back({ pair.first, eventTime / FrameMemory });
+		result.push_back({ pair.first, eventTime / FrameMemory, pair.second.count });
 	}
 
 	return result;

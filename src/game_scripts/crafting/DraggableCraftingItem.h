@@ -9,10 +9,13 @@
 #include <glm/glm.hpp>
 #include <glm/geometric.hpp>
 
+#include <string>
+
 namespace Crafting{
   class DraggableCraftingItem : public GameObject {
     public:
       IngredientData data;
+      std::string inventoryKey;
 
       bool isDragged = false;
       bool returnToStartOnInvalidDrop = true;
@@ -124,6 +127,36 @@ namespace Crafting{
       glm::vec3 GetStartPosition() const
       {
         return startPosition;
+      }
+
+      void SetStartPosition(const glm::vec3& position)
+      {
+        startPosition = position;
+        motionTargetPosition = position;
+        motionMode = MotionMode::None;
+        isDragged = false;
+
+        if (GetNode())
+        {
+          GetNode()->SetEnabled(true);
+          SetWorldPosition(position);
+        }
+      }
+
+      void SetInventoryVisible(bool visible)
+      {
+        if (!GetNode())
+        {
+          return;
+        }
+
+        if (!visible)
+        {
+          isDragged = false;
+          motionMode = MotionMode::None;
+        }
+
+        GetNode()->SetEnabled(visible);
       }
 
       void ResetForNewSession()

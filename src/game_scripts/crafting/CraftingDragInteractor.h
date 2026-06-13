@@ -11,8 +11,10 @@
 #include "game_scripts/crafting/CraftingIngredientReceiver.h"
 #include "game_scripts/crafting/CraftingStation.h"
 #include "game_scripts/crafting/CraftingNodeUtils.h"
+#include "MeshRenderer.h"
 
 #include <physics/System.h>
+#include <TimeSystem.h>
 
 #include <Jolt/Physics/Body/Body.h>
 #include <Jolt/Physics/Body/BodyFilter.h>
@@ -23,6 +25,9 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <vector>
+#include <utility>
+#include <cmath>
+#include <limits>
 
 namespace Crafting{
     class CraftingDragInteractor : public GameObject{
@@ -33,6 +38,10 @@ namespace Crafting{
             if (!GetScene() || !GetScene()->Input()){
                 return;
             }
+
+            blinkTime += Time::Delta();
+
+            UpdateHoverHighlight();
 
             if (GetScene()->Input()->ButtonDown(MouseButton::Left)){
                 TryBeginInteraction();
@@ -98,7 +107,172 @@ namespace Crafting{
 
         DraggableCraftingItem* heldItem = nullptr;
         float dragPlaneY = 0.0f;
+        float blinkTime = 0.0f;
         glm::vec3 grabOffset = glm::vec3(0.0f);
+        std::vector<std::pair<MeshRenderer*, uint8_t>> highlightedRenderers;
+
+        void ClearHoverHighlight(){
+            for (auto& highlightedRenderer : highlightedRenderers){
+                if (highlightedRenderer.first){
+                    highlightedRenderer.first->maskFlags = highlightedRenderer.second;
+                }
+            }
+
+            highlightedRenderers.clear();
+        }
+
+        bool IsRendererAlreadyHighlighted(MeshRenderer* renderer) const{
+            for (const auto& highlightedRenderer : highlightedRenderers){
+                if (highlightedRenderer.first == renderer){
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        void CollectMeshRenderersRecursive(SceneNode* node, std::vector<MeshRenderer*>& renderers){
+            if (!node){
+                return;
+            }
+
+            if (auto* renderer = node->GetObject<MeshRenderer>()){
+                renderers.push_back(renderer);
+            }
+
+            for (SceneNode* child : node->GetChildren()){
+                CollectMeshRenderersRecursive(child, renderers);
+            }
+        }
+
+        void AddOutlineForNode(SceneNode* node){
+            if (!node){
+                return;
+            }
+
+            std::vector<MeshRenderer*> renderers;
+            CollectMeshRenderersRecursive(node, renderers);
+
+            if (renderers.empty() && node->GetParent()){
+                CollectMeshRenderersRecursive(node->GetParent(), renderers);
+            }
+
+            for (auto* renderer : renderers){
+                if (!renderer){
+                    continue;
+                }
+
+                if (IsRendererAlreadyHighlighted(renderer)){
+                    continue;
+                }
+
+                highlightedRenderers.push_back({renderer, renderer->maskFlags});
+                renderer->maskFlags = renderer->maskFlags | MaskEffectBits::Jfa;
+            }
+        }
+
+        void SetHoverHighlight(SceneNode* node){
+            ClearHoverHighlight();
+            AddOutlineForNode(node);
+        }
+
+        void CollectBlinkingInteractableNodesRecursive(
+            SceneNode* node,
+            CraftingInteractionMask activeMask,
+            std::vector<SceneNode*>& interactableNodes
+        ){
+            if (!node || !node->IsEnabled()){
+                return;
+            }
+
+            if (auto* interactable = node->GetObject<CraftingInteractable>()){
+                if (interactable->MatchesMask(activeMask) && interactable->ShouldBlinkOutline()){
+                    interactableNodes.push_back(node);
+                }
+            }
+
+            for (SceneNode* child : node->GetChildren()){
+                CollectBlinkingInteractableNodesRecursive(
+                    child,
+                    activeMask,
+                    interactableNodes
+                );
+            }
+        }
+
+        void SetBlinkHighlight(CraftingStation* station, CraftingInteractionMask activeMask){
+            ClearHoverHighlight();
+
+            float blink =
+                0.5f + 0.5f * std::sin(blinkTime * 3.0f);
+
+            if (blink < 0.35f){
+                return;
+            }
+
+            std::vector<SceneNode*> interactableNodes;
+
+            CollectBlinkingInteractableNodesRecursive(
+                station->GetNode(),
+                activeMask,
+                interactableNodes
+            );
+
+            for (SceneNode* interactableNode : interactableNodes){
+                AddOutlineForNode(interactableNode);
+            }
+        }
+
+        void UpdateHoverHighlight(){
+            if (heldItem){
+                ClearHoverHighlight();
+                return;
+            }
+
+            CraftingStation* station = FindActiveStation();
+
+            if (!station){
+                ClearHoverHighlight();
+                return;
+            }
+
+            CraftingInteractionMask activeMask = station->GetActiveInteractionMask();
+
+            if (activeMask == ToMask(CraftingInteractionType::None)){
+                ClearHoverHighlight();
+                return;
+            }
+
+            Camera* camera = FindMainCamera();
+
+            if (!camera){
+                ClearHoverHighlight();
+                return;
+            }
+
+            glm::vec3 rayOrigin;
+            glm::vec3 rayDirection;
+
+            if (!BuildMouseRay(camera, rayOrigin, rayDirection)){
+                SetBlinkHighlight(station, activeMask);
+                return;
+            }
+
+            InteractableHit hit;
+
+            if (!RaycastInteractablePhysics(rayOrigin, rayDirection, activeMask, hit) &&
+                !RaycastUiButtonScreenFallback(station, camera, activeMask, hit)){
+                SetBlinkHighlight(station, activeMask);
+                return;
+            }
+
+            if (!hit.interactable || !hit.interactable->GetNode()){
+                SetBlinkHighlight(station, activeMask);
+                return;
+            }
+
+            SetHoverHighlight(hit.interactable->GetNode());
+        }
 
         void TryBeginInteraction(){
             CraftingStation* station = FindActiveStation();
@@ -128,7 +302,8 @@ namespace Crafting{
 
             InteractableHit hit;
 
-            if (!RaycastInteractablePhysics(rayOrigin, rayDirection, activeMask, hit)){
+            if (!RaycastInteractablePhysics(rayOrigin, rayDirection, activeMask, hit) &&
+                !RaycastUiButtonScreenFallback(station, camera, activeMask, hit)){
                 return;
             }
 
@@ -157,6 +332,26 @@ namespace Crafting{
                     station->OnValveClicked();
                     break;
 
+                case CraftingInteractionType::UiBack:
+                    station->OnUiBackClicked();
+                    break;
+
+                case CraftingInteractionType::UiInfo:
+                    station->OnUiInfoClicked();
+                    break;
+
+                case CraftingInteractionType::UiNext:
+                    station->OnUiNextClicked();
+                    break;
+
+                case CraftingInteractionType::InventoryNextPage:
+                    station->OnInventoryNextPageClicked();
+                    break;
+
+                case CraftingInteractionType::InventoryPreviousPage:
+                    station->OnInventoryPreviousPageClicked();
+                    break;
+
                 case CraftingInteractionType::None:
                 default:
                     break;
@@ -174,7 +369,7 @@ namespace Crafting{
                 item->GetNode()->GlobalTransform().Position().Value();
 
             dragPlaneY = hit.position.y;
-            grabOffset = itemPosition - hit.position;
+            grabOffset = glm::vec3(0.0f);
 
             heldItem = item;
             heldItem->BeginDrag();
@@ -271,6 +466,152 @@ namespace Crafting{
             }
 
             return nullptr;
+        }
+
+
+        bool IsUiScreenFallbackType(CraftingInteractionType type) const{
+            return
+                type == CraftingInteractionType::UiBack ||
+                type == CraftingInteractionType::UiInfo ||
+                type == CraftingInteractionType::UiNext ||
+                type == CraftingInteractionType::InventoryNextPage ||
+                type == CraftingInteractionType::InventoryPreviousPage;
+        }
+
+        bool IsNodeAndParentsEnabled(SceneNode* node) const{
+            SceneNode* current = node;
+
+            while (current){
+                if (!current->IsEnabled()){
+                    return false;
+                }
+
+                current = current->GetParent();
+            }
+
+            return true;
+        }
+
+        void CollectUiButtonInteractablesRecursive(
+            SceneNode* node,
+            CraftingInteractionMask activeMask,
+            std::vector<CraftingInteractable*>& interactables
+        ){
+            if (!node || !IsNodeAndParentsEnabled(node)){
+                return;
+            }
+
+            if (auto* interactable = node->GetObject<CraftingInteractable>()){
+                if (interactable->MatchesMask(activeMask) &&
+                    IsUiScreenFallbackType(interactable->type)){
+                    interactables.push_back(interactable);
+                }
+            }
+
+            for (SceneNode* child : node->GetChildren()){
+                CollectUiButtonInteractablesRecursive(child, activeMask, interactables);
+            }
+        }
+
+        bool ProjectWorldToScreen(
+            Camera* camera,
+            const glm::vec3& worldPosition,
+            glm::vec2& outScreenPosition
+        ) const{
+            if (!camera || !GetScene() || !GetScene()->GetGraphics()){
+                return false;
+            }
+
+            glm::vec2 screenSize = GetScene()->GetGraphics()->GetScreenResolution();
+
+            if (screenSize.x <= 0.0f || screenSize.y <= 0.0f){
+                return false;
+            }
+
+            glm::vec4 clipPosition =
+                camera->ProjectionMatrix() *
+                camera->ViewMatrix() *
+                glm::vec4(worldPosition, 1.0f);
+
+            if (clipPosition.w <= 0.0001f){
+                return false;
+            }
+
+            glm::vec3 ndc = glm::vec3(clipPosition) / clipPosition.w;
+
+            if (ndc.x < -1.15f || ndc.x > 1.15f ||
+                ndc.y < -1.15f || ndc.y > 1.15f ||
+                ndc.z < -1.15f || ndc.z > 1.15f){
+                return false;
+            }
+
+            outScreenPosition.x = (ndc.x * 0.5f + 0.5f) * screenSize.x;
+            outScreenPosition.y = (1.0f - (ndc.y * 0.5f + 0.5f)) * screenSize.y;
+            return true;
+        }
+
+        bool RaycastUiButtonScreenFallback(
+            CraftingStation* station,
+            Camera* camera,
+            CraftingInteractionMask activeMask,
+            InteractableHit& outHit
+        ){
+            if (!station || !camera || !GetScene() || !GetScene()->Input()){
+                return false;
+            }
+
+            std::vector<CraftingInteractable*> interactables;
+
+            CollectUiButtonInteractablesRecursive(
+                station->GetNode(),
+                activeMask,
+                interactables
+            );
+
+            if (interactables.empty()){
+                return false;
+            }
+
+            glm::vec2 mousePosition = GetScene()->Input()->GetMousePosition();
+            CraftingInteractable* bestInteractable = nullptr;
+            glm::vec3 bestPosition = glm::vec3(0.0f);
+            float bestDistanceSq = std::numeric_limits<float>::max();
+            const float maxDistance = 80.0f;
+            const float maxDistanceSq = maxDistance * maxDistance;
+
+            for (auto* interactable : interactables){
+                if (!interactable || !interactable->GetNode()){
+                    continue;
+                }
+
+                glm::vec3 worldPosition =
+                    interactable->GetNode()->GlobalTransform().Position().Value();
+                glm::vec2 screenPosition;
+
+                if (!ProjectWorldToScreen(camera, worldPosition, screenPosition)){
+                    continue;
+                }
+
+                glm::vec2 delta = screenPosition - mousePosition;
+                float distanceSq = glm::dot(delta, delta);
+
+                if (distanceSq > maxDistanceSq || distanceSq >= bestDistanceSq){
+                    continue;
+                }
+
+                bestDistanceSq = distanceSq;
+                bestInteractable = interactable;
+                bestPosition = worldPosition;
+            }
+
+            if (!bestInteractable){
+                return false;
+            }
+
+            outHit.interactable = bestInteractable;
+            outHit.node = bestInteractable->GetNode();
+            outHit.position = bestPosition;
+            return true;
         }
 
         bool RaycastInteractablePhysics(

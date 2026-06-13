@@ -2,6 +2,7 @@
 #include "EditorApplication.h"
 #include "Graphics.h"
 #include "Profiler.h"
+#include <nlohmann/json.hpp>
 
 #include <Scene.h>
 #include <algorithm>
@@ -10,6 +11,23 @@
 
 SceneComponent* MessagingHelpers_AddComponentToScene(Scene* scene, const std::string& objectName);
 std::vector<std::string> MessagingHelpers_GetAvailableComponents(); // I love how sketchy it is
+
+void DrawProfilerInfo(nlohmann::json node, std::string name) {
+    if (node.size() > 1) {
+        if (ImGui::TreeNode(name.c_str(), "%s: %.03fms (%i)", name.c_str(), node["_time"].get<float>() * 1000, node["_count"].get<int>())) {
+            for (auto child : node.items()) {
+                if (child.value().is_object()) {
+                    DrawProfilerInfo(child.value(), child.key());
+                }
+            }
+
+            ImGui::TreePop();
+        }
+    }
+    else {
+        ImGui::Text("%s: %.03fms (%i)", name.c_str(), node["_time"].get<float>() * 1000, node["_count"].get<int>());
+    }
+}
 
 namespace Editor {
 void SystemsDebugPanel::Draw(Context& context) {
@@ -96,30 +114,29 @@ void SystemsDebugPanel::Draw(Context& context) {
 	if (ImGui::TreeNode("Profiler")) {
 		std::vector<Profiler::ProfilerResult> results = Profiler::GrabResults();
 
-		int slashCount = -1;
-		bool levelOpen = true;
+        nlohmann::json profilerRoot;
 
-		for (const auto& result : results) {
-			int newSlashCount = std::count(result.name.begin(), result.name.end(), '/');
+        for (auto& node : results) {
+            nlohmann::json* jsonNode = &profilerRoot;
 
-			if (newSlashCount <= slashCount && levelOpen) {
-				ImGui::TreePop();
-			}
+            for (auto piece : node.name) {
+                if (jsonNode->contains(piece.string())) {
+                    jsonNode = &(*jsonNode)[piece.string()];
+                }
+                else {
+                    jsonNode = &((*jsonNode)[piece.string()] = json{});
+                }
+            }
 
-			if (newSlashCount == slashCount) {
-				levelOpen = true;
-			}
-		
-			if (levelOpen) {
-				levelOpen = ImGui::TreeNode(result.name.c_str(), "%s: %.03fms", result.name.c_str(), result.time * 1000);
-			}
+            (*jsonNode)["_time"] = node.time;
+            (*jsonNode)["_count"] = node.count;
+        }
 
-			slashCount = newSlashCount;
-		}
+        DrawProfilerInfo(profilerRoot["Frame"], "Frame");
+
+        ImGui::TreePop();
 
 		Profiler::Step();
-
-		ImGui::TreePop();
 	}
 
     ImGui::End();

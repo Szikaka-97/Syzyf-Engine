@@ -6,6 +6,7 @@
 #include <Scene.h>
 #include <Graphics.h>
 #include <glm/gtc/matrix_access.hpp>
+#include <tracy/Tracy.hpp>
 
 MeshRenderer::MeshRenderer():
 mesh(),
@@ -91,7 +92,7 @@ void MeshRenderer::DrawImGui() {
 
 			ImGui::PushID(i);
 
-			if (ImGui::TreeNode(std::format("{}", i).c_str())) {
+			if (ImGui::TreeNode(mat->name.c_str())) {
 				Debug::Property(*mat, "");
 
 				ImGui::TreePop();

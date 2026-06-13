@@ -1,0 +1,193 @@
+#version 460
+
+#define LIGHTS_STRIDE 32
+
+layout (local_size_x = LIGHTS_STRIDE, local_size_y = 8, local_size_z = 1) in;
+
+#define MAX_LIGHTS_PER_TILE 256
+
+#include "shared/shared.h"
+
+struct Cluster {
+	vec4 minPoint;
+	vec4 maxPoint;
+};
+
+layout(std430, binding = 1) restrict buffer clusterSourceSSBO {
+	Cluster clustersSource[];
+};
+
+layout(std430, binding = 2) restrict buffer clusterDestSSBO {
+	Cluster clustersDest[];
+};
+
+layout (std430, binding = 3) restrict buffer lightsListSSBO {
+	vec4 _a;
+	int _b;
+	int _c;
+	Light lightsList[];
+};
+
+layout (std430, binding = 4) restrict buffer lightIndexListSourceSSBO {
+	uvec4 lightGridSizeSource;
+	uint lightIndexListSource[];
+};
+
+layout (std430, binding = 5) restrict buffer lightIndexListDestSSBO {
+	uvec4 lightGridSizeDest;
+	uint lightIndexListDest[];
+};
+
+layout (std430, binding = 6) restrict buffer lightIndexCounterSSBO {
+	uint lightIndexCounter;
+};
+
+layout (std430, binding = 7) restrict buffer lightGridSourceSSBO {
+	uvec2 lightGridSource[];
+};
+
+layout (std430, binding = 8) restrict buffer lightGridDestSSBO {
+	uvec2 lightGridDest[];
+};
+
+uniform mat4 viewMatrix;
+uniform uint remainingPasses;
+
+shared Cluster groupClusters[8];
+
+shared uint localLightCount;
+shared uint lightIndexStartOffset;
+shared uint localLightList[MAX_LIGHTS_PER_TILE];
+
+struct Sphere {
+	vec3 center;
+	float radius;
+};
+
+struct Cone {
+	vec3 tip;
+	float height;
+	vec3 direction;
+	float radius;
+};
+
+bool SphereIntersectsCluster(Sphere s) {
+	s.center = (viewMatrix * vec4(s.center, 1.0)).xyz;
+
+	vec3 closestPoint = clamp(s.center, groupCluster.minPoint.xyz, groupCluster.maxPoint.xyz);
+
+	float distanceSquared = dot(closestPoint - s.center, closestPoint - s.center);
+
+	return distanceSquared < s.radius * s.radius;
+}
+
+bool ConeIntersectsCluster(Cone c) {
+	return false;
+}
+
+void AppendLight(uint lightIndex) {
+	uint index = atomicAdd(localLightCount, 1);
+
+	if (index < MAX_LIGHTS_PER_TILE * remainingPasses) {
+		localLightList[index] = lightIndex;
+	}
+}
+
+void memoryBarrierWithSync() {
+	groupMemoryBarrier();
+	barrier();
+}
+
+void main() {
+	const uvec3 inputGridSize = gl_NumWorkGroups;
+
+	uint inputClusterIndex = uint(dot(gl_WorkGroupID, vec3(1, inputGridSize.x, inputGridSize.x * inputGridSize.y)));
+
+	uint lightsCount = lightGridSource[clusterIndex].y;
+	uint lightsSourceOffset = lightGridSource[clusterIndex].x;
+
+	if (gl_LocalInvocationIndex == 0) {
+		localLightCount = 0;
+
+		Cluster inputCluster = clusters[inputClusterIndex];
+
+		groupClusters[0].minPoint = inputCluster.minPoint;
+		groupClusters[0].maxPoint = mix(inputCluster.minPoint, inputCluster.maxPoint, 0.5);
+		groupClusters[1].minPoint = mix(inputCluster.minPoint, inputCluster.maxPoint, vec3(0.5, 0.0, 0.0));
+		groupClusters[1].maxPoint = mix(inputCluster.minPoint, inputCluster.maxPoint, vec3(1.0, 0.5, 0.5));
+		groupClusters[2].minPoint = mix(inputCluster.minPoint, inputCluster.maxPoint, vec3(0.0, 0.5, 0.0));
+		groupClusters[2].maxPoint = mix(inputCluster.minPoint, inputCluster.maxPoint, vec3(0.5, 1.0, 0.5));
+		groupClusters[3].minPoint = mix(inputCluster.minPoint, inputCluster.maxPoint, vec3(0.5, 0.5, 0.0));
+		groupClusters[3].maxPoint = mix(inputCluster.minPoint, inputCluster.maxPoint, vec3(1.0, 1.0, 0.5));
+		groupClusters[4].minPoint = mix(inputCluster.minPoint, inputCluster.maxPoint, vec3(0.0, 0.0, 0.5));
+		groupClusters[4].maxPoint = mix(inputCluster.minPoint, inputCluster.maxPoint, vec3(0.5, 0.5, 1.0));
+		groupClusters[5].minPoint = mix(inputCluster.minPoint, inputCluster.maxPoint, vec3(0.5, 0.0, 0.5));
+		groupClusters[5].maxPoint = mix(inputCluster.minPoint, inputCluster.maxPoint, vec3(1.0, 0.5, 1.0));
+		groupClusters[6].minPoint = mix(inputCluster.minPoint, inputCluster.maxPoint, vec3(0.0, 0.5, 0.5));
+		groupClusters[6].maxPoint = mix(inputCluster.minPoint, inputCluster.maxPoint, vec3(0.5, 1.0, 1.0));
+		groupClusters[7].minPoint = mix(inputCluster.minPoint, inputCluster.maxPoint, vec3(0.5, 0.5, 0.5));
+		groupClusters[7].maxPoint = mix(inputCluster.minPoint, inputCluster.maxPoint, vec3(1.0, 1.0, 1.0));
+	}
+	
+	memoryBarrierWithSync();
+
+	uint lowestPowerOverCount = lightsCount + LIGHTS_STRIDE - (lightsCount % LIGHTS_STRIDE);
+
+	for (uint i = gl_LocalInvocationID.x; i < lowestPowerOverCount; i += LIGHTS_STRIDE) {
+		memoryBarrierWithSync();
+
+		if (i >= lightsCount) {
+			continue;
+		}
+
+		Light l = lightsList[lightIndexListSource[lightsSourceOffset + i]];
+
+		if (l.intensity <= 0) {
+			continue;
+		}
+
+		switch (l.type) {
+		case POINT_LIGHT:
+			Sphere s;
+			s.center = l.position;
+			s.radius = l.range;
+
+			if (SphereIntersectsCluster(s)) {
+				AppendLight(i);
+			}
+
+			break;
+		case SPOT_LIGHT:
+			Cone c;
+			c.tip = l.position;
+			c.height = l.range;
+			c.direction = l.direction;
+			c.radius = tan(l.spotlightAngle) * l.range;
+
+			if (ConeIntersectsCluster(c)) {
+				AppendLight(i);
+			}
+
+			break;
+		case DIRECTIONAL_LIGHT:
+			AppendLight(i);
+			break;
+		};
+	}
+
+	if (gl_LocalInvocationIndex == 0) {
+		lightIndexStartOffset = atomicAdd(lightIndexCounter, localLightCount);
+
+		lightGrid[clusterIndex] = uvec2(lightIndexStartOffset, localLightCount);
+	}
+
+	memoryBarrierWithSync();
+
+	for (uint i = gl_LocalInvocationID.x; i < localLightCount; i += LIGHTS_STRIDE) {
+		if (i >= localLightCount) {
+			continue;
+		}
+
+		lightIndexList[lightIndexStartOffset + i] = localLightList[i];
+	}
+}

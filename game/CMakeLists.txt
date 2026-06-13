@@ -21,12 +21,12 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release")
 endif()
 
 if (WIN32)
-    add_custom_command(
-            TARGET Bimberman POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy
-            ${CMAKE_CURRENT_BINARY_DIR}/../_deps/joltphysics-build/libJolt_d.dll
-            ${CMAKE_CURRENT_BINARY_DIR}/libJolt_d.dll
-    )
+    # add_custom_command(
+    #         TARGET Bimberman POST_BUILD
+    #         COMMAND ${CMAKE_COMMAND} -E copy
+    #         ${CMAKE_CURRENT_BINARY_DIR}/../_deps/joltphysics-build/libJolt_d.dll
+    #         ${CMAKE_CURRENT_BINARY_DIR}/libJolt_d.dll
+    # ) # Someone fix it for fucks sake
 
 endif()
 

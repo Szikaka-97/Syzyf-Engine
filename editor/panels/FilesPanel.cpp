@@ -264,6 +264,12 @@ void FilesPanel::DrawPreviewPopup() {
         this->showPreviewPopup = false;
     }
 
+    if (!ImGui::IsPopupOpen("File Preview") &&
+        this->previewTexture != nullptr) {
+        this->previewTexture.reset();
+        this->previewTextContent.clear();
+    }
+
     ImGui::SetNextWindowSize(ImVec2(600, 600), ImGuiCond_FirstUseEver);
     if (ImGui::BeginPopupModal("File Preview", nullptr,
                                ImGuiWindowFlags_NoSavedSettings)) {
@@ -301,8 +307,6 @@ void FilesPanel::DrawPreviewPopup() {
         ImGui::Separator();
         if (ImGui::Button("Close", ImVec2(120, 0))) {
             ImGui::CloseCurrentPopup();
-            this->previewTexture.reset();
-            this->previewTextContent.clear();
         }
         ImGui::EndPopup();
     }

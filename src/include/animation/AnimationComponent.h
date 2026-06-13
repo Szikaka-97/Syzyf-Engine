@@ -2,6 +2,7 @@
 
 #include "Debug.h"
 #include "GameObject.h"
+#include <unordered_set>
 #include <vector>
   
 class AnimationComponent : public GameObject, public ImGuiDrawable {
@@ -39,7 +40,13 @@ public:
 
     serialized fs::path source;
     serialized std::vector<SceneNode*> participants;
-    serialized AnimationData data;    
+    serialized AnimationData data;
+
+    // Bone masking/layers
+    // TODO Serializacja
+    std::unordered_set<SceneNode*> boneMask;
+    int layerIndex = 0;
+    float blendWeight = 1.0f;
 
     float timeActive = 0.0f;
     // Per track 
@@ -66,6 +73,13 @@ public:
   void SetTime(const std::string& name, float timeInSeconds);
   // Sets the animation progress to the specified percentage (0.0 - 1.0)
   void SetProgress(const std::string& name, float percent);
+
+  // Sets which layer the animation plays on
+  //    used for masks
+  void SetAnimationLayer(const std::string& name, int layer);
+
+  // Creates a mask starting from the `maskRoot`
+  void SetAnimationMask(const std::string& nanme, SceneNode* maskRoot);
 
   void DrawImGui() override;
 

@@ -1,7 +1,10 @@
 #pragma once
 
 #include "Settings.h"
+
 #include <SDL3/SDL_video.h>
+#include <AL/al.h>
+#include <AL/alc.h>
 
 #include <functional>
 #include <string>
@@ -16,6 +19,11 @@ protected:
 
     SDL_Window* window = nullptr;
     SDL_GLContext glContext = nullptr;
+
+    // Audio
+    ALCdevice* audioDevice = nullptr;
+    ALCcontext* audioContext = nullptr;
+
     Scene* currentScene = nullptr;
     
     int windowWidth = 1280;

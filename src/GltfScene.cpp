@@ -166,50 +166,62 @@ SceneNode* GltfScene::Instantiate(Scene* scene, SceneNode* parent, std::string n
     sceneNodes[index] = sceneNode;
   }
 
+  std::vector<SkeletonComponent*> instantiatedSkins(asset->skins.size(), nullptr);
+
   for (std::size_t i = 0; i < asset->nodes.size(); ++i) {
     auto& gltfNode = asset->nodes[i];
 
     if (gltfNode.skinIndex.has_value() && sceneNodes[i] != nullptr) {
-      auto& gltfSkin = asset->skins[gltfNode.skinIndex.value()];
+      std::size_t skinIndex = gltfNode.skinIndex.value();
 
-      auto* skeleton = sceneNodes[i]->AddObject<SkeletonComponent>();
+      if (instantiatedSkins[skinIndex] == nullptr) {
+        auto& gltfSkin = asset->skins[skinIndex];
 
-      skeleton->joints.reserve(gltfSkin.joints.size());
-      for (std::size_t jointIndex : gltfSkin.joints) {
-        skeleton->joints.push_back(sceneNodes[jointIndex]);
-      }
+        auto* skeleton = sceneNodes[i]->AddObject<SkeletonComponent>();
+        instantiatedSkins[skinIndex] = skeleton;
 
-      skeleton->inverseBindMatrices.resize(gltfSkin.joints.size(), glm::mat4(1.0f));
-      if (gltfSkin.inverseBindMatrices.has_value()) {
-        auto& ibmAccessor = asset->accessors[gltfSkin.inverseBindMatrices.value()];
+        skeleton->joints.reserve(gltfSkin.joints.size());
+        for (std::size_t jointIndex : gltfSkin.joints) {
+          skeleton->joints.push_back(sceneNodes[jointIndex]);
+        }
+
+        skeleton->inverseBindMatrices.resize(gltfSkin.joints.size(), glm::mat4(1.0f));
+        if (gltfSkin.inverseBindMatrices.has_value()) {
+          auto& ibmAccessor = asset->accessors[gltfSkin.inverseBindMatrices.value()];
 
         fastgltf::iterateAccessorWithIndex<fastgltf::math::fmat4x4>(*asset, ibmAccessor, [&](fastgltf::math::fmat4x4 matrix, std::size_t idx) {
-            skeleton->inverseBindMatrices[idx] = glm::make_mat4(matrix.data());
+          skeleton->inverseBindMatrices[idx] = glm::make_mat4(matrix.data());
         });
+        }
+
+        if (gltfSkin.skeleton.has_value()) {
+          skeleton->skeletonRoot = sceneNodes[gltfSkin.skeleton.value()];
+        }
       }
 
-      if (gltfSkin.skeleton.has_value()) {
-        skeleton->skeletonRoot = sceneNodes[gltfSkin.skeleton.value()];
+      MeshRenderer* renderer = sceneNodes[i]->GetObject<MeshRenderer>();
+      if (renderer != nullptr) {
+          renderer->SetSkeleton(instantiatedSkins[skinIndex]);
       }
     }
   }
 
   // Animation
   if (!asset->animations.empty()) {
-  root->AddObject<AnimationComponent>();
-  auto* animationComponent = root->GetObject<AnimationComponent>();
-  animationComponent->animations.reserve(asset->animations.size());
-    for (auto& gltfAnimation : asset->animations) {
-      auto animation = LoadAnimation(sceneNodes, gltfAnimation, *asset);
-      if (animation.has_value()) {
-        animation->participants = sceneNodes;
-        animation->source = this->filePath;
-        animationComponent->animations.push_back(std::move(animation.value()));
-      } else {
-        continue;
+    root->AddObject<AnimationComponent>();
+    auto* animationComponent = root->GetObject<AnimationComponent>();
+    animationComponent->animations.reserve(asset->animations.size());
+      for (auto& gltfAnimation : asset->animations) {
+        auto animation = LoadAnimation(sceneNodes, gltfAnimation, *asset);
+        if (animation.has_value()) {
+          animation->participants = sceneNodes;
+          animation->source = this->filePath;
+          animationComponent->animations.push_back(std::move(animation.value()));
+        } else {
+          continue;
+        }
       }
     }
-  }
 
   return root; 
 }
@@ -370,6 +382,7 @@ SceneNode* GltfScene::CreateNode(
       SceneNode* lightNode = scene->CreateNode(node, gltfLight.name.empty() ? "Light" : gltfLight.name.c_str());
    
       lightNode->LocalTransform().Rotation() = glm::quat(glm::radians(glm::vec3(180.0f, 0.0f, 0.0f)));
+      lightNode->LocalTransform().Position() = glm::vec3(0, 0, 0);
 
       const float defaultLinear = 0.09f;
       const float defaultQuadratic = 0.032f;
@@ -730,43 +743,43 @@ std::vector<Material*> GltfScene::LoadMaterials(GltfScene* scene, bool isSkinned
   auto* opaqueProg = ShaderProgram::Build()
   .WithVertexShader(vertexShaderPath)
   .WithPixelShader("./res/shaders/gltf/pbr.frag")
-  .Link();
+  .Load();
 
   auto* maskProg = ShaderProgram::Build()
   .WithVertexShader(vertexShaderPath)
   .WithPixelShader("./res/shaders/gltf/pbr_mask.frag")
-  .Link();
+  .Load();
 
   auto* blendProg = ShaderProgram::Build()
   .WithVertexShader(vertexShaderPath)
   .WithPixelShader("./res/shaders/gltf/pbr_blend.frag")
-  .Link();
+  .Load();
 
   auto* opaquePomProg = ShaderProgram::Build()
       .WithVertexShader(vertexShaderPath)
       .WithPixelShader("./res/shaders/gltf/pbr_pom.frag")
-      .Link();
+      .Load();
 
   // Could just use the regular one because it has a discard either way but w/e
   auto* maskPomProg = ShaderProgram::Build()
       .WithVertexShader(vertexShaderPath)
       .WithPixelShader("./res/shaders/gltf/pbr_pom_mask.frag")
-      .Link();
+      .Load();
 
   auto* blendPomProg = ShaderProgram::Build()
       .WithVertexShader(vertexShaderPath)
       .WithPixelShader("./res/shaders/gltf/pbr_pom_blend.frag")
-      .Link();
+      .Load();
 
   static auto* ditherHoleProg = ShaderProgram::Build()
       .WithVertexShader(vertexShaderPath)
       .WithPixelShader("./res/shaders/gltf/pbr_dither_hole.frag")
-      .Link();
+      .Load();
 
   auto* ditherProximityProg = ShaderProgram::Build()
       .WithVertexShader(vertexShaderPath)
       .WithPixelShader("./res/shaders/gltf/pbr_dither_proximity.frag")
-      .Link();
+      .Load();
   
   for (auto& gltfMaterial : asset.materials) {
     Material* material = nullptr;

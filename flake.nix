@@ -25,6 +25,10 @@
         libxcb
         libxtst
         dbus
+
+        alsa-lib
+        libpulseaudio
+        pipewire
       ];
     in
     {
@@ -38,6 +42,8 @@
           gdb
           wayland-scanner
           python3
+          tracy-wayland
+          zenity
 
           cppcheck
           include-what-you-use

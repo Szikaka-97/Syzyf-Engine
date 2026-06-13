@@ -14,7 +14,88 @@
 #include <physics/Body.h>
 #include <game_scripts/enemies/EnemySkeleton.h>
 
+#include <MathHelpers.h>
+#include <TimeSystem.h>
+
+DungeonRoomScript::DungeonRoomScript() {
+	this->surface = GetNode()->FindNode("floor")->GetObject<Surface>();
+
+	for (auto* node : GetNode()->GetChildren()) {
+		if (node->GetName().starts_with("gate")) {
+			this->doors.push_back(node);
+		}
+	}
+}
+
+void DungeonRoomScript::Update() {
+	if (this->surface->PlayerInside()) {
+		this->timeout -= Time::Delta();
+
+		if (this->timeout > 0) {
+			return;
+		}
+
+		if (this->surface->GetEnemies().size() > 0) {
+			for (auto* door : this->doors) {
+				glm::vec3 pos = door->GetObject<Physics::Body>()->GetPosition();
+				
+				pos.y = Math::MoveTowards(pos.y, 1.4f, Time::Delta() * 10);
+
+				door->GetObject<Physics::Body>()->SetPosition(pos);
+				door->GlobalTransform().Position() = pos;
+			}
+		}
+		else {
+			for (auto* door : this->doors) {
+				glm::vec3 pos = door->GetObject<Physics::Body>()->GetPosition();
+				
+				pos.y = Math::MoveTowards(pos.y, 3.8f, Time::Delta() * 10);
+
+				door->GetObject<Physics::Body>()->SetPosition(pos);
+				door->GlobalTransform().Position() = pos;
+			}
+		}
+	}
+}
+
+void ElevatorScript::Update() {
+	glm::vec3 pos = GlobalTransform().Position();
+
+	if (pos.y > 0) {
+		pos.y = Math::MoveTowards(pos.y, 0, Time::Delta());
+
+		PlayerController::Instance()->GlobalTransform().Position() = GlobalTransform().Position().Value();
+		
+		GlobalTransform().Position() = pos;
+	}
+	else {
+		PlayerController::Instance()->SetEnabled(true);
+
+		delete this;
+	}
+
+}
+
 SceneNode* DungeonGenerator::PlaceRoom() {
+	return nullptr;
+}
+
+DungeonGenerator::RoomPrefab* DungeonGenerator::GetPrefabWithTag(const std::string& tag) {
+	auto roomIt = std::find_if(this->roomPrefabs.begin(), this->roomPrefabs.end(), [&tag](RoomPrefab prefab) -> bool { return prefab.HasTag(tag); } );
+
+	if (roomIt != this->roomPrefabs.end()) {
+		return &*roomIt;
+	}
+
+	return nullptr;
+}
+DungeonGenerator::RoomPrefab* DungeonGenerator::GetPrefabWithShape(RoomShape shape) {
+	auto roomIt = std::find_if(this->roomPrefabs.begin(), this->roomPrefabs.end(), [&shape](RoomPrefab prefab) -> bool { return prefab.shape == shape; } );
+
+	if (roomIt != this->roomPrefabs.end()) {
+		return &*roomIt;
+	}
+
 	return nullptr;
 }
 
@@ -210,7 +291,7 @@ void DungeonGenerator::RemakeDungeon() {
 	}
 }
 
-void SpawnEnemy(SceneNode* position) {
+EnemyBase* SpawnEnemy(SceneNode* position) {
 	JPH::ShapeRefC enemyShape = new JPH::CapsuleShape(0.5f, 1.0f);
     JPH::BodyCreationSettings enemySettings(
         enemyShape, JPH::RVec3(10.5f, 2.0f, 2.0f), JPH::Quat::sIdentity(),
@@ -228,12 +309,10 @@ void SpawnEnemy(SceneNode* position) {
     enemyBody1->SetRestitution(0.0f);
     auto* enemyAi1 = enemy1->AddObject<EnemySkeleton>();
     enemyAi1->SetProjectileResources(cubeMesh, enemyMat);
-    enemyAi1->SetSurface(position->GetParent()->GetObjectInChildren<Surface>());
     enemyAi1->SetProjectileResources(cubeMesh, enemyMat);
 	enemyAi1->SetTargetNode(PlayerController::Instance()->GetNode());
     enemyAi1->SetAttackCooldown(1.2f);
 	enemyAi1->m_FlockingSystem = position->GetScene()->GetComponent<FlockingSystem>();
-	enemyAi1->SetRoomID(enemyAi1->GetSurface()->GetID());
 
     enemyAi1->RegisterToFlockingSystem(position->GetScene()->GetComponent<FlockingSystem>());
 
@@ -243,25 +322,60 @@ void SpawnEnemy(SceneNode* position) {
     enemyModel->SetParent(enemy1);
     enemyModel->GlobalTransform().Scale() = glm::vec3(0.1, 0.1, 0.1);
     enemyModel->LocalTransform().Position() = glm::zero<glm::vec3>();
+
+	return enemyAi1;
 }
 
-void DungeonGenerator::Update() {
-	glm::vec3 playerPosition = PlayerController::Instance()->GlobalTransform().Position();
+void DungeonGenerator::Awake() {
+	for (const auto& roomFile : std::filesystem::directory_iterator(this->rootRoomPath)) {
+		if (roomFile.path().extension() == ".glb") {
+			RoomPrefab prefab;
 
-	for (auto room : this->dungeonRooms) {
-		glm::vec3 roomCenter = glm::vec3(room.position.y, 0, room.position.x) * glm::vec3(this->gridSize);
+			prefab.prefab = GetScene()->Resources()->Get<GltfScene>(roomFile);
 
-		glm::vec3 dist = glm::abs(roomCenter - playerPosition);
+			SceneNode* instantiatedRoom = prefab.prefab->Instantiate(GetScene(), nullptr, roomFile.path().stem().string());
 
-		dist.y = 0;
+			for (SceneNode* child : instantiatedRoom->GetChildren()) {
+				if (child->GetName() == "ROOM_SHAPE_O") {
+					prefab.shape = RoomShape::DeadEnd;
+				}
+				else if (child->GetName() == "ROOM_SHAPE_I") {
+					prefab.shape = RoomShape::Corridor;
+				}
+				else if (child->GetName() == "ROOM_SHAPE_L") {
+					prefab.shape = RoomShape::Corner;
+				}
+				else if (child->GetName() == "ROOM_SHAPE_T") {
+					prefab.shape = RoomShape::TShape;
+				}
+				else if (child->GetName() == "ROOM_SHAPE_X") {
+					prefab.shape = RoomShape::Cross;
+				}
+				else if (child->GetName().starts_with("ROOM_SIZE_")) {
+					std::stringstream sizeString(child->GetName().substr(10));
 
-		if (dist.x > this->gridSize * 1.5 || dist.z > this->gridSize * 1.5) {
-			room.room->SetEnabled(false);
+					std::string sizeX;
+					std::string sizeY;
+
+					std::getline(sizeString, sizeX, 'x');
+					std::getline(sizeString, sizeY);
+
+					prefab.size.x = std::stof(sizeX);
+					prefab.size.y = std::stof(sizeY);
+				}
+				else if (child->GetName().starts_with("ROOM_TAG_")) {
+					prefab.tags.push_back(child->GetName().substr(9));
+				}
+			}
+
+			this->roomPrefabs.push_back(prefab);
+
+			instantiatedRoom->SetEnabled(false);
 		}
 	}
 }
 
-void DungeonGenerator::Render() {
+void DungeonGenerator::Update() {
 	static int roomCounter = 0;
 
 	if (!this->roomsToSpawn.empty()) {
@@ -271,22 +385,10 @@ void DungeonGenerator::Render() {
 		GltfScene* roomPrefab = nullptr;
 
 		if (room.position == glm::vec2(0, 0)) {
-			roomPrefab = ResourceDatabase::Global->Get<GltfScene>("./res/models/rooms/Room Start.glb");
+			roomPrefab = GetPrefabWithTag("START")->prefab;
 		}
-		else if (room.type == RoomShape::Corridor) {
-			roomPrefab = ResourceDatabase::Global->Get<GltfScene>("./res/models/rooms/Room Corridor.glb");
-		}
-		else if (room.type == RoomShape::DeadEnd) {
-			roomPrefab = ResourceDatabase::Global->Get<GltfScene>("./res/models/rooms/Room DeadEnd.glb");
-		}
-		else if (room.type == RoomShape::TShape) {
-			roomPrefab = ResourceDatabase::Global->Get<GltfScene>("./res/models/rooms/Room T.glb");
-		}
-		else if (room.type == RoomShape::Corner) {
-			roomPrefab = ResourceDatabase::Global->Get<GltfScene>("./res/models/rooms/Room L.glb");
-		}
-		else if (room.type == RoomShape::Cross) {
-			roomPrefab = ResourceDatabase::Global->Get<GltfScene>("./res/models/rooms/Room Cross.glb");
+		else {
+			roomPrefab = GetPrefabWithShape(room.type)->prefab;
 		}
 
 		roomCounter++;
@@ -295,16 +397,28 @@ void DungeonGenerator::Render() {
 			spdlog::info("Room coords: {}", room.position);
 
 			SceneNode* spawnedRoom = roomPrefab->Instantiate(GetScene(), GetNode(), std::format("Room {}", roomCounter));
-			
+
 			spawnedRoom->GlobalTransform().Position() = GlobalTransform().Position() + glm::vec3(room.position.y, 0, room.position.x) * glm::vec3(this->gridSize);
 			spawnedRoom->GlobalTransform().Rotation() = glm::vec3(0, glm::radians(-90.0f * room.orientation), 0);
 
 			SceneNode* floorNode = nullptr;
 
-			if (spawnedRoom->TryFindNode("FLOOR", &floorNode)) {
+			if (spawnedRoom->TryFindNode("floor", &floorNode)) {
 				floorNode->AddObject<Surface>(floorNode->GetObject<MeshRenderer>()->GetMesh(), 1);
 			}
 
+			if (room.position == glm::vec2(0, 0)) {
+				auto* elevatorNode = spawnedRoom->FindNode("Elevator");
+				// elevatorNode->AddObject<ElevatorScript>();
+				elevatorNode->GlobalTransform().Position() = glm::vec3(0, 0, 0);
+
+				// PlayerController::Instance()->SetEnabled(false);
+				// PlayerController::Instance()->GlobalTransform().Position() = elevatorNode->GlobalTransform().Position().Value();
+			}
+			else {
+				spawnedRoom->AddObject<DungeonRoomScript>();
+			}
+			
 			for (MeshRenderer* mesh : spawnedRoom->GetAllObjectsInChildren<MeshRenderer>()) {
 				auto* body = mesh->GetNode()->AddObject<Physics::Body>(
 				JPH::BodyCreationSettings{
@@ -316,8 +430,12 @@ void DungeonGenerator::Render() {
 			}
 
 			for (SceneNode* child : spawnedRoom->GetChildren()) {
-				if (child->GetName().starts_with("ENEMY_SPAWN_Skeleton")) {
-					SpawnEnemy(child);
+				if (child->GetName().starts_with("ENEMY_SPAWN_")) {
+					auto* enemy = SpawnEnemy(child);
+
+					enemy->SetSurface(floorNode->GetObject<Surface>());
+					enemy->SetRoomID(enemy->GetSurface()->GetID());
+					floorNode->GetObject<Surface>()->AddEnemy(enemy);
 				}
 			}
 
@@ -326,6 +444,27 @@ void DungeonGenerator::Render() {
 			this->dungeonRooms.push_back(room);
 		}
 	}
+
+	glm::vec3 playerPosition = PlayerController::Instance()->GlobalTransform().Position();
+
+	for (auto room : this->dungeonRooms) {
+		glm::vec3 roomCenter = glm::vec3(room.position.y, 0, room.position.x) * glm::vec3(this->gridSize);
+
+		glm::vec3 dist = glm::abs(roomCenter - playerPosition);
+
+		dist.y = 0;
+
+		if (dist.x < this->gridSize * 1.5 && dist.z < this->gridSize * 1.5) {
+			room.room->SetEnabled(true);
+		}
+		else {
+			room.room->SetEnabled(false);
+		}
+	}
+}
+
+void DungeonGenerator::Render() {
+	
 }
 
 void DungeonGenerator::DrawImGui() {

@@ -17,6 +17,8 @@
 
 namespace Editor {
 
+EditorApplication* EditorApplication::instance;
+
 void EditorApplication::InitSpdlog() {
     auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
     auto imgui_sink = std::make_shared<ImGuiConsoleSink<std::mutex>>();
@@ -73,7 +75,7 @@ void EditorApplication::OnInit(int argc, char* argv[]) {
 
     this->context.selectedScene = Scene::CreateStandaloneScene();
     this->context.loadedScenes.push_back(this->context.selectedScene);
-    TestScene::InitScene(*this->context.selectedScene);
+    LightingTestScene::InitScene(*this->context.selectedScene);
 
     for (auto* scene : this->context.loadedScenes) {
         scene->GetGraphics()->UpdateScreenResolution(
@@ -91,7 +93,11 @@ void EditorApplication::OnInit(int argc, char* argv[]) {
     }
 }
 
-void EditorApplication::OnUpdate() { this->Input(); }
+void EditorApplication::OnUpdate() {
+    this->context.ExecuteMainThreadTasks();
+
+    this->Input();
+}
 
 void EditorApplication::OnRender() {}
 
@@ -141,6 +147,7 @@ void EditorApplication::DrawPanels() {
     this->inspectorPanel.Draw(this->context);
     this->filesPanel.Draw();
     this->consolePanel.Draw(this->context);
+    this->textureToolPanel.Draw(this->context);
     this->sceneViewPanel.Draw(this->context);
 }
 
@@ -178,7 +185,6 @@ void EditorApplication::ExecutePendingSceneChange() {
     auto cameras = newScene->FindObjectsOfType<Camera>();
     if (!cameras.empty()) {
         this->context.mainCamera = cameras.front();
-        this->context.mainCamera = nullptr;
     } else {
         this->context.mainCamera = nullptr;
         spdlog::warn("Editor: The new scene doesn't have a Camera");
@@ -191,6 +197,10 @@ void EditorApplication::ExecutePendingSceneChange() {
 
     this->isSceneChangeRequested = false;
     this->pendingSceneInitFunc = nullptr;
+}
+
+EditorApplication* EditorApplication::ApplicationInstance() {
+    return instance;
 }
 
 } // namespace Editor

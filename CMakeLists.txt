@@ -43,6 +43,12 @@ ENDIF ()
 add_subdirectory(src)
 target_include_directories(${PROJECT_NAME} PRIVATE src/include)
 
+# ---- Tracy -----
+option(ENABLE_TRACY "Enable Tracy porfiler" OFF)
+if (ENABLE_TRACY)
+    message(STATUS "Tracy profiler ENABLED")
+endif()
+
 # ---- Editor ----
 option(BUILD_EDITOR "Build the Syzyf Editor" ON)
 

@@ -405,7 +405,9 @@ T_SC* Scene::GetOrCreateComponent() {
 
 	if (component == nullptr) {
 		return AddComponent<T_SC>();
-	}
+	} else {
+        return component;
+    }
 }
 
 template<class T_SC>

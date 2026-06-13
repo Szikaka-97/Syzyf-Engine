@@ -1,4 +1,5 @@
 #include "Application.h"
+#include "alc.h"
 #include "physics/Jolt.h"
 
 #include <Scene.h>
@@ -65,15 +66,15 @@ static void APIENTRY glDebugOutput(
 
 	switch (severity) {
 		case GL_DEBUG_SEVERITY_HIGH:
-			if (source != GL_DEBUG_SOURCE_SHADER_COMPILER) { // Shader errors handled separately
-				spdlog::error("GL {} {}: {} ({})", sourceString, typeString, message, id);
-			
-				//asm("INT3");
-				//For now this line is commented because it breaks the engin
-				//[2026-06-08 22:26:56.500] [Bimberman] [error] GL API Error: GL_INVALID_OPERATION error generated. <location> is invalid.
-				//(1282)
-				//throw 1;
-			}
+			// if (source != GL_DEBUG_SOURCE_SHADER_COMPILER) { // Shader errors handled separately
+			// 	spdlog::error("GL {} {}: {} ({})", sourceString, typeString, message, id);
+			//
+			// 	//asm("INT3");
+			// 	//For now this line is commented because it breaks the engin
+			// 	//[2026-06-08 22:26:56.500] [Bimberman] [error] GL API Error: GL_INVALID_OPERATION error generated. <location> is invalid.
+			// 	//(1282)
+			// 	//throw 1;
+			// }
 
 			break;
 		case GL_DEBUG_SEVERITY_MEDIUM:
@@ -140,12 +141,44 @@ bool Application::InitEngine() {
     ImGui_ImplOpenGL3_Init("#version 460");
     ImGui_ImplSDL3_InitForOpenGL(window, glContext);
 
+    // Audio
+    this->audioDevice = alcOpenDevice(nullptr);
+    if (!this->audioDevice) {
+        spdlog::error("Application::InitEngine: Failed to open OpenAL device.");
+        return false;
+    }
+
+    this->audioContext = alcCreateContext(this->audioDevice, nullptr);
+    if (!this->audioContext) {
+        spdlog::error("Failed to create OpenAL context.");
+        alcCloseDevice(this->audioDevice);
+        return false;
+    }
+
+    if (!alcMakeContextCurrent(this->audioContext)) {
+        spdlog::error("Failed to make OpenAL context current.");
+        alcDestroyContext(this->audioContext);
+        alcCloseDevice(this->audioDevice);
+        return false;
+    }
+
     return true;
 }
 
 void Application::ShutdownEngine() {
     if (this->currentScene) {
         delete this->currentScene;
+    }
+
+    if (this->audioContext) {
+        alcMakeContextCurrent(nullptr);
+        alcDestroyContext(this->audioContext);
+        this->audioContext = nullptr;
+    }
+
+    if (this->audioDevice) {
+        alcCloseDevice(this->audioDevice);
+        this->audioDevice = nullptr;
     }
 
     ImGui::DestroyPlatformWindows();
