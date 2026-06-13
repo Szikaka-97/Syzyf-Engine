@@ -5,7 +5,100 @@
 #include <glm/gtc/constants.hpp>
 #include <spdlog/spdlog.h>
 #include "game_scripts/AttackEffects/EffectsManager.h"
+
+#include "Light.h"
 #include "game_scripts/FireParticles.h"
+
+void FlameFlicker::OnEnable() {
+    auto* tweenSystem = this->GetScene()->GetComponent<TweenSystem>();
+    if (!tweenSystem || !fireLight) return;
+
+    float targetIntensity = baseIntensity + glm::linearRand(-1.5f, 1.5f);
+    float duration = glm::linearRand(0.06f, 0.14f);
+
+    TweenConfig config;
+    config.initialValue = this->fireLight->GetIntensity();
+    config.targetValue = targetIntensity;
+    config.duration = duration;
+    config.easingFunction = Easing::inOutSine;
+
+    this->flickerTween = std::move(
+        tweenSystem->CreateTween(config)
+            .Bind([this](float newValue) {
+                if (fireLight) this->fireLight->SetIntensity(newValue);
+            })
+            .OnComplete([this]() {
+                this->OnEnable();
+            })
+    );
+}
+
+void EffectFire::OnInit() {
+    Scene* mainScene = GetScene();
+    SceneNode* fireRootNode = GetNode();
+    fireRootNode->GlobalTransform().Scale() = glm::vec3(1.0f, 1.0f, 1.0f);
+    ShaderProgram* fireProgram =
+        ShaderProgram::Build()
+            .WithVertexShader("./res/shaders/particles/particles.vert")
+            .WithPixelShader("./res/shaders/particles/particles_blend.frag")
+            .Link();
+
+    auto* fireMaterial = new Material(fireProgram);
+    fireMaterial->SetValue("colorTex", mainScene->Resources()->Get<Texture2D>(
+                                           "./res/textures/dust.png",
+                                           Texture2D::ColorTextureRGBA));
+    fireMaterial->SetValue("color", glm::vec4(50.0f, 15.0f, 2.0f, 1.0f));
+
+    ParticleSpawnerSettings fireSettings = {
+        .maxParticles = 250,
+        .areaExtents = glm::vec3(1.0f, 2.0f, 1.0f),
+        .emissionShapeExtents = glm::vec3(1.0f, 0.1f, 1.0f),
+
+        .minVelocity = glm::vec3(-0.2f, 1.2f, -0.2f),
+        .maxVelocity = glm::vec3(0.2f, 2.2f, 0.2f),
+
+        .minInitialAngle = 0.0f,
+        .maxInitialAngle = 6.28318f,
+        .minAngularVelocity = -1.0f,
+        .maxAngularVelocity = 1.0f,
+        .rotateY = false,
+
+        .enableLifetime = true,
+        .minLifetime = 0.5f,
+        .maxLifetime = 1.0f,
+
+        .minScale = 0.25f,
+        .maxScale = 0.5f,
+
+        .alphaMode = AlphaMode::Alpha,
+
+        .enableLifetimeFade = true,
+        .lifetimeFadeIn = {0.0f, 0.15f},
+        .lifetimeFadeOut = {0.65f, 1.0f},
+
+        .enableDepthFade = true,
+        .depthFadeDistance = 0.15f,
+
+        .billboardMode = BillboardMode::Enabled,
+        .wrapAround = false,
+        .continuous = true,
+        .useColorRamp = false
+    };
+
+    fireRootNode->AddObject<ParticleSpawner>(
+        mainScene->Resources()->Get<Mesh>("./res/models/fullscreenquad.obj"),
+        fireMaterial,
+        fireSettings
+    );
+
+    SceneNode* lightNode = mainScene->CreateNode(fireRootNode, "Fire Light Asset");
+    lightNode->LocalTransform().Position() = {0.0f, 0.4f, 0.0f};
+
+    auto* fireLight = lightNode->AddObject<Light>(Light::PointLight({1.0f, 0.45f, 0.08f}, 4.0f,1.0f));
+
+    auto* flickerScript = lightNode->AddObject<FlameFlicker>();
+    flickerScript->Init(fireLight);
+}
 
 void EffectFire::OnApplySpecials() {
     if (special1) damage *= modifier;
@@ -17,6 +110,19 @@ void EffectFire::OnApplyToEnemy(EnemyBase* enemy) {
     enemy->ApplyBurn(damage, dotRemainingTime, timeInterval);
 }
 
+void EffectPetrify::OnInit() {
+    SceneNode* effectModel =
+            ResourceDatabase::Global
+    ->Get<GltfScene>("./res/models/effects/petrify1.glb")
+->Instantiate(GetScene(), GetNode(), "petrify effect");
+    effectModel->GlobalTransform().Scale()=glm::vec3(1.f,1.5f,1.5f);
+    GetNode()->GlobalTransform().Scale()=glm::vec3(1.0f,1.0f,1.0f);
+
+    auto* animComp = effectModel->GetObjectInChildren<AnimationComponent>();
+    if (animComp) {
+        animComp->Play("*Action");
+    }
+}
 
 void EffectPetrify::OnApplySpecials() {
     if (special1) petrifyRemainingTime *= static_cast<float>(modifier);
@@ -29,6 +135,16 @@ void EffectPetrify::OnApplyToEnemy(EnemyBase* enemy) {
     float slowFactor = (ingredientCount == 1) ? 0.5f : 0.0f;
     enemy->ApplyPetrify(slowFactor, petrifyRemainingTime);
 }
+
+void EffectTornado::OnInit(){
+    SceneNode* effectModel =
+            ResourceDatabase::Global
+    ->Get<GltfScene>("./res/models/effects/tornado1.glb")
+->Instantiate(GetScene(), GetNode(), "tornado effect");
+    effectModel->GlobalTransform().Scale()=glm::vec3(1.f,1.5f,1.5f);
+    GetNode()->GlobalTransform().Scale()=glm::vec3(1.0f,1.0f,1.0f);
+}
+
 
 void EffectTornado::OnApplySpecials() {
     if (special1) radius               *= static_cast<float>(modifier);
@@ -64,6 +180,20 @@ void EffectTornado::ScanAndHandleBullets() {
     }
 }
 
+void EffectConfuse::OnInit() {
+    SceneNode* effectModel =
+            ResourceDatabase::Global
+    ->Get<GltfScene>("./res/models/effects/confuse1.glb")
+->Instantiate(GetScene(), GetNode(), "confuse effect");
+    effectModel->GlobalTransform().Scale()=glm::vec3(1.f,1.5f,1.5f);
+    GetNode()->GlobalTransform().Scale()=glm::vec3(1.0f,1.0f,1.0f);
+
+    auto* animComp = effectModel->GetObjectInChildren<AnimationComponent>();
+    if (animComp) {
+        animComp->Play("Spiral.002Action");
+    }
+}
+
 void EffectConfuse::OnApplySpecials() {
     if (special1) confuseRemainingTime *= static_cast<float>(modifier);
     if (special2) damage *= modifier;
@@ -81,8 +211,16 @@ void EffectExplosion::OnInit() {
             ResourceDatabase::Global
     ->Get<GltfScene>("./res/models/effects/explode1.glb")
 ->Instantiate(GetScene(), GetNode(), "explosion effect");
-    explosionModel->GlobalTransform().Scale()=glm::vec3(1.0f,1.0f,1.0f);
+    explosionModel->GlobalTransform().Scale()=glm::vec3(1.f,1.5f,1.5f);
     GetNode()->GlobalTransform().Scale()=glm::vec3(1.0f,1.0f,1.0f);
+
+    auto* animComp = explosionModel->GetObjectInChildren<AnimationComponent>();
+    if (animComp) {
+        animComp->Play("*Action");
+        animComp->Play("CylinderAction");
+        animComp->Play("TorusAction");
+        animComp->Play("SphereAction");
+    }
 }
 
 void EffectExplosion::OnApplySpecials() {

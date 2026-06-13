@@ -68,6 +68,7 @@
 #include "game_scripts/enemies/FlockingSystem.h"
 
 #include "Jolt/Math/Vec3.h"
+#include "game_scripts/enemies/EnemyPotato.h"
 #include "text/Text3D.h"
 #include <Jolt/Jolt.h>
 #include <Jolt/Physics/Body/MotionType.h>
@@ -245,7 +246,7 @@ inline void InitScene(Scene& mainScene) {
     Mesh* cubeMesh =
         mainScene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
 
-    const int enemyCount = 10;
+    const int enemyCount = 1;
     const float startX = 10.0f;
     const float startZ = -5.0f;
     const float spacing = 3.0f;
@@ -265,7 +266,7 @@ inline void InitScene(Scene& mainScene) {
         enemyBody->SetRestitution(0.0f);
         enemyBody->SetCollisionLayerAndMask({1}, 0xFFFFFFFF);
 
-        auto* enemyAi = enemyNode->AddObject<EnemySkeleton>();
+        auto* enemyAi = enemyNode->AddObject<MeleeSkeleton>();
         enemyAi->SetSurface(surface);
         enemyAi->SetTargetNode(player->GetNode());
         enemyAi->SetProjectileResources(cubeMesh, enemyMat);
@@ -276,14 +277,14 @@ inline void InitScene(Scene& mainScene) {
         enemyAi->OnPlayerEnteredRoom();
         SceneNode* enemyModel =
             ResourceDatabase::Global
-                ->Get<GltfScene>("./res/models/not_cube6.glb")
-                //->Get<GltfScene>("./res/models/enemies/szkielet4.glb")
+                //->Get<GltfScene>("./res/models/not_cube6.glb")
+                ->Get<GltfScene>("./res/models/enemies/szkielet5amaturedel.glb")
                 ->Instantiate(&mainScene, mainScene.root,
                               "EnemyModel_" + std::to_string(i));
         enemyModel->SetParent(enemyNode);
         enemyModel->LocalTransform().Position() = glm::zero<glm::vec3>();
 
-        /*auto* animComp = enemyModel->GetObjectInChildren<AnimationComponent>();
+        auto* animComp = enemyModel->GetObjectInChildren<AnimationComponent>();
         if (animComp) {
             spdlog::info("Found AnimationComponent in enemy model {} , "
                          "animations count: {}",
@@ -291,8 +292,8 @@ inline void InitScene(Scene& mainScene) {
             enemyAi->SetAttackAnimation(animComp);
         } else {
             spdlog::warn("No AnimationComponent found in enemy model {}", i);
-        }*/
-        enemyAi->RegisterToFlockingSystem(flockingSystem);
+        }
+        //enemyAi->RegisterToFlockingSystem(flockingSystem);
     }
 #pragma endregion
 #pragma region UI
