@@ -111,6 +111,8 @@ void EffectFire::OnApplyToEnemy(EnemyBase* enemy) {
 }
 
 void EffectPetrify::OnInit() {
+
+    if (myNode) myNode->GlobalTransform().Position() = glm::vec3(GlobalTransform().Position().x,0.4f,GlobalTransform().Position().z);
     SceneNode* effectModel =
             ResourceDatabase::Global
     ->Get<GltfScene>("./res/models/effects/petrify1.glb")
@@ -118,9 +120,12 @@ void EffectPetrify::OnInit() {
     effectModel->GlobalTransform().Scale()=glm::vec3(1.f,1.5f,1.5f);
     GetNode()->GlobalTransform().Scale()=glm::vec3(1.0f,1.0f,1.0f);
 
+    effectModel->LocalTransform().Position() = glm::vec3(0, 0, 0);
     auto* animComp = effectModel->GetObjectInChildren<AnimationComponent>();
     if (animComp) {
-        animComp->Play("*Action");
+        animComp->Play("Cylinder.008Action");
+        animComp->Play("Cylinder.009Action");
+        animComp->Play("Cylinder.010Action");
     }
 }
 
@@ -141,8 +146,13 @@ void EffectTornado::OnInit(){
             ResourceDatabase::Global
     ->Get<GltfScene>("./res/models/effects/tornado1.glb")
 ->Instantiate(GetScene(), GetNode(), "tornado effect");
-    effectModel->GlobalTransform().Scale()=glm::vec3(1.f,1.5f,1.5f);
-    GetNode()->GlobalTransform().Scale()=glm::vec3(1.0f,1.0f,1.0f);
+    GetNode()->GlobalTransform().Scale()=glm::vec3(1.f,1.5f,1.5f);
+    effectModel->LocalTransform().Position() = glm::vec3(0, 0, 0);
+
+    auto* animComp = effectModel->GetObjectInChildren<AnimationComponent>();
+    if (animComp) {
+        animComp->Play("Cylinder.012Action");
+    }
 }
 
 
@@ -152,13 +162,13 @@ void EffectTornado::OnApplySpecials() {
     spdlog::info("TornadoEffect: radius={:.1f}, duration={:.1f}s", radius, tornadoRemainingTime);
 }
 void EffectTornado::OnUpdate() {
-    if (myNode) {
+    /*if (myNode) {
         glm::quat delta = glm::angleAxis(
             glm::radians(rotationSpeed * Time::Delta()),
             glm::vec3(0.0f, 1.0f, 0.0f));
         myNode->GlobalTransform().Rotation() =
             delta * glm::quat(myNode->GlobalTransform().Rotation());
-    }
+    }*/
     m_DamageTimer += Time::Delta();
     if (m_DamageTimer >= damageInterval) {
         m_DamageTimer = 0.0f;
@@ -185,9 +195,9 @@ void EffectConfuse::OnInit() {
             ResourceDatabase::Global
     ->Get<GltfScene>("./res/models/effects/confuse1.glb")
 ->Instantiate(GetScene(), GetNode(), "confuse effect");
-    effectModel->GlobalTransform().Scale()=glm::vec3(1.f,1.5f,1.5f);
-    GetNode()->GlobalTransform().Scale()=glm::vec3(1.0f,1.0f,1.0f);
+    GetNode()->GlobalTransform().Scale()=glm::vec3(1.5f,1.5f,1.5f);
 
+    effectModel->LocalTransform().Position() = glm::vec3(0, 0, 0);
     auto* animComp = effectModel->GetObjectInChildren<AnimationComponent>();
     if (animComp) {
         animComp->Play("Spiral.002Action");

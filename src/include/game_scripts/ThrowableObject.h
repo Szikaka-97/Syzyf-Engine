@@ -30,7 +30,7 @@ public:
         m_EffectFactory = [this, configure](SceneNode* node) -> EffectBase* {
             TEffect* effect = node->AddObject<TEffect>();
             if (configure) configure(effect);
-            effect->Init();                
+            //effect->Awake();
 
             
             return effect;

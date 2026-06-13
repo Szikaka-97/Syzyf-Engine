@@ -28,6 +28,11 @@ public:
     serialized float dotRemainingTime = 5.0f;
     serialized float damage           = 25.0f;
     serialized float timeInterval     = 1.0f;
+
+    serialized float strength         = 0.5f;
+    serialized float maxRange         = 10.0f;
+    serialized float maxDamage        = 0.0f;
+
     EffectFire() = default;
 protected:
 
@@ -40,6 +45,11 @@ class EffectPetrify : public EffectBase {
 public:
     serialized float petrifyRemainingTime = 5.0f;
     EffectPetrify() = default;
+
+
+    serialized float strength         = 0.5f;
+    serialized float maxRange         = 10.0f;
+    serialized float maxDamage        = 0.0f;
 protected:
     void  OnInit()          override;
     void OnApplySpecials() override;
@@ -52,6 +62,11 @@ public:
     serialized float rotationSpeed        = 90.0f;
     serialized float damage               = 25.0f;
     serialized float damageInterval       = 1.0f;
+
+    serialized float strength         = 0.5f;
+    serialized float maxRange         = 10.0f;
+    serialized float maxDamage        = 0.0f;
+
     EffectTornado() = default;
 protected:
 
@@ -67,9 +82,14 @@ private:
 
 class EffectConfuse : public EffectBase {
 public:
-    serialized float confuseRemainingTime = 5.0f;
+    serialized float confuseRemainingTime = 50.0f;
     serialized int   damage               = 25;
     EffectConfuse() = default;
+
+
+    serialized float strength         = 0.5f;
+    serialized float maxRange         = 10.0f;
+    serialized float maxDamage        = 50.0f;
 protected:
 
     void  OnInit()          override;

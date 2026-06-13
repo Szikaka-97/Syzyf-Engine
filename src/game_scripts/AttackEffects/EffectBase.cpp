@@ -15,6 +15,7 @@ void EffectBase::Awake() {
 
     myNode = GetNode();
 
+
     spdlog::debug("EffectBase::Init — radius={:.1f}, maxLifetime={:.1f}s",
                   radius, GetMaxLifetime());
 }
