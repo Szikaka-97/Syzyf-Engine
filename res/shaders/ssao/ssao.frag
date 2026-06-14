@@ -8,6 +8,9 @@ layout (location = 2) out vec3 FragSSGI;
 
 in vec2 pUVCoords;
 
+uniform bool enableHBAO;
+uniform bool enableHBIL;
+
 uniform sampler2D depthTex;
 uniform sampler2D normalTex;
 uniform sampler2D noiseTex;
@@ -84,27 +87,35 @@ void main() {
 
             if (elevation > maxHorizon && dist < radius) {
                 float weight = smoothstep(0.0, 1.0, 1.0 - (dist / radius));
-                
-                ao += (elevation - max(maxHorizon, 0.0)) * weight;
-
-                vec3 bounceColor = texture(colorTex, sampleUV).rgb;
-
-                float luminance = dot(bounceColor, vec3(0.2126, 0.7152, 0.0722));
-
-                float maxLuminance = 1.5;
-                if (luminance > maxLuminance) {
-                    bounceColor *= (maxLuminance / luminance);
+               
+                if (enableHBAO) {
+                    ao += (elevation - max(maxHorizon, 0.0)) * weight;
                 }
-                
-                ssgi += bounceColor * elevation * weight;
+
+                if (enableHBIL) {
+                    vec3 bounceColor = texture(colorTex, sampleUV).rgb;
+
+                    float luminance = dot(bounceColor, vec3(0.2126, 0.7152, 0.0722));
+
+                    float maxLuminance = 1.5;
+                    if (luminance > maxLuminance) {
+                        bounceColor *= (maxLuminance / luminance);
+                    }
+                    
+                    ssgi += bounceColor * elevation * weight;
+                }
 
                 maxHorizon = elevation;
             }
         }
     }
 
-    ao = 1.0 - (ao / float(NUM_DIRECTIONS));
-    FragAO = pow(clamp(ao, 0.0, 1.0), power);
-    
-    FragSSGI = (ssgi / float(NUM_DIRECTIONS)) * ssgiIntensity;
+    if (enableHBAO) {
+        ao = 1.0 - (ao / float(NUM_DIRECTIONS));
+        FragAO = pow(clamp(ao, 0.0, 1.0), power);
+    }
+
+    if (enableHBIL) {
+        FragSSGI = (ssgi / float(NUM_DIRECTIONS)) * ssgiIntensity;
+    }
 }

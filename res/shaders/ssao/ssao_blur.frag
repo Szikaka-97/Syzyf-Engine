@@ -8,6 +8,9 @@ layout (location = 2) out vec3 FragSSGI;
 
 in vec2 pUVCoords;
 
+uniform bool enableHBAO;
+uniform bool enableHBIL;
+
 uniform sampler2D ssaoTex;
 uniform sampler2D ssgiTex;
 uniform sampler2D depthTex;
@@ -40,8 +43,6 @@ void main() {
             vec2 offset = vec2(float(x), float(y)) * texelSize;
             vec2 sampleUV = pUVCoords + offset;
 
-            float sampleAO = texture(ssaoTex, sampleUV).r;
-            vec3 sampleSSGI = texture(ssgiTex, sampleUV).rgb;
             float sampleDepth = LinearizeDepth(texture(depthTex, sampleUV).r);
             vec3 sampleNormal = texture(normalTex, sampleUV).rgb;
 
@@ -54,14 +55,29 @@ void main() {
             float normalWeight = pow(normalDot, normalThreshold);
 
             float totalWeight = spatialWeight * depthWeight * normalWeight;
-
-            resultAO += sampleAO * totalWeight;
-            resultSSGI += sampleSSGI * totalWeight;
             weightSum += totalWeight;
 
+            if (enableHBAO) {
+                float sampleAO = texture(ssaoTex, sampleUV).r;
+                resultAO += sampleAO * totalWeight;
+            }
+
+            if (enableHBIL) {
+                vec3 sampleSSGI = texture(ssgiTex, sampleUV).rgb;
+                resultSSGI += sampleSSGI * totalWeight;
+            }
         }
     }
 
-    FragAO = resultAO / weightSum;
-    FragSSGI = resultSSGI / weightSum;
+    if (enableHBAO) {
+        FragAO = resultAO / weightSum;
+    } else {
+        FragAO = 1.0;
+    }
+
+    if (enableHBIL) {
+        FragSSGI = resultSSGI / weightSum;
+    } else {
+        FragSSGI = vec3(0.0);
+    }
 }

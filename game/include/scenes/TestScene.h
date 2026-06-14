@@ -97,8 +97,6 @@ inline void InitScene(Scene& mainScene) {
     mainScene.AddComponent<ThrowableObjectPool>();
     mainScene.AddComponent<AudioSystem>();
 
-    mainScene.GetGraphics()->ssaoSettings.enabled = false;
-
 // If Visual Studio doesn't like this I'm going to give up and force you guys to
 // switch to GCC
 #pragma region World

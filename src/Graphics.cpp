@@ -136,12 +136,16 @@ currentUniforms() {
     TextureParams ssaoParams = {
         .channels = TextureChannels::Grayscale,
         .colorSpace = TextureColor::Linear,
-        .format = TextureFormat::Ubyte
+        .format = TextureFormat::Ubyte,
+        .wrapU = TextureWrap::Clamp,
+        .wrapV = TextureWrap::Clamp
     };
     TextureParams ssgiParams = {
         .channels = TextureChannels::RGB,
         .colorSpace = TextureColor::Linear,
-        .format = TextureFormat::Float32
+        .format = TextureFormat::Float32,
+        .wrapU = TextureWrap::Clamp,
+        .wrapV = TextureWrap::Clamp
     };
 
     this->ssaoFramebuffer = new Framebuffer(Framebuffer::Attachment::None, 0, 0);
@@ -188,7 +192,7 @@ currentUniforms() {
 }
 
 void SceneGraphics::SetSSAOEnabled(bool enabled) {
-    this->ssaoSettings.enabled = enabled;
+    this->ssaoSettings.enableHBAO = enabled;
 }
 
 glm::vec2 SceneGraphics::GetScreenResolution() const {
@@ -206,6 +210,23 @@ void SceneGraphics::UpdateScreenResolution(glm::vec2 newResolution) {
         glm::vec2 ssaoResolution = glm::ceil(newResolution * this->ssaoSettings.resolutionScale);
         this->ssaoFramebuffer->SetSize(ssaoResolution);
         this->ssaoBlurFramebuffer->SetSize(ssaoResolution);
+
+        float clearWhite[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+        float clearBlack[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+
+        glBindFramebuffer(GL_FRAMEBUFFER, this->ssaoFramebuffer->GetHandle());
+        glClearBufferfv(GL_COLOR, 0, clearWhite);
+        glClearBufferfv(GL_COLOR, 1, clearBlack);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, this->ssaoFramebuffer->GetHandle());
+        glClearBufferfv(GL_COLOR, 0, clearWhite);
+        glClearBufferfv(GL_COLOR, 1, clearBlack);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, this->ssaoBlurFramebuffer->GetHandle());
+        glClearBufferfv(GL_COLOR, 0, clearWhite);
+        glClearBufferfv(GL_COLOR, 1, clearBlack);
+        
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 		if (GetPostProcessing()) {
 			GetPostProcessing()->UpdateBufferResolution(newResolution);
@@ -571,7 +592,7 @@ void SceneGraphics::Render() {
 	}
 
     RenderPassType passType = this->mainCamera->GetPasses();
-    if (this->ssaoSettings.enabled) {
+    if (this->ssaoSettings.enableHBAO || this->ssaoSettings.enableHBIL) {
         passType = passType | RenderPassType::SSAO;
     }
 
@@ -778,6 +799,9 @@ void SceneGraphics::RenderSSAO(const RenderParams& params, Framebuffer* target) 
     glUniform1i(glGetUniformLocation(shaderHandle, "noiseTex"), 2);
     glUniform1i(glGetUniformLocation(shaderHandle, "colorTex"), 3);
 
+    glUniform1i(glGetUniformLocation(shaderHandle, "enableHBAO"), this->ssaoSettings.enableHBAO);
+    glUniform1i(glGetUniformLocation(shaderHandle, "enableHBIL"), this->ssaoSettings.enableHBIL);
+
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, this->GetMainFramebuffer()->GetDepthTexture()->GetHandle());
 	glActiveTexture(GL_TEXTURE1);
@@ -830,6 +854,9 @@ void SceneGraphics::RenderSSAOBlur(const RenderParams& params, Framebuffer* targ
     glBindTexture(GL_TEXTURE_2D, this->opaquePassFramebuffer->GetCustomAttachmentTexture(0)->GetHandle());
 
     glUniform1i(glGetUniformLocation(this->shaders.ssaoBlurShader->GetHandle(), "blurRange"), this->ssaoSettings.blurRange);
+
+    glUniform1i(glGetUniformLocation(this->shaders.ssaoBlurShader->GetHandle(), "enableHBAO"), this->ssaoSettings.enableHBAO);
+    glUniform1i(glGetUniformLocation(this->shaders.ssaoBlurShader->GetHandle(), "enableHBIL"), this->ssaoSettings.enableHBIL);
     
     glDrawElements(GL_TRIANGLES, quadMesh->SubMeshAt(0).GetVertexCount(), GL_UNSIGNED_INT, nullptr);
 
@@ -1248,7 +1275,7 @@ void SceneGraphics::RenderOpaque(const ShaderGlobalUniforms& uniforms, const Ren
         if (aoMapUniformLocation >= 0) {
             glActiveTexture(GL_TEXTURE27);
             
-            if (this->ssaoSettings.enabled) {
+            if (this->ssaoSettings.enableHBAO) {
                 glBindTexture(GL_TEXTURE_2D, this->ssaoBlurFramebuffer->GetCustomAttachmentTexture(0)->GetHandle());
             } else {
                 static Texture2D* fallbackTexture = this->GetScene()->Resources()->Get<Texture2D>("./res/textures/default_color.png", Texture::ColorTextureRGB);
@@ -1261,7 +1288,7 @@ void SceneGraphics::RenderOpaque(const ShaderGlobalUniforms& uniforms, const Ren
         if (ssgiMapUniformLocation >= 0) {
             glActiveTexture(GL_TEXTURE26);
 
-            if (this->ssaoSettings.enabled) {
+            if (this->ssaoSettings.enableHBIL) {
                 glBindTexture(GL_TEXTURE_2D, this->ssaoBlurFramebuffer->GetCustomAttachmentTexture(1)->GetHandle());
             } else {
                 static Texture2D* fallbackTexture = this->GetScene()->Resources()->Get<Texture2D>("./res/textures/default_gi.png", Texture::ColorTextureRGB);
@@ -2151,16 +2178,23 @@ void SceneGraphics::DrawImGui() {
 
         // SSAO
         if (ImGui::TreeNode("SSAO Settings")) {
-            ImGui::Checkbox("Enable SSAO", &this->ssaoSettings.enabled);
+            ImGui::Checkbox("Enable HBAO", &this->ssaoSettings.enableHBAO);
+            ImGui::Checkbox("Enable HBIL", &this->ssaoSettings.enableHBIL);
 
-            ImGui::BeginDisabled(!this->ssaoSettings.enabled);
+            ImGui::BeginDisabled(!this->ssaoSettings.enableHBAO && !this->ssaoSettings.enableHBIL);
             ImGui::SliderInt("Ray Steps", &this->ssaoSettings.raySteps, 8, 256);
             ImGui::SliderFloat("Radius", &this->ssaoSettings.radius, 0.1f, 5.0f);
             ImGui::SliderFloat("Bias", &this->ssaoSettings.bias, 0.0f, 0.5f);
-            ImGui::SliderFloat("Power", &this->ssaoSettings.power, 0.1f, 5.0f);
             ImGui::SliderInt("Blur Range", &this->ssaoSettings.blurRange, 1, 4);
+            ImGui::EndDisabled();
+            ImGui::BeginDisabled(!this->ssaoSettings.enableHBAO);
+            ImGui::SliderFloat("Power", &this->ssaoSettings.power, 0.1f, 5.0f);
+            ImGui::EndDisabled();
+            ImGui::BeginDisabled(!this->ssaoSettings.enableHBIL);
             ImGui::SliderFloat("SSGI Intensity", &this->ssaoSettings.ssgiIntensity, 0.0f, 10.0f);
+            ImGui::EndDisabled();
 
+            ImGui::BeginDisabled(!this->ssaoSettings.enableHBAO && !this->ssaoSettings.enableHBIL);
             // Scale 
             const char* scaleNames[] = { "100%", "75%", "50%", "25%" };
             float scaleValues[] = { 1.0f, 0.75f, 0.5f, 0.25f };

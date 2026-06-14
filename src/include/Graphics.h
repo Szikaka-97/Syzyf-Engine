@@ -40,7 +40,8 @@ struct RenderParams {
 class SceneGraphics : public GameObjectSystem<Camera> {
 public:
     struct SSAOSettings {
-        bool enabled = true;
+        bool enableHBAO = true;
+        bool enableHBIL = true;
         int raySteps = 64;
         float bias = 0.08f;
         float radius = 1.4f;
