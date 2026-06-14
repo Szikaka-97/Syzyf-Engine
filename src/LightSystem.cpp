@@ -9,12 +9,13 @@
 #include <Camera.h>
 #include <Graphics.h>
 #include <TimeSystem.h>
+#include <tracy/Tracy.hpp>
 
 #include "../res/shaders/shared/shared.h"
 #include "../res/shaders/shared/uniforms.h"
 
 constexpr int MAX_NUM_LIGHTS = 16384;
-constexpr int LIGHTS_PER_CLUSTER = 256;
+constexpr int LIGHTS_PER_CLUSTER = 4096;
 
 struct alignas(16) Cluster {
 	glm::vec4 minPoint;
@@ -377,7 +378,8 @@ void LightSystem::CullLights() {
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, 0);
 }
 
-void LightSystem::OnPostRender() {	
+void LightSystem::OnPostRender() {
+    ZoneScopedN("LightSystem::OnPostRender");
 	CalculateLightClusters();
 
 	CullLights();

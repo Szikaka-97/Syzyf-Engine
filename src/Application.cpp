@@ -14,6 +14,8 @@
 #include <Jolt/RegisterTypes.h>
 #include <Jolt/Core/Factory.h>
 #include <spdlog/spdlog.h>
+#include <tracy/Tracy.hpp>
+#include <tracy/TracyOpenGL.hpp>
 
 #ifdef _WIN32
 extern "C" {
@@ -99,18 +101,20 @@ bool Application::InitEngine() {
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 
-#ifndef NDEBUG
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG | SDL_GL_CONTEXT_DEBUG_FLAG);
-#else
+// #ifndef NDEBUG
+//     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG | SDL_GL_CONTEXT_DEBUG_FLAG);
+// #else
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
-#endif
+// #endif
 
     this->window = SDL_CreateWindow(this->windowTitle.c_str(), windowWidth, windowHeight, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
     this->glContext = SDL_GL_CreateContext(this->window);
     SDL_GL_MakeCurrent(this->window, this->glContext);
-    SDL_GL_SetSwapInterval(1);
+    SDL_GL_SetSwapInterval(0);
 
     gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress);
+
+    TracyGpuContext;
 
     JPH::RegisterDefaultAllocator();
     JPH::Factory::sInstance = new JPH::Factory();
@@ -121,17 +125,17 @@ bool Application::InitEngine() {
     JPH::AssertFailed = Physics::AssertFailedImpl;
 #endif
 
-#ifndef NDEBUG
-    int contextFlags = 0;
-    glGetIntegerv(GL_CONTEXT_FLAGS, &contextFlags);
-    if (contextFlags & GL_CONTEXT_FLAG_DEBUG_BIT) {
-        glEnable(GL_DEBUG_OUTPUT);
-        glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-        glDebugMessageCallback(glDebugOutput, nullptr);
-        glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, true);
-    }
-#endif
-
+// #ifndef NDEBUG
+//     int contextFlags = 0;
+//     glGetIntegerv(GL_CONTEXT_FLAGS, &contextFlags);
+//     if (contextFlags & GL_CONTEXT_FLAG_DEBUG_BIT) {
+//         glEnable(GL_DEBUG_OUTPUT);
+//         glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+//         glDebugMessageCallback(glDebugOutput, nullptr);
+//         glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, true);
+//     }
+// #endif
+//
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
     glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
@@ -226,6 +230,9 @@ void Application::Run(int argc, char* argv[]) {
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         SDL_GL_SwapWindow(this->window);
+
+        TracyGpuCollect;
+        FrameMark;
 
         if (this->isSceneChangeRequested) {
             ExecutePendingSceneChange();

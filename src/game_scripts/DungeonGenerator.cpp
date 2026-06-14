@@ -429,15 +429,15 @@ void DungeonGenerator::Update() {
 				body->SetCollisionLayerAndMask({0}, 0xFFFFFFFF);
 			}
 
-			for (SceneNode* child : spawnedRoom->GetChildren()) {
-				if (child->GetName().starts_with("ENEMY_SPAWN_")) {
-					auto* enemy = SpawnEnemy(child);
-
-					enemy->SetSurface(floorNode->GetObject<Surface>());
-					enemy->SetRoomID(enemy->GetSurface()->GetID());
-					floorNode->GetObject<Surface>()->AddEnemy(enemy);
-				}
-			}
+			// for (SceneNode* child : spawnedRoom->GetChildren()) {
+			// 	if (child->GetName().starts_with("ENEMY_SPAWN_")) {
+			// 		auto* enemy = SpawnEnemy(child);
+			//
+			// 		enemy->SetSurface(floorNode->GetObject<Surface>());
+			// 		enemy->SetRoomID(enemy->GetSurface()->GetID());
+			// 		floorNode->GetObject<Surface>()->AddEnemy(enemy);
+			// 	}
+			// }
 
 			room.room = spawnedRoom;
 
@@ -447,20 +447,20 @@ void DungeonGenerator::Update() {
 
 	glm::vec3 playerPosition = PlayerController::Instance()->GlobalTransform().Position();
 
-	for (auto room : this->dungeonRooms) {
-		glm::vec3 roomCenter = glm::vec3(room.position.y, 0, room.position.x) * glm::vec3(this->gridSize);
-
-		glm::vec3 dist = glm::abs(roomCenter - playerPosition);
-
-		dist.y = 0;
-
-		if (dist.x < this->gridSize * 1.5 && dist.z < this->gridSize * 1.5) {
-			room.room->SetEnabled(true);
-		}
-		else {
-			room.room->SetEnabled(false);
-		}
-	}
+	// for (auto room : this->dungeonRooms) {
+	// 	glm::vec3 roomCenter = glm::vec3(room.position.y, 0, room.position.x) * glm::vec3(this->gridSize);
+	//
+	// 	glm::vec3 dist = glm::abs(roomCenter - playerPosition);
+	//
+	// 	dist.y = 0;
+	//
+	// 	if (dist.x < this->gridSize * 1.5 && dist.z < this->gridSize * 1.5) {
+	// 		room.room->SetEnabled(true);
+	// 	}
+	// 	else {
+	// 		room.room->SetEnabled(false);
+	// 	}
+	// }
 }
 
 void DungeonGenerator::Render() {

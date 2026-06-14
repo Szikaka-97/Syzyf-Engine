@@ -40,7 +40,7 @@ struct RenderParams {
 class SceneGraphics : public GameObjectSystem<Camera> {
 public:
     struct SSAOSettings {
-        bool enabled = true;
+        bool enabled = false;
         // max kernel size is hardcoded to 64
         int kernelSize = 32;
         float radius = 1.5f;
@@ -53,6 +53,9 @@ public:
 
     SSAOSettings ssaoSettings;
 private:
+    bool enableFrustumCulling = true;
+    bool enableSorting = true;
+
     // this should all be using unique ptrs
     struct Shaders {
         // Depth

@@ -29,6 +29,7 @@
 #include "include/Shader.h"
 
 #include <tracy/Tracy.hpp>
+#include <tracy/TracyOpenGL.hpp>
 
 #include <utility>
 
@@ -534,10 +535,12 @@ void SceneGraphics::DrawUiText(const glm::mat4& worldMatrix, const glm::vec2& si
 }
 
 void SceneGraphics::Render() {
-    std::sort(this->opaqueRenders.begin(), this->opaqueRenders.end());
-    std::sort(this->gizmoRenders.begin(), this->gizmoRenders.end());
-    std::sort(this->oitTransparentRenders.begin(), this->oitTransparentRenders.end());
-
+    if (enableSorting) {
+        std::sort(this->opaqueRenders.begin(), this->opaqueRenders.end());
+        std::sort(this->gizmoRenders.begin(), this->gizmoRenders.end());
+        std::sort(this->oitTransparentRenders.begin(), this->oitTransparentRenders.end());
+    }
+    
     if (this->mainCamera) {
         std::sort(this->transparentRenders.begin(), this->transparentRenders.end(), [this](const RenderNode& a, const RenderNode& b) -> bool {
             glm::vec3 cameraPosition = this->mainCamera->GlobalTransform().Position().Value();
@@ -663,7 +666,7 @@ void SceneGraphics::RenderPrepass(const ShaderGlobalUniforms& uniforms, const Re
 			continue;
 		}
 
-		if (!TestFrustum(viewFrustum, render.bounds.Transform(render.transformation))) {
+		if (this->enableFrustumCulling && !TestFrustum(viewFrustum, render.bounds.Transform(render.transformation))) {
 			continue;
 		}
 
@@ -753,6 +756,7 @@ void SceneGraphics::RenderPrepass(const ShaderGlobalUniforms& uniforms, const Re
 }
 
 void SceneGraphics::RenderSSAO(const RenderParams& params, Framebuffer* target) {
+    TracyGpuZone("SSAO Pass");
     glBindFramebuffer(GL_FRAMEBUFFER, target->GetHandle());
     glViewport(0, 0, target->GetSize().x, target->GetSize().y);
 
@@ -867,6 +871,7 @@ void SceneGraphics::RenderShadows(const RenderParams& params, Framebuffer* targe
 	RenderShadows(this->currentUniforms, params, target);
 }
 void SceneGraphics::RenderShadows(const ShaderGlobalUniforms& uniforms, const RenderParams& params, Framebuffer* target) {
+    TracyGpuZone("ShadowPass");
 	glBindFramebuffer(GL_FRAMEBUFFER, target->GetHandle());
 
 	glViewport(params.viewport.x, params.viewport.y, params.viewport.z, params.viewport.w);
@@ -896,7 +901,7 @@ void SceneGraphics::RenderShadows(const ShaderGlobalUniforms& uniforms, const Re
 			continue;
 		}
 
-		if (!TestFrustum(viewFrustum, render.bounds.Transform(render.transformation))) {
+		if (this->enableFrustumCulling && !TestFrustum(viewFrustum, render.bounds.Transform(render.transformation))) {
 			continue;
 		}
 
@@ -987,6 +992,8 @@ void SceneGraphics::RenderVolumetric(const RenderParams& params, Framebuffer* ta
 	RenderVolumetric(this->currentUniforms, params, target);
 }
 void SceneGraphics::RenderVolumetric(const ShaderGlobalUniforms& uniforms, const RenderParams& params, Framebuffer* target) {
+    TracyGpuZone("Volumetric Pass");
+
 	target->SetColorAttachmentEnabled(true);
 	glBindFramebuffer(GL_FRAMEBUFFER, target->GetHandle());
 	
@@ -1019,7 +1026,7 @@ void SceneGraphics::RenderVolumetric(const ShaderGlobalUniforms& uniforms, const
 			continue;
 		}
 
-		if (!TestFrustum(viewFrustum, render.bounds.Transform(render.transformation))) {
+		if (enableFrustumCulling && !TestFrustum(viewFrustum, render.bounds.Transform(render.transformation))) {
 			continue;
 		}
 
@@ -1113,6 +1120,8 @@ void SceneGraphics::RenderOpaque(const RenderParams& params, Framebuffer* target
 	RenderOpaque(this->currentUniforms, params, target);
 }
 void SceneGraphics::RenderOpaque(const ShaderGlobalUniforms& uniforms, const RenderParams& params, Framebuffer* target) {
+    TracyGpuZone("Opaque Pass");
+
 	target->SetColorAttachmentEnabled(true);
     target->SetCustomAttachmentEnabled(0, false);
     target->Apply();
@@ -1150,7 +1159,7 @@ void SceneGraphics::RenderOpaque(const ShaderGlobalUniforms& uniforms, const Ren
 			continue;
 		}
 
-		if (!TestFrustum(viewFrustum, render.bounds.Transform(render.transformation))) {
+		if (enableFrustumCulling && !TestFrustum(viewFrustum, render.bounds.Transform(render.transformation))) {
 			continue;
 		}
 
@@ -1312,7 +1321,7 @@ void SceneGraphics::RenderOrderedTransparent(const ShaderGlobalUniforms& uniform
 			continue;
 		}
 
-		if (!TestFrustum(viewFrustum, render.bounds.Transform(render.transformation))) {
+		if (enableFrustumCulling && !TestFrustum(viewFrustum, render.bounds.Transform(render.transformation))) {
 			continue;
 		}
 
@@ -1460,7 +1469,7 @@ void SceneGraphics::RenderOITransparent(const ShaderGlobalUniforms& uniforms, co
 			continue;
 		}
 
-		if (!TestFrustum(viewFrustum, render.bounds.Transform(render.transformation))) {
+		if (this->enableFrustumCulling && !TestFrustum(viewFrustum, render.bounds.Transform(render.transformation))) {
 			continue;
 		}
 
@@ -1609,7 +1618,7 @@ void SceneGraphics::RenderAdditive(const ShaderGlobalUniforms& uniforms, const R
 			continue;
 		}
 
-		if (!TestFrustum(viewFrustum, render.bounds.Transform(render.transformation))) {
+		if (this->enableFrustumCulling && !TestFrustum(viewFrustum, render.bounds.Transform(render.transformation))) {
 			continue;
 		}
 
@@ -1758,7 +1767,7 @@ void SceneGraphics::RenderGizmos(const ShaderGlobalUniforms& uniforms, const Ren
 			continue;
 		}
 
-		if (!TestFrustum(viewFrustum, render.bounds.Transform(render.transformation))) {
+		if (this->enableFrustumCulling && !TestFrustum(viewFrustum, render.bounds.Transform(render.transformation))) {
 			continue;
 		}
 
@@ -2114,6 +2123,9 @@ void SceneGraphics::DrawImGui() {
 	if (ImGui::TreeNode("Graphics Debug")) {
 		ImGui::Text("Resolution: %i:%i", (int) this->mainViewport->GetSize().x, (int) this->mainViewport->GetSize().y);
 		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+
+        ImGui::Checkbox("Enable Frustum Culling", &this->enableFrustumCulling);
+        ImGui::Checkbox("Enable Sorting", &this->enableSorting);
 
         // SSAO
         if (ImGui::TreeNode("SSAO Settings")) {
