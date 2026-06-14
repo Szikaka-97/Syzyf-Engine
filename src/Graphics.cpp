@@ -143,7 +143,7 @@ currentUniforms() {
     TextureParams ssgiParams = {
         .channels = TextureChannels::RGB,
         .colorSpace = TextureColor::Linear,
-        .format = TextureFormat::Float32,
+        .format = TextureFormat::Float,
         .wrapU = TextureWrap::Clamp,
         .wrapV = TextureWrap::Clamp
     };
