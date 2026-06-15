@@ -534,7 +534,7 @@ void LightSystem::OnPostRender() {
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, this->lightIndexList);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, this->lightIndexList);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, this->lightGrid);
 }
 
@@ -581,6 +581,10 @@ void LightSystem::DrawImGui() {
 	
 				RebuildLightGridBuffers();
 			}
+		}
+
+		if (ImGui::Button("Rebuild grid buffers")) {
+			RebuildLightGridBuffers();
 		}
 
 		ImGui::TreePop();

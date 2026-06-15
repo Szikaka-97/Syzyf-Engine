@@ -19,7 +19,7 @@ layout (std430, binding = 1) restrict buffer LightInfo {
 	Light Light_LightsList[];
 };
 
-layout (std430, binding = 2) restrict buffer LightIndexList {
+layout (std430, binding = 4) restrict buffer LightIndexList {
 	uvec4 Light_LightGridSize;
 	uint Light_LightIndexList[];
 };
