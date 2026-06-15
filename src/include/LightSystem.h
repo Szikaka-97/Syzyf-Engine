@@ -16,6 +16,7 @@ private:
 	GLuint lightsBuffer;
 	GLuint shadowmapsBuffer;
 	GLuint clustersBuffer;
+	GLuint clustersIndexBuffer;
 	GLuint lightIndexList;
 	GLuint lightIndexCounter;
 	GLuint lightGrid;

@@ -17,23 +17,28 @@ layout(std430, binding = 1) restrict buffer clusterSSBO {
 	Cluster clusters[];
 };
 
-layout (std430, binding = 2) restrict buffer lightsListSSBO {
+layout(std430, binding = 2) restrict buffer clusterIndexSSBO {
+	uint clusterCount;
+	uint clusterIndices[];
+};
+
+layout (std430, binding = 3) restrict buffer lightsListSSBO {
 	vec4 _a;
 	int lightsCount;
 	int _c;
 	Light lightsList[];
 };
 
-layout (std430, binding = 3) restrict buffer lightIndexListSSBO {
+layout (std430, binding = 4) restrict buffer lightIndexListSSBO {
 	uvec4 lightGridSize;
 	uint lightIndexList[];
 };
 
-layout (std430, binding = 4) restrict buffer lightIndexCounterSSBO {
+layout (std430, binding = 5) restrict buffer lightIndexCounterSSBO {
 	uint lightIndexCounter;
 };
 
-layout (std430, binding = 5) restrict writeonly buffer lightGridSSBO {
+layout (std430, binding = 6) restrict writeonly buffer lightGridSSBO {
 	uvec2 lightGrid[];
 };
 
@@ -89,10 +94,16 @@ void main() {
 
 	uint clusterIndex = uint(dot(gl_WorkGroupID, vec3(1, gridSize.x, gridSize.x * gridSize.y)));
 
+	// lightGrid[clusterIndex] = uvec2(0, 0);
+
+	if (clusterIndex > clusterCount) {
+		return;
+	}
+
 	if (gl_LocalInvocationIndex == 0) {
 		localLightCount = 0;
 
-		groupCluster = clusters[clusterIndex];
+		groupCluster = clusters[clusterIndices[clusterIndex]];
 	}
 
 	memoryBarrierWithSync();
@@ -146,7 +157,7 @@ void main() {
 	if (gl_LocalInvocationIndex == 0) {
 		lightIndexStartOffset = atomicAdd(lightIndexCounter, localLightCount);
 
-		lightGrid[clusterIndex] = uvec2(lightIndexStartOffset, localLightCount);
+		lightGrid[clusterIndices[clusterIndex]] = uvec2(lightIndexStartOffset, localLightCount);
 	}
 
 	memoryBarrierWithSync();
