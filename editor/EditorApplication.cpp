@@ -4,6 +4,7 @@
 #include "MousePickingBodySystem.h"
 #include "SceneRegistry.h"
 #include "Themes.h"
+#include "scenes/LightingTestScene.h"
 
 #include "thirdparty/ImGuizmo.h"
 #include "thirdparty/ImViewGuizmo.h"

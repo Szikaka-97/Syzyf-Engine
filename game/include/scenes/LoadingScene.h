@@ -5,7 +5,7 @@
 #include "ui/objects/UiLayout.h"
 #include "ui/objects/UiText.h"
 #include "ui/systems/UiSystem.h"
-#include "../../../editor/include/scenes/LightingTestScene.h"
+#include "BaseScene.h"
 
 namespace LoadingScene {
 
@@ -20,7 +20,7 @@ class LoadingController : public GameObject {
         if (framesPassed > 2) {
             Application::Get()->RequestSceneBuild(
                 // [](Scene* s) { BaseScene::InitScene(*s); });
-                [](Scene* s) { LightingTestScene::InitScene(*s); });
+                [](Scene* s) { BaseScene::InitScene(*s); });
         }
         framesPassed++;
     }
