@@ -34,67 +34,98 @@ void FlameFlicker::OnEnable() {
 }
 
 void EffectFire::OnInit() {
-    Scene* mainScene = GetScene();
+    Scene*     mainScene    = GetScene();
     SceneNode* fireRootNode = GetNode();
     fireRootNode->GlobalTransform().Scale() = glm::vec3(1.0f, 1.0f, 1.0f);
+
     ShaderProgram* fireProgram =
         ShaderProgram::Build()
             .WithVertexShader("./res/shaders/particles/particles.vert")
             .WithPixelShader("./res/shaders/particles/particles_blend.frag")
             .Link();
 
+    // Tekstura kształtu cząstki (soft circle, alpha).
+    Texture2D* dustTex = mainScene->Resources()->Get<Texture2D>(
+        "./res/textures/dust.png", Texture2D::ColorTextureRGBA);
+
+    // Gradient kolor: t=0 (nowa cząstka, przy ziemi) fiolet
+    //                 t=0.5 pomarańcz
+    //                 t=1 (stara, przy czubku) żółty
+    // Plik do skopiowania do ./res/textures/fire_gradient.png
+    TextureParams rampParams = {
+        .channels   = TextureChannels::RGB,
+        .colorSpace = TextureColor::Linear,
+        .format     = TextureFormat::Ubyte,
+        .wrapU      = TextureWrap::Clamp,
+        .wrapV      = TextureWrap::Clamp,
+        .minFilter  = TextureFilter::Linear,
+        .magFilter  = TextureFilter::Linear,
+    };
+    Texture2D* gradientTex = mainScene->Resources()->Get<Texture2D>(
+        "./res/textures/fire_gradient.png", rampParams);
+
     auto* fireMaterial = new Material(fireProgram);
-    fireMaterial->SetValue("colorTex", mainScene->Resources()->Get<Texture2D>(
-                                           "./res/textures/dust.png",
-                                           Texture2D::ColorTextureRGBA));
-    fireMaterial->SetValue("color", glm::vec4(50.0f, 15.0f, 2.0f, 1.0f));
+    fireMaterial->SetValue("colorTex",  dustTex);
+    fireMaterial->SetValue("colorRamp", gradientTex);
+    // Biały tint — kolor w całości pochodzi z colorRamp
+    fireMaterial->SetValue("color", glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
 
+    // ------------------------------------------------------------------
+    // areaExtents.y = 5.0 — żadna cząstka nie przekroczy granicy obszaru
+    // w trakcie swojego życia (max: 2.2 m/s × 1.0 s = 2.2 u << 5.0 u),
+    // co eliminuje reset pozycji cząstki do (0,0,0) po wyjściu z obszaru.
+    //
+    // lifetimeFadeIn = {0.0, 0.3} — cząstki inicjalizowane w puli zaczynają
+    // od alpha=0 i stopniowo wchodzą w widoczność; maskuje artefakty
+    // pierwszej klatki, gdy układ particles jeszcze nie wylosował pozycji.
+    // ------------------------------------------------------------------
     ParticleSpawnerSettings fireSettings = {
-        .maxParticles = 250,
-        .areaExtents = glm::vec3(1.0f, 2.0f, 1.0f),
-        .emissionShapeExtents = glm::vec3(1.0f, 0.1f, 1.0f),
+        .maxParticles         = 250,
+        .areaExtents          = glm::vec3(2.0f, 5.0f, 2.0f),
+        .emissionShapeExtents = glm::vec3(1.0f, 0.05f, 1.0f),
 
-        .minVelocity = glm::vec3(-0.2f, 1.2f, -0.2f),
-        .maxVelocity = glm::vec3(0.2f, 2.2f, 0.2f),
+        .minVelocity = glm::vec3(-0.20f, 1.2f, -0.20f),
+        .maxVelocity = glm::vec3( 0.20f, 2.2f,  0.20f),
 
-        .minInitialAngle = 0.0f,
-        .maxInitialAngle = 6.28318f,
+        .minInitialAngle    = 0.0f,
+        .maxInitialAngle    = 6.28318f,
         .minAngularVelocity = -1.0f,
-        .maxAngularVelocity = 1.0f,
-        .rotateY = false,
+        .maxAngularVelocity =  1.0f,
+        .rotateY            = false,
 
         .enableLifetime = true,
-        .minLifetime = 0.5f,
-        .maxLifetime = 1.0f,
+        .minLifetime    = 0.5f,
+        .maxLifetime    = 1.0f,
 
         .minScale = 0.25f,
-        .maxScale = 0.5f,
+        .maxScale = 0.50f,
 
         .alphaMode = AlphaMode::Alpha,
 
         .enableLifetimeFade = true,
-        .lifetimeFadeIn = {0.0f, 0.15f},
-        .lifetimeFadeOut = {0.65f, 1.0f},
+        .lifetimeFadeIn     = {0.0f, 0.30f},
+        .lifetimeFadeOut    = {0.65f, 1.0f},
 
-        .enableDepthFade = true,
+        .enableDepthFade   = true,
         .depthFadeDistance = 0.15f,
 
         .billboardMode = BillboardMode::Enabled,
-        .wrapAround = false,
-        .continuous = true,
-        .useColorRamp = false
+        .wrapAround    = false,
+        .continuous    = true,
+        .useColorRamp  = true,   // ← silnik próbkuje colorRamp przez czas życia
     };
 
     fireRootNode->AddObject<ParticleSpawner>(
         mainScene->Resources()->Get<Mesh>("./res/models/fullscreenquad.obj"),
         fireMaterial,
-        fireSettings
-    );
+        fireSettings);
 
+    // Światło + migotanie
     SceneNode* lightNode = mainScene->CreateNode(fireRootNode, "Fire Light Asset");
     lightNode->LocalTransform().Position() = {0.0f, 0.4f, 0.0f};
 
-    auto* fireLight = lightNode->AddObject<Light>(Light::PointLight({1.0f, 0.45f, 0.08f}, 4.0f,1.0f));
+    auto* fireLight = lightNode->AddObject<Light>(
+        Light::PointLight({1.0f, 0.45f, 0.08f}, 4.0f, 1.0f));
 
     auto* flickerScript = lightNode->AddObject<FlameFlicker>();
     flickerScript->Init(fireLight);
