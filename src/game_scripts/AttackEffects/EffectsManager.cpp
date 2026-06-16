@@ -46,7 +46,7 @@ void EffectFire::OnInit() {
 
     // Tekstura kształtu cząstki (soft circle, alpha).
     Texture2D* dustTex = mainScene->Resources()->Get<Texture2D>(
-        "./res/textures/dust.png", Texture2D::ColorTextureRGBA);
+        "./res/textures/smoke_08.png", Texture2D::ColorTextureRGBA);
 
     // Gradient kolor: t=0 (nowa cząstka, przy ziemi) fiolet
     //                 t=0.5 pomarańcz
@@ -68,7 +68,7 @@ void EffectFire::OnInit() {
     fireMaterial->SetValue("colorTex",  dustTex);
     fireMaterial->SetValue("colorRamp", gradientTex);
     // Biały tint — kolor w całości pochodzi z colorRamp
-    fireMaterial->SetValue("color", glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+    fireMaterial->SetValue("color", glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
 
     // ------------------------------------------------------------------
     // areaExtents.y = 5.0 — żadna cząstka nie przekroczy granicy obszaru

@@ -116,7 +116,7 @@ namespace{
 			return effect;
 		}
 
-		EffectFire* effect = node->AddObject<EffectFire>();
+		EffectPetrify* effect = node->AddObject<EffectPetrify>();
 
 		effect->strength = 1.0f;
 		effect->maxRange = potionData.radius * multiplier;
