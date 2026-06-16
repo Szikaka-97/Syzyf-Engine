@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CraftingScene.h"
+#include "TutorialThrowingRoomScene.h"
 #include "DungeonScene.h"
 #include "Graphics.h"
 #include "InputSystem.h"
@@ -54,6 +55,7 @@ class SceneRegistry {
         SceneRegistry::RegisterScene("Example: Fog Volume",
                                      ExampleFogVolume::InitScene);
         SceneRegistry::RegisterScene("Main Menu", MainMenu::InitScene);
+        SceneRegistry::RegisterScene("Tutorial Throwing", TutorialThrowingRoomScene::InitScene);
         SceneRegistry::RegisterScene("Crafting Scene",
                                      CraftingScene::InitScene);
         for (const auto& sceneFile :
