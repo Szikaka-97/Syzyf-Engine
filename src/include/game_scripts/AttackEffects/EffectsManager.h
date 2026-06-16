@@ -67,6 +67,7 @@ public:
 protected:
     void  OnInit()          override;
     void  OnApplySpecials() override;
+    void  OnUpdate() override;
     void  OnApplyToEnemy(EnemyBase* enemy) override;
     float GetMaxLifetime()  const override { return explosionDuration; }
 };
