@@ -697,17 +697,17 @@ inline void SpawnRatAt(Scene& mainScene, SceneNode* spawnNode, SceneNode* player
 		1.0f
 	);
 
-	auto* skeleton = ratNode->AddObject<EnemySkeleton>();
-	skeleton->SetTargetNode(playerNode);
-	skeleton->SetSurface(surface);
+	// auto* skeleton = ratNode->AddObject<EnemySkeleton>();
+	// skeleton->SetTargetNode(playerNode);
+	// skeleton->SetSurface(surface);
 
-	if (auto* fs = mainScene.GetComponent<FlockingSystem>()) {
-		spdlog::error("reg");
-		skeleton->RegisterToFlockingSystem(fs);
-	}
+	// if (auto* fs = mainScene.GetComponent<FlockingSystem>()) {
+	// 	spdlog::error("reg");
+	// 	skeleton->RegisterToFlockingSystem(fs);
+	// }
 
 
-	skeleton->OnPlayerEnteredRoom();
+	// skeleton->OnPlayerEnteredRoom();
 }
 
 inline void SpawnTutorialRats(Scene& mainScene, SceneNode* roomNode, SceneNode* playerNode, Surface* surface) {
