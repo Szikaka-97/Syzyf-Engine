@@ -25,7 +25,7 @@ void UiTextRenderSystem::OnPreRender() {
             continue;
         }
 
-        if (!text->font || text->text.empty()) {
+        if (!text->font) {
             spdlog::warn("UiTextRenderSystem::OnPreRender: Tried drawing text with an incomplete UiText component");
             continue;
         }
