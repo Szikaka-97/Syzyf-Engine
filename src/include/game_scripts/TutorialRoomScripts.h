@@ -690,12 +690,16 @@ inline void SpawnRatAt(Scene& mainScene, SceneNode* spawnNode, SceneNode* player
 
 	AddRatModel(mainScene, ratNode);
 
-	ratNode->AddObject<TutorialStaticRatTarget>()->Initialize(
+	auto* ratEnemy = ratNode->AddObject<TutorialStaticRatTarget>();
+	
+	ratEnemy->Initialize(
 		playerNode,
 		10.0f,
 		1.6f,
 		1.0f
 	);
+
+	ratEnemy->m_hp = 1;
 
 	// auto* skeleton = ratNode->AddObject<EnemySkeleton>();
 	// skeleton->SetTargetNode(playerNode);

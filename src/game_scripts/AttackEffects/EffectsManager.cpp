@@ -30,6 +30,9 @@ void EffectPetrify::OnApplyToEnemy(EnemyBase* enemy) {
     enemy->ApplyPetrify(slowFactor, petrifyRemainingTime);
 }
 
+void EffectTornado::OnInit() {
+    
+}
 void EffectTornado::OnApplySpecials() {
     if (special1) radius               *= static_cast<float>(modifier);
     if (special2) tornadoRemainingTime *= static_cast<float>(modifier);

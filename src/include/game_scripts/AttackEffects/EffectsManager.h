@@ -33,6 +33,7 @@ public:
     serialized float damageInterval       = 1.0f;
     EffectTornado() = default;
 protected:
+    void  OnInit()          override;
     void  OnApplySpecials() override;
     void  OnApplyToEnemy(EnemyBase* /*enemy*/) override {}
     void  OnUpdate() override;

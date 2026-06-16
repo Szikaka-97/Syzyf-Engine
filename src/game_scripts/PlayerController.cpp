@@ -97,7 +97,6 @@ namespace{
 			effect->ingredientCount = potionData.mainEffectCount;
 			effect->special1 = potionData.modifierCount > 0;
 			effect->special2 = potionData.modifierCount > 1;
-			effect->Awake();
 
 			return effect;
 		}
@@ -111,7 +110,6 @@ namespace{
 			effect->ingredientCount = potionData.mainEffectCount;
 			effect->special1 = potionData.modifierCount > 0;
 			effect->special2 = potionData.modifierCount > 1;
-			effect->Awake();
 
 			return effect;
 		}
@@ -122,8 +120,7 @@ namespace{
 		effect->maxRange = potionData.radius * multiplier;
 		effect->maxDamage = potionData.power * multiplier;
 		effect->ingredientCount = potionData.mainEffectCount;
-		effect->Awake();
-
+		
 		return effect;
 	}
 

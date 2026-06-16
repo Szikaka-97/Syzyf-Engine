@@ -5,21 +5,25 @@
 
 void EffectBase::Awake() {
     m_Lifetime = 0.0f;
-
-    OnInit();
-
-    OnApplySpecials();
-
-    for (auto* enemy : ScanEnemiesInRadius())
-        OnApplyToEnemy(enemy);
-
-    myNode = GetNode();
-
-    spdlog::debug("EffectBase::Init — radius={:.1f}, maxLifetime={:.1f}s",
-                  radius, GetMaxLifetime());
 }
 
 void EffectBase::Update() {
+    if (!m_Initted) {
+
+        OnInit();
+
+        OnApplySpecials();
+
+        myNode = GetNode();
+
+        for (auto* enemy : ScanEnemiesInRadius())
+            OnApplyToEnemy(enemy);
+
+        spdlog::debug("EffectBase::Init — radius={:.1f}, maxLifetime={:.1f}s",
+                    radius, GetMaxLifetime());
+
+        m_Initted = true;
+    }
     m_Lifetime += Time::Delta() * speed;
 
     UpdateShaderVisual();

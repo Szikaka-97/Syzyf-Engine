@@ -26,34 +26,16 @@ capacity(20) {
 }
 
 SceneNode* ThrowableObjectPool::RequestThrowableObject() {
-	if (!this->bottlesPoolRoot) {
-		this->bottlesPoolRoot = GetScene()->CreateNode("Bottles Pool");
-	}
-	if (this->allInstances.size() < this->capacity) {
-		SceneNode* newBottle = GetScene()->CreateNode(this->bottlesPoolRoot, std::format("Bottle {}", this->allInstances.size()));
+	SceneNode* newBottle = GetScene()->CreateNode(this->bottlesPoolRoot, std::format("Bottle {}", this->allInstances.size()));
 
-		// newBottle->AddObject<T>();
+	newBottle->AddObject<Physics::Body>(JPH::BodyCreationSettings(Physics::SphereShape(0.1f), JPH::Vec3::sZero(), JPH::Quat::sIdentity(), JPH::EMotionType::Dynamic, Physics::Layers::MOVING))->SetCollisionLayerAndMask({0}, 0);;
+	newBottle->AddObject<MeshRenderer>(this->bottleMesh, this->bottleMaterial);
 
-		newBottle->AddObject<Physics::Body>(JPH::BodyCreationSettings(Physics::SphereShape(0.1f), JPH::Vec3::sZero(), JPH::Quat::sIdentity(), JPH::EMotionType::Dynamic, Physics::Layers::MOVING))->SetCollisionLayerAndMask({0}, 0);;
-		newBottle->AddObject<MeshRenderer>(this->bottleMesh, this->bottleMaterial);
+	this->allInstances.push_back({newBottle, (int) this->allInstances.size()});
 
-		this->allInstances.push_back({newBottle, (int) this->allInstances.size()});
+	std::sort(this->allInstances.begin(), this->allInstances.end());
 
-		std::sort(this->allInstances.begin(), this->allInstances.end());
-
-		return newBottle;
-	}
-	else {
-		auto& bottle = this->allInstances.front();
-
-		bottle.id = this->capacity + bottle.id;
-
-		SceneNode* bottleNode = bottle.bottle;
-
-		std::sort(this->allInstances.begin(), this->allInstances.end());
-
-		return bottleNode;
-	}
+	return newBottle;
 }
 
 void ThrowableObjectPool::ReturnBottleToPool(ThrowableObject* bottle) {
