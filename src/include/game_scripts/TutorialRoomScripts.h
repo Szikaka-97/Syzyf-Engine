@@ -88,6 +88,11 @@ public:
 	}
 
 	void Update() {
+		glm::vec3 pos = GetNode()->GlobalTransform().Position();
+		
+		pos.y = 0;
+
+		GetNode()->GlobalTransform().Position() = pos;
 		// EnemySkeleton::Update();
 		// this->myNode = GetNode();
 		// this->currentPos = GetNode()->GlobalTransform().Position().Value();
@@ -629,10 +634,13 @@ inline void AddRatModel(Scene& mainScene, SceneNode* ratNode) {
 		->Instantiate(&mainScene, ratNode, "RatModel");
 
 	for (MeshRenderer* ratPart : ratModel->GetAllObjectsInChildren<MeshRenderer>()) {
-		ratPart->maskFlags |= MaskEffectBits::Outline;
+		// ratPart->maskFlags |= MaskEffectBits::Outline;
+		for (int materialIndex = 0; materialIndex < ratPart->GetMaterialCount(); materialIndex++) {
+			ratPart->GetMaterial(materialIndex)->SetValue("ambientBump", 0.5f);
+		}
 	}
 
-	ratModel->LocalTransform().Position() = glm::vec3(0.0f, -0.45f, 0.0f);
+	ratModel->LocalTransform().Position() = glm::vec3(0.0f, 0.0f, 0.0f);
 	ratModel->LocalTransform().Scale() = glm::vec3(1.6f);
 }
 

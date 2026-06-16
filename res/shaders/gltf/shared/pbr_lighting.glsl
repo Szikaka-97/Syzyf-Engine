@@ -38,7 +38,7 @@
     vec2 brdf = texture(Builtin_BRDFConvolutionMap, vec2(max(dot(N, V), 0.0), mat.roughness)).rg;
 	
     vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);
-	vec3 ambient = (kD * diffuse + specular) * ao + mat.albedo * (Light_AmbientLight.xyz * Light_AmbientLight.w);
+	vec3 ambient = (kD * diffuse + specular) * ao + mat.albedo * (Light_AmbientLight.xyz * Light_AmbientLight.w + ambientBump);
 	vec3 emissive = texture(emissiveMap, texCoords).xyz * emissiveFactor * emissiveStrength;
 
   fragColor.xyz += ambient + emissive;
