@@ -118,27 +118,7 @@ inline void InitScene(Scene& mainScene) {
 #pragma endregion
 
 #pragma region Player
-	JPH::Ref<JPH::CharacterVirtualSettings> characterSettings = new JPH::CharacterVirtualSettings();
-	characterSettings->mShape = new JPH::CapsuleShape(0.5f, 0.5f);
-	characterSettings->mShapeOffset = JPH::Vec3(0, 1, 0);
-	characterSettings->mMaxSlopeAngle = JPH::DegreesToRadians(45.0f);
-
-	SceneNode* playerNode = mainScene.CreateNode("Player");
-
-	SceneNode* bimberman = ResourceDatabase::Global->Get<GltfScene>(
-		"./res/models/bimbermann_throwing.glb"
-	)->Instantiate(&mainScene, mainScene.root, "Bimberman");
-
-	bimberman->SetParent(playerNode);
-
-	playerNode->GlobalTransform().Position() = glm::vec3(4, 0.0f, -1);
-
-	auto* virtualCharacter = playerNode->AddObject<Physics::VirtualCharacterController>(characterSettings);
-	virtualCharacter->SetCollisionLayerAndMask({1}, 0xFFFFFFFF);
-	virtualCharacter->SetPosition(playerNode->GlobalTransform().Position().Value());
-	virtualCharacter->SetGravityFactor(1);
-	
-	auto* player = playerNode->AddObject<PlayerController>();
+	SceneNode* playerNode = mainScene.LoadPrefab(fs::path("./res/prefabs/Player.prefab"));
 #pragma endregion
 
 #pragma region Camera
