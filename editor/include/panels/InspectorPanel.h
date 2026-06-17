@@ -19,5 +19,6 @@ class InspectorPanel {
 
     char componentSearchBuffer[256] = "";
     bool focusComponentSearch = false;
+    bool editGlobalTransform = false;
 };
 } // namespace Editor
