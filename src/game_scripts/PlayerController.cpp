@@ -464,15 +464,17 @@ void PlayerController::HandleItemInteractions() {
 		newItem = pickableItemSystem->GetClosestItem(this->GlobalTransform().Position().Value(), this->itemHighlightRadius);
 	}
 
+	// spdlog::info("{}", newItem ? newItem->GetName() : "Null");
+
 	// Highlighting logic
 	if (newItem != this->highlightedItem) {
 		if (this->highlightedItem) {
-			if (auto* renderer = this->highlightedItem->GetObject<MeshRenderer>()) {
+			for (auto* renderer : this->highlightedItem->GetNode()->GetAllObjectsInChildren<MeshRenderer>()) {
 				renderer->maskFlags &= ~MaskEffectBits::Jfa;
 			}
 		}
 		if (newItem != nullptr) {
-			if (auto* renderer = newItem->GetObject<MeshRenderer>()) {
+			for (auto* renderer : newItem->GetNode()->GetAllObjectsInChildren<MeshRenderer>()) {
 				renderer->maskFlags |= MaskEffectBits::Jfa;
 			}
 		}
