@@ -142,7 +142,7 @@ inline void InitScene(Scene& mainScene) {
     textObject->billboardMode = BillboardMode::Z;
 
     // Checkbox
-    SceneNode* checkboxNode = UiCheckbox::Create(mainScene, dougenzakaFont,
+    SceneNode* checkboxNode = UiCheckbox::Create(mainScene, dougenzakaFont, 0,
                                                  "Checkbox Example", false);
     if (auto* layout = checkboxNode->GetObject<UiLayout>()) {
         layout->offset = glm::ivec2(100, 200);

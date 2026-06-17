@@ -1,13 +1,13 @@
 #pragma once
 
 #include "CraftingScene.h"
-#include "TutorialThrowingRoomScene.h"
 #include "DungeonScene.h"
 #include "Graphics.h"
 #include "InputSystem.h"
 #include "MainMenuScene.h"
 #include "Serialization.h"
 #include "TestScene.h"
+#include "TutorialThrowingRoomScene.h"
 #include "examples/fog_volume.h"
 #include "examples/particles_and_scatter.h"
 #include "examples/tweens.h"
@@ -55,7 +55,8 @@ class SceneRegistry {
         SceneRegistry::RegisterScene("Example: Fog Volume",
                                      ExampleFogVolume::InitScene);
         SceneRegistry::RegisterScene("Main Menu", MainMenu::InitScene);
-        SceneRegistry::RegisterScene("Tutorial Throwing", TutorialThrowingRoomScene::InitScene);
+        SceneRegistry::RegisterScene("Tutorial Throwing",
+                                     TutorialThrowingRoomScene::InitScene);
         SceneRegistry::RegisterScene("Crafting Scene",
                                      CraftingScene::InitScene);
         SceneRegistry::RegisterScene("Base Scene",

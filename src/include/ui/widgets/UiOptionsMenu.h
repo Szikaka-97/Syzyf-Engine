@@ -16,11 +16,11 @@ class UiOptionsMenu : public GameObject {
     UiInteractable* resolutionButton = nullptr;
     UiInteractable* fullscreenButton = nullptr;
     UiInteractable* vsyncToggleButton = nullptr;
-    UiInteractable* ssaoButton = nullptr;
     UiInteractable* applyButton = nullptr;
     UiInteractable* backButton = nullptr;
 
     UiLayout* optionsMenuLayout = nullptr;
+    UiLayout* bgLayout = nullptr;
 
     int pendingResolutionIndex = 0;
     int resWidths[4] = {1280, 1280, 800, 1920};
@@ -108,6 +108,9 @@ class UiOptionsMenu : public GameObject {
                 visible ? glm::ivec2(0, 0) : glm::ivec2(9999, 9999);
             spdlog::info("Set offsets to: {}x{}, visible: {}", optionsMenuLayout->offset.x, optionsMenuLayout->offset.y, visible);
         }
+        if (bgLayout) {
+            bgLayout->offset = visible ? glm::ivec2(0, 0) : glm::ivec2(9999, 9999);
+        }
     }
 
     bool IsVisible() const {
@@ -131,13 +134,19 @@ inline UiOptionsMenu* Build(Scene& mainScene, Font* font) {
 
     auto* controller = optionsGroup->AddObject<UiOptionsMenu>();
 
+    SceneNode* bgNode = mainScene.CreateNode(optionsGroup, "Settings Background");
+    controller->bgLayout = bgNode->AddObject<UiLayout>(
+        glm::uvec2(4000, 4000), glm::ivec2(9999, 9999), 90, AnchorPoint::Center);
+    bgNode->AddObject<UiVisual>(glm::vec4(0.0f, 0.0f, 0.0f, 0.7f));
+    bgNode->AddObject<UiInteractable>();
+
     controller->optionsMenuLayout = optionsGroup->AddObject<UiLayout>(
-        glm::uvec2(400, 500), glm::ivec2(9999, 9999), 0, AnchorPoint::Center);
+        glm::uvec2(400, 500), glm::ivec2(9999, 9999), 100, AnchorPoint::Center);
 
     SceneNode* resolutionButtonNode =
         mainScene.CreateNode(optionsGroup, "Resolution Button");
     resolutionButtonNode->AddObject<UiLayout>(
-        glm::uvec2(200, 40), glm::ivec2(0, 200), 1, AnchorPoint::Center);
+        glm::uvec2(200, 40), glm::ivec2(0, 200), 101, AnchorPoint::Center);
     auto* resolutionVisual = resolutionButtonNode->AddObject<UiVisual>(
         glm::vec4(0.4f, 0.4f, 0.4f, 1.0f));
     resolutionVisual->colorHovered = glm::vec4(0.6f, 0.6f, 0.6f, 1.0f);
@@ -146,7 +155,7 @@ inline UiOptionsMenu* Build(Scene& mainScene, Font* font) {
     SceneNode* resolutionTextNode =
         mainScene.CreateNode(resolutionButtonNode, "Resolution Text");
     resolutionTextNode->AddObject<UiLayout>(
-        glm::uvec2(200, 40), glm::ivec2(0, 0), 2, AnchorPoint::Center);
+        glm::uvec2(200, 40), glm::ivec2(0, 0), 102, AnchorPoint::Center);
     auto* resolutionText =
         resolutionTextNode->AddObject<UiText>("Cycle Resolution", font);
     resolutionText->fontSize = 20.0f;
@@ -154,7 +163,7 @@ inline UiOptionsMenu* Build(Scene& mainScene, Font* font) {
     SceneNode* fullscreenButtonNode =
         mainScene.CreateNode(optionsGroup, "Fullscreen Button");
     fullscreenButtonNode->AddObject<UiLayout>(
-        glm::uvec2(200, 40), glm::ivec2(0, 150), 1, AnchorPoint::Center);
+        glm::uvec2(200, 40), glm::ivec2(0, 150), 101, AnchorPoint::Center);
     auto* fullscreenVisual = fullscreenButtonNode->AddObject<UiVisual>(
         glm::vec4(0.4f, 0.4f, 0.4f, 1.0f));
     fullscreenVisual->colorHovered = glm::vec4(0.6f, 0.6f, 0.6f, 1.0f);
@@ -163,7 +172,7 @@ inline UiOptionsMenu* Build(Scene& mainScene, Font* font) {
     SceneNode* fullscreenTextNode =
         mainScene.CreateNode(fullscreenButtonNode, "Fullscreen Text");
     fullscreenTextNode->AddObject<UiLayout>(
-        glm::uvec2(200, 40), glm::ivec2(0, 0), 2, AnchorPoint::Center);
+        glm::uvec2(200, 40), glm::ivec2(0, 0), 102, AnchorPoint::Center);
     auto* fullscreenText =
         fullscreenTextNode->AddObject<UiText>("Toggle Windowed", font);
     fullscreenText->fontSize = 20.0f;
@@ -171,7 +180,7 @@ inline UiOptionsMenu* Build(Scene& mainScene, Font* font) {
     SceneNode* vsyncButtonNode =
         mainScene.CreateNode(optionsGroup, "VSync Button");
     vsyncButtonNode->AddObject<UiLayout>(
-        glm::uvec2(200, 40), glm::ivec2(0, 100), 1, AnchorPoint::Center);
+        glm::uvec2(200, 40), glm::ivec2(0, 100), 101, AnchorPoint::Center);
     auto* vsyncVisual =
         vsyncButtonNode->AddObject<UiVisual>(glm::vec4(0.4f, 0.4f, 0.4f, 1.0f));
     vsyncVisual->colorHovered = glm::vec4(0.6f, 0.6f, 0.6f, 1.0f);
@@ -179,29 +188,16 @@ inline UiOptionsMenu* Build(Scene& mainScene, Font* font) {
         vsyncButtonNode->AddObject<UiInteractable>();
     SceneNode* vsyncTextNode =
         mainScene.CreateNode(vsyncButtonNode, "VSync Text");
-    vsyncTextNode->AddObject<UiLayout>(glm::uvec2(200, 40), glm::ivec2(0, 0), 2,
+    vsyncTextNode->AddObject<UiLayout>(glm::uvec2(200, 40), glm::ivec2(0, 0), 102,
                                        AnchorPoint::Center);
     auto* vsyncText = vsyncTextNode->AddObject<UiText>("Toggle VSync", font);
     vsyncText->fontSize = 20.0f;
 
-    SceneNode* ssaoButtonNode =
-        mainScene.CreateNode(optionsGroup, "SSAO Button");
-    ssaoButtonNode->AddObject<UiLayout>(glm::uvec2(200, 40), glm::ivec2(0, 0),
-                                        1, AnchorPoint::Center);
-    auto* ssaoVisual =
-        ssaoButtonNode->AddObject<UiVisual>(glm::vec4(0.4f, 0.4f, 0.4f, 1.0f));
-    ssaoVisual->colorHovered = glm::vec4(0.6f, 0.6f, 0.6f, 1.0f);
-    controller->ssaoButton = ssaoButtonNode->AddObject<UiInteractable>();
-    SceneNode* ssaoTextNode = mainScene.CreateNode(ssaoButtonNode, "SSAO Text");
-    ssaoTextNode->AddObject<UiLayout>(glm::uvec2(200, 40), glm::ivec2(0, 0), 2,
-                                      AnchorPoint::Center);
-    auto* ssaoText = ssaoTextNode->AddObject<UiText>("Toggle SSAO", font);
-    ssaoText->fontSize = 20.0f;
-
-    SceneNode* ssaoCheckboxNode = UiCheckbox::Create(mainScene, font, "SSAO Checkbox", settings.ssaoEnabled, optionsGroup);
+    SceneNode* ssaoCheckboxNode = UiCheckbox::Create(mainScene, font, 102, "SSAO Checkbox", settings.ssaoEnabled, optionsGroup);
 
     if (auto* layout = ssaoCheckboxNode->GetObject<UiLayout>()) {
         layout->offset = glm::ivec2(0, 50);
+        layout->zIndex = 101;
     }
     if (auto* checkboxLogic = ssaoCheckboxNode->GetObject<UiCheckbox>()) {
         checkboxLogic->OnValueChanged = [controller](bool isChecked) {
@@ -218,14 +214,14 @@ inline UiOptionsMenu* Build(Scene& mainScene, Font* font) {
     SceneNode* applyButtonNode =
         mainScene.CreateNode(optionsGroup, "Apply Button");
     applyButtonNode->AddObject<UiLayout>(
-        glm::uvec2(200, 40), glm::ivec2(0, -50), 1, AnchorPoint::Center);
+        glm::uvec2(200, 40), glm::ivec2(0, -50), 101, AnchorPoint::Center);
     auto* applyVisual =
         applyButtonNode->AddObject<UiVisual>(glm::vec4(0.2f, 0.6f, 0.2f, 1.0f));
     applyVisual->colorHovered = glm::vec4(0.3f, 0.8f, 0.3f, 1.0f);
     controller->applyButton = applyButtonNode->AddObject<UiInteractable>();
     SceneNode* applyTextNode =
         mainScene.CreateNode(applyButtonNode, "Apply Text");
-    applyTextNode->AddObject<UiLayout>(glm::uvec2(200, 40), glm::ivec2(0, 0), 2,
+    applyTextNode->AddObject<UiLayout>(glm::uvec2(200, 40), glm::ivec2(0, 0), 102,
                                        AnchorPoint::Center);
     auto* applyText = applyTextNode->AddObject<UiText>("Apply Changes", font);
     applyText->fontSize = 20.0f;
@@ -233,13 +229,13 @@ inline UiOptionsMenu* Build(Scene& mainScene, Font* font) {
     SceneNode* backButtonNode =
         mainScene.CreateNode(optionsGroup, "Back Button");
     backButtonNode->AddObject<UiLayout>(glm::uvec2(150, 40), glm::ivec2(0, 50),
-                                        6, AnchorPoint::BottomCenter);
+                                        101, AnchorPoint::BottomCenter);
     auto* backVisual =
         backButtonNode->AddObject<UiVisual>(glm::vec4(0.8f, 0.2f, 0.2f, 1.0f));
     backVisual->colorHovered = glm::vec4(1.0f, 0.3f, 0.3f, 1.0f);
     controller->backButton = backButtonNode->AddObject<UiInteractable>();
     SceneNode* backTextNode = mainScene.CreateNode(backButtonNode, "Back Text");
-    backTextNode->AddObject<UiLayout>(glm::uvec2(150, 40), glm::ivec2(0, 0), 7,
+    backTextNode->AddObject<UiLayout>(glm::uvec2(150, 40), glm::ivec2(0, 0), 102,
                                       AnchorPoint::Center);
     auto* backText = backTextNode->AddObject<UiText>("Back", font);
     backText->fontSize = 20.0f;
@@ -247,4 +243,3 @@ inline UiOptionsMenu* Build(Scene& mainScene, Font* font) {
     return controller;
 }
 } // namespace OptionsMenu
-
