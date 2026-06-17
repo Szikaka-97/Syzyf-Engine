@@ -663,6 +663,9 @@ SceneNode* Scene::LoadPrefab(json nodePrefab) {
 
 	// this->messageTree.AddNode(prefabRoot);
 
+	this->messageTree.PropagateMessage<Message::Awake>(prefabRoot);
+	this->messageTree.PropagateMessage<Message::OnEnable>(prefabRoot);
+
 	return prefabRoot;
 }
 SceneNode* Scene::LoadPrefab(const fs::path& prefabPath) {
