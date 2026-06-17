@@ -116,10 +116,14 @@ vec3 shade(in Material mat, in vec3 worldPos, in vec3 normal, in vec3 tangent) {
 	const uint lightStartIndex = lightData.x;
 	const uint lightCount = lightData.y;
 
-	for (int lightIndex = 0; lightIndex < lightCount; lightIndex++) {
+	const uint maxLights = 16384;
+
+	if (lightCount > maxLights) {
+		return vec3(lightCount, 0, 0);
+	}
+
+	for (int lightIndex = 0; lightIndex < min(maxLights, lightCount); lightIndex++) {
 		Light l = Light_LightsList[Light_LightIndexList[lightStartIndex + lightIndex]];
-	// for (int lightIndex = 0; lightIndex < 8192; lightIndex++) {
-	// 	Light l = Light_LightsList[lightIndex];
 
 		if (l.intensity <= 0) {
 			continue;
