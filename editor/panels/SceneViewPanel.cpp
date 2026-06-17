@@ -779,6 +779,17 @@ void SceneViewPanel::HandleDrop(Context& context) {
                         "load an .obj or .fbx file");
                 }
             }
+            if (droppedPath.extension() == ".prefab") {
+                SceneNode* instantiated = context.selectedScene->LoadPrefab(droppedPath);
+
+                if (hasValidSpawnPosition) {
+                    instantiated->LocalTransform().Position() = spawnPosition;
+
+                    spdlog::info("bep");
+                }
+                
+                context.selectedNode = instantiated;
+            }
         }
     }
     ImGui::EndDragDropTarget();
