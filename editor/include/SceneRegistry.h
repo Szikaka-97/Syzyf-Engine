@@ -58,6 +58,8 @@ class SceneRegistry {
         SceneRegistry::RegisterScene("Tutorial Throwing", TutorialThrowingRoomScene::InitScene);
         SceneRegistry::RegisterScene("Crafting Scene",
                                      CraftingScene::InitScene);
+        SceneRegistry::RegisterScene("Base Scene",
+                                     BaseScene::InitScene);
         for (const auto& sceneFile :
              std::filesystem::directory_iterator("./res/scenes")) {
             GetLoadRegistry()[std::format("Loaded: {}",
