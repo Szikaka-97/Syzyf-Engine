@@ -257,6 +257,7 @@ void SceneNode::Deserialize(const nlohmann::json& data) {
 
 	if (this->parent) {
 		this->parent->children.push_back(this);
+		this->transform.parent = this;
 		GetTransform().LocalTransform() = Serialization::Deserialize<glm::mat4>(data["transform"]);
 	}
 
