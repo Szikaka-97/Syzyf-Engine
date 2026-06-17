@@ -351,6 +351,12 @@ void LightSystem::CalculateLightClusters() {
 
 	glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->clustersIndexBuffer);
+
+	unsigned int zero = 0;
+
+	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(unsigned int), &zero);
+
 	glUseProgram(clusterCullingProg->GetHandle());
 	
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, this->clustersBuffer);

@@ -41,9 +41,9 @@ vec3 lineIntersectionWithZPlane(vec3 startPoint, vec3 endPoint, float zDistance)
 }
 
 void main() {
-	if (gl_GlobalInvocationID.x + gl_GlobalInvocationID.y + gl_GlobalInvocationID.z == 0) {
-		clusterCount = 0;
-	}
+	// if (gl_GlobalInvocationID.x + gl_GlobalInvocationID.y + gl_GlobalInvocationID.z == 0) {
+	// 	clusterCount = 0;
+	// }
 
 	if (gl_LocalInvocationIndex == 0) {
 		maxDepth = 0;
