@@ -1,12 +1,4 @@
-/////////////////////////////// Source file 0/////////////////////////////
 #version 460
-
-/////////////////////////////// Source file 1/////////////////////////////
-#define _WIN32
-
-/////////////////////////////// Source file 2/////////////////////////////
-
-/////////////////////////////// Source file 3/////////////////////////////
 
 layout (local_size_x = 1, local_size_y = 1, local_size_z = 32) in;
 
@@ -49,7 +41,7 @@ vec3 lineIntersectionWithZPlane(vec3 startPoint, vec3 endPoint, float zDistance)
 }
 
 void main() {
-	if (gl_GlobalInvocationID == 0) {
+	if (gl_GlobalInvocationID.x + gl_GlobalInvocationID.y + gl_GlobalInvocationID.z == 0) {
 		clusterCount = 0;
 	}
 
