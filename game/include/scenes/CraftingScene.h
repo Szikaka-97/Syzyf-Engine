@@ -21,25 +21,26 @@
 #include <TimeSystem.h>
 #include <TweenSystem.h>
 
-#include "game_scripts/CameraSettings.h"
+#include "DungeonScene.h"
 #include "game_scripts/AimCrosshair.h"
+#include "game_scripts/CameraSettings.h"
+#include "game_scripts/FireParticles.h"
+#include "game_scripts/crafting/Cauldron.h"
+#include "game_scripts/crafting/CraftingDragInteractor.h"
+#include "game_scripts/crafting/CraftingIngredientReceiver.h"
+#include "game_scripts/crafting/CraftingInteractable.h"
+#include "game_scripts/crafting/CraftingStation.h"
+#include "game_scripts/crafting/DraggableCraftingItem.h"
+#include <Application.h>
+#include <PersistentData.h>
+#include <fog/FogVolume.h>
 #include <game_scripts/PickableItemSystem.h>
+#include <game_scripts/PotionInventory.h>
 #include <game_scripts/ThrowableObjectPool.h>
-#include <ui/widgets/wheel/UiWheel.h>
+#include <text/Font.h>
 #include <ui/objects/UiLayout.h>
 #include <ui/objects/UiText.h>
-#include <text/Font.h>
-#include <PersistentData.h>
-#include <Application.h>
-#include <fog/FogVolume.h>
-#include <game_scripts/PotionInventory.h>
-#include "DungeonScene.h"
-#include "game_scripts/crafting/CraftingDragInteractor.h"
-#include "game_scripts/crafting/CraftingInteractable.h"
-#include "game_scripts/crafting/DraggableCraftingItem.h"
-#include "game_scripts/crafting/CraftingStation.h"
-#include "game_scripts/crafting/CraftingIngredientReceiver.h"
-#include "game_scripts/crafting/Cauldron.h"
+#include <ui/widgets/wheel/UiWheel.h>
 
 #include <game_scripts/PlayerController.h>
 #include <physics/VirtualCharacterController.h>
@@ -201,6 +202,7 @@ namespace CraftingScene {
 
 	    std::vector<Light*> lights;
 	    std::vector<float> baseIntensities;
+            std::vector<bool> torchSpawned;
 
 	    bool firstRoomVisit = false;
 	    float lightsOnTime = 0.0f;
@@ -258,6 +260,7 @@ namespace CraftingScene {
 			    this->lights.size(),
 			    this->firstRoomVisit
 		    );
+	             this->torchSpawned.push_back(false);
 	    }
 
 	    void Update() {
@@ -279,6 +282,16 @@ namespace CraftingScene {
 						    0.0f,
 						    1.0f
 					    );
+			        if (turnOnAmount > 0.75f && !this->torchSpawned[index]) {
+			            this->torchSpawned[index] = true;
+
+			            SceneNode* lightNode = light->GetNode();
+			            glm::vec3 pos = lightNode->GlobalTransform().Position();
+
+			            SceneNode* torchNode = lightNode->GetScene()->CreateNode(lightNode, "torch");
+			            torchNode->GlobalTransform().Position() = pos;
+			            torchNode->AddObject<FireParticles>();
+			        }
 			    }
 
 			    light->SetIntensity(targetIntensity * turnOnAmount);

@@ -102,6 +102,17 @@ inline void InitScene(Scene& mainScene) {
 	roomNode->AddObject<TutorialThrowingPromptManager>();
 #pragma endregion
 
+#pragma region Torches
+
+    // for (Light* light : mainScene.FindObjectsOfType<Light>()) {
+    //     glm::vec3 pos = light->GetNode()->GlobalTransform().Position();
+    //     SceneNode* torchNode = mainScene.CreateNode("torch");
+    //     torchNode->GlobalTransform().Position() = pos;
+    //     torchNode->AddObject<FireParticles>();
+    // }
+
+#pragma endregion
+
 #pragma region Player
 	JPH::Ref<JPH::CharacterVirtualSettings> characterSettings = new JPH::CharacterVirtualSettings();
 	characterSettings->mShape = new JPH::CapsuleShape(0.5f, 0.5f);

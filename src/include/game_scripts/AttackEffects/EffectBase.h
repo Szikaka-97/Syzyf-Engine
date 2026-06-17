@@ -13,7 +13,6 @@
 class EffectBase : public GameObject {
 public:
     serialized float radius          = 1.0f;
-    serialized float maxLifetime = 10.0f;
     serialized float speed           = 5.0f;
     serialized int   modifier        = 2;
     serialized int   ingredientCount = 1;
@@ -39,7 +38,7 @@ protected:
 
     virtual void  OnUpdate()                  {}
 
-    virtual float GetMaxLifetime() const      { return maxLifetime; }
+    virtual float GetMaxLifetime() const      { return radius; }
 
     std::vector<EnemyBase*> ScanEnemiesInRadius() const;
     glm::vec3               GetPosition()          const;

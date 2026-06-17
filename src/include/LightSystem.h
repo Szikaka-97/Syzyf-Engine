@@ -16,12 +16,16 @@ private:
 	GLuint lightsBuffer;
 	GLuint shadowmapsBuffer;
 	GLuint clustersBuffer;
+	GLuint clustersIndexBuffer;
 	GLuint lightIndexList;
 	GLuint lightIndexCounter;
 	GLuint lightGrid;
 
 	int shadowmapAtlasSize;
 	int directionalLightCascadeCount;
+
+    int shadowSamplesCount = 16;
+    float shadowFilterRadius = 2.5f;
 
     glm::vec4 ambientLight;
 

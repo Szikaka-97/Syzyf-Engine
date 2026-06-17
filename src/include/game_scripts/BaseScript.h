@@ -19,6 +19,7 @@ class BaseLights : public GameObject {
 private:
 	std::vector<Light*> lights;
 	std::vector<float> baseIntensities;
+	std::vector<bool> torchSpawned;
 public:
 	BaseLights() = default;
 

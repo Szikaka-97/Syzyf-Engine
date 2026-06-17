@@ -77,6 +77,7 @@ void BaseLights::Awake() {
 
 		this->lights.push_back(light);
 		this->baseIntensities.push_back(3.0f);
+		this->torchSpawned.push_back(false);
 	}
 }
 
@@ -97,9 +98,30 @@ void BaseLights::Update() {
 				float sequenceDelay = float(index - 2) * 0.25f;
 				float fadeDuration = 0.6f;
 				turnOnAmount = glm::clamp((Time::Current() - lightsOnTime - sequenceDelay) / fadeDuration, 0.0f, 1.0f);
+				if (turnOnAmount > 0.75f && !this->torchSpawned[index]) {
+					this->torchSpawned[index] = true;
+
+					SceneNode* lightNode = light->GetNode();
+					glm::vec3 pos = lightNode->GlobalTransform().Position();
+
+					SceneNode* torchNode = lightNode->GetScene()->CreateNode(lightNode, "torch");
+					torchNode->GlobalTransform().Position() = pos;
+					torchNode->AddObject<FireParticles>();
+				}
 			}
 		}
+		else {
+			if (!this->torchSpawned[index]) {
+				this->torchSpawned[index] = true;
 
+				SceneNode* lightNode = light->GetNode();
+				glm::vec3 pos = lightNode->GlobalTransform().Position();
+
+				SceneNode* torchNode = lightNode->GetScene()->CreateNode(lightNode, "torch");
+				torchNode->GlobalTransform().Position() = pos;
+				torchNode->AddObject<FireParticles>();
+			}
+		}
 		light->SetIntensity(targetIntensity * turnOnAmount);
 	}
 }

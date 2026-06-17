@@ -21,12 +21,12 @@ struct alignas(16) Cluster {
 	glm::vec4 maxPoint;
 };
 
-
 LightSystem::LightSystem(Scene* scene):
 GameObjectSystem<Light>(scene),
 lightsBuffer(0),
 shadowmapsBuffer(0),
 clustersBuffer(0),
+clustersIndexBuffer(0),
 lightIndexList(0),
 lightIndexCounter(0),
 lightGrid(0),
@@ -35,6 +35,12 @@ shadowmapAtlasSize(4096),
 directionalLightCascadeCount(6),
 ambientLight(1.0f, 1.0f, 1.0f, 0.001f) {
 	this->shadowAtlasFramebuffer = new Framebuffer(Framebuffer::Attachment::Depth, shadowmapAtlasSize, shadowmapAtlasSize);
+
+    // This enables sampler2DShadow
+    glBindTexture(GL_TEXTURE_2D, this->shadowAtlasFramebuffer->GetDepthTexture()->GetHandle());
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+    glBindTexture(GL_TEXTURE_2D, 0);
 
 	glGenBuffers(1, &this->lightsBuffer);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->lightsBuffer);
@@ -283,6 +289,14 @@ void LightSystem::RebuildLightGridBuffers() {
 
 	glBufferData(GL_SHADER_STORAGE_BUFFER,  totalLightGridSize * sizeof(Cluster), nullptr, GL_DYNAMIC_DRAW);	
 
+	if (!this->clustersIndexBuffer) {
+		glCreateBuffers(1, &this->clustersIndexBuffer);
+	}
+
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->clustersIndexBuffer);
+
+	glBufferData(GL_SHADER_STORAGE_BUFFER,  totalLightGridSize * sizeof(unsigned int) + sizeof(unsigned int), nullptr, GL_DYNAMIC_DRAW);	
+
 	if (!this->lightIndexList) {
 		glCreateBuffers(1, &this->lightIndexList);
 	}
@@ -313,6 +327,7 @@ void LightSystem::RebuildLightGridBuffers() {
 }
 void LightSystem::CalculateLightClusters() {
 	static ComputeShaderProgram* clusterCalculationProg = new ComputeShaderProgram("./res/shaders/forwardplus/computeClusters.comp");
+	static ComputeShaderProgram* clusterCullingProg = new ComputeShaderProgram("./res/shaders/forwardplus/sortClusters.comp");
 	
 	const Camera* cam = GetScene()->GetGraphics()->GetMainCamera();
 
@@ -335,6 +350,30 @@ void LightSystem::CalculateLightClusters() {
 	glDispatchCompute(this->lightGridSize.x, this->lightGridSize.y, this->lightGridSize.z);
 
 	glMemoryBarrier(GL_ALL_BARRIER_BITS);
+
+	glUseProgram(clusterCullingProg->GetHandle());
+	
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, this->clustersBuffer);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, this->clustersIndexBuffer);
+
+	glUniform1f(glGetUniformLocation(clusterCullingProg->GetHandle(), "zNear"), cam->GetNearPlane());
+	glUniform1f(glGetUniformLocation(clusterCullingProg->GetHandle(), "zFar"), cam->GetFarPlane());
+
+	Texture* depthTex = GetScene()->GetGraphics()->GetMainFramebuffer()->GetDepthTexture();
+
+	glActiveTexture(GL_TEXTURE3);
+
+	glBindTexture(GL_TEXTURE_2D, depthTex->GetHandle());
+
+	glm::mat4 proj = cam->ProjectionMatrix();
+
+	glUniformMatrix4fv(glGetUniformLocation(clusterCullingProg->GetHandle(), "projectionMatrix"), 1, false, &proj[0][0]);
+	glUniform3uiv(glGetUniformLocation(clusterCullingProg->GetHandle(), "gridSize"), 1, &this->lightGridSize[0]);
+	glUniform2ui(glGetUniformLocation(clusterCullingProg->GetHandle(), "screenDimensions"), GetScene()->GetGraphics()->GetScreenResolution().x, GetScene()->GetGraphics()->GetScreenResolution().y);
+
+	glDispatchCompute(this->lightGridSize.x, this->lightGridSize.y, 1);
+
+	glMemoryBarrier(GL_ALL_BARRIER_BITS);
 }
 void LightSystem::CullLights() {
 	static ComputeShaderProgram* lightCullingProg = new ComputeShaderProgram("./res/shaders/forwardplus/cullLights.comp");
@@ -351,10 +390,11 @@ void LightSystem::CullLights() {
 	glUseProgram(lightCullingProg->GetHandle());
 
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, this->clustersBuffer);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, GetLightsBufferHandle());
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, this->lightIndexList);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, this->lightIndexCounter);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, this->lightGrid);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, this->clustersIndexBuffer);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, GetLightsBufferHandle());
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, this->lightIndexList);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, this->lightIndexCounter);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, this->lightGrid);
 
 	glm::mat4 viewMatrix = cam->ViewMatrix();
 
@@ -514,6 +554,8 @@ void LightSystem::OnPostRender() {
 	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(this->ambientLight), &this->ambientLight);
 	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 16, sizeof(lightIndex), &lightIndex);
 	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 20, sizeof(this->directionalLightCascadeCount), &this->directionalLightCascadeCount);
+    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 24, sizeof(this->shadowSamplesCount), &this->shadowSamplesCount);
+    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 28, sizeof(this->shadowFilterRadius), &this->shadowFilterRadius);
 
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, this->lightsBuffer);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
@@ -526,7 +568,7 @@ void LightSystem::OnPostRender() {
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, this->lightIndexList);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, this->lightIndexList);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, this->lightGrid);
 }
 
@@ -543,6 +585,11 @@ void LightSystem::DrawImGui() {
 		ImGui::Text("Active lights: %i", (int) this->GetAllObjects()->size());
 
 		ImGui::Separator();
+
+        ImGui::SliderInt("Shadow Samples", &this->shadowSamplesCount, 1, 64);
+        ImGui::SliderFloat("Shadow Blur Radius", &this->shadowFilterRadius, 0.1f, 10.0f);
+
+        ImGui::Separator();
 
 		int newShadowmapResolution = this->shadowmapAtlasSize;
 
@@ -568,6 +615,10 @@ void LightSystem::DrawImGui() {
 	
 				RebuildLightGridBuffers();
 			}
+		}
+
+		if (ImGui::Button("Rebuild grid buffers")) {
+			RebuildLightGridBuffers();
 		}
 
 		ImGui::TreePop();

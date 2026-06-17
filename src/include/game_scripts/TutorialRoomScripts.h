@@ -1,5 +1,6 @@
 #pragma once
 
+#include "FireParticles.h"
 #include "enemies/EnemySkeleton.h"
 
 
@@ -381,6 +382,7 @@ inline void CollectPointLightsRecursive(SceneNode* node, std::vector<SceneNode*>
 
 	if (node->GetName().rfind("PointLight", 0) == 0) {
 		pointLights.push_back(node);
+
 	}
 
 	for (SceneNode* child : node->GetChildren()) {
@@ -392,6 +394,7 @@ class TutorialThrowingRoomLights : public GameObject {
 private:
 	std::vector<Light*> lights;
 	std::vector<float> baseIntensities;
+	std::vector<bool> torchSpawned;
 
 	float lightsOnTime = 0.0f;
 	float sequenceDelay = 0.55f;
@@ -419,13 +422,17 @@ public:
 						0.09f,
 						0.032f
 					)
+
 				);
+
 			}
 
 			light->SetIntensity(0.0f);
 
 			this->lights.push_back(light);
 			this->baseIntensities.push_back(3.0f);
+			this->torchSpawned.push_back(false);
+
 		}
 
 		this->lightsOnTime = Time::Current();
@@ -439,6 +446,17 @@ public:
 			float turnOnAmount = glm::clamp((Time::Current() - this->lightsOnTime - float(index) * this->sequenceDelay) / this->fadeDuration, 0.0f, 1.0f);
 
 			light->SetIntensity(targetIntensity * turnOnAmount);
+
+			if (turnOnAmount > 0.75f && !this->torchSpawned[index]) {
+				this->torchSpawned[index] = true;
+
+				SceneNode* lightNode = light->GetNode();
+				glm::vec3 pos = lightNode->GlobalTransform().Position();
+
+				SceneNode* torchNode = lightNode->GetScene()->CreateNode(lightNode, "torch");
+				torchNode->GlobalTransform().Position() = pos;
+				torchNode->AddObject<FireParticles>();
+			}
 		}
 	}
 };
