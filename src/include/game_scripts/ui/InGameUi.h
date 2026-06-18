@@ -11,6 +11,7 @@
 #include <ui/widgets/wheel/UiRadialWheel.h>
 #include <ui/widgets/wheel/UiWheel.h>
 
+
 class InGameUi : public GameObject {
 private:
     UiInteractable* settingsButton = nullptr;
@@ -35,7 +36,7 @@ public:
                 .Link();
         Material* wheelUiMaterial = new Material(wheelProgram);
 
-        SceneNode* radialWheelNode = mainScene->CreateNode(uiRoot, "Wheel");
+        SceneNode* radialWheelNode = mainScene->GetOrCreateNode(uiRoot, "Wheel");
         radialWheelNode->AddObject<UiLayout>(
             glm::uvec2(600, 600), glm::uvec2(-150, 0), 0, AnchorPoint::CenterRight);
 
@@ -56,7 +57,7 @@ public:
         });
 
         // Right menu buttons
-        SceneNode* rightMenuNode = mainScene->CreateNode(uiRoot, "Right Menu UI");
+        SceneNode* rightMenuNode = mainScene->GetOrCreateNode(uiRoot, "Right Menu UI");
         rightMenuNode->AddObject<UiLayout>(
             // ------------------------------ hmm
             glm::uvec2(164, 640), glm::uvec2(-40, 40), 0, AnchorPoint::TopRight);
@@ -66,7 +67,7 @@ public:
             "./res/textures/ui/2d/settings_icon.png", Texture2D::ColorTextureRGBA);
 
         SceneNode* settingsButtonNode =
-            mainScene->CreateNode(rightMenuNode, "Settings Button");
+            mainScene->GetOrCreateNode(rightMenuNode, "Settings Button");
         settingsButtonNode->AddObject<UiLayout>(
             glm::uvec2(164, 142), glm::uvec2(0, -240), 1, AnchorPoint::Center);
 
@@ -86,7 +87,7 @@ public:
         Texture2D* backpackIcon = mainScene->Resources()->Get<Texture2D>(
             "./res/textures/ui/2d/backpack_icon.png", Texture2D::ColorTextureRGBA);
         SceneNode* backpackButtonNode =
-            mainScene->CreateNode(rightMenuNode, "Backpack Button");
+            mainScene->GetOrCreateNode(rightMenuNode, "Backpack Button");
         backpackButtonNode->AddObject<UiLayout>(
             glm::uvec2(164, 142), glm::uvec2(0, -80), 1, AnchorPoint::Center);
         auto* backpackButtonVisual = backpackButtonNode->AddObject<UiVisual>(
@@ -102,7 +103,7 @@ public:
         Texture2D* pauseIcon = mainScene->Resources()->Get<Texture2D>(
             "./res/textures/ui/2d/pause_icon.png", Texture2D::ColorTextureRGBA);
         SceneNode* pauseButtonNode =
-            mainScene->CreateNode(rightMenuNode, "Pause Button");
+            mainScene->GetOrCreateNode(rightMenuNode, "Pause Button");
         pauseButtonNode->AddObject<UiLayout>(
             glm::uvec2(164, 142), glm::uvec2(0, 80), 1, AnchorPoint::Center);
         auto* pauseButtonVisual = pauseButtonNode->AddObject<UiVisual>(
@@ -118,7 +119,7 @@ public:
         Texture2D* mapIcon = mainScene->Resources()->Get<Texture2D>(
             "./res/textures/ui/2d/map_icon.png", Texture2D::ColorTextureRGBA);
         SceneNode* mapButtonNode =
-            mainScene->CreateNode(rightMenuNode, "Map Button");
+            mainScene->GetOrCreateNode(rightMenuNode, "Map Button");
         mapButtonNode->AddObject<UiLayout>(glm::uvec2(164, 142), glm::uvec2(0, 240),
                                            1, AnchorPoint::Center);
         auto* mapButtonVisual = mapButtonNode->AddObject<UiVisual>(
@@ -131,7 +132,7 @@ public:
 
         // Potion Slots
         SceneNode* potionSlotsNode =
-            mainScene->CreateNode(uiRoot, "Potion Slots UI");
+            mainScene->GetOrCreateNode(uiRoot, "Potion Slots UI");
         potionSlotsNode->AddObject<UiLayout>(glm::uvec2(899, 242),
                                              glm::uvec2(-40, -40), 0,
                                              AnchorPoint::BottomRight);
@@ -146,7 +147,7 @@ public:
         potionSlotsNode->AddObject<WheelTag>();
 
         // Health UI
-        SceneNode* healthNode = mainScene->CreateNode(uiRoot, "Health UI");
+        SceneNode* healthNode = mainScene->GetOrCreateNode(uiRoot, "Health UI");
         healthNode->AddObject<UiLayout>(glm::uvec2(826, 242), glm::uvec2(40, -40),
                                         0, AnchorPoint::BottomLeft);
         Texture2D* healthBackgroundTexture = mainScene->Resources()->Get<Texture2D>(
@@ -158,7 +159,7 @@ public:
             ->SetEnabled(false);
         healthNode->AddObject<WheelTag>();
 
-        SceneNode* healthVialNode = mainScene->CreateNode(healthNode, "Health Vial");
+        SceneNode* healthVialNode = mainScene->GetOrCreateNode(healthNode, "Health Vial");
         healthVialNode->AddObject<UiLayout>(glm::uvec2(826, 242), glm::uvec2(0, 0), 1, AnchorPoint::Center);
         healthVialNode->AddObject<UiVisual>(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), mainScene->Resources()->Get<Texture2D>(
             "./res/textures/ui/2d/life_foreground.png", Texture2D::ColorTextureRGBA))->SetEnabled(false);
