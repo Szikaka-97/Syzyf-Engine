@@ -89,59 +89,59 @@ namespace{
 		float multiplier = SecondaryEffectMultiplier(secondaryEffect);
 
 		// if (effectId == Crafting::EffectId::Fire || effectId == Crafting::EffectId::Burn) {
-		// 	EffectFire* effect = node->AddObject<EffectFire>();
-		//
-		// 	effect->radius = potionData.radius * multiplier;
-		// 	effect->damage = potionData.power * multiplier;
-		// 	effect->dotRemainingTime = potionData.duration * multiplier;
-		// 	effect->ingredientCount = potionData.mainEffectCount;
-		// 	effect->special1 = potionData.modifierCount > 0;
-		// 	effect->special2 = potionData.modifierCount > 1;
-		//
-		// 	return effect;
+			EffectFire* effect = node->AddObject<EffectFire>();
+
+			effect->radius = potionData.radius * multiplier;
+			effect->damage = potionData.power * multiplier;
+			effect->dotRemainingTime = potionData.duration * multiplier;
+			effect->ingredientCount = potionData.mainEffectCount;
+			effect->special1 = potionData.modifierCount > 0;
+			effect->special2 = potionData.modifierCount > 1;
+
+			return effect;
 		// }
-		//
+
 		// if (effectId == Crafting::EffectId::Petrify) {
 		// 	EffectPetrify* effect = node->AddObject<EffectPetrify>();
-		//
+
 		// 	effect->radius = potionData.radius * multiplier;
 		// 	effect->petrifyRemainingTime = potionData.duration * multiplier;
 		// 	effect->ingredientCount = potionData.mainEffectCount;
 		// 	effect->special1 = potionData.modifierCount > 0;
 		// 	effect->special2 = potionData.modifierCount > 1;
-		//
+
 		// 	return effect;
 		// }
-		//
+
 		// if (effectId == Crafting::EffectId::Tornado) {
 		// 	EffectTornado* effect = node->AddObject<EffectTornado>();
-		//
+
 		// 	effect->radius = potionData.radius * multiplier;
 		// 	effect->damage = potionData.power * multiplier;
 		// 	effect->tornadoRemainingTime = potionData.duration * multiplier;
 		// 	effect->ingredientCount = potionData.mainEffectCount;
 		// 	effect->special1 = potionData.modifierCount > 0;
 		// 	effect->special2 = potionData.modifierCount > 1;
-		//
+
 		// 	return effect;
 		// }
-		//
+
 		// if (effectId == Crafting::EffectId::Confuse) {
 		// 	EffectConfuse* effect = node->AddObject<EffectConfuse>();
-		//
+
 		// 	effect->radius = potionData.radius * multiplier;
 		// 	effect->damage = static_cast<int>(potionData.power * multiplier);
 		// 	effect->confuseRemainingTime = potionData.duration * multiplier;
 		// 	effect->ingredientCount = potionData.mainEffectCount;
 		// 	effect->special1 = potionData.modifierCount > 0;
 		// 	effect->special2 = potionData.modifierCount > 1;
-		//
+
 		// 	return effect;
 		// }
-		//
+
 		// if (effectId == Crafting::EffectId::Explosion || effectId == Crafting::EffectId::Lightning) {
 		// 	EffectExplosion* effect = node->AddObject<EffectExplosion>();
-		//
+
 		// 	effect->strength = 1.0f;
 		// 	effect->maxRange = potionData.radius * multiplier;
 		// 	effect->maxDamage = potionData.power * multiplier;
@@ -149,19 +149,18 @@ namespace{
 		// 	effect->ingredientCount = potionData.mainEffectCount;
 		// 	effect->special1 = potionData.modifierCount > 0;
 		// 	effect->special2 = potionData.modifierCount > 1;
-		//
+
 		// 	return effect;
 		// }
 
-		EffectFire* effect = node->AddObject<EffectFire>();
+		// EffectExplosion* effect = node->AddObject<EffectExplosion>();
 
-		effect->radius = potionData.radius * multiplier;
-		effect->damage = potionData.power * multiplier;
-		effect->dotRemainingTime = potionData.duration * multiplier;
-		effect->ingredientCount = potionData.mainEffectCount;
-		effect->special1 = potionData.modifierCount > 0;
-		effect->special2 = potionData.modifierCount > 1;
-
+		// effect->strength = 1.0f;
+		// effect->maxRange = potionData.radius * multiplier;
+		// effect->maxDamage = potionData.power * multiplier;
+		// effect->explosionDuration = potionData.duration * multiplier;
+		// effect->ingredientCount = potionData.mainEffectCount;
+		
 		return effect;
 	}
 

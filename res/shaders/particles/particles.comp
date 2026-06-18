@@ -12,6 +12,10 @@ uniform vec3 uAreaExtents;
 uniform vec3 uEmissionShapeExtents;
 uniform uint uWrapAround; // change to bool
 uniform uint uEnableLifetime;
+uniform mat4 uModelMatrix;
+uniform uint uSpawnParticleLights;
+uniform float uParticleLightStrength;
+uniform vec3 uParticleColor;
 
 layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 
@@ -54,18 +58,20 @@ void main() {
             localPosition = mod(localPosition + uAreaExtents, size) - uAreaExtents;
             particles[index].position.xyz = uAreaCenter + localPosition;
         }
+
+        if (uSpawnParticleLights > 0) {
+            Light l;
+            
+            l.position = particles[index].position.xyz;
+            l.type = POINT_LIGHT;
+            l.range = 1.0f;
+            l.color = uParticleColor;
+            l.intensity = uParticleLightStrength;
+            l.linearAttenuation = 1.0f;
+            l.quadraticAttenuation = 60.0f;
+            l.shadowAtlasIndex = -1;
+
+            Light_AddLight(l);
+        }
     }
-
-    Light l;
-    
-    l.position = particles[index].position.xyz;
-    l.type = POINT_LIGHT;
-    l.range = 1.0f;
-    l.color = hsl2rgb(0.1 + random(index) * 0.03, 1.0f, 0.5f);
-    l.intensity = 0.3 + sin(Global_Time * (0.3 + random(index) * 0.1) + random(index) * 7) * 0.1;
-    l.linearAttenuation = 1.0f;
-    l.quadraticAttenuation = 60.0f;
-    l.shadowAtlasIndex = -1;
-
-    Light_AddLight(l);
 }
