@@ -52,7 +52,7 @@ float Random::Value(float minValue, float maxValue) {
 
 	this->state = val;
 
-	return minValue + ((float) val / INT_MAX) * (maxValue - minValue);
+	return glm::mix(minValue, maxValue, (float) val / RAND_MAX);
 }
 
 int Random::RandomValueInt() {
