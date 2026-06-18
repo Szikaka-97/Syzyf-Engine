@@ -248,6 +248,7 @@ void PlayerController::Awake() {
 	assert(this->throwPoint);
 
 	this->charController->SetCollisionLayerAndMask({1}, {0});
+	this->charController->SetPosition(GlobalTransform().Position() + glm::vec3(0, 0.01, 0));
 
 	this->defaultThrowingArmRotation = this->throwingArm->LocalTransform().Rotation();
 

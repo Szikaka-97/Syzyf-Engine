@@ -738,7 +738,7 @@ json Body::Serialize() const {
     const JPH::MeshShape* mesh = dynamic_cast<const JPH::MeshShape*>(shape);
 
     if (mesh) {
-      shapeData["kind"] = BodyKind::ConvexHullMesh;
+      shapeData["kind"] = BodyKind::Mesh;
       shapeData["mesh"] = ((Mesh*) mesh->GetUserData())->GetPath();
 
       break;

@@ -101,8 +101,6 @@ void FogVolume::Render() {
     glUniform1iv(arrayLocation, intersectingLightIndices.size(), intersectingLightIndices.data());
   }
 
-  spdlog::info("fog draw");
-
   GetScene()->GetGraphics()->DrawMesh(this->mesh, 0, this->material,
                                       this->GlobalTransform());
 }

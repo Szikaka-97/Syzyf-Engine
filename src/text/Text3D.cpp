@@ -31,7 +31,7 @@ void Text3D::Awake() {
     this->material->SetValue("textColor", glm::vec4(1.0f));
     this->material->SetValue("pxRange", static_cast<float>(font->distanceRange));
 
-    this->renderer = this->GetNode()->AddObject<MeshRenderer>();
+    this->renderer = this->GetNode()->AddObjectIfMissing<MeshRenderer>();
     this->RebuildMesh();
     this->renderer->SetMaterial(this->material.get());
     this->material->SetValue("textColor", this->color);
