@@ -110,10 +110,10 @@ bool Random::Chance(float probability) {
 }
 
 glm::vec3 Random::RandomOnUnitSphere() {
-	return globalInstance->RandomOnUnitSphere();
+	return globalInstance->OnUnitSphere();
 }
 glm::vec3 Random::RandomInUnitBox() {
-	return globalInstance->RandomInUnitBox();
+	return globalInstance->InUnitBox();
 }
 
 glm::vec3 Random::OnUnitSphere() {
