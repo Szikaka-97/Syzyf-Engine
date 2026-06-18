@@ -5,11 +5,12 @@
 #include <glm/gtc/constants.hpp>
 #include <spdlog/spdlog.h>
 #include "game_scripts/AttackEffects/EffectsManager.h"
-
+#include "game_scripts/FireParticles.h"
 #include "Light.h"
 #include "fog/FogVolume.h"
 #include "game_scripts/FireParticles.h"
 #include "../../game/include/scenes/examples/particles_and_scatter.h"
+#include "glm/gtc/random.hpp"
 
 
 //namespace ExampleFogVolume {
@@ -53,23 +54,23 @@ void EffectFire::OnInit() {
     Texture2D* dustTex = mainScene->Resources()->Get<Texture2D>(
         "./res/textures/smoke_08.png", Texture2D::ColorTextureRGBA);
 
-    TextureParams rampParams = {
-        .channels   = TextureChannels::RGB,
-        .colorSpace = TextureColor::Linear,
-        .format     = TextureFormat::Ubyte,
-        .wrapU      = TextureWrap::Clamp,
-        .wrapV      = TextureWrap::Clamp,
-        .minFilter  = TextureFilter::Linear,
-        .magFilter  = TextureFilter::Linear,
-    };
-    Texture2D* gradientTex = mainScene->Resources()->Get<Texture2D>(
-        "./res/textures/fire_gradient.png", rampParams);
+    // TextureParams rampParams = {
+    //     .channels   = TextureChannels::RGB,
+    //     .colorSpace = TextureColor::Linear,
+    //     .format     = TextureFormat::Ubyte,
+    //     .wrapU      = TextureWrap::Clamp,
+    //     .wrapV      = TextureWrap::Clamp,
+    //     .minFilter  = TextureFilter::Linear,
+    //     .magFilter  = TextureFilter::Linear,
+    // };
+    // Texture2D* gradientTex = mainScene->Resources()->Get<Texture2D>(
+    //     "./res/textures/color_grading_lut.png", rampParams);
 
     auto* fireMaterial = new Material(fireProgram);
     fireMaterial->SetValue("colorTex",  dustTex);
-    fireMaterial->SetValue("colorRamp", gradientTex);
+    //fireMaterial->SetValue("colorRamp", gradientTex);
     // Biały tint — kolor w całości pochodzi z colorRamp
-    fireMaterial->SetValue("color", glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+    fireMaterial->SetValue("color", glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
 
     ParticleSpawnerSettings fireSettings = {
         .maxParticles         = 250,
@@ -92,6 +93,8 @@ void EffectFire::OnInit() {
         .minScale = 0.25f,
         .maxScale = 0.50f,
 
+        .color = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f),
+
         .alphaMode = AlphaMode::Alpha,
 
         .enableLifetimeFade = true,
@@ -104,7 +107,8 @@ void EffectFire::OnInit() {
         .billboardMode = BillboardMode::Enabled,
         .wrapAround    = false,
         .continuous    = true,
-        .useColorRamp  = true,
+        .useColorRamp  = false,
+
     };
 
     fireRootNode->AddObject<ParticleSpawner>(
@@ -116,7 +120,7 @@ void EffectFire::OnInit() {
     lightNode->LocalTransform().Position() = {0.0f, 0.4f, 0.0f};
 
     auto* fireLight = lightNode->AddObject<Light>(
-        Light::PointLight({1.0f, 0.45f, 0.08f}, 4.0f, 1.0f));
+        Light::PointLight({1.0f, 1.f, 1.f}, 4.0f, 1.0f));
 
     auto* flickerScript = lightNode->AddObject<FlameFlicker>();
     flickerScript->Init(fireLight);
@@ -178,21 +182,19 @@ void EffectTornado::OnInit(){
     //     animComp->Play("Cylinder.012Action");
     // }
 }
-
-
 void EffectTornado::OnApplySpecials() {
     if (special1) radius               *= static_cast<float>(modifier);
     if (special2) tornadoRemainingTime *= static_cast<float>(modifier);
     spdlog::info("TornadoEffect: radius={:.1f}, duration={:.1f}s", radius, tornadoRemainingTime);
 }
 void EffectTornado::OnUpdate() {
-    /*if (myNode) {
+    if (myNode) {
         glm::quat delta = glm::angleAxis(
             glm::radians(rotationSpeed * Time::Delta()),
             glm::vec3(0.0f, 1.0f, 0.0f));
         myNode->GlobalTransform().Rotation() =
             delta * glm::quat(myNode->GlobalTransform().Rotation());
-    }*/
+    }
     m_DamageTimer += Time::Delta();
     if (m_DamageTimer >= damageInterval) {
         m_DamageTimer = 0.0f;
@@ -214,20 +216,6 @@ void EffectTornado::ScanAndHandleBullets() {
     }
 }
 
-void EffectConfuse::OnInit() {
-    SceneNode* effectModel =
-            ResourceDatabase::Global
-    ->Get<GltfScene>("./res/models/effects/confuse1.glb")
-->Instantiate(GetScene(), GetNode(), "confuse effect");
-    GetNode()->GlobalTransform().Scale()=glm::vec3(1.5f,1.5f,1.5f);
-
-    effectModel->LocalTransform().Position() = glm::vec3(0, 0, 0);
-    auto* animComp = effectModel->GetObjectInChildren<AnimationComponent>();
-    if (animComp) {
-        animComp->Play("Spiral.002Action");
-    }
-}
-
 void EffectConfuse::OnApplySpecials() {
     if (special1) confuseRemainingTime *= static_cast<float>(modifier);
     if (special2) damage *= modifier;
@@ -243,19 +231,22 @@ void EffectExplosion::OnInit() {
 
     SceneNode* explosionModel =
             ResourceDatabase::Global
-    ->Get<GltfScene>("./res/models/effects/explode1.glb")
+    ->Get<GltfScene>("./res/models/effects/explode.glb")
 ->Instantiate(GetScene(), GetNode(), "explosion effect");
     explosionModel->GlobalTransform().Scale()=glm::vec3(1.0f,1.0f,1.0f);
     explosionModel->LocalTransform().Position() = glm::vec3(0, 0, 0);
     GetNode()->GlobalTransform().Scale()=glm::vec3(1.0f,1.0f,1.0f);
+    this->radius = GetRange();
 
-    auto* animComp = explosionModel->GetObjectInChildren<AnimationComponent>();
-    if (animComp) {
-        animComp->Play("*Action");
-        animComp->Play("CylinderAction");
-        animComp->Play("TorusAction");
-        animComp->Play("SphereAction");
+    for (auto& anim : explosionModel->GetObject<AnimationComponent>()->animations) {
+        anim.speed = 2.0;
+        explosionModel->GetObject<AnimationComponent>()->Play(anim.data.name);
     }
+
+    // explosionModel->GetObject<AnimationComponent>()->Play("CylinderAction");
+    // explosionModel->GetObject<AnimationComponent>()->Play("TorusAction");
+    // explosionModel->GetObject<AnimationComponent>()->Play("SphereAction");
+    explosionModel->FindNode("SphereScaler")->LocalTransform().Scale() = glm::vec3(this->radius);
 }
 
 void EffectExplosion::OnApplySpecials() {
@@ -263,6 +254,10 @@ void EffectExplosion::OnApplySpecials() {
 
     spdlog::info("EffectExplosion: range={:.1f}, damage={:.1f}, duration={:.1f}s",
                  GetRange(), GetDamage(), explosionDuration);
+}
+
+void EffectExplosion::OnUpdate() {
+
 }
 
 void EffectExplosion::OnApplyToEnemy(EnemyBase* enemy) {
