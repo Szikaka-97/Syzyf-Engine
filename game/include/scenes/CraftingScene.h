@@ -1636,6 +1636,7 @@ namespace CraftingScene {
 	    auto* item = node->AddObject<Crafting::DraggableCraftingItem>();
 	    item->inventoryKey = spawn.inventoryKey;
 	    item->data = spawn.ingredientData;
+	    item->data.inventoryKey = spawn.inventoryKey;
 
 	    auto* interactable = node->AddObject<Crafting::CraftingInteractable>();
 	    interactable->type = Crafting::CraftingInteractionType::Ingredient;

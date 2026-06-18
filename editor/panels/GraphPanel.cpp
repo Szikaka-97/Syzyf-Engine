@@ -19,6 +19,15 @@ void GraphPanel::Draw(Context& context) {
         ImGui::BeginDisabled();
     }
 
+    ImGui::SetNextItemWidth(-FLT_MIN);
+    ImGui::InputTextWithHint("##GraphSearch", "Search...", this->searchBuffer,
+                             sizeof(this->searchBuffer));
+    ImGui::Separator();
+
+    std::string searchString = this->searchBuffer;
+    std::transform(searchString.begin(), searchString.end(),
+                   searchString.begin(), ::tolower);
+
     SceneNode* root = context.selectedScene->GetRootNode();
 
     if (root != nullptr) {
@@ -35,7 +44,7 @@ void GraphPanel::Draw(Context& context) {
             ImGui::TableSetupColumn("Visibility",
                                     ImGuiTableColumnFlags_WidthFixed, 30.0f);
 
-            this->DrawGraphNode(context, *root);
+            this->DrawGraphNode(context, *root, searchString);
 
             ImGui::EndTable();
         }
@@ -51,9 +60,14 @@ void GraphPanel::Draw(Context& context) {
     ImGui::End();
 }
 
-void GraphPanel::DrawGraphNode(Context& context, SceneNode& node) {
+void GraphPanel::DrawGraphNode(Context& context, SceneNode& node,
+                               const std::string& searchString) {
     // Ignore editor camera
     if (node.GetObject<CameraController>()) {
+        return;
+    }
+
+    if (!NodeMatchesSearch(node, searchString)) {
         return;
     }
 
@@ -82,6 +96,10 @@ void GraphPanel::DrawGraphNode(Context& context, SceneNode& node) {
 
     if (isLeaf) {
         flags |= ImGuiTreeNodeFlags_Leaf;
+    }
+
+    if (!searchString.empty()) {
+        ImGui::SetNextItemOpen(true, ImGuiCond_Always);
     }
 
     bool nodeOpen = ImGui::TreeNodeEx((void*)(intptr_t)node.GetID(), flags,
@@ -137,7 +155,7 @@ void GraphPanel::DrawGraphNode(Context& context, SceneNode& node) {
     if (nodeOpen) {
         if (!isLeaf) {
             for (SceneNode* child : node.GetChildren()) {
-                DrawGraphNode(context, *child);
+                DrawGraphNode(context, *child, searchString);
             }
         }
         ImGui::TreePop();
@@ -230,5 +248,33 @@ void GraphPanel::DrawContextMenu(Context& context) {
 
         ImGui::EndPopup();
     }
+}
+
+bool GraphPanel::NodeMatchesSearch(SceneNode& node,
+                                   const std::string& searchString) {
+    if (searchString.empty()) {
+        return true;
+    }
+
+    std::string nodeName = node.GetName();
+    if (nodeName.empty()) {
+        nodeName = std::to_string(node.GetID());
+    }
+
+    std::string lowerName = nodeName;
+    std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(),
+                   ::tolower);
+
+    if (lowerName.find(searchString) != std::string::npos) {
+        return true;
+    }
+
+    for (SceneNode* child : node.GetChildren()) {
+        if (NodeMatchesSearch(*child, searchString)) {
+            return true;
+        }
+    }
+
+    return false;
 }
 } // namespace Editor

@@ -88,7 +88,7 @@ namespace{
 	) {
 		float multiplier = SecondaryEffectMultiplier(secondaryEffect);
 
-		if (effectId == Crafting::EffectId::Burn) {
+		if (effectId == Crafting::EffectId::Fire || effectId == Crafting::EffectId::Burn) {
 			EffectFire* effect = node->AddObject<EffectFire>();
 
 			effect->radius = potionData.radius * multiplier;
@@ -97,21 +97,58 @@ namespace{
 			effect->ingredientCount = potionData.mainEffectCount;
 			effect->special1 = potionData.modifierCount > 0;
 			effect->special2 = potionData.modifierCount > 1;
-			effect->Awake();
 
 			return effect;
 		}
 
-		if (effectId == Crafting::EffectId::Lightning) {
+		if (effectId == Crafting::EffectId::Petrify) {
+			EffectPetrify* effect = node->AddObject<EffectPetrify>();
+
+			effect->radius = potionData.radius * multiplier;
+			effect->petrifyRemainingTime = potionData.duration * multiplier;
+			effect->ingredientCount = potionData.mainEffectCount;
+			effect->special1 = potionData.modifierCount > 0;
+			effect->special2 = potionData.modifierCount > 1;
+
+			return effect;
+		}
+
+		if (effectId == Crafting::EffectId::Tornado) {
+			EffectTornado* effect = node->AddObject<EffectTornado>();
+
+			effect->radius = potionData.radius * multiplier;
+			effect->damage = potionData.power * multiplier;
+			effect->tornadoRemainingTime = potionData.duration * multiplier;
+			effect->ingredientCount = potionData.mainEffectCount;
+			effect->special1 = potionData.modifierCount > 0;
+			effect->special2 = potionData.modifierCount > 1;
+
+			return effect;
+		}
+
+		if (effectId == Crafting::EffectId::Confuse) {
+			EffectConfuse* effect = node->AddObject<EffectConfuse>();
+
+			effect->radius = potionData.radius * multiplier;
+			effect->damage = static_cast<int>(potionData.power * multiplier);
+			effect->confuseRemainingTime = potionData.duration * multiplier;
+			effect->ingredientCount = potionData.mainEffectCount;
+			effect->special1 = potionData.modifierCount > 0;
+			effect->special2 = potionData.modifierCount > 1;
+
+			return effect;
+		}
+
+		if (effectId == Crafting::EffectId::Explosion || effectId == Crafting::EffectId::Lightning) {
 			EffectExplosion* effect = node->AddObject<EffectExplosion>();
 
 			effect->strength = 1.0f;
 			effect->maxRange = potionData.radius * multiplier;
 			effect->maxDamage = potionData.power * multiplier;
+			effect->explosionDuration = potionData.duration * multiplier;
 			effect->ingredientCount = potionData.mainEffectCount;
 			effect->special1 = potionData.modifierCount > 0;
 			effect->special2 = potionData.modifierCount > 1;
-			effect->Awake();
 
 			return effect;
 		}
@@ -121,15 +158,16 @@ namespace{
 		effect->strength = 1.0f;
 		effect->maxRange = potionData.radius * multiplier;
 		effect->maxDamage = potionData.power * multiplier;
+		effect->explosionDuration = potionData.duration * multiplier;
 		effect->ingredientCount = potionData.mainEffectCount;
-		effect->Awake();
-
+		
 		return effect;
 	}
 
-	void SetThrowablePotionEffect(ThrowableObject* throwable){
-		Crafting::CraftedPotionData potionData = PotionInventory::GetLastCraftedPotion();
-
+	void SetThrowablePotionEffect(
+		ThrowableObject* throwable,
+		const Crafting::CraftedPotionData& potionData
+	){
 		throwable->SetEffectFactory(
 			[potionData](SceneNode* node) -> EffectBase* {
 				EffectBase* primaryEffect = AddPotionEffectToNode(
@@ -365,7 +403,9 @@ void PlayerController::UpdateThrowing() {
 		this->throwStrengthAccum = Math::MoveTowards(this->throwStrengthAccum, 0, Time::Delta() * 10);
 
 		if (this->throwStrengthCache > 0 && this->throwStrengthAccum < 0.7f) {
-			if (!PotionInventory::ConsumePotion()) {
+			Crafting::CraftedPotionData consumedPotionData;
+
+			if (!PotionInventory::ConsumePotion(&consumedPotionData)) {
 				this->throwStrengthCache = -1;
 				return;
 			}
@@ -393,7 +433,7 @@ void PlayerController::UpdateThrowing() {
 			thrownBottle->GetObject<Physics::Body>()->SetPosition(this->throwPoint->GlobalTransform().Position());
 
 			thrownBottle->SetEnabled(true);
-			SetThrowablePotionEffect(throwable);
+			SetThrowablePotionEffect(throwable,consumedPotionData);
 			thrownBottle->GetObject<Physics::Body>()->SetLinearVelocity(throwForce);
 
 			if (!PotionInventory::HasPotion()) {
@@ -467,15 +507,17 @@ void PlayerController::HandleItemInteractions() {
 		newItem = pickableItemSystem->GetClosestItem(this->GlobalTransform().Position().Value(), this->itemHighlightRadius);
 	}
 
+	// spdlog::info("{}", newItem ? newItem->GetName() : "Null");
+
 	// Highlighting logic
 	if (newItem != this->highlightedItem) {
 		if (this->highlightedItem) {
-			if (auto* renderer = this->highlightedItem->GetObject<MeshRenderer>()) {
+			for (auto* renderer : this->highlightedItem->GetNode()->GetAllObjectsInChildren<MeshRenderer>()) {
 				renderer->maskFlags &= ~MaskEffectBits::Jfa;
 			}
 		}
 		if (newItem != nullptr) {
-			if (auto* renderer = newItem->GetObject<MeshRenderer>()) {
+			for (auto* renderer : newItem->GetNode()->GetAllObjectsInChildren<MeshRenderer>()) {
 				renderer->maskFlags |= MaskEffectBits::Jfa;
 			}
 		}

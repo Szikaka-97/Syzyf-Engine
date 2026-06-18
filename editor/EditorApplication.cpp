@@ -3,8 +3,8 @@
 #include "ComponentRegistry.h"
 #include "MousePickingBodySystem.h"
 #include "SceneRegistry.h"
-#include "TestScene.h"
 #include "Themes.h"
+#include "scenes/LightingTestScene.h"
 
 #include "thirdparty/ImGuizmo.h"
 #include "thirdparty/ImViewGuizmo.h"
@@ -75,7 +75,7 @@ void EditorApplication::OnInit(int argc, char* argv[]) {
 
     this->context.selectedScene = Scene::CreateStandaloneScene();
     this->context.loadedScenes.push_back(this->context.selectedScene);
-    LightingTestScene::InitScene(*this->context.selectedScene);
+    TestScene::InitScene(*this->context.selectedScene);
 
     for (auto* scene : this->context.loadedScenes) {
         scene->GetGraphics()->UpdateScreenResolution(
@@ -129,13 +129,18 @@ void EditorApplication::OnShutdown() {
 }
 
 void EditorApplication::Input() {
-    if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Z,
-                        ImGuiInputFlags_RouteGlobal)) {
-        this->context.commandHistory.Undo();
-    }
-    if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_Z,
-                        ImGuiInputFlags_RouteGlobal)) {
-        this->context.commandHistory.Redo();
+    if (context.selectedScene) {
+        CommandHistory& commandHistory =
+            context.GetCommandHistory(context.selectedScene);
+
+        if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Z,
+                            ImGuiInputFlags_RouteGlobal)) {
+            commandHistory.Undo();
+        }
+        if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_Z,
+                            ImGuiInputFlags_RouteGlobal)) {
+            commandHistory.Redo();
+        }
     }
 }
 
@@ -199,8 +204,6 @@ void EditorApplication::ExecutePendingSceneChange() {
     this->pendingSceneInitFunc = nullptr;
 }
 
-EditorApplication* EditorApplication::ApplicationInstance() {
-    return instance;
-}
+EditorApplication* EditorApplication::ApplicationInstance() { return instance; }
 
 } // namespace Editor

@@ -14,7 +14,12 @@ class GraphPanel {
     void Draw(Context& context);
 
   private:
-    void DrawGraphNode(Context& context, SceneNode& node);
+    char searchBuffer[256] = "";
+
+    void DrawGraphNode(Context& context, SceneNode& node,
+                       const std::string& searchString);
     void DrawContextMenu(Context& context);
+
+    bool NodeMatchesSearch(SceneNode& node, const std::string& searchString);
 };
 } // namespace Editor

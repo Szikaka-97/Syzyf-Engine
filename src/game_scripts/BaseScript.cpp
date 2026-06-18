@@ -368,6 +368,12 @@ void BaseExitToTutorialThrowingRoom::Update() {
 	auto* player = PlayerController::Instance();
 	if (!player) return;
 
+	if (!cameraStopped && !cameraSettings) {
+		if (auto* mainCam = GetScene()->GetGraphics()->GetMainCamera()) {
+			cameraSettings = mainCam->GetNode()->GetObject<CameraSettings>();
+		}
+	}
+
 	glm::vec3 playerPos = player->GlobalTransform().Position();
 	playerPos.y = 0.0f;
 
@@ -375,12 +381,18 @@ void BaseExitToTutorialThrowingRoom::Update() {
 	glm::vec3 exitFlat = triggerPosition; exitFlat.y = 0.0f;
 
 	if (!cameraStopped && cameraSettings) {
-		float totalDist  = glm::distance(gateFlat, exitFlat);
-		float playerDist = glm::distance(gateFlat, playerPos);
+		glm::vec3 pathDir = exitFlat - gateFlat;
+		float pathLen = glm::length(pathDir);
 
-		if (totalDist > 0.0f && playerDist >= totalDist * 0.5f) {
-			cameraSettings->Freeze();
-			cameraStopped = true;
+		if (pathLen > 0.0001f) {
+			pathDir /= pathLen;
+
+			float projected = glm::dot(playerPos - gateFlat, pathDir);
+
+			if (projected >= 0.0f) {
+				cameraSettings->Freeze();
+				cameraStopped = true;
+			}
 		}
 	}
 

@@ -237,10 +237,10 @@ void EnemyBase::OnPlayerExitedRoom() {
 //
 void EnemyBase::TakeDamage(int damage) {
   spdlog::info("AiNode: Took {} damage", damage);
-  m_hp -= damage;
-  if (m_hp <= 0) {
+  if (m_hp > 0 && m_hp - damage <= 0) {
     Die();
   }
+  m_hp -= damage;
 }
 
 void EnemyBase::ApplyBurn(float damagePerTick, float duration, float interval) {

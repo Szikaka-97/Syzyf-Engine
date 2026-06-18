@@ -14,10 +14,12 @@ layout (std430, binding = 1) restrict buffer LightInfo {
 	vec4 Light_AmbientLight;
 	int Light_LightCount;
 	int Light_DirectionalLightCascadeCount;
+    int Light_ShadowSamples;
+    float Light_ShadowFilterRadius;
 	Light Light_LightsList[];
 };
 
-layout (std430, binding = 2) restrict buffer LightIndexList {
+layout (std430, binding = 4) restrict buffer LightIndexList {
 	uvec4 Light_LightGridSize;
 	uint Light_LightIndexList[];
 };
@@ -36,7 +38,19 @@ void Light_AddLight(Light l) {
 	Light_LightsList[lightIndex] = l;
 }
 
-uniform sampler2D Builtin_ShadowMask;
+uniform sampler2DShadow Builtin_ShadowMask;
+
+float interleavedGradientNoise(vec2 position_screen) {
+    vec3 magic = vec3(0.06711056, 0.00583715, 52.9829189);
+    return fract(magic.z * fract(dot(position_screen, magic.xy)));
+}
+
+vec2 vogelDiskSample(int sampleIndex, int samplesCount, float phi) {
+    float GoldenAngle = 2.4;
+    float r = sqrt(float(sampleIndex) + 0.5) / sqrt(float(samplesCount));
+    float theta = float(sampleIndex) * GoldenAngle + phi;
+    return r * vec2(cos(theta), sin(theta));
+}
 
 #ifdef OLD_LIGHT_FALLOFF
 vec3 getLightStrength(in Light light, in vec3 worldPos) {
@@ -102,10 +116,14 @@ vec3 shade(in Material mat, in vec3 worldPos, in vec3 normal, in vec3 tangent) {
 	const uint lightStartIndex = lightData.x;
 	const uint lightCount = lightData.y;
 
-	for (int lightIndex = 0; lightIndex < lightCount; lightIndex++) {
+	const uint maxLights = 16384;
+
+	if (lightCount > maxLights) {
+		return vec3(lightCount, 0, 0);
+	}
+
+	for (int lightIndex = 0; lightIndex < min(maxLights, lightCount); lightIndex++) {
 		Light l = Light_LightsList[Light_LightIndexList[lightStartIndex + lightIndex]];
-	// for (int lightIndex = 0; lightIndex < 8192; lightIndex++) {
-	// 	Light l = Light_LightsList[lightIndex];
 
 		if (l.intensity <= 0) {
 			continue;
@@ -167,19 +185,19 @@ vec3 shade(in Material mat, in vec3 worldPos, in vec3 normal, in vec3 tangent) {
 				(lightViewPos.y + 1) * 0.5
 			), 0, 1);
 
-			for (int x = -1; x <= 1; x++) {
-				for (int y = -1; y <= 1; y++) {
-					vec2 uvOffset = clamp(uvLocal + vec2(x, y) * texelSize, 0, 1);
+            float noise = interleavedGradientNoise(gl_FragCoord.xy);
+            float noise_phi = noise * 6.28318530718;
 
-					vec2 uv = mix(mask.start, mask.end, uvOffset);
+			for (int i = 0; i <= Light_ShadowSamples; i++) {
+                vec2 offset = vogelDiskSample(i, Light_ShadowSamples, noise_phi) * texelSize * Light_ShadowFilterRadius;
+                vec2 uvOffset = clamp(uvLocal + offset, 0.0, 1.0);
+                vec2 uv = mix(mask.start, mask.end, uvOffset);
 
-					float shadowZ = texture(Builtin_ShadowMask, uv).x;
-
-					shadowAmount += lightViewPos.z - bias > shadowZ ? 1.0 : 0.0; 
-				}
+                float litAmount = texture(Builtin_ShadowMask, vec3(uv, lightViewPos.z - bias));
+                shadowAmount += (1.0 - litAmount);
 			}
 
-			shadowAmount /= 9.0;
+			shadowAmount /= float(Light_ShadowSamples);
 		}
 
 		result += (1.0 - shadowAmount) * SHADING_FUNCTION(l, mat, worldPos, normal, tangent);

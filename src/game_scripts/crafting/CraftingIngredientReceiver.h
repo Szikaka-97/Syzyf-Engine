@@ -6,9 +6,11 @@
 #include "DraggableCraftingItem.h"
 #include "Cauldron.h"
 #include "CraftingNodeUtils.h"
+#include <game_scripts/PotionInventory.h>
 
 #include <algorithm>
 #include <cmath>
+#include <string>
 #include <vector>
 
 #include <glm/glm.hpp>
@@ -61,7 +63,26 @@ namespace Crafting{
 
             if (WasAlreadyInserted(itemNode)){return;}
 
+            if (!cauldron->CanAddIngredient(item->data)){
+                item->ReturnToStart();
+                return;
+            }
+
+            std::string inventoryKey = item->inventoryKey;
+
+            if (inventoryKey.empty()){
+                inventoryKey = item->data.inventoryKey;
+            }
+
+            if (!PotionInventory::ConsumeIngredient(inventoryKey,1)){
+                item->ReturnToStart();
+                return;
+            }
+
+            item->data.inventoryKey = inventoryKey;
+
             if (!cauldron->AddIngredient(item->data)){
+                PotionInventory::RefundIngredient(inventoryKey,1);
                 item->ReturnToStart();
                 return;
             }

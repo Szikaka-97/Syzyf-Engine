@@ -103,20 +103,6 @@ inline int GetPointLightIndex(const std::string& name) {
     return 999999;
 }
 
-inline void CollectPointLightsRecursive(SceneNode* node, std::vector<SceneNode*>& pointLights) {
-    if (node == nullptr) {
-        return;
-    }
-
-    if (IsMenuPointLightNodeName(node->GetName())) {
-        pointLights.push_back(node);
-    }
-
-    for (SceneNode* child : node->GetChildren()) {
-        CollectPointLightsRecursive(child, pointLights);
-    }
-}
-
 inline glm::quat LookAtRotation(
     const glm::vec3& cameraPosition,
     const glm::vec3& targetPosition

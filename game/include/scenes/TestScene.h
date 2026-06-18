@@ -21,6 +21,7 @@
 
 #include "game_scripts/enemies/FlockingSystem.h"
 #include "game_scripts/enemies/MeleeSkeleton.h"
+#include "game_scripts/PotionInventory.h"
 #include <Bloom.h>
 #include <Camera.h>
 #include <ColorGrading.h>
@@ -134,37 +135,37 @@ inline void InitScene(Scene& mainScene) {
         floorNode->AddObject<Surface>(floorMeshRenderer->GetMesh(), 1.0f);
     floorBody->SetCollisionLayerAndMask({0}, 0xFFFFFFFF);
 
-    auto room1 =
-        ResourceDatabase::Global->Get<GltfScene>("./res/models/floor/room1.glb")
-            ->Instantiate(&mainScene, mainScene.root, "Room 1");
-    MeshRenderer* room1MeshRenderer =
-        room1->GetObjectInChildren<MeshRenderer>();
-    auto* room1Body = room1MeshRenderer->GetNode()->AddObject<Physics::Body>(
-        JPH::BodyCreationSettings{
-            Physics::MeshShape(room1MeshRenderer->GetMesh()),
-            JPH::RVec3::sZero(), JPH::Quat::sZero(), JPH::EMotionType::Static,
-            Physics::Layers::NON_MOVING});
-    auto* room1Surface =
-        room1->AddObject<Surface>(room1MeshRenderer->GetMesh(), 1.0f);
+    // auto room1 =
+    //     ResourceDatabase::Global->Get<GltfScene>("./res/models/floor/room1.glb")
+    //         ->Instantiate(&mainScene, mainScene.root, "Room 1");
+    // MeshRenderer* room1MeshRenderer =
+    //     room1->GetObjectInChildren<MeshRenderer>();
+    // auto* room1Body = room1MeshRenderer->GetNode()->AddObject<Physics::Body>(
+    //     JPH::BodyCreationSettings{
+    //         Physics::MeshShape(room1MeshRenderer->GetMesh()),
+    //         JPH::RVec3::sZero(), JPH::Quat::sZero(), JPH::EMotionType::Static,
+    //         Physics::Layers::NON_MOVING});
+    // auto* room1Surface =
+    //     room1->AddObject<Surface>(room1MeshRenderer->GetMesh(), 1.0f);
 
-    room1Surface->GetObject<Surface>()->SetID(1);
-    room1Body->SetCollisionLayerAndMask({0}, 0xFFFFFFFF);
+    // room1Surface->GetObject<Surface>()->SetID(1);
+    // room1Body->SetCollisionLayerAndMask({0}, 0xFFFFFFFF);
 
-    auto room2 =
-        ResourceDatabase::Global->Get<GltfScene>("./res/models/floor/room2.glb")
-            ->Instantiate(&mainScene, mainScene.root, "Room 2");
-    MeshRenderer* room2MeshRenderer =
-        room2->GetObjectInChildren<MeshRenderer>();
-    auto* room2Body = room2MeshRenderer->GetNode()->AddObject<Physics::Body>(
-        JPH::BodyCreationSettings{
-            Physics::MeshShape(room2MeshRenderer->GetMesh()),
-            JPH::RVec3::sZero(), JPH::Quat::sZero(), JPH::EMotionType::Static,
-            Physics::Layers::NON_MOVING});
-    auto* room2Surface =
-        room2->AddObject<Surface>(room2MeshRenderer->GetMesh(), 1.0f);
+    // auto room2 =
+    //     ResourceDatabase::Global->Get<GltfScene>("./res/models/floor/room2.glb")
+    //         ->Instantiate(&mainScene, mainScene.root, "Room 2");
+    // MeshRenderer* room2MeshRenderer =
+    //     room2->GetObjectInChildren<MeshRenderer>();
+    // auto* room2Body = room2MeshRenderer->GetNode()->AddObject<Physics::Body>(
+    //     JPH::BodyCreationSettings{
+    //         Physics::MeshShape(room2MeshRenderer->GetMesh()),
+    //         JPH::RVec3::sZero(), JPH::Quat::sZero(), JPH::EMotionType::Static,
+    //         Physics::Layers::NON_MOVING});
+    // auto* room2Surface =
+    //     room2->AddObject<Surface>(room2MeshRenderer->GetMesh(), 1.0f);
 
-    room2Surface->GetObject<Surface>()->SetID(1);
-    room2Body->SetCollisionLayerAndMask({0}, 0xFFFFFFFF);
+    // room2Surface->GetObject<Surface>()->SetID(1);
+    // room2Body->SetCollisionLayerAndMask({0}, 0xFFFFFFFF);
 
 #pragma endregion
 #pragma region Player
@@ -176,6 +177,7 @@ inline void InitScene(Scene& mainScene) {
     characterSettings->mMaxSlopeAngle = JPH::DegreesToRadians(45.0f);
 
     SceneNode* playerNode = mainScene.CreateNode("Player");
+	playerNode->GlobalTransform().Position() = glm::vec3(3, 0, 0);
 
     SceneNode* bimberman =
         ResourceDatabase::Global
@@ -197,7 +199,14 @@ inline void InitScene(Scene& mainScene) {
             ->AddObject<AimCrosshair>();
 
     auto* player = playerNode->AddObject<PlayerController>();
-    // player->aim = aimingAid;
+
+    PotionInventory::SaveLastCraftedPotion(
+        "Basic Potion",
+        "Explosion",
+        100.0f,
+        999,
+        false
+    );
 
 #pragma endregion
 

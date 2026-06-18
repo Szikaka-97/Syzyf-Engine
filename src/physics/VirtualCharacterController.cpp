@@ -316,6 +316,13 @@ json VirtualCharacterController::Serialize() const {
   data["mMaxNumHits"] = this->characterSettings->mMaxNumHits;
   data["mHitReductionCosMaxAngle"] = this->characterSettings->mHitReductionCosMaxAngle;
   data["mPenetrationRecoverySpeed"] = this->characterSettings->mPenetrationRecoverySpeed;
+  data["mShapeOffset"] = Serialization::Serialize(
+    glm::vec3(
+      this->characterSettings->mShapeOffset.GetX(),
+      this->characterSettings->mShapeOffset.GetY(),
+      this->characterSettings->mShapeOffset.GetZ()
+    )
+  );
 
   json shapeData;
 
@@ -404,7 +411,9 @@ void VirtualCharacterController::Deserialize(const json& data) {
   this->characterSettings->mMaxNumHits = data["mMaxNumHits"];
   this->characterSettings->mHitReductionCosMaxAngle = data["mHitReductionCosMaxAngle"];
   this->characterSettings->mPenetrationRecoverySpeed = data["mPenetrationRecoverySpeed"];
-
+  
+  glm::vec3 shapeOffset = Serialization::Deserialize<glm::vec3>(data["mShapeOffset"]);
+  this->characterSettings->mShapeOffset = JPH::Vec3(shapeOffset.x, shapeOffset.y, shapeOffset.z);
 
   json shapeData = data["shape"];
 

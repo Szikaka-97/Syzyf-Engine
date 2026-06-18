@@ -64,21 +64,31 @@ void InspectorPanel::Draw(Context& context) {
         }
 
         if (ImGui::TreeNodeEx("Transform", ImGuiTreeNodeFlags_DefaultOpen)) {
+            // ImGui::Checkbox("Use Global Transform", &this->editGlobalTransform);
+            if (ImGui::Selectable("Global Transform", this->editGlobalTransform, 0, ImGui::CalcTextSize("Global Transform"))) {
+                this->editGlobalTransform = true;
+            }
+            ImGui::SameLine();
+            if (ImGui::Selectable("Local Transform", !this->editGlobalTransform, 0, ImGui::CalcTextSize("Global Transform"))) {
+                this->editGlobalTransform = false;
+            }
+
+            SceneTransform::TransformAccess& transform = this->editGlobalTransform ? context.selectedNode->GlobalTransform() : context.selectedNode->LocalTransform();
+
             ImGui::Text("Position");
             glm::vec3 position =
-                context.selectedNode->GlobalTransform().Position();
+                transform.Position();
 
             ImGui::InputFloat3("##Position", &position[0]);
             if (ImGui::IsItemActivated()) {
-                this->initialPosition =
-                    context.selectedNode->GlobalTransform().Position();
+                this->initialPosition = transform.Position();
             }
             if (ImGui::IsItemEdited()) {
-                context.selectedNode->GlobalTransform().Position() = position;
+                transform.Position() = position;
             }
             if (ImGui::IsItemDeactivatedAfterEdit()) {
-                context.commandHistory.ExecuteCommand(
-                    std::make_unique<TranslateCommand>(
+                context.GetCommandHistory(context.selectedScene)
+                    .ExecuteCommand(std::make_unique<TranslateCommand>(
                         context.selectedNode, this->initialPosition, position));
             }
 
@@ -86,36 +96,36 @@ void InspectorPanel::Draw(Context& context) {
             ImGui::SliderFloat3("##PositionDelta", &positionDelta[0], -1, 1);
             if (ImGui::IsItemActivated()) {
                 this->initialPosition =
-                    context.selectedNode->GlobalTransform().Position();
+                    transform.Position();
             }
             if (ImGui::IsItemEdited()) {
                 position += positionDelta;
-                context.selectedNode->GlobalTransform().Position() = position;
+                transform.Position() = position;
             }
             if (ImGui::IsItemDeactivatedAfterEdit()) {
-                context.commandHistory.ExecuteCommand(
-                    std::make_unique<TranslateCommand>(
+                context.GetCommandHistory(context.selectedScene)
+                    .ExecuteCommand(std::make_unique<TranslateCommand>(
                         context.selectedNode, this->initialPosition,
                         context.selectedNode->GlobalTransform().Position()));
             }
 
             ImGui::Text("Rotation");
             glm::vec3 rotationEuler = glm::degrees(glm::eulerAngles(
-                context.selectedNode->GlobalTransform().Rotation().Value()));
+                transform.Rotation().Value()));
 
             ImGui::InputFloat3("##Rotation", &rotationEuler[0]);
 
             if (ImGui::IsItemActivated()) {
                 this->initialRotation =
-                    context.selectedNode->GlobalTransform().Rotation().Value();
+                    transform.Rotation().Value();
             }
             if (ImGui::IsItemEdited()) {
-                context.selectedNode->GlobalTransform().Rotation() =
+                transform.Rotation() =
                     glm::quat(glm::radians(rotationEuler));
             }
             if (ImGui::IsItemDeactivatedAfterEdit()) {
-                context.commandHistory.ExecuteCommand(
-                    std::make_unique<RotateCommand>(
+                context.GetCommandHistory(context.selectedScene)
+                    .ExecuteCommand(std::make_unique<RotateCommand>(
                         context.selectedNode, initialRotation,
                         context.selectedNode->GlobalTransform()
                             .Rotation()
@@ -125,11 +135,10 @@ void InspectorPanel::Draw(Context& context) {
             glm::vec3 rotationDelta = glm::zero<glm::vec3>();
             ImGui::SliderFloat3("##RotationDelta", &rotationDelta[0], -1, 1);
             if (ImGui::IsItemActivated()) {
-                this->initialRotation =
-                    context.selectedNode->GlobalTransform().Rotation().Value();
+                this->initialRotation = transform.Rotation();
             }
             if (ImGui::IsItemEdited()) {
-                context.selectedNode->GlobalTransform().Rotation() *=
+                transform.Rotation() *=
                     glm::angleAxis(glm::radians(rotationDelta.x),
                                    glm::vec3(1, 0, 0)) *
                     glm::angleAxis(glm::radians(rotationDelta.y),
@@ -138,8 +147,8 @@ void InspectorPanel::Draw(Context& context) {
                                    glm::vec3(0, 0, 1));
             }
             if (ImGui::IsItemDeactivatedAfterEdit()) {
-                context.commandHistory.ExecuteCommand(
-                    std::make_unique<RotateCommand>(
+                context.GetCommandHistory(context.selectedScene)
+                    .ExecuteCommand(std::make_unique<RotateCommand>(
                         context.selectedNode, this->initialRotation,
                         context.selectedNode->GlobalTransform()
                             .Rotation()
@@ -147,19 +156,19 @@ void InspectorPanel::Draw(Context& context) {
             }
 
             ImGui::Text("Scale");
-            glm::vec3 scale = context.selectedNode->GlobalTransform().Scale();
+            glm::vec3 scale = transform.Scale();
 
             ImGui::InputFloat3("##Scale", &scale[0]);
             if (ImGui::IsItemActivated()) {
                 this->initialScale =
-                    context.selectedNode->GlobalTransform().Scale();
+                    transform.Scale();
             }
             if (ImGui::IsItemEdited()) {
-                context.selectedNode->GlobalTransform().Scale() = scale;
+                transform.Scale() = scale;
             }
             if (ImGui::IsItemDeactivatedAfterEdit()) {
-                context.commandHistory.ExecuteCommand(
-                    std::make_unique<ScaleCommand>(
+                context.GetCommandHistory(context.selectedScene)
+                    .ExecuteCommand(std::make_unique<ScaleCommand>(
                         context.selectedNode, this->initialScale,
                         context.selectedNode->GlobalTransform()
                             .Scale()
@@ -170,8 +179,7 @@ void InspectorPanel::Draw(Context& context) {
             ImGui::SliderFloat3("##ScaleDelta", &scaleDelta[0], -1, 1);
 
             if (ImGui::IsItemActivated()) {
-                this->initialScale =
-                    context.selectedNode->GlobalTransform().Scale();
+                this->initialScale = transform.Scale();
             }
             if (ImGui::IsItemEdited()) {
                 scale += scaleDelta;
@@ -185,11 +193,11 @@ void InspectorPanel::Draw(Context& context) {
                 if (glm::abs(scale.z) < 0.0001) {
                     scale.z = 0.0001;
                 }
-                context.selectedNode->GlobalTransform().Scale() = scale;
+                transform.Scale() = scale;
             }
             if (ImGui::IsItemDeactivatedAfterEdit()) {
-                context.commandHistory.ExecuteCommand(
-                    std::make_unique<ScaleCommand>(
+                context.GetCommandHistory(context.selectedScene)
+                    .ExecuteCommand(std::make_unique<ScaleCommand>(
                         context.selectedNode, this->initialScale,
                         context.selectedNode->GlobalTransform()
                             .Scale()

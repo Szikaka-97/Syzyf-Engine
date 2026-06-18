@@ -436,6 +436,9 @@ namespace Crafting{
                 }
 
                 void ResetCraftingSession(){
+                    bool shouldRefundIngredientDraft =
+                        currentStage == CraftingStage::Ingredients;
+
                     currentStage = CraftingStage::None;
                     blowerClickRequested = false;
                     craftedPotionDataValid = false;
@@ -495,6 +498,12 @@ namespace Crafting{
                     bottlingStage.Reset();
 
                     if (cauldron){
+                        if (shouldRefundIngredientDraft){
+                            for (const Crafting::IngredientData& ingredient : cauldron->GetIngredients()){
+                                PotionInventory::RefundIngredient(ingredient.inventoryKey,1);
+                            }
+                        }
+
                         cauldron->Clear();
                     }
 
@@ -1335,6 +1344,8 @@ namespace Crafting{
                         }
 
                         item->data = entry.data;
+                        item->data.inventoryKey = entry.inventoryKey;
+                        item->inventoryKey = entry.inventoryKey;
                         item->SetStartPosition(
                             slotNode->GlobalTransform().Position().Value()
                         );

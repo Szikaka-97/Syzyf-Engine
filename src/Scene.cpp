@@ -257,6 +257,7 @@ void SceneNode::Deserialize(const nlohmann::json& data) {
 
 	if (this->parent) {
 		this->parent->children.push_back(this);
+		this->transform.parent = this;
 		GetTransform().LocalTransform() = Serialization::Deserialize<glm::mat4>(data["transform"]);
 	}
 
@@ -661,6 +662,9 @@ SceneNode* Scene::LoadPrefab(json nodePrefab) {
 	SceneNode* prefabRoot = Serialization::DeserializeObject<SceneNode>(nodePrefab);
 
 	// this->messageTree.AddNode(prefabRoot);
+
+	this->messageTree.PropagateMessage<Message::Awake>(prefabRoot);
+	this->messageTree.PropagateMessage<Message::OnEnable>(prefabRoot);
 
 	return prefabRoot;
 }

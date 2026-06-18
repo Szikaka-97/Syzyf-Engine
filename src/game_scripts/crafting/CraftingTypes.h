@@ -21,7 +21,11 @@ namespace Crafting{
     namespace EffectId{
         inline const std::string None = "None";
         inline const std::string Explosion = "Explosion";
+        inline const std::string Fire = "Fire";
         inline const std::string Burn = "Burn";
+        inline const std::string Petrify = "Petrify";
+        inline const std::string Tornado = "Tornado";
+        inline const std::string Confuse = "Confuse";
         inline const std::string Lightning = "Lightning";
     }
 
@@ -35,6 +39,7 @@ namespace Crafting{
     struct IngredientData{
         IngredientType type = IngredientType::None;
         std::string displayName;
+        std::string inventoryKey;
 
         IngredientRole role = IngredientRole::None;
 

@@ -160,6 +160,7 @@
                     "wrapU": 1,
                     "wrapV": 1
                 },
+                "ambientBump": 0.0,
                 "armMap": {
                     "channels": 2,
                     "colorSpace": 0,
@@ -223,6 +224,7 @@
                     "wrapU": 1,
                     "wrapV": 1
                 },
+                "ambientBump": 0.0,
                 "armMap": {
                     "channels": 2,
                     "colorSpace": 0,
@@ -627,6 +629,7 @@
                     "wrapU": 1,
                     "wrapV": 1
                 },
+                "ambientBump": 0.0,
                 "armMap": {
                     "channels": 2,
                     "colorSpace": 0,
@@ -690,6 +693,7 @@
                     "wrapU": 1,
                     "wrapV": 1
                 },
+                "ambientBump": 0.0,
                 "armMap": {
                     "channels": 2,
                     "colorSpace": 0,
@@ -853,6 +857,11 @@
             "mMinTimeRemaining": 9.999999747378752e-05,
             "mPenetrationRecoverySpeed": 1.0,
             "mPredictiveContactDistance": 0.10000000149011612,
+            "mShapeOffset": {
+                "x": 0,
+                "y": 1,
+                "z": 0
+            },
             "node": 0,
             "shape": {
                 "halfHeight": 0.5,

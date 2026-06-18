@@ -48,5 +48,7 @@ protected:
     SceneNode* myNode     = nullptr;
 
 private:
+    bool m_Initted = false;
+
     void UpdateShaderVisual();
 };

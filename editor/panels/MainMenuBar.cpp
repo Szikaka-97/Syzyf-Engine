@@ -1,7 +1,7 @@
 #include "panels/MainMenuBar.h"
+#include "CommandHistory.h"
 #include "EditorApplication.h"
 #include "FileDialogHelpers.h"
-#include "MousePickingBodySystem.h"
 #include "Themes.h"
 
 #include <SDL3/SDL_dialog.h>
@@ -31,21 +31,31 @@ void MainMenuBar::Draw(Context& context, bool& shouldClose,
         }
 
         if (ImGui::BeginMenu("Edit")) {
-            if (context.commandHistory.CanUndo()) {
-                if (ImGui::MenuItem("Undo")) {
-                    context.commandHistory.Undo();
+            if (context.selectedScene != nullptr) {
+                CommandHistory& commandHistory =
+                    context.GetCommandHistory(context.selectedScene);
+
+                if (commandHistory.CanUndo()) {
+                    if (ImGui::MenuItem("Undo")) {
+                        commandHistory.Undo();
+                    }
+                } else {
+                    ImGui::BeginDisabled();
+                    ImGui::MenuItem("Undo");
+                    ImGui::EndDisabled();
+                }
+                if (commandHistory.CanRedo()) {
+                    if (ImGui::MenuItem("Redo")) {
+                        commandHistory.Redo();
+                    }
+                } else {
+                    ImGui::BeginDisabled();
+                    ImGui::MenuItem("Redo");
+                    ImGui::EndDisabled();
                 }
             } else {
                 ImGui::BeginDisabled();
                 ImGui::MenuItem("Undo");
-                ImGui::EndDisabled();
-            }
-            if (context.commandHistory.CanRedo()) {
-                if (ImGui::MenuItem("Redo")) {
-                    context.commandHistory.Redo();
-                }
-            } else {
-                ImGui::BeginDisabled();
                 ImGui::MenuItem("Redo");
                 ImGui::EndDisabled();
             }

@@ -65,9 +65,10 @@ if(BUILD_GAME)
     add_subdirectory(game)
 endif()
 
+# OpenAL fix
 target_include_directories(
-        ${PROJECT_NAME}
-        PUBLIC
-        ${CMAKE_CURRENT_BINARY_DIR}/../_deps/openal-src/include
-        ${CMAKE_CURRENT_BINARY_DIR}/../_deps/openal-src/include/AL
+  ${PROJECT_NAME}
+  PUBLIC
+  ${CMAKE_CURRENT_BINARY_DIR}/../_deps/openal-src/include
+  ${CMAKE_CURRENT_BINARY_DIR}/../_deps/openal-src/include/AL
 )

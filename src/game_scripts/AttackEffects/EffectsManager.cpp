@@ -30,6 +30,9 @@ void EffectPetrify::OnApplyToEnemy(EnemyBase* enemy) {
     enemy->ApplyPetrify(slowFactor, petrifyRemainingTime);
 }
 
+void EffectTornado::OnInit() {
+    
+}
 void EffectTornado::OnApplySpecials() {
     if (special1) radius               *= static_cast<float>(modifier);
     if (special2) tornadoRemainingTime *= static_cast<float>(modifier);
@@ -79,11 +82,17 @@ void EffectExplosion::OnInit() {
 
     SceneNode* explosionModel =
             ResourceDatabase::Global
-    ->Get<GltfScene>("./res/models/effects/explode1.glb")
+    ->Get<GltfScene>("./res/models/effects/explode.glb")
 ->Instantiate(GetScene(), GetNode(), "explosion effect");
     explosionModel->GlobalTransform().Scale()=glm::vec3(1.0f,1.0f,1.0f);
     explosionModel->LocalTransform().Position() = glm::vec3(0, 0, 0);
     GetNode()->GlobalTransform().Scale()=glm::vec3(1.0f,1.0f,1.0f);
+    this->radius = GetRange();
+
+    explosionModel->GetObject<AnimationComponent>()->Play("CylinderAction");
+    explosionModel->GetObject<AnimationComponent>()->Play("TorusAction");
+    explosionModel->GetObject<AnimationComponent>()->Play("SphereAction");
+    explosionModel->FindNode("SphereScaler")->LocalTransform().Scale() = glm::vec3(this->radius);
 }
 
 void EffectExplosion::OnApplySpecials() {
@@ -91,6 +100,10 @@ void EffectExplosion::OnApplySpecials() {
 
     spdlog::info("EffectExplosion: range={:.1f}, damage={:.1f}, duration={:.1f}s",
                  GetRange(), GetDamage(), explosionDuration);
+}
+
+void EffectExplosion::OnUpdate() {
+
 }
 
 void EffectExplosion::OnApplyToEnemy(EnemyBase* enemy) {

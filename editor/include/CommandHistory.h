@@ -1,8 +1,8 @@
 #pragma once
 
 #include <memory>
-#include <vector>
 #include <string>
+#include <vector>
 
 namespace Editor {
 class ICommand {
@@ -12,6 +12,8 @@ class ICommand {
     virtual void Undo() = 0;
 
     virtual std::string GetName() const = 0;
+
+    virtual void ShowTooltip() const = 0;
 };
 
 class CommandHistory {

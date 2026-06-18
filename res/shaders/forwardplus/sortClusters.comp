@@ -1,0 +1,100 @@
+#version 460
+
+layout (local_size_x = 1, local_size_y = 1, local_size_z = 32) in;
+
+struct Cluster {
+	vec4 minPoint;
+	vec4 maxPoint;
+};
+
+layout(std430, binding = 1) restrict buffer clusterSSBO {
+	Cluster clusters[];
+};
+
+layout(std430, binding = 2) restrict buffer clusterIndexSSBO {
+	uint clusterCount;
+	uint clusterIndices[];
+};
+
+layout(binding = 3) uniform sampler2D depthTex;
+
+uniform float zNear;
+uniform float zFar;
+
+uniform uvec3 gridSize;
+uniform uvec2 screenDimensions;
+uniform mat4 projectionMatrix;
+
+shared uint maxDepth;
+
+void memoryBarrierWithSync() {
+	groupMemoryBarrier();
+	barrier();
+}
+
+vec3 lineIntersectionWithZPlane(vec3 startPoint, vec3 endPoint, float zDistance) {
+	vec3 direction = endPoint - startPoint;
+	vec3 normal = vec3(0.0, 0.0, -1.0);
+
+	float t = (zDistance - dot(normal, startPoint)) / dot(normal, direction);
+	return startPoint + t * direction;
+}
+
+void main() {
+	// if (gl_GlobalInvocationID.x + gl_GlobalInvocationID.y + gl_GlobalInvocationID.z == 0) {
+	// 	clusterCount = 0;
+	// }
+
+	if (gl_LocalInvocationIndex == 0) {
+		maxDepth = 0;
+	}
+
+	memoryBarrierWithSync();
+
+	const vec2 clusterScreenSize = screenDimensions / gridSize.xy;
+
+	const uvec2 clusterScreenMin = uvec2(floor(gl_WorkGroupID.xy * clusterScreenSize));
+	const uvec2 clusterScreenMax = uvec2(ceil((gl_WorkGroupID.xy + 1) * clusterScreenSize));
+
+	const uint lowestPowerOverMax = clusterScreenMax.x + 32 - (clusterScreenMax.x % 32);
+
+	for (uint y = clusterScreenMin.y; y <= clusterScreenMax.y; y++) {
+		for (uint x = clusterScreenMin.x + gl_LocalInvocationID.z; x <= lowestPowerOverMax; x += 32) {
+			if (x > clusterScreenMax.x) {
+				continue;
+			}
+
+			uint depth = floatBitsToUint(texelFetch(depthTex, ivec2(x, y), 0).x);
+
+			atomicMax(maxDepth, depth);
+		}
+
+		groupMemoryBarrier();
+	}
+
+	memoryBarrierWithSync();
+	
+	const uint lowestPowerOverGridSize = gridSize.z + 32 - (gridSize.z % 32);
+
+	const float realDepth = uintBitsToFloat(maxDepth);
+
+	for (uint z = gl_LocalInvocationID.z; z < lowestPowerOverGridSize; z += 32) {
+		memoryBarrierWithSync();
+
+		if (z > gridSize.z) {
+			continue;
+		}
+
+		const uint clusterIndex = uint(dot(vec3(gl_WorkGroupID.xy, z), vec3(1, gridSize.x, gridSize.x * gridSize.y)));
+
+		const vec4 clusterWallNear = projectionMatrix * vec4(0, 0, -(zNear * pow(zFar / zNear, z / float(gridSize.z))), 1);
+
+		const float clusterWallDepth = clusterWallNear.z / clusterWallNear.w;
+
+		if (clusterWallDepth < realDepth) {
+			uint index = atomicAdd(clusterCount, 1);
+
+			clusterIndices[index] = clusterIndex;
+		}
+	}
+}

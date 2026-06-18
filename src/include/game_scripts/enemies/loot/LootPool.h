@@ -53,7 +53,7 @@ public:
       static LootPool& GetPotatoLootPool() {
     static LootPool pool = []() {
         LootPool p;
-        p.AddItem(new LootBone(),20);
+        p.AddItem(new LootPotato(),20);
         return p;
     }();
     return pool;
@@ -61,7 +61,7 @@ public:
       static LootPool& GetBeetrootLootPool() {
     static LootPool pool = []() {
         LootPool p;
-        p.AddItem(new LootBone(),20);
+        p.AddItem(new LootBeetroot(),20);
         return p;
     }();
     return pool;
@@ -70,7 +70,7 @@ public:
 static LootPool& GetMeleeSkeletonLootPool() {
     static LootPool pool = []() {
         LootPool p;
-        p.AddItem(new LootBone(),20);
+        p.AddItem(new LootDeserterEar(),20);
         return p;
     }();
     return pool;

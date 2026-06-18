@@ -30,6 +30,7 @@
 #include <fog/FogVolume.h>
 #include <game_scripts/CameraSettings.h>
 #include <game_scripts/PlayerController.h>
+#include <game_scripts/PickableItemSystem.h>
 //#include <game_scripts/ThrowBottle.h>
 #include <glm/fwd.hpp>
 #include <glm/geometric.hpp>
@@ -60,6 +61,7 @@ inline void InitScene(Scene& mainScene) {
 	mainScene.AddComponent<DebugInspector>();
 	mainScene.AddComponent<AnimationSystem>();
 	auto* tweenSystem = mainScene.AddComponent<TweenSystem>();
+    mainScene.AddComponent<PickableItemSystem>();
     mainScene.AddComponent<ThrowableObjectPool>();
 	auto* flockingSystem = mainScene.AddComponent<FlockingSystem>();
     // Opcjonalne tunowanie:
