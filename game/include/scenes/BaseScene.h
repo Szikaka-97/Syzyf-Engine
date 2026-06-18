@@ -1,6 +1,9 @@
 #pragma once
 
+#include "Noise3D.h"
 #include "Resources.h"
+#include "fog/FluidSimulation.h"
+
 #include <Scene.h>
 
 #include <Debug.h>
@@ -108,12 +111,32 @@ inline void InitScene(Scene& mainScene) {
     exitFogNode->GlobalTransform().Rotation() =
         glm::radians(glm::vec3(-8, 0, 0));
     exitFogNode->GlobalTransform().Scale() = glm::vec3(4, 4, 17);
-    auto* exitFog = exitFogNode->AddObject<FogVolume>();
-    exitFog->scatteringDensity = 0.5;
-    exitFog->absorptionDensity = 0.1;
-    exitFog->coverage = 0.1;
-    exitFog->sharpness = 3.5;
-    exitFog->emissiveStrength = 0.06;
+    auto* fluidSim = exitFogNode->AddObject<FluidSimulation>();
+    auto* fogVolume = exitFogNode->AddObject<FogVolume>();
+
+    FastNoiseLite noise;
+    noise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
+    noise.SetFrequency(0.05f);
+    noise.SetFractalType(FastNoiseLite::FractalType_FBm);
+    noise.SetFractalOctaves(3);
+
+    float noiseTexSize = 64.0f;
+    Texture3D* generatedNoise =
+        Noise3D::Create3DNoiseTexture(noise, noiseTexSize, true);
+
+    fogVolume->noiseTexture = generatedNoise;
+    fogVolume->stepSize = 0.015f;
+    fogVolume->scatteringDensity = 2.0f;
+    fogVolume->absorptionDensity = 2.0f;
+    fogVolume->scatteringColor = {0.130f, 0.115f, 0.101f};
+    fogVolume->emissiveStrength = 0.784;
+    fogVolume->noiseScale = 0.090f;
+    fogVolume->velocityTexture = fluidSim->GetVelocityMap();
+    fogVolume->velocityStrength = 5.0f;
+
+    fluidSim->damping = 0.948f;
+    fluidSim->playerRadius = 0.033f;
+    fluidSim->interactionStrength = 0.840f;
 
     floorNode->AddObject<BaseScript>();
     floorNode->AddObject<BaseLights>();
