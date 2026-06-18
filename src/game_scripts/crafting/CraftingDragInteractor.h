@@ -131,6 +131,10 @@ namespace Crafting{
             return false;
         }
 
+        bool ShouldSkipOutline(CraftingInteractable* interactable) const{
+            return interactable && interactable->type == CraftingInteractionType::Lid;
+        }
+
         void CollectMeshRenderersRecursive(SceneNode* node, std::vector<MeshRenderer*>& renderers){
             if (!node){
                 return;
@@ -186,7 +190,9 @@ namespace Crafting{
             }
 
             if (auto* interactable = node->GetObject<CraftingInteractable>()){
-                if (interactable->MatchesMask(activeMask) && interactable->ShouldBlinkOutline()){
+                if (!ShouldSkipOutline(interactable) &&
+                    interactable->MatchesMask(activeMask) &&
+                    interactable->ShouldBlinkOutline()){
                     interactableNodes.push_back(node);
                 }
             }
@@ -268,6 +274,11 @@ namespace Crafting{
 
             if (!hit.interactable || !hit.interactable->GetNode()){
                 SetBlinkHighlight(station, activeMask);
+                return;
+            }
+
+            if (ShouldSkipOutline(hit.interactable)){
+                ClearHoverHighlight();
                 return;
             }
 

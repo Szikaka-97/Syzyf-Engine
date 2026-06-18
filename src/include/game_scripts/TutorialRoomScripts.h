@@ -9,10 +9,12 @@
 #include <InputSystem.h>
 #include <Light.h>
 #include <Application.h>
+#include <array>
 #include <game_scripts/PickableItem.h>
 #include <game_scripts/PlayerController.h>
 #include <game_scripts/PotionInventory.h>
 #include <game_scripts/enemies/EnemyBase.h>
+#include <game_scripts/enemies/loot/LootItem.h>
 #include <ui/objects/UiText.h>
 #include <ui/objects/UiLayout.h>
 #include <physics/Helpers.h>
@@ -30,10 +32,83 @@ static constexpr int MaxTutorialRatEnemies = 5;
 
 inline void SpawnTutorialRats(Scene& mainScene, SceneNode* roomNode, SceneNode* playerNode, Surface* surface);
 
+template<class T_Loot>
+inline void SpawnTutorialIngredientLoot(
+    Scene* scene,
+    const glm::vec3& position,
+    const std::string& modelPath,
+    const std::string& nodeName
+) {
+    SceneNode* node = SpawnIngredientLootModel(
+        scene,
+        position,
+        modelPath,
+        nodeName
+    );
+
+    node->AddObject<T_Loot>();
+}
+
+inline void SpawnTutorialRatMainEffectDrop(Scene* scene, const glm::vec3& centerPosition, int dropIndex) {
+    if (!scene) {
+        return;
+    }
+
+    glm::vec3 dropPosition = centerPosition + glm::vec3(0.0f, 0.35f, 0.0f);
+
+    switch (dropIndex % 5) {
+        case 0:
+            SpawnTutorialIngredientLoot<LootSugar>(
+                scene,
+                dropPosition,
+                "./res/models/ingredients/sugar.glb",
+                "LootSugar"
+            );
+            return;
+
+        case 1:
+            SpawnTutorialIngredientLoot<LootBeetroot>(
+                scene,
+                dropPosition,
+                "./res/models/ingredients/dried_beet.glb",
+                "LootDriedBeet"
+            );
+            return;
+
+        case 2:
+            SpawnTutorialIngredientLoot<LootBone>(
+                scene,
+                dropPosition,
+                "./res/models/ingredients/bone.glb",
+                "LootBone"
+            );
+            return;
+
+        case 3:
+            SpawnTutorialIngredientLoot<LootCrystal>(
+                scene,
+                dropPosition,
+                "./res/models/ingredients/water.glb",
+                "LootWater"
+            );
+            return;
+
+        default:
+            SpawnTutorialIngredientLoot<LootRatTail>(
+                scene,
+                dropPosition,
+                "./res/models/ingredients/rat_tail.glb",
+                "LootRatTail"
+            );
+            return;
+    }
+}
+
 class TutorialBottlePickup : public PickableItem {
 public:
 	virtual void OnPickUp() override {
 		PersistentData::Set<bool>("TutorialThrowingRoom_PlayerTookBottles", true);
+		PotionInventory::EnsureStartingIngredients();
 
 		if (!PotionInventory::HasPotion()) {
 			PotionInventory::SaveLastCraftedPotion(
@@ -60,6 +135,8 @@ class TutorialStaticRatTarget : public EnemySkeleton {
 private:
 	SceneNode* playerNode = nullptr;
 
+	int mainEffectDropIndex = 0;
+
 	float damage = 10.0f;
 	float damageRange = 1.6f;
 	float damageCooldown = 1.0f;
@@ -68,11 +145,18 @@ private:
 public:
 	static int remainingRats;
 
-	void Initialize(SceneNode* playerNode, float damage, float damageRange, float damageCooldown) {
+	void Initialize(
+		SceneNode* playerNode,
+		float damage,
+		float damageRange,
+		float damageCooldown,
+		int mainEffectDropIndex
+	) {
 		this->playerNode = playerNode;
 		this->damage = damage;
 		this->damageRange = damageRange;
 		this->damageCooldown = damageCooldown;
+		this->mainEffectDropIndex = mainEffectDropIndex;
 		this->damageTimer = 0.0f;
 
 		this->myNode = GetNode();
@@ -124,13 +208,24 @@ public:
 	}
 
 	virtual void Die() override {
-		remainingRats--;
-		PotionInventory::GiveRatLoot();
+		if (remainingRats > 0) {
+			remainingRats--;
+		}
 
-		//spdlog::error("died3");
-		EnemyBase::Die();
+		SceneNode* node = GetNode();
+		Scene* scene = GetScene();
 
-		spdlog::error("died4");
+		if (node && scene) {
+			glm::vec3 dropPosition = node->GlobalTransform().Position().Value();
+			SpawnTutorialRatMainEffectDrop(scene, dropPosition, mainEffectDropIndex);
+
+			scene->QueueDelete(node);
+			myNode = nullptr;
+		}
+
+		if (m_Surface) {
+			m_Surface->RemoveEnemy(this);
+		}
 	}
 
 	LootPool& GetLootPool() override {
@@ -677,7 +772,13 @@ inline glm::vec3 GetRatSpawnPosition(SceneNode* spawnNode, Surface* surface) {
 	return glm::vec3(markerPosition.x, floorY + RatBodyCenterOffset, markerPosition.z);
 }
 
-inline void SpawnRatAt(Scene& mainScene, SceneNode* spawnNode, SceneNode* playerNode, Surface* surface) {
+inline void SpawnRatAt(
+	Scene& mainScene,
+	SceneNode* spawnNode,
+	SceneNode* playerNode,
+	Surface* surface,
+	int mainEffectDropIndex
+) {
 	glm::vec3 spawnPosition = GetRatSpawnPosition(spawnNode, surface);
 
 	SceneNode* ratNode = mainScene.CreateNode("Static Tutorial Rat");
@@ -704,7 +805,8 @@ inline void SpawnRatAt(Scene& mainScene, SceneNode* spawnNode, SceneNode* player
 		playerNode,
 		10.0f,
 		1.6f,
-		1.0f
+		1.0f,
+		mainEffectDropIndex
 	);
 
 	ratEnemy->m_hp = 1;
@@ -735,7 +837,7 @@ inline void SpawnTutorialRats(Scene& mainScene, SceneNode* roomNode, SceneNode* 
 		ratSpawns.resize(MaxTutorialRatEnemies);
 	}
 
-	for (SceneNode* spawnNode : ratSpawns) {
-		SpawnRatAt(mainScene, spawnNode, playerNode, surface);
+	for (int index = 0; index < static_cast<int>(ratSpawns.size()); index++) {
+		SpawnRatAt(mainScene, ratSpawns[index], playerNode, surface, index);
 	}
 }
