@@ -17,6 +17,7 @@
 #include <ui/objects/UiText.h>
 #include <ui/systems/UiSystem.h>
 #include <ui/widgets/wheel/UiWheel.h>
+#include <game_scripts/ui/InGameUi.h>
 
 #include "CraftingScene.h"
 #include "ui/widgets/wheel/UiRadialWheel.h"
@@ -184,6 +185,8 @@ inline void InitScene(Scene& mainScene) {
     cameraNode->AddObject<ColorGrading>();
     cameraNode->AddObject<Fxaa>();
 #pragma endregion
+    SceneNode* uiRoot = mainScene.CreateNode("UI");
+    uiRoot->AddObject<InGameUi>();
 }
 
 } // namespace TutorialThrowingRoomScene
