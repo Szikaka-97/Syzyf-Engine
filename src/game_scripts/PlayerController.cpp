@@ -139,13 +139,13 @@ namespace{
 			return effect;
 		}
 
-		if (effectId == Crafting::EffectId::Explosion || effectId == Crafting::EffectId::Lightning) {
+		if (effectId == Crafting::EffectId::Explosion) {
 			EffectExplosion* effect = node->AddObject<EffectExplosion>();
 
 			effect->strength = 1.0f;
 			effect->maxRange = potionData.radius * multiplier;
 			effect->maxDamage = potionData.power * multiplier;
-			effect->explosionDuration = potionData.duration * multiplier;
+			effect->explosionDuration = potionData.duration;
 			effect->ingredientCount = potionData.mainEffectCount;
 			effect->special1 = potionData.modifierCount > 0;
 			effect->special2 = potionData.modifierCount > 1;
@@ -158,7 +158,7 @@ namespace{
 		effect->strength = 1.0f;
 		effect->maxRange = potionData.radius * multiplier;
 		effect->maxDamage = potionData.power * multiplier;
-		effect->explosionDuration = potionData.duration * multiplier;
+		effect->explosionDuration = potionData.duration;
 		effect->ingredientCount = potionData.mainEffectCount;
 		
 		return effect;

@@ -89,9 +89,14 @@ void EffectExplosion::OnInit() {
     GetNode()->GlobalTransform().Scale()=glm::vec3(1.0f,1.0f,1.0f);
     this->radius = GetRange();
 
-    explosionModel->GetObject<AnimationComponent>()->Play("CylinderAction");
-    explosionModel->GetObject<AnimationComponent>()->Play("TorusAction");
-    explosionModel->GetObject<AnimationComponent>()->Play("SphereAction");
+    for (auto& anim : explosionModel->GetObject<AnimationComponent>()->animations) {
+        anim.speed = 2.0;
+        explosionModel->GetObject<AnimationComponent>()->Play(anim.data.name);
+    }
+
+    // explosionModel->GetObject<AnimationComponent>()->Play("CylinderAction");
+    // explosionModel->GetObject<AnimationComponent>()->Play("TorusAction");
+    // explosionModel->GetObject<AnimationComponent>()->Play("SphereAction");
     explosionModel->FindNode("SphereScaler")->LocalTransform().Scale() = glm::vec3(this->radius);
 }
 

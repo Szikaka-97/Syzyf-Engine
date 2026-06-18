@@ -58,7 +58,7 @@ public:
     serialized float strength         = 0.5f;
     serialized float maxRange         = 10.0f;
     serialized float maxDamage        = 50.0f;
-    serialized float explosionDuration = 2.5f;   // seconds
+    serialized float explosionDuration = 1.f;   // seconds
 
     EffectExplosion() = default;
 
@@ -70,5 +70,5 @@ protected:
     void  OnApplySpecials() override;
     void  OnUpdate() override;
     void  OnApplyToEnemy(EnemyBase* enemy) override;
-    float GetMaxLifetime()  const override { return explosionDuration; }
+    float GetMaxLifetime()  const override { return 1; }
 };
