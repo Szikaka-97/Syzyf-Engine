@@ -61,6 +61,11 @@ void EnemyBase::Die() {
       for (int i = 0; i <= rnd; ++i) {
           DropLoot();
       }
+
+      if (m_FlockingSystem) {
+          m_FlockingSystem->Unregister(this);
+      }
+
     //spdlog::error("died");
     GetScene()->QueueDelete(myNode);
     myNode = nullptr;
