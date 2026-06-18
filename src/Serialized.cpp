@@ -26,6 +26,11 @@ void InternalStartObjectSerialization();
 void* InternalConstructObject(const std::string& objectName, void* location);
 volatile void* InternalDeserializeJson(volatile void* ptr, const json& data);
 
+// The queen of structs
+struct ByteAligned {
+	alignas(16) uint8_t _;
+};
+
 void* InternalDeserializeObject(const json& data) {
 	deserializedObjects.clear();
 	deserializedObjects.reserve(data.size());
@@ -41,18 +46,19 @@ void* InternalDeserializeObject(const json& data) {
 		}
 	}
 
-	uint8_t* buffer = (uint8_t*) alloc_aligned(totalSize, alignment);
-
 	for (const auto& object : data) {
-		deserializedObjects.push_back({ InternalConstructObject(object["_class_name"], buffer), object["_class_name"] });
-
 		size_t objectSize = TypeInfo::GetTypeInfo(object["_class_name"]).size;
 
-		if (objectSize % alignment != 0) {
-			objectSize += alignment - (objectSize % alignment);
+		if (objectSize % 16 == 0) {
+			objectSize /= 16;
+		}
+		else {
+			objectSize = objectSize / 16 + 1;
 		}
 
-		buffer += objectSize;
+		ByteAligned* buffer = new ByteAligned[objectSize];
+
+		deserializedObjects.push_back({ InternalConstructObject(object["_class_name"], buffer), object["_class_name"] });
 	}
 
 	int i = 0;
