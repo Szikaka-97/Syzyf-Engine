@@ -448,6 +448,20 @@ SceneNode* Scene::CreateNode(SceneNode* parent, const std::string& name) {
 	return result;
 }
 
+SceneNode* Scene::GetOrCreateNode(const std::string& name) {
+	return GetOrCreateNode(this->root, name);
+}
+
+SceneNode* Scene::GetOrCreateNode(SceneNode* parent, const std::string& name) {
+	SceneNode* result = FindNode(name);
+
+	if (result) {
+		return result;
+	}
+
+	return CreateNode(parent, name);
+}
+
 ResourceDatabase* Scene::Resources() {
 	return &this->resources;
 }

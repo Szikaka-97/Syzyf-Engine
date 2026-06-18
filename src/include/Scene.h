@@ -172,6 +172,9 @@ public:
 	SceneNode* CreateNode(const std::string& name);
 	SceneNode* CreateNode(SceneNode* parent, const std::string& name);
 
+	SceneNode* GetOrCreateNode(const std::string& name);
+	SceneNode* GetOrCreateNode(SceneNode* parent, const std::string& name);
+
 	ResourceDatabase* Resources();
 
 	InputSystem* Input();
