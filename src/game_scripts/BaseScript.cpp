@@ -111,7 +111,7 @@ void BaseScript::Awake() {
 	assert(this->gate != nullptr);
 	assert(this->key != nullptr);
 
-	this->key->AddObject<GateKey>();
+	// this->key->AddObject<GateKey>();
 
 	if (PersistentData::Get<bool>("Base_PlayerPickedUpKey")) {
 		this->key->SetEnabled(false);
@@ -121,32 +121,37 @@ void BaseScript::Awake() {
 
 	assert(wallsColliderNode);
 
-	auto* wallsBody = wallsColliderNode->AddObject<Physics::Body>(
-		JPH::BodyCreationSettings{
-			Physics::MeshShape(wallsColliderNode->GetObject<MeshRenderer>()->GetMesh()),
-			JPH::RVec3::sZero(), JPH::Quat::sZero(), JPH::EMotionType::Static,
-			Physics::Layers::NON_MOVING
-		}
-	);
-	wallsBody->SetCollisionLayerAndMask({0}, 0xFFFFFFFF);
-	wallsColliderNode->GetObject<MeshRenderer>()->SetEnabled(false);
+	if (!wallsColliderNode->GetObject<Physics::Body>()) {
+		auto* wallsBody = wallsColliderNode->AddObject<Physics::Body>(
+			JPH::BodyCreationSettings{
+				Physics::MeshShape(wallsColliderNode->GetObject<MeshRenderer>()->GetMesh()),
+				JPH::RVec3::sZero(), JPH::Quat::sZero(), JPH::EMotionType::Static,
+				Physics::Layers::NON_MOVING
+			}
+		);
+		wallsBody->SetCollisionLayerAndMask({0}, 0xFFFFFFFF);
+		wallsColliderNode->GetObject<MeshRenderer>()->SetEnabled(false);
+	}
 
 	auto* gateColliderNode = this->gate->FindNode("Exit Gate Collider");
 	gateColliderNode->GlobalTransform().Position() = this->gate->GlobalTransform().Position().Value();
 
 	assert(gateColliderNode);
 
-	auto gateBodySettings = JPH::BodyCreationSettings{
-		Physics::MeshShape(gateColliderNode->GetObject<MeshRenderer>()->GetMesh()),
-		JPH::RVec3(0, 0, 0), JPH::Quat::sZero(), JPH::EMotionType::Static,
-		Physics::Layers::NON_MOVING
-	};
-	gateBodySettings.mOverrideMassProperties = JPH::EOverrideMassProperties::MassAndInertiaProvided;
-	gateBodySettings.mMassPropertiesOverride.mMass = 1.0;
-
-	auto* gateBody = gateColliderNode->AddObject<Physics::Body>(gateBodySettings);
-	gateBody->SetCollisionLayerAndMask({0}, 0xFFFFFFFF);
-	gateBody->SetPosition(gateColliderNode->GlobalTransform().Position());
+	if (!gateColliderNode->GetObject<Physics::Body>()) {
+		auto gateBodySettings = JPH::BodyCreationSettings{
+			Physics::MeshShape(gateColliderNode->GetObject<MeshRenderer>()->GetMesh()),
+			JPH::RVec3(0, 0, 0), JPH::Quat::sZero(), JPH::EMotionType::Static,
+			Physics::Layers::NON_MOVING
+		};
+		gateBodySettings.mOverrideMassProperties = JPH::EOverrideMassProperties::MassAndInertiaProvided;
+		gateBodySettings.mMassPropertiesOverride.mMass = 1.0;
+	
+		auto* gateBody = gateColliderNode->AddObject<Physics::Body>(gateBodySettings);
+		gateBody->SetCollisionLayerAndMask({0}, 0xFFFFFFFF);
+		gateBody->SetPosition(gateColliderNode->GlobalTransform().Position());
+	}
+	
 	gateColliderNode->GetObject<MeshRenderer>()->SetEnabled(false);
 }
 

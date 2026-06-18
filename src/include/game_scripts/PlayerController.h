@@ -73,6 +73,8 @@ public:
 	void OnEnable();
 	void OnDisable();
 
+	void SetPosition(const glm::vec3& position);
+
 	void TakeDamage(float damage);
 
 	float GetHealth() const;

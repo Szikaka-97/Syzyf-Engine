@@ -8,14 +8,14 @@ class ComputeShaderDispatch;
 // Must run after the tonemapper
 class ColorGrading : public PostProcessEffect, public ImGuiDrawable {
 public:
-    float brightness = 1.0f;
-    float contrast = 1.0f;
-    float saturation = 1.0f;
+    serialized float brightness = 1.0f;
+    serialized float contrast = 1.0f;
+    serialized float saturation = 1.0f;
 
-    float chromaticAberrationStrength = 0.0f;
+    serialized float chromaticAberrationStrength = 0.0f;
 
-    float filmGrainStrength = 0.0f;
-    float vignetteStrength = 0.0f;
+    serialized float filmGrainStrength = 0.0f;
+    serialized float vignetteStrength = 0.0f;
 private:
 	ComputeShaderDispatch* colorGradingShader;
     Texture2D* curveTexture = nullptr;

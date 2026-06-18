@@ -17,6 +17,7 @@
 #include <ui/objects/UiText.h>
 #include <ui/systems/UiSystem.h>
 #include <ui/widgets/wheel/UiWheel.h>
+#include <game_scripts/ui/InGameUi.h>
 
 #include "CraftingScene.h"
 #include "ui/widgets/wheel/UiRadialWheel.h"
@@ -105,53 +106,23 @@ inline void InitScene(Scene& mainScene) {
 #pragma endregion
 
 #pragma region Player
-    JPH::Ref<JPH::CharacterVirtualSettings> characterSettings =
-        new JPH::CharacterVirtualSettings();
-    characterSettings->mShape = new JPH::CapsuleShape(0.5f, 0.5f);
-    characterSettings->mShapeOffset = JPH::Vec3(0, 1, 0);
-    characterSettings->mMaxSlopeAngle = JPH::DegreesToRadians(45.0f);
-
-    SceneNode* playerNode = mainScene.CreateNode("Player");
-
-    SceneNode* bimberman =
-        ResourceDatabase::Global
-            ->Get<GltfScene>("./res/models/bimbermann_throwing.glb")
-            ->Instantiate(&mainScene, mainScene.root, "Bimberman");
-
-    bimberman->SetParent(playerNode);
+	SceneNode* playerNode = mainScene.LoadPrefab(fs::path("./res/prefabs/Player.prefab"));
 
     SceneNode* playerSpawn = roomNode->FindNode("Player Spawn");
 
+    PlayerController* player = playerNode->GetObject<PlayerController>();
+
     if (playerSpawn) {
-        playerNode->GlobalTransform().Position() =
-            playerSpawn->GlobalTransform().Position().Value();
+        player->SetPosition(playerSpawn->GlobalTransform().Position());
     } else {
-        playerNode->GlobalTransform().Position() =
-            glm::vec3(14.183422f, 0.105301f, -0.051525f);
+        player->SetPosition(glm::vec3(14.183422f, 0.105301f, -0.051525f));
+        
         spdlog::warn("TutorialThrowingRoomScene: Player Spawn not found. Using "
                      "fallback from uploaded GLB.");
     }
 
-    auto* virtualCharacter =
-        playerNode->AddObject<Physics::VirtualCharacterController>(
-            characterSettings);
-    virtualCharacter->SetCollisionLayerAndMask({1}, 0xFFFFFFFF);
-    virtualCharacter->SetPosition(
-        playerNode->GlobalTransform().Position().Value());
-    virtualCharacter->SetGravityFactor(1);
-
-    SceneNode* aimReticle =
-        ResourceDatabase::Global->Get<GltfScene>("./res/models/crosshair.glb")
-            ->Instantiate(&mainScene, playerNode, "Aim Reticle");
-
-    aimReticle->AddObject<AimCrosshair>();
-    aimReticle->SetEnabled(
-        PersistentData::Get<bool>("TutorialThrowingRoom_PlayerTookBottles"));
-
-    auto* player = playerNode->AddObject<PlayerController>();
-
-    player->SetThrowingUnlocked(
-        PersistentData::Get<bool>("TutorialThrowingRoom_PlayerTookBottles"));
+    // player->SetThrowingUnlocked(
+    //     PersistentData::Get<bool>("TutorialThrowingRoom_PlayerTookBottles"));
 
     roomNode->AddObject<TutorialRatSpawnManager>()->Initialize(
         roomNode, playerNode, surface);
@@ -183,6 +154,13 @@ inline void InitScene(Scene& mainScene) {
         Tonemapper::TonemapperOperator::GranTurismo);
     cameraNode->AddObject<ColorGrading>();
     cameraNode->AddObject<Fxaa>();
+#pragma endregion
+
+#pragma region Ui
+    // Wheel
+    SceneNode* uiRoot = mainScene.CreateNode("UI");
+    uiRoot->AddObject<InGameUi>();
+
 #pragma endregion
 }
 

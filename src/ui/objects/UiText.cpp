@@ -17,3 +17,19 @@ void UiText::DrawImGui() {
         this->alignment = static_cast<TextAlignment>(currentAlignment);
     }
 }
+
+json UiText::Serialize() const {
+    json data;
+
+    if (this->maxWidth.has_value()) {
+        data["maxWidth"] = *this->maxWidth;
+    }
+
+    return data;
+}
+
+void UiText::Deserialize(const json& data) {
+    if (data.contains("maxWidth")) {
+        this->maxWidth = data["maxWidth"];
+    }
+}

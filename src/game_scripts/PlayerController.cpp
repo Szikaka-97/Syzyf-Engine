@@ -548,7 +548,11 @@ void PlayerController::OnDisable() {
 		PlayerController::instance = nullptr;
 	}
 }
-	
+
+void PlayerController::SetPosition(const glm::vec3& position) {
+	this->charController->SetPosition(position);
+}
+
 void PlayerController::TakeDamage(float damage) {
 	this->health -= damage;
 

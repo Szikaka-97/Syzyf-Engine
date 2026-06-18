@@ -10,7 +10,12 @@
 #include <imgui.h>
 #include <misc/cpp/imgui_stdlib.h>
 
-Text3D::Text3D(std::string text, Font* font, std::shared_ptr<Material> material) : text(text), font(font), material(material), alignment(TextAlignment::Left) {
+Text3D::Text3D():
+Text3D("") { }
+
+Text3D::Text3D(std::string text, Font* font, std::shared_ptr<Material> material) : text(text), font(font), material(material), alignment(TextAlignment::Left) { }
+
+void Text3D::Awake() {
 
     if (material == nullptr) {
         this->shader.reset(

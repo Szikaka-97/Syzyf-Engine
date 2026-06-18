@@ -10,7 +10,7 @@
 
 #include "Texture.h"
 
-FogVolume::FogVolume() {
+void FogVolume::Awake() {
   this->mesh = GetScene()->Resources()->Get<Mesh>("./res/models/not_cube.obj");
 
   ShaderProgram *prog = ShaderProgram::Build()
@@ -100,6 +100,8 @@ void FogVolume::Render() {
     int arrayLocation = glGetUniformLocation(shaderHandle, "intersectingLightIndices");
     glUniform1iv(arrayLocation, intersectingLightIndices.size(), intersectingLightIndices.data());
   }
+
+  spdlog::info("fog draw");
 
   GetScene()->GetGraphics()->DrawMesh(this->mesh, 0, this->material,
                                       this->GlobalTransform());
