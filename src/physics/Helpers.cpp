@@ -86,7 +86,9 @@ JPH::ShapeRefC ConvexHullMeshShape(const Mesh* mesh) {
   JPH::Shape::ShapeResult result = shapeSettings.Create();
 
   if (result.IsValid()) {
-      return result.Get();
+    result.Get()->SetUserData((intptr_t) mesh);
+    
+    return result.Get();
   } else {
     spdlog::error("Physics::ConvexHullMesh: Failed to create a convex hull mesh");
     return nullptr;
