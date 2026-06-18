@@ -1,5 +1,7 @@
 #pragma once
 
+#include <game_scripts/GameplayAudio.h>
+
 #include "DepthOfField.h"
 #include "EasingFunctions.h"
 #include "GltfScene.h"
@@ -61,6 +63,7 @@ inline void InitScene(Scene& mainScene) {
 	mainScene.AddComponent<AnimationSystem>();
 	auto* tweenSystem = mainScene.AddComponent<TweenSystem>();
     mainScene.AddComponent<ThrowableObjectPool>();
+    GameplayAudio::AddBackgroundMusic(mainScene);
 	auto* flockingSystem = mainScene.AddComponent<FlockingSystem>();
     // Opcjonalne tunowanie:
     flockingSystem->separationRadius = 2.5f;

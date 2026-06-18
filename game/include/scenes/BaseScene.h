@@ -1,5 +1,7 @@
 #pragma once
 
+#include <game_scripts/GameplayAudio.h>
+
 #include "Resources.h"
 #include <Scene.h>
 
@@ -67,6 +69,7 @@ inline void InitScene(Scene& mainScene) {
 	auto* tweenSystem = mainScene.AddComponent<TweenSystem>();
 	mainScene.AddComponent<WheelSystem>();
 	mainScene.AddComponent<ThrowableObjectPool>();
+	GameplayAudio::AddBackgroundMusic(mainScene);
 
 	mainScene.GetComponent<LightSystem>()->SetAmbientLight(glm::vec4(1, 0.6, 0.3, 0.13));
 
