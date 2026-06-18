@@ -891,7 +891,7 @@ namespace Crafting{
                         "InventoryNextPageLabel",
                         "Down",
                         font,
-                        glm::vec3(0.0f, 0.04f, 0.05f),
+                        glm::vec3(0.0f, 0.14f, 0.05f),
                         0.035f
                     );
 
@@ -900,7 +900,7 @@ namespace Crafting{
                         "InventoryPreviousPageLabel",
                         "Up",
                         font,
-                        glm::vec3(0.0f, 0.04f, 0.05f),
+                        glm::vec3(-0.03f, 0.14f, 0.05f),
                         0.035f
                     );
 
