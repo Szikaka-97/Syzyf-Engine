@@ -68,7 +68,12 @@ public:
 
     void Awake() {
         // Tooltip setup
-        this->tooltipNode = this->GetScene()->CreateNode("Tooltip Node");
+        this->tooltipNode = this->GetScene()->FindNode("Tooltip Node");
+
+        if (!this->tooltipNode) {
+            this->tooltipNode = this->GetScene()->CreateNode("Tooltip Node");
+        }
+
         auto* visual = this->tooltipNode->AddObject<UiVisual>();
         auto* layout = this->tooltipNode->AddObject<UiLayout>();
         layout->size = {400, 400};
