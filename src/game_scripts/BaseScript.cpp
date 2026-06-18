@@ -341,6 +341,18 @@ void BaseExitToTutorialThrowingRoom::Awake() {
 
 	if (triggerNode) {
 		this->triggerPosition = triggerNode->GlobalTransform().Position().Value();
+
+	}
+
+	if (auto* baseScript = GetNode()->GetObject<BaseScript>()) {
+		if (baseScript->gate) {
+			gatePosition = baseScript->gate->GlobalTransform().Position();
+		}
+	}
+
+
+	if (auto* mainCam = GetScene()->GetGraphics()->GetMainCamera()) {
+		cameraSettings = mainCam->GetNode()->GetObject<CameraSettings>();
 	}
 }
 
@@ -351,6 +363,25 @@ void BaseExitToTutorialThrowingRoom::Update() {
 
 	if (!PersistentData::Get<bool>("Base_PlayerPickedUpKey")) {
 		return;
+	}
+
+	auto* player = PlayerController::Instance();
+	if (!player) return;
+
+	glm::vec3 playerPos = player->GlobalTransform().Position();
+	playerPos.y = 0.0f;
+
+	glm::vec3 gateFlat = gatePosition;    gateFlat.y = 0.0f;
+	glm::vec3 exitFlat = triggerPosition; exitFlat.y = 0.0f;
+
+	if (!cameraStopped && cameraSettings) {
+		float totalDist  = glm::distance(gateFlat, exitFlat);
+		float playerDist = glm::distance(gateFlat, playerPos);
+
+		if (totalDist > 0.0f && playerDist >= totalDist * 0.5f) {
+			cameraSettings->Freeze();
+			cameraStopped = true;
+		}
 	}
 
 	float distanceToTrigger = glm::distance(

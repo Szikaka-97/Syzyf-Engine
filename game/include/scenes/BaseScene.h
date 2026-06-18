@@ -49,6 +49,8 @@
 #include <Application.h>
 #include <game_scripts/BaseScript.h>
 
+class CameraSettings;
+
 namespace BaseScene {
 
 class GateKey : public PickableItem {

@@ -12,6 +12,7 @@ private:
 	float targetAngleY = 0;
 	float angleX = 45;
 	float cameraRotationSpeed = 180.0f;
+	bool frozen = false;
 public:
 	CameraSettings();
 	
@@ -29,4 +30,9 @@ public:
 
 	float GetHeight() const;
 	float GetAngleY() const;
+
+	void Freeze()   { frozen = true; }
+	void Unfreeze() { frozen = false; }
+	bool IsFrozen() const { return frozen; }
+
 };

@@ -35,6 +35,8 @@ CameraSettings::CameraSettings(SceneNode* targetNode, float height, float angleY
 CameraSettings(targetNode->GlobalTransform().Position(), height, angleY, angleX) {}
 
 void CameraSettings::Update() {
+	if (this->frozen) return;
+
 	auto* player = PlayerController::Instance();
 
 	if (this->angleY == this->targetAngleY) {

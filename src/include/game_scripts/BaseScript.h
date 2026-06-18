@@ -1,5 +1,8 @@
 #pragma once
 
+#include "CameraSettings.h"
+
+
 #include <GameObject.h>
 #include <TimeSystem.h>
 
@@ -68,6 +71,10 @@ private:
 	bool sceneRequested = false;
 	glm::vec3 triggerPosition = glm::vec3(1.6686f, 0.0f, 20.0f);
 	float triggerRadius = 2.5f;
+
+	bool cameraStopped = false;
+	glm::vec3 gatePosition = {};
+	CameraSettings* cameraSettings = nullptr;
 public:
 	BaseExitToTutorialThrowingRoom() = default;
 
