@@ -1,5 +1,7 @@
 #pragma once
 
+#include <game_scripts/GameplayAudio.h>
+
 #include "Application.h"
 #include "Bloom.h"
 #include "Camera.h"
@@ -723,6 +725,7 @@ inline void AddBottleMeshPhysics(SceneNode* bottleNode) {
 inline void InitScene(Scene& mainScene) {
     mainScene.AddComponent<UiSystem>();
     mainScene.AddComponent<Physics::System>();
+    GameplayAudio::AddBackgroundMusic(mainScene);
 
     SceneNode* cameraNode = mainScene.CreateNode("Camera Node");
     cameraNode->LocalTransform().Position() =

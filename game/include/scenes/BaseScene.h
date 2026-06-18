@@ -1,5 +1,7 @@
 #pragma once
 
+#include <game_scripts/GameplayAudio.h>
+
 #include "Resources.h"
 #include <Scene.h>
 
@@ -151,6 +153,58 @@ inline void InitScene(Scene& mainScene) {
     SceneNode* uiRoot = mainScene.CreateNode("UI");
     uiRoot->AddObject<InGameUi>();
 
+// 	ShaderProgram* customUiProgram =
+// 		ShaderProgram::Build()
+// 			.WithVertexShader("./res/shaders/ui/ui.vert")
+// 			.WithPixelShader("./res/shaders/ui/custom/radial_wheel.frag")
+// 			.Link();
+// 	Material* customUiMaterial = new Material(customUiProgram);
+// 	SceneNode* radialWheelNode = mainScene.CreateNode(uiRoot, "Radial Wheel");
+// 	radialWheelNode->AddObject<UiLayout>(
+// 		glm::uvec2(600, 600), glm::uvec2(-150, 0), 0, AnchorPoint::CenterRight);
+// 	auto* customVisual =
+// 		radialWheelNode->AddObject<UiVisual>(glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+// 	customVisual->SetEnabled(false);
+// 	customVisual->customMaterial = customUiMaterial;
+// 	auto* radialWheel = radialWheelNode->AddObject<UiRadialWheel>();
+// 	radialWheel->AddObject<WheelTag>();
+// 	radialWheel->material.reset(customUiMaterial);
+// 	radialWheel->SetItemModels({
+// 		"./res/models/butelka.glb",
+// 		"./res/models/butelka.glb",
+// 		"./res/models/butelka.glb",
+// 		"./res/models/butelka.glb",
+// 		"./res/models/butelka.glb",
+// 	});
+
+// 	SceneNode* gridRoot = mainScene.CreateNode(uiRoot, "Grid");
+// 	gridRoot->AddObject<UiLayout>(glm::uvec2(360, 475), glm::uvec2(50, 50), 0,
+// 								  AnchorPoint::TopLeft);
+// 	auto* gridRootVisual =
+// 		gridRoot->AddObject<UiVisual>(glm::vec4(0.2f, 0.2f, 0.2f, 0.8f));
+// 	gridRootVisual->SetEnabled(false);
+// 	gridRoot->AddObject<WheelTag>();
+// 	SceneNode* gridContainer = mainScene.CreateNode(gridRoot, "Grid Container");
+// 	auto* gridLayout = gridContainer->AddObject<UiLayout>(
+// 		glm::uvec2(330, 445), glm::uvec2(0, 0), 0, AnchorPoint::Center);
+// 	// gridContainer->AddObject<UiVisual>(glm::vec4(0.2f, 0.2f, 0.2f, 0.8f));
+// 	gridContainer->AddObject<UiInteractable>();
+
+// 	auto* grid = gridContainer->AddObject<UiScrollableGrid>();
+// 	for (int i = 0; i < 20; i++) {
+// 		SceneNode* itemNode =
+// 			mainScene.CreateNode(uiRoot, "Item_" + std::to_string(i));
+// 		itemNode->SetParent(gridContainer);
+
+// 		auto* layout = itemNode->AddObject<UiLayout>(
+// 			glm::uvec2(100, 100), glm::uvec2(0, 0), 1, AnchorPoint::Center);
+
+// 		auto* visual =
+// 			itemNode->AddObject<UiVisual>(glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
+// 		visual->SetEnabled(false);
+// 		itemNode->AddObject<UiInteractable>();
+// 		itemNode->AddObject<WheelTag>();
+// 	}
 #pragma endregion
 }
 

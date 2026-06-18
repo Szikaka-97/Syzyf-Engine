@@ -1,5 +1,7 @@
 #pragma once
 
+#include <game_scripts/GameplayAudio.h>
+
 #include "Camera.h"
 #include "Light.h"
 #include "LightSystem.h"
@@ -1955,6 +1957,7 @@ namespace CraftingScene {
 	    scene.AddComponent<AnimationSystem>();
 	    scene.AddComponent<TweenSystem>();
 	    scene.AddComponent<WheelSystem>();
+	    GameplayAudio::AddBackgroundMusic(scene);
 
 	    if (auto* lightSystem = scene.GetComponent<LightSystem>()) {
 		    lightSystem->SetAmbientLight(glm::vec4(1.0f, 0.65f, 0.25f, 0.12f));

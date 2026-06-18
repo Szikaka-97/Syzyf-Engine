@@ -14,6 +14,7 @@
 #include "physics/Body.h"
 #include "physics/ICollisionReceiver.h"
 #include "game_scripts/AttackEffects/EffectsManager.h"
+#include "game_scripts/GameplayAudio.h"
 #include <game_scripts/enemies/EnemyBase.h>
 #include <Scene.h>
 #include <Resources.h>
@@ -208,6 +209,8 @@ private:
 
     void SpawnEffect() {
         Scene*     scene      = GetScene();
+        GameplayAudio::PlayBottleBreak(*scene, m_ImpactPos);
+
         SceneNode* effectNode = scene->CreateNode("ThrowableEffect");
         effectNode->GlobalTransform().Position() = m_ImpactPos;
 
