@@ -104,6 +104,11 @@ class EditorApplication : public ::Application {
 
     inline Context& GetContext() { return this->context; }
 
+    void RequestLoadMaterialDialog(
+        std::function<void(std::string)> callback) override;
+    void RequestSaveMaterialDialog(
+        std::function<void(std::string)> callback) override;
+
   protected:
     void OnInit(int argc = 0, char* argv[] = nullptr) override;
     void OnUpdate() override;

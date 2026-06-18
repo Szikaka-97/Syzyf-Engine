@@ -7,12 +7,12 @@ void main() {
 	Material mat;
 	vec2 texCoords = ps_in.texcoords;
 
-    vec4 albedo = texture(albedoMap, texCoords);
+    vec4 albedo = texture(albedoMap, texCoords * uvScaleAlbedo);
 
 	mat.albedo = albedo.xyz * baseColorFactor.xyz;
 	float alpha = 1.0;
 
-	vec3 arm = texture(armMap, texCoords).xyz;
+	vec3 arm = texture(armMap, texCoords * uvScaleArm).xyz;
 	vec3 N = getNormalFromMap();
 	vec3 V = normalize(Global_CameraWorldPos - ps_in.worldPos);
 	vec3 R = reflect(-V, N); 

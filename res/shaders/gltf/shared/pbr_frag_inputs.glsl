@@ -30,6 +30,9 @@ uniform samplerCube Builtin_EnvPrefilterMap;
 uniform sampler2D Builtin_BRDFConvolutionMap;
 uniform sampler2D Builtin_AOMap;
 
+uniform float uvScaleAlbedo;
+uniform float uvScaleArm;
+
 uniform float ambientBump = 0;
 
 out vec4 fragColor;

@@ -1,0 +1,62 @@
+{
+    "name": "Material.002",
+    "shader": "./res/shaders/gltf/lit.vert@@@@./res/shaders/gltf/pbr.frag@",
+    "variables": {
+        "albedoMap": {
+            "channels": 3,
+            "colorSpace": 1,
+            "format": 0,
+            "magFilter": 1,
+            "minFilter": 7,
+            "path": "./res/models/floor.glb:templategrid_albedo",
+            "wrapU": 1,
+            "wrapV": 1
+        },
+        "ambientBump": 0.0,
+        "armMap": {
+            "channels": 2,
+            "colorSpace": 0,
+            "format": 0,
+            "magFilter": 1,
+            "minFilter": 1,
+            "path": "./res/textures/default_arm.png",
+            "wrapU": 1,
+            "wrapV": 1
+        },
+        "baseColorFactor": {
+            "w": 1.0,
+            "x": 0.019607843831181526,
+            "y": 1.0,
+            "z": 1.0
+        },
+        "emissiveFactor": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
+        },
+        "emissiveMap": {
+            "channels": 2,
+            "colorSpace": 1,
+            "format": 0,
+            "magFilter": 1,
+            "minFilter": 7,
+            "path": "./res/textures/default_emissive.png",
+            "wrapU": 1,
+            "wrapV": 1
+        },
+        "emissiveStrength": 1.0,
+        "metallicFactor": 0.0,
+        "normalMap": {
+            "channels": 2,
+            "colorSpace": 0,
+            "format": 0,
+            "magFilter": 1,
+            "minFilter": 1,
+            "path": "./res/textures/default_norm.png",
+            "wrapU": 1,
+            "wrapV": 1
+        },
+        "roughnessFactor": 0.5,
+        "useOcclusion": false
+    }
+}

@@ -332,4 +332,110 @@ void OpenSaveTextureDialog(Context& context,
                            textureFilters, 2, defaultLocation.c_str());
 }
 
+static const SDL_DialogFileFilter materialFilters[] = {
+    {"Syzyf Material", "mat"}, {"All Files", "*"}};
+
+static std::string lastMaterialDirectory = "";
+
+struct MaterialDialogPayload {
+    Context* context;
+    std::function<void(std::string)> callback;
+};
+
+static void SDLCALL LoadMaterialCallback(void* userdata,
+                                         const char* const* filelist,
+                                         int filter) {
+    std::unique_ptr<MaterialDialogPayload> payload(
+        static_cast<MaterialDialogPayload*>(userdata));
+    Context* context = payload->context;
+
+    if (!filelist || !filelist[0]) {
+        if (const char* err = SDL_GetError(); err && err[0] != '\0') {
+            spdlog::error("Load Material dialog error: {}", err);
+            SDL_ClearError();
+        }
+        context->isNativeDialogOpen = false;
+        return;
+    }
+
+    std::string filePath = filelist[0];
+    auto loadFunc = payload->callback;
+
+    context->DispatchToMainThread([context, filePath, loadFunc]() {
+        try {
+            fs::path path(filePath);
+            lastMaterialDirectory = path.parent_path().string();
+            if (loadFunc)
+                loadFunc(filePath);
+        } catch (const std::exception& e) {
+            spdlog::error("Failed to load material from dialog: {}", e.what());
+        }
+        context->isNativeDialogOpen = false;
+    });
+}
+
+static void SDLCALL SaveMaterialCallback(void* userdata,
+                                         const char* const* filelist,
+                                         int filter) {
+    std::unique_ptr<MaterialDialogPayload> payload(
+        static_cast<MaterialDialogPayload*>(userdata));
+    Context* context = payload->context;
+
+    if (!filelist || !filelist[0]) {
+        if (const char* err = SDL_GetError(); err && err[0] != '\0') {
+            spdlog::error("Save Material dialog error: {}", err);
+            SDL_ClearError();
+        }
+        context->isNativeDialogOpen = false;
+        return;
+    }
+
+    std::string filePath = filelist[0];
+    auto saveFunc = payload->callback;
+
+    context->DispatchToMainThread([context, filePath, saveFunc]() {
+        try {
+            fs::path savePath(filePath);
+            if (!savePath.has_extension() || savePath.extension() != ".mat") {
+                savePath.replace_extension(".mat");
+            }
+            lastMaterialDirectory = savePath.parent_path().string();
+            if (saveFunc)
+                saveFunc(savePath.string());
+        } catch (const std::exception& e) {
+            spdlog::error("Failed to save material from dialog: {}", e.what());
+        }
+        context->isNativeDialogOpen = false;
+    });
+}
+
+void OpenLoadMaterialDialog(Context& context,
+                            std::function<void(std::string)> loadCallback) {
+    const char* defaultLocation =
+        lastMaterialDirectory.empty() ? nullptr : lastMaterialDirectory.c_str();
+
+    MaterialDialogPayload* payload =
+        new MaterialDialogPayload{&context, loadCallback};
+    context.isNativeDialogOpen = true;
+
+    SDL_ShowOpenFileDialog(LoadMaterialCallback, payload, context.window,
+                           materialFilters, 2, defaultLocation, false);
+}
+
+void OpenSaveMaterialDialog(Context& context,
+                            std::function<void(std::string)> saveCallback) {
+    std::string defaultName = "NewMaterial.mat";
+    std::string defaultLocation =
+        lastMaterialDirectory.empty()
+            ? defaultName
+            : (fs::path(lastMaterialDirectory) / defaultName).string();
+
+    MaterialDialogPayload* payload =
+        new MaterialDialogPayload{&context, saveCallback};
+    context.isNativeDialogOpen = true;
+
+    SDL_ShowSaveFileDialog(SaveMaterialCallback, payload, context.window,
+                           materialFilters, 2, defaultLocation.c_str());
+}
+
 } // namespace Editor

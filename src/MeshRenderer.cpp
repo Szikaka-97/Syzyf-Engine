@@ -1,3 +1,4 @@
+#include "Application.h"
 #include "Material.h"
 #include "imgui.h"
 #include <MeshRenderer.h>
@@ -97,6 +98,41 @@ void MeshRenderer::DrawImGui() {
 
 				ImGui::TreePop();
 			}
+
+            ImGui::BeginGroup();
+            char pathBuf[256] = {0};
+            if (mat && !mat->GetPath().empty()) {
+                strncpy(pathBuf, mat->GetPath().string().c_str(), sizeof(pathBuf) - 1);
+            }
+
+            ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 100);
+            ImGui::InputText("##MatPath", pathBuf, sizeof(pathBuf));
+
+            ImGui::SameLine();
+            if (ImGui::Button("Load")) {
+                Application::Get()->RequestLoadMaterialDialog([this, i](std::string loadedPath) {
+                    Material* loadedMat = ResourceDatabase::Global->Get<Material>(loadedPath);
+                    if (loadedMat) {
+                        this->materials[i] = loadedMat;
+                    }
+                });
+            }
+
+            ImGui::SameLine();
+            if (ImGui::Button("Save")) {
+                if (pathBuf[0] != '\0') {
+                    if (mat) {
+                        mat->Save(pathBuf);
+                    }
+                } else {
+                    Application::Get()->RequestSaveMaterialDialog([mat](std::string savePath) {
+                        if (mat) {
+                        mat->Save(savePath);
+                        }
+                    });
+                }
+            }
+            ImGui::EndGroup();
 
 			ImGui::PopID();
 		}

@@ -1,6 +1,7 @@
 #include "include/EditorApplication.h"
 #include "CameraController.h"
 #include "ComponentRegistry.h"
+#include "FileDialogHelpers.h"
 #include "MousePickingBodySystem.h"
 #include "SceneRegistry.h"
 #include "Themes.h"
@@ -205,5 +206,15 @@ void EditorApplication::ExecutePendingSceneChange() {
 }
 
 EditorApplication* EditorApplication::ApplicationInstance() { return instance; }
+
+void EditorApplication::RequestLoadMaterialDialog(
+    std::function<void(std::string)> callback) {
+    OpenLoadMaterialDialog(this->context, callback);
+}
+
+void EditorApplication::RequestSaveMaterialDialog(
+    std::function<void(std::string)> callback) {
+    OpenSaveMaterialDialog(this->context, callback);
+}
 
 } // namespace Editor

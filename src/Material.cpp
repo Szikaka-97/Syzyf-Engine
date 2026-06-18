@@ -545,28 +545,76 @@ void Material::BindStorageBuffer(int storageBufferIndex, GLuint bufferHandle) {
 	this->shaderVariables.BindStorageBuffer(storageBufferIndex, bufferHandle);
 }
 
-void Material::Deserialize(const nlohmann::json& json_node) {
-	this->shader = ResourceDatabase::Global->Get<ShaderProgram>(json_node["shader"]);
-
-	this->shaderVariables = ShaderVariableStorage(this->shader->GetUniforms());
-
-	this->shaderVariables.Deserialize(json_node["variables"]);
-}
-nlohmann::json Material::Serialize() const {
-	json data;
-
-	data["shader"] = this->shader->Serialize();
-
-	data["variables"] = this->shaderVariables.Serialize();
-
-	return data;
-}
-
 const ShaderProgram* Material::GetShader() const {
 	return this->shader;
 }
 const UniformSpec* Material::GetUniforms() const {
 	return this->shaderVariables.GetUniforms();
+}
+
+std::filesystem::path Material::GetPath() const { return resourcePath; }
+uint64_t Material::GetHash() const { return std::hash<std::string>{}(resourcePath.string()); }
+
+Material* Material::Load(const std::filesystem::path& path) {
+    if (!std::filesystem::exists(path)) {
+        spdlog::error("Material file not found: {}", path.string());
+        return nullptr;
+    }
+
+    std::ifstream file(path);
+    if (!file.is_open()) return nullptr;
+
+    nlohmann::json data;
+    try {
+        file >> data;
+    } catch (const std::exception& e) {
+        spdlog::error("Failed to parse material JSON {}: {}", path.string(), e.what());
+        return nullptr;
+    }
+
+    Material* material = new Material();
+    material->Deserialize(data);
+    material->resourcePath = path;
+
+    return material;
+}
+
+void Material::Save(const std::filesystem::path& path) {
+    nlohmann::json data = this->Serialize();
+
+    std::ofstream file(path);
+    if (file.is_open()) {
+        file << data.dump(4);
+        this->resourcePath = path;
+        spdlog::info("Material saved to: {}", path.string());
+    } else {
+        spdlog::error("Failed to save material to: {}", path.string());
+    }
+}
+
+void Material::Save() {
+    if (!this->resourcePath.empty()) {
+        Save(this->resourcePath);
+    } else {
+        spdlog::warn("Cannot save material: No path specified.");
+    }
+}
+
+void Material::Deserialize(const nlohmann::json& json_node) {
+    if (json_node.contains("name")) {
+        this->name = json_node["name"];
+    }
+    this->shader = ResourceDatabase::Global->Get<ShaderProgram>(json_node["shader"]);
+    this->shaderVariables = ShaderVariableStorage(this->shader->GetUniforms());
+    this->shaderVariables.Deserialize(json_node["variables"]);
+}
+
+nlohmann::json Material::Serialize() const {
+    json data;
+    data["name"] = this->name;
+    data["shader"] = this->shader->Serialize();
+    data["variables"]  = this->shaderVariables.Serialize();
+    return data;
 }
 
 ComputeDispatchData::ComputeDispatchData(const ComputeShaderProgram* shader):

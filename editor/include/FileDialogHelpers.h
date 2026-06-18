@@ -16,4 +16,9 @@ void OpenSavePrefabDialog(Context& context);
 
 void OpenSaveTextureDialog(Context& context,
                            std::function<void(std::string)> saveCallback);
+
+void OpenLoadMaterialDialog(Context& context,
+                            std::function<void(std::string)> loadCallback);
+void OpenSaveMaterialDialog(Context& context,
+                            std::function<void(std::string)> saveCallback);
 } // namespace Editor

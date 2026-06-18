@@ -76,13 +76,14 @@ public:
 	void Deserialize(const nlohmann::json& data);
 };
 
-class Material {
+class Material : public Resource {
 	friend bool Debug::Property<Material>(Material&, const std::string&);
 private:
 	const ShaderProgram* shader;
 	ShaderVariableStorage shaderVariables;
 	static std::vector<Material*> allMaterials;
 
+    std::filesystem::path resourcePath;
 
 	Material();
 
@@ -93,6 +94,12 @@ public:
 	Material(const ShaderProgram* shader);
 
 	void Bind(const ShaderProgram* targetProgram = nullptr) const;
+
+    virtual std::filesystem::path GetPath() const override;
+    virtual uint64_t GetHash() const override;
+    static Material* Load(const std::filesystem::path& path);
+    void Save(const std::filesystem::path& path);
+    void Save();
 
 	template<Blittable T>
 	T GetValue(const std::string& uniformName) const;

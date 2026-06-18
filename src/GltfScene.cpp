@@ -815,6 +815,10 @@ std::vector<Material*> GltfScene::LoadMaterials(GltfScene* scene, bool isSkinned
 
     material->name = gltfMaterial.name;
 
+    // Default values for uv scales
+    material->SetValue("uvScaleAlbedo", 1.0f);
+    material->SetValue("uvScaleArm", 1.0f);
+
     // Diffuse
     glm::vec4 baseColorFactor = glm::make_vec4(gltfMaterial.pbrData.baseColorFactor.data());
     material->SetValue("baseColorFactor", baseColorFactor);

@@ -56,6 +56,9 @@ public:
     // Request a scene change to an already instantiated function
     void RequestSceneChange(Scene* scene);
 
+    virtual void RequestLoadMaterialDialog(std::function<void(std::string)> callback) {}
+    virtual void RequestSaveMaterialDialog(std::function<void(std::string)> callback) {}
+
 protected:
     virtual void OnInit(int argc = 0, char* argv[] = nullptr) {}
     virtual void OnUpdate() {}
