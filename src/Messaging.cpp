@@ -69,7 +69,7 @@ void MessageTree::MessageNodeInternal(SceneNode* node, int messageId) {
 	MessengerNode* messageRoot = nullptr;
 
 	if (!TryFindNode(node, &messageRoot)) {
-		spdlog::warn("PropagateMessageInternal: Node not found - {}", node->GetID());
+		spdlog::warn("MessageNodeInternal: Node not found - {}", node->GetID());
 		return;
 	}
 

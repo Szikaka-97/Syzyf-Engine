@@ -116,6 +116,8 @@ bool SceneNode::EnabledSelf() const {
 }
 void SceneNode::SetEnabled(bool value) {
 	if (EnabledSelf() != value) {
+		this->nodeState[NodeDisabledSelfBit] = false;
+
 		GetScene()->SetNodeEnabledInternal(this, value);
 
 		this->nodeState[NodeDisabledSelfBit] = !value;
@@ -386,9 +388,7 @@ void Scene::DeserializeGameObject(SceneNode* node, json data) {
 }
 
 void Scene::SetNodeEnabledInternal(SceneNode* node, bool enabled) {
-	for (auto child : node->children) {
-		SetNodeEnabledInTreeInternal(child, enabled);
-	}
+	SetNodeEnabledInTreeInternal(node, enabled);
 }
 
 void Scene::SetGameObjectEnabledInternal(GameObject* obj, bool enabled) {
