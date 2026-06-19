@@ -129,17 +129,12 @@ inline void InitScene(Scene& mainScene) {
 #pragma endregion
 #pragma region Camera
 
-	SceneNode* cameraNode = mainScene.CreateNode("Camera Node");
-	cameraNode->AddObject<Camera>(
-		Camera::Perspective(60.0f, 16.0f / 9.0f, 0.1f, 40.0f));
-	auto* cameraController = cameraNode->AddObject<CameraSettings>(playerNode->GlobalTransform().Position());
-	cameraController->SetAngleY(225);
-	cameraController->SetHeight(7);
-	cameraNode->AddObject<Bloom>();
-	cameraNode->AddObject<Tonemapper>()->SetOperator(
-		Tonemapper::TonemapperOperator::GranTurismo);
-	cameraNode->AddObject<ColorGrading>();
-	cameraNode->AddObject<Fxaa>();
+	SceneNode* cameraNode = mainScene.LoadPrefab(fs::path("./res/prefabs/PlayerCamera.prefab"));
+
+	CameraSettings* camera = cameraNode->GetObject<CameraSettings>();
+
+	camera->SetHeight(7);
+	camera->SetAngleY(225);
 
 #pragma endregion
 #pragma region Miscellaneous

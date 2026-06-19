@@ -533,6 +533,10 @@ void PlayerController::HandleItemInteractions() {
 	}
 }
 void PlayerController::Update() {
+	if (GetScene()->Input()->KeyDown(Key::P)) {
+		this->throwingUnlocked = !this->throwingUnlocked;
+	}
+
 	UpdateMovement();
 	UpdateTargetting();
 	UpdateThrowing();
