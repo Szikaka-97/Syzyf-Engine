@@ -1,4 +1,5 @@
 #include "ui/systems/UiTextRenderSystem.h"
+#include "ui/TextAlignment.h"
 #include "ui/objects/UiLayout.h"
 #include "ui/objects/UiVisual.h"
 #include "ui/systems/UiLayoutSystem.h"
@@ -124,6 +125,18 @@ void UiTextRenderSystem::OnPreRender() {
         startingChar = 0;
 
         float layoutWidthScaled = layout->size.x * scaleFactor;
+        float layoutHeightScaled = layout->size.y * scaleFactor;
+
+        float totalTextHeight = lineLenghts.size() * font->lineHeight * scale;
+        float verticalShift = 0.0f;
+
+        if (text->verticalAlignment == TextVerticalAlignment::Middle) {
+            verticalShift = (layoutHeightScaled - totalTextHeight) * 0.5f;
+        } else if (text->verticalAlignment == TextVerticalAlignment::Bottom) {
+            verticalShift = layoutHeightScaled - totalTextHeight;
+        }
+
+        cursorY += verticalShift;
 
         for (auto line : lineLenghts) {
             if (text->alignment == TextAlignment::Left) {

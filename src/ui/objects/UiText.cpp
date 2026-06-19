@@ -16,6 +16,12 @@ void UiText::DrawImGui() {
     if (ImGui::Combo("Text Alignment", &currentAlignment, alignments, IM_ARRAYSIZE(alignments))) {
         this->alignment = static_cast<TextAlignment>(currentAlignment);
     }
+
+    const char* verticalAlignments[] = { "Top", "Middle", "Bottom" };
+    int currentVerticalAlignment = static_cast<int>(this->verticalAlignment);
+    if (ImGui::Combo("Vertical Text Alignment", &currentVerticalAlignment, verticalAlignments, IM_ARRAYSIZE(verticalAlignments))) {
+        this->verticalAlignment = static_cast<TextVerticalAlignment>(currentVerticalAlignment);
+    }
 }
 
 json UiText::Serialize() const {

@@ -11,7 +11,8 @@ public:
     serialized Font* font = nullptr;
     serialized glm::vec4 color{1.0f};
     serialized float fontSize = 32.0f;
-    serialized TextAlignment alignment;
+    serialized TextAlignment alignment = TextAlignment::Left;
+    TextVerticalAlignment verticalAlignment = TextVerticalAlignment::Top;
 
     // Max width until the text wraps around
     std::optional<float> maxWidth;

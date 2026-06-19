@@ -116,6 +116,7 @@ public:
                 auto* nameTxt = textNode->AddObjectIfMissing<UiText>("", listFont);
                 nameTxt->fontSize = 24.0f;
                 nameTxt->alignment = TextAlignment::Left;
+                nameTxt->verticalAlignment = TextVerticalAlignment::Middle;
 
                 SceneNode* countNode = mainScene->GetOrCreateNode(textContainerNode, "CountText_" + std::to_string(i));
                 countNode->AddObjectIfMissing<UiLayout>(
@@ -124,6 +125,7 @@ public:
                 auto* countTxt = countNode->AddObjectIfMissing<UiText>("", listFont);
                 countTxt->fontSize = 24.0f;
                 countTxt->alignment = TextAlignment::Right;
+                countTxt->verticalAlignment = TextVerticalAlignment::Middle;
 
                 itemNodes.push_back(itemNode);
                 itemInteractables.push_back(interactable);
