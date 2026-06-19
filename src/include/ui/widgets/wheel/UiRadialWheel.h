@@ -27,8 +27,8 @@ class UiRadialWheel : public GameObject, public ImGuiDrawable {
 public:
     int numberOfSlices = 5;
 
-    float innerRadius = 25.0f;
-    float outerRadius = 300.0f;
+    float innerRadius = 200.0f;
+    float outerRadius = 400.0f;
     float gapWidth = 0.02f;
     
     float alphaMultiplier = 0.3f;
@@ -116,6 +116,7 @@ public:
 
             slot.cameraNode = GetScene()->GetOrCreateNode("ItemCamera_" + std::to_string(i));
             Camera* camera = slot.cameraNode->AddObjectIfMissing<Camera>(Camera::Perspective(60.0f, 1.0f, 0.01f, 50.0f));
+            camera->AddPass(RenderPassType::Color);
 
             slot.cameraNode->GlobalTransform().Position() = glm::vec3(0.0f, -500.0f + (i * 10.0f), 0.0f);
 

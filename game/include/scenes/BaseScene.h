@@ -8,7 +8,9 @@
 #include <animation/AnimationSystem.h>
 #include <game_scripts/PickableItemSystem.h>
 #include <game_scripts/ThrowableObjectPool.h>
-#include <game_scripts/ui/InGameUi.h>
+#include <game_scripts/ui/InGame.h>
+#include <game_scripts/ui/PauseMenu.h>
+#include <game_scripts/ui/TabMenu.h>
 #include <physics/System.h>
 #include <ui/systems/UiSystem.h>
 #include <ui/widgets/wheel/UiWheel.h>
@@ -120,16 +122,18 @@ inline void InitScene(Scene& mainScene) {
 #pragma endregion
 
 #pragma region Player
-	SceneNode* playerNode = mainScene.LoadPrefab(fs::path("./res/prefabs/Player.prefab"));
+    SceneNode* playerNode =
+        mainScene.LoadPrefab(fs::path("./res/prefabs/Player.prefab"));
 #pragma endregion
 
 #pragma region Camera
-	SceneNode* cameraNode = mainScene.LoadPrefab(fs::path("./res/prefabs/PlayerCamera.prefab"));
+    SceneNode* cameraNode =
+        mainScene.LoadPrefab(fs::path("./res/prefabs/PlayerCamera.prefab"));
 
-	CameraSettings* camera = cameraNode->GetObject<CameraSettings>();
+    CameraSettings* camera = cameraNode->GetObject<CameraSettings>();
 
-	camera->SetHeight(5);
-	camera->SetAngleY(135);
+    camera->SetHeight(5);
+    camera->SetAngleY(135);
 #pragma endregion
 
 #pragma region Gameplay
@@ -138,7 +142,12 @@ inline void InitScene(Scene& mainScene) {
 #pragma region Ui
     // Wheel
     SceneNode* uiRoot = mainScene.CreateNode("UI");
-    uiRoot->AddObject<InGameUi>();
+    SceneNode* tabMenu = mainScene.CreateNode(uiRoot, "Tab Menu");
+    tabMenu->AddObject<TabMenu>();
+    SceneNode* pauseMenu = mainScene.CreateNode(pauseMenu, "Pause Menu");
+    pauseMenu->AddObject<PauseMenu>();
+    SceneNode* inGameUi = mainScene.CreateNode("HUD");
+    inGameUi->AddObject<InGameUi>();
 
 #pragma endregion
 }

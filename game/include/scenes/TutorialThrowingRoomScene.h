@@ -12,12 +12,12 @@
 #include <game_scripts/ThrowableObject.h>
 #include <game_scripts/ThrowableObjectPool.h>
 #include <game_scripts/enemies/EnemyBase.h>
+#include <game_scripts/ui/TabMenu.h>
 #include <physics/System.h>
 #include <ui/objects/UiLayout.h>
 #include <ui/objects/UiText.h>
 #include <ui/systems/UiSystem.h>
 #include <ui/widgets/wheel/UiWheel.h>
-#include <game_scripts/ui/InGameUi.h>
 
 #include "CraftingScene.h"
 #include "ui/widgets/wheel/UiRadialWheel.h"
@@ -106,7 +106,8 @@ inline void InitScene(Scene& mainScene) {
 #pragma endregion
 
 #pragma region Player
-	SceneNode* playerNode = mainScene.LoadPrefab(fs::path("./res/prefabs/Player.prefab"));
+    SceneNode* playerNode =
+        mainScene.LoadPrefab(fs::path("./res/prefabs/Player.prefab"));
 
     SceneNode* playerSpawn = roomNode->FindNode("Player Spawn");
 
@@ -116,7 +117,7 @@ inline void InitScene(Scene& mainScene) {
         player->SetPosition(playerSpawn->GlobalTransform().Position());
     } else {
         player->SetPosition(glm::vec3(14.183422f, 0.105301f, -0.051525f));
-        
+
         spdlog::warn("TutorialThrowingRoomScene: Player Spawn not found. Using "
                      "fallback from uploaded GLB.");
     }
@@ -159,7 +160,7 @@ inline void InitScene(Scene& mainScene) {
 #pragma region Ui
     // Wheel
     SceneNode* uiRoot = mainScene.CreateNode("UI");
-    uiRoot->AddObject<InGameUi>();
+    uiRoot->AddObject<TabMenu>();
 
 #pragma endregion
 }

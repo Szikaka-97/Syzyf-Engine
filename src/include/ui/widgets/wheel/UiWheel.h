@@ -9,12 +9,14 @@
 #include "InputSystem.h"
 #include "ui/objects/UiInteractable.h"
 #include "ui/objects/UiVisual.h"
+#include "ui/objects/UiText.h"
+#include <unordered_map>
 
 class WheelTag : public GameObject {};
 
 class WheelSystem : public GameObjectSystem<WheelTag> {
   private:
-      std::unordered_map<UiVisual*, float> baseAlphas;
+    std::unordered_map<GameObject*, float> baseAlphas;
     const float BLUR_DURATION = 0.2f;
 
     InputSystem* inputSystem = nullptr;
@@ -38,20 +40,26 @@ class WheelSystem : public GameObjectSystem<WheelTag> {
                 if (this->baseAlphas.find(uiVisual) == this->baseAlphas.end()) {
                     this->baseAlphas[uiVisual] = uiVisual->color.a;
                 }
-
                 uiVisual->SetEnabled(true);
                 uiVisual->color.a = 0.0f;
+            }
+            if (auto* uiText = object->GetObject<UiText>()) {
+                if (this->baseAlphas.find(uiText) == this->baseAlphas.end()) {
+                    this->baseAlphas[uiText] = uiText->color.a;
+                }
+                uiText->SetEnabled(true);
+                uiText->color.a = 0.0f;
             }
             if (auto* uiInteractable = object->GetObject<UiInteractable>()) {
                 uiInteractable->isInteractable = true;
             }
         }
 
-        dof->SetEnabled(true);
+        if (dof) dof->SetEnabled(true);
 
         if (tweenSystem->IsValid(this->unblurTween)) this->unblurTween.SetPlaying(false);
-        float currentValue = dof->finalMixFactor;
-
+        
+        float currentValue = dof ? dof->finalMixFactor : 0.0f;
         float diff = (1.0f - currentValue);
         float duration = BLUR_DURATION * diff;
 
@@ -62,12 +70,10 @@ class WheelSystem : public GameObjectSystem<WheelTag> {
         this->blurTween = std::move(
             tweenSystem->CreateTween(blurConfig)
                 .Bind([this](float newValue) {
-                    if (std::vector<DepthOfField*> dofObjects =
-                            this->GetScene()
-                                ->FindObjectsOfType<DepthOfField>();
-                        !dofObjects.empty()) {
-                        dofObjects[0]->finalMixFactor = newValue;
+                    if (this->dof) {
+                        this->dof->finalMixFactor = newValue;
                     }
+                    
                     for (auto* object : this->IterateObjects()) {
                         if (auto* visual = object->GetObject<UiVisual>()) {
                             float baseA = this->baseAlphas.count(visual) ? this->baseAlphas[visual] : 1.0f;
@@ -77,6 +83,10 @@ class WheelSystem : public GameObjectSystem<WheelTag> {
                             if (visual->colorClicked.has_value()) visual->colorClicked->a = finalAlpha;
                             if (visual->colorDisabled.has_value()) visual->colorDisabled->a = finalAlpha;
                             if (visual->colorHovered.has_value()) visual->colorHovered->a = finalAlpha;
+                        }
+                        if (auto* text = object->GetObject<UiText>()) {
+                            float baseA = this->baseAlphas.count(text) ? this->baseAlphas[text] : 1.0f;
+                            text->color.a = newValue * baseA;
                         }
                     }
                 }));
@@ -87,7 +97,7 @@ class WheelSystem : public GameObjectSystem<WheelTag> {
 
         if (tweenSystem->IsValid(this->blurTween)) this->blurTween.SetPlaying(false);
 
-        float currentValue = this->dof->finalMixFactor;
+        float currentValue = dof ? dof->finalMixFactor : 1.0f;
         float duration = BLUR_DURATION * currentValue;
 
         TweenConfig unblurConfig = {.initialValue = currentValue,
@@ -97,12 +107,10 @@ class WheelSystem : public GameObjectSystem<WheelTag> {
         this->unblurTween = std::move(
             tweenSystem->CreateTween(unblurConfig)
                 .Bind([this](float newValue) {
-                    if (std::vector<DepthOfField*> dofObjects =
-                            this->GetScene()
-                                ->FindObjectsOfType<DepthOfField>();
-                        !dofObjects.empty()) {
-                        dofObjects[0]->finalMixFactor = newValue;
+                    if (this->dof) {
+                        this->dof->finalMixFactor = newValue;
                     }
+                    
                     for (auto* object : this->IterateObjects()) {
                         if (auto* visual = object->GetObject<UiVisual>()) {
                             float baseA = this->baseAlphas.count(visual) ? this->baseAlphas[visual] : 1.0f;
@@ -113,18 +121,23 @@ class WheelSystem : public GameObjectSystem<WheelTag> {
                             if (visual->colorDisabled.has_value()) visual->colorDisabled->a = finalAlpha;
                             if (visual->colorHovered.has_value()) visual->colorHovered->a = finalAlpha;
                         }
+                        if (auto* text = object->GetObject<UiText>()) {
+                            float baseA = this->baseAlphas.count(text) ? this->baseAlphas[text] : 1.0f;
+                            text->color.a = newValue * baseA;
+                        }
                     }
                 })
                 .OnComplete([this]() {
-                    if (std::vector<DepthOfField*> dofObjects =
-                            this->GetScene()
-                                ->FindObjectsOfType<DepthOfField>();
-                        !dofObjects.empty()) {
-                        dofObjects[0]->SetEnabled(false);
+                    if (this->dof) {
+                        this->dof->SetEnabled(false);
                     }
+                    
                     for (auto* object : this->IterateObjects()) {
                         if (auto* visual = object->GetObject<UiVisual>()) {
                             visual->SetEnabled(false);
+                        }
+                        if (auto* text = object->GetObject<UiText>()) {
+                            text->SetEnabled(false);
                         }
                         if (auto* interactable = object->GetObject<UiInteractable>()) {
                             interactable->isInteractable = false;
@@ -134,10 +147,10 @@ class WheelSystem : public GameObjectSystem<WheelTag> {
     }
 
     void OnPreUpdate() {
-        // Caching objects/systems
         if (this->inputSystem == nullptr) {
             this->inputSystem = this->GetScene()->inputSystem;
         }
+        
         if (this->dof == nullptr) {
             std::vector<DepthOfField*> dofObjects =
                 this->GetScene()->FindObjectsOfType<DepthOfField>();
@@ -146,16 +159,18 @@ class WheelSystem : public GameObjectSystem<WheelTag> {
                 this->dof->finalMixFactor = 0.0f;
             }
         }
+        
         if (this->tweenSystem == nullptr) {
             this->tweenSystem = this->GetScene()->GetComponent<TweenSystem>();
         }
-        if (!inputSystem || !tweenSystem || !dof)
+        
+        if (!inputSystem || !tweenSystem) {
             return;
+        }
 
         if (inputSystem->KeyDown(Key::Tab)) isTabHeld = true;
         if (inputSystem->KeyUp(Key::Tab)) isTabHeld = false;
 
-        // Input
         if (inputSystem->KeyDown(Key::Tab) && !isMenuBlocking) {
             OpenWheel();
         }
