@@ -10,13 +10,13 @@ class Fxaa : public PostProcessEffect, public ImGuiDrawable
 private:
   ComputeShaderDispatch* fxaaShader = nullptr;
 
-  float edgeThreshold = 1.0f / 8.0f;
-  float edgeThresholdMin = 1.0f / 24.0f;
-  float subpixCap = 0.75f;
-  float subpixTrim = 0.25f;
+  serialized float edgeThreshold = 1.0f / 8.0f;
+  serialized float edgeThresholdMin = 1.0f / 24.0f;
+  serialized float subpixCap = 0.75f;
+  serialized float subpixTrim = 0.25f;
 
-  float searchThreshold = 1.0f / 4.0f;
-  float searchSteps = 32.0f;
+  serialized float searchThreshold = 1.0f / 4.0f;
+  serialized float searchSteps = 32.0f;
 
 public:
   bool debugEdges = false;

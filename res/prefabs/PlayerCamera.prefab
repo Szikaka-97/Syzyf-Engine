@@ -1,0 +1,179 @@
+[
+    {
+        "_class_name": "SceneNode",
+        "_data": {
+            "children": [],
+            "disabledState": 0,
+            "id": 17,
+            "layer": 0,
+            "name": "Camera Node",
+            "objects": [
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                8,
+                9
+            ],
+            "transform": {
+                "_00": 1.0,
+                "_01": 0.0,
+                "_02": 0.0,
+                "_03": 0.0,
+                "_10": 0.0,
+                "_11": 1.0,
+                "_12": 0.0,
+                "_13": 0.0,
+                "_20": 0.0,
+                "_21": 0.0,
+                "_22": 1.0,
+                "_23": 0.0,
+                "_30": 0.0,
+                "_31": 0.0,
+                "_32": 0.0,
+                "_33": 1.0
+            }
+        }
+    },
+    {
+        "_class_name": "Camera",
+        "_data": {
+            "enabled": true,
+            "layerMask": {
+                "value": 4294967295
+            },
+            "node": 0,
+            "orthoData": {
+                "bottom": -8.66025447845459,
+                "left": 15.396008491516113,
+                "right": -15.396008491516113,
+                "top": 8.66025447845459,
+                "zfar": 200.0,
+                "znear": 0.10000000149011612
+            },
+            "passes": 3,
+            "perspectiveData": {
+                "aspectRatio": 1.7777777910232544,
+                "farPlane": 200.0,
+                "fovyDegrees": 60.0,
+                "nearPlane": 0.10000000149011612
+            },
+            "priority": 0,
+            "type": 0
+        }
+    },
+    {
+        "_class_name": "CameraSettings",
+        "_data": {
+            "angleX": 45.0,
+            "angleY": 0.0,
+            "cameraRotationSpeed": 180.0,
+            "enabled": true,
+            "height": 7.0,
+            "node": 0,
+            "targetAngleY": 0.0
+        }
+    },
+    {
+        "_class_name": "MaskEffects",
+        "_data": {
+            "enabled": true,
+            "node": 0,
+            "outlineColor": {
+                "w": 1.0,
+                "x": 1.0,
+                "y": 0.5,
+                "z": 0.0
+            },
+            "outlineIntensity": 1.0,
+            "xrayColor": {
+                "w": 0.20000000298023224,
+                "x": 1.0,
+                "y": 0.0,
+                "z": 1.0
+            },
+            "xrayIntensity": 1.0
+        }
+    },
+    {
+        "_class_name": "JfaOutline",
+        "_data": {
+            "drawInnerLines": false,
+            "enabled": true,
+            "ignoreDepth": false,
+            "node": 0,
+            "outlineColor": {
+                "x": 1.0,
+                "y": 0.11372549086809158,
+                "z": 0.11372549086809158
+            },
+            "outlineIntensity": 1.0,
+            "outlineThickness": 4.0
+        }
+    },
+    {
+        "_class_name": "DepthOfField",
+        "_data": {
+            "blurLevel": 3,
+            "enabled": false,
+            "finalMixFactor": 1.0,
+            "focusDistance": 50.0,
+            "maxDistance": 20.0,
+            "maxThreshold": 0.5,
+            "minDistance": 5.0,
+            "minThreshold": 0.10000000149011612,
+            "node": 0,
+            "separation": 2.0,
+            "size": 2,
+            "useDilution": false
+        }
+    },
+    {
+        "_class_name": "Bloom",
+        "_data": {
+            "dirtIntensity": 0.0,
+            "enabled": true,
+            "intensity": 0.6000000238418579,
+            "knee": 0.10000000149011612,
+            "node": 0,
+            "threshold": 1.5
+        }
+    },
+    {
+        "_class_name": "Tonemapper",
+        "_data": {
+            "enabled": true,
+            "node": 0,
+            "toneOperator": 3
+        }
+    },
+    {
+        "_class_name": "ColorGrading",
+        "_data": {
+            "brightness": 1.0,
+            "chromaticAberrationStrength": 0.0,
+            "contrast": 1.0,
+            "enabled": true,
+            "filmGrainStrength": 0.0,
+            "node": 0,
+            "saturation": 1.0,
+            "vignetteStrength": 0.0
+        }
+    },
+    {
+        "_class_name": "Fxaa",
+        "_data": {
+            "edgeThreshold": 0.125,
+            "edgeThresholdMin": 0.0416666679084301,
+            "enabled": true,
+            "node": 0,
+            "searchSteps": 32.0,
+            "searchThreshold": 0.25,
+            "subpixCap": 0.75,
+            "subpixTrim": 0.25
+        }
+    }
+]

@@ -7,11 +7,11 @@
 class CameraSettings : public GameObject, public ImGuiDrawable {
 private:
 	glm::vec3 target;
-	float height = 5;
-	float angleY = 0;
-	float targetAngleY = 0;
-	float angleX = 45;
-	float cameraRotationSpeed = 180.0f;
+	serialized float height = 5;
+	serialized float angleY = 0;
+	serialized float targetAngleY = 0;
+	serialized float angleX = 45;
+	serialized float cameraRotationSpeed = 180.0f;
 public:
 	CameraSettings();
 	

@@ -29,7 +29,17 @@ private:
   bool bodyCreated = false;
   bool addedToWorld = false;
 public:
-  Body() = default;
+  enum class BodyKind {
+    Invalid = -1,
+    Sphere = 0,
+    Box,
+    Capsule,
+    Plane,
+    ConvexHullMesh,
+    Mesh,
+  };
+
+  Body();
   Body(const JPH::BodyCreationSettings& settings);
 
   virtual ~Body();
@@ -51,6 +61,8 @@ public:
   JPH::EMotionType GetMotionType() const;
   bool IsActive() const;
   bool IsSensor() const;
+
+  BodyKind GetBodyKind() const;
 
   // Setters
   void SetCollisionLayerAndMask(uint32_t layer, uint32_t mask);

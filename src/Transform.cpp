@@ -112,6 +112,10 @@ SceneTransform::TransformAccess::operator glm::mat4() const {
 	return this->transformation;
 }
 
+SceneTransform::TransformAccess& SceneTransform::TransformAccess::operator=(const SceneTransform::TransformAccess& transformation) {
+	return this->operator=(transformation.Value());
+}
+
 SceneTransform::TransformAccess& SceneTransform::TransformAccess::operator=(const glm::mat4& transformation) {
 	this->transformation = transformation;
 
@@ -142,6 +146,10 @@ SceneTransform::PositionAccess::operator glm::vec3() const {
 
 SceneTransform::PositionAccess::operator glm::vec2() const {
 	return (glm::vec2) Value();
+}
+
+SceneTransform::PositionAccess& SceneTransform::PositionAccess::operator=(const PositionAccess& position) {
+	return this->operator=(position.Value());
 }
 
 SceneTransform::PositionAccess& SceneTransform::PositionAccess::operator=(const glm::vec3& position) {
@@ -270,6 +278,10 @@ SceneTransform::RotationAccess::operator glm::vec3() const {
 	return EulerAngles();
 }
 
+SceneTransform::RotationAccess& SceneTransform::RotationAccess::operator=(const SceneTransform::RotationAccess& rotation) {
+	return this->operator=(rotation.Value());
+}
+
 SceneTransform::RotationAccess& SceneTransform::RotationAccess::operator=(const glm::quat& rotation) {
 	this->value = rotation;
 
@@ -356,6 +368,10 @@ glm::vec3 SceneTransform::ScaleAccess::Value() const {
 
 SceneTransform::ScaleAccess::operator glm::vec3() const {
 	return Value();
+}
+
+SceneTransform::ScaleAccess& SceneTransform::ScaleAccess::operator=(const SceneTransform::ScaleAccess& scale) {
+	return this->operator=(scale.Value());
 }
 
 SceneTransform::ScaleAccess& SceneTransform::ScaleAccess::operator=(const glm::vec3& scale) {

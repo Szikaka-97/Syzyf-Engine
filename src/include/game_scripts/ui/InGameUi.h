@@ -11,6 +11,7 @@
 #include <ui/widgets/wheel/UiRadialWheel.h>
 #include <ui/widgets/wheel/UiWheel.h>
 
+
 class InGameUi : public GameObject {
 private:
     UiInteractable* settingsButton = nullptr;
@@ -35,17 +36,17 @@ public:
                 .Link();
         Material* wheelUiMaterial = new Material(wheelProgram);
 
-        SceneNode* radialWheelNode = mainScene->CreateNode(uiRoot, "Wheel");
-        radialWheelNode->AddObject<UiLayout>(
+        SceneNode* radialWheelNode = mainScene->GetOrCreateNode(uiRoot, "Wheel");
+        radialWheelNode->AddObjectIfMissing<UiLayout>(
             glm::uvec2(600, 600), glm::uvec2(-150, 0), 0, AnchorPoint::CenterRight);
 
         auto* customVisual =
-            radialWheelNode->AddObject<UiVisual>(glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+            radialWheelNode->AddObjectIfMissing<UiVisual>(glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
         customVisual->SetEnabled(false);
         customVisual->customMaterial = wheelUiMaterial;
 
-        auto* radialWheel = radialWheelNode->AddObject<UiRadialWheel>();
-        radialWheel->AddObject<WheelTag>();
+        auto* radialWheel = radialWheelNode->AddObjectIfMissing<UiRadialWheel>();
+        radialWheel->AddObjectIfMissing<WheelTag>();
         radialWheel->material.reset(wheelUiMaterial);
         radialWheel->SetItemModels({
             "./res/models/butelka.glb",
@@ -56,8 +57,8 @@ public:
         });
 
         // Right menu buttons
-        SceneNode* rightMenuNode = mainScene->CreateNode(uiRoot, "Right Menu UI");
-        rightMenuNode->AddObject<UiLayout>(
+        SceneNode* rightMenuNode = mainScene->GetOrCreateNode(uiRoot, "Right Menu UI");
+        rightMenuNode->AddObjectIfMissing<UiLayout>(
             // ------------------------------ hmm
             glm::uvec2(164, 640), glm::uvec2(-40, 40), 0, AnchorPoint::TopRight);
             
@@ -66,19 +67,19 @@ public:
             "./res/textures/ui/2d/settings_icon.png", Texture2D::ColorTextureRGBA);
 
         SceneNode* settingsButtonNode =
-            mainScene->CreateNode(rightMenuNode, "Settings Button");
-        settingsButtonNode->AddObject<UiLayout>(
+            mainScene->GetOrCreateNode(rightMenuNode, "Settings Button");
+        settingsButtonNode->AddObjectIfMissing<UiLayout>(
             glm::uvec2(164, 142), glm::uvec2(0, -240), 1, AnchorPoint::Center);
 
-        auto* settingsButtonVisual = settingsButtonNode->AddObject<UiVisual>(
+        auto* settingsButtonVisual = settingsButtonNode->AddObjectIfMissing<UiVisual>(
             glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), settingsIcon);
 
         settingsButtonVisual->colorHovered = {0.8f, 0.8f, 0.8f, 1.0f};
         settingsButtonVisual->colorClicked = {0.4f, 0.4f, 0.4f, 1.0f};
 
         this->settingsButton = 
-            settingsButtonNode->AddObject<UiInteractable>();
-        settingsButtonNode->AddObject<WheelTag>();
+            settingsButtonNode->AddObjectIfMissing<UiInteractable>();
+        settingsButtonNode->AddObjectIfMissing<WheelTag>();
         // Required so it's properly hidden on startup and works with the wheel
         settingsButtonVisual->SetEnabled(false);
 
@@ -86,53 +87,53 @@ public:
         Texture2D* backpackIcon = mainScene->Resources()->Get<Texture2D>(
             "./res/textures/ui/2d/backpack_icon.png", Texture2D::ColorTextureRGBA);
         SceneNode* backpackButtonNode =
-            mainScene->CreateNode(rightMenuNode, "Backpack Button");
-        backpackButtonNode->AddObject<UiLayout>(
+            mainScene->GetOrCreateNode(rightMenuNode, "Backpack Button");
+        backpackButtonNode->AddObjectIfMissing<UiLayout>(
             glm::uvec2(164, 142), glm::uvec2(0, -80), 1, AnchorPoint::Center);
-        auto* backpackButtonVisual = backpackButtonNode->AddObject<UiVisual>(
+        auto* backpackButtonVisual = backpackButtonNode->AddObjectIfMissing<UiVisual>(
             glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), backpackIcon);
         backpackButtonVisual->colorHovered = {0.8f, 0.8f, 0.8f, 1.0f};
         backpackButtonVisual->colorClicked = {0.4f, 0.4f, 0.4f, 1.0f};
         auto* backpackButtonInteractable =
-            backpackButtonNode->AddObject<UiInteractable>();
-        backpackButtonNode->AddObject<WheelTag>();
+            backpackButtonNode->AddObjectIfMissing<UiInteractable>();
+        backpackButtonNode->AddObjectIfMissing<WheelTag>();
         backpackButtonVisual->SetEnabled(false);
 
         // Pause
         Texture2D* pauseIcon = mainScene->Resources()->Get<Texture2D>(
             "./res/textures/ui/2d/pause_icon.png", Texture2D::ColorTextureRGBA);
         SceneNode* pauseButtonNode =
-            mainScene->CreateNode(rightMenuNode, "Pause Button");
-        pauseButtonNode->AddObject<UiLayout>(
+            mainScene->GetOrCreateNode(rightMenuNode, "Pause Button");
+        pauseButtonNode->AddObjectIfMissing<UiLayout>(
             glm::uvec2(164, 142), glm::uvec2(0, 80), 1, AnchorPoint::Center);
-        auto* pauseButtonVisual = pauseButtonNode->AddObject<UiVisual>(
+        auto* pauseButtonVisual = pauseButtonNode->AddObjectIfMissing<UiVisual>(
             glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), pauseIcon);
         pauseButtonVisual->colorHovered = {0.8f, 0.8f, 0.8f, 1.0f};
         pauseButtonVisual->colorClicked = {0.4f, 0.4f, 0.4f, 1.0f};
         this->pauseButton =
-            pauseButtonNode->AddObject<UiInteractable>();
-        pauseButtonNode->AddObject<WheelTag>();
+            pauseButtonNode->AddObjectIfMissing<UiInteractable>();
+        pauseButtonNode->AddObjectIfMissing<WheelTag>();
         pauseButtonVisual->SetEnabled(false);
 
         // Map
         Texture2D* mapIcon = mainScene->Resources()->Get<Texture2D>(
             "./res/textures/ui/2d/map_icon.png", Texture2D::ColorTextureRGBA);
         SceneNode* mapButtonNode =
-            mainScene->CreateNode(rightMenuNode, "Map Button");
-        mapButtonNode->AddObject<UiLayout>(glm::uvec2(164, 142), glm::uvec2(0, 240),
+            mainScene->GetOrCreateNode(rightMenuNode, "Map Button");
+        mapButtonNode->AddObjectIfMissing<UiLayout>(glm::uvec2(164, 142), glm::uvec2(0, 240),
                                            1, AnchorPoint::Center);
-        auto* mapButtonVisual = mapButtonNode->AddObject<UiVisual>(
+        auto* mapButtonVisual = mapButtonNode->AddObjectIfMissing<UiVisual>(
             glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), mapIcon);
         mapButtonVisual->colorHovered = {0.8f, 0.8f, 0.8f, 1.0f};
         mapButtonVisual->colorClicked = {0.4f, 0.4f, 0.4f, 1.0f};
-        auto* mapButtonInteractable = mapButtonNode->AddObject<UiInteractable>();
-        mapButtonNode->AddObject<WheelTag>();
+        auto* mapButtonInteractable = mapButtonNode->AddObjectIfMissing<UiInteractable>();
+        mapButtonNode->AddObjectIfMissing<WheelTag>();
         mapButtonVisual->SetEnabled(false);
 
         // Potion Slots
         SceneNode* potionSlotsNode =
-            mainScene->CreateNode(uiRoot, "Potion Slots UI");
-        potionSlotsNode->AddObject<UiLayout>(glm::uvec2(899, 242),
+            mainScene->GetOrCreateNode(uiRoot, "Potion Slots UI");
+        potionSlotsNode->AddObjectIfMissing<UiLayout>(glm::uvec2(899, 242),
                                              glm::uvec2(-40, -40), 0,
                                              AnchorPoint::BottomRight);
         Texture2D* potionSlotsBackgroundTexture =
@@ -140,29 +141,29 @@ public:
                 "./res/textures/ui/2d/potions_background.png",
                 Texture2D::ColorTextureRGBA);
         potionSlotsNode
-            ->AddObject<UiVisual>(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+            ->AddObjectIfMissing<UiVisual>(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
                                   potionSlotsBackgroundTexture)
             ->SetEnabled(false);
-        potionSlotsNode->AddObject<WheelTag>();
+        potionSlotsNode->AddObjectIfMissing<WheelTag>();
 
         // Health UI
-        SceneNode* healthNode = mainScene->CreateNode(uiRoot, "Health UI");
-        healthNode->AddObject<UiLayout>(glm::uvec2(826, 242), glm::uvec2(40, -40),
+        SceneNode* healthNode = mainScene->GetOrCreateNode(uiRoot, "Health UI");
+        healthNode->AddObjectIfMissing<UiLayout>(glm::uvec2(826, 242), glm::uvec2(40, -40),
                                         0, AnchorPoint::BottomLeft);
         Texture2D* healthBackgroundTexture = mainScene->Resources()->Get<Texture2D>(
             "./res/textures/ui/2d/life_background.png",
             Texture2D::ColorTextureRGBA);
         healthNode
-            ->AddObject<UiVisual>(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+            ->AddObjectIfMissing<UiVisual>(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
                                   healthBackgroundTexture)
             ->SetEnabled(false);
-        healthNode->AddObject<WheelTag>();
+        healthNode->AddObjectIfMissing<WheelTag>();
 
-        SceneNode* healthVialNode = mainScene->CreateNode(healthNode, "Health Vial");
-        healthVialNode->AddObject<UiLayout>(glm::uvec2(826, 242), glm::uvec2(0, 0), 1, AnchorPoint::Center);
-        healthVialNode->AddObject<UiVisual>(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), mainScene->Resources()->Get<Texture2D>(
+        SceneNode* healthVialNode = mainScene->GetOrCreateNode(healthNode, "Health Vial");
+        healthVialNode->AddObjectIfMissing<UiLayout>(glm::uvec2(826, 242), glm::uvec2(0, 0), 1, AnchorPoint::Center);
+        healthVialNode->AddObjectIfMissing<UiVisual>(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), mainScene->Resources()->Get<Texture2D>(
             "./res/textures/ui/2d/life_foreground.png", Texture2D::ColorTextureRGBA))->SetEnabled(false);
-        healthVialNode->AddObject<WheelTag>();
+        healthVialNode->AddObjectIfMissing<WheelTag>();
 
         TextureParams fontTextureParams = {
             .channels = TextureChannels::RGB,

@@ -90,6 +90,10 @@ public:
 		requires std::derived_from<T_GO, GameObject>
 	T_GO* GetObject() const;
 
+	template<class T_GO, typename... T_Param>
+		requires std::derived_from<T_GO, GameObject>
+	T_GO* AddObjectIfMissing(T_Param&&... params);
+
 	template<class T_GO>
 		requires std::derived_from<T_GO, GameObject>
 	bool TryGetObject(T_GO*& found) const;
@@ -167,6 +171,9 @@ public:
 	SceneNode* CreateNode(SceneNode* parent);
 	SceneNode* CreateNode(const std::string& name);
 	SceneNode* CreateNode(SceneNode* parent, const std::string& name);
+
+	SceneNode* GetOrCreateNode(const std::string& name);
+	SceneNode* GetOrCreateNode(SceneNode* parent, const std::string& name);
 
 	ResourceDatabase* Resources();
 
@@ -254,6 +261,18 @@ T_GO* SceneNode::GetObject() const {
 	}
 
 	return nullptr;
+}
+
+template<class T_GO, typename... T_Param>
+	requires std::derived_from<T_GO, GameObject>
+T_GO* SceneNode::AddObjectIfMissing(T_Param&&... params) {
+	T_GO* result;
+
+	if (!TryGetObject<T_GO>(result)) {
+		result = AddObject<T_GO>(params...);
+	}
+
+	return result;
 }
 
 template<class T_GO>

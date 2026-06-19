@@ -10,7 +10,7 @@
 
 #include "Texture.h"
 
-FogVolume::FogVolume() {
+void FogVolume::Awake() {
   this->mesh = GetScene()->Resources()->Get<Mesh>("./res/models/not_cube.obj");
 
   ShaderProgram *prog = ShaderProgram::Build()
