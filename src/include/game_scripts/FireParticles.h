@@ -59,7 +59,10 @@ public:
                 .billboardMode = BillboardMode::Enabled,
                 .wrapAround = false,
                 .continuous = true,
-                .useColorRamp = true});
+                .useColorRamp = true,
+                .spawnLights = true,
+                .lightStrength = 0.1
+            });
 
         // Small sparks
         ShaderProgram* sparksProgram =

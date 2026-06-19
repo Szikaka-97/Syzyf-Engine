@@ -23,7 +23,5 @@ void main() {
     
     #include "particles/shared/fade.glsl"
 
-    uint randomState = uint(ps_in.index);
-
-    FragColor = vec4(texColor.rgb * hsl2rgb(random(randomState), 1.0f, 0.5f), alpha);
+    FragColor = vec4(texColor.rgb, alpha);
 }
