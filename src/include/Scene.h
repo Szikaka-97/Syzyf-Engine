@@ -3,6 +3,7 @@
 #include <concepts>
 #include <nlohmann/json_fwd.hpp>
 #include <vector>
+#include <bitset>
 #include <queue>
 #include <Serialized.h>
 
@@ -33,7 +34,7 @@ private:
 	serialized int id;
 	serialized std::string name;
 
-	serialized uint8_t disabledState;
+	std::bitset<8> nodeState;
 	serialized uint8_t layer;
 
 	Scene* scene;

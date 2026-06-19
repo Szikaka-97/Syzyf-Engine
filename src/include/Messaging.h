@@ -19,10 +19,10 @@ namespace Message { \
 #define DEFINE_MESSAGE_CREATOR(MessageName) \
 template<class T> \
 	requires std::derived_from<T, GameObject> \
-inline void Add##MessageName(MessageNode* node, T* object) { } \
+inline void Add##MessageName(MessengerNode* node, T* object) { } \
 template<class T> \
 	requires std::derived_from<T, GameObject> && MessageName##Receiver<T> \
-inline void Add##MessageName(MessageNode* node, T* object) { \
+inline void Add##MessageName(MessengerNode* node, T* object) { \
 	AddMessageReceiverInternal(node, { object, reinterpret_cast<MessageHandle>(&T::MessageName) }, Message::MessageName::id); \
 } \
 
@@ -30,10 +30,10 @@ inline void Add##MessageName(MessageNode* node, T* object) { \
 #define DEFINE_MESSAGE_CREATOR(MessageName) \
 template<class T> \
 	requires std::derived_from<T, GameObject> \
-inline void Add##MessageName(MessageNode* node, T* object) { } \
+inline void Add##MessageName(MessengerNode* node, T* object) { } \
 template<class T> \
 	requires std::derived_from<T, GameObject> && MessageName##Receiver<T> \
-inline void Add##MessageName(MessageNode* node, T* object) { } \
+inline void Add##MessageName(MessengerNode* node, T* object) { } \
 
 #endif
 
@@ -67,32 +67,34 @@ struct Messenger {
 
 class MessageTree {
 public:
-	struct MessageNode {
-		MessageNode* parent;
+	struct MessengerNode {
+		MessengerNode* parent;
 		int type;
-		std::vector<MessageNode*> children;
+		std::vector<MessengerNode*> children;
 
 		union {
 			Messenger msg;
 			SceneNode* node;
 		} content;
 
-		MessageNode() = default;
-		~MessageNode() = default;
+		MessengerNode() = default;
+		~MessengerNode() = default;
 	};
 
-	MessageNode* root;
+	MessengerNode* root;
 
-	bool TryFindNode(SceneNode* sceneNode, MessageNode** result);
-	bool TryFindObjectNode(GameObject* obj, MessageNode** result);
+	bool TryFindNode(SceneNode* sceneNode, MessengerNode** result);
+	bool TryFindObjectNode(GameObject* obj, MessengerNode** result);
+
+	void MessageNodeInternal(SceneNode* node, int messageId);
 
 	void PropagateMessageInternal(SceneNode* startNode, int messageId);
 	
 	void SendMessageInternal(GameObject* obj, int messageId);
 
-	void RemoveNode(MessageNode* node);
+	void RemoveNode(MessengerNode* node);
 
-	void AddMessageReceiverInternal(MessageNode* node, Messenger msg, int type);
+	void AddMessageReceiverInternal(MessengerNode* node, Messenger msg, int type);
 
 	DEFINE_MESSAGE_CREATOR(Update);
 	DEFINE_MESSAGE_CREATOR(FixedUpdate);
@@ -108,6 +110,10 @@ public:
 	template<typename T>
 		requires std::derived_from<T, MessageTag>
 	void PropagateMessage(SceneNode* startNode);
+
+	template<typename T>
+		requires std::derived_from<T, MessageTag>
+	void MessageNode(SceneNode* node);
 
 	template<typename T>
 		requires std::derived_from<T, MessageTag>
@@ -134,6 +140,12 @@ void MessageTree::PropagateMessage(SceneNode* startNode) {
 
 template<typename TMessage>
 		requires std::derived_from<TMessage, MessageTag>
+void MessageTree::MessageNode(SceneNode* startNode) {
+	MessageNodeInternal(startNode, TMessage::id);
+}
+
+template<typename TMessage>
+		requires std::derived_from<TMessage, MessageTag>
 void MessageTree::MessageObject(GameObject* obj) {
 	SendMessageInternal(obj, TMessage::id);
 }
@@ -143,7 +155,7 @@ template<typename T>
 void MessageTree::AddMessageReceiver(T* obj) {
 	assert(obj != nullptr);
 
-	MessageNode* ownerNode = nullptr;
+	MessengerNode* ownerNode = nullptr;
 
 	if (!TryFindObjectNode(obj, &ownerNode)) {
 		return;

@@ -16,6 +16,13 @@
 
 #include <MathHelpers.h>
 #include <TimeSystem.h>
+#include <Application.h>
+
+
+namespace CraftingScene {
+inline void InitScene(Scene& mainScene);
+}
+
 
 DungeonRoomScript::DungeonRoomScript() {
 	this->surface = GetNode()->FindNode("floor")->GetObject<Surface>();
@@ -46,6 +53,12 @@ void DungeonRoomScript::Update() {
 			}
 		}
 		else {
+			if (this->isFinal) {
+				Application::Get()->RequestSceneBuild(
+					[](Scene* s) { CraftingScene::InitScene(*s); }
+				);
+			}
+
 			for (auto* door : this->doors) {
 				glm::vec3 pos = door->GetObject<Physics::Body>()->GetPosition();
 				
@@ -312,6 +325,7 @@ EnemyBase* SpawnEnemy(SceneNode* position) {
     enemyAi1->SetProjectileResources(cubeMesh, enemyMat);
 	enemyAi1->SetTargetNode(PlayerController::Instance()->GetNode());
     enemyAi1->SetAttackCooldown(1.2f);
+	enemyAi1->m_hp = 5;
 	enemyAi1->m_FlockingSystem = position->GetScene()->GetComponent<FlockingSystem>();
 
     enemyAi1->RegisterToFlockingSystem(position->GetScene()->GetComponent<FlockingSystem>());
@@ -416,7 +430,11 @@ void DungeonGenerator::Update() {
 				// PlayerController::Instance()->GlobalTransform().Position() = elevatorNode->GlobalTransform().Position().Value();
 			}
 			else {
-				spawnedRoom->AddObject<DungeonRoomScript>();
+				auto* roomScript = spawnedRoom->AddObject<DungeonRoomScript>();
+
+				if (this->roomsToSpawn.empty()) {
+					roomScript->isFinal = true;
+				}
 			}
 			
 			for (MeshRenderer* mesh : spawnedRoom->GetAllObjectsInChildren<MeshRenderer>()) {

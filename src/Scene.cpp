@@ -22,13 +22,16 @@ GameObject* MessagingHelpers_AddObjectToNode(SceneNode* node, const std::string&
 SceneComponent* MessagingHelpers_AddComponentToScene(Scene* scene, const std::string& objectName); // Trust me sis
 void MessagingHelpers_AttachObjectToNode(SceneNode* node, GameObject* obj);
 
+constexpr int NodeDisabledSelfBit = 0;
+constexpr int NodeDisabledInTreeBit = 1;
+constexpr int NodeExternalBit = 2;
 
 SceneNode::SceneNode(Scene* scene):
 scene(scene),
 transform(),
 children(),
 parent(nullptr),
-disabledState(0),
+nodeState(0),
 layer(Layer::Default),
 name("") {
 	this->transform.parent = this;
@@ -105,19 +108,17 @@ Scene* SceneNode::GetScene() {
 }
 
 bool SceneNode::IsEnabled() const {
-	return this->disabledState == 0;
+	return !(this->nodeState[NodeDisabledInTreeBit] | this->nodeState[NodeDisabledSelfBit]);
 }
 
 bool SceneNode::EnabledSelf() const {
-	return (this->disabledState & 1) == 0;
+	return !this->nodeState[NodeDisabledSelfBit];
 }
 void SceneNode::SetEnabled(bool value) {
-	if ((this->disabledState & 1) == value) {
-		this->disabledState &= 2;
-
+	if (EnabledSelf() != value) {
 		GetScene()->SetNodeEnabledInternal(this, value);
 
-		this->disabledState |= !value;
+		this->nodeState[NodeDisabledSelfBit] = !value;
 	}
 }
 
@@ -361,10 +362,14 @@ void Scene::DeleteNodeInternal(SceneNode* node) {
 
 void Scene::SetNodeEnabledInTreeInternal(SceneNode* node, bool enabled) {
 	if (enabled) {
-		node->disabledState &= 1;
+		node->nodeState[NodeDisabledInTreeBit] = false;
+
+		this->messageTree.MessageNode<Message::OnEnable>(node);
 	}
 	else {
-		node->disabledState |= 2;
+		node->nodeState[NodeDisabledInTreeBit] = true;
+
+		this->messageTree.MessageNode<Message::OnDisable>(node);
 	}
 
 	if (!node->EnabledSelf()) {
@@ -381,12 +386,6 @@ void Scene::DeserializeGameObject(SceneNode* node, json data) {
 }
 
 void Scene::SetNodeEnabledInternal(SceneNode* node, bool enabled) {
-	if (enabled) {
-		this->messageTree.PropagateMessage<Message::OnEnable>(node);
-	} else {
-		this->messageTree.PropagateMessage<Message::OnDisable>(node);
-	}
-
 	for (auto child : node->children) {
 		SetNodeEnabledInTreeInternal(child, enabled);
 	}

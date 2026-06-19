@@ -654,6 +654,8 @@ void Body::Awake() {
 }
 
 void Body::OnEnable() {
+  spdlog::info("BABABOJ");
+
   if (!bodyCreated || addedToWorld) {
     spdlog::warn("Tried enabling a body that hasn't been created yet, or one which has already been added");
     return;
@@ -665,6 +667,8 @@ void Body::OnEnable() {
 }
 
 void Body::OnDisable() {
+  spdlog::info("DARAROJK");
+
   if (!bodyCreated || !addedToWorld) {
     return;
   }

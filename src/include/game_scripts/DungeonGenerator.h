@@ -22,6 +22,8 @@ private:
 	Surface* surface;
 	float timeout = 1;
 public:
+	bool isFinal = false;
+
 	DungeonRoomScript();
 
 	void Update();
