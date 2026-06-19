@@ -211,7 +211,7 @@ inline void InitScene(Scene& mainScene) {
 
     SceneNode* bimberman =
         mainScene.Resources()
-            ->Get<GltfScene>("./res/models/BIMBERMAN.glb")
+            ->Get<GltfScene>("./res/models/bimbermann_throwing.glb")
             ->Instantiate(&mainScene, nullptr, "Bimberman");
     bimberman->SetParent(playerNode);
 

@@ -3,8 +3,6 @@
 #include <GameObject.h>
 #include <Debug.h>
 
-#include <string>
-
 namespace Physics {
 class VirtualCharacterController;
 class System;
@@ -13,7 +11,6 @@ class System;
 class Camera;
 class PickableItem;
 class PickableItemSystem;
-class AnimationComponent;
 
 class PlayerController : public GameObject, public ImGuiDrawable {
 private:
@@ -38,16 +35,6 @@ private:
 	SceneNode* characterRoot = nullptr;
 	SceneNode* throwingArm = nullptr;
 	SceneNode* throwPoint = nullptr;
-	SceneNode* rightHand = nullptr;
-
-	AnimationComponent* animator = nullptr;
-	std::string walkAnimationName;
-	std::string throwAnimationName;
-	std::string activeLoopAnimationName;
-	float throwAnimationTimer = 0.0f;
-	float throwAnimationDuration = 0.0f;
-	float movementAmount = 0.0f;
-	bool throwAnimationActive = false;
 
 	float health = 100;
 
@@ -72,14 +59,6 @@ private:
 	void UpdateMovement();
 	void UpdateTargetting();
 	void UpdateThrowing();
-	void UpdatePlayerAnimation();
-
-	void SetupCharacterNodes();
-	void SetupAnimations();
-	void PlayLoopAnimation(const std::string& animationName);
-	void StopLoopAnimation();
-	void PlayThrowAnimation();
-	void StopAnimation(const std::string& animationName, bool resetToStart);
 
 	void HandleItemInteractions();
 public:

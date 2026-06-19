@@ -1676,7 +1676,7 @@ namespace CraftingScene {
 	    SceneNode* playerNode = scene.CreateNode("Player");
 
 	    SceneNode* bimberman = ResourceDatabase::Global->Get<GltfScene>(
-		    "./res/models/BIMBERMAN.glb"
+		    "./res/models/bimbermann_throwing.glb"
 	    )->Instantiate(&scene, scene.root, "Bimberman");
 
 	    if (bimberman) {

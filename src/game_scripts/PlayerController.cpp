@@ -4,8 +4,6 @@
 #include <glm/glm.hpp>
 #include <imgui.h>
 
-#include <vector>
-
 #include <InputSystem.h>
 #include <TimeSystem.h>
 #include <Camera.h>
@@ -21,7 +19,6 @@
 #include <game_scripts/PickableItemSystem.h>
 #include <game_scripts/PotionInventory.h>
 #include <physics/LayerMaskFilter.h>
-#include <animation/AnimationComponent.h>
 
 PlayerController* PlayerController::instance;
 
@@ -193,82 +190,6 @@ namespace{
 			}
 		);
 	}
-
-	SceneNode* FindNodeRecursive(SceneNode* node, const std::string& name) {
-		if (node == nullptr) {
-			return nullptr;
-		}
-
-		if (node->GetName() == name) {
-			return node;
-		}
-
-		for (SceneNode* child : node->GetChildren()) {
-			if (SceneNode* found = FindNodeRecursive(child, name)) {
-				return found;
-			}
-		}
-
-		return nullptr;
-	}
-
-	SceneNode* FindFirstPath(SceneNode* root, const std::vector<fs::path>& paths) {
-		if (root == nullptr) {
-			return nullptr;
-		}
-
-		for (const fs::path& path : paths) {
-			if (SceneNode* found = root->FindNode(path)) {
-				return found;
-			}
-		}
-
-		return nullptr;
-	}
-
-	SceneNode* FindFirstNameRecursive(SceneNode* root, const std::vector<std::string>& names) {
-		for (const std::string& name : names) {
-			if (SceneNode* found = FindNodeRecursive(root, name)) {
-				return found;
-			}
-		}
-
-		return nullptr;
-	}
-
-	AnimationComponent::Animation* FindAnimation(
-		AnimationComponent* animator,
-		const std::string& name
-	) {
-		if (animator == nullptr || name.empty()) {
-			return nullptr;
-		}
-
-		for (auto& animation : animator->animations) {
-			if (animation.data.name == name) {
-				return &animation;
-			}
-		}
-
-		return nullptr;
-	}
-
-	std::string FindFirstAnimationName(
-		AnimationComponent* animator,
-		const std::vector<std::string>& names
-	) {
-		if (animator == nullptr) {
-			return {};
-		}
-
-		for (const std::string& name : names) {
-			if (FindAnimation(animator, name) != nullptr) {
-				return name;
-			}
-		}
-
-		return {};
-	}
 }
 
 glm::vec3 PlayerController::GetMousePointOnGround(Camera* camera) {
@@ -310,275 +231,27 @@ glm::vec3 PlayerController::GetStrengthFromVelocity() {
 
 void PlayerController::Awake() {
 	this->charController = GetObject<Physics::VirtualCharacterController>();
+
+	this->torso = GetNode()->FindNode("Bimberman/root/Torso");
+	assert(this->torso);
+
+	this->throwingArm = this->torso->FindNode("Arm R");
+	assert(this->throwingArm);
+
 	this->aim = GetNode()->FindNode("Aim Reticle");
+	this->characterRoot = GetNode()->FindNode("Bimberman/root");
+	this->throwPoint = this->throwingArm->FindNode("Throw Point");
 
 	assert(this->charController);
 
-	SetupCharacterNodes();
-	SetupAnimations();
+	assert(this->characterRoot);
+	assert(this->throwPoint);
 
 	this->charController->SetCollisionLayerAndMask({1}, {0});
 
-	if (this->throwingArm != nullptr) {
-		this->defaultThrowingArmRotation =
-			this->throwingArm->LocalTransform().Rotation();
-	}
+	this->defaultThrowingArmRotation = this->throwingArm->LocalTransform().Rotation();
 
 	this->instance = this;
-}
-
-void PlayerController::SetupCharacterNodes() {
-	this->characterRoot = FindFirstPath(
-		GetNode(),
-		{
-			"Bimberman/root",
-			"Bimberman"
-		}
-	);
-
-	if (this->characterRoot == nullptr) {
-		this->characterRoot = GetNode();
-		spdlog::warn(
-			"PlayerController: Bimberman model root not found. Using Player node as fallback."
-		);
-	}
-
-	this->torso = FindFirstPath(
-		GetNode(),
-		{
-			"Bimberman/root/Torso",
-			"Bimberman/rig_deform/DEF-spine/DEF-spine.001/DEF-spine.002/DEF-spine.003",
-			"Bimberman/rig/MCH-torso.parent/torso"
-		}
-	);
-
-	if (this->torso == nullptr) {
-		this->torso = FindFirstNameRecursive(
-			this->characterRoot,
-			{
-				"Torso",
-				"torso",
-				"DEF-spine.003",
-				"DEF-spine.002",
-				"DEF-spine.001",
-				"DEF-spine"
-			}
-		);
-	}
-
-	if (this->torso == nullptr) {
-		this->torso = this->characterRoot;
-		spdlog::warn(
-			"PlayerController: torso node not found. Body wobble will use model root."
-		);
-	}
-
-	this->throwingArm = nullptr;
-	if (this->torso != nullptr) {
-		this->throwingArm = this->torso->FindNode("Arm R");
-	}
-
-	if (this->throwingArm == nullptr) {
-		this->throwingArm = FindFirstPath(
-			GetNode(),
-			{
-				"Bimberman/rig_deform/DEF-upper_arm.R",
-				"Bimberman/rig/MCH-torso.parent/torso/MCH-spine.002/spine_fk.002/MCH-spine.003/spine_fk.003/tweak_spine.003/ORG-spine.003/ORG-shoulder.R/DEF-upper_arm.R"
-			}
-		);
-	}
-
-	if (this->throwingArm == nullptr) {
-		this->throwingArm = FindFirstNameRecursive(
-			this->characterRoot,
-			{
-				"Arm R",
-				"DEF-upper_arm.R",
-				"upper_arm.R",
-				"upper_arm_fk.R"
-			}
-		);
-	}
-
-	this->rightHand = FindFirstPath(
-		GetNode(),
-		{
-			"Bimberman/rig_deform/DEF-upper_arm.R/DEF-upper_arm.R.001/DEF-forearm.R/DEF-forearm.R.001/DEF-hand.R",
-			"Bimberman/rig/MCH-torso.parent/torso/MCH-spine.002/spine_fk.002/MCH-spine.003/spine_fk.003/tweak_spine.003/ORG-spine.003/ORG-shoulder.R/DEF-upper_arm.R/DEF-upper_arm.R.001/DEF-forearm.R/DEF-forearm.R.001/DEF-hand.R"
-		}
-	);
-
-	if (this->rightHand == nullptr) {
-		this->rightHand = FindFirstNameRecursive(
-			this->characterRoot,
-			{
-				"Hand R",
-				"DEF-hand.R",
-				"hand.R",
-				"hand_fk.R"
-			}
-		);
-	}
-
-	this->throwPoint = nullptr;
-	if (this->throwingArm != nullptr) {
-		this->throwPoint = this->throwingArm->FindNode("Throw Point");
-	}
-
-	if (this->throwPoint == nullptr) {
-		this->throwPoint = FindNodeRecursive(this->characterRoot, "Throw Point");
-	}
-
-	if (this->throwPoint == nullptr) {
-		SceneNode* throwPointParent =
-			this->rightHand != nullptr ? this->rightHand : this->throwingArm;
-
-		if (throwPointParent != nullptr) {
-			this->throwPoint = GetScene()->CreateNode(throwPointParent, "Throw Point");
-			this->throwPoint->LocalTransform().Position() =
-				glm::vec3(0.0f, 0.08f, 0.12f);
-		}
-	}
-
-	if (this->throwingArm == nullptr) {
-		spdlog::warn(
-			"PlayerController: right arm node not found. Manual throw pose will be disabled."
-		);
-	}
-
-	if (this->throwPoint == nullptr) {
-		this->throwPoint = this->characterRoot;
-		spdlog::warn(
-			"PlayerController: Throw Point not found. Bottles will spawn from model root fallback."
-		);
-	}
-}
-
-void PlayerController::SetupAnimations() {
-	this->animator = GetNode()->GetObjectInChildren<AnimationComponent>();
-
-	if (this->animator == nullptr) {
-		return;
-	}
-
-	for (auto& animation : this->animator->animations) {
-		animation.playing = false;
-		animation.looping = false;
-	}
-
-	this->walkAnimationName = FindFirstAnimationName(
-		this->animator,
-		{
-			"run.001",
-			"Run.001",
-			"walk.001",
-			"Walk.001",
-			"run",
-			"Run",
-			"walk",
-			"Walk"
-		}
-	);
-
-	this->throwAnimationName = FindFirstAnimationName(
-		this->animator,
-		{
-			"throw.001",
-			"Throw.001",
-			"throw",
-			"Throw"
-		}
-	);
-
-	if (this->walkAnimationName.empty()) {
-		spdlog::warn("PlayerController: walk/run animation not found on player model.");
-	}
-
-	if (this->throwAnimationName.empty()) {
-		spdlog::warn("PlayerController: throw animation not found on player model.");
-	}
-}
-
-void PlayerController::StopAnimation(
-	const std::string& animationName,
-	bool resetToStart
-) {
-	AnimationComponent::Animation* animation =
-		FindAnimation(this->animator, animationName);
-
-	if (animation == nullptr) {
-		return;
-	}
-
-	animation->playing = false;
-	animation->looping = false;
-
-	if (resetToStart) {
-		this->animator->SetTime(animationName, 0.0f);
-	}
-}
-
-void PlayerController::PlayLoopAnimation(const std::string& animationName) {
-	if (this->animator == nullptr || animationName.empty()) {
-		return;
-	}
-
-	if (this->activeLoopAnimationName == animationName) {
-		return;
-	}
-
-	for (auto& animation : this->animator->animations) {
-		animation.playing = false;
-		animation.looping = false;
-	}
-
-	AnimationComponent::Animation* animation =
-		FindAnimation(this->animator, animationName);
-
-	if (animation == nullptr) {
-		return;
-	}
-
-	animation->looping = true;
-	animation->speed = 1.0f;
-	this->animator->Play(animationName);
-	this->activeLoopAnimationName = animationName;
-}
-
-void PlayerController::StopLoopAnimation() {
-	if (this->activeLoopAnimationName.empty()) {
-		return;
-	}
-
-	StopAnimation(this->activeLoopAnimationName, true);
-	this->activeLoopAnimationName.clear();
-}
-
-void PlayerController::PlayThrowAnimation() {
-	if (this->animator == nullptr || this->throwAnimationName.empty()) {
-		return;
-	}
-
-	for (auto& animation : this->animator->animations) {
-		animation.playing = false;
-		animation.looping = false;
-	}
-
-	AnimationComponent::Animation* animation =
-		FindAnimation(this->animator, this->throwAnimationName);
-
-	if (animation == nullptr) {
-		return;
-	}
-
-	animation->looping = false;
-	animation->speed = 1.0f;
-	this->animator->Play(this->throwAnimationName);
-
-	this->throwAnimationActive = true;
-	this->throwAnimationTimer = 0.0f;
-	this->throwAnimationDuration = animation->data.duration;
-	this->activeLoopAnimationName.clear();
 }
 
 void PlayerController::UpdateMovement() {
@@ -613,7 +286,6 @@ void PlayerController::UpdateMovement() {
 	}
 
 	float movementLength = glm::clamp(glm::length(movement), 0.f, 1.f);
-	this->movementAmount = movementLength;
 
 	if (movementLength > 0) {
 		movement = glm::normalize(movement) * movementLength * this->speed;
@@ -640,25 +312,20 @@ void PlayerController::UpdateMovement() {
 
 	glm::vec3 bodyDragDirection = posTimeSecondsAgo - GlobalTransform().Position();
 
-	if (this->torso != nullptr && this->torso->GetParent() != nullptr) {
-		bodyDragDirection =
-			glm::inverse(this->torso->GetParent()->GlobalTransform().Value())
-			* glm::vec4(bodyDragDirection, 0);
+	bodyDragDirection = glm::inverse(this->torso->GetParent()->GlobalTransform().Value()) * glm::vec4(bodyDragDirection, 0);
 
-		glm::vec3 a = glm::cross(glm::vec3(0, 1, 0), bodyDragDirection);
+	glm::vec3 a = glm::cross(glm::vec3(0, 1, 0), bodyDragDirection);
 
-		if (glm::length(a) > glm::epsilon<float>()) {
-			fromTo.x = a.x;
-			fromTo.y = a.y;
-			fromTo.z = a.z;
-			fromTo.w = glm::abs(glm::length(bodyDragDirection))
-				+ glm::dot(bodyDragDirection, glm::vec3(0, 1, 0));
+	if (glm::length(a) > glm::epsilon<float>()) {
+		fromTo.x = a.x;
+		fromTo.y = a.y;
+		fromTo.z = a.z;
+		fromTo.w = glm::abs(glm::length(bodyDragDirection)) + glm::dot(bodyDragDirection, glm::vec3(0, 1, 0));
 
-			fromTo = glm::normalize(fromTo);
-		}
-
-		this->torso->LocalTransform().Rotation() = fromTo;
+		fromTo = glm::normalize(fromTo);
 	}
+
+	this->torso->LocalTransform().Rotation() = fromTo;
 }
 
 void PlayerController::UpdateTargetting() {
@@ -681,10 +348,7 @@ void PlayerController::UpdateTargetting() {
 
 	this->aimBearing = Math::MoveTowardsAngle(this->aimBearing, targetBearing, Time::Delta() * this->aimSpeed);
 
-	if (this->characterRoot != nullptr) {
-		this->characterRoot->LocalTransform().Rotation() =
-			glm::angleAxis(this->aimBearing, glm::vec3(0, 1, 0));
-	}
+	this->characterRoot->LocalTransform().Rotation() = glm::angleAxis(this->aimBearing, glm::vec3(0, 1, 0));
 
 	if (!this->CanThrow()) {
 		if (this->aim) {
@@ -694,12 +358,8 @@ void PlayerController::UpdateTargetting() {
 		return;
 	}
 
-	if (this->aim != nullptr) {
-		this->aim->LocalTransform().Position() =
-			glm::angleAxis(this->aimBearing, glm::vec3(0, 1, 0))
-			* glm::vec3(0, 0, 1);
-		this->aim->SetEnabled(GetScene()->Input()->ButtonPressed(0));
-	}
+	this->aim->LocalTransform().Position() = glm::angleAxis(this->aimBearing, glm::vec3(0, 1, 0)) * glm::vec3(0, 0, 1);
+	this->aim->SetEnabled(GetScene()->Input()->ButtonPressed(0));
 }
 
 void PlayerController::UpdateThrowing() {
@@ -726,19 +386,14 @@ void PlayerController::UpdateThrowing() {
 
 		this->aim->GlobalTransform().Position() = GlobalTransform().Position() + hitPoint;
 
-		if (this->torso != nullptr) {
-			this->torso->LocalTransform().Rotation() *= glm::angleAxis(
-				ThrowStrengthEasing(this->throwStrengthAccum) * -0.2f,
-				glm::vec3(1, 0, 0)
-			);
-		}
-
-		if (this->throwingArm != nullptr) {
-			this->throwingArm->LocalTransform().Rotation() = glm::angleAxis(
-				glm::radians(-(160 + 60 * ThrowStrengthEasing(this->throwStrengthAccum))),
-				glm::vec3(1, 0, 0)
-			) * this->defaultThrowingArmRotation;
-		}
+		this->torso->LocalTransform().Rotation() *= glm::angleAxis(
+			ThrowStrengthEasing(this->throwStrengthAccum) * -0.2f,
+			glm::vec3(1, 0, 0)
+		);
+		this->throwingArm->LocalTransform().Rotation() = glm::angleAxis(
+			glm::radians(-(160 + 60 * ThrowStrengthEasing(this->throwStrengthAccum))),
+			glm::vec3(1, 0, 0)
+		) * this->defaultThrowingArmRotation;
 	}
 	else if (this->throwStrengthAccum > 0) {
 		if (this->throwStrengthCache == 0) {
@@ -754,8 +409,6 @@ void PlayerController::UpdateThrowing() {
 				this->throwStrengthCache = -1;
 				return;
 			}
-
-			PlayThrowAnimation();
 
 			SceneNode* thrownBottle = GetScene()->GetComponent<ThrowableObjectPool>()->RequestThrowableObject();
 			auto* throwable = thrownBottle->AddObject<ThrowableObject>();
@@ -790,52 +443,19 @@ void PlayerController::UpdateThrowing() {
 			this->throwStrengthCache = -1;
 		}
 
-		if (this->torso != nullptr) {
-			this->torso->LocalTransform().Rotation() *= glm::angleAxis(
-				ThrowStrengthEasing(this->throwStrengthAccum) * -0.2f,
-				glm::vec3(1, 0, 0)
-			);
-		}
-
-		if (this->throwingArm != nullptr) {
-			this->throwingArm->LocalTransform().Rotation() = glm::angleAxis(
-				glm::radians(-(220 * ThrowStrengthEasing(this->throwStrengthAccum))),
-				glm::vec3(1, 0, 0)
-			) * this->defaultThrowingArmRotation;
-		}
+		this->torso->LocalTransform().Rotation() *= glm::angleAxis(
+			ThrowStrengthEasing(this->throwStrengthAccum) * -0.2f,
+			glm::vec3(1, 0, 0)
+		);
+		this->throwingArm->LocalTransform().Rotation() = glm::angleAxis(
+			glm::radians(-(220 * ThrowStrengthEasing(this->throwStrengthAccum))),
+			glm::vec3(1, 0, 0)
+		) * this->defaultThrowingArmRotation;
 	}
 	else {
 		this->throwStrengthCache = 0;
 
-		if (this->throwingArm != nullptr) {
-			this->throwingArm->LocalTransform().Rotation() =
-				this->defaultThrowingArmRotation;
-		}
-	}
-}
-
-void PlayerController::UpdatePlayerAnimation() {
-	if (this->animator == nullptr) {
-		return;
-	}
-
-	if (this->throwAnimationActive) {
-		this->throwAnimationTimer += Time::Delta();
-
-		if (this->throwAnimationTimer >= this->throwAnimationDuration) {
-			StopAnimation(this->throwAnimationName, true);
-			this->throwAnimationActive = false;
-		}
-	}
-
-	if (this->throwAnimationActive) {
-		return;
-	}
-
-	if (this->movementAmount > 0.05f) {
-		PlayLoopAnimation(this->walkAnimationName);
-	} else {
-		StopLoopAnimation();
+		this->throwingArm->LocalTransform().Rotation() = this->defaultThrowingArmRotation;
 	}
 }
 
@@ -916,15 +536,8 @@ void PlayerController::Update() {
 	UpdateTargetting();
 	UpdateThrowing();
 	HandleItemInteractions();
-	UpdatePlayerAnimation();
 
-	if (this->torso != nullptr) {
-		this->torso->GlobalTransform().Rotation() *= glm::angleAxis(
-			glm::sin(Time::Current() * this->woblinessFrequency)
-				* (0.1f + this->wobliness * 0.3f),
-			this->torso->GlobalTransform().Forward()
-		);
-	}
+	this->torso->GlobalTransform().Rotation() *= glm::angleAxis(glm::sin(Time::Current() * this->woblinessFrequency) * (0.1f + this->wobliness * 0.3f), this->torso->GlobalTransform().Forward());
 }
 
 void PlayerController::OnEnable() {
