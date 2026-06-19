@@ -68,17 +68,13 @@ public:
 
     void Awake() {
         // Tooltip setup
-        this->tooltipNode = this->GetScene()->FindNode("Tooltip Node");
-
-        if (!this->tooltipNode) {
-            this->tooltipNode = this->GetScene()->CreateNode("Tooltip Node");
-        }
-
-        auto* visual = this->tooltipNode->AddObject<UiVisual>();
-        auto* layout = this->tooltipNode->AddObject<UiLayout>();
+        this->tooltipNode = this->GetScene()->GetOrCreateNode("Tooltip Node");
+        
+        auto* visual = this->tooltipNode->AddObjectIfMissing<UiVisual>();
+        auto* layout = this->tooltipNode->AddObjectIfMissing<UiLayout>();
         layout->size = {400, 400};
         layout->zIndex = 2;
-        auto* text = this->tooltipNode->AddObject<UiText>();
+        auto* text = this->tooltipNode->AddObjectIfMissing<UiText>();
         text->maxWidth = layout->size.x;
 
         visual->color = {0.0, 0.0, 0.0, 0.2};
@@ -118,28 +114,30 @@ public:
             slot.viewport->GetFramebuffer()->CreateDepthAttachment(true, false);
             slot.viewport->SetSize(glm::uvec2(256, 256));
 
-            slot.cameraNode = GetScene()->CreateNode("ItemCamera_" + std::to_string(i));
-            Camera* camera = slot.cameraNode->AddObject<Camera>(Camera::Perspective(60.0f, 1.0f, 0.01f, 50.0f));
+            slot.cameraNode = GetScene()->GetOrCreateNode("ItemCamera_" + std::to_string(i));
+            Camera* camera = slot.cameraNode->AddObjectIfMissing<Camera>(Camera::Perspective(60.0f, 1.0f, 0.01f, 50.0f));
 
             slot.cameraNode->GlobalTransform().Position() = glm::vec3(0.0f, -500.0f + (i * 10.0f), 0.0f);
 
             camera->SetRenderTarget(slot.viewport.get());
             camera->SetLayerMask(mask);
 
-            slot.itemNode = GetScene()->CreateNode("ItemPivot_" + std::to_string(i));
+            slot.itemNode = GetScene()->GetOrCreateNode("ItemPivot_" + std::to_string(i));
             slot.itemNode->GlobalTransform().Position() = glm::vec3(0.0f, -500.0f + (i * 10.0f), 0.2f);
 
-            GetScene()->Resources()->Get<GltfScene>(gltfPaths[i])->Instantiate(GetScene(), slot.itemNode, "ItemModel_" + std::to_string(i));
-            SetLayerRecursive(slot.itemNode, ui3DLayer);
+            if (!slot.itemNode->FindNode("ItemModel_" + std::to_string(i))) {
+                GetScene()->Resources()->Get<GltfScene>(gltfPaths[i])->Instantiate(GetScene(), slot.itemNode, "ItemModel_" + std::to_string(i));
+                SetLayerRecursive(slot.itemNode, ui3DLayer);
+            }
 
-            slot.uiNode = GetScene()->CreateNode(GetNode(), "ItemVisual_" + std::to_string(i));
-            slot.uiNode->AddObject<WheelTag>();
-            UiVisual* visual = slot.uiNode->AddObject<UiVisual>();
+            slot.uiNode = GetScene()->GetOrCreateNode(GetNode(), "ItemVisual_" + std::to_string(i));
+            slot.uiNode->AddObjectIfMissing<WheelTag>();
+            UiVisual* visual = slot.uiNode->AddObjectIfMissing<UiVisual>();
             visual->texture = (Texture2D*)slot.viewport->GetFramebuffer()->GetColorTexture();
             visual->color.a = 1.0f;
             visual->SetEnabled(false);
 
-            UiLayout* layout = slot.uiNode->AddObject<UiLayout>();
+            UiLayout* layout = slot.uiNode->AddObjectIfMissing<UiLayout>();
             layout->size = glm::ivec2(150, 150);
             layout->anchorPoint = AnchorPoint::Center;
             layout->zIndex = 1;

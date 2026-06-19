@@ -123,7 +123,7 @@ class UiOptionsMenu : public GameObject {
 
 namespace OptionsMenu {
 inline UiOptionsMenu* Build(Scene& mainScene, Font* font) {
-    SceneNode* optionsGroup = mainScene.CreateNode("Options Menu Group");
+    SceneNode* optionsGroup = mainScene.GetOrCreateNode("Options Menu Group");
 
     auto* app = Application::Get();
     if (app == nullptr) {
@@ -132,65 +132,65 @@ inline UiOptionsMenu* Build(Scene& mainScene, Font* font) {
     }
     auto& settings = app->GetSettings();
 
-    auto* controller = optionsGroup->AddObject<UiOptionsMenu>();
+    auto* controller = optionsGroup->AddObjectIfMissing<UiOptionsMenu>();
 
-    SceneNode* bgNode = mainScene.CreateNode(optionsGroup, "Settings Background");
-    controller->bgLayout = bgNode->AddObject<UiLayout>(
+    SceneNode* bgNode = mainScene.GetOrCreateNode(optionsGroup, "Settings Background");
+    controller->bgLayout = bgNode->AddObjectIfMissing<UiLayout>(
         glm::uvec2(4000, 4000), glm::ivec2(9999, 9999), 90, AnchorPoint::Center);
-    bgNode->AddObject<UiVisual>(glm::vec4(0.0f, 0.0f, 0.0f, 0.7f));
-    bgNode->AddObject<UiInteractable>();
+    bgNode->AddObjectIfMissing<UiVisual>(glm::vec4(0.0f, 0.0f, 0.0f, 0.7f));
+    bgNode->AddObjectIfMissing<UiInteractable>();
 
-    controller->optionsMenuLayout = optionsGroup->AddObject<UiLayout>(
+    controller->optionsMenuLayout = optionsGroup->AddObjectIfMissing<UiLayout>(
         glm::uvec2(400, 500), glm::ivec2(9999, 9999), 100, AnchorPoint::Center);
 
     SceneNode* resolutionButtonNode =
-        mainScene.CreateNode(optionsGroup, "Resolution Button");
-    resolutionButtonNode->AddObject<UiLayout>(
+        mainScene.GetOrCreateNode(optionsGroup, "Resolution Button");
+    resolutionButtonNode->AddObjectIfMissing<UiLayout>(
         glm::uvec2(200, 40), glm::ivec2(0, 200), 101, AnchorPoint::Center);
-    auto* resolutionVisual = resolutionButtonNode->AddObject<UiVisual>(
+    auto* resolutionVisual = resolutionButtonNode->AddObjectIfMissing<UiVisual>(
         glm::vec4(0.4f, 0.4f, 0.4f, 1.0f));
     resolutionVisual->colorHovered = glm::vec4(0.6f, 0.6f, 0.6f, 1.0f);
     controller->resolutionButton =
-        resolutionButtonNode->AddObject<UiInteractable>();
+        resolutionButtonNode->AddObjectIfMissing<UiInteractable>();
     SceneNode* resolutionTextNode =
-        mainScene.CreateNode(resolutionButtonNode, "Resolution Text");
-    resolutionTextNode->AddObject<UiLayout>(
+        mainScene.GetOrCreateNode(resolutionButtonNode, "Resolution Text");
+    resolutionTextNode->AddObjectIfMissing<UiLayout>(
         glm::uvec2(200, 40), glm::ivec2(0, 0), 102, AnchorPoint::Center);
     auto* resolutionText =
-        resolutionTextNode->AddObject<UiText>("Cycle Resolution", font);
+        resolutionTextNode->AddObjectIfMissing<UiText>("Cycle Resolution", font);
     resolutionText->fontSize = 20.0f;
 
     SceneNode* fullscreenButtonNode =
-        mainScene.CreateNode(optionsGroup, "Fullscreen Button");
-    fullscreenButtonNode->AddObject<UiLayout>(
+        mainScene.GetOrCreateNode(optionsGroup, "Fullscreen Button");
+    fullscreenButtonNode->AddObjectIfMissing<UiLayout>(
         glm::uvec2(200, 40), glm::ivec2(0, 150), 101, AnchorPoint::Center);
-    auto* fullscreenVisual = fullscreenButtonNode->AddObject<UiVisual>(
+    auto* fullscreenVisual = fullscreenButtonNode->AddObjectIfMissing<UiVisual>(
         glm::vec4(0.4f, 0.4f, 0.4f, 1.0f));
     fullscreenVisual->colorHovered = glm::vec4(0.6f, 0.6f, 0.6f, 1.0f);
     controller->fullscreenButton =
-        fullscreenButtonNode->AddObject<UiInteractable>();
+        fullscreenButtonNode->AddObjectIfMissing<UiInteractable>();
     SceneNode* fullscreenTextNode =
-        mainScene.CreateNode(fullscreenButtonNode, "Fullscreen Text");
-    fullscreenTextNode->AddObject<UiLayout>(
+        mainScene.GetOrCreateNode(fullscreenButtonNode, "Fullscreen Text");
+    fullscreenTextNode->AddObjectIfMissing<UiLayout>(
         glm::uvec2(200, 40), glm::ivec2(0, 0), 102, AnchorPoint::Center);
     auto* fullscreenText =
-        fullscreenTextNode->AddObject<UiText>("Toggle Windowed", font);
+        fullscreenTextNode->AddObjectIfMissing<UiText>("Toggle Windowed", font);
     fullscreenText->fontSize = 20.0f;
 
     SceneNode* vsyncButtonNode =
-        mainScene.CreateNode(optionsGroup, "VSync Button");
-    vsyncButtonNode->AddObject<UiLayout>(
+        mainScene.GetOrCreateNode(optionsGroup, "VSync Button");
+    vsyncButtonNode->AddObjectIfMissing<UiLayout>(
         glm::uvec2(200, 40), glm::ivec2(0, 100), 101, AnchorPoint::Center);
     auto* vsyncVisual =
-        vsyncButtonNode->AddObject<UiVisual>(glm::vec4(0.4f, 0.4f, 0.4f, 1.0f));
+        vsyncButtonNode->AddObjectIfMissing<UiVisual>(glm::vec4(0.4f, 0.4f, 0.4f, 1.0f));
     vsyncVisual->colorHovered = glm::vec4(0.6f, 0.6f, 0.6f, 1.0f);
     controller->vsyncToggleButton =
-        vsyncButtonNode->AddObject<UiInteractable>();
+        vsyncButtonNode->AddObjectIfMissing<UiInteractable>();
     SceneNode* vsyncTextNode =
-        mainScene.CreateNode(vsyncButtonNode, "VSync Text");
-    vsyncTextNode->AddObject<UiLayout>(glm::uvec2(200, 40), glm::ivec2(0, 0), 102,
+        mainScene.GetOrCreateNode(vsyncButtonNode, "VSync Text");
+    vsyncTextNode->AddObjectIfMissing<UiLayout>(glm::uvec2(200, 40), glm::ivec2(0, 0), 102,
                                        AnchorPoint::Center);
-    auto* vsyncText = vsyncTextNode->AddObject<UiText>("Toggle VSync", font);
+    auto* vsyncText = vsyncTextNode->AddObjectIfMissing<UiText>("Toggle VSync", font);
     vsyncText->fontSize = 20.0f;
 
     SceneNode* ssaoCheckboxNode = UiCheckbox::Create(mainScene, font, 102, "SSAO Checkbox", settings.ssaoEnabled, optionsGroup);
@@ -212,32 +212,32 @@ inline UiOptionsMenu* Build(Scene& mainScene, Font* font) {
     }
 
     SceneNode* applyButtonNode =
-        mainScene.CreateNode(optionsGroup, "Apply Button");
-    applyButtonNode->AddObject<UiLayout>(
+        mainScene.GetOrCreateNode(optionsGroup, "Apply Button");
+    applyButtonNode->AddObjectIfMissing<UiLayout>(
         glm::uvec2(200, 40), glm::ivec2(0, -50), 101, AnchorPoint::Center);
     auto* applyVisual =
-        applyButtonNode->AddObject<UiVisual>(glm::vec4(0.2f, 0.6f, 0.2f, 1.0f));
+        applyButtonNode->AddObjectIfMissing<UiVisual>(glm::vec4(0.2f, 0.6f, 0.2f, 1.0f));
     applyVisual->colorHovered = glm::vec4(0.3f, 0.8f, 0.3f, 1.0f);
-    controller->applyButton = applyButtonNode->AddObject<UiInteractable>();
+    controller->applyButton = applyButtonNode->AddObjectIfMissing<UiInteractable>();
     SceneNode* applyTextNode =
-        mainScene.CreateNode(applyButtonNode, "Apply Text");
-    applyTextNode->AddObject<UiLayout>(glm::uvec2(200, 40), glm::ivec2(0, 0), 102,
+        mainScene.GetOrCreateNode(applyButtonNode, "Apply Text");
+    applyTextNode->AddObjectIfMissing<UiLayout>(glm::uvec2(200, 40), glm::ivec2(0, 0), 102,
                                        AnchorPoint::Center);
-    auto* applyText = applyTextNode->AddObject<UiText>("Apply Changes", font);
+    auto* applyText = applyTextNode->AddObjectIfMissing<UiText>("Apply Changes", font);
     applyText->fontSize = 20.0f;
 
     SceneNode* backButtonNode =
-        mainScene.CreateNode(optionsGroup, "Back Button");
-    backButtonNode->AddObject<UiLayout>(glm::uvec2(150, 40), glm::ivec2(0, 50),
+        mainScene.GetOrCreateNode(optionsGroup, "Back Button");
+    backButtonNode->AddObjectIfMissing<UiLayout>(glm::uvec2(150, 40), glm::ivec2(0, 50),
                                         101, AnchorPoint::BottomCenter);
     auto* backVisual =
-        backButtonNode->AddObject<UiVisual>(glm::vec4(0.8f, 0.2f, 0.2f, 1.0f));
+        backButtonNode->AddObjectIfMissing<UiVisual>(glm::vec4(0.8f, 0.2f, 0.2f, 1.0f));
     backVisual->colorHovered = glm::vec4(1.0f, 0.3f, 0.3f, 1.0f);
-    controller->backButton = backButtonNode->AddObject<UiInteractable>();
-    SceneNode* backTextNode = mainScene.CreateNode(backButtonNode, "Back Text");
-    backTextNode->AddObject<UiLayout>(glm::uvec2(150, 40), glm::ivec2(0, 0), 102,
+    controller->backButton = backButtonNode->AddObjectIfMissing<UiInteractable>();
+    SceneNode* backTextNode = mainScene.GetOrCreateNode(backButtonNode, "Back Text");
+    backTextNode->AddObjectIfMissing<UiLayout>(glm::uvec2(150, 40), glm::ivec2(0, 0), 102,
                                       AnchorPoint::Center);
-    auto* backText = backTextNode->AddObject<UiText>("Back", font);
+    auto* backText = backTextNode->AddObjectIfMissing<UiText>("Back", font);
     backText->fontSize = 20.0f;
 
     return controller;
