@@ -453,7 +453,7 @@ SceneNode* Scene::GetOrCreateNode(const std::string& name) {
 }
 
 SceneNode* Scene::GetOrCreateNode(SceneNode* parent, const std::string& name) {
-	SceneNode* result = FindNode(name);
+	SceneNode* result = parent->FindNode(name);
 
 	if (result) {
 		return result;
