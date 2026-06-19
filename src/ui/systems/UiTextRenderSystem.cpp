@@ -123,15 +123,17 @@ void UiTextRenderSystem::OnPreRender() {
 
         startingChar = 0;
 
+        float layoutWidthScaled = layout->size.x * scaleFactor;
+
         for (auto line : lineLenghts) {
             if (text->alignment == TextAlignment::Left) {
                 xOffset = 0;
             }
             else if (text->alignment == TextAlignment::Middle) {
-                xOffset = (longestLine - line.length) * 0.5f;
+                xOffset = (layoutWidthScaled - line.length) * 0.5f;
             }
             else {
-                xOffset = longestLine - line.length;
+                xOffset = layoutWidthScaled - line.length;
             }
 
             for (int i = 0; i < line.numChars; i++) {

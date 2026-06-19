@@ -20,6 +20,8 @@
 #include <ui/widgets/wheel/UiWheel.h>
 
 #include "CraftingScene.h"
+#include "game_scripts/ui/InGame.h"
+#include "game_scripts/ui/PauseMenu.h"
 #include "ui/widgets/wheel/UiRadialWheel.h"
 #include <Application.h>
 #include <Bloom.h>
@@ -158,9 +160,14 @@ inline void InitScene(Scene& mainScene) {
 #pragma endregion
 
 #pragma region Ui
-    // Wheel
+
     SceneNode* uiRoot = mainScene.CreateNode("UI");
-    uiRoot->AddObject<TabMenu>();
+    SceneNode* tabMenu = mainScene.CreateNode(uiRoot, "Tab Menu");
+    tabMenu->AddObject<TabMenu>();
+    SceneNode* pauseMenu = mainScene.CreateNode(uiRoot, "Pause Menu");
+    pauseMenu->AddObject<PauseMenu>();
+    SceneNode* inGameUi = mainScene.CreateNode(uiRoot, "HUD");
+    inGameUi->AddObject<InGameUi>();
 
 #pragma endregion
 }

@@ -8,11 +8,15 @@
 #include "Scene.h"
 #include "InputSystem.h"
 #include "ui/objects/UiInteractable.h"
+#include "game_scripts/PotionInventory.h"
 #include "ui/objects/UiVisual.h"
 #include "ui/objects/UiText.h"
 #include <unordered_map>
 
 class WheelTag : public GameObject {};
+
+// chuj
+#include "game_scripts/ui/ScrollingList.h"
 
 class WheelSystem : public GameObjectSystem<WheelTag> {
   private:
@@ -166,6 +170,30 @@ class WheelSystem : public GameObjectSystem<WheelTag> {
         
         if (!inputSystem || !tweenSystem) {
             return;
+        }
+
+        if (inputSystem->KeyPressed(Key::Tab)) {
+            auto lists = GetScene()->FindObjectsOfType<ScrollingList>();
+            if (!lists.empty()) {
+            std::vector<ScrollingListItemData> itemsData;
+            auto playerInventory = PotionInventory::GetOwnedIngredientDefinitions();
+
+            for (const auto& entry : playerInventory) {
+                int count = PotionInventory::GetIngredientCount(entry.inventoryKey);
+                if (count > 0) {
+                    std::string cleanName = entry.displayName;
+                    std::size_t lastSpace = cleanName.find_last_of(' ');
+
+                    if (lastSpace != std::string::npos) {
+                        cleanName = cleanName.substr(0, lastSpace);
+                    }
+
+                    itemsData.push_back({ cleanName, count, nullptr });
+                }
+            }
+            
+            lists[0]->RefreshItems(itemsData); 
+        }
         }
 
         if (inputSystem->KeyDown(Key::Tab)) isTabHeld = true;

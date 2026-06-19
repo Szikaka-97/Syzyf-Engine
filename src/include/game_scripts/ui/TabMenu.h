@@ -69,10 +69,10 @@ public:
         };
         
         Texture2D* fontAtlas = mainScene->Resources()->Get<Texture2D>(
-            "./res/fonts/OpenSans-Regular/OpenSans-Regular.png", fontTextureParams);
+            "./res/fonts/Papyrus/Papyrus-Regular.png", fontTextureParams);
             
         Font* font = mainScene->Resources()->Get<Font>(
-            "./res/fonts/OpenSans-Regular/OpenSans-Regular.json", fontAtlas);
+            "./res/fonts/Papyrus/Papyrus-Regular.json", fontAtlas, true);
 
         this->optionsMenu = OptionsMenu::Build(*mainScene, font);
         
@@ -99,36 +99,7 @@ public:
 
         Texture2D* placeholder = mainScene->Resources()->Get<Texture2D>("./res/textures/stone.jpg", Texture2D::ColorTextureRGB);
 
-        std::vector<ScrollingListItemData> listItems = {
-            {"Item 1", placeholder},
-            {"Item 1", placeholder},
-            {"Item 1", placeholder},
-            {"Item 1", placeholder},
-            {"Item 1", placeholder},
-            {"Item 1", placeholder},
-            {"Item 1", placeholder},
-            {"Item 1", placeholder},
-            {"Item 1", placeholder},
-            {"Item 1", placeholder},
-            {"Item 1", placeholder},
-            {"Item 1", placeholder},
-            {"Item 1", placeholder},
-            {"Item 1", placeholder},
-            {"Item 1", placeholder},
-            {"Item 1", placeholder},
-            {"Item 1", placeholder},
-            {"Item 1", placeholder},
-            {"Item 1", placeholder},
-            {"Item 1", placeholder},
-            {"Item 1", placeholder},
-            {"Item 1", placeholder},
-            {"Item 1", placeholder},
-            {"Item 1", placeholder},
-            {"Item 1", placeholder},
-            {"Item 1", placeholder},
-        };
-
-        this->itemList->Initialize(font, listItems);
+        this->itemList->Initialize(font);
         itemListNode->AddObjectIfMissing<WheelTag>();
     }
 

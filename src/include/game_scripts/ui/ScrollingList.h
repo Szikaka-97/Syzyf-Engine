@@ -2,7 +2,7 @@
 
 #include "Application.h"
 #include "GameObject.h"
-#include "ui/widgets/wheel/UiWheel.h"
+#include "ui/TextAlignment.h"
 #include <Scene.h>
 #include <InputSystem.h>
 #include <TimeSystem.h>
@@ -16,16 +16,25 @@
 #include <vector>
 #include <string>
 #include <algorithm>
+#include <ui/widgets/wheel/UiWheel.h>
 
 struct ScrollingListItemData {
     std::string text;
+    int count;
     Texture2D* icon;
 };
 
 class ScrollingList : public GameObject {
 public:
+    Font* listFont = nullptr;
+    int activeItemCount = 0;
+
     std::vector<SceneNode*> itemNodes;
     std::vector<UiInteractable*> itemInteractables;
+    std::vector<UiText*> itemNameTexts;
+    std::vector<UiText*> itemCountTexts;
+    std::vector<UiVisual*> itemIcons;
+
     UiInteractable* scrollbarHandle = nullptr;
     SceneNode* scrollbarHandleNode = nullptr;
     UiLayout* layout = nullptr;
@@ -39,59 +48,21 @@ public:
     float scrollSpeed = 15.0f;
     float handleHeight = 100.0f;
 
+    bool isDragging = false;
+    float dragOffset = 0.0f;
+
     glm::vec4 colorNormal = glm::vec4(0.2f, 0.2f, 0.2f, 0.8f);
     glm::vec4 colorSelected = glm::vec4(0.4f, 0.6f, 0.4f, 1.0f);
 
     ScrollingList() = default;
 
-    void Initialize(Font* font, const std::vector<ScrollingListItemData>& itemsData) {
+    void Initialize(Font* font) {
+        listFont = font;
         Scene* mainScene = GetScene();
         SceneNode* listRoot = GetNode();
         
         this->layout = listRoot->AddObjectIfMissing<UiLayout>(
-            glm::uvec2(400, 860), glm::ivec2(-40, 40), 10, AnchorPoint::CenterRight);
-
-        float listWidth = 340.0f;
-
-        for (size_t i = 0; i < itemsData.size(); i++) {
-            SceneNode* itemNode = mainScene->GetOrCreateNode(listRoot, "Item_" + std::to_string(i));
-            
-            itemNode->AddObjectIfMissing<UiLayout>(
-                glm::uvec2(listWidth, itemHeight), glm::ivec2(0, 0), 11, AnchorPoint::Center);
-            itemNode->AddObjectIfMissing<UiVisual>(colorNormal);
-            itemNode->AddObjectIfMissing<WheelTag>();
-            
-            auto* interactable = itemNode->AddObjectIfMissing<UiInteractable>();
-            
-            itemNodes.push_back(itemNode);
-            itemInteractables.push_back(interactable);
-
-            SceneNode* iconNode = mainScene->GetOrCreateNode(itemNode, "Icon_" + std::to_string(i));
-            iconNode->AddObjectIfMissing<UiLayout>(
-                glm::uvec2(itemHeight - 10, itemHeight - 10), 
-                glm::ivec2(5, 0), 12, AnchorPoint::CenterLeft);
-            iconNode->AddObjectIfMissing<WheelTag>();
-                
-            if (itemsData[i].icon) {
-                iconNode->AddObjectIfMissing<UiVisual>(glm::vec4(1.0f), itemsData[i].icon);
-            } else {
-                iconNode->AddObjectIfMissing<UiVisual>(glm::vec4(0.5f, 0.5f, 0.5f, 1.0f));
-            }
-
-            SceneNode* textContainerNode = mainScene->GetOrCreateNode(itemNode, "TextContainer_" + std::to_string(i));
-            textContainerNode->AddObjectIfMissing<UiLayout>(
-                glm::uvec2(listWidth - itemHeight - 20, itemHeight), 
-                glm::ivec2(itemHeight + 10, 0), 12, AnchorPoint::CenterLeft);
-
-            SceneNode* textNode = mainScene->GetOrCreateNode(textContainerNode, "Text_" + std::to_string(i));
-            textNode->AddObjectIfMissing<UiLayout>(
-                glm::uvec2(listWidth - itemHeight - 20, itemHeight), 
-                glm::ivec2(0, 0), 13, AnchorPoint::Center);
-            textNode->AddObjectIfMissing<WheelTag>();
-                
-            auto* textComp = textNode->AddObjectIfMissing<UiText>(itemsData[i].text, font);
-            textComp->fontSize = 24.0f;
-        }
+            glm::uvec2(400, 860), glm::ivec2(-40, 00), 10, AnchorPoint::CenterRight);
 
         SceneNode* scrollbarTrackNode = mainScene->GetOrCreateNode(listRoot, "Scrollbar Track");
         scrollbarTrackNode->AddObjectIfMissing<UiLayout>(
@@ -110,11 +81,84 @@ public:
         scrollbarHandle = scrollbarHandleNode->AddObjectIfMissing<UiInteractable>();
     }
 
+    void RefreshItems(const std::vector<ScrollingListItemData>& itemsData) {
+        if (!listFont || !layout) return;
+        
+        Scene* mainScene = GetScene();
+        SceneNode* listRoot = GetNode();
+        float listWidth = 340.0f;
+
+        activeItemCount = static_cast<int>(itemsData.size());
+
+        for (size_t i = 0; i < itemsData.size(); i++) {
+            if (i >= itemNodes.size()) {
+                SceneNode* itemNode = mainScene->GetOrCreateNode(listRoot, "ListItem_" + std::to_string(i));
+                itemNode->AddObjectIfMissing<UiLayout>(
+                    glm::uvec2(listWidth, itemHeight), glm::ivec2(0, 0), 11, AnchorPoint::Center);
+                itemNode->AddObjectIfMissing<WheelTag>();
+                
+                auto* interactable = itemNode->AddObjectIfMissing<UiInteractable>();
+                
+                SceneNode* iconNode = mainScene->GetOrCreateNode(itemNode, "Icon_" + std::to_string(i));
+                iconNode->AddObjectIfMissing<UiLayout>(
+                    glm::uvec2(itemHeight - 10, itemHeight - 10), glm::ivec2(5, 0), 12, AnchorPoint::CenterLeft);
+                iconNode->AddObjectIfMissing<WheelTag>();
+                auto* iconVis = iconNode->AddObjectIfMissing<UiVisual>(glm::vec4(1.0f));
+
+                SceneNode* textContainerNode = mainScene->GetOrCreateNode(itemNode, "TextContainer_" + std::to_string(i));
+                textContainerNode->AddObjectIfMissing<UiLayout>(
+                    glm::uvec2(listWidth - itemHeight - 20, itemHeight), glm::ivec2(itemHeight + 10, 0), 12, AnchorPoint::CenterLeft);
+
+                SceneNode* textNode = mainScene->GetOrCreateNode(textContainerNode, "NameText_" + std::to_string(i));
+                textNode->AddObjectIfMissing<UiLayout>(
+                    glm::uvec2(listWidth - itemHeight - 70, itemHeight), glm::ivec2(0, 0), 13, AnchorPoint::CenterLeft);
+                textNode->AddObjectIfMissing<WheelTag>();
+                auto* nameTxt = textNode->AddObjectIfMissing<UiText>("", listFont);
+                nameTxt->fontSize = 24.0f;
+                nameTxt->alignment = TextAlignment::Left;
+
+                SceneNode* countNode = mainScene->GetOrCreateNode(textContainerNode, "CountText_" + std::to_string(i));
+                countNode->AddObjectIfMissing<UiLayout>(
+                    glm::uvec2(50, itemHeight), glm::ivec2(-10, 0), 13, AnchorPoint::CenterRight);
+                countNode->AddObjectIfMissing<WheelTag>();
+                auto* countTxt = countNode->AddObjectIfMissing<UiText>("", listFont);
+                countTxt->fontSize = 24.0f;
+                countTxt->alignment = TextAlignment::Right;
+
+                itemNodes.push_back(itemNode);
+                itemInteractables.push_back(interactable);
+                itemIcons.push_back(iconVis);
+                itemNameTexts.push_back(nameTxt);
+                itemCountTexts.push_back(countTxt);
+            }
+
+            itemNodes[i]->SetEnabled(true);
+            itemNameTexts[i]->text = itemsData[i].text;
+            itemCountTexts[i]->text = "x" + std::to_string(itemsData[i].count);
+            
+            if (itemsData[i].icon) {
+                itemIcons[i]->texture = itemsData[i].icon;
+                itemIcons[i]->color = glm::vec4(1.0f);
+            } else {
+                itemIcons[i]->texture = nullptr;
+                itemIcons[i]->color = glm::vec4(0.5f, 0.5f, 0.5f, 1.0f);
+            }
+        }
+
+        for (size_t i = itemsData.size(); i < itemNodes.size(); i++) {
+            itemNodes[i]->SetEnabled(false);
+        }
+
+        int maxIndex = activeItemCount - 1;
+        if (maxIndex < 0) maxIndex = 0;
+        selectedIndex = std::clamp(selectedIndex, 0, maxIndex);
+    }
+
     void Update() {
         auto* input = GetScene()->GetComponent<InputSystem>();
-        if (!input || !layout || itemNodes.empty()) return;
+        if (!input || !layout || activeItemCount == 0) return;
 
-        int maxIndex = static_cast<int>(itemNodes.size()) - 1;
+        int maxIndex = activeItemCount - 1;
 
         if (input->KeyDown(Key::Down) && selectedIndex < maxIndex) {
             selectedIndex++;
@@ -125,7 +169,7 @@ public:
 
         selectedIndex = std::clamp(selectedIndex, 0, maxIndex);
 
-        for (size_t i = 0; i < itemNodes.size(); i++) {
+        for (size_t i = 0; i < activeItemCount; i++) {
             if (itemInteractables[i]->isHovered) {
                 selectedIndex = i;
             }
@@ -135,7 +179,7 @@ public:
         float selectedTopEdge = selectedIndex * rowHeight;
         float selectedBottomEdge = selectedTopEdge + itemHeight;
         float visibleHeight = static_cast<float>(layout->size.y);
-        float totalHeight = itemNodes.size() * rowHeight - spacing;
+        float totalHeight = activeItemCount * rowHeight - spacing;
         float maxScroll = std::max(0.0f, totalHeight - visibleHeight);
 
         if (selectedTopEdge < targetScrollY) {
@@ -144,30 +188,51 @@ public:
             targetScrollY = selectedBottomEdge - visibleHeight;
         }
 
-        if (scrollbarHandle && scrollbarHandle->isPressed) {
+        if (scrollbarHandle) {
             glm::vec2 resolution = GetScene()->GetGraphics()->GetScreenResolution();
             float scaleFactor = resolution.y / UiLayoutSystem::VIRTUAL_RESOLUTION.y;
             float virtualMouseY = input->GetMousePosition().y / scaleFactor;
-            
             float relativeMouseY = virtualMouseY - (UiLayoutSystem::VIRTUAL_RESOLUTION.y / 2.0f);
-            
-            float trackTop = -visibleHeight / 2.0f + handleHeight / 2.0f;
-            float trackBot = visibleHeight / 2.0f - handleHeight / 2.0f;
-            
-            float fraction = (relativeMouseY - trackTop) / (trackBot - trackTop);
-            fraction = std::clamp(fraction, 0.0f, 1.0f);
-            
-            targetScrollY = fraction * maxScroll;
-            scrollY = targetScrollY;
-        } else {
-            scrollY += (targetScrollY - scrollY) * scrollSpeed * Time::UnscaledDelta();
+
+            if (scrollbarHandle->isDown) {
+                isDragging = true;
+                float currentHandleY = 0.0f;
+                if (auto* handleLayout = scrollbarHandleNode->GetObject<UiLayout>()) {
+                    currentHandleY = handleLayout->offset.y;
+                }
+                dragOffset = relativeMouseY - currentHandleY;
+            }
+
+            if (isDragging) {
+                if (!scrollbarHandle->isPressed && !scrollbarHandle->isDown) {
+                    isDragging = false;
+                } else {
+                    float targetHandleY = relativeMouseY - dragOffset;
+                    float trackTop = -visibleHeight / 2.0f + handleHeight / 2.0f;
+                    float trackBot = visibleHeight / 2.0f - handleHeight / 2.0f;
+                    
+                    float trackRange = trackBot - trackTop;
+                    float fraction = 0.0f;
+                    if (trackRange > 0.001f) {
+                        fraction = (targetHandleY - trackTop) / trackRange;
+                    }
+                    fraction = std::clamp(fraction, 0.0f, 1.0f);
+                    
+                    targetScrollY = fraction * maxScroll;
+                    scrollY = targetScrollY;
+                }
+            }
         }
 
         targetScrollY = std::clamp(targetScrollY, 0.0f, maxScroll);
+        
+        if (!isDragging) {
+            scrollY += (targetScrollY - scrollY) * scrollSpeed * Time::UnscaledDelta();
+        }
 
         float startY = -visibleHeight / 2.0f + itemHeight / 2.0f;
 
-        for (size_t i = 0; i < itemNodes.size(); i++) {
+        for (size_t i = 0; i < activeItemCount; i++) {
             SceneNode* childNode = itemNodes[i];
             UiLayout* childLayout = childNode->GetObject<UiLayout>();
             
@@ -180,7 +245,7 @@ public:
         }
 
         if (scrollbarHandleNode && maxScroll > 0.0f) {
-            float handleFraction = scrollY / maxScroll;
+            float handleFraction = maxScroll > 0.0f ? (scrollY / maxScroll) : 0.0f;
             float handleRange = visibleHeight - handleHeight;
             float handleY = -visibleHeight / 2.0f + handleHeight / 2.0f + (handleFraction * handleRange);
             
