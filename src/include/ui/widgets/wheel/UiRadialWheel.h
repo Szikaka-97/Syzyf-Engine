@@ -13,6 +13,7 @@
 #include "ui/widgets/wheel/UiWheel.h"
 #include "ui/objects/UiLayout.h"
 #include "ui/objects/UiText.h"
+#include "TimeSystem.h"
 #include "ui/objects/UiVisual.h"
 #include "Graphics.h"
 #include "ui/systems/UiLayoutSystem.h"
