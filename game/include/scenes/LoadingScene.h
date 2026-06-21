@@ -3,6 +3,8 @@
 #include "Application.h"
 #include "BaseScene.h"
 #include "GameObject.h"
+#include <Graphics.h>
+#include <LightSystem.h>
 #include "ui/objects/UiLayout.h"
 #include "ui/objects/UiText.h"
 #include "ui/systems/UiSystem.h"
@@ -20,6 +22,11 @@ class LoadingController : public GameObject {
         if (framesPassed > 2) {
 
             Scene* base = Scene::LoadScene("./res/scenes/Base Scene.scene");
+
+            if (base != nullptr && base->GetGraphics() != nullptr) {
+                base->GetGraphics()->GetLightSystem()->SetAmbientLight(
+                    glm::vec4(1.0f, 0.68f, 0.38f, 0.025f));
+            }
 
             Application::Get()->RequestSceneChange(base);
             // Application::Get()->RequestSceneBuild(
