@@ -90,6 +90,10 @@ public:
 	void Update();
 	void Render();
 
+    const std::vector<PlacedRoom>& GetRooms() const {
+        return this->dungeonRooms;
+    }
+
 	virtual void DrawImGui() override;
 };
 

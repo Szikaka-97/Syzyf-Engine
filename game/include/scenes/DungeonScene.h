@@ -48,6 +48,7 @@
 #include "game_scripts/ui/PauseMenu.h"
 #include "game_scripts/ui/TabMenu.h"
 #include "ui/systems/UiSystem.h"
+#include "ui/widgets/wheel/UiWheel.h"
 #include <Jolt/Jolt.h>
 #include <Jolt/Physics/Body/MotionType.h>
 #include <Jolt/Physics/Character/CharacterVirtual.h>
@@ -67,6 +68,7 @@ inline void InitScene(Scene& mainScene) {
     auto* tweenSystem = mainScene.AddComponent<TweenSystem>();
     mainScene.AddComponent<PickableItemSystem>();
     mainScene.AddComponent<UiSystem>();
+    mainScene.AddComponent<WheelSystem>();
     mainScene.AddComponent<ThrowableObjectPool>();
     auto* flockingSystem = mainScene.AddComponent<FlockingSystem>();
     // Opcjonalne tunowanie:

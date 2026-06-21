@@ -16,8 +16,8 @@ public:
         Scene* mainScene = GetScene();
         SceneNode* uiRoot = GetNode();
 
-        const int width = 413;
-        const int height = 121;
+        const int width = 500;
+        const int height = 146;
 
         SceneNode* healthNode = mainScene->GetOrCreateNode(uiRoot, "Health UI");
         healthNode->AddObjectIfMissing<UiLayout>(glm::uvec2(width, height), glm::uvec2(40, -40), 0, AnchorPoint::BottomLeft);
@@ -37,7 +37,7 @@ public:
         healthBarMaterial->SetValue("percent", 1.0f);
 
         SceneNode* healthFillNode = mainScene->GetOrCreateNode(healthNode, "Health Fill");
-        healthFillNode->AddObjectIfMissing<UiLayout>(glm::uvec2(270, 51), glm::uvec2(-20, 1), 1, AnchorPoint::Center);
+        healthFillNode->AddObjectIfMissing<UiLayout>(glm::uvec2(320, 60), glm::uvec2(-25, 2), 1, AnchorPoint::Center);
 
         Texture2D* healthFillTexture = mainScene->Resources()->Get<Texture2D>(
             "./res/textures/ui/2d/health_fill.png", Texture2D::ColorTextureRGBA
