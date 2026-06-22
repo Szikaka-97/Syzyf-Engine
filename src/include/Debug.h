@@ -2,8 +2,10 @@
 
 #include <string>
 #include <glm/fwd.hpp>
+#include <imgui.h>
 
 #include <SceneComponent.h>
+#include <Scene.h>
 
 class ImGuiDrawable {
 public:
@@ -54,4 +56,53 @@ namespace Debug {
 	bool Property(glm::mat3& property, const std::string& name);
 	template<>
 	bool Property(glm::mat4& property, const std::string& name);
+
+	bool Property(SceneNode* owner, SceneNode*& property, const std::string& name);
+
+	template<typename T>
+		requires (std::derived_from<T, GameObject>)
+	bool Property(SceneNode* owner, T*& property, const std::string& name);
+
+	void RegisterGameObjectProperty(SceneNode* owner, GameObject** property);
+
+	void CheckDeletedNode(SceneNode* deleted);
+	void CheckDeletedObject(GameObject* deleted);
 };
+
+template<typename T>
+	requires (std::derived_from<T, GameObject>)
+bool Debug::Property(SceneNode* owner, T*& property, const std::string& name) {
+	std::string displayName = "";
+
+	if (property) {
+		displayName = property->GetNode()->GetName();
+	}
+
+	ImGui::InputTextWithHint(name.c_str(), "nullptr", displayName.data(), displayName.size(), ImGuiInputTextFlags_ReadOnly);
+
+	if (ImGui::BeginDragDropTarget()) {
+		if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("GRAPH_SCENE_NODE")) {
+			SceneNode* droppedNode = *(SceneNode**) payload->Data;
+
+			auto objs = droppedNode->GetAllObjects<T>();
+			
+			for (auto* obj : objs) {
+				if (property == obj) {
+					continue;
+				}
+
+				property = obj;
+
+				ImGui::EndDragDropTarget();
+
+				RegisterGameObjectProperty(owner, (GameObject**) &property);
+				
+				return true;
+			}
+		}
+
+		ImGui::EndDragDropTarget();
+	}
+
+	return false;
+}

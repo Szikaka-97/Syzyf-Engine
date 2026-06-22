@@ -77,7 +77,6 @@ public:
 };
 
 class Material {
-	friend bool Debug::Property<Material>(Material&, const std::string&);
 private:
 	const ShaderProgram* shader;
 	ShaderVariableStorage shaderVariables;
