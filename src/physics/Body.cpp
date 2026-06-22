@@ -510,7 +510,6 @@ void Body::ApplyAngularImpulse(const glm::vec3& impulse) {
 // Syncs the node when moving it in the editor
 void Body::SyncToNode() {
     if (!bodyCreated) {
-        // spdlog::warn("Tried syncing a body that hasn't been created yet");
         return;
     }
     
@@ -527,34 +526,38 @@ void Body::SyncToNode() {
     this->SetRotation(rotation);
 
     if (scale != this->lastScale && this->originalShape != nullptr) {
-        JPH::ShapeRefC newShape;
-
         if (glm::abs(scale.x) < 0.001f) scale.x = scale.x < 0.0f ? -0.001f : 0.001f;
         if (glm::abs(scale.y) < 0.001f) scale.y = scale.y < 0.0f ? -0.001f : 0.001f;
         if (glm::abs(scale.z) < 0.001f) scale.z = scale.z < 0.0f ? -0.001f : 0.001f;
-            
+
+        JPH::ShapeRefC newShape;
+        JPH::EShapeSubType subType = this->originalShape->GetSubType();
+
         if (scale == glm::vec3(1.0f)) {
             newShape = this->originalShape;
-        } else {
-            JPH::EShapeSubType subType = this->originalShape->GetSubType();
-
-            if (subType == JPH::EShapeSubType::Sphere || subType == JPH::EShapeSubType::Capsule) {
-                float maxScale = std::max({glm::abs(scale.x), glm::abs(scale.y), glm::abs(scale.z)});
-
-                if (glm::abs(scale.x - scale.y) > glm::epsilon<float>() || glm::abs(scale.y - scale.z) > glm::epsilon<float>()) {
-                    spdlog::warn("Physics::Body::SyncToNode: Forced uniform scale for Sphere/Capsule");  
-                }
-
-                newShape = new JPH::ScaledShape(
-                    this->originalShape,
-                    JPH::Vec3(maxScale, maxScale, maxScale)
-                );
+        } else if (subType == JPH::EShapeSubType::Mesh) {
+            Mesh* mesh = reinterpret_cast<Mesh*>(this->originalShape->GetUserData());
+            if (mesh) {
+                newShape = Physics::MeshShape(mesh, scale);
             } else {
-                newShape = new JPH::ScaledShape(
-                    this->originalShape,
-                    JPH::Vec3(scale.x, scale.y, scale.z)
-                );
+                newShape = this->originalShape;
             }
+        } else if (subType == JPH::EShapeSubType::Sphere || subType == JPH::EShapeSubType::Capsule) {
+            float maxScale = std::max({glm::abs(scale.x), glm::abs(scale.y), glm::abs(scale.z)});
+
+            if (glm::abs(scale.x - scale.y) > glm::epsilon<float>() || glm::abs(scale.y - scale.z) > glm::epsilon<float>()) {
+                spdlog::warn("Physics::Body::SyncToNode: Forced uniform scale for Sphere/Capsule");  
+            }
+
+            newShape = new JPH::ScaledShape(
+                this->originalShape,
+                JPH::Vec3(maxScale, maxScale, maxScale)
+            );
+        } else {
+            newShape = new JPH::ScaledShape(
+                this->originalShape,
+                JPH::Vec3(scale.x, scale.y, scale.z)
+            );
         }
 
         if (Physics::System* system = this->GetScene()->GetComponent<Physics::System>()) {
@@ -567,9 +570,6 @@ void Body::SyncToNode() {
             this->lastScale = scale;
         }
     }
-    // This activates the body after it's been moved
-    //  not sure if having this happen while editing won't cause issues
-    // the same is true for character controllers
 }
 
 void Body::Awake() {

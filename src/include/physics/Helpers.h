@@ -17,7 +17,7 @@ JPH::ShapeRefC BoxShape(glm::vec3 halfExtent);
 JPH::ShapeRefC CapsuleShape(float halfHeight, float radius);
 JPH::ShapeRefC PlaneShape(glm::vec3 normal);
 JPH::ShapeRefC ConvexHullMeshShape(const Mesh* mesh);
-JPH::ShapeRefC MeshShape(const Mesh* mesh);
+JPH::ShapeRefC MeshShape(const Mesh* mesh, glm::vec3 scale = glm::vec3(1.0f));
 
 JPH::ShapeRefC CreateCompoundShapeFromNode(SceneNode* rootNode, bool useConvex, JPH::EMotionType motionType, JPH::ObjectLayer layer);
 }

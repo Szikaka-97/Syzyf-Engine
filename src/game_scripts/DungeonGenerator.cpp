@@ -305,10 +305,6 @@ void DungeonGenerator::RemakeDungeon() {
 }
 
 EnemyBase* SpawnEnemy(SceneNode* position) {
-	JPH::ShapeRefC enemyShape = new JPH::CapsuleShape(0.5f, 1.0f);
-    JPH::BodyCreationSettings enemySettings(
-        enemyShape, JPH::RVec3(10.5f, 2.0f, 2.0f), JPH::Quat::sIdentity(),
-        JPH::EMotionType::Dynamic, Physics::Layers::MOVING);
     Material* enemyMat =
         position->GetScene()->Resources()->Get<Material>("./res/materials/jake.mat");
     Mesh* cubeMesh =
@@ -316,8 +312,14 @@ EnemyBase* SpawnEnemy(SceneNode* position) {
 
     SceneNode* enemy1 = position->GetScene()->CreateNode(position, "Enemy 1");
     // enemy1->GlobalTransform().Position() = glm::vec3(10.5f, 0.0f, -5.0f);
-    enemy1->GlobalTransform().Scale() = glm::vec3(0.5f, 0.5f, 0.5f);
+    enemy1->GlobalTransform().Scale() = glm::vec3(1.0f);
     enemy1->GlobalTransform().Position() = position->GlobalTransform().Position().Value() + glm::vec3(0, 1, 0);
+
+    JPH::ShapeRefC enemyShape = new JPH::CapsuleShape(0.25f, 0.5f);
+    JPH::BodyCreationSettings enemySettings(
+        enemyShape, JPH::RVec3(10.5f, 2.0f, 2.0f), JPH::Quat::sIdentity(), JPH::EMotionType::Dynamic, Physics::Layers::MOVING      
+    );
+
     Physics::Body* enemyBody1 = enemy1->AddObject<Physics::Body>(enemySettings);
     enemyBody1->SetRestitution(0.0f);
     auto* enemyAi1 = enemy1->AddObject<EnemySkeleton>();

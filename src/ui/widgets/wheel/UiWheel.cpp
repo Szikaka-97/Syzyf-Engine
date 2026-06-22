@@ -162,7 +162,13 @@ void WheelSystem::OnPreUpdate() {
 					cleanName = cleanName.substr(0, lastSpace);
 				}
 
-				itemsData.push_back({ cleanName, count, nullptr });
+                std::string iconPath = "./res/textures/ui/2d/item_icons/" + cleanName + ".png";
+
+                auto texParams = Texture2D::ColorTextureRGBA;
+                texParams.colorSpace = TextureColor::Linear;
+                Texture2D* itemIcon = GetScene()->Resources()->Get<Texture2D>(iconPath, texParams);
+
+				itemsData.push_back({ cleanName, count, itemIcon });
 			}
 		}
 		

@@ -80,8 +80,12 @@ void FlockingSystem::OnPreUpdate() {
             diff.y = 0.0f;
             float distSq = glm::dot(diff, diff);
 
-            if (distSq < sepRadiusSq && distSq > 0.001f) {
-                separation += diff * (1.0f / distSq);
+            if (distSq < sepRadiusSq) {
+                if (distSq > 0.0001f) {
+                    separation += diff * (1.0f / distSq);
+                } else {
+                    separation += glm::vec3(0.5f * ((i % 3) - 1), 0.0f, 0.5f * ((j % 3) - 1));
+                }
             }
         }
 
