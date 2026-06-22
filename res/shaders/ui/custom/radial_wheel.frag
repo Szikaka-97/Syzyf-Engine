@@ -26,7 +26,7 @@ void main() {
         discard;
     }
 
-    float angle = atan(centeredUv.y, centeredUv.x);
+    float angle = atan(-centeredUv.y, centeredUv.x);
     if (angle < 0.0) {
         angle += TWO_PI;
     }

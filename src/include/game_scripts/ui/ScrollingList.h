@@ -17,6 +17,8 @@
 #include <string>
 #include <algorithm>
 #include <ui/widgets/wheel/UiWheel.h>
+#include <TweenSystem.h>
+#include <EasingFunctions.h>
 
 struct ScrollingListItemData {
     std::string text;
@@ -35,6 +37,7 @@ public:
     std::vector<UiText*> itemCountTexts;
     std::vector<UiVisual*> itemIcons;
     std::vector<UiVisual*> itemOutlines;
+    std::vector<TweenHandle> itemTweens;
 
     UiInteractable* scrollbarHandle = nullptr;
     SceneNode* scrollbarHandleNode = nullptr;
@@ -96,6 +99,8 @@ public:
         
         Scene* mainScene = GetScene();
         SceneNode* listRoot = GetNode();
+        TweenSystem* tweenSystem = mainScene->GetComponent<TweenSystem>();
+        
         float listWidth = 440.0f;
 
         activeItemCount = static_cast<int>(itemsData.size());
@@ -149,11 +154,58 @@ public:
                 itemIcons.push_back(iconVis);
                 itemNameTexts.push_back(nameTxt);
                 itemCountTexts.push_back(countTxt);
+                itemTweens.push_back(TweenHandle{});
+
+                int index = (int)i;
+                interactable->OnHoverEnter = [this, tweenSystem, iconNode, outlineNode, index]() {
+                    if (!tweenSystem) return;
+
+                    float currentScale = iconNode->LocalTransform().Scale().Value().x;
+
+                    TweenConfig config;
+                    config.initialValue = currentScale;
+                    config.targetValue = 1.3f;
+                    config.duration = 0.1f;
+                    config.easingFunction = Easing::inOutSine;
+
+                    TweenHandle handle = tweenSystem->CreateTween(config);
+                    handle.Bind([iconNode, outlineNode](float val) {
+                        iconNode->LocalTransform().Scale() = glm::vec3(val, val, 1.0f);
+                        outlineNode->LocalTransform().Scale() = glm::vec3(val, val, 1.0f);
+                    });
+
+                    this->itemTweens[index] = std::move(handle);
+                };
+
+                interactable->OnHoverExit = [this, tweenSystem, iconNode, outlineNode, index]() {
+                    if (!tweenSystem) return;
+
+                    float currentScale = iconNode->LocalTransform().Scale().Value().x;
+
+                    TweenConfig config;
+                    config.initialValue = currentScale;
+                    config.targetValue = 1.0f;
+                    config.duration = 0.15f;
+                    config.easingFunction = Easing::inOutSine;
+
+                    TweenHandle handle = tweenSystem->CreateTween(config);
+                    handle.Bind([iconNode, outlineNode](float val) {
+                        iconNode->LocalTransform().Scale() = glm::vec3(val, val, 1.0f);
+                        outlineNode->LocalTransform().Scale() = glm::vec3(val, val, 1.0f);
+                    });
+
+                    this->itemTweens[index] = std::move(handle);
+                };
             }
 
             itemNodes[i]->SetEnabled(true);
             itemNameTexts[i]->text = itemsData[i].text;
             itemCountTexts[i]->text = "x" + std::to_string(itemsData[i].count);
+            
+            if (!itemInteractables[i]->isHovered && (!tweenSystem || !tweenSystem->IsValid(itemTweens[i]))) {
+                itemIcons[i]->GetNode()->LocalTransform().Scale() = glm::vec3(1.0f);
+                itemOutlines[i]->GetNode()->LocalTransform().Scale() = glm::vec3(1.0f);
+            }
             
             if (itemsData[i].icon) {
                 itemIcons[i]->texture = itemsData[i].icon;
@@ -203,6 +255,7 @@ public:
         float rowHeight = itemHeight + spacing;
         float selectedTopEdge = selectedIndex * rowHeight;
         float selectedBottomEdge = selectedTopEdge + itemHeight;
+        
         float visibleHeight = static_cast<float>(layout->size.y);
         float paddedVisibleHeight = visibleHeight - (verticalPadding * 2.0f);
         float totalHeight = activeItemCount * rowHeight - spacing;
@@ -234,6 +287,7 @@ public:
                     isDragging = false;
                 } else {
                     float targetHandleY = relativeMouseY - dragOffset;
+                    
                     float trackTop = -visibleHeight / 2.0f + verticalPadding + handleHeight / 2.0f;
                     float trackBot = visibleHeight / 2.0f - verticalPadding - handleHeight / 2.0f;
                     
@@ -272,11 +326,12 @@ public:
 
         if (scrollbarHandleNode && maxScroll > 0.0f) {
             float handleFraction = maxScroll > 0.0f ? (scrollY / maxScroll) : 0.0f;
-
+            
             float trackTop = -visibleHeight / 2.0f + verticalPadding + handleHeight / 2.0f;
             float trackBot = visibleHeight / 2.0f - verticalPadding - handleHeight / 2.0f;
             float handleRange = trackBot - trackTop;
-            float handleY = trackTop + (handleFraction * handleRange); 
+            
+            float handleY = trackTop + (handleFraction * handleRange);
             
             if (auto* handleLayout = scrollbarHandleNode->GetObject<UiLayout>()) {
                 handleLayout->offset = glm::ivec2(0, static_cast<int>(handleY));
