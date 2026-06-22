@@ -2003,10 +2003,10 @@ inline void InitScene(Scene& scene) {
     roomNode->AddObject<CraftingTutorialFinishedMessage>();
     roomNode->AddObject<DungeonEntryPrompt>();
 
-        SceneNode* uiRoot = scene.CreateNode("UI");
-        SceneNode* pauseMenu = scene.CreateNode(uiRoot, "Pause Menu");
-        pauseMenu->AddObject<PauseMenu>();
-
+        // SceneNode* uiRoot = scene.CreateNode("UI");
+        // SceneNode* pauseMenu = scene.CreateNode(uiRoot, "Pause Menu");
+        // pauseMenu->AddObject<PauseMenu>();
+        //
         SetupCraftingStation(scene, stationNode);
         CreateCraftingIngredients(scene, stationNode);
 
