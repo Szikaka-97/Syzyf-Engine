@@ -13,11 +13,16 @@
 #include "ui/widgets/wheel/UiWheel.h"
 #include "ui/objects/UiLayout.h"
 #include "ui/objects/UiText.h"
+#include "TimeSystem.h"
 #include "ui/objects/UiVisual.h"
 #include "Graphics.h"
 #include "ui/systems/UiLayoutSystem.h"
+#include "EasingFunctions.h"
+#include "Light.h"
 
 #include <cmath>
+#include <glm/ext/quaternion_trigonometric.hpp>
+#include <glm/trigonometric.hpp>
 #include <imgui.h>
 #include <filesystem>
 
@@ -27,8 +32,8 @@ class UiRadialWheel : public GameObject, public ImGuiDrawable {
 public:
     int numberOfSlices = 5;
 
-    float innerRadius = 25.0f;
-    float outerRadius = 300.0f;
+    float innerRadius = 200.0f;
+    float outerRadius = 400.0f;
     float gapWidth = 0.02f;
     
     float alphaMultiplier = 0.3f;
@@ -45,6 +50,7 @@ private:
         SceneNode* cameraNode = nullptr;
         SceneNode* itemNode = nullptr;
         SceneNode* uiNode = nullptr;
+        TweenHandle hoverTween;
     };
 
     std::vector<ItemSlot> itemSlots;
@@ -68,13 +74,16 @@ public:
 
     void Awake() {
         // Tooltip setup
-        this->tooltipNode = this->GetScene()->CreateNode("Tooltip Node");
-        auto* visual = this->tooltipNode->AddObject<UiVisual>();
-        auto* layout = this->tooltipNode->AddObject<UiLayout>();
+        this->tooltipNode = this->GetScene()->GetOrCreateNode("Tooltip Node");
+        
+        auto* visual = this->tooltipNode->AddObjectIfMissing<UiVisual>();
+        visual->SetEnabled(false);
+        auto* layout = this->tooltipNode->AddObjectIfMissing<UiLayout>();
         layout->size = {400, 400};
         layout->zIndex = 2;
-        auto* text = this->tooltipNode->AddObject<UiText>();
+        auto* text = this->tooltipNode->AddObjectIfMissing<UiText>();
         text->maxWidth = layout->size.x;
+        text->SetEnabled(false);
 
         visual->color = {0.0, 0.0, 0.0, 0.2};
         
@@ -113,29 +122,36 @@ public:
             slot.viewport->GetFramebuffer()->CreateDepthAttachment(true, false);
             slot.viewport->SetSize(glm::uvec2(256, 256));
 
-            slot.cameraNode = GetScene()->CreateNode("ItemCamera_" + std::to_string(i));
-            Camera* camera = slot.cameraNode->AddObject<Camera>(Camera::Perspective(60.0f, 1.0f, 0.01f, 50.0f));
+            slot.cameraNode = GetScene()->GetOrCreateNode("ItemCamera_" + std::to_string(i));
+            Camera* camera = slot.cameraNode->AddObjectIfMissing<Camera>(Camera::Perspective(60.0f, 1.0f, 0.01f, 50.0f));
+            camera->AddPass(RenderPassType::Color);
+            camera->AddPass(RenderPassType::DepthPrepass);
 
-            slot.cameraNode->GlobalTransform().Position() = glm::vec3(0.0f, -500.0f + (i * 10.0f), 0.0f);
+            slot.cameraNode->GlobalTransform().Position() = glm::vec3(0.0f, -500.0f + (i * 10.0f), -0.02f);
 
             camera->SetRenderTarget(slot.viewport.get());
             camera->SetLayerMask(mask);
 
-            slot.itemNode = GetScene()->CreateNode("ItemPivot_" + std::to_string(i));
+            slot.itemNode = GetScene()->GetOrCreateNode("ItemPivot_" + std::to_string(i));
             slot.itemNode->GlobalTransform().Position() = glm::vec3(0.0f, -500.0f + (i * 10.0f), 0.2f);
 
-            GetScene()->Resources()->Get<GltfScene>(gltfPaths[i])->Instantiate(GetScene(), slot.itemNode, "ItemModel_" + std::to_string(i));
-            SetLayerRecursive(slot.itemNode, ui3DLayer);
+            if (!slot.itemNode->FindNode("ItemModel_" + std::to_string(i))) {
+                SceneNode* instantiatedModel = GetScene()->Resources()->Get<GltfScene>(gltfPaths[i])->Instantiate(GetScene(), slot.itemNode, "ItemModel_" + std::to_string(i));
+                instantiatedModel->LocalTransform().Position() = glm::vec3(0.0f);
+                instantiatedModel->LocalTransform().Rotation() = glm::angleAxis(glm::radians(30.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 
-            slot.uiNode = GetScene()->CreateNode(GetNode(), "ItemVisual_" + std::to_string(i));
-            slot.uiNode->AddObject<WheelTag>();
-            UiVisual* visual = slot.uiNode->AddObject<UiVisual>();
+                SetLayerRecursive(slot.itemNode, ui3DLayer);
+            }
+
+            slot.uiNode = GetScene()->GetOrCreateNode(GetNode(), "ItemVisual_" + std::to_string(i));
+            slot.uiNode->AddObjectIfMissing<WheelTag>();
+            UiVisual* visual = slot.uiNode->AddObjectIfMissing<UiVisual>();
             visual->texture = (Texture2D*)slot.viewport->GetFramebuffer()->GetColorTexture();
             visual->color.a = 1.0f;
             visual->SetEnabled(false);
 
-            UiLayout* layout = slot.uiNode->AddObject<UiLayout>();
-            layout->size = glm::ivec2(150, 150);
+            UiLayout* layout = slot.uiNode->AddObjectIfMissing<UiLayout>();
+            layout->size = glm::ivec2(300, 300);
             layout->anchorPoint = AnchorPoint::Center;
             layout->zIndex = 1;
 
@@ -172,7 +188,7 @@ public:
         }
 
         if (isWheelVisible && distance >= scaledInnerRadius && distance <= scaledOuterRadius) {
-            float angle = std::atan2(-relativeMouse.y, relativeMouse.x);
+            float angle = std::atan2(relativeMouse.y, relativeMouse.x);
 
             if (angle < 0.0f) {
                 angle += glm::two_pi<float>();
@@ -189,6 +205,40 @@ public:
         }
 
         if (hoveredSlice != lastHoveredSlice) {
+            if (lastHoveredSlice >= 0 && lastHoveredSlice < itemSlots.size()) {
+                auto& slot = itemSlots[lastHoveredSlice];
+                if (tweenSystem->IsValid(slot.hoverTween)) {
+                    slot.hoverTween.SetPlaying(false);
+                }
+                float currentScale = slot.uiNode->LocalTransform().Scale().Value().x;
+                TweenConfig config;
+                config.initialValue = currentScale;
+                config.targetValue = 1.0f;
+                config.duration = 0.15f;
+                config.easingFunction = Easing::inOutSine;
+
+                slot.hoverTween = std::move(tweenSystem->CreateTween(config).Bind([node = slot.uiNode](float val) {
+                    node->LocalTransform().Scale() = glm::vec3(val, val, 1.0f);
+                }));
+            }
+
+            if (hoveredSlice >= 0 && hoveredSlice < itemSlots.size()) {
+                auto& slot = itemSlots[hoveredSlice];
+                if (tweenSystem->IsValid(slot.hoverTween)) {
+                    slot.hoverTween.SetPlaying(false);
+                }
+                float currentScale = slot.uiNode->LocalTransform().Scale().Value().x;
+                TweenConfig config;
+                config.initialValue = currentScale;
+                config.targetValue = 1.15f;
+                config.duration = 0.1f;
+                config.easingFunction = Easing::inOutSine;
+
+                slot.hoverTween = std::move(tweenSystem->CreateTween(config).Bind([node = slot.uiNode](float val) {
+                    node->LocalTransform().Scale() = glm::vec3(val, val, 1.0f);
+                }));
+            }
+
             hoverTimer = 0.0f;
             lastHoveredSlice = hoveredSlice;
         }
@@ -222,6 +272,7 @@ public:
 
 private:
     void HandleTooltip(const glm::vec2& mousePosition) {
+        return;
         bool shouldBeVisible = (this->hoveredSlice >= 0 && this->IsEnabled() && this->hoverTimer >= this->hoverDelay);
 
         if (shouldBeVisible != this->isTooltipVisible) {

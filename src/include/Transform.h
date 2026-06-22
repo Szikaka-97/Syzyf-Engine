@@ -47,7 +47,7 @@ public:
 		glm::mat4 Value() const;
 		operator glm::mat4() const;
 
-		TransformAccess& operator=(const TransformAccess&) = delete;
+		TransformAccess& operator=(const TransformAccess& transformation);
 		TransformAccess& operator=(const glm::mat4& transformation);
 	};
 
@@ -71,6 +71,8 @@ public:
 		glm::vec3 Value() const;
 		operator glm::vec3() const;
 		operator glm::vec2() const;
+
+		PositionAccess& operator=(const PositionAccess& position);
 
 		PositionAccess& operator=(const glm::vec3& position);
 		PositionAccess& operator+=(const glm::vec3& position);
@@ -112,6 +114,8 @@ public:
 		glm::vec3 EulerAngles() const;
 		operator glm::vec3() const;
 		
+		RotationAccess& operator=(const RotationAccess& rotation);
+
 		RotationAccess& operator=(const glm::quat& rotation);
 		RotationAccess& operator*=(const glm::quat& rotation);
 		RotationAccess& operator=(const glm::vec3& rotationEuler);
@@ -137,6 +141,8 @@ public:
 
 		glm::vec3 Value() const;
 		operator glm::vec3() const;
+
+		ScaleAccess& operator=(const ScaleAccess& scale);
 
 		ScaleAccess& operator=(const glm::vec3& scale);
 		ScaleAccess& operator*=(const glm::vec3& scale);

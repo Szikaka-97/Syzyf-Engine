@@ -221,6 +221,8 @@ Mesh* Mesh::Load(fs::path modelPath, bool loadMaterials) {
 			}
 		}
 
+		spdlog::error("Mesh not found: {}", modelPath.string());
+
 		return nullptr;
 	}
 

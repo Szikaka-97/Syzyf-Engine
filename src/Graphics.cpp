@@ -39,7 +39,7 @@ static Material* ErrorMaterial = nullptr;
 
 Mesh* GetErrorMesh() {
 	if (ErrorMesh == nullptr) {
-		ErrorMesh = ResourceDatabase::Global->Get<Mesh>("./res/schnoz/schnoz.obj");
+		ErrorMesh = ResourceDatabase::Global->Get<Mesh>("./res/models/schnoz/schnoz.obj");
 	}
 
 	return ErrorMesh;
@@ -386,15 +386,19 @@ void SceneGraphics::DrawMeshInstanced(MeshRenderer* renderer, unsigned int insta
 
 	Mesh* drawnMesh = renderer->GetMesh();
 
+	bool renderingError = false;
+
 	if (!drawnMesh) {
 		drawnMesh = GetErrorMesh();
+
+		renderingError = true;
 	}
 
     auto* skeleton = renderer->GetSkeleton();
 
     for (int i = 0; i < drawnMesh->GetSubMeshCount(); i++) {
         const Mesh::SubMesh* mesh = &drawnMesh->SubMeshAt(i);
-        const Material* material = renderer->GetMaterial(mesh->GetMaterialIndex());
+        const Material* material = mesh && !renderingError ? renderer->GetMaterial(mesh->GetMaterialIndex()) : nullptr;
 
 		if (!material) {
 			material = GetErrorMaterial();

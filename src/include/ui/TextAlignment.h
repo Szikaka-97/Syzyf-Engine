@@ -5,3 +5,9 @@ enum class TextAlignment {
 	Middle,
 	Right
 };
+
+enum class TextVerticalAlignment {
+    Top,
+    Middle,
+    Bottom
+};

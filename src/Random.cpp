@@ -52,7 +52,7 @@ float Random::Value(float minValue, float maxValue) {
 
 	this->state = val;
 
-	return minValue + ((float) val / INT_MAX) * (maxValue - minValue);
+	return glm::mix(minValue, maxValue, (float) val / RAND_MAX);
 }
 
 int Random::RandomValueInt() {
@@ -110,10 +110,10 @@ bool Random::Chance(float probability) {
 }
 
 glm::vec3 Random::RandomOnUnitSphere() {
-	return globalInstance->RandomOnUnitSphere();
+	return globalInstance->OnUnitSphere();
 }
 glm::vec3 Random::RandomInUnitBox() {
-	return globalInstance->RandomInUnitBox();
+	return globalInstance->InUnitBox();
 }
 
 glm::vec3 Random::OnUnitSphere() {

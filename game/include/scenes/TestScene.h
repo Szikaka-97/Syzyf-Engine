@@ -15,13 +15,16 @@
 #include "fog/Fog.h"
 #include "game_scripts/FireParticles.h"
 #include "game_scripts/PickableItemSystem.h"
+#include "game_scripts/ui/InGame.h"
+#include "game_scripts/ui/PauseMenu.h"
+#include "game_scripts/ui/TabMenu.h"
 #include "ui/widgets/wheel/UiWheel.h"
 #include <game_scripts/AimCrosshair.h>
 #include <game_scripts/PlayerController.h>
 
+#include "game_scripts/PotionInventory.h"
 #include "game_scripts/enemies/FlockingSystem.h"
 #include "game_scripts/enemies/MeleeSkeleton.h"
-#include "game_scripts/PotionInventory.h"
 #include <Bloom.h>
 #include <Camera.h>
 #include <ColorGrading.h>
@@ -143,8 +146,8 @@ inline void InitScene(Scene& mainScene) {
     // auto* room1Body = room1MeshRenderer->GetNode()->AddObject<Physics::Body>(
     //     JPH::BodyCreationSettings{
     //         Physics::MeshShape(room1MeshRenderer->GetMesh()),
-    //         JPH::RVec3::sZero(), JPH::Quat::sZero(), JPH::EMotionType::Static,
-    //         Physics::Layers::NON_MOVING});
+    //         JPH::RVec3::sZero(), JPH::Quat::sZero(),
+    //         JPH::EMotionType::Static, Physics::Layers::NON_MOVING});
     // auto* room1Surface =
     //     room1->AddObject<Surface>(room1MeshRenderer->GetMesh(), 1.0f);
 
@@ -159,8 +162,8 @@ inline void InitScene(Scene& mainScene) {
     // auto* room2Body = room2MeshRenderer->GetNode()->AddObject<Physics::Body>(
     //     JPH::BodyCreationSettings{
     //         Physics::MeshShape(room2MeshRenderer->GetMesh()),
-    //         JPH::RVec3::sZero(), JPH::Quat::sZero(), JPH::EMotionType::Static,
-    //         Physics::Layers::NON_MOVING});
+    //         JPH::RVec3::sZero(), JPH::Quat::sZero(),
+    //         JPH::EMotionType::Static, Physics::Layers::NON_MOVING});
     // auto* room2Surface =
     //     room2->AddObject<Surface>(room2MeshRenderer->GetMesh(), 1.0f);
 
@@ -177,7 +180,7 @@ inline void InitScene(Scene& mainScene) {
     characterSettings->mMaxSlopeAngle = JPH::DegreesToRadians(45.0f);
 
     SceneNode* playerNode = mainScene.CreateNode("Player");
-	playerNode->GlobalTransform().Position() = glm::vec3(3, 0, 0);
+    playerNode->GlobalTransform().Position() = glm::vec3(3, 0, 0);
 
     SceneNode* bimberman =
         ResourceDatabase::Global
@@ -200,13 +203,8 @@ inline void InitScene(Scene& mainScene) {
 
     auto* player = playerNode->AddObject<PlayerController>();
 
-    PotionInventory::SaveLastCraftedPotion(
-        "Basic Potion",
-        "Explosion",
-        100.0f,
-        999,
-        false
-    );
+    PotionInventory::SaveLastCraftedPotion("Basic Potion", "Explosion", 100.0f,
+                                           999, false);
 
 #pragma endregion
 
@@ -281,88 +279,6 @@ inline void InitScene(Scene& mainScene) {
     // enemyModel->LocalTransform().Position() = glm::zero<glm::vec3>();
 
 #pragma endregion
-#pragma region UI
-
-    SceneNode* uiRoot = mainScene.CreateNode("UI");
-
-    // Move this into the wheel system
-    SceneNode* uiNode = mainScene.CreateNode(uiRoot, "Ui Node");
-    uiNode->AddObject<WheelTag>();
-    uiNode->AddObject<UiLayout>(glm::uvec2(400, 400), glm::uvec2(150, 0), 0,
-                                AnchorPoint::CenterLeft);
-    auto* uiVisual = uiNode->AddObject<UiVisual>(
-        glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-        mainScene.Resources()->Get<Texture2D>(
-            "./res/textures/1147437805040054272.png",
-            Texture2D::ColorTextureRGBA));
-    uiVisual->SetEnabled(false);
-    uiVisual->colorHovered = {1.0f, 0.0f, 0.0f, 1.0f};
-    uiVisual->colorClicked = {0.0f, 1.0f, 0.0f, 1.0f};
-    uiNode->AddObject<UiInteractable>();
-
-    SceneNode* cursorNode = mainScene.CreateNode(uiRoot, "Cursor");
-    cursorNode->AddObject<UiLayout>(glm::uvec2(64, 64), glm::uvec2(0, 0), 9999);
-
-    cursorNode->AddObject<UiVisual>(
-        glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-        mainScene.Resources()->Get<Texture2D>(
-            "./res/textures/1147437805040054272.png",
-            Texture2D::ColorTextureRGBA));
-    cursorNode->AddObject<UiCursor>();
-
-    ShaderProgram* customUiProgram =
-        ShaderProgram::Build()
-            .WithVertexShader("./res/shaders/ui/ui.vert")
-            .WithPixelShader("./res/shaders/ui/custom/radial_wheel.frag")
-            .Link();
-    Material* customUiMaterial = new Material(customUiProgram);
-    SceneNode* radialWheelNode = mainScene.CreateNode(uiRoot, "Radial Wheel");
-    radialWheelNode->AddObject<UiLayout>(
-        glm::uvec2(600, 600), glm::uvec2(-150, 0), 0, AnchorPoint::CenterRight);
-    auto* customVisual =
-        radialWheelNode->AddObject<UiVisual>(glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
-    customVisual->SetEnabled(false);
-    customVisual->customMaterial = customUiMaterial;
-    auto* radialWheel = radialWheelNode->AddObject<UiRadialWheel>();
-    radialWheel->AddObject<WheelTag>();
-    radialWheel->material.reset(customUiMaterial);
-    radialWheel->SetItemModels({
-        "./res/models/butelka.glb",
-        "./res/models/butelka.glb",
-        "./res/models/butelka.glb",
-        "./res/models/butelka.glb",
-        "./res/models/butelka.glb",
-    });
-
-    SceneNode* gridRoot = mainScene.CreateNode(uiRoot, "Grid");
-    gridRoot->AddObject<UiLayout>(glm::uvec2(360, 475), glm::uvec2(50, 50), 0,
-                                  AnchorPoint::TopLeft);
-    auto* gridRootVisual =
-        gridRoot->AddObject<UiVisual>(glm::vec4(0.2f, 0.2f, 0.2f, 0.8f));
-    gridRootVisual->SetEnabled(false);
-    gridRoot->AddObject<WheelTag>();
-    SceneNode* gridContainer = mainScene.CreateNode(gridRoot, "Grid Container");
-    auto* gridLayout = gridContainer->AddObject<UiLayout>(
-        glm::uvec2(330, 445), glm::uvec2(0, 0), 0, AnchorPoint::Center);
-    // gridContainer->AddObject<UiVisual>(glm::vec4(0.2f, 0.2f, 0.2f, 0.8f));
-    gridContainer->AddObject<UiInteractable>();
-
-    auto* grid = gridContainer->AddObject<UiScrollableGrid>();
-    for (int i = 0; i < 20; i++) {
-        SceneNode* itemNode =
-            mainScene.CreateNode(uiRoot, "Item_" + std::to_string(i));
-        itemNode->SetParent(gridContainer);
-
-        auto* layout = itemNode->AddObject<UiLayout>(
-            glm::uvec2(100, 100), glm::uvec2(0, 0), 1, AnchorPoint::Center);
-
-        auto* visual =
-            itemNode->AddObject<UiVisual>(glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
-        visual->SetEnabled(false);
-        itemNode->AddObject<UiInteractable>();
-        itemNode->AddObject<WheelTag>();
-    }
-#pragma endregion
 
     // Torch fire particles
     SceneNode* sprayNode = mainScene.CreateNode("Fire");
@@ -403,5 +319,14 @@ inline void InitScene(Scene& mainScene) {
     SceneNode* audio = mainScene.CreateNode("Audio");
     audio->AddObject<AudioSource>(
         mainScene.Resources()->Get<AudioClip>("./res/audio/Click.wav"));
+
+    // UI
+    SceneNode* uiRoot = mainScene.CreateNode("UI");
+    SceneNode* tabMenu = mainScene.CreateNode(uiRoot, "Tab Menu");
+    tabMenu->AddObject<TabMenu>();
+    SceneNode* pauseMenu = mainScene.CreateNode(uiRoot, "Pause Menu");
+    pauseMenu->AddObject<PauseMenu>();
+    SceneNode* inGameUi = mainScene.CreateNode("HUD");
+    inGameUi->AddObject<InGameUi>();
 }
 } // namespace TestScene

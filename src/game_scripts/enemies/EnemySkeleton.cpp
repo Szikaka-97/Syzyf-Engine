@@ -8,6 +8,10 @@ void EnemySkeleton::Update() {
     EnsureBody();
     if (!m_Body || !myNode || !m_TargetNode) return;
 
+    if (GlobalTransform().Position().y < -10) {
+        TakeDamage(9999999);
+    }
+
     m_TargetPosition = m_TargetNode->GlobalTransform().Position();
     currentPos       = m_Body->GetPosition();
     myNode->GlobalTransform().Position() = currentPos;
@@ -25,7 +29,7 @@ void EnemySkeleton::Update() {
     if (isPlayerInRoom) {
         //spdlog::error("player");
         float dist = glm::distance(currentPos, m_TargetPosition);
-        if      (m_hp <= 30)          currentState = States::FLEEING;
+        if      (m_hp <= 1)          currentState = States::FLEEING;
         else if (dist <= attackRange) currentState = States::ATTACKING;
         else                          currentState = States::CHASING;
     } else {

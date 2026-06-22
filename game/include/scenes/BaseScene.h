@@ -11,7 +11,9 @@
 #include <animation/AnimationSystem.h>
 #include <game_scripts/PickableItemSystem.h>
 #include <game_scripts/ThrowableObjectPool.h>
-#include <game_scripts/ui/InGameUi.h>
+#include <game_scripts/ui/InGame.h>
+#include <game_scripts/ui/PauseMenu.h>
+#include <game_scripts/ui/TabMenu.h>
 #include <physics/System.h>
 #include <ui/systems/UiSystem.h>
 #include <ui/widgets/wheel/UiWheel.h>
@@ -145,27 +147,18 @@ inline void InitScene(Scene& mainScene) {
 #pragma endregion
 
 #pragma region Player
-	SceneNode* playerNode = mainScene.LoadPrefab(fs::path("./res/prefabs/Player.prefab"));
+    SceneNode* playerNode =
+        mainScene.LoadPrefab(fs::path("./res/prefabs/Player.prefab"));
 #pragma endregion
 
 #pragma region Camera
-    SceneNode* cameraNode = mainScene.CreateNode("Camera Node");
-    cameraNode->AddObject<Camera>(
-        Camera::Perspective(60.0f, 16.0f / 9.0f, 0.1f, 200.0f));
-    cameraNode->AddObject<CameraSettings>(
-        playerNode->GlobalTransform().Position(), 5, 135);
-    cameraNode->AddObject<MaskEffects>();
-    auto* jfa = cameraNode->AddObject<JfaOutline>();
-    jfa->outlineThickness = 4.0f;
-    jfa->outlineColor = {1.0f, 29.0f / 255.0f, 29.0f / 255.0f};
-    auto* dof = cameraNode->AddObject<DepthOfField>();
-    dof->SetEnabled(false);
-    cameraNode->AddObject<Bloom>();
-    cameraNode->AddObject<Tonemapper>()->SetOperator(
-        Tonemapper::TonemapperOperator::GranTurismo);
-    cameraNode->AddObject<ColorGrading>();
-    cameraNode->AddObject<MaskEffects>();
-    cameraNode->AddObject<Fxaa>();
+    SceneNode* cameraNode =
+        mainScene.LoadPrefab(fs::path("./res/prefabs/PlayerCamera.prefab"));
+
+    CameraSettings* camera = cameraNode->GetObject<CameraSettings>();
+
+    camera->SetHeight(5);
+    camera->SetAngleY(135);
 #pragma endregion
 
 #pragma region Gameplay
@@ -174,7 +167,12 @@ inline void InitScene(Scene& mainScene) {
 #pragma region Ui
     // Wheel
     SceneNode* uiRoot = mainScene.CreateNode("UI");
-    uiRoot->AddObject<InGameUi>();
+    SceneNode* tabMenu = mainScene.CreateNode(uiRoot, "Tab Menu");
+    tabMenu->AddObject<TabMenu>();
+    SceneNode* pauseMenu = mainScene.CreateNode(pauseMenu, "Pause Menu");
+    pauseMenu->AddObject<PauseMenu>();
+    SceneNode* inGameUi = mainScene.CreateNode("HUD");
+    inGameUi->AddObject<InGameUi>();
 
 #pragma endregion
 }

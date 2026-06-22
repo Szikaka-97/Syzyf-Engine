@@ -52,6 +52,10 @@ public:
 
 	template<class T_GO, typename... T_Param>
 		requires std::derived_from<T_GO, GameObject>
+	T_GO* AddObjectIfMissing(T_Param&&... params) const;
+
+	template<class T_GO, typename... T_Param>
+		requires std::derived_from<T_GO, GameObject>
 	T_GO* GetObject() const;
 
 	template<class T_GO, typename... T_Param>
@@ -71,6 +75,12 @@ template<class T_GO, typename... T_Param>
 	requires std::derived_from<T_GO, GameObject>
 T_GO* GameObject::AddObject(T_Param... params) const {
 	return this->node->AddObject<T_GO>(params...);
+}
+
+template<class T_GO, typename... T_Param>
+	requires std::derived_from<T_GO, GameObject>
+T_GO* GameObject::AddObjectIfMissing(T_Param&&... params) const {
+	return this->node->AddObjectIfMissing<T_GO>(params...);
 }
 
 template<class T_GO, typename... T_Param>

@@ -3,6 +3,7 @@
 #include <concepts>
 #include <nlohmann/json_fwd.hpp>
 #include <vector>
+#include <bitset>
 #include <queue>
 #include <Serialized.h>
 
@@ -33,7 +34,7 @@ private:
 	serialized int id;
 	serialized std::string name;
 
-	serialized uint8_t disabledState;
+	std::bitset<8> nodeState;
 	serialized uint8_t layer;
 
 	Scene* scene;
@@ -89,6 +90,10 @@ public:
 	template<class T_GO>
 		requires std::derived_from<T_GO, GameObject>
 	T_GO* GetObject() const;
+
+	template<class T_GO, typename... T_Param>
+		requires std::derived_from<T_GO, GameObject>
+	T_GO* AddObjectIfMissing(T_Param&&... params);
 
 	template<class T_GO>
 		requires std::derived_from<T_GO, GameObject>
@@ -167,6 +172,9 @@ public:
 	SceneNode* CreateNode(SceneNode* parent);
 	SceneNode* CreateNode(const std::string& name);
 	SceneNode* CreateNode(SceneNode* parent, const std::string& name);
+
+	SceneNode* GetOrCreateNode(const std::string& name);
+	SceneNode* GetOrCreateNode(SceneNode* parent, const std::string& name);
 
 	ResourceDatabase* Resources();
 
@@ -254,6 +262,18 @@ T_GO* SceneNode::GetObject() const {
 	}
 
 	return nullptr;
+}
+
+template<class T_GO, typename... T_Param>
+	requires std::derived_from<T_GO, GameObject>
+T_GO* SceneNode::AddObjectIfMissing(T_Param&&... params) {
+	T_GO* result;
+
+	if (!TryGetObject<T_GO>(result)) {
+		result = AddObject<T_GO>(params...);
+	}
+
+	return result;
 }
 
 template<class T_GO>

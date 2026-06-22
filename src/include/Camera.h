@@ -71,6 +71,8 @@ public:
 	Camera(Orthographic orthoData);
 	virtual ~Camera();
 
+	void Awake();
+
 	void MakePerspective();
 	void MakePerspective(float fovyDegrees, float aspectRatio, float nearPlane, float farPlane);
 

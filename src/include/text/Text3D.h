@@ -13,21 +13,24 @@ class MeshRenderer;
 
 class Text3D : public GameObject, public ImGuiDrawable {
 public:
-    glm::vec4 color{1.0f};
-    BillboardMode billboardMode = BillboardMode::Disabled;
+    serialized glm::vec4 color{1.0f};
+    serialized BillboardMode billboardMode = BillboardMode::Disabled;
 private:
-    std::string text = "";
-    Font* font;
-    TextAlignment alignment;
+    serialized std::string text = "";
+    serialized Font* font;
+    serialized TextAlignment alignment;
 
     std::unique_ptr<Mesh> mesh;
-    MeshRenderer* renderer = nullptr;
+    serialized MeshRenderer* renderer = nullptr;
     
     std::unique_ptr<ShaderProgram> shader;
     std::shared_ptr<Material> material;
 
 public:
-    Text3D(std::string text = "", Font* font = nullptr, std::shared_ptr<Material> material = nullptr);
+    Text3D();
+    Text3D(std::string text, Font* font = nullptr, std::shared_ptr<Material> material = nullptr);
+
+    void Awake();
 
     std::string GetText() const;
     Font* GetFont() const;

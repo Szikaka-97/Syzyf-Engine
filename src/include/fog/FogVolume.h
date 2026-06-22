@@ -56,7 +56,9 @@ private:
     Mesh *mesh;
     Material *material;
 public:
-    FogVolume();
+    FogVolume() = default;
+
+    void Awake();
 
     virtual void Render();
     virtual void DrawImGui();
