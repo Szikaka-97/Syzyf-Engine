@@ -714,6 +714,8 @@ public:
 		if (distanceToTrigger < this->triggerRadius) {
 			this->sceneRequested = true;
 
+			PotionInventory::ClearTutorialPotions();
+
 			PersistentData::Set<bool>("CraftingScene_ReturnedFromThrowingTutorial", true);
 			PersistentData::Set<bool>("CraftingScene_AutoEnterCrafting", true);
 

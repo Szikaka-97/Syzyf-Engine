@@ -196,6 +196,27 @@ namespace PotionInventory{
         PersistentData::Clear<int>(PotionSlotKey(slotIndex,"ModifierCount"));
     }
 
+    inline bool IsTutorialPotionData(const Crafting::CraftedPotionData& potionData){
+        Crafting::CraftedPotionData normalizedPotionData =
+            NormalizePotionData(potionData);
+
+        return
+            normalizedPotionData.recipeName == "Basic Potion" &&
+            normalizedPotionData.primaryEffectId == Crafting::EffectId::Explosion;
+    }
+
+    inline void ClearLastCraftedPotion(){
+        PersistentData::Clear<std::string>(LastRecipeNameKey);
+        PersistentData::Clear<std::string>(LastEffectIdKey);
+        PersistentData::Clear<std::string>(LastSecondaryEffectIdKey);
+        PersistentData::Clear<float>(LastQualityKey);
+        PersistentData::Clear<float>(LastRadiusKey);
+        PersistentData::Clear<float>(LastDurationKey);
+        PersistentData::Clear<float>(LastPowerKey);
+        PersistentData::Clear<int>(LastMainEffectCountKey);
+        PersistentData::Clear<int>(LastModifierCountKey);
+    }
+
     inline int CountPotionStacks(){
         int total = 0;
 
@@ -204,6 +225,24 @@ namespace PotionInventory{
         }
 
         return total;
+    }
+
+    inline void ClearTutorialPotions(){
+        for (int i = 0; i < MaxPotionInventorySlots; i++){
+            if (!IsPotionSlotUsed(i)){
+                continue;
+            }
+
+            if (IsTutorialPotionData(GetPotionSlotData(i))){
+                ClearPotionSlot(i);
+            }
+        }
+
+        if (IsTutorialPotionData(ReadLastCraftedPotionData())){
+            ClearLastCraftedPotion();
+        }
+
+        PersistentData::Set<int>(PotionCountKey,CountPotionStacks());
     }
 
     inline void SynchronizePotionCountFromStacks(){
