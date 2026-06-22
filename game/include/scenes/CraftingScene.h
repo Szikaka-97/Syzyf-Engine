@@ -25,6 +25,7 @@
 #include "game_scripts/AimCrosshair.h"
 #include <game_scripts/PickableItemSystem.h>
 #include <game_scripts/ThrowableObjectPool.h>
+#include <game_scripts/ui/PauseMenu.h>
 #include <ui/widgets/wheel/UiWheel.h>
 #include <ui/objects/UiLayout.h>
 #include <ui/objects/UiText.h>
@@ -2111,6 +2112,10 @@ namespace CraftingScene {
 	    roomNode->AddObject<CraftingRoomLights>();
 	    roomNode->AddObject<CraftingTutorialFinishedMessage>();
 	    roomNode->AddObject<DungeonEntryPrompt>();
+
+        SceneNode* uiRoot = scene.CreateNode("UI");
+        SceneNode* pauseMenu = scene.CreateNode(uiRoot, "Pause Menu");
+        pauseMenu->AddObject<PauseMenu>();
 
         SetupCraftingStation(scene, stationNode);
         CreateCraftingIngredients(scene, stationNode);

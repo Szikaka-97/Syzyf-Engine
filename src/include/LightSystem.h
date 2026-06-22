@@ -28,6 +28,7 @@ private:
     float shadowFilterRadius = 2.5f;
 
     glm::vec4 ambientLight;
+    float ambientLightMultiplier = 1.0f;
 
 	glm::uvec3 lightGridSize;
 
@@ -53,6 +54,8 @@ public:
 
     glm::vec4 GetAmbientLight() const;
     void SetAmbientLight(glm::vec4 ambientLight);
+    float GetAmbientLightMultiplier() const;
+    void SetAmbientLightMultiplier(float multiplier);
 
 	virtual void OnPostRender();
 

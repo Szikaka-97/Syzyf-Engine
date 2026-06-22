@@ -53,12 +53,15 @@
 #include <physics/VirtualCharacterController.h>
 #include <game_scripts/AimCrosshair.h>
 #include <game_scripts/ThrowableObjectPool.h>
+#include <game_scripts/ui/PauseMenu.h>
+#include <ui/systems/UiSystem.h>
 #include <game_scripts/enemies/FlockingSystem.h>
 
 namespace DungeonScene {
 inline void InitScene(Scene& mainScene) {
 	mainScene.AddComponent<Physics::System>();
 	mainScene.AddComponent<DebugInspector>();
+	mainScene.AddComponent<UiSystem>();
 	mainScene.AddComponent<AnimationSystem>();
 	auto* tweenSystem = mainScene.AddComponent<TweenSystem>();
     mainScene.AddComponent<PickableItemSystem>();
@@ -148,6 +151,13 @@ inline void InitScene(Scene& mainScene) {
 	auto* dungeon = generatorNode->AddObject<DungeonGenerator>();
 
 	dungeon->RemakeDungeon();
+
+#pragma endregion
+#pragma region Ui
+
+    SceneNode* uiRoot = mainScene.CreateNode("UI");
+    SceneNode* pauseMenu = mainScene.CreateNode(uiRoot, "Pause Menu");
+    pauseMenu->AddObject<PauseMenu>();
 
 #pragma endregion
 

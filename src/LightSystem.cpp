@@ -3,6 +3,7 @@
 #include <malloc.h>
 
 #include <glm/glm.hpp>
+#include <algorithm>
 #include <imgui.h>
 
 #include <Light.h>
@@ -81,11 +82,21 @@ glm::vec3 LightSystem::GetLightGridSize() const {
 }
 
 glm::vec4 LightSystem::GetAmbientLight() const {
-    return this->ambientLight;
+    glm::vec4 effectiveAmbientLight = this->ambientLight;
+    effectiveAmbientLight.a *= this->ambientLightMultiplier;
+    return effectiveAmbientLight;
 }
 
 void LightSystem::SetAmbientLight(glm::vec4 ambientLight) {
     this->ambientLight = ambientLight;
+}
+
+float LightSystem::GetAmbientLightMultiplier() const {
+    return this->ambientLightMultiplier;
+}
+
+void LightSystem::SetAmbientLightMultiplier(float multiplier) {
+    this->ambientLightMultiplier = std::clamp(multiplier, 0.1f, 3.0f);
 }
 
 void LightSystem::DoSpotLightShadowmap(Light* light, ShadowMapRegion& shadowmapRect) {
@@ -557,7 +568,8 @@ void LightSystem::OnPostRender() {
 		}
 	}
 
-	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(this->ambientLight), &this->ambientLight);
+	glm::vec4 effectiveAmbientLight = this->GetAmbientLight();
+	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(effectiveAmbientLight), &effectiveAmbientLight);
 	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 16, sizeof(lightIndex), &lightIndex);
 	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 20, sizeof(this->directionalLightCascadeCount), &this->directionalLightCascadeCount);
     glBufferSubData(GL_SHADER_STORAGE_BUFFER, 24, sizeof(this->shadowSamplesCount), &this->shadowSamplesCount);

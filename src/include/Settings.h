@@ -11,6 +11,8 @@ struct GameSettings {
     bool vsyncEnabled = true;
 
     bool ssaoEnabled = true;
+    float soundVolume = 1.0f;
+    float ambientBrightness = 1.0f;
 
     void Load() {
         std::ifstream file("game_settings.json");
@@ -34,6 +36,12 @@ struct GameSettings {
                 if (j.contains("ssaoEnabled"))
                     this->ssaoEnabled = j["ssaoEnabled"].get<bool>();
 
+                if (j.contains("soundVolume"))
+                    this->soundVolume = j["soundVolume"].get<float>();
+
+                if (j.contains("ambientBrightness"))
+                    this->ambientBrightness = j["ambientBrightness"].get<float>();
+
             } catch (const nlohmann::json::parse_error& e) {
                 spdlog::error(
                     "Game settings file missing or corrupted, using defaults");
@@ -50,6 +58,8 @@ struct GameSettings {
             j["windowed"] = this->windowed;
             j["vsyncEnabled"] = this->vsyncEnabled;
             j["ssaoEnabled"] = this->ssaoEnabled;
+            j["soundVolume"] = this->soundVolume;
+            j["ambientBrightness"] = this->ambientBrightness;
 
             file << j.dump(4);
         }

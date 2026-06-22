@@ -248,6 +248,14 @@ Application* Application::Get() {
     return instance;
 }
 
+Scene* Application::CreateStartingScreenScene() {
+    return nullptr;
+}
+
+void Application::RequestQuit() {
+    this->isRunning = false;
+}
+
 void Application::RequestSceneBuild(SceneInitCallback initFunc) {
     this->pendingSceneInitFunc = initFunc;
     this->isSceneChangeRequested = true;

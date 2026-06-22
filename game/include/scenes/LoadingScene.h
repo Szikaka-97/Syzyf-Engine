@@ -4,6 +4,7 @@
 #include "BaseScene.h"
 #include "GameObject.h"
 #include <Graphics.h>
+#include <game_scripts/ui/PauseMenu.h>
 #include <LightSystem.h>
 #include "ui/objects/UiLayout.h"
 #include "ui/objects/UiText.h"
@@ -26,6 +27,11 @@ class LoadingController : public GameObject {
             if (base != nullptr && base->GetGraphics() != nullptr) {
                 base->GetGraphics()->GetLightSystem()->SetAmbientLight(
                     glm::vec4(1.0f, 0.68f, 0.38f, 0.025f));
+
+                base->GetOrCreateComponent<UiSystem>();
+                SceneNode* uiRoot = base->GetOrCreateNode("UI");
+                SceneNode* pauseMenu = base->GetOrCreateNode(uiRoot, "Pause Menu");
+                pauseMenu->AddObjectIfMissing<PauseMenu>();
             }
 
             Application::Get()->RequestSceneChange(base);
