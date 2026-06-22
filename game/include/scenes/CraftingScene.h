@@ -10,24 +10,36 @@
 #include "Shader.h"
 #include "Skybox.h"
 #include "Tonemapper.h"
-#include <MaskEffects.h>
-#include <JfaOutline.h>
-#include <DepthOfField.h>
 #include <Bloom.h>
 #include <ColorGrading.h>
+#include <DepthOfField.h>
 #include <Fxaa.h>
 #include <GltfScene.h>
+#include <JfaOutline.h>
+#include <MaskEffects.h>
 
 #include <TimeSystem.h>
 #include <TweenSystem.h>
 
-#include "game_scripts/CameraSettings.h"
+#include "DungeonScene.h"
 #include "game_scripts/AimCrosshair.h"
+#include "game_scripts/CameraSettings.h"
+#include "game_scripts/crafting/Cauldron.h"
+#include "game_scripts/crafting/CraftingDragInteractor.h"
+#include "game_scripts/crafting/CraftingIngredientReceiver.h"
+#include "game_scripts/crafting/CraftingInteractable.h"
+#include "game_scripts/crafting/CraftingStation.h"
+#include "game_scripts/crafting/DraggableCraftingItem.h"
+#include <Application.h>
+#include <PersistentData.h>
+#include <fog/FogVolume.h>
 #include <game_scripts/PickableItemSystem.h>
+#include <game_scripts/PotionInventory.h>
 #include <game_scripts/ThrowableObjectPool.h>
 #include <game_scripts/ui/PauseMenu.h>
 #include <ui/widgets/wheel/UiWheel.h>
 #include <ui/objects/UiInteractable.h>
+#include <text/Font.h>
 #include <ui/objects/UiLayout.h>
 #include <ui/objects/UiText.h>
 #include <ui/objects/UiVisual.h>
@@ -43,6 +55,7 @@
 #include "game_scripts/crafting/CraftingStation.h"
 #include "game_scripts/crafting/CraftingIngredientReceiver.h"
 #include "game_scripts/crafting/Cauldron.h"
+#include <ui/widgets/wheel/UiWheel.h>
 
 #include <game_scripts/PlayerController.h>
 #include <physics/VirtualCharacterController.h>
@@ -51,19 +64,19 @@
 #include <ui/systems/UiSystem.h>
 
 #include <physics/Body.h>
-#include <physics/System.h>
 #include <physics/Helpers.h>
+#include <physics/System.h>
 
 #include <Jolt/Jolt.h>
-#include <Jolt/Physics/Character/CharacterVirtual.h>
-#include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
 #include <Jolt/Physics/Body/MotionType.h>
+#include <Jolt/Physics/Character/CharacterVirtual.h>
+#include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
 
-#include <glm/glm.hpp>
 #include <glm/geometric.hpp>
-#include <glm/gtc/quaternion.hpp>
+#include <glm/glm.hpp>
 #include <glm/gtc/matrix_inverse.hpp>
+#include <glm/gtc/quaternion.hpp>
 #include <spdlog/spdlog.h>
 
 #include <algorithm>
@@ -74,1270 +87,1052 @@
 
 namespace CraftingScene {
 
-    static constexpr const char* CraftingRoomModelPath =
-	    "./res/models/rooms/Base_final_version.glb";
+static constexpr const char* CraftingRoomModelPath =
+    "./res/models/rooms/Base_final_version.glb";
 
-    static constexpr const char* CraftingStationModelPath =
-	    "./res/models/Bimbermachine.glb";
+static constexpr const char* CraftingStationModelPath =
+    "./res/models/Bimbermachine.glb";
 
-    struct IngredientSpawnData {
-	    std::string nodeName;
-	    std::string inventoryKey;
-	    std::string modelPath;
-	    glm::vec3 position = glm::vec3(0.0f);
-	    glm::vec3 modelScale = glm::vec3(1.0f);
-	    glm::vec3 modelRotationEuler = glm::vec3(0.0f);
-	    glm::vec3 modelOffset = glm::vec3(0.0f);
-	    glm::vec3 interactionHalfExtents = glm::vec3(0.07f, 0.08f, 0.07f);
-	    Crafting::IngredientData ingredientData;
-    };
+struct IngredientSpawnData {
+    std::string nodeName;
+    std::string inventoryKey;
+    std::string modelPath;
+    glm::vec3 position = glm::vec3(0.0f);
+    glm::vec3 modelScale = glm::vec3(1.0f);
+    glm::vec3 modelRotationEuler = glm::vec3(0.0f);
+    glm::vec3 modelOffset = glm::vec3(0.0f);
+    glm::vec3 interactionHalfExtents = glm::vec3(0.07f, 0.08f, 0.07f);
+    Crafting::IngredientData ingredientData;
+};
 
-    inline Material* CreateColorMaterial(const glm::vec4& color);
+inline Material* CreateColorMaterial(const glm::vec4& color);
 
-    inline MeshRenderer* FindMeshRenderer(SceneNode* node) {
-	    if (!node) {
-		    return nullptr;
-	    }
-
-	    return node->GetObjectInChildren<MeshRenderer>();
+inline MeshRenderer* FindMeshRenderer(SceneNode* node) {
+    if (!node) {
+        return nullptr;
     }
 
-    inline SceneNode* FindFirstNodeByNameRecursive(SceneNode* node, const std::string& name) {
-	    if (!node) {
-		    return nullptr;
-	    }
+    return node->GetObjectInChildren<MeshRenderer>();
+}
 
-	    if (node->GetName() == name) {
-		    return node;
-	    }
-
-	    for (SceneNode* child : node->GetChildren()) {
-		    SceneNode* found = FindFirstNodeByNameRecursive(child, name);
-
-		    if (found != nullptr) {
-			    return found;
-		    }
-	    }
-
-	    return nullptr;
+inline SceneNode* FindFirstNodeByNameRecursive(SceneNode* node,
+                                               const std::string& name) {
+    if (!node) {
+        return nullptr;
     }
 
-    inline SceneNode* FindFirstNodeByNamesRecursive(SceneNode* node, const std::vector<std::string>& names) {
-	    for (const std::string& name : names) {
-		    SceneNode* foundNode = FindFirstNodeByNameRecursive(node, name);
-
-		    if (foundNode != nullptr) {
-			    return foundNode;
-		    }
-	    }
-
-	    return nullptr;
+    if (node->GetName() == name) {
+        return node;
     }
 
-    inline SceneNode* FindStationMarkerNode(SceneNode* roomNode) {
-	    return FindFirstNodeByNamesRecursive(
-		    roomNode,
-		    {
-			    "CraftingStationPoint",
-			    "Crafting_Station_Point",
-			    "CraftingStationSpawn",
-			    "Crafting_Station_Spawn",
-			    "BimberMachinePoint",
-			    "Bimber_Machine_Point",
-			    "MachinePoint",
-			    "Machine_Point",
-			    "StationPoint",
-			    "Station_Point",
-			    "station",
-			    "Station"
-		    }
-	    );
+    for (SceneNode* child : node->GetChildren()) {
+        SceneNode* found = FindFirstNodeByNameRecursive(child, name);
+
+        if (found != nullptr) {
+            return found;
+        }
     }
 
-    inline bool IsRoomPointLightNodeName(const std::string& name) {
-	    return
-		    name == "Point" ||
-		    name.rfind("Point.", 0) == 0 ||
-		    name == "PointLight" ||
-		    name.rfind("PointLight.", 0) == 0;
+    return nullptr;
+}
+
+inline SceneNode*
+FindFirstNodeByNamesRecursive(SceneNode* node,
+                              const std::vector<std::string>& names) {
+    for (const std::string& name : names) {
+        SceneNode* foundNode = FindFirstNodeByNameRecursive(node, name);
+
+        if (foundNode != nullptr) {
+            return foundNode;
+        }
     }
 
-    inline void CollectPointLightsRecursive(SceneNode* node, std::vector<SceneNode*>& pointLights) {
-	    if (!node) {
-		    return;
-	    }
+    return nullptr;
+}
 
-	    if (IsRoomPointLightNodeName(node->GetName())) {
-		    pointLights.push_back(node);
-	    }
+inline SceneNode* FindStationMarkerNode(SceneNode* roomNode) {
+    return FindFirstNodeByNamesRecursive(
+        roomNode,
+        {"CraftingStationPoint", "Crafting_Station_Point",
+         "CraftingStationSpawn", "Crafting_Station_Spawn", "BimberMachinePoint",
+         "Bimber_Machine_Point", "MachinePoint", "Machine_Point",
+         "StationPoint", "Station_Point", "station", "Station"});
+}
 
-	    for (SceneNode* child : node->GetChildren()) {
-		    CollectPointLightsRecursive(child, pointLights);
-	    }
+inline bool IsRoomPointLightNodeName(const std::string& name) {
+    return name == "Point" || name.rfind("Point.", 0) == 0 ||
+           name == "PointLight" || name.rfind("PointLight.", 0) == 0;
+}
+
+inline void CollectPointLightsRecursive(SceneNode* node,
+                                        std::vector<SceneNode*>& pointLights) {
+    if (!node) {
+        return;
     }
 
-    inline int GetPointLightIndex(const std::string& name) {
-	    try {
-		    if (name == "Point" || name == "PointLight") {
-			    return 0;
-		    }
-
-		    const std::string pointPrefix = "Point.";
-		    const std::string pointLightPrefix = "PointLight.";
-
-		    if (name.rfind(pointPrefix, 0) == 0) {
-			    return std::stoi(name.substr(pointPrefix.size()));
-		    }
-
-		    if (name.rfind(pointLightPrefix, 0) == 0) {
-			    return std::stoi(name.substr(pointLightPrefix.size()));
-		    }
-	    }
-	    catch (...) {
-	    }
-
-	    return 999999;
+    if (IsRoomPointLightNodeName(node->GetName())) {
+        pointLights.push_back(node);
     }
 
-    class CraftingRoomLights : public GameObject {
-    private:
-	    static constexpr const char* BaseRoomVisitedKey =
-		    "Crafting_BaseRoomVisited";
+    for (SceneNode* child : node->GetChildren()) {
+        CollectPointLightsRecursive(child, pointLights);
+    }
+}
 
-	    std::vector<Light*> lights;
-	    std::vector<float> baseIntensities;
+inline int GetPointLightIndex(const std::string& name) {
+    try {
+        if (name == "Point" || name == "PointLight") {
+            return 0;
+        }
 
-	    bool firstRoomVisit = false;
-	    float lightsOnTime = 0.0f;
-	    float sequenceDelay = 0.25f;
-	    float fadeDuration = 0.6f;
+        const std::string pointPrefix = "Point.";
+        const std::string pointLightPrefix = "PointLight.";
 
-    public:
-	    void Awake() {
-		    std::vector<SceneNode*> pointLightNodes;
+        if (name.rfind(pointPrefix, 0) == 0) {
+            return std::stoi(name.substr(pointPrefix.size()));
+        }
 
-		    CollectPointLightsRecursive(GetNode(), pointLightNodes);
-
-		    std::sort(pointLightNodes.begin(), pointLightNodes.end(), [](SceneNode* a, SceneNode* b) {
-			    return GetPointLightIndex(a->GetName()) < GetPointLightIndex(b->GetName());
-		    });
-
-		    this->firstRoomVisit =
-			    !PersistentData::Get<bool>(BaseRoomVisitedKey);
-
-		    PersistentData::Set<bool>(
-			    BaseRoomVisitedKey,
-			    true
-		    );
-
-		    for (SceneNode* pointLightNode : pointLightNodes) {
-			    Light* light = nullptr;
-
-			    if (!pointLightNode->TryGetObject<Light>(light)) {
-				    light = pointLightNode->AddObject<Light>(
-					    Light::PointLight(
-						    glm::vec3(1.0f, 0.55f, 0.18f),
-						    10.0f,
-						    0.0f,
-						    0.09f,
-						    0.032f
-					    )
-				    );
-			    }
-
-			    if (this->firstRoomVisit) {
-				    light->SetIntensity(0.0f);
-			    }
-			    else {
-				    light->SetIntensity(3.0f);
-			    }
-
-			    this->lights.push_back(light);
-			    this->baseIntensities.push_back(3.0f);
-		    }
-
-		    this->lightsOnTime = Time::Current();
-
-		    spdlog::info(
-			    "CraftingScene: loaded {} room point lights. firstRoomVisit={}.",
-			    this->lights.size(),
-			    this->firstRoomVisit
-		    );
-	    }
-
-	    void Update() {
-		    for (int index = 0; index < this->lights.size(); index++) {
-			    Light* light = this->lights[index];
-
-			    float flicker =
-				    glm::sin(Time::Current() * (0.6f + (light->GetID() % 4) * 0.15f) + light->GetID() * 4.0f) * 0.35f;
-
-			    float targetIntensity =
-				    this->baseIntensities[index] + flicker;
-
-			    float turnOnAmount = 1.0f;
-
-			    if (this->firstRoomVisit) {
-				    turnOnAmount =
-					    glm::clamp(
-						    (Time::Current() - this->lightsOnTime - float(index) * this->sequenceDelay) / this->fadeDuration,
-						    0.0f,
-						    1.0f
-					    );
-			    }
-
-			    light->SetIntensity(targetIntensity * turnOnAmount);
-		    }
-	    }
-    };
-
-
-    class CraftingTutorialFinishedMessage : public GameObject {
-    private:
-        static constexpr const char* TutorialFinishedMessageAlreadyShownKey =
-            "CraftingScene_TutorialFinishedMessageAlreadyShown";
-
-            UiText* messageText = nullptr;
-            bool messageStarted = false;
-            float showUntilTime = 0.0f;
-
-	    void HideMessage() {
-		    if (this->messageText == nullptr) {
-			    return;
-		    }
-
-		    this->messageText->color.w = glm::clamp(
-			    this->messageText->color.w - Time::Delta() * 2.0f,
-			    0.0f,
-			    1.0f
-		    );
-	    }
-
-            void ShowMessage() {
-                if (this->messageText == nullptr) {
-                    return;
-                }
-
-                if (PersistentData::Get<bool>(TutorialFinishedMessageAlreadyShownKey)) {
-                    PersistentData::Set<bool>(
-                        PotionInventory::ShowTutorialFinishedMessageKey,
-                        false
-                    );
-
-                    return;
-                }
-
-                if (!PersistentData::Get<bool>(PotionInventory::ShowTutorialFinishedMessageKey)) {
-                    return;
-                }
-
-		    this->messageText->text =
-			    "Tutorial complete\n"
-			    "You can now brew new potions in your base.\n"
-			    "Search the dungeon for new ingredients from monsters.\n"
-			    "Return here after each expedition to craft stronger potions.";
-
-		    this->messageText->color.w = 1.0f;
-		    this->messageStarted = true;
-		    this->showUntilTime = Time::Current() + 12.0f;
-
-                PersistentData::Set<bool>(TutorialFinishedMessageAlreadyShownKey,true);
-
-		    PersistentData::Set<bool>(
-			    PotionInventory::ShowTutorialFinishedMessageKey,
-			    false
-		    );
-	    }
-
-    public:
-	    void Awake() {
-		    TextureParams fontTextureParams = {
-			    .channels = TextureChannels::RGB,
-			    .colorSpace = TextureColor::Linear,
-			    .format = TextureFormat::Ubyte,
-			    .wrapU = TextureWrap::Clamp,
-			    .wrapV = TextureWrap::Clamp,
-			    .minFilter = TextureFilter::Linear,
-			    .magFilter = TextureFilter::Linear
-		    };
-
-		    Texture2D* papyrusAtlas = GetScene()->Resources()->Get<Texture2D>(
-			    "./res/fonts/Papyrus/Papyrus-Regular.png",
-			    fontTextureParams
-		    );
-
-		    Font* papyrusFont = GetScene()->Resources()->Get<Font>(
-			    "./res/fonts/Papyrus/Papyrus-Regular.json",
-			    papyrusAtlas,
-			    true
-		    );
-
-		    SceneNode* uiTextNode = GetScene()->CreateNode("Crafting Tutorial Finished Message UI");
-		    uiTextNode->AddObject<UiLayout>(
-			    glm::uvec2(620, 220),
-			    glm::ivec2(-40, 40),
-			    20,
-			    AnchorPoint::TopRight
-		    );
-
-		    this->messageText = uiTextNode->AddObject<UiText>("", papyrusFont);
-		    this->messageText->fontSize = 25.0f;
-		    this->messageText->alignment = TextAlignment::Right;
-		    this->messageText->maxWidth = 580.0f;
-		    this->messageText->color = glm::vec4(1.2f, 0.3f, 0.0f, 0.0f);
-
-                ShowMessage();
-	    }
-
-	    void Update() {
-
-		    if (!this->messageStarted) {
-			    return;
-		    }
-
-		    if (Time::Current() > this->showUntilTime) {
-			    HideMessage();
-		    }
-	    }
-    };
-
-
-    inline SceneNode* CreateLocalPoint(
-	    Scene& scene,
-	    SceneNode* parent,
-	    const std::string& nodeName,
-	    const glm::vec3& localPosition
-    ) {
-	    SceneNode* node = scene.CreateNode(parent, nodeName);
-	    node->LocalTransform().Position() = localPosition;
-
-	    return node;
+        if (name.rfind(pointLightPrefix, 0) == 0) {
+            return std::stoi(name.substr(pointLightPrefix.size()));
+        }
+    } catch (...) {
     }
 
+    return 999999;
+}
 
-    inline SceneNode* CreateWorldPoint(
-	    Scene& scene,
-	    SceneNode* parent,
-	    const std::string& nodeName,
-	    const glm::vec3& worldPosition
-    ) {
-	    SceneNode* node = scene.CreateNode(parent, nodeName);
-	    node->GlobalTransform().Position() = worldPosition;
+class CraftingRoomLights : public GameObject {
+  private:
+    static constexpr const char* BaseRoomVisitedKey =
+        "Crafting_BaseRoomVisited";
 
-	    return node;
+    std::vector<Light*> lights;
+    std::vector<float> baseIntensities;
+
+    bool firstRoomVisit = false;
+    float lightsOnTime = 0.0f;
+    float sequenceDelay = 0.25f;
+    float fadeDuration = 0.6f;
+
+  public:
+    void Awake() {
+        std::vector<SceneNode*> pointLightNodes;
+
+        CollectPointLightsRecursive(GetNode(), pointLightNodes);
+
+        std::sort(pointLightNodes.begin(), pointLightNodes.end(),
+                  [](SceneNode* a, SceneNode* b) {
+                      return GetPointLightIndex(a->GetName()) <
+                             GetPointLightIndex(b->GetName());
+                  });
+
+        this->firstRoomVisit = !PersistentData::Get<bool>(BaseRoomVisitedKey);
+
+        PersistentData::Set<bool>(BaseRoomVisitedKey, true);
+
+        for (SceneNode* pointLightNode : pointLightNodes) {
+            Light* light = nullptr;
+
+            if (!pointLightNode->TryGetObject<Light>(light)) {
+                light = pointLightNode->AddObject<Light>(Light::PointLight(
+                    glm::vec3(1.0f, 0.55f, 0.18f), 10.0f, 0.0f, 0.09f, 0.032f));
+            }
+
+            if (this->firstRoomVisit) {
+                light->SetIntensity(0.0f);
+            } else {
+                light->SetIntensity(3.0f);
+            }
+
+            this->lights.push_back(light);
+            this->baseIntensities.push_back(3.0f);
+        }
+
+        this->lightsOnTime = Time::Current();
+
+        spdlog::info(
+            "CraftingScene: loaded {} room point lights. firstRoomVisit={}.",
+            this->lights.size(), this->firstRoomVisit);
     }
 
-    inline glm::vec3 LocalPointBetweenCameraNodes(
-	    SceneNode* parent,
-	    const std::string& standNodeName,
-	    const std::string& lookNodeName,
-	    float amountBetweenStandAndLook,
-	    float sideOffset,
-	    float upOffset
-    ) {
-	    if (!parent) {
-		    return glm::vec3(0.0f);
-	    }
+    void Update() {
+        for (int index = 0; index < this->lights.size(); index++) {
+            Light* light = this->lights[index];
 
-	    SceneNode* standNode =
-		    FindFirstNodeByNameRecursive(parent, standNodeName);
+            float flicker = glm::sin(Time::Current() *
+                                         (0.6f + (light->GetID() % 4) * 0.15f) +
+                                     light->GetID() * 4.0f) *
+                            0.35f;
 
-	    SceneNode* lookNode =
-		    FindFirstNodeByNameRecursive(parent, lookNodeName);
+            float targetIntensity = this->baseIntensities[index] + flicker;
 
-	    if (!standNode || !lookNode) {
-		    return glm::vec3(0.0f);
-	    }
+            float turnOnAmount = 1.0f;
 
-	    const glm::vec3 worldUp =
-		    glm::vec3(0.0f, 1.0f, 0.0f);
+            if (this->firstRoomVisit) {
+                turnOnAmount =
+                    glm::clamp((Time::Current() - this->lightsOnTime -
+                                float(index) * this->sequenceDelay) /
+                                   this->fadeDuration,
+                               0.0f, 1.0f);
+            }
 
-	    glm::vec3 standPosition =
-		    standNode->GlobalTransform().Position().Value();
+            light->SetIntensity(targetIntensity * turnOnAmount);
+        }
+    }
+};
 
-	    glm::vec3 lookPosition =
-		    lookNode->GlobalTransform().Position().Value();
+class CraftingTutorialFinishedMessage : public GameObject {
+  private:
+    static constexpr const char* TutorialFinishedMessageAlreadyShownKey =
+        "CraftingScene_TutorialFinishedMessageAlreadyShown";
 
-	    glm::vec3 forward =
-		    lookPosition - standPosition;
+    UiText* messageText = nullptr;
+    bool messageStarted = false;
+    float showUntilTime = 0.0f;
 
-	    if (glm::length(forward) < 0.001f) {
-		    forward = glm::vec3(0.0f, 0.0f, 1.0f);
-	    }
+    void HideMessage() {
+        if (this->messageText == nullptr) {
+            return;
+        }
 
-	    forward = glm::normalize(forward);
-
-	    glm::vec3 right =
-		    glm::cross(forward, worldUp);
-
-	    if (glm::length(right) < 0.001f) {
-		    right = glm::vec3(1.0f, 0.0f, 0.0f);
-	    }
-
-	    right = glm::normalize(right);
-
-	    glm::vec3 worldPosition =
-		    glm::mix(
-			    standPosition,
-			    lookPosition,
-			    amountBetweenStandAndLook
-		    ) +
-		    right * sideOffset +
-		    worldUp * upOffset;
-
-	    glm::vec4 localPosition =
-		    glm::inverse(parent->GlobalTransform().Value()) *
-		    glm::vec4(worldPosition, 1.0f);
-
-	    return glm::vec3(localPosition);
+        this->messageText->color.w = glm::clamp(
+            this->messageText->color.w - Time::Delta() * 2.0f, 0.0f, 1.0f);
     }
 
+    void ShowMessage() {
+        if (this->messageText == nullptr) {
+            return;
+        }
 
+        if (PersistentData::Get<bool>(TutorialFinishedMessageAlreadyShownKey)) {
+            PersistentData::Set<bool>(
+                PotionInventory::ShowTutorialFinishedMessageKey, false);
 
-    inline glm::vec3 WorldPointBetweenCameraNodes(
-	    SceneNode* parent,
-	    const std::string& standNodeName,
-	    const std::string& lookNodeName,
-	    float amountBetweenStandAndLook,
-	    float sideOffset,
-	    float upOffset
-    ) {
-	    if (!parent) {
-		    return glm::vec3(0.0f);
-	    }
+            return;
+        }
 
-	    SceneNode* standNode =
-		    FindFirstNodeByNameRecursive(parent, standNodeName);
+        if (!PersistentData::Get<bool>(
+                PotionInventory::ShowTutorialFinishedMessageKey)) {
+            return;
+        }
 
-	    SceneNode* lookNode =
-		    FindFirstNodeByNameRecursive(parent, lookNodeName);
+        this->messageText->text =
+            "Tutorial complete\n"
+            "You can now brew new potions in your base.\n"
+            "Search the dungeon for new ingredients from monsters.\n"
+            "Return here after each expedition to craft stronger potions.";
 
-	    if (!standNode || !lookNode) {
-		    return glm::vec3(0.0f);
-	    }
+        this->messageText->color.w = 1.0f;
+        this->messageStarted = true;
+        this->showUntilTime = Time::Current() + 12.0f;
 
-	    const glm::vec3 worldUp =
-		    glm::vec3(0.0f, 1.0f, 0.0f);
+        PersistentData::Set<bool>(TutorialFinishedMessageAlreadyShownKey, true);
 
-	    glm::vec3 standPosition =
-		    standNode->GlobalTransform().Position().Value();
-
-	    glm::vec3 lookPosition =
-		    lookNode->GlobalTransform().Position().Value();
-
-	    glm::vec3 forward =
-		    lookPosition - standPosition;
-
-	    if (glm::length(forward) < 0.001f) {
-		    forward = glm::vec3(0.0f, 0.0f, 1.0f);
-	    }
-
-	    forward = glm::normalize(forward);
-
-	    glm::vec3 right =
-		    glm::cross(forward, worldUp);
-
-	    if (glm::length(right) < 0.001f) {
-		    right = glm::vec3(1.0f, 0.0f, 0.0f);
-	    }
-
-	    right = glm::normalize(right);
-
-	    return glm::mix(
-		    standPosition,
-		    lookPosition,
-		    amountBetweenStandAndLook
-	    ) +
-	    right * sideOffset +
-	    worldUp * upOffset;
+        PersistentData::Set<bool>(
+            PotionInventory::ShowTutorialFinishedMessageKey, false);
     }
 
-    inline bool StartsWith(const std::string& text, const std::string& prefix) {
-	    return text.rfind(prefix, 0) == 0;
+  public:
+    void Awake() {
+        TextureParams fontTextureParams = {.channels = TextureChannels::RGB,
+                                           .colorSpace = TextureColor::Linear,
+                                           .format = TextureFormat::Ubyte,
+                                           .wrapU = TextureWrap::Clamp,
+                                           .wrapV = TextureWrap::Clamp,
+                                           .minFilter = TextureFilter::Linear,
+                                           .magFilter = TextureFilter::Linear};
+
+        Texture2D* papyrusAtlas = GetScene()->Resources()->Get<Texture2D>(
+            "./res/fonts/Papyrus/Papyrus-Regular.png", fontTextureParams);
+
+        Font* papyrusFont = GetScene()->Resources()->Get<Font>(
+            "./res/fonts/Papyrus/Papyrus-Regular.json", papyrusAtlas, true);
+
+        SceneNode* uiTextNode =
+            GetScene()->CreateNode("Crafting Tutorial Finished Message UI");
+        uiTextNode->AddObject<UiLayout>(glm::uvec2(620, 220),
+                                        glm::ivec2(-40, 40), 20,
+                                        AnchorPoint::TopRight);
+
+        this->messageText = uiTextNode->AddObject<UiText>("", papyrusFont);
+        this->messageText->fontSize = 25.0f;
+        this->messageText->alignment = TextAlignment::Right;
+        this->messageText->maxWidth = 580.0f;
+        this->messageText->color = glm::vec4(1.2f, 0.3f, 0.0f, 0.0f);
+
+        ShowMessage();
     }
 
-    inline bool IsRoomColliderNodeName(const std::string& name) {
-	    return
-		    name == "Floor" ||
-		    name == "floor" ||
-		    name == "Walls" ||
-		    StartsWith(name, "Plane") ||
-		    StartsWith(name, "Cube.") ||
-		    StartsWith(name, "Schody") ||
-		    StartsWith(name, "Taboret") ||
-		    StartsWith(name, "Stół") ||
-		    StartsWith(name, "Worek") ||
-		    StartsWith(name, "Szafka") ||
-		    StartsWith(name, "Skrzynka") ||
-		    StartsWith(name, "Skrzynia") ||
-		    StartsWith(name, "beczka") ||
-		    StartsWith(name, "Rura") ||
-		    StartsWith(name, "pochodnia");
+    void Update() {
+
+        if (!this->messageStarted) {
+            return;
+        }
+
+        if (Time::Current() > this->showUntilTime) {
+            HideMessage();
+        }
+    }
+};
+
+inline SceneNode* CreateLocalPoint(Scene& scene, SceneNode* parent,
+                                   const std::string& nodeName,
+                                   const glm::vec3& localPosition) {
+    SceneNode* node = scene.CreateNode(parent, nodeName);
+    node->LocalTransform().Position() = localPosition;
+
+    return node;
+}
+
+inline SceneNode* CreateWorldPoint(Scene& scene, SceneNode* parent,
+                                   const std::string& nodeName,
+                                   const glm::vec3& worldPosition) {
+    SceneNode* node = scene.CreateNode(parent, nodeName);
+    node->GlobalTransform().Position() = worldPosition;
+
+    return node;
+}
+
+inline glm::vec3 LocalPointBetweenCameraNodes(SceneNode* parent,
+                                              const std::string& standNodeName,
+                                              const std::string& lookNodeName,
+                                              float amountBetweenStandAndLook,
+                                              float sideOffset,
+                                              float upOffset) {
+    if (!parent) {
+        return glm::vec3(0.0f);
     }
 
-    inline void CollectRoomColliderNodesRecursive(SceneNode* node, std::vector<SceneNode*>& colliderNodes) {
-	    if (!node) {
-		    return;
-	    }
+    SceneNode* standNode = FindFirstNodeByNameRecursive(parent, standNodeName);
 
-	    if (IsRoomColliderNodeName(node->GetName())) {
-		    colliderNodes.push_back(node);
-	    }
+    SceneNode* lookNode = FindFirstNodeByNameRecursive(parent, lookNodeName);
 
-	    for (SceneNode* child : node->GetChildren()) {
-		    CollectRoomColliderNodesRecursive(child, colliderNodes);
-	    }
+    if (!standNode || !lookNode) {
+        return glm::vec3(0.0f);
     }
 
-    inline void AddStaticRoomCollider(SceneNode* colliderNode) {
-	    if (!colliderNode) {
-		    return;
-	    }
+    const glm::vec3 worldUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
-	    MeshRenderer* renderer =
-		    FindMeshRenderer(colliderNode);
+    glm::vec3 standPosition = standNode->GlobalTransform().Position().Value();
 
-	    if (!renderer || !renderer->GetMesh()) {
-		    spdlog::warn(
-			    "CraftingScene: room collider node '{}' has no mesh renderer.",
-			    colliderNode->GetName()
-		    );
+    glm::vec3 lookPosition = lookNode->GlobalTransform().Position().Value();
 
-		    return;
-	    }
+    glm::vec3 forward = lookPosition - standPosition;
 
-	    SceneNode* bodyNode =
-		    renderer->GetNode();
-
-	    if (bodyNode->GetObject<Physics::Body>()) {
-		    return;
-	    }
-
-	    auto* body = bodyNode->AddObject<Physics::Body>(
-		    JPH::BodyCreationSettings{
-			    Physics::MeshShape(renderer->GetMesh()),
-			    JPH::RVec3::sZero(),
-			    JPH::Quat::sIdentity(),
-			    JPH::EMotionType::Static,
-			    Physics::Layers::NON_MOVING
-		    }
-	    );
-
-	    body->SetCollisionLayerAndMask({0}, 0xFFFFFFFF);
-
-	    spdlog::info(
-		    "CraftingScene: added room collider to '{}'.",
-		    colliderNode->GetName()
-	    );
+    if (glm::length(forward) < 0.001f) {
+        forward = glm::vec3(0.0f, 0.0f, 1.0f);
     }
 
-    inline void AddRoomPhysics(SceneNode* roomNode) {
-	    if (!roomNode) {
-		    return;
-	    }
+    forward = glm::normalize(forward);
 
-	    std::vector<SceneNode*> colliderNodes;
-	    CollectRoomColliderNodesRecursive(roomNode, colliderNodes);
+    glm::vec3 right = glm::cross(forward, worldUp);
 
-	    for (SceneNode* colliderNode : colliderNodes) {
-		    AddStaticRoomCollider(colliderNode);
-	    }
-
-	    spdlog::info(
-		    "CraftingScene: room colliders requested for {} nodes.",
-		    colliderNodes.size()
-	    );
+    if (glm::length(right) < 0.001f) {
+        right = glm::vec3(1.0f, 0.0f, 0.0f);
     }
 
-    inline void SetInteractionBodyLayer(Physics::Body* body) {
-	    if (!body) {
-		    return;
-	    }
+    right = glm::normalize(right);
 
-	    body->SetCollisionLayerAndMask(
-		    {Crafting::CraftingInteractionCollisionLayer},
-		    0
-	    );
+    glm::vec3 worldPosition =
+        glm::mix(standPosition, lookPosition, amountBetweenStandAndLook) +
+        right * sideOffset + worldUp * upOffset;
+
+    glm::vec4 localPosition = glm::inverse(parent->GlobalTransform().Value()) *
+                              glm::vec4(worldPosition, 1.0f);
+
+    return glm::vec3(localPosition);
+}
+
+inline glm::vec3 WorldPointBetweenCameraNodes(SceneNode* parent,
+                                              const std::string& standNodeName,
+                                              const std::string& lookNodeName,
+                                              float amountBetweenStandAndLook,
+                                              float sideOffset,
+                                              float upOffset) {
+    if (!parent) {
+        return glm::vec3(0.0f);
     }
 
-    inline void AddMeshPhysicsToNode(SceneNode* node) {
-	    if (!node) {
-		    return;
-	    }
+    SceneNode* standNode = FindFirstNodeByNameRecursive(parent, standNodeName);
 
-	    MeshRenderer* renderer = node->GetObject<MeshRenderer>();
+    SceneNode* lookNode = FindFirstNodeByNameRecursive(parent, lookNodeName);
 
-	    if (!renderer || !renderer->GetMesh()) {
-		    return;
-	    }
-
-	    auto* body = node->AddObject<Physics::Body>(
-		    JPH::BodyCreationSettings{
-			    Physics::MeshShape(renderer->GetMesh()),
-			    JPH::RVec3::sZero(),
-			    JPH::Quat::sIdentity(),
-			    JPH::EMotionType::Static,
-			    Physics::Layers::NON_MOVING
-		    }
-	    );
-
-	    body->SetCollisionLayerAndMask({0}, {1});
+    if (!standNode || !lookNode) {
+        return glm::vec3(0.0f);
     }
 
-    inline void AddStationMeshPhysics(SceneNode* roomNode) {
-	    if (!roomNode) {
-		    return;
-	    }
+    const glm::vec3 worldUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
-	    const std::vector<std::string> stationMeshNodes = {
-		    "Lid",
-		    "Cauldron",
-		    "Reinforcement",
-		    "Valve_Barrel",
-		    "Knob_One",
-		    "Knob_One.001",
-		    "Lever",
-		    "Fire_Place",
-		    "Door",
-		    "ramka",
-		    "ramka.001",
-		    "ramka.002",
-		    "device",
-		    "bellow",
-		    "Cube"
-	    };
+    glm::vec3 standPosition = standNode->GlobalTransform().Position().Value();
 
-	    for (const std::string& nodeName : stationMeshNodes) {
-		    AddMeshPhysicsToNode(
-			    FindFirstNodeByNameRecursive(roomNode, nodeName)
-		    );
-	    }
+    glm::vec3 lookPosition = lookNode->GlobalTransform().Position().Value();
+
+    glm::vec3 forward = lookPosition - standPosition;
+
+    if (glm::length(forward) < 0.001f) {
+        forward = glm::vec3(0.0f, 0.0f, 1.0f);
     }
 
-    inline bool IsNodeInsideSubtree(SceneNode* node, SceneNode* subtreeRoot) {
-	    SceneNode* current = node;
+    forward = glm::normalize(forward);
 
-	    while (current) {
-		    if (current == subtreeRoot) {
-			    return true;
-		    }
+    glm::vec3 right = glm::cross(forward, worldUp);
 
-		    current = current->GetParent();
-	    }
-
-	    return false;
+    if (glm::length(right) < 0.001f) {
+        right = glm::vec3(1.0f, 0.0f, 0.0f);
     }
 
-    inline void DisableEmbeddedStationNodes(SceneNode* roomNode, SceneNode* stationNodeToKeep) {
-	    if (!roomNode) {
-		    return;
-	    }
+    right = glm::normalize(right);
 
-	    const std::vector<std::string> stationMeshNodes = {
-		    "Lid",
-		    "Cauldron",
-		    "Reinforcement",
-		    "Valve_Barrel",
-		    "Knob_One",
-		    "Knob_One.001",
-		    "Lever",
-		    "Fire_Place",
-		    "Door",
-		    "ramka",
-		    "ramka.001",
-		    "ramka.002",
-		    "device"
-	    };
+    return glm::mix(standPosition, lookPosition, amountBetweenStandAndLook) +
+           right * sideOffset + worldUp * upOffset;
+}
 
-	    for (const std::string& nodeName : stationMeshNodes) {
-		    SceneNode* node = FindFirstNodeByNameRecursive(roomNode, nodeName);
+inline bool StartsWith(const std::string& text, const std::string& prefix) {
+    return text.rfind(prefix, 0) == 0;
+}
 
-		    if (node && !IsNodeInsideSubtree(node, stationNodeToKeep)) {
-			    node->SetEnabled(false);
-		    }
-	    }
+inline bool IsRoomColliderNodeName(const std::string& name) {
+    return name == "Floor" || name == "floor" || name == "Walls" ||
+           StartsWith(name, "Plane") || StartsWith(name, "Cube.") ||
+           StartsWith(name, "Schody") || StartsWith(name, "Taboret") ||
+           StartsWith(name, "Stół") || StartsWith(name, "Worek") ||
+           StartsWith(name, "Szafka") || StartsWith(name, "Skrzynka") ||
+           StartsWith(name, "Skrzynia") || StartsWith(name, "beczka") ||
+           StartsWith(name, "Rura") || StartsWith(name, "pochodnia");
+}
+
+inline void
+CollectRoomColliderNodesRecursive(SceneNode* node,
+                                  std::vector<SceneNode*>& colliderNodes) {
+    if (!node) {
+        return;
     }
 
-    inline glm::mat4 GetNodeTransformRelativeTo(SceneNode* node, SceneNode* root) {
-	    if (!node || !root) {
-		    return glm::mat4(1.0f);
-	    }
-
-	    return glm::inverse(root->GlobalTransform().Value()) *
-		    node->GlobalTransform().Value();
+    if (IsRoomColliderNodeName(node->GetName())) {
+        colliderNodes.push_back(node);
     }
 
-    inline bool AlignStationModelToRoom(SceneNode* roomNode, SceneNode* stationNode) {
-	    if (!roomNode || !stationNode) {
-		    return false;
-	    }
+    for (SceneNode* child : node->GetChildren()) {
+        CollectRoomColliderNodesRecursive(child, colliderNodes);
+    }
+}
 
-	    SceneNode* stationMarkerNode =
-		    FindStationMarkerNode(roomNode);
-
-	    if (stationMarkerNode) {
-		    stationNode->GlobalTransform().Position() =
-			    stationMarkerNode->GlobalTransform().Position().Value();
-
-		    stationNode->GlobalTransform().Rotation() =
-		        stationMarkerNode->GlobalTransform().Rotation().Value() + glm::quat(glm::radians(glm::vec3(0.0f, 360.0f, 0.0f)));
-
-		    stationNode->GlobalTransform().Scale() =
-			    stationMarkerNode->GlobalTransform().Scale().Value();
-
-		    return true;
-	    }
-
-	    SceneNode* roomCauldronNode =
-		    FindFirstNodeByNameRecursive(roomNode, "Cauldron");
-
-	    SceneNode* stationCauldronNode =
-		    FindFirstNodeByNameRecursive(stationNode, "Cauldron");
-
-	    if (!roomCauldronNode || !stationCauldronNode) {
-		    spdlog::error(
-			    "CraftingScene: missing crafting machine marker and cannot fallback to Cauldron alignment."
-		    );
-
-		    return false;
-	    }
-
-	    glm::mat4 roomGlobalTransform =
-		    roomNode->GlobalTransform().Value();
-
-	    glm::mat4 roomCauldronGlobalTransform =
-		    roomCauldronNode->GlobalTransform().Value();
-
-	    glm::mat4 stationCauldronRelativeTransform =
-		    GetNodeTransformRelativeTo(stationCauldronNode, stationNode);
-
-	    glm::mat4 stationGlobalTransform =
-		    roomCauldronGlobalTransform *
-		    glm::inverse(stationCauldronRelativeTransform);
-
-	    glm::mat4 stationLocalTransform =
-		    glm::inverse(roomGlobalTransform) *
-		    stationGlobalTransform;
-
-	    stationNode->LocalTransform() = stationLocalTransform;
-
-	    return true;
+inline void AddStaticRoomCollider(SceneNode* colliderNode) {
+    if (!colliderNode) {
+        return;
     }
 
-    inline SceneNode* CreateCraftingStationModel(Scene& scene, SceneNode* roomNode) {
-	    if (!roomNode) {
-		    return nullptr;
-	    }
+    MeshRenderer* renderer = FindMeshRenderer(colliderNode);
 
-	    GltfScene* stationModel =
-		    ResourceDatabase::Global->Get<GltfScene>(
-			    CraftingStationModelPath
-		    );
+    if (!renderer || !renderer->GetMesh()) {
+        spdlog::warn(
+            "CraftingScene: room collider node '{}' has no mesh renderer.",
+            colliderNode->GetName());
 
-	    if (!stationModel) {
-		    spdlog::error(
-			    "CraftingScene: cannot load crafting machine model '{}'.",
-			    CraftingStationModelPath
-		    );
-
-		    return nullptr;
-	    }
-
-	    SceneNode* stationNode =
-		    stationModel->Instantiate(&scene, roomNode, "Crafting Station");
-
-	    if (!stationNode) {
-		    return nullptr;
-	    }
-
-	    AlignStationModelToRoom(roomNode, stationNode);
-
-	    return stationNode;
+        return;
     }
 
-    inline SceneNode* CreateStationHitbox(Scene& scene, SceneNode* roomNode) {
-	    if (!roomNode) {
-		    return nullptr;
-	    }
+    SceneNode* bodyNode = renderer->GetNode();
 
-	    SceneNode* stationHitboxNode =
-		    scene.CreateNode(roomNode, "StationHitbox");
-
-	    SceneNode* stationCenterNode =
-		    FindFirstNodeByNameRecursive(roomNode, "Cauldron");
-
-	    if (!stationCenterNode) {
-		    stationCenterNode =
-			    FindFirstNodeByNameRecursive(roomNode, "Fire_Place");
-	    }
-
-	    if (!stationCenterNode) {
-		    stationCenterNode =
-			    FindFirstNodeByNameRecursive(roomNode, "Door");
-	    }
-
-	    if (stationCenterNode) {
-		    glm::vec3 position =
-			    stationCenterNode->GlobalTransform().Position().Value();
-
-		    position.y =
-			    roomNode->GlobalTransform().Position().Value().y + 1.2f;
-
-		    stationHitboxNode->GlobalTransform().Position() =
-			    position;
-	    }
-	    else {
-		    stationHitboxNode->LocalTransform().Position() =
-			    glm::vec3(0.0f, 1.2f, 0.0f);
-	    }
-
-	    stationHitboxNode->LocalTransform().Scale() =
-		    glm::vec3(1.0f);
-
-	    return stationHitboxNode;
+    if (bodyNode->GetObject<Physics::Body>()) {
+        return;
     }
 
-    inline SceneNode* CreateBlowerHitbox(Scene& scene, SceneNode* roomNode) {
-	    if (!roomNode) {
-		    return nullptr;
-	    }
+    auto* body = bodyNode->AddObject<Physics::Body>(JPH::BodyCreationSettings{
+        Physics::MeshShape(renderer->GetMesh()), JPH::RVec3::sZero(),
+        JPH::Quat::sIdentity(), JPH::EMotionType::Static,
+        Physics::Layers::NON_MOVING});
 
-	    SceneNode* blowerNode =
-		    FindFirstNodeByNameRecursive(roomNode, "bellow");
+    body->SetCollisionLayerAndMask({0}, 0xFFFFFFFF);
 
-	    if (!blowerNode) {
-		    blowerNode = FindFirstNodeByNameRecursive(roomNode, "Fire_Place");
-	    }
+    spdlog::info("CraftingScene: added room collider to '{}'.",
+                 colliderNode->GetName());
+}
 
-	    if (!blowerNode) {
-		    blowerNode = roomNode;
-	    }
-
-	    SceneNode* blowerHitboxNode =
-		    scene.CreateNode(blowerNode, "BlowerHitbox");
-
-	    blowerHitboxNode->LocalTransform().Position() =
-		    glm::vec3(0.0f);
-
-	    blowerHitboxNode->LocalTransform().Scale() =
-		    glm::vec3(0.45f);
-
-	    glm::vec3 blowerHitboxPosition =
-		    blowerHitboxNode->GlobalTransform().Position().Value();
-
-	    auto* blowerBody = blowerHitboxNode->AddObject<Physics::Body>(
-		    JPH::BodyCreationSettings{
-			    Physics::BoxShape(glm::vec3(1.0f)),
-			    JPH::RVec3(
-				    blowerHitboxPosition.x,
-				    blowerHitboxPosition.y,
-				    blowerHitboxPosition.z
-			    ),
-			    JPH::Quat::sIdentity(),
-			    JPH::EMotionType::Static,
-			    Physics::Layers::NON_MOVING
-		    }
-	    );
-
-	    blowerBody->SetPosition(blowerHitboxPosition);
-	    blowerBody->SetIsSensor(true);
-	    SetInteractionBodyLayer(blowerBody);
-
-	    auto* blowerInteractable =
-		    blowerHitboxNode->AddObject<Crafting::CraftingInteractable>();
-
-	    blowerInteractable->type = Crafting::CraftingInteractionType::Blower;
-	    blowerInteractable->interactionEnabled = false;
-	    blowerInteractable->blinkOutline = true;
-
-	    return blowerHitboxNode;
+inline void AddRoomPhysics(SceneNode* roomNode) {
+    if (!roomNode) {
+        return;
     }
 
-    inline SceneNode* CreateValveHitbox(Scene& scene, SceneNode* roomNode) {
-	    if (!roomNode) {
-		    return nullptr;
-	    }
+    std::vector<SceneNode*> colliderNodes;
+    CollectRoomColliderNodesRecursive(roomNode, colliderNodes);
 
-	    SceneNode* valveNode =
-		    FindFirstNodeByNameRecursive(roomNode, "Knob_One.001");
-
-	    if (!valveNode) {
-		    valveNode = FindFirstNodeByNameRecursive(roomNode, "Knob_One");
-	    }
-
-	    if (!valveNode) {
-		    valveNode = FindFirstNodeByNameRecursive(roomNode, "Valve_Barrel");
-	    }
-
-	    if (!valveNode) {
-		    return nullptr;
-	    }
-
-	    MeshRenderer* renderer =
-		    valveNode->GetObject<MeshRenderer>();
-
-	    if (renderer && renderer->GetMesh() && !valveNode->GetObject<Physics::Body>()) {
-		    auto* valveBody = valveNode->AddObject<Physics::Body>(
-			    JPH::BodyCreationSettings{
-				    Physics::MeshShape(renderer->GetMesh()),
-				    JPH::RVec3::sZero(),
-				    JPH::Quat::sIdentity(),
-				    JPH::EMotionType::Static,
-				    Physics::Layers::NON_MOVING
-			    }
-		    );
-
-		    valveBody->SetIsSensor(true);
-		    SetInteractionBodyLayer(valveBody);
-		    valveBody->SetPosition(valveNode->GlobalTransform().Position().Value());
-		    valveBody->SetRotation(valveNode->GlobalTransform().Rotation().Value());
-	    }
-	    else if (auto* valveBody = valveNode->GetObject<Physics::Body>()) {
-		    valveBody->SetIsSensor(true);
-		    SetInteractionBodyLayer(valveBody);
-		    valveBody->SetPosition(valveNode->GlobalTransform().Position().Value());
-		    valveBody->SetRotation(valveNode->GlobalTransform().Rotation().Value());
-	    }
-
-	    auto* valveInteractable =
-		    valveNode->GetObject<Crafting::CraftingInteractable>();
-
-	    if (!valveInteractable) {
-		    valveInteractable = valveNode->AddObject<Crafting::CraftingInteractable>();
-	    }
-
-	    valveInteractable->type = Crafting::CraftingInteractionType::Valve;
-	    valveInteractable->interactionEnabled = false;
-	    valveInteractable->blinkOutline = true;
-
-	    return valveNode;
+    for (SceneNode* colliderNode : colliderNodes) {
+        AddStaticRoomCollider(colliderNode);
     }
 
-    inline glm::vec3 GetUiButtonLocalHitboxHalfExtents(SceneNode* node) {
-	    glm::vec3 wantedWorldHalfExtents =
-		    glm::vec3(0.28f, 0.16f, 0.08f);
+    spdlog::info("CraftingScene: room colliders requested for {} nodes.",
+                 colliderNodes.size());
+}
 
-	    if (!node) {
-		    return wantedWorldHalfExtents;
-	    }
-
-	    glm::vec3 globalScale =
-		    node->GlobalTransform().Scale().Value();
-
-	    globalScale.x = std::max(std::abs(globalScale.x), 0.001f);
-	    globalScale.y = std::max(std::abs(globalScale.y), 0.001f);
-	    globalScale.z = std::max(std::abs(globalScale.z), 0.001f);
-
-	    return glm::vec3(
-		    wantedWorldHalfExtents.x / globalScale.x,
-		    wantedWorldHalfExtents.y / globalScale.y,
-		    wantedWorldHalfExtents.z / globalScale.z
-	    );
+inline void SetInteractionBodyLayer(Physics::Body* body) {
+    if (!body) {
+        return;
     }
 
-    inline void CreateUiButtonInteractable(
-	    SceneNode* rootNode,
-	    const std::string& nodeName,
-	    Crafting::CraftingInteractionType interactionType
-    ) {
-	    SceneNode* node =
-		    FindFirstNodeByNameRecursive(rootNode, nodeName);
+    body->SetCollisionLayerAndMask(
+        {Crafting::CraftingInteractionCollisionLayer}, 0);
+}
 
-	    if (!node) {
-		    return;
-	    }
-
-	    auto* body =
-		    node->GetObject<Physics::Body>();
-
-	    if (!body) {
-		    body = node->AddObject<Physics::Body>(
-			    JPH::BodyCreationSettings{
-				    Physics::BoxShape(GetUiButtonLocalHitboxHalfExtents(node)),
-				    JPH::RVec3::sZero(),
-				    JPH::Quat::sIdentity(),
-				    JPH::EMotionType::Static,
-				    Physics::Layers::NON_MOVING
-			    }
-		    );
-	    }
-
-	    body->SetIsSensor(true);
-	    SetInteractionBodyLayer(body);
-	    body->SetPosition(node->GlobalTransform().Position().Value());
-	    body->SetRotation(node->GlobalTransform().Rotation().Value());
-
-	    auto* interactable =
-		    node->GetObject<Crafting::CraftingInteractable>();
-
-	    if (!interactable) {
-		    interactable = node->AddObject<Crafting::CraftingInteractable>();
-	    }
-
-	    interactable->type = interactionType;
-	    interactable->interactionEnabled = true;
+inline void AddMeshPhysicsToNode(SceneNode* node) {
+    if (!node) {
+        return;
     }
 
-    inline void CreateCraftingUiButtonInteractables(SceneNode* stationNode) {
-	    if (!stationNode) {
-		    return;
-	    }
+    MeshRenderer* renderer = node->GetObject<MeshRenderer>();
 
-	    CreateUiButtonInteractable(stationNode, "przycisk_back", Crafting::CraftingInteractionType::UiBack);
-	    CreateUiButtonInteractable(stationNode, "przycisk_info", Crafting::CraftingInteractionType::UiInfo);
-	    CreateUiButtonInteractable(stationNode, "przycisk_next", Crafting::CraftingInteractionType::UiNext);
-	    CreateUiButtonInteractable(stationNode, "przycisk_next_page", Crafting::CraftingInteractionType::InventoryNextPage);
-	    CreateUiButtonInteractable(stationNode, "przycisk_previous_page", Crafting::CraftingInteractionType::InventoryPreviousPage);
-
-	    CreateUiButtonInteractable(stationNode, "przycisk_back.001", Crafting::CraftingInteractionType::UiBack);
-	    CreateUiButtonInteractable(stationNode, "przycisk_info.001", Crafting::CraftingInteractionType::UiInfo);
-	    CreateUiButtonInteractable(stationNode, "przycisk_next.001", Crafting::CraftingInteractionType::UiNext);
-
-	    CreateUiButtonInteractable(stationNode, "przycisk_back.002", Crafting::CraftingInteractionType::UiBack);
-	    CreateUiButtonInteractable(stationNode, "przycisk_info.002", Crafting::CraftingInteractionType::UiInfo);
-	    CreateUiButtonInteractable(stationNode, "przycisk_next.002", Crafting::CraftingInteractionType::UiNext);
+    if (!renderer || !renderer->GetMesh()) {
+        return;
     }
 
-    inline glm::vec3 GetCraftingSlotWorldPosition(
-	    SceneNode* roomNode,
-	    const std::string& slotNodeName,
-	    const glm::vec3& fallbackPosition
-    ) {
-	    SceneNode* slotNode =
-		    FindFirstNodeByNameRecursive(roomNode, slotNodeName);
+    auto* body = node->AddObject<Physics::Body>(JPH::BodyCreationSettings{
+        Physics::MeshShape(renderer->GetMesh()), JPH::RVec3::sZero(),
+        JPH::Quat::sIdentity(), JPH::EMotionType::Static,
+        Physics::Layers::NON_MOVING});
 
-	    if (!slotNode) {
-		    return fallbackPosition;
-	    }
+    body->SetCollisionLayerAndMask({0}, {1});
+}
 
-	    return slotNode->GlobalTransform().Position().Value();
+inline void AddStationMeshPhysics(SceneNode* roomNode) {
+    if (!roomNode) {
+        return;
     }
 
-    inline Material* CreateColorMaterial(const glm::vec4& color) {
-	    ShaderProgram* shader =
-		    ShaderProgram::Build()
-			    .WithVertexShader("./res/shaders/lit.vert")
-			    .WithPixelShader("./res/shaders/lambert color.frag")
-			    .Link();
+    const std::vector<std::string> stationMeshNodes = {
+        "Lid",      "Cauldron",     "Reinforcement", "Valve_Barrel",
+        "Knob_One", "Knob_One.001", "Lever",         "Fire_Place",
+        "Door",     "ramka",        "ramka.001",     "ramka.002",
+        "device",   "bellow",       "Cube"};
 
-	    Material* material = new Material(shader);
-	    material->SetValue("uColor", glm::vec3(color));
-	    material->SetValue("specularValue", 0.0f);
+    for (const std::string& nodeName : stationMeshNodes) {
+        AddMeshPhysicsToNode(FindFirstNodeByNameRecursive(roomNode, nodeName));
+    }
+}
 
-	    return material;
+inline bool IsNodeInsideSubtree(SceneNode* node, SceneNode* subtreeRoot) {
+    SceneNode* current = node;
+
+    while (current) {
+        if (current == subtreeRoot) {
+            return true;
+        }
+
+        current = current->GetParent();
     }
 
-    inline SceneNode* CreateBottlingDebugCube(
-	    Scene& scene,
-	    SceneNode* parent,
-	    const std::string& nodeName,
-	    Mesh* mesh,
-	    Material* material,
-	    const glm::vec3& worldPosition,
-	    const glm::vec3& localScale
-    ) {
-	    SceneNode* node = scene.CreateNode(parent, nodeName);
+    return false;
+}
 
-	    node->LocalTransform().Scale() = localScale;
-	    node->GlobalTransform().Position() = worldPosition;
-
-	    if (mesh && material) {
-		    node->AddObject<MeshRenderer>(mesh, material);
-	    }
-
-	    return node;
+inline void DisableEmbeddedStationNodes(SceneNode* roomNode,
+                                        SceneNode* stationNodeToKeep) {
+    if (!roomNode) {
+        return;
     }
 
+    const std::vector<std::string> stationMeshNodes = {
+        "Lid",      "Cauldron",     "Reinforcement", "Valve_Barrel",
+        "Knob_One", "Knob_One.001", "Lever",         "Fire_Place",
+        "Door",     "ramka",        "ramka.001",     "ramka.002",
+        "device"};
 
-    inline SceneNode* CreateBottlingLocalCube(
-	    Scene& scene,
-	    SceneNode* parent,
-	    const std::string& nodeName,
-	    Mesh* mesh,
-	    Material* material,
-	    const glm::vec3& localPosition,
-	    const glm::vec3& localScale
-    ) {
-	    SceneNode* node = scene.CreateNode(parent, nodeName);
+    for (const std::string& nodeName : stationMeshNodes) {
+        SceneNode* node = FindFirstNodeByNameRecursive(roomNode, nodeName);
 
-	    node->LocalTransform().Position() = localPosition;
-	    node->LocalTransform().Scale() = localScale;
+        if (node && !IsNodeInsideSubtree(node, stationNodeToKeep)) {
+            node->SetEnabled(false);
+        }
+    }
+}
 
-	    if (mesh && material) {
-		    node->AddObject<MeshRenderer>(mesh, material);
-	    }
-
-	    return node;
+inline glm::mat4 GetNodeTransformRelativeTo(SceneNode* node, SceneNode* root) {
+    if (!node || !root) {
+        return glm::mat4(1.0f);
     }
 
-    inline void CreateBottlingStageNodes(Scene& scene, SceneNode* roomNode) {
-	    if (!roomNode) {
-		    return;
-	    }
+    return glm::inverse(root->GlobalTransform().Value()) *
+           node->GlobalTransform().Value();
+}
 
-	    SceneNode* bottleStartNode =
-		    FindFirstNodeByNameRecursive(roomNode, "Bottle_Start");
-
-	    SceneNode* bottleStopNode =
-		    FindFirstNodeByNameRecursive(roomNode, "Bottle_stop");
-
-	    SceneNode* pourButtonNode =
-		    FindFirstNodeByNameRecursive(roomNode, "Knob_One.001");
-
-	    if (!pourButtonNode) {
-		    pourButtonNode =
-			    FindFirstNodeByNameRecursive(roomNode, "Knob_One");
-	    }
-
-	    if (!bottleStartNode || !bottleStopNode || !pourButtonNode) {
-		    return;
-	    }
-
-	    const glm::mat4 bottleStartTransform =
-		    GetNodeTransformRelativeTo(
-			    bottleStartNode,
-			    roomNode
-		    );
-
-	    const glm::mat4 bottleStopTransform =
-		    GetNodeTransformRelativeTo(
-			    bottleStopNode,
-			    roomNode
-		    );
-
-	    const glm::mat4 pourButtonTransform =
-		    GetNodeTransformRelativeTo(
-			    pourButtonNode,
-			    roomNode
-		    );
-
-	    const glm::vec3 bottleStartPoint =
-		    glm::vec3(
-			    bottleStartTransform[3]
-		    );
-
-	    const glm::vec3 bottleEndPoint =
-		    glm::vec3(
-			    bottleStopTransform[3]
-		    );
-
-	    const glm::vec3 pourButtonPoint =
-		    glm::vec3(
-			    pourButtonTransform[3]
-		    );
-
-	    const glm::vec3 path =
-		    bottleEndPoint - bottleStartPoint;
-
-	    float fillT = 0.5f;
-
-	    const float pathLengthSquared =
-		    glm::dot(path,path);
-
-	    if (pathLengthSquared > 0.0001f) {
-		    fillT =
-			    glm::clamp(
-				    glm::dot(pourButtonPoint - bottleStartPoint,path) /
-				    pathLengthSquared,
-				    0.0f,
-				    1.0f
-			    );
-	    }
-
-	    const glm::vec3 bottleFillPoint =
-		    glm::mix(
-			    bottleStartPoint,
-			    bottleEndPoint,
-			    fillT
-		    );
-
-
-	    const glm::vec3 bottleScale =
-		    glm::vec3(0.16f, 0.36f, 0.16f);
-
-
-	    Mesh* cubeMesh =
-		    scene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
-
-	    Material* bottleMaterial =
-		    CreateColorMaterial(glm::vec4(0.35f, 0.75f, 1.0f, 0.9f));
-
-	    Material* liquidMaterial =
-		    CreateColorMaterial(glm::vec4(0.9f, 0.25f, 0.15f, 0.95f));
-
-
-	    SceneNode* bottlesRoot =
-		    scene.CreateNode(roomNode, "BottlingBottlesRoot");
-
-	    bottlesRoot->LocalTransform().Position() =
-		    glm::vec3(0.0f);
-
-
-	    for (int i = 0; i < 4; ++i) {
-		    SceneNode* bottleNode = CreateBottlingLocalCube(
-			    scene,
-			    bottlesRoot,
-			    "BottlingBottle_0" + std::to_string(i + 1),
-			    cubeMesh,
-			    bottleMaterial,
-			    bottleStartPoint,
-			    bottleScale
-		    );
-
-		    SceneNode* liquidNode = CreateBottlingLocalCube(
-			    scene,
-			    bottleNode,
-			    "BottlingBottle_0" + std::to_string(i + 1) + "_Liquid",
-			    cubeMesh,
-			    liquidMaterial,
-			    glm::vec3(0.0f, -0.08f, 0.0f),
-			    glm::vec3(0.11f, 0.23f, 0.11f)
-		    );
-
-		    liquidNode->SetEnabled(false);
-	    }
-
-	    bottlesRoot->SetEnabled(false);
+inline bool AlignStationModelToRoom(SceneNode* roomNode,
+                                    SceneNode* stationNode) {
+    if (!roomNode || !stationNode) {
+        return false;
     }
 
-    inline Crafting::IngredientData CreateMainEffectIngredient(
-	    Crafting::IngredientType ingredientType,
-	    const std::string& displayName,
-	    const std::string& effectId,
-	    const glm::vec4& color
-    ) {
-	    Crafting::IngredientData data;
+    SceneNode* stationMarkerNode = FindStationMarkerNode(roomNode);
 
-	    data.type = ingredientType;
-	    data.displayName = displayName;
-	    data.role = Crafting::IngredientRole::MainEffect;
-	    data.effectId = effectId;
-	    data.modifierId = Crafting::ModifierId::None;
-	    data.value = 1.0f;
-	    data.color = color;
+    if (stationMarkerNode) {
+        stationNode->GlobalTransform().Position() =
+            stationMarkerNode->GlobalTransform().Position().Value();
 
-	    return data;
+        stationNode->GlobalTransform().Rotation() =
+            stationMarkerNode->GlobalTransform().Rotation().Value() +
+            glm::quat(glm::radians(glm::vec3(0.0f, 360.0f, 0.0f)));
+
+        stationNode->GlobalTransform().Scale() =
+            stationMarkerNode->GlobalTransform().Scale().Value();
+
+        return true;
     }
 
-    inline Crafting::IngredientData CreateModifierIngredient(
-	    Crafting::IngredientType ingredientType,
-	    const std::string& displayName,
-	    const std::string& modifierId,
-	    float value,
-	    const glm::vec4& color
-    ) {
-	    Crafting::IngredientData data;
+    SceneNode* roomCauldronNode =
+        FindFirstNodeByNameRecursive(roomNode, "Cauldron");
 
-	    data.type = ingredientType;
-	    data.displayName = displayName;
-	    data.role = Crafting::IngredientRole::Modifier;
-	    data.effectId = Crafting::EffectId::None;
-	    data.modifierId = modifierId;
-	    data.value = value;
-	    data.color = color;
+    SceneNode* stationCauldronNode =
+        FindFirstNodeByNameRecursive(stationNode, "Cauldron");
 
-	    return data;
+    if (!roomCauldronNode || !stationCauldronNode) {
+        spdlog::error("CraftingScene: missing crafting machine marker and "
+                      "cannot fallback to Cauldron alignment.");
+
+        return false;
     }
+
+    glm::mat4 roomGlobalTransform = roomNode->GlobalTransform().Value();
+
+    glm::mat4 roomCauldronGlobalTransform =
+        roomCauldronNode->GlobalTransform().Value();
+
+    glm::mat4 stationCauldronRelativeTransform =
+        GetNodeTransformRelativeTo(stationCauldronNode, stationNode);
+
+    glm::mat4 stationGlobalTransform =
+        roomCauldronGlobalTransform *
+        glm::inverse(stationCauldronRelativeTransform);
+
+    glm::mat4 stationLocalTransform =
+        glm::inverse(roomGlobalTransform) * stationGlobalTransform;
+
+    stationNode->LocalTransform() = stationLocalTransform;
+
+    return true;
+}
+
+inline SceneNode* CreateCraftingStationModel(Scene& scene,
+                                             SceneNode* roomNode) {
+    if (!roomNode) {
+        return nullptr;
+    }
+
+    GltfScene* stationModel =
+        ResourceDatabase::Global->Get<GltfScene>(CraftingStationModelPath);
+
+    if (!stationModel) {
+        spdlog::error("CraftingScene: cannot load crafting machine model '{}'.",
+                      CraftingStationModelPath);
+
+        return nullptr;
+    }
+
+    SceneNode* stationNode =
+        stationModel->Instantiate(&scene, roomNode, "Crafting Station");
+
+    if (!stationNode) {
+        return nullptr;
+    }
+
+    AlignStationModelToRoom(roomNode, stationNode);
+
+    return stationNode;
+}
+
+inline SceneNode* CreateStationHitbox(Scene& scene, SceneNode* roomNode) {
+    if (!roomNode) {
+        return nullptr;
+    }
+
+    SceneNode* stationHitboxNode = scene.CreateNode(roomNode, "StationHitbox");
+
+    SceneNode* stationCenterNode =
+        FindFirstNodeByNameRecursive(roomNode, "Cauldron");
+
+    if (!stationCenterNode) {
+        stationCenterNode =
+            FindFirstNodeByNameRecursive(roomNode, "Fire_Place");
+    }
+
+    if (!stationCenterNode) {
+        stationCenterNode = FindFirstNodeByNameRecursive(roomNode, "Door");
+    }
+
+    if (stationCenterNode) {
+        glm::vec3 position =
+            stationCenterNode->GlobalTransform().Position().Value();
+
+        position.y = roomNode->GlobalTransform().Position().Value().y + 1.2f;
+
+        stationHitboxNode->GlobalTransform().Position() = position;
+    } else {
+        stationHitboxNode->LocalTransform().Position() =
+            glm::vec3(0.0f, 1.2f, 0.0f);
+    }
+
+    stationHitboxNode->LocalTransform().Scale() = glm::vec3(1.0f);
+
+    return stationHitboxNode;
+}
+
+inline SceneNode* CreateBlowerHitbox(Scene& scene, SceneNode* roomNode) {
+    if (!roomNode) {
+        return nullptr;
+    }
+
+    SceneNode* blowerNode = FindFirstNodeByNameRecursive(roomNode, "bellow");
+
+    if (!blowerNode) {
+        blowerNode = FindFirstNodeByNameRecursive(roomNode, "Fire_Place");
+    }
+
+    if (!blowerNode) {
+        blowerNode = roomNode;
+    }
+
+    SceneNode* blowerHitboxNode = scene.CreateNode(blowerNode, "BlowerHitbox");
+
+    blowerHitboxNode->LocalTransform().Position() = glm::vec3(0.0f);
+
+    blowerHitboxNode->LocalTransform().Scale() = glm::vec3(0.45f);
+
+    glm::vec3 blowerHitboxPosition =
+        blowerHitboxNode->GlobalTransform().Position().Value();
+
+    auto* blowerBody =
+        blowerHitboxNode->AddObject<Physics::Body>(JPH::BodyCreationSettings{
+            Physics::BoxShape(glm::vec3(1.0f)),
+            JPH::RVec3(blowerHitboxPosition.x, blowerHitboxPosition.y,
+                       blowerHitboxPosition.z),
+            JPH::Quat::sIdentity(), JPH::EMotionType::Static,
+            Physics::Layers::NON_MOVING});
+
+    blowerBody->SetPosition(blowerHitboxPosition);
+    blowerBody->SetIsSensor(true);
+    SetInteractionBodyLayer(blowerBody);
+
+    auto* blowerInteractable =
+        blowerHitboxNode->AddObject<Crafting::CraftingInteractable>();
+
+    blowerInteractable->type = Crafting::CraftingInteractionType::Blower;
+    blowerInteractable->interactionEnabled = false;
+    blowerInteractable->blinkOutline = true;
+
+    return blowerHitboxNode;
+}
+
+inline SceneNode* CreateValveHitbox(Scene& scene, SceneNode* roomNode) {
+    if (!roomNode) {
+        return nullptr;
+    }
+
+    SceneNode* valveNode =
+        FindFirstNodeByNameRecursive(roomNode, "Knob_One.001");
+
+    if (!valveNode) {
+        valveNode = FindFirstNodeByNameRecursive(roomNode, "Knob_One");
+    }
+
+    if (!valveNode) {
+        valveNode = FindFirstNodeByNameRecursive(roomNode, "Valve_Barrel");
+    }
+
+    if (!valveNode) {
+        return nullptr;
+    }
+
+    MeshRenderer* renderer = valveNode->GetObject<MeshRenderer>();
+
+    if (renderer && renderer->GetMesh() &&
+        !valveNode->GetObject<Physics::Body>()) {
+        auto* valveBody =
+            valveNode->AddObject<Physics::Body>(JPH::BodyCreationSettings{
+                Physics::MeshShape(renderer->GetMesh()), JPH::RVec3::sZero(),
+                JPH::Quat::sIdentity(), JPH::EMotionType::Static,
+                Physics::Layers::NON_MOVING});
+
+        valveBody->SetIsSensor(true);
+        SetInteractionBodyLayer(valveBody);
+        valveBody->SetPosition(valveNode->GlobalTransform().Position().Value());
+        valveBody->SetRotation(valveNode->GlobalTransform().Rotation().Value());
+    } else if (auto* valveBody = valveNode->GetObject<Physics::Body>()) {
+        valveBody->SetIsSensor(true);
+        SetInteractionBodyLayer(valveBody);
+        valveBody->SetPosition(valveNode->GlobalTransform().Position().Value());
+        valveBody->SetRotation(valveNode->GlobalTransform().Rotation().Value());
+    }
+
+    auto* valveInteractable =
+        valveNode->GetObject<Crafting::CraftingInteractable>();
+
+    if (!valveInteractable) {
+        valveInteractable =
+            valveNode->AddObject<Crafting::CraftingInteractable>();
+    }
+
+    valveInteractable->type = Crafting::CraftingInteractionType::Valve;
+    valveInteractable->interactionEnabled = false;
+    valveInteractable->blinkOutline = true;
+
+    return valveNode;
+}
+
+inline glm::vec3 GetUiButtonLocalHitboxHalfExtents(SceneNode* node) {
+    glm::vec3 wantedWorldHalfExtents = glm::vec3(0.28f, 0.16f, 0.08f);
+
+    if (!node) {
+        return wantedWorldHalfExtents;
+    }
+
+    glm::vec3 globalScale = node->GlobalTransform().Scale().Value();
+
+    globalScale.x = std::max(std::abs(globalScale.x), 0.001f);
+    globalScale.y = std::max(std::abs(globalScale.y), 0.001f);
+    globalScale.z = std::max(std::abs(globalScale.z), 0.001f);
+
+    return glm::vec3(wantedWorldHalfExtents.x / globalScale.x,
+                     wantedWorldHalfExtents.y / globalScale.y,
+                     wantedWorldHalfExtents.z / globalScale.z);
+}
+
+inline void
+CreateUiButtonInteractable(SceneNode* rootNode, const std::string& nodeName,
+                           Crafting::CraftingInteractionType interactionType) {
+    SceneNode* node = FindFirstNodeByNameRecursive(rootNode, nodeName);
+
+    if (!node) {
+        return;
+    }
+
+    auto* body = node->GetObject<Physics::Body>();
+
+    if (!body) {
+        body = node->AddObject<Physics::Body>(JPH::BodyCreationSettings{
+            Physics::BoxShape(GetUiButtonLocalHitboxHalfExtents(node)),
+            JPH::RVec3::sZero(), JPH::Quat::sIdentity(),
+            JPH::EMotionType::Static, Physics::Layers::NON_MOVING});
+    }
+
+    body->SetIsSensor(true);
+    SetInteractionBodyLayer(body);
+    body->SetPosition(node->GlobalTransform().Position().Value());
+    body->SetRotation(node->GlobalTransform().Rotation().Value());
+
+    auto* interactable = node->GetObject<Crafting::CraftingInteractable>();
+
+    if (!interactable) {
+        interactable = node->AddObject<Crafting::CraftingInteractable>();
+    }
+
+    interactable->type = interactionType;
+    interactable->interactionEnabled = true;
+}
+
+inline void CreateCraftingUiButtonInteractables(SceneNode* stationNode) {
+    if (!stationNode) {
+        return;
+    }
+
+    CreateUiButtonInteractable(stationNode, "przycisk_back",
+                               Crafting::CraftingInteractionType::UiBack);
+    CreateUiButtonInteractable(stationNode, "przycisk_info",
+                               Crafting::CraftingInteractionType::UiInfo);
+    CreateUiButtonInteractable(stationNode, "przycisk_next",
+                               Crafting::CraftingInteractionType::UiNext);
+    CreateUiButtonInteractable(
+        stationNode, "przycisk_next_page",
+        Crafting::CraftingInteractionType::InventoryNextPage);
+    CreateUiButtonInteractable(
+        stationNode, "przycisk_previous_page",
+        Crafting::CraftingInteractionType::InventoryPreviousPage);
+
+    CreateUiButtonInteractable(stationNode, "przycisk_back.001",
+                               Crafting::CraftingInteractionType::UiBack);
+    CreateUiButtonInteractable(stationNode, "przycisk_info.001",
+                               Crafting::CraftingInteractionType::UiInfo);
+    CreateUiButtonInteractable(stationNode, "przycisk_next.001",
+                               Crafting::CraftingInteractionType::UiNext);
+
+    CreateUiButtonInteractable(stationNode, "przycisk_back.002",
+                               Crafting::CraftingInteractionType::UiBack);
+    CreateUiButtonInteractable(stationNode, "przycisk_info.002",
+                               Crafting::CraftingInteractionType::UiInfo);
+    CreateUiButtonInteractable(stationNode, "przycisk_next.002",
+                               Crafting::CraftingInteractionType::UiNext);
+}
+
+inline glm::vec3
+GetCraftingSlotWorldPosition(SceneNode* roomNode,
+                             const std::string& slotNodeName,
+                             const glm::vec3& fallbackPosition) {
+    SceneNode* slotNode = FindFirstNodeByNameRecursive(roomNode, slotNodeName);
+
+    if (!slotNode) {
+        return fallbackPosition;
+    }
+
+    return slotNode->GlobalTransform().Position().Value();
+}
+
+inline Material* CreateColorMaterial(const glm::vec4& color) {
+    ShaderProgram* shader =
+        ShaderProgram::Build()
+            .WithVertexShader("./res/shaders/lit.vert")
+            .WithPixelShader("./res/shaders/lambert color.frag")
+            .Link();
+
+    Material* material = new Material(shader);
+    material->SetValue("uColor", glm::vec3(color));
+    material->SetValue("specularValue", 0.0f);
+
+    return material;
+}
+
+inline SceneNode* CreateBottlingDebugCube(Scene& scene, SceneNode* parent,
+                                          const std::string& nodeName,
+                                          Mesh* mesh, Material* material,
+                                          const glm::vec3& worldPosition,
+                                          const glm::vec3& localScale) {
+    SceneNode* node = scene.CreateNode(parent, nodeName);
+
+    node->LocalTransform().Scale() = localScale;
+    node->GlobalTransform().Position() = worldPosition;
+
+    if (mesh && material) {
+        node->AddObject<MeshRenderer>(mesh, material);
+    }
+
+    return node;
+}
+
+inline SceneNode* CreateBottlingLocalCube(Scene& scene, SceneNode* parent,
+                                          const std::string& nodeName,
+                                          Mesh* mesh, Material* material,
+                                          const glm::vec3& localPosition,
+                                          const glm::vec3& localScale) {
+    SceneNode* node = scene.CreateNode(parent, nodeName);
+
+    node->LocalTransform().Position() = localPosition;
+    node->LocalTransform().Scale() = localScale;
+
+    if (mesh && material) {
+        node->AddObject<MeshRenderer>(mesh, material);
+    }
+
+    return node;
+}
+
+inline void CreateBottlingStageNodes(Scene& scene, SceneNode* roomNode) {
+    if (!roomNode) {
+        return;
+    }
+
+    SceneNode* bottleStartNode =
+        FindFirstNodeByNameRecursive(roomNode, "Bottle_Start");
+
+    SceneNode* bottleStopNode =
+        FindFirstNodeByNameRecursive(roomNode, "Bottle_stop");
+
+    SceneNode* pourButtonNode =
+        FindFirstNodeByNameRecursive(roomNode, "Knob_One.001");
+
+    if (!pourButtonNode) {
+        pourButtonNode = FindFirstNodeByNameRecursive(roomNode, "Knob_One");
+    }
+
+    if (!bottleStartNode || !bottleStopNode || !pourButtonNode) {
+        return;
+    }
+
+    const glm::mat4 bottleStartTransform =
+        GetNodeTransformRelativeTo(bottleStartNode, roomNode);
+
+    const glm::mat4 bottleStopTransform =
+        GetNodeTransformRelativeTo(bottleStopNode, roomNode);
+
+    const glm::mat4 pourButtonTransform =
+        GetNodeTransformRelativeTo(pourButtonNode, roomNode);
+
+    const glm::vec3 bottleStartPoint = glm::vec3(bottleStartTransform[3]);
+
+    const glm::vec3 bottleEndPoint = glm::vec3(bottleStopTransform[3]);
+
+    const glm::vec3 pourButtonPoint = glm::vec3(pourButtonTransform[3]);
+
+    const glm::vec3 path = bottleEndPoint - bottleStartPoint;
+
+    float fillT = 0.5f;
+
+    const float pathLengthSquared = glm::dot(path, path);
+
+    if (pathLengthSquared > 0.0001f) {
+        fillT = glm::clamp(glm::dot(pourButtonPoint - bottleStartPoint, path) /
+                               pathLengthSquared,
+                           0.0f, 1.0f);
+    }
+
+    const glm::vec3 bottleFillPoint =
+        glm::mix(bottleStartPoint, bottleEndPoint, fillT);
+
+    const glm::vec3 bottleScale = glm::vec3(0.16f, 0.36f, 0.16f);
+
+    Mesh* cubeMesh = scene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
+
+    Material* bottleMaterial =
+        CreateColorMaterial(glm::vec4(0.35f, 0.75f, 1.0f, 0.9f));
+
+    Material* liquidMaterial =
+        CreateColorMaterial(glm::vec4(0.9f, 0.25f, 0.15f, 0.95f));
+
+    SceneNode* bottlesRoot = scene.CreateNode(roomNode, "BottlingBottlesRoot");
+
+    bottlesRoot->LocalTransform().Position() = glm::vec3(0.0f);
+
+    for (int i = 0; i < 4; ++i) {
+        SceneNode* bottleNode = CreateBottlingLocalCube(
+            scene, bottlesRoot, "BottlingBottle_0" + std::to_string(i + 1),
+            cubeMesh, bottleMaterial, bottleStartPoint, bottleScale);
+
+        SceneNode* liquidNode = CreateBottlingLocalCube(
+            scene, bottleNode,
+            "BottlingBottle_0" + std::to_string(i + 1) + "_Liquid", cubeMesh,
+            liquidMaterial, glm::vec3(0.0f, -0.08f, 0.0f),
+            glm::vec3(0.11f, 0.23f, 0.11f));
+
+        liquidNode->SetEnabled(false);
+    }
+
+    bottlesRoot->SetEnabled(false);
+}
+
+inline Crafting::IngredientData CreateMainEffectIngredient(
+    Crafting::IngredientType ingredientType, const std::string& displayName,
+    const std::string& effectId, const glm::vec4& color) {
+    Crafting::IngredientData data;
+
+    data.type = ingredientType;
+    data.displayName = displayName;
+    data.role = Crafting::IngredientRole::MainEffect;
+    data.effectId = effectId;
+    data.modifierId = Crafting::ModifierId::None;
+    data.value = 1.0f;
+    data.color = color;
+
+    return data;
+}
+
+inline Crafting::IngredientData CreateModifierIngredient(
+    Crafting::IngredientType ingredientType, const std::string& displayName,
+    const std::string& modifierId, float value, const glm::vec4& color) {
+    Crafting::IngredientData data;
+
+    data.type = ingredientType;
+    data.displayName = displayName;
+    data.role = Crafting::IngredientRole::Modifier;
+    data.effectId = Crafting::EffectId::None;
+    data.modifierId = modifierId;
+    data.value = value;
+    data.color = color;
+
+    return data;
+}
 
 
 
@@ -1526,42 +1321,33 @@ namespace CraftingScene {
             SetDialogVisible(false);
             SetPromptVisible(false);
 
-            PersistentData::Set<bool>("CraftingScene_AutoEnterCrafting", false);
-            PersistentData::Set<bool>("CraftingScene_ReturnedFromThrowingTutorial", false);
+        PersistentData::Set<bool>("CraftingScene_AutoEnterCrafting", false);
+        PersistentData::Set<bool>("CraftingScene_ReturnedFromThrowingTutorial",
+                                  false);
 
-            Application::Get()->RequestSceneBuild(
-                [](Scene* s) { DungeonScene::InitScene(*s); }
-            );
+        Application::Get()->RequestSceneBuild(
+            [](Scene* s) { DungeonScene::InitScene(*s); });
+    }
+
+  public:
+    void Awake() {
+        this->dungeonEntryNode = FindFirstNodeByNamesRecursive(
+            GetNode(), {"DungeonEntry", "Dungeon Entry", "Dungeon_Entry",
+                        "DungeonEntryPoint", "Dungeon_Entry_Point"});
+
+        if (!this->dungeonEntryNode) {
+            spdlog::warn("CraftingScene: DungeonEntry node not found. Dungeon "
+                         "prompt disabled.");
+            return;
         }
 
-    public:
-        void Awake() {
-            this->dungeonEntryNode =
-                FindFirstNodeByNamesRecursive(
-                    GetNode(),
-                    {
-                        "DungeonEntry",
-                        "Dungeon Entry",
-                        "Dungeon_Entry",
-                        "DungeonEntryPoint",
-                        "Dungeon_Entry_Point"
-                    }
-                );
-
-            if (!this->dungeonEntryNode) {
-                spdlog::warn("CraftingScene: DungeonEntry node not found. Dungeon prompt disabled.");
-                return;
-            }
-
-            TextureParams fontTextureParams = {
-                .channels = TextureChannels::RGB,
-                .colorSpace = TextureColor::Linear,
-                .format = TextureFormat::Ubyte,
-                .wrapU = TextureWrap::Clamp,
-                .wrapV = TextureWrap::Clamp,
-                .minFilter = TextureFilter::Linear,
-                .magFilter = TextureFilter::Linear
-            };
+        TextureParams fontTextureParams = {.channels = TextureChannels::RGB,
+                                           .colorSpace = TextureColor::Linear,
+                                           .format = TextureFormat::Ubyte,
+                                           .wrapU = TextureWrap::Clamp,
+                                           .wrapV = TextureWrap::Clamp,
+                                           .minFilter = TextureFilter::Linear,
+                                           .magFilter = TextureFilter::Linear};
 
             Texture2D* fontAtlas = GetScene()->Resources()->Get<Texture2D>(
                 "./res/fonts/OpenSans-Regular/OpenSans-Regular.png",
@@ -1678,7 +1464,7 @@ namespace CraftingScene {
                 return;
             }
 
-            bool playerNear = IsPlayerNearDungeonEntry();
+        bool playerNear = IsPlayerNearDungeonEntry();
 
             if (!playerNear) {
                 SetDialogVisible(false);
@@ -1719,630 +1505,503 @@ namespace CraftingScene {
         }
     };
 
+inline void HideMeshRenderersRecursive(SceneNode* node) {
+    if (!node) {
+        return;
+    }
 
-    inline void HideMeshRenderersRecursive(SceneNode* node) {
-        if (!node) {
-            return;
+    if (auto* renderer = node->GetObject<MeshRenderer>()) {
+        renderer->SetEnabled(false);
+    }
+
+    for (SceneNode* child : node->GetChildren()) {
+        HideMeshRenderersRecursive(child);
+    }
+}
+
+inline void CreateFogVolumeAtFogPoint(Scene& scene, SceneNode* roomNode) {
+    if (!roomNode) {
+        return;
+    }
+
+    SceneNode* dungeonEntryNode = FindFirstNodeByNamesRecursive(
+        roomNode, {"DungeonEntry", "Dungeon Entry", "Dungeon_Entry",
+                   "DungeonEntryPoint", "Dungeon_Entry_Point"});
+
+    SceneNode* fogPointNode = FindFirstNodeByNamesRecursive(
+        roomNode,
+        {"Fog", "fog", "FogPoint", "Fog_Point", "Fog Volume", "FogVolume"});
+
+    SceneNode* fogSourceNode = dungeonEntryNode;
+
+    if (!fogSourceNode) {
+        fogSourceNode = fogPointNode;
+    }
+
+    if (!fogSourceNode) {
+        spdlog::warn("CraftingScene: DungeonEntry/Fog point not found. Fog "
+                     "volume was not created.");
+        return;
+    }
+
+    if (dungeonEntryNode) {
+        HideMeshRenderersRecursive(dungeonEntryNode);
+    }
+
+    SceneNode* fogNode = scene.CreateNode(roomNode, "Dungeon Entry Fog Volume");
+
+    fogNode->GlobalTransform().Position() =
+        fogSourceNode->GlobalTransform().Position().Value();
+
+    glm::vec3 fogScale = fogSourceNode->GlobalTransform().Scale().Value();
+
+    if (glm::length(fogScale) < 0.01f) {
+        fogScale = glm::vec3(8.0f, 3.0f, 8.0f);
+    }
+
+    fogScale *= glm::vec3(1.9f, 1.45f, 1.9f);
+
+    fogNode->GlobalTransform().Scale() = fogScale;
+
+    auto* fogVolume = fogNode->AddObject<FogVolume>();
+    fogVolume->stepSize = 0.045f;
+    fogVolume->scatteringDensity = 1.35f;
+    fogVolume->absorptionDensity = 0.18f;
+    fogVolume->scatteringColor = glm::vec3(0.8f, 0.72f, 0.58f);
+    fogVolume->coverage = 0.92f;
+    fogVolume->sharpness = 3.5f;
+}
+
+inline Crafting::DraggableCraftingItem*
+CreateDraggableIngredientModel(Scene& scene, SceneNode* parent,
+                               const IngredientSpawnData& spawn) {
+    SceneNode* node = scene.CreateNode(parent, spawn.nodeName);
+    node->GlobalTransform().Position() = spawn.position;
+
+    GltfScene* ingredientModel =
+        ResourceDatabase::Global->Get<GltfScene>(spawn.modelPath);
+
+    if (!ingredientModel) {
+        spdlog::error("CraftingScene: cannot load ingredient model '{}'.",
+                      spawn.modelPath);
+
+        return nullptr;
+    }
+
+    SceneNode* modelNode =
+        ingredientModel->Instantiate(&scene, node, spawn.nodeName + " Model");
+
+    if (!modelNode) {
+        spdlog::error(
+            "CraftingScene: failed to instantiate ingredient model '{}'.",
+            spawn.modelPath);
+
+        return nullptr;
+    }
+
+    modelNode->LocalTransform().Position() = spawn.modelOffset;
+
+    modelNode->LocalTransform().Scale() = spawn.modelScale;
+
+    modelNode->LocalTransform().Rotation() =
+        glm::quat(glm::radians(spawn.modelRotationEuler));
+
+    auto* item = node->AddObject<Crafting::DraggableCraftingItem>();
+    item->inventoryKey = spawn.inventoryKey;
+    item->data = spawn.ingredientData;
+    item->data.inventoryKey = spawn.inventoryKey;
+
+    auto* interactable = node->AddObject<Crafting::CraftingInteractable>();
+    interactable->type = Crafting::CraftingInteractionType::Ingredient;
+    interactable->interactionEnabled = true;
+    interactable->blinkOutline = false;
+
+    glm::vec3 globalPosition = node->GlobalTransform().Position().Value();
+
+    auto* body = node->AddObject<Physics::Body>(JPH::BodyCreationSettings{
+        Physics::BoxShape(spawn.interactionHalfExtents),
+        JPH::RVec3(globalPosition.x, globalPosition.y, globalPosition.z),
+        JPH::Quat::sIdentity(), JPH::EMotionType::Kinematic,
+        Physics::Layers::MOVING});
+
+    body->SetGravityFactor(0.0f);
+    body->SetLinearVelocity(glm::vec3(0.0f));
+    body->SetAngularVelocity(glm::vec3(0.0f));
+    body->SetPosition(globalPosition);
+    body->SetIsSensor(true);
+    SetInteractionBodyLayer(body);
+
+    return item;
+}
+inline SceneNode* CreatePlayer(Scene& scene, SceneNode* roomNode) {
+    JPH::Ref<JPH::CharacterVirtualSettings> characterSettings =
+        new JPH::CharacterVirtualSettings();
+
+    characterSettings->mShape = new JPH::CapsuleShape(0.5f, 0.5f);
+    characterSettings->mShapeOffset = JPH::Vec3(0, 1, 0);
+    characterSettings->mMaxSlopeAngle = JPH::DegreesToRadians(45.0f);
+
+    SceneNode* playerNode = scene.CreateNode("Player");
+
+    SceneNode* bimberman =
+        ResourceDatabase::Global
+            ->Get<GltfScene>("./res/models/bimbermann_throwing.glb")
+            ->Instantiate(&scene, scene.root, "Bimberman");
+
+    if (bimberman) {
+        bimberman->SetParent(playerNode);
+    }
+
+    SceneNode* aimReticle =
+        ResourceDatabase::Global->Get<GltfScene>("./res/models/crosshair.glb")
+            ->Instantiate(&scene, playerNode, "Aim Reticle");
+
+    aimReticle->AddObject<AimCrosshair>();
+    aimReticle->SetEnabled(false);
+
+    bool returnedFromThrowingTutorial =
+        PersistentData::Get<bool>("CraftingScene_ReturnedFromThrowingTutorial");
+
+    SceneNode* spawnNode = nullptr;
+
+    if (returnedFromThrowingTutorial) {
+        spawnNode = FindFirstNodeByNamesRecursive(
+            roomNode, {"PlayerReturnSpawn", "Player_Return_Spawn",
+                       "ThrowingTutorialReturnSpawn",
+                       "Throwing_Tutorial_Return_Spawn", "DungeonEntrySpawn",
+                       "Dungeon_Entry_Spawn", "DungeonEntry", "Dungeon Entry"});
+    }
+
+    if (!spawnNode) {
+        spawnNode = FindFirstNodeByNamesRecursive(roomNode, {
+                                                                "Spawn",
+                                                            });
+    }
+
+    if (spawnNode) {
+        playerNode->GlobalTransform().Position() =
+            spawnNode->GlobalTransform().Position().Value();
+    } else {
+        playerNode->GlobalTransform().Position() = glm::vec3(4.0f, 0.0f, -1.0f);
+    }
+
+    auto* virtualCharacter =
+        playerNode->AddObject<Physics::VirtualCharacterController>(
+            characterSettings);
+
+    virtualCharacter->SetPosition(
+        playerNode->GlobalTransform().Position().Value());
+
+    virtualCharacter->SetGravityFactor(1.0f);
+    virtualCharacter->SetCollisionLayerAndMask({1}, 0xFFFFFFFF);
+
+    auto* player = playerNode->AddObject<PlayerController>();
+
+    player->SetThrowingUnlocked(false);
+
+    return playerNode;
+}
+
+inline void CreateCauldronReceiver(Scene& scene, SceneNode* roomNode) {
+    SceneNode* cauldronNode =
+        FindFirstNodeByNameRecursive(roomNode, "Cauldron");
+
+    if (!cauldronNode) {
+        return;
+    }
+
+    cauldronNode->AddObject<Crafting::Cauldron>();
+
+    SceneNode* cauldronReceiverHitboxNode =
+        scene.CreateNode(cauldronNode, "CauldronReceiverHitbox");
+
+    cauldronReceiverHitboxNode->LocalTransform().Position() =
+        glm::vec3(0.0f, -0.2f, 0.0f);
+
+    cauldronReceiverHitboxNode->LocalTransform().Scale() = glm::vec3(1.0f);
+
+    glm::vec3 cauldronReceiverHitboxPosition =
+        cauldronReceiverHitboxNode->GlobalTransform().Position().Value();
+
+    auto* cauldronBody = cauldronReceiverHitboxNode->AddObject<Physics::Body>(
+        JPH::BodyCreationSettings{
+            Physics::BoxShape(glm::vec3(0.7f, 2.0f, 0.7f)),
+            JPH::RVec3(cauldronReceiverHitboxPosition.x,
+                       cauldronReceiverHitboxPosition.y,
+                       cauldronReceiverHitboxPosition.z),
+            JPH::Quat::sIdentity(), JPH::EMotionType::Static,
+            Physics::Layers::NON_MOVING});
+
+    cauldronBody->SetIsSensor(true);
+    cauldronBody->SetPosition(cauldronReceiverHitboxPosition);
+
+    auto* receiver = cauldronReceiverHitboxNode
+                         ->AddObject<Crafting::CraftingIngredientReceiver>();
+
+    receiver->receiverHalfExtents = glm::vec3(0.7f, 2.0f, 0.7f);
+
+    receiver->ingredientConsumeOffset = glm::vec3(0.0f, 0.5f, 0.0f);
+}
+
+inline void CreateLidHitbox(Scene& scene, SceneNode* roomNode) {
+    SceneNode* lidNode = FindFirstNodeByNameRecursive(roomNode, "Lid");
+
+    if (!lidNode) {
+        return;
+    }
+
+    SceneNode* lidHitboxNode = scene.CreateNode(lidNode, "LidHitbox");
+
+    lidHitboxNode->LocalTransform().Position() = glm::vec3(0.0f, 0.4f, 0.0f);
+
+    lidHitboxNode->LocalTransform().Scale() = glm::vec3(1.0f);
+
+    glm::vec3 lidHitboxPosition =
+        lidHitboxNode->GlobalTransform().Position().Value();
+
+    auto* lidBody =
+        lidHitboxNode->AddObject<Physics::Body>(JPH::BodyCreationSettings{
+            Physics::BoxShape(glm::vec3(0.75f, 0.4f, 0.75f)),
+            JPH::RVec3(lidHitboxPosition.x, lidHitboxPosition.y,
+                       lidHitboxPosition.z),
+            JPH::Quat::sIdentity(), JPH::EMotionType::Kinematic,
+            Physics::Layers::NON_MOVING});
+
+    lidBody->SetPosition(lidHitboxPosition);
+    lidBody->SetIsSensor(true);
+    SetInteractionBodyLayer(lidBody);
+
+    auto* lidInteractable =
+        lidHitboxNode->AddObject<Crafting::CraftingInteractable>();
+
+    lidInteractable->type = Crafting::CraftingInteractionType::Lid;
+    lidInteractable->interactionEnabled = false;
+    lidInteractable->blinkOutline = true;
+}
+
+inline void CreateCraftingIngredients(Scene& scene, SceneNode* roomNode) {
+    SceneNode* ingredientsRootNode =
+        scene.CreateNode(roomNode, "Crafting Ingredients");
+
+    const std::array<std::string, 4> inventorySlots = {
+        "slot_bigger", "slot_bigger.001", "slot_bigger.002", "slot_bigger.003"};
+
+    std::vector<PotionInventory::IngredientInventoryEntry>
+        ingredientDefinitions = PotionInventory::GetAllIngredientDefinitions();
+
+    for (int index = 0; index < static_cast<int>(ingredientDefinitions.size());
+         index++) {
+        const PotionInventory::IngredientInventoryEntry& ingredient =
+            ingredientDefinitions[index];
+
+        int slotIndex = index % 4;
+
+        glm::vec3 slotPosition = WorldPointBetweenCameraNodes(
+            roomNode, "StageOneStand", "StageOneLook", 0.74f,
+            -0.75f + float(slotIndex) * 0.5f, -0.20f);
+
+        SceneNode* slotNode =
+            FindFirstNodeByNameRecursive(roomNode, inventorySlots[slotIndex]);
+
+        if (slotNode) {
+            slotPosition = slotNode->GlobalTransform().Position().Value();
         }
 
-        if (auto* renderer = node->GetObject<MeshRenderer>()) {
-            renderer->SetEnabled(false);
+        IngredientSpawnData spawn;
+        spawn.nodeName = ingredient.displayName + " Ingredient";
+        spawn.inventoryKey = ingredient.inventoryKey;
+        spawn.modelPath = ingredient.modelPath;
+        spawn.position = slotPosition;
+        spawn.modelScale = glm::vec3(0.42f);
+        spawn.modelRotationEuler = glm::vec3(0.0f, 0.0f, 0.0f);
+        spawn.modelOffset = glm::vec3(0.0f);
+        spawn.interactionHalfExtents = glm::vec3(0.07f, 0.08f, 0.07f);
+        spawn.ingredientData = ingredient.data;
+
+        Crafting::DraggableCraftingItem* item =
+            CreateDraggableIngredientModel(scene, ingredientsRootNode, spawn);
+
+        if (item && item->GetNode()) {
+            item->GetNode()->SetEnabled(false);
         }
-
-        for (SceneNode* child : node->GetChildren()) {
-            HideMeshRenderersRecursive(child);
-        }
     }
 
-    inline void CreateFogVolumeAtFogPoint(Scene& scene, SceneNode* roomNode) {
-        if (!roomNode) {
-            return;
-        }
+    ingredientsRootNode->SetEnabled(false);
+}
 
-        SceneNode* dungeonEntryNode =
-            FindFirstNodeByNamesRecursive(
-                roomNode,
-                {
-                    "DungeonEntry",
-                    "Dungeon Entry",
-                    "Dungeon_Entry",
-                    "DungeonEntryPoint",
-                    "Dungeon_Entry_Point"
-                }
-            );
+inline void SetupCraftingStation(Scene& scene, SceneNode* roomNode) {
+    CreateStationHitbox(scene, roomNode);
+    CreateBlowerHitbox(scene, roomNode);
+    CreateValveHitbox(scene, roomNode);
+    CreateBottlingStageNodes(scene, roomNode);
+    CreateCauldronReceiver(scene, roomNode);
+    CreateLidHitbox(scene, roomNode);
 
-        SceneNode* fogPointNode =
-            FindFirstNodeByNamesRecursive(
-                roomNode,
-                {
-                    "Fog",
-                    "fog",
-                    "FogPoint",
-                    "Fog_Point",
-                    "Fog Volume",
-                    "FogVolume"
-                }
-            );
+    auto* craftingStation = roomNode->AddObject<Crafting::CraftingStation>();
 
-        SceneNode* fogSourceNode = dungeonEntryNode;
+    craftingStation->interactionRadius = 2.6f;
 
-        if (!fogSourceNode) {
-            fogSourceNode = fogPointNode;
-        }
+    bool returnedFromThrowingTutorial =
+        PersistentData::Get<bool>("CraftingScene_ReturnedFromThrowingTutorial");
 
-        if (!fogSourceNode) {
-            spdlog::warn("CraftingScene: DungeonEntry/Fog point not found. Fog volume was not created.");
-            return;
-        }
+    bool shouldAutoEnterCrafting =
+        PersistentData::Get<bool>("CraftingScene_AutoEnterCrafting") &&
+        !returnedFromThrowingTutorial;
 
-        if (dungeonEntryNode) {
-            HideMeshRenderersRecursive(dungeonEntryNode);
-        }
+    craftingStation->enterStationOnFirstUpdate = shouldAutoEnterCrafting;
 
-        SceneNode* fogNode =
-            scene.CreateNode(roomNode, "Dungeon Entry Fog Volume");
+    PersistentData::Set<bool>("CraftingScene_AutoEnterCrafting", false);
+}
 
-        fogNode->GlobalTransform().Position() =
-            fogSourceNode->GlobalTransform().Position().Value();
+inline void AddSkybox(Scene& scene, SceneNode* roomNode) {
+    ShaderProgram* skyProg = ShaderProgram::Build()
+                                 .WithVertexShader("./res/shaders/skybox.vert")
+                                 .WithPixelShader("./res/shaders/skybox.frag")
+                                 .Link();
 
-        glm::vec3 fogScale =
-            fogSourceNode->GlobalTransform().Scale().Value();
+    Cubemap* skyCubemap = scene.Resources()->Get<Cubemap>(
+        "./res/textures/null_skybox.hdr", Texture::HDRColorBuffer);
 
-        if (glm::length(fogScale) < 0.01f) {
-            fogScale = glm::vec3(8.0f, 3.0f, 8.0f);
-        }
+    skyCubemap->SetWrapModeU(TextureWrap::Clamp);
+    skyCubemap->SetWrapModeV(TextureWrap::Clamp);
+    skyCubemap->SetWrapModeW(TextureWrap::Clamp);
 
-        fogScale *= glm::vec3(1.9f, 1.45f, 1.9f);
+    Material* skyMat = new Material(skyProg);
 
-        fogNode->GlobalTransform().Scale() = fogScale;
+    skyMat->SetValue("skyboxTexture", skyCubemap);
 
-        auto* fogVolume = fogNode->AddObject<FogVolume>();
-        fogVolume->stepSize = 0.045f;
-        fogVolume->scatteringDensity = 1.35f;
-        fogVolume->absorptionDensity = 0.18f;
-        fogVolume->scatteringColor = glm::vec3(0.8f, 0.72f, 0.58f);
-        fogVolume->coverage = 0.92f;
-        fogVolume->sharpness = 3.5f;
+    roomNode->AddObject<Skybox>(skyMat);
+}
+
+inline void InitScene(Scene& scene) {
+
+    scene.AddComponent<Physics::System>();
+    scene.AddComponent<LightSystem>();
+    scene.AddComponent<UiSystem>();
+    scene.AddComponent<AnimationSystem>();
+    scene.AddComponent<TweenSystem>();
+    scene.AddComponent<WheelSystem>();
+
+    if (auto* lightSystem = scene.GetComponent<LightSystem>()) {
+        lightSystem->SetAmbientLight(glm::vec4(1.0f, 0.65f, 0.25f, 0.12f));
     }
 
-    inline Crafting::DraggableCraftingItem* CreateDraggableIngredientModel(
-	    Scene& scene,
-	    SceneNode* parent,
-	    const IngredientSpawnData& spawn
-    ) {
-	    SceneNode* node = scene.CreateNode(parent, spawn.nodeName);
-	    node->GlobalTransform().Position() = spawn.position;
+    SceneNode* sceneRoot = scene.CreateNode("Crafting Scene Root");
 
-	    GltfScene* ingredientModel =
-		    ResourceDatabase::Global->Get<GltfScene>(
-			    spawn.modelPath
-		    );
+    SceneNode* roomNode =
+        ResourceDatabase::Global->Get<GltfScene>(CraftingRoomModelPath)
+            ->Instantiate(&scene, sceneRoot, "Crafting Base Room");
 
-	    if (!ingredientModel) {
-		    spdlog::error(
-			    "CraftingScene: cannot load ingredient model '{}'.",
-			    spawn.modelPath
-		    );
-
-		    return nullptr;
-	    }
-
-	    SceneNode* modelNode =
-		    ingredientModel->Instantiate(
-			    &scene,
-			    node,
-			    spawn.nodeName + " Model"
-		    );
-
-	    if (!modelNode) {
-		    spdlog::error(
-			    "CraftingScene: failed to instantiate ingredient model '{}'.",
-			    spawn.modelPath
-		    );
-
-		    return nullptr;
-	    }
-
-	    modelNode->LocalTransform().Position() =
-		    spawn.modelOffset;
-
-	    modelNode->LocalTransform().Scale() =
-		    spawn.modelScale;
-
-	    modelNode->LocalTransform().Rotation() =
-		    glm::quat(glm::radians(spawn.modelRotationEuler));
-
-	    auto* item = node->AddObject<Crafting::DraggableCraftingItem>();
-	    item->inventoryKey = spawn.inventoryKey;
-	    item->data = spawn.ingredientData;
-	    item->data.inventoryKey = spawn.inventoryKey;
-
-	    auto* interactable = node->AddObject<Crafting::CraftingInteractable>();
-	    interactable->type = Crafting::CraftingInteractionType::Ingredient;
-	    interactable->interactionEnabled = true;
-	    interactable->blinkOutline = false;
-
-	    glm::vec3 globalPosition =
-		    node->GlobalTransform().Position().Value();
-
-	    auto* body = node->AddObject<Physics::Body>(
-		    JPH::BodyCreationSettings{
-			    Physics::BoxShape(spawn.interactionHalfExtents),
-			    JPH::RVec3(globalPosition.x, globalPosition.y, globalPosition.z),
-			    JPH::Quat::sIdentity(),
-			    JPH::EMotionType::Kinematic,
-			    Physics::Layers::MOVING
-		    }
-	    );
-
-	    body->SetGravityFactor(0.0f);
-	    body->SetLinearVelocity(glm::vec3(0.0f));
-	    body->SetAngularVelocity(glm::vec3(0.0f));
-	    body->SetPosition(globalPosition);
-	    body->SetIsSensor(true);
-	    SetInteractionBodyLayer(body);
-
-	    return item;
-    }
-    inline SceneNode* CreatePlayer(Scene& scene, SceneNode* roomNode) {
-	    JPH::Ref<JPH::CharacterVirtualSettings> characterSettings =
-		    new JPH::CharacterVirtualSettings();
-
-	    characterSettings->mShape = new JPH::CapsuleShape(0.5f, 0.5f);
-	    characterSettings->mShapeOffset = JPH::Vec3(0, 1, 0);
-	    characterSettings->mMaxSlopeAngle = JPH::DegreesToRadians(45.0f);
-
-	    SceneNode* playerNode = scene.CreateNode("Player");
-
-	    SceneNode* bimberman = ResourceDatabase::Global->Get<GltfScene>(
-		    "./res/models/bimbermann_throwing.glb"
-	    )->Instantiate(&scene, scene.root, "Bimberman");
-
-	    if (bimberman) {
-		    bimberman->SetParent(playerNode);
-	    }
-
-	    SceneNode* aimReticle =
-		    ResourceDatabase::Global->Get<GltfScene>(
-			    "./res/models/crosshair.glb"
-		    )->Instantiate(&scene, playerNode, "Aim Reticle");
-
-	    aimReticle->AddObject<AimCrosshair>();
-	    aimReticle->SetEnabled(false);
-
-	    bool returnedFromThrowingTutorial =
-		    PersistentData::Get<bool>("CraftingScene_ReturnedFromThrowingTutorial");
-
-	    SceneNode* spawnNode = nullptr;
-
-	    if (returnedFromThrowingTutorial) {
-		    spawnNode =
-			    FindFirstNodeByNamesRecursive(
-				    roomNode,
-				    {
-					    "PlayerReturnSpawn",
-					    "Player_Return_Spawn",
-					    "ThrowingTutorialReturnSpawn",
-					    "Throwing_Tutorial_Return_Spawn",
-					    "DungeonEntrySpawn",
-					    "Dungeon_Entry_Spawn",
-					    "DungeonEntry",
-					    "Dungeon Entry"
-				    }
-			    );
-	    }
-
-	    if (!spawnNode) {
-		    spawnNode =
-			    FindFirstNodeByNamesRecursive(
-				    roomNode,
-				    {
-					    "Spawn",
-				    }
-			    );
-	    }
-
-	    if (spawnNode) {
-		    playerNode->GlobalTransform().Position() =
-			    spawnNode->GlobalTransform().Position().Value();
-	    }
-	    else {
-		    playerNode->GlobalTransform().Position() =
-			    glm::vec3(4.0f, 0.0f, -1.0f);
-	    }
-
-	    auto* virtualCharacter =
-		    playerNode->AddObject<Physics::VirtualCharacterController>(characterSettings);
-
-	    virtualCharacter->SetPosition(
-		    playerNode->GlobalTransform().Position().Value()
-	    );
-
-	    virtualCharacter->SetGravityFactor(1.0f);
-	    virtualCharacter->SetCollisionLayerAndMask({1}, 0xFFFFFFFF);
-
-	    auto* player =
-		    playerNode->AddObject<PlayerController>();
-
-	    player->SetThrowingUnlocked(false);
-
-	    return playerNode;
+    if (!roomNode) {
+        return;
     }
 
-    inline void CreateCauldronReceiver(Scene& scene, SceneNode* roomNode) {
-	    SceneNode* cauldronNode =
-		    FindFirstNodeByNameRecursive(roomNode, "Cauldron");
+    AddSkybox(scene, roomNode);
+    AddRoomPhysics(roomNode);
+    CreateFogVolumeAtFogPoint(scene, roomNode);
 
-	    if (!cauldronNode) {
-		    return;
-	    }
+    SceneNode* stationNode = CreateCraftingStationModel(scene, roomNode);
 
-	    cauldronNode->AddObject<Crafting::Cauldron>();
-
-	    SceneNode* cauldronReceiverHitboxNode =
-		    scene.CreateNode(cauldronNode, "CauldronReceiverHitbox");
-
-	    cauldronReceiverHitboxNode->LocalTransform().Position() =
-		    glm::vec3(0.0f, -0.2f, 0.0f);
-
-	    cauldronReceiverHitboxNode->LocalTransform().Scale() =
-		    glm::vec3(1.0f);
-
-	    glm::vec3 cauldronReceiverHitboxPosition =
-		    cauldronReceiverHitboxNode->GlobalTransform().Position().Value();
-
-	    auto* cauldronBody =
-		    cauldronReceiverHitboxNode->AddObject<Physics::Body>(
-			    JPH::BodyCreationSettings{
-				    Physics::BoxShape(glm::vec3(0.7f, 2.0f, 0.7f)),
-				    JPH::RVec3(
-					    cauldronReceiverHitboxPosition.x,
-					    cauldronReceiverHitboxPosition.y,
-					    cauldronReceiverHitboxPosition.z
-				    ),
-				    JPH::Quat::sIdentity(),
-				    JPH::EMotionType::Static,
-				    Physics::Layers::NON_MOVING
-			    }
-		    );
-
-	    cauldronBody->SetIsSensor(true);
-	    cauldronBody->SetPosition(cauldronReceiverHitboxPosition);
-
-	    auto* receiver =
-		    cauldronReceiverHitboxNode->AddObject<Crafting::CraftingIngredientReceiver>();
-
-	    receiver->receiverHalfExtents =
-		    glm::vec3(0.7f, 2.0f, 0.7f);
-
-	    receiver->ingredientConsumeOffset =
-		    glm::vec3(0.0f, 0.5f, 0.0f);
+    if (!stationNode) {
+        return;
     }
 
-    inline void CreateLidHitbox(Scene& scene, SceneNode* roomNode) {
-	    SceneNode* lidNode =
-		    FindFirstNodeByNameRecursive(roomNode, "Lid");
+    DisableEmbeddedStationNodes(roomNode, stationNode);
 
-	    if (!lidNode) {
-		    return;
-	    }
+    AddStationMeshPhysics(stationNode);
 
-	    SceneNode* lidHitboxNode =
-		    scene.CreateNode(lidNode, "LidHitbox");
+    CreateCraftingUiButtonInteractables(stationNode);
 
-	    lidHitboxNode->LocalTransform().Position() =
-		    glm::vec3(0.0f, 0.4f, 0.0f);
+    SceneNode* stageOneCameraNode =
+        FindFirstNodeByNameRecursive(stationNode, "StageOneCamera");
 
-	    lidHitboxNode->LocalTransform().Scale() =
-		    glm::vec3(1.0f);
+    if (stageOneCameraNode) {
+        SceneNode* stageOneLightNode =
+            scene.CreateNode(stationNode, "StageOneCameraLight");
 
-	    glm::vec3 lidHitboxPosition =
-		    lidHitboxNode->GlobalTransform().Position().Value();
+        stageOneLightNode->GlobalTransform().Position() =
+            stageOneCameraNode->GlobalTransform().Position().Value();
 
-	    auto* lidBody = lidHitboxNode->AddObject<Physics::Body>(
-		    JPH::BodyCreationSettings{
-			    Physics::BoxShape(glm::vec3(0.75f, 0.4f, 0.75f)),
-			    JPH::RVec3(
-				    lidHitboxPosition.x,
-				    lidHitboxPosition.y,
-				    lidHitboxPosition.z
-			    ),
-			    JPH::Quat::sIdentity(),
-			    JPH::EMotionType::Kinematic,
-			    Physics::Layers::NON_MOVING
-		    }
-	    );
+        auto* stageOneLight =
+            stageOneLightNode->AddObject<Light>(Light::PointLight(
+                glm::vec3(1.0f, 0.62f, 0.28f), 10.0f, 0.0f, 0.12f, 0.045f));
 
-	    lidBody->SetPosition(lidHitboxPosition);
-	    lidBody->SetIsSensor(true);
-	    SetInteractionBodyLayer(lidBody);
-
-	    auto* lidInteractable =
-		    lidHitboxNode->AddObject<Crafting::CraftingInteractable>();
-
-	    lidInteractable->type = Crafting::CraftingInteractionType::Lid;
-	    lidInteractable->interactionEnabled = false;
-	    lidInteractable->blinkOutline = true;
+        stageOneLight->SetIntensity(3.0f);
     }
 
-    inline void CreateCraftingIngredients(Scene& scene, SceneNode* roomNode) {
-	    SceneNode* ingredientsRootNode =
-		    scene.CreateNode(roomNode, "Crafting Ingredients");
+    SceneNode* stageTwoCameraNode =
+        FindFirstNodeByNameRecursive(stationNode, "StageTwoCamera");
 
-	    const std::array<std::string, 4> inventorySlots = {
-		    "slot_bigger",
-		    "slot_bigger.001",
-		    "slot_bigger.002",
-		    "slot_bigger.003"
-	    };
+    if (stageTwoCameraNode) {
+        SceneNode* stageTwoLightNode =
+            scene.CreateNode(stationNode, "StageTwoCameraLight");
 
-	    std::vector<PotionInventory::IngredientInventoryEntry> ingredientDefinitions =
-		    PotionInventory::GetAllIngredientDefinitions();
+        stageTwoLightNode->GlobalTransform().Position() =
+            stageTwoCameraNode->GlobalTransform().Position().Value();
 
-	    for (int index = 0; index < static_cast<int>(ingredientDefinitions.size()); index++) {
-		    const PotionInventory::IngredientInventoryEntry& ingredient =
-			    ingredientDefinitions[index];
+        auto* stageTwoLight =
+            stageTwoLightNode->AddObject<Light>(Light::PointLight(
+                glm::vec3(1.0f, 0.62f, 0.28f), 10.0f, 0.0f, 0.12f, 0.045f));
 
-		    int slotIndex = index % 4;
-
-		    glm::vec3 slotPosition =
-			    WorldPointBetweenCameraNodes(
-				    roomNode,
-				    "StageOneStand",
-				    "StageOneLook",
-				    0.74f,
-				    -0.75f + float(slotIndex) * 0.5f,
-				    -0.20f
-			    );
-
-		    SceneNode* slotNode =
-			    FindFirstNodeByNameRecursive(roomNode, inventorySlots[slotIndex]);
-
-		    if (slotNode) {
-			    slotPosition = slotNode->GlobalTransform().Position().Value();
-		    }
-
-		    IngredientSpawnData spawn;
-		    spawn.nodeName = ingredient.displayName + " Ingredient";
-		    spawn.inventoryKey = ingredient.inventoryKey;
-		    spawn.modelPath = ingredient.modelPath;
-		    spawn.position = slotPosition;
-		    spawn.modelScale = glm::vec3(0.42f);
-		    spawn.modelRotationEuler = glm::vec3(0.0f, 0.0f, 0.0f);
-		    spawn.modelOffset = glm::vec3(0.0f);
-		    spawn.interactionHalfExtents = glm::vec3(0.07f, 0.08f, 0.07f);
-		    spawn.ingredientData = ingredient.data;
-
-		    Crafting::DraggableCraftingItem* item =
-			    CreateDraggableIngredientModel(
-				    scene,
-				    ingredientsRootNode,
-				    spawn
-			    );
-
-		    if (item && item->GetNode()) {
-			    item->GetNode()->SetEnabled(false);
-		    }
-	    }
-
-	    ingredientsRootNode->SetEnabled(false);
+        stageTwoLight->SetIntensity(3.0f);
     }
 
-    inline void SetupCraftingStation(Scene& scene, SceneNode* roomNode) {
-	    CreateStationHitbox(scene, roomNode);
-	    CreateBlowerHitbox(scene, roomNode);
-	    CreateValveHitbox(scene, roomNode);
-	    CreateBottlingStageNodes(scene, roomNode);
-	    CreateCauldronReceiver(scene, roomNode);
-	    CreateLidHitbox(scene, roomNode);
+    SceneNode* lastStageCameraNode =
+        FindFirstNodeByNameRecursive(stationNode, "LastStageCamera");
 
-	    auto* craftingStation =
-		    roomNode->AddObject<Crafting::CraftingStation>();
+    if (lastStageCameraNode) {
+        SceneNode* lastStageLightNode =
+            scene.CreateNode(stationNode, "LastStageCameraLight");
 
-	    craftingStation->interactionRadius = 2.6f;
+        lastStageLightNode->GlobalTransform().Position() =
+            lastStageCameraNode->GlobalTransform().Position().Value();
 
-	    bool returnedFromThrowingTutorial =
-		    PersistentData::Get<bool>("CraftingScene_ReturnedFromThrowingTutorial");
+        auto* lastStageLight =
+            lastStageLightNode->AddObject<Light>(Light::PointLight(
+                glm::vec3(1.0f, 0.62f, 0.28f), 10.0f, 0.0f, 0.12f, 0.045f));
 
-	    bool shouldAutoEnterCrafting =
-		    PersistentData::Get<bool>("CraftingScene_AutoEnterCrafting") &&
-		    !returnedFromThrowingTutorial;
-
-	    craftingStation->enterStationOnFirstUpdate =
-		    shouldAutoEnterCrafting;
-
-	    PersistentData::Set<bool>("CraftingScene_AutoEnterCrafting", false);
+        lastStageLight->SetIntensity(3.0f);
     }
 
-    inline void AddSkybox(Scene& scene, SceneNode* roomNode) {
-	    ShaderProgram* skyProg =
-		    ShaderProgram::Build()
-			    .WithVertexShader("./res/shaders/skybox.vert")
-			    .WithPixelShader("./res/shaders/skybox.frag")
-			    .Link();
+    SceneNode* dragInteractorNode =
+        scene.CreateNode(stationNode, "Crafting Drag Interactor");
 
-	    Cubemap* skyCubemap =
-		    scene.Resources()->Get<Cubemap>(
-			    "./res/textures/null_skybox.hdr",
-			    Texture::HDRColorBuffer
-		    );
+    dragInteractorNode->AddObject<Crafting::CraftingDragInteractor>();
 
-	    skyCubemap->SetWrapModeU(TextureWrap::Clamp);
-	    skyCubemap->SetWrapModeV(TextureWrap::Clamp);
-	    skyCubemap->SetWrapModeW(TextureWrap::Clamp);
+    SceneNode* playerNode = CreatePlayer(scene, roomNode);
 
-	    Material* skyMat =
-		    new Material(skyProg);
+    SceneNode* cameraNode = scene.CreateNode("Camera Node");
 
-	    skyMat->SetValue("skyboxTexture", skyCubemap);
+    cameraNode->AddObject<Camera>(
+        Camera::Perspective(60.0f, 16.0f / 9.0f, 0.1f, 200.0f));
 
-	    roomNode->AddObject<Skybox>(skyMat);
-    }
+    cameraNode->GetObject<Camera>()->SetAsMainCamera();
 
-    inline void InitScene(Scene& scene) {
+    cameraNode->AddObject<CameraSettings>(
+        playerNode->GlobalTransform().Position(), 7, 135);
 
-	    scene.AddComponent<Physics::System>();
-	    scene.AddComponent<LightSystem>();
-	    scene.AddComponent<UiSystem>();
-	    scene.AddComponent<AnimationSystem>();
-	    scene.AddComponent<TweenSystem>();
-	    scene.AddComponent<WheelSystem>();
+    cameraNode->AddObject<MaskEffects>();
 
-	    if (auto* lightSystem = scene.GetComponent<LightSystem>()) {
-		    lightSystem->SetAmbientLight(glm::vec4(1.0f, 0.65f, 0.25f, 0.12f));
-	    }
+    auto* jfa = cameraNode->AddObject<JfaOutline>();
 
-	    SceneNode* sceneRoot =
-		    scene.CreateNode("Crafting Scene Root");
+    jfa->outlineThickness = 4.0f;
+    jfa->outlineColor = {1.0f, 1.0f, 1.0f};
 
-	    SceneNode* roomNode =
-		    ResourceDatabase::Global->Get<GltfScene>(
-			    CraftingRoomModelPath
-		    )->Instantiate(&scene, sceneRoot, "Crafting Base Room");
+    auto* dof = cameraNode->AddObject<DepthOfField>();
 
-	    if (!roomNode) {
-		    return;
-	    }
+    dof->SetEnabled(false);
 
-	    AddSkybox(scene, roomNode);
-	    AddRoomPhysics(roomNode);
-	    CreateFogVolumeAtFogPoint(scene, roomNode);
+    cameraNode->AddObject<Bloom>();
 
-	    SceneNode* stationNode =
-		    CreateCraftingStationModel(scene, roomNode);
+    cameraNode->AddObject<Tonemapper>()->SetOperator(
+        Tonemapper::TonemapperOperator::GranTurismo);
 
-	    if (!stationNode) {
-		    return;
-	    }
+    cameraNode->AddObject<ColorGrading>();
+    cameraNode->AddObject<Fxaa>();
 
-	    DisableEmbeddedStationNodes(roomNode, stationNode);
-
-            AddStationMeshPhysics(stationNode);
-
-            CreateCraftingUiButtonInteractables(stationNode);
-
-
-            SceneNode* stageOneCameraNode =
-                    FindFirstNodeByNameRecursive(stationNode, "StageOneCamera");
-
-            if (stageOneCameraNode) {
-                SceneNode* stageOneLightNode =
-                        scene.CreateNode(stationNode, "StageOneCameraLight");
-
-                stageOneLightNode->GlobalTransform().Position() =
-                        stageOneCameraNode->GlobalTransform().Position().Value();
-
-                auto* stageOneLight =
-                        stageOneLightNode->AddObject<Light>(
-                                Light::PointLight(
-                                        glm::vec3(1.0f, 0.62f, 0.28f),
-                                        10.0f,
-                                        0.0f,
-                                        0.12f,
-                                        0.045f
-                                )
-                        );
-
-                stageOneLight->SetIntensity(3.0f);
-            }
-
-
-            SceneNode* stageTwoCameraNode =
-                    FindFirstNodeByNameRecursive(stationNode, "StageTwoCamera");
-
-            if (stageTwoCameraNode) {
-                SceneNode* stageTwoLightNode =
-                        scene.CreateNode(stationNode, "StageTwoCameraLight");
-
-                stageTwoLightNode->GlobalTransform().Position() =
-                        stageTwoCameraNode->GlobalTransform().Position().Value();
-
-                auto* stageTwoLight =
-                        stageTwoLightNode->AddObject<Light>(
-                                Light::PointLight(
-                                        glm::vec3(1.0f, 0.62f, 0.28f),
-                                        10.0f,
-                                        0.0f,
-                                        0.12f,
-                                        0.045f
-                                )
-                        );
-
-                stageTwoLight->SetIntensity(3.0f);
-            }
-
-
-            SceneNode* lastStageCameraNode =
-                    FindFirstNodeByNameRecursive(stationNode, "LastStageCamera");
-
-            if (lastStageCameraNode) {
-                SceneNode* lastStageLightNode =
-                        scene.CreateNode(stationNode, "LastStageCameraLight");
-
-                lastStageLightNode->GlobalTransform().Position() =
-                        lastStageCameraNode->GlobalTransform().Position().Value();
-
-                auto* lastStageLight =
-                        lastStageLightNode->AddObject<Light>(
-                                Light::PointLight(
-                                        glm::vec3(1.0f, 0.62f, 0.28f),
-                                        10.0f,
-                                        0.0f,
-                                        0.12f,
-                                        0.045f
-                                )
-                        );
-
-                lastStageLight->SetIntensity(3.0f);
-            }
-
-	    SceneNode* dragInteractorNode =
-		    scene.CreateNode(stationNode, "Crafting Drag Interactor");
-
-	    dragInteractorNode->AddObject<Crafting::CraftingDragInteractor>();
-
-	    SceneNode* playerNode =
-		    CreatePlayer(scene, roomNode);
-
-	    SceneNode* cameraNode =
-		    scene.CreateNode("Camera Node");
-
-	    cameraNode->AddObject<Camera>(
-		    Camera::Perspective(60.0f, 16.0f / 9.0f, 0.1f, 200.0f)
-	    );
-
-	    cameraNode->GetObject<Camera>()->SetAsMainCamera();
-
-	    cameraNode->AddObject<CameraSettings>(
-		    playerNode->GlobalTransform().Position(),
-		    7,
-		    135
-	    );
-
-	    cameraNode->AddObject<MaskEffects>();
-
-	    auto* jfa =
-		    cameraNode->AddObject<JfaOutline>();
-
-	    jfa->outlineThickness = 4.0f;
-	    jfa->outlineColor = {1.0f, 1.0f, 1.0f};
-
-	    auto* dof =
-		    cameraNode->AddObject<DepthOfField>();
-
-	    dof->SetEnabled(false);
-
-	    cameraNode->AddObject<Bloom>();
-
-	    cameraNode->AddObject<Tonemapper>()
-		    ->SetOperator(Tonemapper::TonemapperOperator::GranTurismo);
-
-	    cameraNode->AddObject<ColorGrading>();
-	    cameraNode->AddObject<Fxaa>();
-
-	    roomNode->AddObject<CraftingRoomLights>();
-	    roomNode->AddObject<CraftingTutorialFinishedMessage>();
-	    roomNode->AddObject<DungeonEntryPrompt>();
+    roomNode->AddObject<CraftingRoomLights>();
+    roomNode->AddObject<CraftingTutorialFinishedMessage>();
+    roomNode->AddObject<DungeonEntryPrompt>();
 
         SceneNode* uiRoot = scene.CreateNode("UI");
         SceneNode* pauseMenu = scene.CreateNode(uiRoot, "Pause Menu");
@@ -2351,6 +2010,14 @@ namespace CraftingScene {
         SetupCraftingStation(scene, stationNode);
         CreateCraftingIngredients(scene, stationNode);
 
-    }
-
+    // UI
+    SceneNode* uiRoot = scene.CreateNode("UI");
+    SceneNode* tabMenu = scene.CreateNode(uiRoot, "Tab Menu");
+    tabMenu->AddObject<TabMenu>();
+    SceneNode* pauseMenu = scene.CreateNode(uiRoot, "Pause Menu");
+    pauseMenu->AddObject<PauseMenu>();
+    SceneNode* inGameUi = scene.CreateNode(uiRoot, "HUD");
+    inGameUi->AddObject<InGameUi>();
 }
+
+} // namespace CraftingScene

@@ -17,6 +17,8 @@
 #include <string>
 #include <algorithm>
 #include <ui/widgets/wheel/UiWheel.h>
+#include <TweenSystem.h>
+#include <EasingFunctions.h>
 
 struct ScrollingListItemData {
     std::string text;
@@ -34,6 +36,8 @@ public:
     std::vector<UiText*> itemNameTexts;
     std::vector<UiText*> itemCountTexts;
     std::vector<UiVisual*> itemIcons;
+    std::vector<UiVisual*> itemOutlines;
+    std::vector<TweenHandle> itemTweens;
 
     UiInteractable* scrollbarHandle = nullptr;
     SceneNode* scrollbarHandleNode = nullptr;
@@ -47,6 +51,7 @@ public:
     float spacing = 10.0f;
     float scrollSpeed = 15.0f;
     float handleHeight = 100.0f;
+    float verticalPadding = 50.0f;
 
     bool isDragging = false;
     float dragOffset = 0.0f;
@@ -62,12 +67,19 @@ public:
         SceneNode* listRoot = GetNode();
         
         this->layout = listRoot->AddObjectIfMissing<UiLayout>(
-            glm::uvec2(400, 860), glm::ivec2(-40, 00), 10, AnchorPoint::CenterRight);
+            glm::uvec2(500, 1000), glm::ivec2(-40, 0), 10, AnchorPoint::CenterRight);
+
+        Texture2D* bgTexture = mainScene->Resources()->Get<Texture2D>(
+            "./res/textures/ui/2d/equipment_list.png", Texture2D::ColorTextureRGBA
+        );
+        auto* listRootBg = listRoot->AddObjectIfMissing<UiVisual>(glm::vec4(1.0f), bgTexture);
+        listRootBg->SetEnabled(false);
 
         SceneNode* scrollbarTrackNode = mainScene->GetOrCreateNode(listRoot, "Scrollbar Track");
         scrollbarTrackNode->AddObjectIfMissing<UiLayout>(
-            glm::uvec2(20, 860), glm::ivec2(0, 0), 11, AnchorPoint::CenterRight);
-        scrollbarTrackNode->AddObjectIfMissing<UiVisual>(glm::vec4(0.1f, 0.1f, 0.1f, 0.8f));
+            glm::uvec2(20, 900), glm::ivec2(-20, 0), 11, AnchorPoint::CenterRight);
+        auto* trackVisual = scrollbarTrackNode->AddObjectIfMissing<UiVisual>(glm::vec4(0.1f, 0.1f, 0.1f, 0.8f));
+        trackVisual->SetEnabled(false);
         scrollbarTrackNode->AddObjectIfMissing<WheelTag>();
 
         scrollbarHandleNode = mainScene->GetOrCreateNode(scrollbarTrackNode, "Scrollbar Handle");
@@ -77,6 +89,7 @@ public:
         
         auto* handleVisual = scrollbarHandleNode->AddObjectIfMissing<UiVisual>(glm::vec4(0.5f, 0.5f, 0.5f, 1.0f));
         handleVisual->colorHovered = glm::vec4(0.7f, 0.7f, 0.7f, 1.0f);
+        handleVisual->SetEnabled(false);
         
         scrollbarHandle = scrollbarHandleNode->AddObjectIfMissing<UiInteractable>();
     }
@@ -86,7 +99,9 @@ public:
         
         Scene* mainScene = GetScene();
         SceneNode* listRoot = GetNode();
-        float listWidth = 340.0f;
+        TweenSystem* tweenSystem = mainScene->GetComponent<TweenSystem>();
+        
+        float listWidth = 440.0f;
 
         activeItemCount = static_cast<int>(itemsData.size());
 
@@ -98,6 +113,12 @@ public:
                 itemNode->AddObjectIfMissing<WheelTag>();
                 
                 auto* interactable = itemNode->AddObjectIfMissing<UiInteractable>();
+
+                SceneNode* outlineNode = mainScene->GetOrCreateNode(itemNode, "IconOutline_" + std::to_string(i));
+                outlineNode->AddObjectIfMissing<UiLayout>(
+                    glm::uvec2(itemHeight - 6, itemHeight - 6), glm::ivec2(5, -2), 11, AnchorPoint::CenterLeft);
+                outlineNode->AddObjectIfMissing<WheelTag>();
+                auto* outlineVisual = outlineNode->AddObjectIfMissing<UiVisual>(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
                 
                 SceneNode* iconNode = mainScene->GetOrCreateNode(itemNode, "Icon_" + std::to_string(i));
                 iconNode->AddObjectIfMissing<UiLayout>(
@@ -129,21 +150,75 @@ public:
 
                 itemNodes.push_back(itemNode);
                 itemInteractables.push_back(interactable);
+                itemOutlines.push_back(outlineVisual);
                 itemIcons.push_back(iconVis);
                 itemNameTexts.push_back(nameTxt);
                 itemCountTexts.push_back(countTxt);
+                itemTweens.push_back(TweenHandle{});
+
+                int index = (int)i;
+                interactable->OnHoverEnter = [this, tweenSystem, iconNode, outlineNode, index]() {
+                    if (!tweenSystem) return;
+
+                    float currentScale = iconNode->LocalTransform().Scale().Value().x;
+
+                    TweenConfig config;
+                    config.initialValue = currentScale;
+                    config.targetValue = 1.3f;
+                    config.duration = 0.1f;
+                    config.easingFunction = Easing::inOutSine;
+
+                    TweenHandle handle = tweenSystem->CreateTween(config);
+                    handle.Bind([iconNode, outlineNode](float val) {
+                        iconNode->LocalTransform().Scale() = glm::vec3(val, val, 1.0f);
+                        outlineNode->LocalTransform().Scale() = glm::vec3(val, val, 1.0f);
+                    });
+
+                    this->itemTweens[index] = std::move(handle);
+                };
+
+                interactable->OnHoverExit = [this, tweenSystem, iconNode, outlineNode, index]() {
+                    if (!tweenSystem) return;
+
+                    float currentScale = iconNode->LocalTransform().Scale().Value().x;
+
+                    TweenConfig config;
+                    config.initialValue = currentScale;
+                    config.targetValue = 1.0f;
+                    config.duration = 0.15f;
+                    config.easingFunction = Easing::inOutSine;
+
+                    TweenHandle handle = tweenSystem->CreateTween(config);
+                    handle.Bind([iconNode, outlineNode](float val) {
+                        iconNode->LocalTransform().Scale() = glm::vec3(val, val, 1.0f);
+                        outlineNode->LocalTransform().Scale() = glm::vec3(val, val, 1.0f);
+                    });
+
+                    this->itemTweens[index] = std::move(handle);
+                };
             }
 
             itemNodes[i]->SetEnabled(true);
             itemNameTexts[i]->text = itemsData[i].text;
             itemCountTexts[i]->text = "x" + std::to_string(itemsData[i].count);
             
+            if (!itemInteractables[i]->isHovered && (!tweenSystem || !tweenSystem->IsValid(itemTweens[i]))) {
+                itemIcons[i]->GetNode()->LocalTransform().Scale() = glm::vec3(1.0f);
+                itemOutlines[i]->GetNode()->LocalTransform().Scale() = glm::vec3(1.0f);
+            }
+            
             if (itemsData[i].icon) {
                 itemIcons[i]->texture = itemsData[i].icon;
                 itemIcons[i]->color = glm::vec4(1.0f);
+
+                itemOutlines[i]->texture = itemsData[i].icon;
+                itemOutlines[i]->color = glm::vec4(0.0f, 0.0f, 0.0f, 0.8f);
             } else {
                 itemIcons[i]->texture = nullptr;
                 itemIcons[i]->color = glm::vec4(0.5f, 0.5f, 0.5f, 1.0f);
+
+                itemOutlines[i]->texture = nullptr;
+                itemOutlines[i]->color = glm::vec4(0.0f);
             }
         }
 
@@ -180,14 +255,16 @@ public:
         float rowHeight = itemHeight + spacing;
         float selectedTopEdge = selectedIndex * rowHeight;
         float selectedBottomEdge = selectedTopEdge + itemHeight;
+        
         float visibleHeight = static_cast<float>(layout->size.y);
+        float paddedVisibleHeight = visibleHeight - (verticalPadding * 2.0f);
         float totalHeight = activeItemCount * rowHeight - spacing;
-        float maxScroll = std::max(0.0f, totalHeight - visibleHeight);
+        float maxScroll = std::max(0.0f, totalHeight - paddedVisibleHeight);
 
         if (selectedTopEdge < targetScrollY) {
             targetScrollY = selectedTopEdge;
-        } else if (selectedBottomEdge > targetScrollY + visibleHeight) {
-            targetScrollY = selectedBottomEdge - visibleHeight;
+        } else if (selectedBottomEdge > targetScrollY + paddedVisibleHeight) {
+            targetScrollY = selectedBottomEdge - paddedVisibleHeight;
         }
 
         if (scrollbarHandle) {
@@ -210,8 +287,9 @@ public:
                     isDragging = false;
                 } else {
                     float targetHandleY = relativeMouseY - dragOffset;
-                    float trackTop = -visibleHeight / 2.0f + handleHeight / 2.0f;
-                    float trackBot = visibleHeight / 2.0f - handleHeight / 2.0f;
+                    
+                    float trackTop = -visibleHeight / 2.0f + verticalPadding + handleHeight / 2.0f;
+                    float trackBot = visibleHeight / 2.0f - verticalPadding - handleHeight / 2.0f;
                     
                     float trackRange = trackBot - trackTop;
                     float fraction = 0.0f;
@@ -232,7 +310,7 @@ public:
             scrollY += (targetScrollY - scrollY) * scrollSpeed * Time::UnscaledDelta();
         }
 
-        float startY = -visibleHeight / 2.0f + itemHeight / 2.0f;
+        float startY = -visibleHeight / 2.0f + verticalPadding + itemHeight / 2.0f;
 
         for (size_t i = 0; i < activeItemCount; i++) {
             SceneNode* childNode = itemNodes[i];
@@ -248,8 +326,12 @@ public:
 
         if (scrollbarHandleNode && maxScroll > 0.0f) {
             float handleFraction = maxScroll > 0.0f ? (scrollY / maxScroll) : 0.0f;
-            float handleRange = visibleHeight - handleHeight;
-            float handleY = -visibleHeight / 2.0f + handleHeight / 2.0f + (handleFraction * handleRange);
+            
+            float trackTop = -visibleHeight / 2.0f + verticalPadding + handleHeight / 2.0f;
+            float trackBot = visibleHeight / 2.0f - verticalPadding - handleHeight / 2.0f;
+            float handleRange = trackBot - trackTop;
+            
+            float handleY = trackTop + (handleFraction * handleRange);
             
             if (auto* handleLayout = scrollbarHandleNode->GetObject<UiLayout>()) {
                 handleLayout->offset = glm::ivec2(0, static_cast<int>(handleY));

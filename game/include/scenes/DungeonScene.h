@@ -30,9 +30,9 @@
 #include <animation/AnimationSystem.h>
 #include <fog/FogVolume.h>
 #include <game_scripts/CameraSettings.h>
-#include <game_scripts/PlayerController.h>
 #include <game_scripts/PickableItemSystem.h>
-//#include <game_scripts/ThrowBottle.h>
+#include <game_scripts/PlayerController.h>
+// #include <game_scripts/ThrowBottle.h>
 #include <glm/fwd.hpp>
 #include <glm/geometric.hpp>
 #include <glm/trigonometric.hpp>
@@ -45,18 +45,23 @@
 
 #include "Jolt/Math/Vec3.h"
 #include "game_scripts/enemies/FlockingSystem.h"
+#include "game_scripts/ui/InGame.h"
+#include "game_scripts/ui/PauseMenu.h"
+#include "game_scripts/ui/TabMenu.h"
+#include "ui/systems/UiSystem.h"
+#include "ui/widgets/wheel/UiWheel.h"
 #include <Jolt/Jolt.h>
 #include <Jolt/Physics/Body/MotionType.h>
 #include <Jolt/Physics/Character/CharacterVirtual.h>
 #include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
 #include <Jolt/Physics/Collision/Shape/Shape.h>
-#include <imgui.h>
-#include <physics/VirtualCharacterController.h>
 #include <game_scripts/AimCrosshair.h>
 #include <game_scripts/ThrowableObjectPool.h>
 #include <game_scripts/ui/PauseMenu.h>
 #include <ui/systems/UiSystem.h>
 #include <game_scripts/enemies/FlockingSystem.h>
+#include <imgui.h>
+#include <physics/VirtualCharacterController.h>
 
 namespace DungeonScene {
 inline void InitScene(Scene& mainScene) {
@@ -66,8 +71,10 @@ inline void InitScene(Scene& mainScene) {
 	mainScene.AddComponent<AnimationSystem>();
 	auto* tweenSystem = mainScene.AddComponent<TweenSystem>();
     mainScene.AddComponent<PickableItemSystem>();
+    mainScene.AddComponent<UiSystem>();
+    mainScene.AddComponent<WheelSystem>();
     mainScene.AddComponent<ThrowableObjectPool>();
-	auto* flockingSystem = mainScene.AddComponent<FlockingSystem>();
+    auto* flockingSystem = mainScene.AddComponent<FlockingSystem>();
     // Opcjonalne tunowanie:
     flockingSystem->separationRadius = 2.5f;
     flockingSystem->separationWeight = 1.8f;
@@ -80,23 +87,22 @@ inline void InitScene(Scene& mainScene) {
 // switch to GCC
 #pragma region World
 
-	ShaderProgram* skyProg = ShaderProgram::Build()
-	.WithVertexShader(("./res/shaders/skybox.vert"))
-	.WithPixelShader(("./res/shaders/skybox.frag"))
-	.Link();
+    ShaderProgram* skyProg =
+        ShaderProgram::Build()
+            .WithVertexShader(("./res/shaders/skybox.vert"))
+            .WithPixelShader(("./res/shaders/skybox.frag"))
+            .Link();
 
-	Cubemap* skyCubemap = mainScene.Resources()->Get<Cubemap>(
-		"./res/textures/null_skybox.hdr",
-		Texture::HDRColorBuffer
-	);
-	skyCubemap->SetWrapModeU(TextureWrap::Clamp);
-	skyCubemap->SetWrapModeV(TextureWrap::Clamp);
-	skyCubemap->SetWrapModeW(TextureWrap::Clamp);
+    Cubemap* skyCubemap = mainScene.Resources()->Get<Cubemap>(
+        "./res/textures/null_skybox.hdr", Texture::HDRColorBuffer);
+    skyCubemap->SetWrapModeU(TextureWrap::Clamp);
+    skyCubemap->SetWrapModeV(TextureWrap::Clamp);
+    skyCubemap->SetWrapModeW(TextureWrap::Clamp);
 
-	Material* skyMat = new Material(skyProg);
-	skyMat->SetValue("skyboxTexture", skyCubemap);
+    Material* skyMat = new Material(skyProg);
+    skyMat->SetValue("skyboxTexture", skyCubemap);
 
-	mainScene.GetRootNode()->AddObject<Skybox>(skyMat);
+    mainScene.GetRootNode()->AddObject<Skybox>(skyMat);
 
 #pragma endregion
 #pragma region Player
@@ -107,7 +113,7 @@ inline void InitScene(Scene& mainScene) {
     characterSettings->mMaxSlopeAngle = JPH::DegreesToRadians(45.0f);
 
     SceneNode* playerNode = mainScene.CreateNode("Player");
-	playerNode->GlobalTransform().Position() = glm::vec3(3, 0, 0);
+    playerNode->GlobalTransform().Position() = glm::vec3(3, 0, 0);
 
     SceneNode* bimberman =
         ResourceDatabase::Global
@@ -133,12 +139,13 @@ inline void InitScene(Scene& mainScene) {
 #pragma endregion
 #pragma region Camera
 
-	SceneNode* cameraNode = mainScene.LoadPrefab(fs::path("./res/prefabs/PlayerCamera.prefab"));
+    SceneNode* cameraNode =
+        mainScene.LoadPrefab(fs::path("./res/prefabs/PlayerCamera.prefab"));
 
-	CameraSettings* camera = cameraNode->GetObject<CameraSettings>();
+    CameraSettings* camera = cameraNode->GetObject<CameraSettings>();
 
-	camera->SetHeight(7);
-	camera->SetAngleY(225);
+    camera->SetHeight(7);
+    camera->SetAngleY(225);
 
 	auto* jfa = cameraNode->AddObjectIfMissing<JfaOutline>();
 	jfa->outlineThickness = 4.0f;
@@ -146,26 +153,38 @@ inline void InitScene(Scene& mainScene) {
 
 #pragma endregion
 #pragma region Miscellaneous
-	mainScene.GetComponent<LightSystem>()->SetAmbientLight(
-		{1.0f, 1.0f, 1.0f, 0.1f});
+    mainScene.GetComponent<LightSystem>()->SetAmbientLight(
+        {1.0f, 1.0f, 1.0f, 0.1f});
 #pragma endregion
 #pragma region Generator
 
-	SceneNode* generatorNode = mainScene.CreateNode("Dungeon Generator");
-	
-	auto* dungeon = generatorNode->AddObject<DungeonGenerator>();
+    SceneNode* generatorNode = mainScene.CreateNode("Dungeon Generator");
 
-	dungeon->RemakeDungeon();
+    auto* dungeon = generatorNode->AddObject<DungeonGenerator>();
+
+    dungeon->RemakeDungeon();
 
 #pragma endregion
+// #pragma region Ui
+//
+//     SceneNode* uiRoot = mainScene.CreateNode("UI");
+//     SceneNode* pauseMenu = mainScene.CreateNode(uiRoot, "Pause Menu");
+//     pauseMenu->AddObject<PauseMenu>();
+//
+// #pragma endregion
+
 #pragma region Ui
 
     SceneNode* uiRoot = mainScene.CreateNode("UI");
+    SceneNode* tabMenu = mainScene.CreateNode(uiRoot, "Tab Menu");
+    tabMenu->AddObject<TabMenu>();
     SceneNode* pauseMenu = mainScene.CreateNode(uiRoot, "Pause Menu");
     pauseMenu->AddObject<PauseMenu>();
+    SceneNode* inGameUi = mainScene.CreateNode(uiRoot, "HUD");
+    inGameUi->AddObject<InGameUi>();
 
 #pragma endregion
 
-	return;
+    return;
 }
 } // namespace DungeonGeneratorScene

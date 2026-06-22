@@ -11,6 +11,7 @@
 #include <ui/widgets/wheel/UiRadialWheel.h>
 #include <ui/widgets/wheel/UiWheel.h>
 #include <game_scripts/ui/ScrollingList.h>
+#include <game_scripts/ui/UiMinimap.h>
 
 
 class TabMenu : public GameObject {
@@ -19,7 +20,9 @@ private:
     UiInteractable* pauseButton = nullptr;
 
     UiOptionsMenu* optionsMenu = nullptr;
-    ScrollingList* itemList = nullptr; 
+    ScrollingList* itemList = nullptr;
+
+    UiMinimap* minimap = nullptr;
 
     bool gamePaused = false;
 
@@ -101,6 +104,21 @@ public:
 
         this->itemList->Initialize(font);
         itemListNode->AddObjectIfMissing<WheelTag>();
+
+        // Minimap
+        SceneNode* minimapRootNode = mainScene->GetOrCreateNode(uiRoot, "Minimap");
+        minimapRootNode->AddObjectIfMissing<UiLayout>(
+            glm::uvec2(500, 500), glm::ivec2(40, 40), 10, AnchorPoint::TopLeft
+        );
+
+        this->minimap = minimapRootNode->AddObjectIfMissing<UiMinimap>();
+
+        std::vector<DungeonGenerator*> generators = mainScene->FindObjectsOfType<DungeonGenerator>();
+        if (!generators.empty()) {
+            this->minimap->Initialize(generators[0]);
+        }
+
+        minimapRootNode->AddObjectIfMissing<WheelTag>();
     }
 
     void Update() {
