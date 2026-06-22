@@ -27,8 +27,10 @@
 #include <game_scripts/ThrowableObjectPool.h>
 #include <game_scripts/ui/PauseMenu.h>
 #include <ui/widgets/wheel/UiWheel.h>
+#include <ui/objects/UiInteractable.h>
 #include <ui/objects/UiLayout.h>
 #include <ui/objects/UiText.h>
+#include <ui/objects/UiVisual.h>
 #include <text/Font.h>
 #include <PersistentData.h>
 #include <Application.h>
@@ -65,6 +67,8 @@
 #include <spdlog/spdlog.h>
 
 #include <algorithm>
+#include <optional>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -1340,34 +1344,166 @@ namespace CraftingScene {
     class DungeonEntryPrompt : public GameObject {
     private:
         SceneNode* dungeonEntryNode = nullptr;
+        UiLayout* promptLayout = nullptr;
+        UiLayout* dialogLayout = nullptr;
         UiText* promptText = nullptr;
-        bool confirmationVisible = false;
+        UiText* potionListText = nullptr;
+        UiInteractable* enterButton = nullptr;
+        UiInteractable* backButton = nullptr;
+        bool dialogVisible = false;
         bool sceneRequested = false;
         float interactionRadius = 2.6f;
 
-        void HidePrompt() {
-            if (!this->promptText) {
-                return;
-            }
-
-            this->promptText->color.w = glm::clamp(
-                this->promptText->color.w - Time::Delta() * 4.0f,
-                0.0f,
-                1.0f
-            );
+        UiLayout* ConfigureLayout(
+            SceneNode* node,
+            const glm::uvec2& size,
+            const glm::ivec2& offset,
+            int zIndex,
+            AnchorPoint anchorPoint
+        ){
+            UiLayout* layout = node->AddObjectIfMissing<UiLayout>();
+            layout->size = glm::ivec2(size);
+            layout->offset = offset;
+            layout->zIndex = zIndex;
+            layout->anchorPoint = anchorPoint;
+            return layout;
         }
 
-        void ShowPrompt(const std::string& text) {
-            if (!this->promptText) {
-                return;
+        UiVisual* ConfigureVisual(
+            SceneNode* node,
+            const glm::vec4& color,
+            const glm::vec4& hoverColor = glm::vec4(-1.0f)
+        ){
+            UiVisual* visual = node->AddObjectIfMissing<UiVisual>();
+            visual->color = color;
+            visual->colorHovered = hoverColor.x >= 0.0f
+                ? std::optional<glm::vec4>(hoverColor)
+                : std::nullopt;
+            return visual;
+        }
+
+        UiText* CreateText(
+            SceneNode* parent,
+            const std::string& nodeName,
+            const std::string& text,
+            Font* font,
+            const glm::uvec2& size,
+            const glm::ivec2& offset,
+            float fontSize,
+            int zIndex
+        ){
+            SceneNode* textNode = GetScene()->GetOrCreateNode(parent,nodeName);
+            ConfigureLayout(textNode,size,offset,zIndex,AnchorPoint::Center);
+
+            UiText* uiText = textNode->AddObjectIfMissing<UiText>();
+            uiText->text = text;
+            uiText->font = font;
+            uiText->fontSize = fontSize;
+            uiText->alignment = TextAlignment::Middle;
+            uiText->verticalAlignment = TextVerticalAlignment::Middle;
+            uiText->color = glm::vec4(1.0f);
+            return uiText;
+        }
+
+        UiInteractable* CreateButton(
+            SceneNode* parent,
+            const std::string& nodeName,
+            const std::string& text,
+            Font* font,
+            const glm::uvec2& size,
+            const glm::ivec2& offset,
+            const glm::vec4& color = glm::vec4(0.4f,0.4f,0.4f,1.0f),
+            const glm::vec4& hoverColor = glm::vec4(1.0f,1.0f,1.0f,1.0f)
+        ){
+            SceneNode* buttonNode = GetScene()->GetOrCreateNode(parent,nodeName);
+            ConfigureLayout(buttonNode,size,offset,132,AnchorPoint::Center);
+            ConfigureVisual(buttonNode,color,hoverColor);
+
+            UiInteractable* interactable = buttonNode->AddObjectIfMissing<UiInteractable>();
+            interactable->isInteractable = true;
+
+            CreateText(
+                buttonNode,
+                nodeName + " Text",
+                text,
+                font,
+                size,
+                glm::ivec2(0,0),
+                20.0f,
+                133
+            );
+
+            return interactable;
+        }
+
+        std::string PotionLine(
+            const Crafting::CraftedPotionData& potionData,
+            int count
+        ) const{
+            std::string label = potionData.primaryEffectId;
+
+            if (!potionData.secondaryEffectId.empty() &&
+                potionData.secondaryEffectId != Crafting::EffectId::None){
+                label += " + " + potionData.secondaryEffectId;
             }
 
-            this->promptText->text = text;
-            this->promptText->color.w = glm::clamp(
-                this->promptText->color.w + Time::Delta() * 4.0f,
-                0.0f,
-                1.0f
-            );
+            if (label.empty()){
+                label = potionData.recipeName.empty() ? "Potion" : potionData.recipeName;
+            }
+
+            return "x" + std::to_string(count) + "  " + label;
+        }
+
+        std::string BuildPotionInventoryText() const{
+            std::vector<PotionInventory::PotionInventoryEntry> potions =
+                PotionInventory::GetPotionInventory();
+
+            if (potions.empty()){
+                int legacyPotionCount = PotionInventory::GetPotionCount();
+
+                if (legacyPotionCount > 0){
+                    return PotionLine(
+                        PotionInventory::GetLastCraftedPotion(),
+                        legacyPotionCount
+                    );
+                }
+
+                return "No potions";
+            }
+
+            std::stringstream stream;
+
+            for (std::size_t i = 0; i < potions.size(); i++){
+                stream << PotionLine(potions[i].data,potions[i].count);
+
+                if (i + 1 < potions.size()){
+                    stream << "\n";
+                }
+            }
+
+            return stream.str();
+        }
+
+        void SetPromptVisible(bool visible){
+            if (this->promptLayout){
+                this->promptLayout->offset = visible
+                    ? glm::ivec2(-40,270)
+                    : glm::ivec2(9999,9999);
+            }
+        }
+
+        void SetDialogVisible(bool visible){
+            this->dialogVisible = visible;
+
+            if (visible && this->potionListText){
+                this->potionListText->text = BuildPotionInventoryText();
+            }
+
+            if (this->dialogLayout){
+                this->dialogLayout->offset = visible
+                    ? glm::ivec2(0,0)
+                    : glm::ivec2(9999,9999);
+            }
         }
 
         bool IsPlayerNearDungeonEntry() const {
@@ -1387,7 +1523,8 @@ namespace CraftingScene {
             }
 
             this->sceneRequested = true;
-            this->confirmationVisible = false;
+            SetDialogVisible(false);
+            SetPromptVisible(false);
 
             PersistentData::Set<bool>("CraftingScene_AutoEnterCrafting", false);
             PersistentData::Set<bool>("CraftingScene_ReturnedFromThrowingTutorial", false);
@@ -1426,64 +1563,158 @@ namespace CraftingScene {
                 .magFilter = TextureFilter::Linear
             };
 
-            Texture2D* papyrusAtlas = GetScene()->Resources()->Get<Texture2D>(
-                "./res/fonts/Papyrus/Papyrus-Regular.png",
+            Texture2D* fontAtlas = GetScene()->Resources()->Get<Texture2D>(
+                "./res/fonts/OpenSans-Regular/OpenSans-Regular.png",
                 fontTextureParams
             );
 
-            Font* papyrusFont = GetScene()->Resources()->Get<Font>(
-                "./res/fonts/Papyrus/Papyrus-Regular.json",
-                papyrusAtlas,
-                true
+            Font* font = GetScene()->Resources()->Get<Font>(
+                "./res/fonts/OpenSans-Regular/OpenSans-Regular.json",
+                fontAtlas
             );
 
-            SceneNode* uiTextNode = GetScene()->CreateNode("Dungeon Entry Prompt UI");
-            uiTextNode->AddObject<UiLayout>(
-                glm::uvec2(520, 150),
-                glm::ivec2(-40, 270),
-                20,
+            SceneNode* promptNode = GetScene()->GetOrCreateNode("Dungeon Entry Prompt UI");
+            this->promptLayout = ConfigureLayout(
+                promptNode,
+                glm::uvec2(520,150),
+                glm::ivec2(9999,9999),
+                120,
                 AnchorPoint::TopRight
             );
 
-            this->promptText = uiTextNode->AddObject<UiText>("", papyrusFont);
-            this->promptText->fontSize = 26.0f;
+            this->promptText = promptNode->AddObjectIfMissing<UiText>();
+            this->promptText->text = "Dungeon entrance\nPress F to inspect";
+            this->promptText->font = font;
+            this->promptText->fontSize = 24.0f;
             this->promptText->alignment = TextAlignment::Right;
+            this->promptText->verticalAlignment = TextVerticalAlignment::Middle;
             this->promptText->maxWidth = 480.0f;
-            this->promptText->color = glm::vec4(1.2f, 0.3f, 0.0f, 0.0f);
+            this->promptText->color = glm::vec4(1.0f);
+
+            SceneNode* dialogNode = GetScene()->GetOrCreateNode("Dungeon Entry Menu");
+            this->dialogLayout = ConfigureLayout(
+                dialogNode,
+                glm::uvec2(560,460),
+                glm::ivec2(9999,9999),
+                130,
+                AnchorPoint::Center
+            );
+            ConfigureVisual(dialogNode,glm::vec4(0.08f,0.08f,0.08f,0.98f));
+            dialogNode->AddObjectIfMissing<UiInteractable>();
+
+            CreateText(
+                dialogNode,
+                "Dungeon Entry Title",
+                "Dungeon entry",
+                font,
+                glm::uvec2(480,44),
+                glm::ivec2(0,-185),
+                28.0f,
+                132
+            );
+
+            CreateText(
+                dialogNode,
+                "Dungeon Entry Question",
+                "Enter dungeon with these potions?",
+                font,
+                glm::uvec2(480,40),
+                glm::ivec2(0,-130),
+                20.0f,
+                132
+            );
+
+            CreateText(
+                dialogNode,
+                "Dungeon Entry Potions Label",
+                "Potions:",
+                font,
+                glm::uvec2(460,30),
+                glm::ivec2(0,-80),
+                18.0f,
+                132
+            );
+
+            this->potionListText = CreateText(
+                dialogNode,
+                "Dungeon Entry Potions Text",
+                "No potions",
+                font,
+                glm::uvec2(460,150),
+                glm::ivec2(0,10),
+                18.0f,
+                132
+            );
+            this->potionListText->maxWidth = 430.0f;
+
+            this->enterButton = CreateButton(
+                dialogNode,
+                "Dungeon Entry Confirm Button",
+                "Enter dungeon",
+                font,
+                glm::uvec2(200,44),
+                glm::ivec2(-115,165),
+                glm::vec4(0.4f,0.4f,0.4f,1.0f),
+                glm::vec4(1.0f)
+            );
+
+            this->backButton = CreateButton(
+                dialogNode,
+                "Dungeon Entry Back Button",
+                "Back",
+                font,
+                glm::uvec2(200,44),
+                glm::ivec2(115,165),
+                glm::vec4(0.8f,0.2f,0.2f,1.0f),
+                glm::vec4(1.0f)
+            );
+
+            SetDialogVisible(false);
+            SetPromptVisible(false);
         }
 
         void Update() {
-            if (this->sceneRequested || !this->promptText || !this->dungeonEntryNode) {
+            if (this->sceneRequested || !this->dungeonEntryNode) {
                 return;
             }
 
             bool playerNear = IsPlayerNearDungeonEntry();
 
             if (!playerNear) {
-                this->confirmationVisible = false;
-                HidePrompt();
+                SetDialogVisible(false);
+                SetPromptVisible(false);
                 return;
             }
 
-            if (!this->confirmationVisible) {
-                ShowPrompt("Dungeon entrance\nPress F to enter");
+            if (this->dialogVisible) {
+                SetPromptVisible(false);
 
-                if (GetScene()->Input()->KeyDown(Key::F)) {
-                    this->confirmationVisible = true;
+                if (this->enterButton && this->enterButton->isDown) {
+                    EnterDungeon();
+                    return;
+                }
+
+                if ((this->backButton && this->backButton->isDown) ||
+                    GetScene()->Input()->KeyDown(Key::N) ||
+                    GetScene()->Input()->KeyDown(Key::Escape)) {
+                    SetDialogVisible(false);
+                    return;
+                }
+
+                if (GetScene()->Input()->KeyDown(Key::Y) ||
+                    GetScene()->Input()->KeyDown(Key::Enter) ||
+                    GetScene()->Input()->KeyDown(Key::NumpadEnter)) {
+                    EnterDungeon();
+                    return;
                 }
 
                 return;
             }
 
-            ShowPrompt("Enter the dungeon?\nY / Enter - yes\nN / Esc - no");
+            SetPromptVisible(true);
 
-            if (GetScene()->Input()->KeyDown(Key::Y) || GetScene()->Input()->KeyDown(Key::Enter) || GetScene()->Input()->KeyDown(Key::NumpadEnter)) {
-                EnterDungeon();
-                return;
-            }
-
-            if (GetScene()->Input()->KeyDown(Key::N) || GetScene()->Input()->KeyDown(Key::Escape)) {
-                this->confirmationVisible = false;
+            if (GetScene()->Input()->KeyDown(Key::F)) {
+                SetDialogVisible(true);
             }
         }
     };

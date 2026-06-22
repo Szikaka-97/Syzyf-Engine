@@ -12,6 +12,7 @@
 #include <Framebuffer.h>
 #include <Fxaa.h>
 #include <InputSystem.h>
+#include <JfaOutline.h>
 #include <Light.h>
 #include <Material.h>
 #include <Mesh.h>
@@ -138,6 +139,10 @@ inline void InitScene(Scene& mainScene) {
 
 	camera->SetHeight(7);
 	camera->SetAngleY(225);
+
+	auto* jfa = cameraNode->AddObjectIfMissing<JfaOutline>();
+	jfa->outlineThickness = 4.0f;
+	jfa->outlineColor = {1.0f, 1.0f, 1.0f};
 
 #pragma endregion
 #pragma region Miscellaneous

@@ -19,6 +19,9 @@
 #include <game_scripts/PickableItemSystem.h>
 #include <game_scripts/PotionInventory.h>
 #include <physics/LayerMaskFilter.h>
+#include <GltfScene.h>
+#include <Material.h>
+#include <MeshRenderer.h>
 
 PlayerController* PlayerController::instance;
 
@@ -460,6 +463,97 @@ void PlayerController::UpdateThrowing() {
 	}
 }
 
+void PlayerController::ApplyAlwaysVisiblePickupOutlines() {
+	if (!this->pickableItemSystem) {
+		return;
+	}
+
+	for (PickableItem* item : this->pickableItemSystem->IterateObjects()) {
+		if (!item || !item->GetNode() || !item->GetNode()->IsEnabled()) {
+			continue;
+		}
+
+		if (!item->ShouldAlwaysShowPickupOutline()) {
+			continue;
+		}
+
+		for (auto* renderer : item->GetNode()->GetAllObjectsInChildren<MeshRenderer>()) {
+			if (renderer) {
+				renderer->maskFlags |= MaskEffectBits::Jfa;
+			}
+		}
+	}
+}
+
+void PlayerController::EnsurePickupMarker(PickableItem* item) {
+	if (this->pickupMarkerNode || !item || !GetScene()) {
+		return;
+	}
+
+	GltfScene* markerScene = GetScene()->Resources()->Get<GltfScene>(
+		item->GetPickupMarkerModelPath()
+	);
+
+	if (!markerScene) {
+		return;
+	}
+
+	this->pickupMarkerNode = markerScene->Instantiate(
+		GetScene(),
+		nullptr,
+		"Pickup Marker"
+	);
+
+	if (!this->pickupMarkerNode) {
+		return;
+	}
+
+	for (auto* renderer : this->pickupMarkerNode->GetAllObjectsInChildren<MeshRenderer>()) {
+		if (!renderer) {
+			continue;
+		}
+
+		for (int materialIndex = 0; materialIndex < renderer->GetMaterialCount(); materialIndex++) {
+			Material* material = renderer->GetMaterial(materialIndex);
+
+			if (!material) {
+				continue;
+			}
+
+			material->SetValue("baseColorFactor", glm::vec4(1.0f));
+			material->SetValue("emissiveFactor", glm::vec3(1.0f));
+			material->SetValue("emissiveStrength", 8.0f);
+			material->SetValue("ambientBump", 1.0f);
+		}
+	}
+
+	this->pickupMarkerNode->SetEnabled(false);
+}
+
+void PlayerController::SetPickupMarkerVisible(bool visible) {
+	if (this->pickupMarkerNode) {
+		this->pickupMarkerNode->SetEnabled(visible);
+	}
+}
+
+void PlayerController::UpdatePickupMarker(PickableItem* item) {
+	if (!item || !item->GetNode() || !item->ShouldShowPickupMarkerWhenReachable()) {
+		SetPickupMarkerVisible(false);
+		return;
+	}
+
+	EnsurePickupMarker(item);
+
+	if (!this->pickupMarkerNode) {
+		return;
+	}
+
+	this->pickupMarkerNode->GlobalTransform().Position() =
+		item->GlobalTransform().Position().Value() + item->GetPickupMarkerOffset();
+	this->pickupMarkerNode->GlobalTransform().Scale() = item->GetPickupMarkerScale();
+	this->pickupMarkerNode->SetEnabled(true);
+}
+
 void PlayerController::HandleItemInteractions() {
 	if (!this->pickableItemSystem) {
 		this->pickableItemSystem = GetScene()->GetComponent<PickableItemSystem>();
@@ -512,7 +606,7 @@ void PlayerController::HandleItemInteractions() {
 
 	// Highlighting logic
 	if (newItem != this->highlightedItem) {
-		if (this->highlightedItem) {
+		if (this->highlightedItem && !this->highlightedItem->ShouldAlwaysShowPickupOutline()) {
 			for (auto* renderer : this->highlightedItem->GetNode()->GetAllObjectsInChildren<MeshRenderer>()) {
 				renderer->maskFlags &= ~MaskEffectBits::Jfa;
 			}
@@ -525,11 +619,16 @@ void PlayerController::HandleItemInteractions() {
 		this->highlightedItem = newItem;
 	}
 
+	ApplyAlwaysVisiblePickupOutlines();
+	UpdatePickupMarker(this->highlightedItem);
+
 	// On interact
 	if (this->GetScene()->Input()->KeyDown(Key::F) && this->highlightedItem != nullptr) {
-		this->highlightedItem->OnPickUp();
-		delete this->highlightedItem->GetNode();
+		PickableItem* pickedItem = this->highlightedItem;
+		SetPickupMarkerVisible(false);
 		this->highlightedItem = nullptr;
+		pickedItem->OnPickUp();
+		delete pickedItem->GetNode();
 	}
 }
 void PlayerController::Update() {
