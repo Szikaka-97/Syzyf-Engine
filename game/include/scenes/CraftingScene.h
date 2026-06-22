@@ -62,6 +62,7 @@
 
 #include <animation/AnimationSystem.h>
 #include <ui/systems/UiSystem.h>
+#include <ui/systems/UiLayoutSystem.h>
 
 #include <physics/Body.h>
 #include <physics/Helpers.h>
@@ -80,6 +81,8 @@
 #include <spdlog/spdlog.h>
 
 #include <algorithm>
+#include <array>
+#include <cmath>
 #include <optional>
 #include <sstream>
 #include <string>
@@ -1138,13 +1141,27 @@ inline Crafting::IngredientData CreateModifierIngredient(
 
     class DungeonEntryPrompt : public GameObject {
     private:
+        static constexpr int MaxPotionRows = 6;
+
+        struct PotionRowUi {
+            UiLayout* layout = nullptr;
+            UiInteractable* interactable = nullptr;
+            UiText* text = nullptr;
+            PotionInventory::PotionInventoryEntry potion;
+            bool hasPotion = false;
+        };
+
         SceneNode* dungeonEntryNode = nullptr;
         UiLayout* promptLayout = nullptr;
         UiLayout* dialogLayout = nullptr;
+        UiLayout* tooltipLayout = nullptr;
         UiText* promptText = nullptr;
         UiText* potionListText = nullptr;
+        UiText* potionTooltipTitleText = nullptr;
+        UiText* potionTooltipDetailsText = nullptr;
         UiInteractable* enterButton = nullptr;
         UiInteractable* backButton = nullptr;
+        std::array<PotionRowUi, MaxPotionRows> potionRows;
         bool dialogVisible = false;
         bool sceneRequested = false;
         float interactionRadius = 2.6f;
@@ -1231,10 +1248,27 @@ inline Crafting::IngredientData CreateModifierIngredient(
             return interactable;
         }
 
-        std::string PotionLine(
-            const Crafting::CraftedPotionData& potionData,
-            int count
+        std::string QualityStars(float qualityPercent) const{
+            int filledStars = static_cast<int>(std::round(qualityPercent / 20.0f));
+            filledStars = std::clamp(filledStars,0,5);
+
+            std::string stars = "[";
+
+            for (int i = 0; i < 5; i++){
+                stars += i < filledStars ? "*" : "-";
+            }
+
+            stars += "]";
+            return stars;
+        }
+
+        std::string PotionDisplayName(
+            const Crafting::CraftedPotionData& potionData
         ) const{
+            if (!potionData.recipeName.empty() && potionData.recipeName != "Potion"){
+                return potionData.recipeName;
+            }
+
             std::string label = potionData.primaryEffectId;
 
             if (!potionData.secondaryEffectId.empty() &&
@@ -1242,41 +1276,210 @@ inline Crafting::IngredientData CreateModifierIngredient(
                 label += " + " + potionData.secondaryEffectId;
             }
 
-            if (label.empty()){
-                label = potionData.recipeName.empty() ? "Potion" : potionData.recipeName;
+            if (label.empty() || label == Crafting::EffectId::None){
+                label = "Potion";
+            }
+            else{
+                label += " Potion";
             }
 
-            return "x" + std::to_string(count) + "  " + label;
+            return label;
         }
 
-        std::string BuildPotionInventoryText() const{
+        std::string PotionLine(
+            const Crafting::CraftedPotionData& potionData,
+            int count
+        ) const{
+            return "x" + std::to_string(count) + "  " +
+                PotionDisplayName(potionData) + " " +
+                QualityStars(potionData.qualityPercent);
+        }
+
+        std::string TooltipTitle(
+            const Crafting::CraftedPotionData& potionData
+        ) const{
+            return PotionDisplayName(potionData) + " " +
+                QualityStars(potionData.qualityPercent);
+        }
+
+        std::string TooltipDetails(
+            const Crafting::CraftedPotionData& potionData
+        ) const{
+            std::stringstream stream;
+
+            stream << "Effect: " << potionData.primaryEffectId << "\n";
+
+            if (!potionData.secondaryEffectId.empty() &&
+                potionData.secondaryEffectId != Crafting::EffectId::None){
+                stream << "Second effect: " << potionData.secondaryEffectId << "\n";
+            }
+
+            if (!potionData.optionalIngredientsText.empty()){
+                stream << "Optional ingredients: "
+                       << potionData.optionalIngredientsText << "\n";
+            }
+            else if (potionData.modifierCount > 0){
+                stream << "Optional ingredients: "
+                       << potionData.modifierCount << " modifier";
+
+                if (potionData.modifierCount > 1){
+                    stream << "s";
+                }
+
+                stream << "\n";
+            }
+
+            stream << "Quality: " << QualityStars(potionData.qualityPercent)
+                   << " "
+                   << static_cast<int>(std::round(potionData.qualityPercent))
+                   << "%";
+
+            return stream.str();
+        }
+
+        std::vector<PotionInventory::PotionInventoryEntry> GetPotionRowsData() const{
             std::vector<PotionInventory::PotionInventoryEntry> potions =
                 PotionInventory::GetPotionInventory();
 
-            if (potions.empty()){
+            if (!potions.empty()){
+                return potions;
+            }
+
                 int legacyPotionCount = PotionInventory::GetPotionCount();
 
-                if (legacyPotionCount > 0){
-                    return PotionLine(
-                        PotionInventory::GetLastCraftedPotion(),
-                        legacyPotionCount
+            if (legacyPotionCount <= 0){
+                return potions;
+            }
+
+            PotionInventory::PotionInventoryEntry legacyPotion;
+            legacyPotion.slotIndex = -1;
+            legacyPotion.count = legacyPotionCount;
+            legacyPotion.data = PotionInventory::GetLastCraftedPotion();
+            potions.push_back(legacyPotion);
+
+            return potions;
+        }
+
+        void HidePotionTooltip(){
+            if (this->tooltipLayout){
+                this->tooltipLayout->offset = glm::ivec2(9999,9999);
+            }
+        }
+
+        void PositionPotionTooltipNearMouse(){
+            if (!this->tooltipLayout || GetScene() == nullptr ||
+                GetScene()->Input() == nullptr || GetScene()->GetGraphics() == nullptr){
+                return;
+            }
+
+            glm::vec2 mousePosition = GetScene()->Input()->GetMousePosition();
+            glm::vec2 resolution = GetScene()->GetGraphics()->GetScreenResolution();
+            float scaleFactor = resolution.y /
+                static_cast<float>(UiLayoutSystem::VIRTUAL_RESOLUTION.y);
+
+            if (scaleFactor <= 0.0f){
+                scaleFactor = 1.0f;
+            }
+
+            int virtualX = static_cast<int>(mousePosition.x / scaleFactor) + 24;
+            int virtualY = static_cast<int>(mousePosition.y / scaleFactor) + 24;
+
+            virtualX = std::clamp(
+                virtualX,
+                0,
+                static_cast<int>(UiLayoutSystem::VIRTUAL_RESOLUTION.x) - 340
+            );
+            virtualY = std::clamp(
+                virtualY,
+                0,
+                static_cast<int>(UiLayoutSystem::VIRTUAL_RESOLUTION.y) - 220
+            );
+
+            this->tooltipLayout->offset = glm::ivec2(virtualX,virtualY);
+        }
+
+        void RebuildPotionRows(){
+            std::vector<PotionInventory::PotionInventoryEntry> potions =
+                GetPotionRowsData();
+
+            if (this->potionListText){
+                this->potionListText->text = potions.empty()
+                    ? "No potions"
+                    : "";
+            }
+
+            for (int i = 0; i < MaxPotionRows; i++){
+                this->potionRows[i].hasPotion = false;
+
+                if (this->potionRows[i].layout){
+                    this->potionRows[i].layout->offset = glm::ivec2(9999,9999);
+                }
+
+                if (this->potionRows[i].interactable){
+                    this->potionRows[i].interactable->isInteractable = false;
+                }
+
+                if (this->potionRows[i].text){
+                    this->potionRows[i].text->text = "";
+                }
+            }
+
+            int visiblePotionCount = std::min(
+                static_cast<int>(potions.size()),
+                MaxPotionRows
+            );
+
+            for (int i = 0; i < visiblePotionCount; i++){
+                this->potionRows[i].potion = potions[i];
+                this->potionRows[i].hasPotion = true;
+
+                if (this->potionRows[i].layout){
+                    this->potionRows[i].layout->offset = glm::ivec2(0,-45 + i * 32);
+                }
+
+                if (this->potionRows[i].interactable){
+                    this->potionRows[i].interactable->isInteractable = true;
+                }
+
+                if (this->potionRows[i].text){
+                    this->potionRows[i].text->text = PotionLine(
+                        potions[i].data,
+                        potions[i].count
                     );
                 }
-
-                return "No potions";
             }
 
-            std::stringstream stream;
+            if (potions.size() > MaxPotionRows && this->potionListText){
+                this->potionListText->text = "+ " +
+                    std::to_string(static_cast<int>(potions.size()) - MaxPotionRows) +
+                    " more potion stacks";
+            }
+        }
 
-            for (std::size_t i = 0; i < potions.size(); i++){
-                stream << PotionLine(potions[i].data,potions[i].count);
+        void UpdatePotionTooltip(){
+            if (!this->dialogVisible){
+                HidePotionTooltip();
+                return;
+            }
 
-                if (i + 1 < potions.size()){
-                    stream << "\n";
+            for (const PotionRowUi& row : this->potionRows){
+                if (!row.hasPotion || !row.interactable || !row.interactable->isHovered){
+                    continue;
                 }
+
+                if (this->potionTooltipTitleText){
+                    this->potionTooltipTitleText->text = TooltipTitle(row.potion.data);
+                }
+
+                if (this->potionTooltipDetailsText){
+                    this->potionTooltipDetailsText->text = TooltipDetails(row.potion.data);
+                }
+
+                PositionPotionTooltipNearMouse();
+                return;
             }
 
-            return stream.str();
+            HidePotionTooltip();
         }
 
         void SetPromptVisible(bool visible){
@@ -1290,8 +1493,11 @@ inline Crafting::IngredientData CreateModifierIngredient(
         void SetDialogVisible(bool visible){
             this->dialogVisible = visible;
 
-            if (visible && this->potionListText){
-                this->potionListText->text = BuildPotionInventoryText();
+            if (visible){
+                RebuildPotionRows();
+            }
+            else{
+                HidePotionTooltip();
             }
 
             if (this->dialogLayout){
@@ -1426,12 +1632,49 @@ inline Crafting::IngredientData CreateModifierIngredient(
                 "Dungeon Entry Potions Text",
                 "No potions",
                 font,
-                glm::uvec2(460,150),
-                glm::ivec2(0,10),
+                glm::uvec2(460,30),
+                glm::ivec2(0,145),
                 18.0f,
                 132
             );
             this->potionListText->maxWidth = 430.0f;
+
+            for (int i = 0; i < MaxPotionRows; i++){
+                SceneNode* rowNode = GetScene()->GetOrCreateNode(
+                    dialogNode,
+                    "Dungeon Entry Potion Row " + std::to_string(i)
+                );
+
+                this->potionRows[i].layout = ConfigureLayout(
+                    rowNode,
+                    glm::uvec2(460,30),
+                    glm::ivec2(9999,9999),
+                    133,
+                    AnchorPoint::Center
+                );
+                ConfigureVisual(
+                    rowNode,
+                    glm::vec4(0.12f,0.12f,0.12f,0.0f),
+                    glm::vec4(1.0f,1.0f,1.0f,0.28f)
+                );
+
+                this->potionRows[i].interactable =
+                    rowNode->AddObjectIfMissing<UiInteractable>();
+                this->potionRows[i].interactable->isInteractable = false;
+
+                this->potionRows[i].text = CreateText(
+                    rowNode,
+                    "Dungeon Entry Potion Row Text " + std::to_string(i),
+                    "",
+                    font,
+                    glm::uvec2(440,30),
+                    glm::ivec2(0,0),
+                    16.0f,
+                    134
+                );
+                this->potionRows[i].text->alignment = TextAlignment::Left;
+                this->potionRows[i].text->maxWidth = 430.0f;
+            }
 
             this->enterButton = CreateButton(
                 dialogNode,
@@ -1455,6 +1698,45 @@ inline Crafting::IngredientData CreateModifierIngredient(
                 glm::vec4(1.0f)
             );
 
+            SceneNode* tooltipNode = GetScene()->GetOrCreateNode("Dungeon Entry Potion Tooltip");
+            this->tooltipLayout = ConfigureLayout(
+                tooltipNode,
+                glm::uvec2(330,210),
+                glm::ivec2(9999,9999),
+                150,
+                AnchorPoint::TopLeft
+            );
+            ConfigureVisual(tooltipNode,glm::vec4(0.05f,0.05f,0.05f,0.98f));
+            UiInteractable* tooltipInteractable = tooltipNode->AddObjectIfMissing<UiInteractable>();
+            tooltipInteractable->isInteractable = false;
+
+            this->potionTooltipTitleText = CreateText(
+                tooltipNode,
+                "Dungeon Entry Potion Tooltip Title",
+                "",
+                font,
+                glm::uvec2(300,42),
+                glm::ivec2(0,-72),
+                17.0f,
+                151
+            );
+            this->potionTooltipTitleText->alignment = TextAlignment::Left;
+            this->potionTooltipTitleText->maxWidth = 290.0f;
+
+            this->potionTooltipDetailsText = CreateText(
+                tooltipNode,
+                "Dungeon Entry Potion Tooltip Details",
+                "",
+                font,
+                glm::uvec2(300,130),
+                glm::ivec2(0,25),
+                15.0f,
+                151
+            );
+            this->potionTooltipDetailsText->alignment = TextAlignment::Left;
+            this->potionTooltipDetailsText->verticalAlignment = TextVerticalAlignment::Top;
+            this->potionTooltipDetailsText->maxWidth = 290.0f;
+
             SetDialogVisible(false);
             SetPromptVisible(false);
         }
@@ -1474,6 +1756,7 @@ inline Crafting::IngredientData CreateModifierIngredient(
 
             if (this->dialogVisible) {
                 SetPromptVisible(false);
+                UpdatePotionTooltip();
 
                 if (this->enterButton && this->enterButton->isDown) {
                     EnterDungeon();
@@ -1497,6 +1780,7 @@ inline Crafting::IngredientData CreateModifierIngredient(
                 return;
             }
 
+            HidePotionTooltip();
             SetPromptVisible(true);
 
             if (GetScene()->Input()->KeyDown(Key::F)) {

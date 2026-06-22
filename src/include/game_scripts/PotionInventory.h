@@ -18,6 +18,7 @@ namespace PotionInventory{
     inline const std::string LastPowerKey = "PotionInventory_LastPower";
     inline const std::string LastMainEffectCountKey = "PotionInventory_LastMainEffectCount";
     inline const std::string LastModifierCountKey = "PotionInventory_LastModifierCount";
+    inline const std::string LastOptionalIngredientsTextKey = "PotionInventory_LastOptionalIngredientsText";
     inline const std::string FirstPotionCreatedKey = "Crafting_FirstPotionCreated";
     inline const std::string ShowTutorialFinishedMessageKey = "Crafting_ShowTutorialFinishedMessage";
 
@@ -113,6 +114,7 @@ namespace PotionInventory{
         potionData.power = PersistentData::Get<float>(LastPowerKey);
         potionData.mainEffectCount = PersistentData::Get<int>(LastMainEffectCountKey);
         potionData.modifierCount = PersistentData::Get<int>(LastModifierCountKey);
+        potionData.optionalIngredientsText = PersistentData::Get<std::string>(LastOptionalIngredientsTextKey);
 
         return NormalizePotionData(potionData);
     }
@@ -132,7 +134,8 @@ namespace PotionInventory{
             std::abs(first.qualityPercent - second.qualityPercent) <= epsilon &&
             std::abs(first.radius - second.radius) <= epsilon &&
             std::abs(first.duration - second.duration) <= epsilon &&
-            std::abs(first.power - second.power) <= epsilon;
+            std::abs(first.power - second.power) <= epsilon &&
+            first.optionalIngredientsText == second.optionalIngredientsText;
     }
 
     inline int GetPotionSlotCount(int slotIndex){
@@ -155,6 +158,7 @@ namespace PotionInventory{
         potionData.power = PersistentData::Get<float>(PotionSlotKey(slotIndex,"Power"));
         potionData.mainEffectCount = PersistentData::Get<int>(PotionSlotKey(slotIndex,"MainEffectCount"));
         potionData.modifierCount = PersistentData::Get<int>(PotionSlotKey(slotIndex,"ModifierCount"));
+        potionData.optionalIngredientsText = PersistentData::Get<std::string>(PotionSlotKey(slotIndex,"OptionalIngredientsText"));
 
         return NormalizePotionData(potionData);
     }
@@ -181,6 +185,7 @@ namespace PotionInventory{
         PersistentData::Set<float>(PotionSlotKey(slotIndex,"Power"),normalizedPotionData.power);
         PersistentData::Set<int>(PotionSlotKey(slotIndex,"MainEffectCount"),normalizedPotionData.mainEffectCount);
         PersistentData::Set<int>(PotionSlotKey(slotIndex,"ModifierCount"),normalizedPotionData.modifierCount);
+        PersistentData::Set<std::string>(PotionSlotKey(slotIndex,"OptionalIngredientsText"),normalizedPotionData.optionalIngredientsText);
     }
 
     inline void ClearPotionSlot(int slotIndex){
@@ -194,6 +199,7 @@ namespace PotionInventory{
         PersistentData::Clear<float>(PotionSlotKey(slotIndex,"Power"));
         PersistentData::Clear<int>(PotionSlotKey(slotIndex,"MainEffectCount"));
         PersistentData::Clear<int>(PotionSlotKey(slotIndex,"ModifierCount"));
+        PersistentData::Clear<std::string>(PotionSlotKey(slotIndex,"OptionalIngredientsText"));
     }
 
     inline bool IsTutorialPotionData(const Crafting::CraftedPotionData& potionData){
@@ -215,6 +221,7 @@ namespace PotionInventory{
         PersistentData::Clear<float>(LastPowerKey);
         PersistentData::Clear<int>(LastMainEffectCountKey);
         PersistentData::Clear<int>(LastModifierCountKey);
+        PersistentData::Clear<std::string>(LastOptionalIngredientsTextKey);
     }
 
     inline int CountPotionStacks(){
@@ -413,6 +420,7 @@ namespace PotionInventory{
         PersistentData::Set<float>(LastPowerKey,normalizedPotionData.power);
         PersistentData::Set<int>(LastMainEffectCountKey,normalizedPotionData.mainEffectCount);
         PersistentData::Set<int>(LastModifierCountKey,normalizedPotionData.modifierCount);
+        PersistentData::Set<std::string>(LastOptionalIngredientsTextKey,normalizedPotionData.optionalIngredientsText);
 
         if (countAsCraftedPotion && !PersistentData::Get<bool>(FirstPotionCreatedKey)){
             PersistentData::Set<bool>(FirstPotionCreatedKey,true);

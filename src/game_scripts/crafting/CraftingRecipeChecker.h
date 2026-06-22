@@ -119,6 +119,13 @@ namespace Crafting{
                 if (ingredient.role == IngredientRole::Modifier){
                     potion.modifierCount++;
 
+                    AppendOptionalIngredientText(
+                        potion.optionalIngredientsText,
+                        ingredient.displayName.empty()
+                            ? ingredient.modifierId
+                            : ingredient.displayName
+                    );
+
                     ApplyModifier(potion,ingredient);
                 }
             }
@@ -170,6 +177,21 @@ namespace Crafting{
             }
 
             return qualityPercent;
+        }
+
+        static void AppendOptionalIngredientText(
+            std::string& optionalIngredientsText,
+            const std::string& ingredientName
+        ){
+            if (ingredientName.empty() || ingredientName == ModifierId::None){
+                return;
+            }
+
+            if (!optionalIngredientsText.empty()){
+                optionalIngredientsText += ", ";
+            }
+
+            optionalIngredientsText += ingredientName;
         }
 
         static void ApplyModifier(CraftedPotionData& potion, const IngredientData& ingredient){
