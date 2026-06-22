@@ -95,7 +95,7 @@ JPH::ShapeRefC ConvexHullMeshShape(const Mesh* mesh) {
   }
 }
 
-JPH::ShapeRefC MeshShape(const Mesh* mesh) {
+JPH::ShapeRefC MeshShape(const Mesh* mesh, glm::vec3 scale) {
   const uint8_t* vertexDataPointer = reinterpret_cast<const uint8_t*>(mesh->GetVertexData());
   const unsigned int vertexStride = mesh->GetVertexStride() * sizeof(float);
 
@@ -111,13 +111,16 @@ JPH::ShapeRefC MeshShape(const Mesh* mesh) {
 
     for (unsigned int i = 0; i < faceCount * 3; i += 3) {
       const float* p1 = reinterpret_cast<const float*>(vertexDataPointer + indices[i] * vertexStride);
-      JPH::Vec3 v1(p1[0], p1[1], p1[2]);
+      JPH::Vec3 v1(p1[0] * scale.x, p1[1] * scale.y, p1[2] * scale.z);
 
       const float* p2 = reinterpret_cast<const float*>(vertexDataPointer + indices[i + 1] * vertexStride);
-      JPH::Vec3 v2(p2[0], p2[1], p2[2]);
+      JPH::Vec3 v2(p2[0] * scale.x, p2[1] * scale.y, p2[2] * scale.z);
 
       const float* p3 = reinterpret_cast<const float*>(vertexDataPointer + indices[i + 2] * vertexStride);
-      JPH::Vec3 v3(p3[0], p3[1], p3[2]);
+      JPH::Vec3 v3(p3[0] * scale.x, p3[1] * scale.y, p3[2] * scale.z);
+
+      JPH::Vec3 cross = (v2 - v1).Cross(v3 - v1);
+      if (cross.LengthSq() < 1.0e-10f) continue;
 
       triangles.emplace_back(v1, v2, v3);
     }
@@ -129,17 +132,20 @@ JPH::ShapeRefC MeshShape(const Mesh* mesh) {
   }
 
   JPH::MeshShapeSettings shapeSettings = JPH::MeshShapeSettings(triangles);
+
+  shapeSettings.mActiveEdgeCosThresholdAngle = 0.996195f;
+
   shapeSettings.Sanitize();
 
   JPH::Shape::ShapeResult result = shapeSettings.Create();
-  result.Get()->SetUserData((intptr_t) mesh);
 
-  if (result.IsValid()) {
-      return result.Get();
-  } else {
-      spdlog::error("Physics::ConvexHullMesh: Failed to create a convex hull mesh, using a 0.1f sphere as fallback");
-      return SphereShape(0.1f);
+  if (!result.IsValid()) {
+    spdlog::error("Physics::ConvexHullMesh: Failed to create a convex hull mesh, using a 0.1f sphere as fallback");
+    return SphereShape(0.1f);
   }
+
+  result.Get()->SetUserData((intptr_t) mesh);
+  return result.Get();
 }
 
 JPH::ShapeRefC CreateCompoundShapeFromNode(SceneNode* rootNode, bool useConvex, JPH::EMotionType motionType, JPH::ObjectLayer layer) {
@@ -148,22 +154,9 @@ JPH::ShapeRefC CreateCompoundShapeFromNode(SceneNode* rootNode, bool useConvex, 
     auto traverse = [&](auto& self, SceneNode* node) -> void {
         if (MeshRenderer* renderer = node->GetObject<MeshRenderer>()) {
             if (Mesh* mesh = renderer->GetMesh()) {
-                JPH::ShapeRefC shape;
-                if (useConvex) {
-                    shape = ConvexHullMeshShape(mesh);
-                } else {
-                    shape = MeshShape(mesh);
-                }
-
-                if (!shape) {
-                    spdlog::warn("Physics::CreateCompoundShapeFromNode: Failed to create a sub collision shape");
-                    return;
-                }
-
                 glm::mat4 rootGlobal = rootNode->GetTransform().GlobalTransform().Value();
                 glm::mat4 nodeGlobal = node->GetTransform().GlobalTransform().Value();
                 glm::mat4 relativeMatrix = glm::inverse(rootGlobal) * nodeGlobal;
-
 
                 glm::vec3 position = relativeMatrix[3];
 
@@ -180,28 +173,43 @@ JPH::ShapeRefC CreateCompoundShapeFromNode(SceneNode* rootNode, bool useConvex, 
                 );
                 glm::quat rotation = glm::quat_cast(rotMat);
 
+                JPH::ShapeRefC shape;
+                if (useConvex) {
+                    shape = ConvexHullMeshShape(mesh);
+                } else {
+                    shape = MeshShape(mesh, scale);
+                }
+
+                if (!shape) {
+                    spdlog::warn("Physics::CreateCompoundShapeFromNode: Failed to create a sub collision shape");
+                    return;
+                }
+
                 JPH::Vec3 jphPosition(position.x, position.y, position.z);
                 JPH::Quat jphRotation = JPH::Quat(rotation.x, rotation.y, rotation.z, rotation.w).Normalized();
 
                 JPH::ShapeRefC finalShape = shape;
-                if (glm::any(glm::notEqual(scale, glm::vec3(1.0f), 0.0001f))) {
+                
+                if (useConvex && glm::any(glm::notEqual(scale, glm::vec3(1.0f), 0.0001f))) {
                     finalShape = new JPH::ScaledShape(shape, JPH::Vec3(scale.x, scale.y, scale.z));
                 }
 
                 compoundSettings.AddShape(jphPosition, jphRotation, finalShape);
-                }
             }
-            for (SceneNode* child : node->GetChildren()) {
-                self(self, child);
-            }
-        };
-        traverse(traverse, rootNode);
-
-        JPH::ShapeSettings::ShapeResult result = compoundSettings.Create();
-        if (result.IsValid()) {
-            return result.Get();
         }
+        
+        for (SceneNode* child : node->GetChildren()) {
+            self(self, child);
+        }
+    };
+    
+    traverse(traverse, rootNode);
 
-        return nullptr;
+    JPH::ShapeSettings::ShapeResult result = compoundSettings.Create();
+    if (result.IsValid()) {
+        return result.Get();
     }
+
+    return nullptr;
+}
 }
