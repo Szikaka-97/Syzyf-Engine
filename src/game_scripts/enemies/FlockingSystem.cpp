@@ -71,6 +71,10 @@ void FlockingSystem::OnPreUpdate() {
         EnemyBase* enemy = m_Agents[i].ptr;
         if (!enemy || !enemy->m_Body || enemy->m_InAttackAnimation || enemy->m_hp <= 0) continue;
 
+        if (!enemy || !enemy->m_Body || enemy->m_InAttackAnimation || enemy->m_hp <= 0 || enemy->currentState == States::ATTACKING) {
+            continue;
+        }
+
         glm::vec3 myPos = m_Agents[i].pos;
         glm::vec3 separation(0.0f);
 
