@@ -25,6 +25,7 @@
 #include "game_scripts/PotionInventory.h"
 #include "game_scripts/enemies/FlockingSystem.h"
 #include "game_scripts/enemies/MeleeSkeleton.h"
+#include "game_scripts/enemies/EnemyBoss.h"
 #include <Bloom.h>
 #include <Camera.h>
 #include <ColorGrading.h>
@@ -328,5 +329,13 @@ inline void InitScene(Scene& mainScene) {
     pauseMenu->AddObject<PauseMenu>();
     SceneNode* inGameUi = mainScene.CreateNode("HUD");
     inGameUi->AddObject<InGameUi>();
+
+    SceneNode* enemyNode = mainScene.CreateNode("Enemy Boss");
+    enemyNode->GlobalTransform().Position() = glm::vec3(2.0f);
+    EnemyBoss* boss = enemyNode->AddObject<EnemyBoss>();
+    AnimationComponent* enemyAnim = enemyNode->GetObjectInChildren<AnimationComponent>();
+    if (enemyAnim) {
+        boss->SetAttackAnimation(enemyAnim);
+    }
 }
 } // namespace TestScene

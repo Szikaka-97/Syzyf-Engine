@@ -236,3 +236,15 @@ public:
         );
     }
 };
+
+class LootEnemyBoss : public LootItem {
+    public:
+    ///placeholder model
+    void Spawn(Scene* scene, const glm::vec3& position) const override {
+        SceneNode* node = SpawnIngredientLootModel(
+        scene,position,"./res/models/ingredients/deserter_ear.glb",
+        "LootEnemyBoss");
+        node->AddObject<LootEnemyBoss>();
+    }
+
+};
