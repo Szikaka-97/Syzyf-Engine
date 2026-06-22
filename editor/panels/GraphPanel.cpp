@@ -37,12 +37,15 @@ void GraphPanel::Draw(Context& context) {
             ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable |
             ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_NoBordersInBody;
 
-        if (ImGui::BeginTable("Graph Table", 2, tableFlags)) {
+        if (ImGui::BeginTable("Graph Table", 3, tableFlags)) {
             ImGui::TableSetupColumn("Node", ImGuiTableColumnFlags_WidthStretch);
 
             // change so the 30px isnt hardcoded
             ImGui::TableSetupColumn("Visibility",
                                     ImGuiTableColumnFlags_WidthFixed, 30.0f);
+
+            ImGui::TableSetupColumn("Drag",
+                                    ImGuiTableColumnFlags_WidthFixed, 10.0f);
 
             this->DrawGraphNode(context, *root, searchString);
 
@@ -129,7 +132,9 @@ void GraphPanel::DrawGraphNode(Context& context, SceneNode& node,
     if ((ImGui::IsItemClicked(ImGuiMouseButton_Left) ||
          ImGui::IsItemClicked(ImGuiMouseButton_Right)) &&
         !ImGui::IsItemToggledOpen()) {
-        context.selectedNode = &node;
+        if (!ImGui::IsKeyPressed(ImGuiKey_LeftShift, true)) {
+            context.selectedNode = &node;
+        }
     }
 
     ImGui::TableNextColumn();
@@ -147,6 +152,16 @@ void GraphPanel::DrawGraphNode(Context& context, SceneNode& node,
     if (ImGui::Button(node.EnabledSelf() ? "X" : " ",
                       ImVec2(24, ImGui::GetFrameHeight()))) {
         node.SetEnabled(!node.EnabledSelf());
+    }
+
+    ImGui::TableNextColumn();
+    ImGui::Selectable("Move", false, ImGuiSelectableFlags_None, ImGui::CalcTextSize("Move"));
+    if (ImGui::BeginDragDropSource()) {
+        SceneNode* nodePtr = &node;
+        ImGui::SetDragDropPayload("GRAPH_SCENE_NODE", &nodePtr,
+                                  sizeof(SceneNode*));
+        ImGui::Text("Move %s", treeHeader.c_str());
+        ImGui::EndDragDropSource();
     }
 
     if (!isEnabled)
@@ -188,6 +203,8 @@ void GraphPanel::DrawContextMenu(Context& context) {
                 drawRenamePopup = true;
             }
             if (ImGui::MenuItem("Delete Node")) {
+                Debug::CheckDeletedNode(context.selectedNode);
+
                 delete context.selectedNode;
 
                 context.selectedNode = nullptr;

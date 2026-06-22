@@ -281,6 +281,8 @@ void InspectorPanel::Draw(Context& context) {
         }
 
         if (objectToRemove != nullptr) {
+            Debug::CheckDeletedObject(objectToRemove);
+
             delete objectToRemove;
         }
 
