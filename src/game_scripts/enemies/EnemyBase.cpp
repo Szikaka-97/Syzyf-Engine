@@ -130,13 +130,17 @@ void EnemyBase::SetAnimation(const std::string& name) {
 
   for (auto& anim : m_AttackAnimation->animations) {
     if (anim.data.name == name) {
-      anim.looping = false;
-      break;
+      anim.timeActive = 0.0f;
+      anim.playing    = true;
+      anim.looping    = false;
+      anim.currentKeyframes.assign(anim.data.tracks.size(), 0);
+    } else {
+      anim.playing = false;  // ← to samo
     }
   }
 
-  m_AttackAnimation->Play(name);
   m_CurrentAnimation = name;
+  spdlog::debug("EnemyBase: changed animation to {}", name);
 }
 
 void EnemyBase::DirectChaseNoBoundary() {
@@ -171,7 +175,7 @@ void EnemyBase::DirectChaseNoBoundary() {
 
 void EnemyBase::SetLoopingAnimation(const std::string& name) {
   if (!m_AttackAnimation) return;
-  if (m_CurrentAnimation == name) return; // już gra, nie restartuj
+  if (m_CurrentAnimation == name) return;
 
   for (auto& anim : m_AttackAnimation->animations) {
     if (anim.data.name == name) {
@@ -179,11 +183,12 @@ void EnemyBase::SetLoopingAnimation(const std::string& name) {
       anim.playing    = true;
       anim.looping    = true;
       anim.currentKeyframes.assign(anim.data.tracks.size(), 0);
-      m_CurrentAnimation = name;
-      return;
+    } else {
+      anim.playing = false;
     }
   }
-  spdlog::warn("EnemyBase::SetLoopingAnimation: '{}' not found", name);
+
+  m_CurrentAnimation = name;
 }
 
 //bool EnemyBase::CanSeePlayer() const {

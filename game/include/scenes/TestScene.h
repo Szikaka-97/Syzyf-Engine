@@ -251,7 +251,7 @@ inline void InitScene(Scene& mainScene) {
 // flockingSystem->alignmentWeight  = 0.3f;
 // flockingSystem->cohesionRadius   = 6.0f;
 // flockingSystem->cohesionWeight   = 0.2f;
-//
+
 // JPH::ShapeRefC enemyShape = new JPH::CapsuleShape(0.5f, 1.0f);
 // JPH::BodyCreationSettings enemySettingsTemplate(
 //     enemyShape, JPH::RVec3(0, 1.5f, 0), JPH::Quat::sIdentity(),
@@ -278,14 +278,14 @@ inline void InitScene(Scene& mainScene) {
 //     Physics::Body* enemyBody1 = enemy1->AddObject<Physics::Body>(settings);
 //     enemyBody1->SetRestitution(0.0f);
 //
-//     auto* enemyAi1 = enemy1->AddObject<EnemySkeleton>();
+//     auto* enemyAi1 = enemy1->AddObject<MeleeSkeleton>();
 //     enemyAi1->SetSurface(surface);
 //     enemyAi1->SetTargetNode(player->GetNode());
 //     enemyAi1->SetProjectileResources(cubeMesh, enemyMat);
 //     enemyAi1->SetAttackCooldown(1.2f);
 //     enemyAi1->SetRoomID(floorNode->GetID());
 //     enemyAi1->OnPlayerEnteredRoom();
-//     enemyAi1->RegisterToFlockingSystem(flockingSystem);
+//     //enemyAi1->RegisterToFlockingSystem(flockingSystem);
 //
 //     SceneNode* enemyModel =
 //         ResourceDatabase::Global->Get<GltfScene>("./res/models/szkielet6.glb")
