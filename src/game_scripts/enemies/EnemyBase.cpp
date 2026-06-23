@@ -35,18 +35,16 @@ void EnemyBase::Awake() {
     }
 
 void EnemyBase::Attack() {
-
- // glm::vec3 dirTo = m_TargetPosition - currentPos;
- // if (glm::length(dirTo) > 0.01f) RotateNode(dirTo);
-
   m_AttackTimer += Time::Delta();
+
   if (m_AttackTimer >= m_AttackCooldown) {
     m_AttackTimer = 0.0f;
+
     SetAnimation("attack.001");
+
     m_InAttackAnimation = true;
     m_AttackAnimationElapsed = 0.0f;
 
-    PlayAttackAnimation("attack.001");
     SpawnProjectile(m_TargetPosition);
   }
 }
@@ -119,25 +117,52 @@ void EnemyBase::SpawnProjectile(const glm::vec3& targetPos) {
 }
 
 void EnemyBase::UpdateAttackAnimation() {
-  if (!m_InAttackAnimation) return;
+  if (!m_InAttackAnimation) {
+    return;
+  }
 
   m_AttackAnimationElapsed += Time::Delta();
+
   if (m_AttackAnimationElapsed >= m_AttackAnimationDuration) {
     m_InAttackAnimation = false;
 
-    if (glm::length(m_Body->GetLinearVelocity()) > 0.1f)
-      SetAnimation("idle.001");
-    else
-      SetAnimation("stop.001");
+    UpdateMovementAnimation();
   }
 }
 
+
 void EnemyBase::SetAnimation(const std::string& name) {
-  if (!m_AttackAnimation) return;
-  if (m_CurrentAnimation == name) return;
+  if (!m_AttackAnimation) {
+    spdlog::warn("EnemyBase: AnimationComponent is null on {}", GetNode()->GetName());
+    return;
+  }
+
+  if (m_CurrentAnimation == name) {
+    return;
+  }
+
+  bool found = false;
+
+  for (const auto& animation : m_AttackAnimation->animations) {
+    if (animation.data.name == name) {
+      found = true;
+      break;
+    }
+  }
+
+  if (!found) {
+    spdlog::warn(
+        "EnemyBase: Animation '{}' not found on {}",
+        name,
+        GetNode()->GetName()
+    );
+    return;
+  }
+
   m_AttackAnimation->Play(name);
   m_CurrentAnimation = name;
-  spdlog::debug("AiNode: changed animation to {}", name);
+
+  spdlog::debug("EnemyBase: changed animation to {}", name);
 }
 
 //bool EnemyBase::CanSeePlayer() const {
@@ -168,16 +193,37 @@ void EnemyBase::SetAttackCooldown(float cooldown) {
 
 void EnemyBase::SetAttackAnimation(AnimationComponent* anim) {
   m_AttackAnimation = anim;
-  if (anim) {
-    for (const auto& a : anim->animations) {
-      if (a.data.name == "attack.001") {
-        m_AttackAnimationDuration = a.data.duration;
-        spdlog::info("Attack anim duration = {:.2f}s",
-                     m_AttackAnimationDuration);
-        break;
-      }
+
+  if (!anim) {
+    spdlog::warn("EnemyBase: SetAttackAnimation received nullptr");
+    return;
+  }
+
+  for (auto& a : anim->animations) {
+    spdlog::info(
+        "EnemyBase: found animation '{}' duration {:.2f}s",
+        a.data.name,
+        a.data.duration
+    );
+
+    if (a.data.name == "walk.001") {
+      a.looping = true;
+    }
+    else if (a.data.name == "attack.001") {
+      a.looping = false;
+      m_AttackAnimationDuration = a.data.duration;
+
+      spdlog::info(
+          "EnemyBase: attack animation duration = {:.2f}s",
+          m_AttackAnimationDuration
+      );
+    }
+    else if (a.data.name == "attacked.001") {
+      a.looping = false;
     }
   }
+
+  SetAnimation("attacked.001");
 }
 
 void EnemyBase::PlayAttackAnimation(std::string name) {
@@ -314,5 +360,33 @@ void EnemyBase::UpdateStatusEffects() {
 void EnemyBase::DirectChaseWithFlock(const glm::vec3& ) {
     DirectChase();  
 }
+
+void EnemyBase::UpdateMovementAnimation() {
+  if (!m_AttackAnimation) {
+    return;
+  }
+
+  if (m_InAttackAnimation) {
+    return;
+  }
+
+  if (!m_Body) {
+    SetAnimation("attacked.001");
+    return;
+  }
+
+  glm::vec3 velocity = m_Body->GetLinearVelocity();
+  velocity.y = 0.0f;
+
+  const bool isMoving = glm::length(velocity) > 0.1f;
+
+  if (isMoving) {
+    SetAnimation("walk.001");
+  }
+  else {
+    SetAnimation("attacked.001");
+  }
+}
+
 
  

@@ -25,7 +25,7 @@ private:
     std::string m_CurrentAnimation;
     float m_AttackAnimationDuration = 1.0f;
     float m_AttackAnimationElapsed = 0.0f;
-    void SetAnimation(const std::string& name);
+
     //bool CanSeePlayer() const;
 
 
@@ -61,7 +61,9 @@ public:
     ~EnemyBase();
     void Awake();
     virtual void Die();
-    FlockingSystem * m_FlockingSystem = nullptr;   
+    FlockingSystem * m_FlockingSystem = nullptr;
+    void UpdateMovementAnimation();
+    void SetAnimation(const std::string& name);
 
 
     bool m_InAttackAnimation = false;

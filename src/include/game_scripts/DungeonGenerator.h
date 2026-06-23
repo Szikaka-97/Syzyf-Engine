@@ -19,8 +19,14 @@ public:
 class DungeonRoomScript : public GameObject {
 private:
 	std::vector<SceneNode*> doors;
-	Surface* surface;
-	float timeout = 1;
+	Surface* surface = nullptr;
+
+	float timeout = 1.0f;
+
+	bool enemiesSpawned = false;
+
+	void SpawnEnemies();
+
 public:
 	bool isFinal = false;
 
@@ -70,7 +76,7 @@ private:
 public:
 	DungeonGenerator() = default;
 
-	std::filesystem::path rootRoomPath = "./res/models/rooms/gardens";
+	std::filesystem::path rootRoomPath = "./res/models/rooms/gardenss";
 
 	float gridSize = 40;
 

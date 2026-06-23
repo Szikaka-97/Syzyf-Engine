@@ -13,6 +13,8 @@
 #include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
 #include <physics/Body.h>
 #include <game_scripts/enemies/EnemySkeleton.h>
+#include <game_scripts/enemies/EnemyBeetroot.h>
+#include <game_scripts/enemies/EnemyPotato.h>
 
 #include <MathHelpers.h>
 #include <TimeSystem.h>
@@ -36,6 +38,10 @@ DungeonRoomScript::DungeonRoomScript() {
 
 void DungeonRoomScript::Update() {
 	if (this->surface->PlayerInside()) {
+		if (!this->enemiesSpawned) {
+			SpawnEnemies();
+		}
+
 		this->timeout -= Time::Delta();
 
 		if (this->timeout > 0) {
@@ -304,42 +310,287 @@ void DungeonGenerator::RemakeDungeon() {
 	}
 }
 
-EnemyBase* SpawnEnemy(SceneNode* position) {
-    Material* enemyMat =
-        position->GetScene()->Resources()->Get<Material>("./res/materials/jake.mat");
-    Mesh* cubeMesh =
-        position->GetScene()->Resources()->Get<Mesh>("./res/models/not_cube.obj");
+enum class EnemySpawnType {
+    Skeleton,
+    Rat,
+    Beet,
+    Potato
+};
 
-    SceneNode* enemy1 = position->GetScene()->CreateNode(position, "Enemy 1");
-    // enemy1->GlobalTransform().Position() = glm::vec3(10.5f, 0.0f, -5.0f);
+static EnemySpawnType GetEnemySpawnType(SceneNode* spawnNode) {
+    const std::string& name = spawnNode->GetName();
+
+    if (name.starts_with("ENEMY_SPAWN_Sceleton")) {
+        return EnemySpawnType::Skeleton;
+    }
+
+    // Obsługa poprawnej pisowni, gdybyś później zmienił nazwę w Blenderze.
+    if (name.starts_with("ENEMY_SPAWN_Skeleton")) {
+        return EnemySpawnType::Skeleton;
+    }
+
+    if (name.starts_with("ENEMY_SPAWN_Rat")) {
+        return EnemySpawnType::Rat;
+    }
+
+    if (name.starts_with("ENEMY_SPAWN_Beet")) {
+        return EnemySpawnType::Beet;
+    }
+
+    if (name.starts_with("ENEMY_SPAWN_Potato")) {
+        return EnemySpawnType::Potato;
+    }
+
+    // Domyślnie szkielet, żeby stare ENEMY_SPAWN_ też dalej działały.
+    return EnemySpawnType::Skeleton;
+}
+
+static const char* GetEnemyModelPath(EnemySpawnType type) {
+    switch (type) {
+        case EnemySpawnType::Skeleton:
+            return "./res/models/enemies/szkielet4.glb";
+
+        case EnemySpawnType::Rat:
+            return "./res/models/enemies/rat6.glb";
+
+        case EnemySpawnType::Beet:
+            return "./res/models/enemies/burak_macki3_bisect.glb";
+
+        case EnemySpawnType::Potato:
+            return "./res/models/enemies/ziemniak_remake4.glb";
+
+        default:
+            return "./res/models/enemies/szkielet4.glb";
+    }
+}
+
+static const char* GetEnemyNodeName(EnemySpawnType type) {
+    switch (type) {
+        case EnemySpawnType::Skeleton:
+            return "Enemy Skeleton";
+
+        case EnemySpawnType::Rat:
+            return "Enemy Rat";
+
+        case EnemySpawnType::Beet:
+            return "Enemy Beetroot";
+
+        case EnemySpawnType::Potato:
+            return "Enemy Potato";
+
+        default:
+            return "Enemy";
+    }
+}
+
+static glm::vec3 GetEnemyModelScale(EnemySpawnType type) {
+    switch (type) {
+        case EnemySpawnType::Skeleton:
+            return glm::vec3(1.0f);
+
+        case EnemySpawnType::Rat:
+            return glm::vec3(1.0f);
+
+        case EnemySpawnType::Beet:
+            return glm::vec3(1.0f);
+
+        case EnemySpawnType::Potato:
+            return glm::vec3(1.0f);
+
+        default:
+            return glm::vec3(1.0f);
+    }
+}
+
+EnemyBase* SpawnEnemy(SceneNode* position) {
+    Scene* scene = position->GetScene();
+
+    EnemySpawnType spawnType = GetEnemySpawnType(position);
+
+    Material* enemyMat =
+        scene->Resources()->Get<Material>("./res/materials/jake.mat");
+
+    Mesh* cubeMesh =
+        scene->Resources()->Get<Mesh>("./res/models/not_cube.obj");
+
+    SceneNode* enemy1 =
+        scene->CreateNode(position, GetEnemyNodeName(spawnType));
+
+    glm::vec3 spawnPos =
+        position->GlobalTransform().Position().Value() + glm::vec3(0.0f, 1.0f, 0.0f);
+
     enemy1->GlobalTransform().Scale() = glm::vec3(1.0f);
-    enemy1->GlobalTransform().Position() = position->GlobalTransform().Position().Value() + glm::vec3(0, 1, 0);
+    enemy1->GlobalTransform().Position() = spawnPos;
 
     JPH::ShapeRefC enemyShape = new JPH::CapsuleShape(0.25f, 0.5f);
+
     JPH::BodyCreationSettings enemySettings(
-        enemyShape, JPH::RVec3(10.5f, 2.0f, 2.0f), JPH::Quat::sIdentity(), JPH::EMotionType::Dynamic, Physics::Layers::MOVING      
+        enemyShape,
+        JPH::RVec3(spawnPos.x, spawnPos.y, spawnPos.z),
+        JPH::Quat::sIdentity(),
+        JPH::EMotionType::Dynamic,
+        Physics::Layers::MOVING
     );
 
-    Physics::Body* enemyBody1 = enemy1->AddObject<Physics::Body>(enemySettings);
-    enemyBody1->SetRestitution(0.0f);
-    auto* enemyAi1 = enemy1->AddObject<EnemySkeleton>();
-    enemyAi1->SetProjectileResources(cubeMesh, enemyMat);
-    enemyAi1->SetProjectileResources(cubeMesh, enemyMat);
-	enemyAi1->SetTargetNode(PlayerController::Instance()->GetNode());
-    enemyAi1->SetAttackCooldown(1.2f);
-	enemyAi1->m_hp = 5;
-	enemyAi1->m_FlockingSystem = position->GetScene()->GetComponent<FlockingSystem>();
+    enemySettings.mAllowedDOFs =
+        JPH::EAllowedDOFs::TranslationX |
+        JPH::EAllowedDOFs::TranslationY |
+        JPH::EAllowedDOFs::TranslationZ |
+        JPH::EAllowedDOFs::RotationY;
 
-    enemyAi1->RegisterToFlockingSystem(position->GetScene()->GetComponent<FlockingSystem>());
+    enemySettings.mAngularDamping = 10.0f;
+    enemySettings.mLinearDamping = 0.5f;
+
+    Physics::Body* enemyBody = enemy1->AddObject<Physics::Body>(enemySettings);
+    enemyBody->SetRestitution(0.0f);
+    enemyBody->SetFriction(0.8f);
+
+    EnemyBase* enemyAi = nullptr;
+
+    switch (spawnType) {
+        case EnemySpawnType::Skeleton: {
+            auto* skeleton = enemy1->AddObject<EnemySkeleton>();
+
+            skeleton->m_hp = 5;
+            skeleton->SetAttackCooldown(1.2f);
+
+            enemyAi = skeleton;
+            break;
+        }
+
+        case EnemySpawnType::Rat: {
+            // Rat używa tej samej logiki co szkielet,
+            // ale ładuje model szczura.
+            auto* rat = enemy1->AddObject<EnemySkeleton>();
+
+            rat->m_hp = 5;
+            rat->SetAttackCooldown(1.2f);
+
+            enemyAi = rat;
+            break;
+        }
+
+        case EnemySpawnType::Beet: {
+            auto* beet = enemy1->AddObject<EnemyBeetroot>();
+
+            beet->m_hp = 100;
+
+            // Podmień ścieżki, jeśli Twoje pliki nazywają się inaczej.
+            Mesh* segmentMesh =
+                scene->Resources()->Get<Mesh>(
+                    "./res/models/enemies/beetroot_segment.obj"
+                );
+
+            Material* segmentMat =
+                scene->Resources()->Get<Material>(
+                    "./res/materials/beetroot_segment.mat"
+                );
+
+            beet->SetSegmentResources(segmentMesh, segmentMat);
+
+            enemyAi = beet;
+            break;
+        }
+
+        case EnemySpawnType::Potato: {
+            auto* potato = enemy1->AddObject<EnemyPotato>();
+
+            potato->m_hp = 100;
+
+            // Podmień ścieżki, jeśli Twoje pliki nazywają się inaczej.
+            Mesh* shadowMesh =
+                scene->Resources()->Get<Mesh>(
+                    "./res/models/enemies/potato_shadow.obj"
+                );
+
+            Material* shadowMat =
+                scene->Resources()->Get<Material>(
+                    "./res/materials/potato_shadow.mat"
+                );
+
+            potato->SetShadowResources(shadowMesh, shadowMat);
+
+            enemyAi = potato;
+            break;
+        }
+    }
+
+    if (!enemyAi) {
+        spdlog::warn(
+            "SpawnEnemy: failed to create enemy from marker '{}'",
+            position->GetName()
+        );
+
+        return nullptr;
+    }
+
+    enemyAi->SetProjectileResources(cubeMesh, enemyMat);
+    enemyAi->SetTargetNode(PlayerController::Instance()->GetNode());
+
+    FlockingSystem* flocking = scene->GetComponent<FlockingSystem>();
+
+    enemyAi->m_FlockingSystem = flocking;
+
+    if (flocking) {
+        enemyAi->RegisterToFlockingSystem(flocking);
+    }
+    else {
+        spdlog::warn("SpawnEnemy: FlockingSystem not found");
+    }
+
+    const char* modelPath = GetEnemyModelPath(spawnType);
 
     SceneNode* enemyModel =
-        ResourceDatabase::Global->Get<GltfScene>("./res/models/szkielet6.glb")
-            ->Instantiate(position->GetScene(), enemy1, "EnemyModel");
+        ResourceDatabase::Global->Get<GltfScene>(modelPath)
+            ->Instantiate(scene, enemy1, "EnemyModel");
+
     enemyModel->SetParent(enemy1);
-    enemyModel->GlobalTransform().Scale() = glm::vec3(0.1, 0.1, 0.1);
+    enemyModel->GlobalTransform().Scale() = GetEnemyModelScale(spawnType);
     enemyModel->LocalTransform().Position() = glm::zero<glm::vec3>();
 
-	return enemyAi1;
+	auto animationComponents =
+	enemy1->GetAllObjectsInChildren<AnimationComponent>();
+
+	AnimationComponent* anim = nullptr;
+
+	for (AnimationComponent* candidate : animationComponents) {
+		if (!candidate->animations.empty()) {
+			anim = candidate;
+			break;
+		}
+	}
+
+	if (anim) {
+		enemyAi->SetAttackAnimation(anim);
+
+		spdlog::info(
+		    "SpawnEnemy: AnimationComponent connected to enemy '{}'",
+		    enemy1->GetName()
+		);
+
+		for (const auto& a : anim->animations) {
+			spdlog::info(
+			    "SpawnEnemy: enemy '{}' has animation '{}', duration {:.2f}",
+			    enemy1->GetName(),
+			    a.data.name,
+			    a.data.duration
+			);
+		}
+	}
+	else {
+		spdlog::warn(
+		    "SpawnEnemy: no usable AnimationComponent found in enemy model '{}'",
+		    enemy1->GetName()
+		);
+	}
+
+    spdlog::info(
+        "SpawnEnemy: spawned '{}' from marker '{}'",
+        enemy1->GetName(),
+        position->GetName()
+    );
+
+    return enemyAi;
 }
 
 void DungeonGenerator::Awake() {
@@ -412,24 +663,39 @@ void DungeonGenerator::Update() {
 		if (roomPrefab) {
 			spdlog::info("Room coords: {}", room.position);
 
-			SceneNode* spawnedRoom = roomPrefab->Instantiate(GetScene(), GetNode(), std::format("Room {}", roomCounter));
+			SceneNode* spawnedRoom =
+				roomPrefab->Instantiate(
+					GetScene(),
+					GetNode(),
+					std::format("Room {}", roomCounter)
+				);
 
-			spawnedRoom->GlobalTransform().Position() = GlobalTransform().Position() + glm::vec3(room.position.y, 0, room.position.x) * glm::vec3(this->gridSize);
-			spawnedRoom->GlobalTransform().Rotation() = glm::vec3(0, glm::radians(-90.0f * room.orientation), 0);
+			spawnedRoom->GlobalTransform().Position() =
+				GlobalTransform().Position() +
+				glm::vec3(room.position.y, 0, room.position.x) *
+				glm::vec3(this->gridSize);
+
+			spawnedRoom->GlobalTransform().Rotation() =
+				glm::vec3(0, glm::radians(-90.0f * room.orientation), 0);
 
 			SceneNode* floorNode = nullptr;
 
 			if (spawnedRoom->TryFindNode("floor", &floorNode)) {
-				floorNode->AddObject<Surface>(floorNode->GetObject<MeshRenderer>()->GetMesh(), 1);
+				floorNode->AddObject<Surface>(
+					floorNode->GetObject<MeshRenderer>()->GetMesh(),
+					1
+				);
 			}
 
 			if (room.position == glm::vec2(0, 0)) {
 				auto* elevatorNode = spawnedRoom->FindNode("Elevator");
+
 				// elevatorNode->AddObject<ElevatorScript>();
 				elevatorNode->GlobalTransform().Position() = glm::vec3(0, 0, 0);
 
 				// PlayerController::Instance()->SetEnabled(false);
-				// PlayerController::Instance()->GlobalTransform().Position() = elevatorNode->GlobalTransform().Position().Value();
+				// PlayerController::Instance()->GlobalTransform().Position() =
+				//     elevatorNode->GlobalTransform().Position().Value();
 			}
 			else {
 				auto* roomScript = spawnedRoom->AddObject<DungeonRoomScript>();
@@ -438,26 +704,24 @@ void DungeonGenerator::Update() {
 					roomScript->isFinal = true;
 				}
 			}
-			
+
 			for (MeshRenderer* mesh : spawnedRoom->GetAllObjectsInChildren<MeshRenderer>()) {
 				auto* body = mesh->GetNode()->AddObject<Physics::Body>(
-				JPH::BodyCreationSettings{
-					Physics::MeshShape(mesh->GetMesh()),
-					JPH::RVec3::sZero(), JPH::Quat::sZero(), JPH::EMotionType::Static,
-					Physics::Layers::NON_MOVING});
-				
+					JPH::BodyCreationSettings{
+						Physics::MeshShape(mesh->GetMesh()),
+						JPH::RVec3::sZero(),
+						JPH::Quat::sZero(),
+						JPH::EMotionType::Static,
+						Physics::Layers::NON_MOVING
+					}
+				);
+
 				body->SetCollisionLayerAndMask({0}, 0xFFFFFFFF);
 			}
 
-			for (SceneNode* child : spawnedRoom->GetChildren()) {
-				if (child->GetName().starts_with("ENEMY_SPAWN_")) {
-					auto* enemy = SpawnEnemy(child);
-
-					enemy->SetSurface(floorNode->GetObject<Surface>());
-					enemy->SetRoomID(enemy->GetSurface()->GetID());
-					floorNode->GetObject<Surface>()->AddEnemy(enemy);
-				}
-			}
+			// Enemy NIE są już spawnowane tutaj.
+			// Spawn odpali się dopiero w DungeonRoomScript::SpawnEnemies(),
+			// gdy gracz wejdzie do pokoju.
 
 			room.room = spawnedRoom;
 
@@ -465,16 +729,19 @@ void DungeonGenerator::Update() {
 		}
 	}
 
-	glm::vec3 playerPosition = PlayerController::Instance()->GlobalTransform().Position();
+	glm::vec3 playerPosition =
+		PlayerController::Instance()->GlobalTransform().Position();
 
 	for (auto room : this->dungeonRooms) {
-		glm::vec3 roomCenter = glm::vec3(room.position.y, 0, room.position.x) * glm::vec3(this->gridSize);
+		glm::vec3 roomCenter =
+			glm::vec3(room.position.y, 0, room.position.x) *
+			glm::vec3(this->gridSize);
 
 		glm::vec3 dist = glm::abs(roomCenter - playerPosition);
-
 		dist.y = 0;
 
-		if (dist.x < this->gridSize * 1.5 && dist.z < this->gridSize * 1.5) {
+		if (dist.x < this->gridSize * 1.5 &&
+			dist.z < this->gridSize * 1.5) {
 			room.room->SetEnabled(true);
 		}
 		else {
@@ -485,6 +752,54 @@ void DungeonGenerator::Update() {
 
 void DungeonGenerator::Render() {
 	
+}
+
+void DungeonRoomScript::SpawnEnemies() {
+	if (this->enemiesSpawned) {
+		return;
+	}
+
+	this->enemiesSpawned = true;
+
+	if (!this->surface) {
+		spdlog::warn(
+		    "DungeonRoomScript: surface is null in room '{}'",
+		    GetNode()->GetName()
+		);
+		return;
+	}
+
+	for (SceneNode* child : GetNode()->GetChildren()) {
+		if (!child->GetName().starts_with("ENEMY_SPAWN_")) {
+			continue;
+		}
+
+		EnemyBase* enemy = SpawnEnemy(child);
+
+		if (!enemy) {
+			spdlog::warn(
+			    "DungeonRoomScript: failed to spawn enemy from '{}'",
+			    child->GetName()
+			);
+			continue;
+		}
+
+		enemy->SetSurface(this->surface);
+		enemy->SetRoomID(this->surface->GetID());
+
+		this->surface->AddEnemy(enemy);
+
+		// WAŻNE:
+		// Enemy powstał już po wejściu gracza do pokoju,
+		// więc trzeba mu ręcznie powiedzieć, że gracz jest w pokoju.
+		enemy->OnPlayerEnteredRoom();
+
+		spdlog::info(
+		    "DungeonRoomScript: spawned enemy from '{}' in room '{}'",
+		    child->GetName(),
+		    GetNode()->GetName()
+		);
+	}
 }
 
 void DungeonGenerator::DrawImGui() {

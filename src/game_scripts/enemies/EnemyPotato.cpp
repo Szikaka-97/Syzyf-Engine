@@ -46,17 +46,26 @@ void EnemyPotato::StartAttack() {
     m_PhaseTimer   = 0.0f;
     m_JumpStart    = currentPos;
 
-    // Compute apex: midpoint horizontally, +5 m vertically
-    glm::vec3 dir   = glm::normalize(m_TargetPosition - currentPos);
-    float     hDist = glm::length(glm::vec3(m_TargetPosition.x - currentPos.x,
-                                            0.0f,
-                                            m_TargetPosition.z - currentPos.z));
+    glm::vec3 dir = glm::normalize(m_TargetPosition - currentPos);
+
+    float hDist = glm::length(glm::vec3(
+        m_TargetPosition.x - currentPos.x,
+        0.0f,
+        m_TargetPosition.z - currentPos.z
+    ));
+
     m_Apex = currentPos + dir * (hDist * 0.5f) + glm::vec3(0.0f, 5.0f, 0.0f);
 
     SpawnShadow();
     StopMoving();
-    spdlog::info("EnemyPotato: jump attack started, apex ({:.1f},{:.1f},{:.1f})",
-                 m_Apex.x, m_Apex.y, m_Apex.z);
+    SetAnimation("attack.001");
+
+    spdlog::info(
+        "EnemyPotato: jump attack started, apex ({:.1f},{:.1f},{:.1f})",
+        m_Apex.x,
+        m_Apex.y,
+        m_Apex.z
+    );
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -175,45 +184,76 @@ void EnemyPotato::UpdateAttackSequence() {
 void EnemyPotato::Update() {
     EnsureBody();
     LockXZRotation();
-    if (!m_TargetNode) return;
- 
+
+    if (!m_Body || !myNode || !m_TargetNode) {
+        return;
+    }
+
+    if (GlobalTransform().Position().y < -10.0f) {
+        TakeDamage(9999999);
+        return;
+    }
+
     m_TargetPosition = m_TargetNode->GlobalTransform().Position();
-    if (!myNode) return;
- 
+
     currentPos = m_Body->GetPosition();
     myNode->GlobalTransform().Position() = currentPos;
-    myNode->GlobalTransform().Rotation() = m_Body->GetRotation();
- 
-    UpdateAttackAnimation();
-    if (m_InAttackAnimation) { StopMoving(); return; }
- 
+
+    // Nie kopiuj pełnej rotacji fizyki, bo wróg może się przechylać.
+    // myNode->GlobalTransform().Rotation() = m_Body->GetRotation();
+
+    UpdateStatusEffects();
+
+    if (m_IsAttacking) {
+        StopMoving();
+        SetAnimation("attack.001");
+        UpdateAttackSequence();
+        return;
+    }
+
     if (isPlayerInRoom) {
         float dist = glm::distance(currentPos, m_TargetPosition);
-        if      (m_hp <= 30)          currentState = States::FLEEING;
-        else if (dist <= attackRange) currentState = States::ATTACKING;
-        else                          currentState = States::CHASING;
-    } else {
+
+        if (m_hp <= 30) {
+            currentState = States::FLEEING;
+        }
+        else if (dist <= attackRange) {
+            currentState = States::ATTACKING;
+        }
+        else {
+            currentState = States::CHASING;
+        }
+    }
+    else {
         currentState = States::PATROLLING;
     }
 
     switch (currentState) {
-        case States::PATROLLING:
-            Patrol();
-            break;
-        case States::CHASING:
-            DirectChase();
-            break;
-        case States::ATTACKING:
-            if (!m_IsAttacking && m_AttackCooldown <= 0.0f)
-                StartAttack();
-            else {
-                StopMoving();
-                m_AttackCooldown -= Time::Delta();
-            }
-            break;
-        case States::FLEEING:
-            Flee();
-            break;
-        
+    case States::PATROLLING:
+        Patrol();
+        UpdateMovementAnimation();
+        break;
+
+    case States::CHASING:
+        DirectChase();
+        UpdateMovementAnimation();
+        break;
+
+    case States::ATTACKING:
+        StopMoving();
+
+        if (!m_IsAttacking && m_AttackCooldown <= 0.0f) {
+            StartAttack();
+        }
+        else {
+            m_AttackCooldown -= Time::Delta();
+            SetAnimation("attacked.001");
+        }
+        break;
+
+    case States::FLEEING:
+        Flee();
+        UpdateMovementAnimation();
+        break;
     }
 }

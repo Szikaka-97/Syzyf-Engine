@@ -41,8 +41,12 @@ void EnemyBeetroot::StartAttack() {
     m_NextSegmentIndex    = 0;
     m_WaitingClear        = false;
     m_ClearTimer          = 0.0f;
+
     ComputeSpawnDelays();
+
     StopMoving();
+    SetAnimation("attack.001");
+
     spdlog::info("BeetrootEnemy: attack sequence started");
 }
 
@@ -124,47 +128,76 @@ void EnemyBeetroot::OnSegmentHitPlayer() {
 void EnemyBeetroot::Update() {
     EnsureBody();
     LockXZRotation();
-    EnsureBody();
-    if (!m_TargetNode) return;
- 
+
+    if (!m_Body || !myNode || !m_TargetNode) {
+        return;
+    }
+
+    if (GlobalTransform().Position().y < -10.0f) {
+        TakeDamage(9999999);
+        return;
+    }
+
     m_TargetPosition = m_TargetNode->GlobalTransform().Position();
-    if (!myNode) return;
- 
+
     currentPos = m_Body->GetPosition();
     myNode->GlobalTransform().Position() = currentPos;
-    myNode->GlobalTransform().Rotation() = m_Body->GetRotation();
- 
-    UpdateAttackAnimation();
-    if (m_InAttackAnimation) { StopMoving(); return; }
 
-    // ── Normal FSM ──────────────────────────────────────────────────────────
-   if (isPlayerInRoom) {
+    // Nie kopiuj pełnej rotacji fizyki, bo wróg może się przechylać.
+    // myNode->GlobalTransform().Rotation() = m_Body->GetRotation();
+
+    UpdateStatusEffects();
+
+    if (m_IsAttacking) {
+        StopMoving();
+        SetAnimation("attack.001");
+        UpdateAttackSequence();
+        return;
+    }
+
+    if (isPlayerInRoom) {
         float dist = glm::distance(currentPos, m_TargetPosition);
-        if      (m_hp <= 30)          currentState = States::FLEEING;
-        else if (dist <= attackRange) currentState = States::ATTACKING;
-        else                          currentState = States::CHASING;
-    } else {
+
+        if (m_hp <= 30) {
+            currentState = States::FLEEING;
+        }
+        else if (dist <= attackRange) {
+            currentState = States::ATTACKING;
+        }
+        else {
+            currentState = States::CHASING;
+        }
+    }
+    else {
         currentState = States::PATROLLING;
     }
 
     switch (currentState) {
-        case States::PATROLLING:
-            Patrol();
-            break;
-        case States::CHASING:
-            DirectChase();
-            break;
-        case States::ATTACKING:
-            if (!m_IsAttacking && m_AttackCooldown <= 0.0f)
-                StartAttack();
-            else {
-                StopMoving();
-                m_AttackCooldown -= Time::Delta();
-            }
-            break;
-        case States::FLEEING:
-            Flee();
-            break;
-       
+    case States::PATROLLING:
+        Patrol();
+        UpdateMovementAnimation();
+        break;
+
+    case States::CHASING:
+        DirectChase();
+        UpdateMovementAnimation();
+        break;
+
+    case States::ATTACKING:
+        StopMoving();
+
+        if (!m_IsAttacking && m_AttackCooldown <= 0.0f) {
+            StartAttack();
+        }
+        else {
+            m_AttackCooldown -= Time::Delta();
+            SetAnimation("attacked.001");
+        }
+        break;
+
+    case States::FLEEING:
+        Flee();
+        UpdateMovementAnimation();
+        break;
     }
 }
