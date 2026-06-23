@@ -69,31 +69,42 @@ void FlockingSystem::OnPreUpdate() {
 
     for (int i = 0; i < (int)m_Agents.size(); ++i) {
         EnemyBase* enemy = m_Agents[i].ptr;
+
+        if (!enemy) continue;
+
         enemy->EnsureBody();
 
-        if (!enemy->m_Body) spdlog::error("enemy body is null");
+        if (!enemy->m_Body || enemy->m_hp <= 0) continue;
 
-        if (!enemy || !enemy->m_Body || enemy->m_InAttackAnimation || enemy->m_hp <= 0 || enemy->currentState == States::ATTACKING) {
+        if (enemy->m_InAttackAnimation || enemy->currentState == States::ATTACKING) {
+            enemy->StopMoving();
             continue;
         }
 
         enemy->LockXZRotation();
 
         glm::vec3 myPos = m_Agents[i].pos;
-        glm::vec3 separation(0.0f);
 
+        if (enemy->currentState == States::CHASING) {
+            glm::vec3 toTarget = enemy->m_TargetPosition - myPos;
+            toTarget.y = 0.0f;
+            if (glm::length(toTarget) <= enemy->attackRange * 0.85f) {
+                enemy->StopMoving();
+                continue;
+            }
+        }
+
+        glm::vec3 separation(0.0f);
         for (int j = 0; j < (int)m_Agents.size(); ++j) {
             if (i == j) continue;
             glm::vec3 diff = myPos - m_Agents[j].pos;
             diff.y = 0.0f;
             float distSq = glm::dot(diff, diff);
-
             if (distSq < sepRadiusSq) {
-                if (distSq > 0.0001f) {
+                if (distSq > 0.0001f)
                     separation += diff * (1.0f / distSq);
-                } else {
+                else
                     separation += glm::vec3(0.5f * ((i % 3) - 1), 0.0f, 0.5f * ((j % 3) - 1));
-                }
             }
         }
 
@@ -103,7 +114,7 @@ void FlockingSystem::OnPreUpdate() {
             if (enemy->currentState == States::FLEEING) targetDir = -targetDir;
         } else if (enemy->currentState == States::PATROLLING) {
             targetDir = m_PatrolTargets[i] - myPos;
-            if (glm::dot(targetDir, targetDir) < 0.36f) { // dystans < 0.6f
+            if (glm::dot(targetDir, targetDir) < 0.36f) {
                 RefreshPatrolTarget(enemy);
                 enemy->StopMoving();
                 continue;
@@ -115,18 +126,14 @@ void FlockingSystem::OnPreUpdate() {
 
         if (targetLenSq > 0.001f) {
             targetDir /= std::sqrt(targetLenSq);
-
             glm::vec3 finalDir = targetDir + (separation * separationWeight);
             finalDir.y = 0.0f;
-
             float finalLenSq = glm::dot(finalDir, finalDir);
-            if(finalLenSq > 0.001f) {
+            if (finalLenSq > 0.001f)
                 finalDir /= std::sqrt(finalLenSq);
-            }
 
             glm::vec3 currentVel = enemy->m_Body->GetLinearVelocity();
-            glm::vec3 targetVel = finalDir * enemy->GetMovementSpeed();
-
+            glm::vec3 targetVel  = finalDir * enemy->GetMovementSpeed();
             glm::vec3 newVel;
             newVel.x = glm::mix(currentVel.x, targetVel.x, dt * 8.0f);
             newVel.z = glm::mix(currentVel.z, targetVel.z, dt * 8.0f);

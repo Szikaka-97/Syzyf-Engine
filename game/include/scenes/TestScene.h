@@ -242,80 +242,100 @@ inline void InitScene(Scene& mainScene) {
 #pragma endregion
 #pragma region Enemy
 
-    // auto* flockingSystem = mainScene.AddComponent<FlockingSystem>();
-    // flockingSystem->separationRadius = 2.5f;
-    // flockingSystem->separationWeight = 1.8f;
-    // flockingSystem->alignmentRadius = 5.0f;
-    // flockingSystem->alignmentWeight = 0.3f;
-    // flockingSystem->cohesionRadius = 6.0f;
-    // flockingSystem->cohesionWeight = 0.2f;
-    // JPH::ShapeRefC enemyShape = new JPH::CapsuleShape(0.5f, 1.0f);
-    // JPH::BodyCreationSettings enemySettingsTemplate(
-    //     enemyShape, JPH::RVec3(0, 1.5f, 0), JPH::Quat::sIdentity(),
-    //     JPH::EMotionType::Dynamic, Physics::Layers::MOVING);
-    // Material* enemyMat =
-    //     mainScene.Resources()->Get<Material>("./res/materials/jake.mat");
-    // Mesh* cubeMesh =
-    //     mainScene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
-    //
-    // SceneNode* enemy1 = mainScene.CreateNode("Enemy 1");
-    // // enemy1->GlobalTransform().Position() = glm::vec3(10.5f, 0.0f, -5.0f);
-    // enemy1->GlobalTransform().Scale() = glm::vec3(0.5f, 0.5f, 0.5f);
-    // enemy1->GlobalTransform().Position() = glm::vec3(15.f, 0.f, 0.f);
-    // Physics::Body* enemyBody1 =
-    // enemy1->AddObject<Physics::Body>(enemySettings);
-    // enemyBody1->SetRestitution(0.0f);
-    // auto* enemyAi1 = enemy1->AddObject<EnemySkeleton>();
-    // enemyAi1->SetSurface(surface);
-    // enemyAi1->SetTargetNode(player->GetNode());
-    // enemyAi1->SetProjectileResources(cubeMesh, enemyMat);
-    // enemyAi1->SetAttackCooldown(1.2f);
-    // enemyAi1->SetRoomID(floorNode->GetID());
+auto* flockingSystem = mainScene.AddComponent<FlockingSystem>();
+flockingSystem->separationRadius = 2.5f;
+flockingSystem->separationWeight = 1.8f;
+flockingSystem->alignmentRadius  = 5.0f;
+flockingSystem->alignmentWeight  = 0.3f;
+flockingSystem->cohesionRadius   = 6.0f;
+flockingSystem->cohesionWeight   = 0.2f;
 
-    // SceneNode* enemyModel =
-    //     ResourceDatabase::Global->Get<GltfScene>("./res/models/szkielet6.glb")
-    //         ->Instantiate(&mainScene, mainScene.root, "EnemyModel");
-    // enemyModel->SetParent(enemy1);
-    // enemyModel->GlobalTransform().Scale() = glm::vec3(0.1, 0.1, 0.1);
-    // enemyModel->LocalTransform().Position() = glm::zero<glm::vec3>();
+JPH::ShapeRefC enemyShape = new JPH::CapsuleShape(0.5f, 1.0f);
+JPH::BodyCreationSettings enemySettingsTemplate(
+    enemyShape, JPH::RVec3(0, 1.5f, 0), JPH::Quat::sIdentity(),
+    JPH::EMotionType::Dynamic, Physics::Layers::MOVING);
+enemySettingsTemplate.mAllowedDOFs =
+    JPH::EAllowedDOFs::TranslationX |
+    JPH::EAllowedDOFs::TranslationY |
+    JPH::EAllowedDOFs::TranslationZ |
+    JPH::EAllowedDOFs::RotationY;
+
+Material* enemyMat =
+    mainScene.Resources()->Get<Material>("./res/materials/jake.mat");
+Mesh* cubeMesh =
+    mainScene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
+
+for (int i = 0; i < 8; i++) {
+    SceneNode* enemy1 = mainScene.CreateNode("Enemy 1");
+    enemy1->GlobalTransform().Scale()    = glm::vec3(0.5f, 0.5f, 0.5f);
+    enemy1->GlobalTransform().Position() = glm::vec3(15.f + i * 2.0f, 0.f, 0.f);
+
+    JPH::BodyCreationSettings settings = enemySettingsTemplate;
+    settings.mPosition = JPH::RVec3(15.f + i * 2.0f, 1.5f, 0.f);
+
+    Physics::Body* enemyBody1 = enemy1->AddObject<Physics::Body>(settings);
+    enemyBody1->SetRestitution(0.0f);
+
+    auto* enemyAi1 = enemy1->AddObject<EnemySkeleton>();
+    enemyAi1->SetSurface(surface);
+    enemyAi1->SetTargetNode(player->GetNode());
+    enemyAi1->SetProjectileResources(cubeMesh, enemyMat);
+    enemyAi1->SetAttackCooldown(1.2f);
+    enemyAi1->SetRoomID(floorNode->GetID());
+    enemyAi1->OnPlayerEnteredRoom();
+    enemyAi1->RegisterToFlockingSystem(flockingSystem);
+
+    SceneNode* enemyModel =
+        ResourceDatabase::Global->Get<GltfScene>("./res/models/szkielet6.glb")
+            ->Instantiate(&mainScene, mainScene.root, "EnemyModel");
+    enemyModel->SetParent(enemy1);
+    enemyModel->GlobalTransform().Scale()    = glm::vec3(0.1f, 0.1f, 0.1f);
+    enemyModel->LocalTransform().Position()  = glm::zero<glm::vec3>();
+
+    auto* animComp = enemyModel->GetObjectInChildren<AnimationComponent>();
+    if (animComp) {
+        enemyAi1->SetAttackAnimation(animComp);
+    }
+}
+
 
 #pragma endregion
 
-    // Torch fire particles
-    SceneNode* sprayNode = mainScene.CreateNode("Fire");
-    sprayNode->GlobalTransform().Position() = {0.0f, 0.0f, 0.0f};
-    sprayNode->AddObject<FireParticles>();
-
-    // Szkielet blendowanie
-    SceneNode* skeletonNode =
-        ResourceDatabase::Global
-            ->Get<GltfScene>("./res/models/enemies/szkielet4.glb")
-            ->Instantiate(&mainScene, mainScene.root, "SkeletonNode");
-
-    auto* animComp = skeletonNode->GetObjectInChildren<AnimationComponent>();
-    if (animComp) {
-        animComp->SetAnimationLayer("walk.001", 0);
-        animComp->SetAnimationLayer("attack.001", 1);
-
-        SceneNode* spineNode =
-            skeletonNode->FindNode("rig_deform/DEF-upper_arm.L");
-        if (spineNode) {
-            animComp->SetAnimationMask("attack.001", spineNode);
-        }
-
-        animComp->Play("walk.001");
-        animComp->Play("attack.001");
-
-        for (auto& anim : animComp->animations) {
-            if (anim.data.name == "walk.001" ||
-                anim.data.name == "attack.001") {
-                anim.looping = true;
-            }
-            if (anim.data.name == "attack.001") {
-                anim.blendWeight = 1.0f;
-            }
-        }
-    }
+    // // Torch fire particles
+    // SceneNode* sprayNode = mainScene.CreateNode("Fire");
+    // sprayNode->GlobalTransform().Position() = {0.0f, 0.0f, 0.0f};
+    // sprayNode->AddObject<FireParticles>();
+    //
+    // // Szkielet blendowanie
+    // SceneNode* skeletonNode =
+    //     ResourceDatabase::Global
+    //         ->Get<GltfScene>("./res/models/enemies/szkielet4.glb")
+    //         ->Instantiate(&mainScene, mainScene.root, "SkeletonNode");
+    //
+    // auto* animComp = skeletonNode->GetObjectInChildren<AnimationComponent>();
+    // if (animComp) {
+    //     animComp->SetAnimationLayer("walk.001", 0);
+    //     animComp->SetAnimationLayer("attack.001", 1);
+    //
+    //     SceneNode* spineNode =
+    //         skeletonNode->FindNode("rig_deform/DEF-upper_arm.L");
+    //     if (spineNode) {
+    //         animComp->SetAnimationMask("attack.001", spineNode);
+    //     }
+    //
+    //     animComp->Play("walk.001");
+    //     animComp->Play("attack.001");
+    //
+    //     for (auto& anim : animComp->animations) {
+    //         if (anim.data.name == "walk.001" ||
+    //             anim.data.name == "attack.001") {
+    //             anim.looping = true;
+    //         }
+    //         if (anim.data.name == "attack.001") {
+    //             anim.blendWeight = 1.0f;
+    //         }
+    //     }
+    // }
 
     SceneNode* audio = mainScene.CreateNode("Audio");
     audio->AddObject<AudioSource>(

@@ -35,17 +35,12 @@ void EnemyBase::Awake() {
     }
 
 void EnemyBase::Attack() {
-
- // glm::vec3 dirTo = m_TargetPosition - currentPos;
- // if (glm::length(dirTo) > 0.01f) RotateNode(dirTo);
-
   m_AttackTimer += Time::Delta();
   if (m_AttackTimer >= m_AttackCooldown) {
-    m_AttackTimer = 0.0f;
-    SetAnimation("attack.001");
-    m_InAttackAnimation = true;
+    m_AttackTimer            = 0.0f;
+    m_InAttackAnimation      = true;
     m_AttackAnimationElapsed = 0.0f;
-
+    m_CurrentAnimation       = "attack.001";  // ustaw bezpośrednio, omijając guard
     PlayAttackAnimation("attack.001");
     SpawnProjectile(m_TargetPosition);
   }
@@ -120,15 +115,10 @@ void EnemyBase::SpawnProjectile(const glm::vec3& targetPos) {
 
 void EnemyBase::UpdateAttackAnimation() {
   if (!m_InAttackAnimation) return;
-
   m_AttackAnimationElapsed += Time::Delta();
   if (m_AttackAnimationElapsed >= m_AttackAnimationDuration) {
     m_InAttackAnimation = false;
-
-    if (glm::length(m_Body->GetLinearVelocity()) > 0.1f)
-      SetAnimation("idle.001");
-    else
-      SetAnimation("stop.001");
+    m_CurrentAnimation  = "";
   }
 }
 
