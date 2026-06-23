@@ -514,6 +514,10 @@ void Debug::CheckDeletedNode(SceneNode* deleted) {
 	std::erase_if(registeredGameObjectVectorCouplings, [deleted](auto& coupling) -> bool {
 		return coupling.owner == deleted;
 	});
+
+	for (auto child : deleted->GetChildren()) {
+		CheckDeletedNode(child);
+	}
 }
 
 void Debug::CheckDeletedObject(GameObject* deleted) {
