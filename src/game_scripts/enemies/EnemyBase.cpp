@@ -132,12 +132,66 @@ void EnemyBase::UpdateAttackAnimation() {
   }
 }
 
+
 void EnemyBase::SetAnimation(const std::string& name) {
   if (!m_AttackAnimation) return;
   if (m_CurrentAnimation == name) return;
+
+  for (auto& anim : m_AttackAnimation->animations) {
+    if (anim.data.name == name) {
+      anim.looping = false;
+      break;
+    }
+  }
+
   m_AttackAnimation->Play(name);
   m_CurrentAnimation = name;
-  spdlog::debug("AiNode: changed animation to {}", name);
+}
+
+void EnemyBase::DirectChaseNoBoundary() {
+  glm::vec3 dir = m_TargetPosition - currentPos;
+  dir.y = 0.0f;
+  float dist = glm::length(dir);
+
+  if (dist <= attackRange * 0.85f) {
+    StopMoving();
+    return;
+  }
+  if (dist < 0.1f) { StopMoving(); return; }
+
+  dir /= dist;
+
+  float speedMultiplier = 1.0f;
+  if (dist < attackRange * 1.5f)
+    speedMultiplier = 0.5f;
+
+  glm::vec3 newVel = dir * m_Speed * speedMultiplier;
+  newVel.y = m_Body->GetLinearVelocity().y;
+  m_Body->SetLinearVelocity(newVel);
+
+  float targetYaw = atan2(dir.x, dir.z);
+  glm::quat targetRot = glm::angleAxis(targetYaw, glm::vec3(0, 1, 0));
+  glm::quat currentRot = myNode->GlobalTransform().Rotation();
+  glm::quat newRot = glm::slerp(currentRot, targetRot, m_BossRotationSpeed * Time::Delta());
+  m_Body->SetRotation(newRot);
+  myNode->GlobalTransform().Rotation() = newRot;
+  m_Body->SetAngularVelocity(glm::vec3(0.0f));
+}
+
+void EnemyBase::SetLoopingAnimation(const std::string& name) {
+  if (!m_AttackAnimation) return;
+  if (m_CurrentAnimation == name) return;
+
+  for (auto& anim : m_AttackAnimation->animations) {
+    if (anim.data.name == name) {
+      anim.looping     = true;
+      anim.timeActive  = 0.0f;
+      anim.playing     = true;
+      anim.currentKeyframes.assign(anim.data.tracks.size(), 0);
+      break;
+    }
+  }
+  m_CurrentAnimation = name;
 }
 
 //bool EnemyBase::CanSeePlayer() const {

@@ -332,10 +332,26 @@ inline void InitScene(Scene& mainScene) {
 
     SceneNode* enemyNode = mainScene.CreateNode("Enemy Boss");
     enemyNode->GlobalTransform().Position() = glm::vec3(2.0f);
+
+    JPH::ShapeRefC bossShape = new JPH::CapsuleShape(0.5f, 1.0f);
+    JPH::BodyCreationSettings bossSettings(
+        bossShape,
+        JPH::RVec3(2.0f, 1.0f, 0.0f),
+        JPH::Quat::sIdentity(),
+        JPH::EMotionType::Dynamic,
+        Physics::Layers::MOVING);
+
+    Physics::Body* bossBody = enemyNode->AddObject<Physics::Body>(bossSettings);
+    bossBody->SetRestitution(0.0f);
+
     EnemyBoss* boss = enemyNode->AddObject<EnemyBoss>();
+    boss->SetTargetNode(playerNode);
+    boss->SetSurface(surface);
+    boss->OnPlayerEnteredRoom();
     AnimationComponent* enemyAnim = enemyNode->GetObjectInChildren<AnimationComponent>();
     if (enemyAnim) {
         boss->SetAttackAnimation(enemyAnim);
     }
+
 }
 } // namespace TestScene

@@ -83,5 +83,5 @@ public:
 
   void DrawImGui() override;
 
-  virtual ~AnimationComponent() = default;
+  virtual ~AnimationComponent() = default;void Stop();
 };
