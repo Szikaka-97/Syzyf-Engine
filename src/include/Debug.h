@@ -58,12 +58,20 @@ namespace Debug {
 	bool Property(glm::mat4& property, const std::string& name);
 
 	bool Property(SceneNode* owner, SceneNode*& property, const std::string& name);
+	
+	bool Property(SceneNode* owner, std::vector<SceneNode*>& property, const std::string& name);
 
 	template<typename T>
 		requires (std::derived_from<T, GameObject>)
 	bool Property(SceneNode* owner, T*& property, const std::string& name);
 
+	template<typename T>
+		requires (std::derived_from<T, GameObject>)
+	bool Property(SceneNode* owner, std::vector<T*>& property, const std::string& name);
+
 	void RegisterGameObjectProperty(SceneNode* owner, GameObject** property);
+
+	void RegisterGameObjectProperty(SceneNode* owner, std::vector<GameObject*>* property);
 
 	void CheckDeletedNode(SceneNode* deleted);
 	void CheckDeletedObject(GameObject* deleted);
@@ -105,4 +113,66 @@ bool Debug::Property(SceneNode* owner, T*& property, const std::string& name) {
 	}
 
 	return false;
+}
+
+template<typename T>
+	requires (std::derived_from<T, GameObject>)
+bool Debug::Property(SceneNode* owner, std::vector<T*>& property, const std::string& name) {
+	bool changed = false;
+
+	if (ImGui::TreeNode(name.c_str())) {
+		if (ImGui::Button("+")) {
+			property.resize(property.size() + 1);
+		}
+
+		ImGui::SameLine();
+
+		if (ImGui::Button("-")) {
+			property.resize(property.size() - 1);
+		}
+
+		for (int i = 0; i < property.size(); i++) {
+			std::string displayName = "";
+
+			if (property[i]) {
+				displayName = property[i]->GetNode()->GetName();
+			}
+
+			ImGui::PushID(i);
+
+			ImGui::InputTextWithHint(name.c_str(), "nullptr", displayName.data(), displayName.size(), ImGuiInputTextFlags_ReadOnly);
+
+			if (ImGui::BeginDragDropTarget()) {
+				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("GRAPH_SCENE_NODE")) {
+					SceneNode* droppedNode = *(SceneNode**) payload->Data;
+
+					auto objs = droppedNode->GetAllObjects<T>();
+					
+					for (auto* obj : objs) {
+						if (property[i] == obj) {
+							continue;
+						}
+
+						property[i] = obj;
+
+						ImGui::EndDragDropTarget();
+
+						changed = true;
+					}
+				}
+
+				ImGui::EndDragDropTarget();
+			}
+
+			ImGui::PopID();
+		}
+
+		ImGui::TreePop();
+	}
+	
+	if (changed) {
+		RegisterGameObjectProperty(owner, (std::vector<GameObject*>*) &property);					
+	}
+
+	return changed;
 }

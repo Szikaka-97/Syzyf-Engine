@@ -10,14 +10,25 @@ struct NodeCoupling {
 	SceneNode** value;
 };
 
+struct NodeVectorCoupling {
+	SceneNode* owner;
+	std::vector<SceneNode*>* value;
+};
+
 struct GameObjectCoupling {
 	SceneNode* owner;
 	GameObject** value;
 };
 
+struct GameObjectVectorCoupling {
+	SceneNode* owner;
+	std::vector<GameObject*>* value;
+};
 
 std::vector<NodeCoupling> registeredNodeCouplings;
+std::vector<NodeVectorCoupling> registeredNodeVectorCouplings;
 std::vector<GameObjectCoupling> registeredGameObjectCouplings;
+std::vector<GameObjectVectorCoupling> registeredGameObjectVectorCouplings;
 
 DebugInspector::DebugInspector(Scene* scene):
 SceneComponent(scene) { }
@@ -398,8 +409,63 @@ bool Debug::Property(SceneNode* owner, SceneNode*& property, const std::string& 
 	return false;
 }
 
+
+bool Debug::Property(SceneNode* owner, std::vector<SceneNode*>& property, const std::string& name) {
+	bool changed = false;
+
+	if (ImGui::TreeNode(name.c_str())) {
+		if (ImGui::Button("+")) {
+			property.resize(property.size() + 1);
+		}
+
+		ImGui::SameLine();
+
+		if (ImGui::Button("-")) {
+			property.resize(property.size() - 1);
+		}
+
+		for (int i = 0; i < property.size(); i++) {
+			std::string displayName = "";
+
+			if (property[i]) {
+				displayName = property[i]->GetName();
+			}
+
+			ImGui::PushID(i);
+
+			ImGui::InputTextWithHint(name.c_str(), "nullptr", displayName.data(), displayName.size(), ImGuiInputTextFlags_ReadOnly);
+
+			if (ImGui::BeginDragDropTarget()) {
+				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("GRAPH_SCENE_NODE")) {
+					SceneNode* droppedNode = *(SceneNode**) payload->Data;
+
+					property[i] = droppedNode;
+					
+
+				}
+
+				ImGui::EndDragDropTarget();
+			}
+
+			ImGui::PopID();
+		}
+
+		ImGui::TreePop();
+	}
+	
+	if (changed) {
+		registeredNodeVectorCouplings.push_back({ owner, &property });
+	}
+
+	return changed;
+}
+
 void Debug::RegisterGameObjectProperty(SceneNode* owner, GameObject** property) {
 	registeredGameObjectCouplings.push_back({ owner, property });
+}
+
+void Debug::RegisterGameObjectProperty(SceneNode* owner, std::vector<GameObject*>* property) {
+	registeredGameObjectVectorCouplings.push_back({ owner, property });
 }
 
 void Debug::CheckDeletedNode(SceneNode* deleted) {
@@ -415,11 +481,29 @@ void Debug::CheckDeletedNode(SceneNode* deleted) {
 		}
 	}
 
+	for (auto& coupling : registeredNodeVectorCouplings) {
+		for (int i = 0; i < coupling.value->size(); i++) {
+			if ((*coupling.value)[i] == deleted) {
+				(*coupling.value)[i] = nullptr;
+			}
+		}
+	}
+
 	std::erase_if(registeredNodeCouplings, [deleted](auto& coupling) -> bool {
 		return coupling.owner == deleted || *coupling.value == deleted;
 	});
 
+	std::erase_if(registeredNodeVectorCouplings, [deleted](auto& coupling) -> bool {
+		return coupling.owner == deleted || std::any_of(coupling.value->begin(), coupling.value->end(), [deleted](auto val) -> bool {
+			return val == deleted;
+		});
+	});
+
 	std::erase_if(registeredGameObjectCouplings, [deleted](auto& coupling) -> bool {
+		return coupling.owner == deleted;
+	});
+
+	std::erase_if(registeredGameObjectVectorCouplings, [deleted](auto& coupling) -> bool {
 		return coupling.owner == deleted;
 	});
 }
@@ -431,7 +515,21 @@ void Debug::CheckDeletedObject(GameObject* deleted) {
 		}
 	}
 
+	for (auto& coupling : registeredGameObjectVectorCouplings) {
+		for (auto& val : *coupling.value) {
+			if (val == deleted) {
+				val = nullptr;
+			}
+		}
+	}
+
 	std::erase_if(registeredGameObjectCouplings, [deleted](auto& coupling) -> bool {
 		return *coupling.value == deleted;
+	});
+
+	std::erase_if(registeredGameObjectVectorCouplings, [deleted](auto& coupling) -> bool {
+		return std::any_of(coupling.value->begin(), coupling.value->end(), [deleted](auto val) -> bool {
+			return val == deleted;
+		});
 	});
 }
