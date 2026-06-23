@@ -5,6 +5,9 @@
 #include "InputSystem.h"
 #include "Scene.h"
 #include "Texture.h"
+#include "Material.h"
+#include "MeshRenderer.h"
+#include "Shader.h"
 
 #include "game_scripts/CameraSettings.h"
 #include "game_scripts/PlayerController.h"
@@ -94,11 +97,20 @@ namespace Crafting{
                 bool dungeonPromptMessageVisible = false;
                 float dungeonPromptShowUntilTime = 0.0f;
 
+                SceneNode* gameplayHudNode = nullptr;
+                bool gameplayHudVisibilitySaved = false;
+                bool gameplayHudWasEnabled = true;
+
                 SceneNode* bellowNode = nullptr;
                 SceneNode* bladeNode = nullptr;
+                SceneNode* stageTwoDeviceNode = nullptr;
+                SceneNode* stageTwoColorNode = nullptr;
+                Material* stageTwoTemperatureArcMaterial = nullptr;
                 SceneNode* qualityMeterNode = nullptr;
 
                 glm::vec3 bellowDefaultScale = glm::vec3(1.0f);
+                glm::quat bladeDefaultLocalRotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
+                glm::quat stageTwoColorDefaultLocalRotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
                 float bellowAnimationAmount = 0.0f;
 
                 Text3D* stageTwoQualityText = nullptr;
@@ -137,6 +149,25 @@ namespace Crafting{
           public:
                 float interactionRadius = 3.0f;
                 bool enterStationOnFirstUpdate = false;
+
+                float thermometerMinTemperature = 0.0f;
+                float thermometerNeedleMinAngleDegrees = 90.0f;
+                float thermometerNeedleMaxAngleDegrees = -90.0f;
+                bool thermometerUseHeatingRangeAsScale = true;
+                float thermometerFallbackMaxTemperature = 100.0f;
+                bool thermometerArcStartsAtTargetMinimum = false;
+                float thermometerOverheatVisualRangeMultiplier = 1.0f;
+
+                float thermometerArcLocalRadius = 0.6328577f;
+                float thermometerArcInnerRadius01 = 0.0f;
+                float thermometerArcOuterRadius01 = 0.86f;
+                float thermometerArcEdgeSoftness01 = 0.015f;
+                float thermometerArcAngleOffsetDegrees = 0.0f;
+                float thermometerArcStartDegrees = -90.0f;
+                float thermometerArcEndDegrees = 90.0f;
+                glm::vec4 thermometerSafeRangeColor = glm::vec4(0.17f, 0.48f, 0.12f, 1.0f);
+                glm::vec4 thermometerOverheatRangeColor = glm::vec4(0.02f, 0.02f, 0.018f, 1.0f);
+                glm::vec4 thermometerBaseFillColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 
                 std::string lidNodeName = "Lid";
                 std::string lidHitboxNodeName = "LidHitbox";
@@ -261,14 +292,28 @@ namespace Crafting{
                     lastStageCameraLightNode =
                         FindNodeRecursive(GetNode(), "LastStageCameraLight");
 
+                    SceneNode* stageTwoSearchRoot =
+                        stageTwoUiNode ? stageTwoUiNode : GetNode();
+
                     bellowNode =
-                        FindNodeRecursive(GetNode(), "bellow");
+                        FindNodeRecursive(stageTwoSearchRoot, "bellow");
 
                     bladeNode =
-                        FindNodeRecursive(GetNode(), "blade");
+                        FindNodeRecursive(stageTwoSearchRoot, "blade");
+
+                    stageTwoDeviceNode =
+                        FindNodeRecursive(stageTwoSearchRoot, "device");
+
+                    stageTwoColorNode =
+                        FindNodeRecursive(stageTwoSearchRoot, "color");
 
                     qualityMeterNode =
-                        FindNodeRecursive(GetNode(), "quality_metter");
+                        FindNodeRecursive(stageTwoSearchRoot, "quality_metter.003");
+
+                    if (!qualityMeterNode){
+                        qualityMeterNode =
+                            FindNodeRecursive(stageTwoSearchRoot, "quality_metter");
+                    }
 
                     qualityStarNodes[0] =
                         FindNodeRecursive(GetNode(), "Star.001");
@@ -337,6 +382,18 @@ namespace Crafting{
                         bellowDefaultScale =
                             bellowNode->LocalTransform().Scale().Value();
                     }
+
+                    if (bladeNode){
+                        bladeDefaultLocalRotation =
+                            bladeNode->LocalTransform().Rotation().Value();
+                    }
+
+                    if (stageTwoColorNode){
+                        stageTwoColorDefaultLocalRotation =
+                            stageTwoColorNode->LocalTransform().Rotation().Value();
+                    }
+
+                    CreateStageTwoTemperatureArcMaterial();
 
                     RefreshPlayerInventoryFromPersistent();
 
@@ -983,6 +1040,10 @@ namespace Crafting{
                         glm::vec3(0.0f, 0.06f, 0.12f),
                         0.04f
                     );
+
+                    if (stageTwoTemperatureText){
+                        stageTwoTemperatureText->SetEnabled(false);
+                    }
                 }
 
                 void CreateLastStageModelTexts(){
@@ -1186,7 +1247,216 @@ namespace Crafting{
                         );
                 }
 
+                float GetThermometerDisplayMinTemperature() const{
+                    if (thermometerUseHeatingRangeAsScale && thermometerArcStartsAtTargetMinimum){
+                        return heatingStage.tempMin;
+                    }
+
+                    return thermometerMinTemperature;
+                }
+
+                float GetThermometerDisplayMaxTemperature() const{
+                    if (!thermometerUseHeatingRangeAsScale){
+                        return glm::max(
+                            thermometerFallbackMaxTemperature,
+                            GetThermometerDisplayMinTemperature() + 0.001f
+                        );
+                    }
+
+                    float targetRange =
+                        heatingStage.tempMax - heatingStage.tempMin;
+
+                    if (targetRange < 0.001f){
+                        targetRange = 0.001f;
+                    }
+
+                    float overheatRange =
+                        targetRange * glm::max(
+                            thermometerOverheatVisualRangeMultiplier,
+                            0.001f
+                        );
+
+                    return glm::max(
+                        heatingStage.tempMax + overheatRange,
+                        GetThermometerDisplayMinTemperature() + 0.001f
+                    );
+                }
+
+                float GetThermometerTemperature01(float temperature) const{
+                    float displayMinTemperature =
+                        GetThermometerDisplayMinTemperature();
+
+                    float displayMaxTemperature =
+                        GetThermometerDisplayMaxTemperature();
+
+                    float range =
+                        displayMaxTemperature - displayMinTemperature;
+
+                    if (range < 0.001f){
+                        range = 0.001f;
+                    }
+
+                    return glm::clamp(
+                        (temperature - displayMinTemperature) / range,
+                        0.0f,
+                        1.0f
+                    );
+                }
+
+                float GetThermometerAngleForTemperature(float temperature) const{
+                    float temperature01 =
+                        GetThermometerTemperature01(temperature);
+
+                    return glm::mix(
+                        thermometerNeedleMinAngleDegrees,
+                        thermometerNeedleMaxAngleDegrees,
+                        glm::clamp(temperature01, 0.0f, 1.0f)
+                    );
+                }
+
+                glm::quat GetThermometerLocalRotationForTemperature(float temperature) const{
+                    float angleDegrees =
+                        GetThermometerAngleForTemperature(temperature);
+
+                    return glm::angleAxis(
+                        glm::radians(angleDegrees),
+                        glm::vec3(0.0f, 0.0f, 1.0f)
+                    );
+                }
+
+                bool IsThermometerNeedleInBlackRange() const{
+                    return heatingStage.GetTemperature() > heatingStage.tempMax;
+                }
+
+                void CreateStageTwoTemperatureArcMaterial(){
+                    if (!stageTwoColorNode || !GetScene()){
+                        return;
+                    }
+
+                    ShaderProgram* arcShader =
+                        ShaderProgram::Build()
+                            .WithVertexShader("./res/shaders/gltf/crafting_temperature_arc.vert")
+                            .WithPixelShader("./res/shaders/gltf/crafting_temperature_arc.frag")
+                            .Link();
+
+                    if (!arcShader){
+                        return;
+                    }
+
+                    stageTwoTemperatureArcMaterial =
+                        new Material(arcShader);
+
+                    stageTwoTemperatureArcMaterial->name =
+                        "StageTwoTemperatureArcMaterial";
+
+                    std::vector<MeshRenderer*> colorRenderers;
+                    CollectObjectsRecursive<MeshRenderer>(
+                        stageTwoColorNode,
+                        colorRenderers
+                    );
+
+                    for (MeshRenderer* renderer : colorRenderers){
+                        if (!renderer){
+                            continue;
+                        }
+
+                        for (int materialIndex = 0; materialIndex < renderer->GetMaterialCount(); materialIndex++){
+                            renderer->SetMaterial(
+                                stageTwoTemperatureArcMaterial,
+                                materialIndex
+                            );
+                        }
+                    }
+
+                    UpdateStageTwoTemperatureArcMaterial();
+                }
+
+                void UpdateStageTwoTemperatureArcMaterial(){
+                    if (!stageTwoTemperatureArcMaterial){
+                        return;
+                    }
+
+                    stageTwoTemperatureArcMaterial->SetValue(
+                        "uGaugeLocalRadius",
+                        thermometerArcLocalRadius
+                    );
+
+                    stageTwoTemperatureArcMaterial->SetValue(
+                        "uInnerRadius01",
+                        thermometerArcInnerRadius01
+                    );
+
+                    stageTwoTemperatureArcMaterial->SetValue(
+                        "uOuterRadius01",
+                        thermometerArcOuterRadius01
+                    );
+
+                    stageTwoTemperatureArcMaterial->SetValue(
+                        "uEdgeSoftness01",
+                        thermometerArcEdgeSoftness01
+                    );
+
+                    stageTwoTemperatureArcMaterial->SetValue(
+                        "uAngleOffsetDegrees",
+                        thermometerArcAngleOffsetDegrees
+                    );
+
+                    stageTwoTemperatureArcMaterial->SetValue(
+                        "uArcStartDegrees",
+                        thermometerArcStartDegrees
+                    );
+
+                    stageTwoTemperatureArcMaterial->SetValue(
+                        "uArcEndDegrees",
+                        thermometerArcEndDegrees
+                    );
+
+                    stageTwoTemperatureArcMaterial->SetValue(
+                        "uSafeStartFraction01",
+                        GetThermometerTemperature01(heatingStage.tempMin)
+                    );
+
+                    stageTwoTemperatureArcMaterial->SetValue(
+                        "uSafeEndFraction01",
+                        GetThermometerTemperature01(heatingStage.tempMax)
+                    );
+
+                    stageTwoTemperatureArcMaterial->SetValue(
+                        "uSafeColor",
+                        thermometerSafeRangeColor
+                    );
+
+                    stageTwoTemperatureArcMaterial->SetValue(
+                        "uOverheatColor",
+                        thermometerOverheatRangeColor
+                    );
+
+                    stageTwoTemperatureArcMaterial->SetValue(
+                        "uBaseFillColor",
+                        thermometerBaseFillColor
+                    );
+                }
+
+                void UpdateStageTwoThermometer(){
+                    if (bladeNode){
+                        bladeNode->LocalTransform().Rotation() =
+                            bladeDefaultLocalRotation *
+                            GetThermometerLocalRotationForTemperature(
+                                heatingStage.GetTemperature()
+                            );
+                    }
+
+                    if (stageTwoColorNode){
+                        stageTwoColorNode->LocalTransform().Rotation() =
+                            stageTwoColorDefaultLocalRotation;
+                    }
+
+                    UpdateStageTwoTemperatureArcMaterial();
+                }
+
                 void UpdateHeatingModelUi(){
+                    UpdateStageTwoThermometer();
+
                     std::ostringstream qualityText;
                     qualityText << std::fixed << std::setprecision(1);
                     qualityText << "Heating\n";
@@ -1196,13 +1466,8 @@ namespace Crafting{
                         stageTwoQualityText->SetText(qualityText.str());
                     }
 
-                    std::ostringstream temperatureText;
-                    temperatureText << std::fixed << std::setprecision(1);
-                    temperatureText << "Temp: " << heatingStage.GetTemperature() << " C\n";
-                    temperatureText << "Range: " << heatingStage.tempMin << " - " << heatingStage.tempMax << " C";
-
                     if (stageTwoTemperatureText){
-                        stageTwoTemperatureText->SetText(temperatureText.str());
+                        stageTwoTemperatureText->SetText("");
                     }
 
                     UpdateQualityStars();
@@ -1967,6 +2232,56 @@ namespace Crafting{
                     return GetScene()->FindNode("Camera Node");
                 }
 
+                SceneNode* GetGameplayHudNode(){
+                    if (gameplayHudNode){
+                        return gameplayHudNode;
+                    }
+
+                    if (!GetScene()){
+                        return nullptr;
+                    }
+
+                    gameplayHudNode =
+                        GetScene()->FindNode("HUD");
+
+                    return gameplayHudNode;
+                }
+
+                void HideGameplayHudForCrafting(){
+                    if (gameplayHudVisibilitySaved){
+                        return;
+                    }
+
+                    SceneNode* hudNode =
+                        GetGameplayHudNode();
+
+                    if (!hudNode){
+                        return;
+                    }
+
+                    gameplayHudWasEnabled =
+                        hudNode->EnabledSelf();
+
+                    gameplayHudVisibilitySaved = true;
+
+                    hudNode->SetEnabled(false);
+                }
+
+                void RestoreGameplayHudAfterCrafting(){
+                    if (!gameplayHudVisibilitySaved){
+                        return;
+                    }
+
+                    SceneNode* hudNode =
+                        GetGameplayHudNode();
+
+                    if (hudNode){
+                        hudNode->SetEnabled(gameplayHudWasEnabled);
+                    }
+
+                    gameplayHudVisibilitySaved = false;
+                }
+
                 SceneNode* GetIngredientsRootNode(){
                     return FindNodeRecursive(GetNode(), "Crafting Ingredients");
                 }
@@ -2284,6 +2599,7 @@ namespace Crafting{
                     camera->SetAsMainCamera();
 
                     DisablePlayer();
+                    HideGameplayHudForCrafting();
                     SetIngredientsEnabled(true);
                     RefreshPlayerInventoryFromPersistent();
                     UpdateInventorySlotTexts();
@@ -2317,6 +2633,7 @@ namespace Crafting{
                     SetStationHitboxEnabled(true);
 
                     EnablePlayer();
+                    RestoreGameplayHudAfterCrafting();
                     SetIngredientsEnabled(false);
 
                     if (stageOneUiNode){
