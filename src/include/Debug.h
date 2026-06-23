@@ -6,6 +6,7 @@
 
 #include <SceneComponent.h>
 #include <Scene.h>
+#include <TypeInfo.h>
 
 class ImGuiDrawable {
 public:
@@ -83,10 +84,14 @@ bool Debug::Property(SceneNode* owner, T*& property, const std::string& name) {
 	std::string displayName = "";
 
 	if (property) {
-		displayName = property->GetNode()->GetName();
+		displayName = std::format("{} ({})", property->GetNode()->GetName(), TypeInfo::GetTypeInfo(typeid(*property)).name);
 	}
 
-	ImGui::InputTextWithHint(name.c_str(), "nullptr", displayName.data(), displayName.size(), ImGuiInputTextFlags_ReadOnly);
+	ImGui::InputTextWithHint(name.c_str(), std::format("nullptr {}", TypeInfo::GetTypeInfo(typeid(T)).name).c_str(), displayName.data(), displayName.size(), ImGuiInputTextFlags_ReadOnly);
+
+	if (ImGui::IsItemActive() && ImGui::IsKeyPressed(ImGuiKey_Delete)) {
+		property = nullptr;
+	}
 
 	if (ImGui::BeginDragDropTarget()) {
 		if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("GRAPH_SCENE_NODE")) {
@@ -135,12 +140,16 @@ bool Debug::Property(SceneNode* owner, std::vector<T*>& property, const std::str
 			std::string displayName = "";
 
 			if (property[i]) {
-				displayName = property[i]->GetNode()->GetName();
+				displayName = std::format("{} ({})", property[i]->GetNode()->GetName(), TypeInfo::GetTypeInfo(typeid(*property[i])).name);
+			}
+
+			if (ImGui::IsItemActive() && ImGui::IsKeyPressed(ImGuiKey_Delete)) {
+				property[i] = nullptr;
 			}
 
 			ImGui::PushID(i);
 
-			ImGui::InputTextWithHint(name.c_str(), "nullptr", displayName.data(), displayName.size(), ImGuiInputTextFlags_ReadOnly);
+			ImGui::InputTextWithHint(name.c_str(), std::format("nullptr {}", TypeInfo::GetTypeInfo(typeid(T)).name).c_str(), displayName.data(), displayName.size(), ImGuiInputTextFlags_ReadOnly);
 
 			if (ImGui::BeginDragDropTarget()) {
 				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("GRAPH_SCENE_NODE")) {

@@ -132,9 +132,7 @@ void GraphPanel::DrawGraphNode(Context& context, SceneNode& node,
     if ((ImGui::IsItemClicked(ImGuiMouseButton_Left) ||
          ImGui::IsItemClicked(ImGuiMouseButton_Right)) &&
         !ImGui::IsItemToggledOpen()) {
-        if (!ImGui::IsKeyPressed(ImGuiKey_LeftShift, true)) {
             context.selectedNode = &node;
-        }
     }
 
     ImGui::TableNextColumn();

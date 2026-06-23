@@ -386,6 +386,10 @@ bool Debug::Property(SceneNode* owner, SceneNode*& property, const std::string& 
 		displayName = property->GetName();
 	}
 
+	if (ImGui::IsItemActive() && ImGui::IsKeyPressed(ImGuiKey_Delete)) {
+		property = nullptr;
+	}
+
 	ImGui::InputTextWithHint(name.c_str(), "nullptr", displayName.data(), displayName.size(), ImGuiInputTextFlags_ReadOnly);
 
 	if (ImGui::BeginDragDropTarget()) {
@@ -429,6 +433,10 @@ bool Debug::Property(SceneNode* owner, std::vector<SceneNode*>& property, const 
 
 			if (property[i]) {
 				displayName = property[i]->GetName();
+			}
+
+			if (ImGui::IsItemActive() && ImGui::IsKeyPressed(ImGuiKey_Delete)) {
+				property[i] = nullptr;
 			}
 
 			ImGui::PushID(i);
