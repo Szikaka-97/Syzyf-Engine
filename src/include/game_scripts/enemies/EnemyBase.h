@@ -61,6 +61,7 @@ protected:
     States m_PreviousState = States::PATROLLING;
     float m_AttackAnimationElapsed = 0.0f;
     float m_BossRotationSpeed = 10.0f;
+    bool m_AnimInitialized = false;
 public:
     EnemyBase();
     ~EnemyBase();

@@ -1,6 +1,8 @@
 #include "Surface.h"
 #include "game_scripts/PlayerController.h"
 #include "game_scripts/enemies/FlockingSystem.h"
+#include "game_scripts/enemies/MeleeSkeleton.h"
+
 #include <game_scripts/DungeonGenerator.h>
 
 #include <numeric>
@@ -322,15 +324,15 @@ EnemyBase* SpawnEnemy(SceneNode* position) {
 
     Physics::Body* enemyBody1 = enemy1->AddObject<Physics::Body>(enemySettings);
     enemyBody1->SetRestitution(0.0f);
-    auto* enemyAi1 = enemy1->AddObject<EnemySkeleton>();
+    auto* enemyAi1 = enemy1->AddObject<MeleeSkeleton>();
     enemyAi1->SetProjectileResources(cubeMesh, enemyMat);
     enemyAi1->SetProjectileResources(cubeMesh, enemyMat);
 	enemyAi1->SetTargetNode(PlayerController::Instance()->GetNode());
     enemyAi1->SetAttackCooldown(1.2f);
 	enemyAi1->m_hp = 5;
-	enemyAi1->m_FlockingSystem = position->GetScene()->GetComponent<FlockingSystem>();
+	//enemyAi1->m_FlockingSystem = position->GetScene()->GetComponent<FlockingSystem>();
 
-    enemyAi1->RegisterToFlockingSystem(position->GetScene()->GetComponent<FlockingSystem>());
+    //enemyAi1->RegisterToFlockingSystem(position->GetScene()->GetComponent<FlockingSystem>());
 
     SceneNode* enemyModel =
         ResourceDatabase::Global->Get<GltfScene>("./res/models/szkielet6.glb")

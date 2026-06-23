@@ -31,7 +31,8 @@ void EnemyBase::Awake() {
         }
         physics = GetScene()->GetComponent<Physics::System>();
         
-  flockForce = m_FlockingSystem->GetFlockingForce(this);
+ //flockForce = m_FlockingSystem->GetFlockingForce(this);
+
     }
 
 void EnemyBase::Attack() {
@@ -170,18 +171,19 @@ void EnemyBase::DirectChaseNoBoundary() {
 
 void EnemyBase::SetLoopingAnimation(const std::string& name) {
   if (!m_AttackAnimation) return;
-  if (m_CurrentAnimation == name) return;
+  if (m_CurrentAnimation == name) return; // już gra, nie restartuj
 
   for (auto& anim : m_AttackAnimation->animations) {
     if (anim.data.name == name) {
-      anim.looping     = true;
-      anim.timeActive  = 0.0f;
-      anim.playing     = true;
+      anim.timeActive = 0.0f;
+      anim.playing    = true;
+      anim.looping    = true;
       anim.currentKeyframes.assign(anim.data.tracks.size(), 0);
-      break;
+      m_CurrentAnimation = name;
+      return;
     }
   }
-  m_CurrentAnimation = name;
+  spdlog::warn("EnemyBase::SetLoopingAnimation: '{}' not found", name);
 }
 
 //bool EnemyBase::CanSeePlayer() const {

@@ -5,23 +5,36 @@
 #include <glm/glm.hpp>
 #include <spdlog/spdlog.h>
 
-// ──────────────────────────────────────────────────────────────────────────────
 EnemyPotato::EnemyPotato() {
-    attackRange = 3.0f; // matches Unity Awake() override
+    attackRange = 3.0f;
+
+    SceneNode* enemyModel =
+         ResourceDatabase::Global->Get<GltfScene>("./res/models/enemies/ziemniak_remake4.glb")
+             ->Instantiate(GetScene(), GetNode(), "EnemyPotatoModel");
+    //enemyModel->SetParent(enemy1);
+    //enemyModel->GlobalTransform().Scale() = glm::vec3(0.1, 0.1, 0.1);
+    enemyModel->LocalTransform().Position() = glm::zero<glm::vec3>();
+    AnimationComponent* enemyAnim = GetNode()->GetObjectInChildren<AnimationComponent>();
+    SetAttackAnimation(enemyAnim);
+
+    // m_ShadowNode =     ResourceDatabase::Global->Get<GltfScene>("./res/models/enemies/ziemniak_remake4.glb")
+    //          ->Instantiate(GetScene(), GetNode(), "EnemyPotatoModel");
+    //
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
-void EnemyPotato::SetShadowResources(Mesh* mesh, Material* mat) {
-    m_ShadowMesh     = mesh;
-    m_ShadowMaterial = mat;
-}
+// void EnemyPotato::SetShadowResources(Mesh* mesh, Material* mat) {
+//     m_ShadowMesh     = mesh;
+//     m_ShadowMaterial = mat;
+// }
 
-// ──────────────────────────────────────────────────────────────────────────────
 void EnemyPotato::SpawnShadow() {
-    if (!m_ShadowMesh || !m_ShadowMaterial) return;
+    if (!m_ShadowNode) return;
 
     m_ShadowNode = GetScene()->CreateNode("PotatoShadow");
-    m_ShadowNode->AddObject<MeshRenderer>(m_ShadowMesh, m_ShadowMaterial);
+    //m_ShadowNode->AddObject<MeshRenderer>(m_ShadowMesh, m_ShadowMaterial);
+    m_ShadowNode = ResourceDatabase::Global->Get<GltfScene>("./res/models/enemies/potato_shadow.glb")
+         ->Instantiate(GetScene(), GetNode(), "EnemyPotatoModel");
+
     m_ShadowNode->GlobalTransform().Position() =
         glm::vec3(currentPos.x, 0.01f, currentPos.z);
 }
@@ -39,14 +52,12 @@ void EnemyPotato::MoveShadowTo(const glm::vec3& worldPos) {
             glm::vec3(worldPos.x, 0.01f, worldPos.z);
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
 void EnemyPotato::StartAttack() {
     m_IsAttacking  = true;
     m_AttackPhase  = PotatoAttackPhase::JUMP_UP;
     m_PhaseTimer   = 0.0f;
     m_JumpStart    = currentPos;
 
-    // Compute apex: midpoint horizontally, +5 m vertically
     glm::vec3 dir   = glm::normalize(m_TargetPosition - currentPos);
     float     hDist = glm::length(glm::vec3(m_TargetPosition.x - currentPos.x,
                                             0.0f,
@@ -59,25 +70,19 @@ void EnemyPotato::StartAttack() {
                  m_Apex.x, m_Apex.y, m_Apex.z);
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
-//  Replaces the IEnumerator AttackSequence coroutine.
-//  Note: position is set directly on the node (bypassing physics) during
-//  the attack.  After PLUNGE, call m_Body->SetPosition(m_FinalShadowPos) if
-//  your engine's Physics::Body exposes it, so the physics proxy re-syncs.
 void EnemyPotato::UpdateAttackSequence() {
     const float dt = Time::Delta();
     m_PhaseTimer  += dt;
 
     switch (m_AttackPhase) {
 
-    // ── Phase 1: jump from start to apex in 0.5 s ────────────────────────
     case PotatoAttackPhase::JUMP_UP: {
         constexpr float duration = 0.5f;
         float t      = glm::clamp(m_PhaseTimer / duration, 0.0f, 1.0f);
         glm::vec3 pos = glm::mix(m_JumpStart, m_Apex, t);
 
         myNode->GlobalTransform().Position() = pos;
-        MoveShadowTo(pos); // shadow tracks horizontally
+        MoveShadowTo(pos);
 
         if (m_PhaseTimer >= duration) {
             m_AttackPhase = PotatoAttackPhase::CHASE;
@@ -86,15 +91,12 @@ void EnemyPotato::UpdateAttackSequence() {
         break;
     }
 
-    // ── Phase 2: glide toward player (at apex height) for 3 s ────────────
     case PotatoAttackPhase::CHASE: {
         glm::vec3 curPos     = myNode->GlobalTransform().Position();
         glm::vec3 targetAtApex = glm::vec3(m_TargetPosition.x, m_Apex.y, m_TargetPosition.z);
 
-        // Vector3.Lerp per-frame: position = Lerp(position, target, dt * 2)
         myNode->GlobalTransform().Position() = glm::mix(curPos, targetAtApex, dt * 2.0f);
 
-        // Shadow races toward the player on the ground
         if (m_ShadowNode && m_TargetNode) {
             glm::vec3 playerFloor = m_TargetNode->GlobalTransform().Position();
             glm::vec3 curShadow   = m_ShadowNode->GlobalTransform().Position();
@@ -105,7 +107,6 @@ void EnemyPotato::UpdateAttackSequence() {
         }
 
         if (m_PhaseTimer >= m_ShadowChaseDuration) {
-            // Snapshot final shadow position for the plunge target
             m_FinalShadowPos = m_ShadowNode
                                ? m_ShadowNode->GlobalTransform().Position()
                                : myNode->GlobalTransform().Position();
@@ -115,7 +116,6 @@ void EnemyPotato::UpdateAttackSequence() {
         break;
     }
 
-    // ── Phase 3: hover just above the shadow for 2 s ─────────────────────
     case PotatoAttackPhase::STAY: {
         glm::vec3 hoverTarget = m_FinalShadowPos + glm::vec3(0.0f, 1.0f, 0.0f);
         glm::vec3 curPos      = myNode->GlobalTransform().Position();
@@ -132,7 +132,6 @@ void EnemyPotato::UpdateAttackSequence() {
         break;
     }
 
-    // ── Phase 4: slam down to the shadow in 0.2 s, then resolve ──────────
     case PotatoAttackPhase::PLUNGE: {
         constexpr float duration = 0.2f;
         float t      = glm::clamp(m_PhaseTimer / duration, 0.0f, 1.0f);
@@ -141,7 +140,6 @@ void EnemyPotato::UpdateAttackSequence() {
         myNode->GlobalTransform().Position() = pos;
 
         if (m_PhaseTimer >= duration) {
-            // ── Damage check ──────────────────────────────────────────────
             if (m_TargetNode) {
                 glm::vec3 playerPos = m_TargetNode->GlobalTransform().Position();
                 if (glm::distance(playerPos, m_FinalShadowPos) <= 1.5f) {
@@ -153,10 +151,6 @@ void EnemyPotato::UpdateAttackSequence() {
 
             DestroyShadow();
 
-            // Re-sync physics body with the visual node position.
-            // If Physics::Body exposes SetPosition, call it here:
-            //   m_Body->SetPosition(m_FinalShadowPos);
-            // Otherwise zero velocity so the body settles naturally:
             if (m_Body) m_Body->SetLinearVelocity(glm::vec3(0.0f));
 
             m_IsAttacking    = false;
@@ -171,7 +165,6 @@ void EnemyPotato::UpdateAttackSequence() {
     }
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
 void EnemyPotato::Update() {
     EnsureBody();
     LockXZRotation();
