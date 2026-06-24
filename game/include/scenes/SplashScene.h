@@ -4,6 +4,7 @@
 #include "Camera.h"
 #include "GameObject.h"
 #include "Scene.h"
+#include "TutorialThrowingRoomScene.h"
 #include "scenes/MainMenuScene.h"
 #include "ui/objects/UiLayout.h"
 #include "ui/systems/UiSystem.h"

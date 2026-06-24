@@ -5,6 +5,16 @@
 #include <glm/glm.hpp>
 #include <spdlog/spdlog.h> // Potrzebne do logowania błędów/sukcesu szukania komponentu
 
+void EnemySkeleton::Awake() {
+    SceneNode* enemyModel =
+         ResourceDatabase::Global->Get<GltfScene>("./res/models/enemies/szkielet4.glb")
+             ->Instantiate(GetScene(), GetNode(), "EnemySkeletonModel");
+
+    enemyModel->LocalTransform().Position() = glm::zero<glm::vec3>();
+    AnimationComponent* enemyAnim = GetNode()->GetObjectInChildren<AnimationComponent>();
+    SetAttackAnimation(enemyAnim);
+  };
+
 void EnemySkeleton::Update() {
     EnsureBody();
     if (!m_Body || !myNode || !m_TargetNode) return;

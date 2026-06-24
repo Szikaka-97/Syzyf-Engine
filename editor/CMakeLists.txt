@@ -10,7 +10,7 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${EDITOR_SOURCE_FILES})
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${EDITOR_HEADER_FILES})
 
 add_executable(SyzyfEditor ${EDITOR_SOURCE_FILES} ${EDITOR_HEADER_FILES})
-target_compile_options(SyzyfEditor PRIVATE "-Wa,-mbig-obj")
+target_compile_options(SyzyfEditor PRIVATE "-Og")
 
 target_link_options(SyzyfEditor PRIVATE "-Wl,--allow-multiple-definition")
 if(CMAKE_BUILD_TYPE STREQUAL "Release")

@@ -22,7 +22,7 @@ class LoadingController : public GameObject {
     void Update() {
         if (framesPassed > 2) {
 
-            Scene* base = Scene::LoadScene("./res/scenes/Base Scene.scene");
+            Scene* base = Scene::LoadScene("./res/scenes/Tutorial Scene.scene");
 
             if (base != nullptr && base->GetGraphics() != nullptr) {
                 base->GetGraphics()->GetLightSystem()->SetAmbientLight(

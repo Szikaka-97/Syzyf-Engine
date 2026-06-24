@@ -398,7 +398,7 @@ void SceneGraphics::DrawMeshInstanced(MeshRenderer* renderer, unsigned int insta
 
     for (int i = 0; i < drawnMesh->GetSubMeshCount(); i++) {
         const Mesh::SubMesh* mesh = &drawnMesh->SubMeshAt(i);
-        const Material* material = mesh && !renderingError ? renderer->GetMaterial(mesh->GetMaterialIndex()) : nullptr;
+        const Material* material = (mesh && !renderingError) ? renderer->GetMaterial(mesh->GetMaterialIndex()) : nullptr;
 
 		if (!material) {
 			material = GetErrorMaterial();
@@ -1275,7 +1275,7 @@ void SceneGraphics::RenderOpaque(const ShaderGlobalUniforms& uniforms, const Ren
 		}
 	}
 
-	if (sky) {
+	if (sky && sky->GetSkyMaterial()) {
 		sky->GetSkyMaterial()->Bind();
 		glBindVertexArray(sky->GetSkyMesh()->SubMeshAt(0).GetVertexArrayHandle());
 		glDrawElements(GL_TRIANGLES, sky->GetSkyMesh()->SubMeshAt(0).GetVertexCount(), GL_UNSIGNED_INT, nullptr);

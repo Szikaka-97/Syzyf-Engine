@@ -140,10 +140,10 @@ inline void InitScene(Scene& mainScene) {
     fluidSim->playerRadius = 0.033f;
     fluidSim->interactionStrength = 0.840f;
 
-    floorNode->AddObject<BaseScript>();
-    floorNode->AddObject<BaseLights>();
-    floorNode->AddObject<BaseTutorialManager>();
-    floorNode->AddObject<BaseExitToTutorialThrowingRoom>();
+    // floorNode->AddObject<BaseScript>();
+    // floorNode->AddObject<BaseLights>();
+    // floorNode->AddObject<BaseTutorialManager>();
+    // floorNode->AddObject<BaseExitToTutorialThrowingRoom>();
 #pragma endregion
 
 #pragma region Player

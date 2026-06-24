@@ -11,7 +11,16 @@
 #include <MathHelpers.h>
 #include <game_scripts/ThrowableObjectPool.h>
 #include <game_scripts/AttackEffects/EffectsManager.h>
+#include <game_scripts/AttackEffects/combos/ComboExplodeConfuse.h>
 #include <game_scripts/AttackEffects/combos/ComboExplodeFire.h>
+#include <game_scripts/AttackEffects/combos/ComboExplodePetrify.h>
+#include <game_scripts/AttackEffects/combos/ComboExplodeTornado.h>
+#include <game_scripts/AttackEffects/combos/ComboFireConfuse.h>
+#include <game_scripts/AttackEffects/combos/ComboFirePetrify.h>
+#include <game_scripts/AttackEffects/combos/ComboFireTornado.h>
+#include <game_scripts/AttackEffects/combos/ComboPetrifyConfuse.h>
+#include <game_scripts/AttackEffects/combos/ComboTornadoConfuse.h>
+#include <game_scripts/AttackEffects/combos/ComboTornadoPetrify.h>
 #include <game_scripts/ThrowableObject.h>
 #include <physics/VirtualCharacterController.h>
 #include <physics/Body.h>
@@ -91,82 +100,260 @@ namespace{
 	) {
 		float multiplier = SecondaryEffectMultiplier(secondaryEffect);
 
-		// if (effectId == Crafting::EffectId::Fire || effectId == Crafting::EffectId::Burn) {
-		// 	EffectFire* effect = node->AddObject<EffectFire>();
-		//
-		// 	effect->radius = potionData.radius * multiplier;
-		// 	effect->damage = potionData.power * multiplier;
-		// 	effect->dotRemainingTime = potionData.duration * multiplier;
-		// 	effect->ingredientCount = potionData.mainEffectCount;
-		// 	effect->special1 = potionData.modifierCount > 0;
-		// 	effect->special2 = potionData.modifierCount > 1;
-		//
-		// 	return effect;
-		// }
-		//
-		// if (effectId == Crafting::EffectId::Petrify) {
-		//
-		// }
-		//
-		// if (effectId == Crafting::EffectId::Tornado) {
-		// 	EffectTornado* effect = node->AddObject<EffectTornado>();
-		//
-		// 	effect->radius = potionData.radius * multiplier;
-		// 	effect->damage = potionDaEffectPetrify* effect = node->AddObject<EffectPetrify>();
-		// 	effect->tornadoRemainingTime = potionData.duration * multiplier;
-		// 	effect->ingredientCount = potionData.mainEffectCount;
-		// 	effect->special1 = potionData.modifierCount > 0;
-		// 	effect->special2 = potionData.modifierCount > 1;
-		//
-		// 	return effect;
-		// }
-		//
-		// if (effectId == Crafting::EffectId::Confuse) {
-		// 	EffectConfuse* effect = node->AddObject<EffectConfuse>();
-		//
-		// 	effect->radius = potionData.radius * multiplier;
-		// 	effect->damage = static_cast<int>(potionData.power * multiplier);
-		// 	effect->confuseRemainingTime = potionData.duration * multiplier;
-		// 	effect->ingredientCount = potionData.mainEffectCount;
-		// 	effect->special1 = potionData.modifierCount > 0;
-		// 	effect->special2 = potionData.modifierCount > 1;
-		//
-		// 	return effect;
-		// }
-		//
-		// if (effectId == Crafting::EffectId::Explosion) {
-		// 	EffectExplosion* effect = node->AddObject<EffectExplosion>();
-		//
-		// 	effect->strength = 1.0f;
-		// 	effect->maxRange = potionData.radius * multiplier;
-		// 	effect->maxDamage = potionData.power * multiplier;
-		// 	effect->explosionDuration = potionData.duration;
-		// 	effect->ingredientCount = potionData.mainEffectCount;
-		// 	effect->special1 = potionData.modifierCount > 0;
-		// 	effect->special2 = potionData.modifierCount > 1;
-		//
-		// 	return effect;
-		// }
-
-		EffectFire* effect = node->AddObject<EffectFire>();
+		if (effectId == Crafting::EffectId::Fire || effectId == Crafting::EffectId::Burn) {
+			EffectFire* effect = node->AddObject<EffectFire>();
 
 			effect->radius = potionData.radius * multiplier;
-			effect->damage = potionData.power ;
+			effect->damage = potionData.power * multiplier;
 			effect->dotRemainingTime = potionData.duration * multiplier;
 			effect->ingredientCount = potionData.mainEffectCount;
 			effect->special1 = potionData.modifierCount > 0;
 			effect->special2 = potionData.modifierCount > 1;
 
 			return effect;
+		}
+
+		if (effectId == Crafting::EffectId::Petrify) {
+			EffectPetrify* effect = node->AddObject<EffectPetrify>();
+
+			effect->radius = potionData.radius * multiplier;
+			effect->petrifyRemainingTime = potionData.duration * multiplier;
+			effect->ingredientCount = potionData.mainEffectCount;
+			effect->special1 = potionData.modifierCount > 0;
+			effect->special2 = potionData.modifierCount > 1;
+
+			return effect;
+		}
+
+		if (effectId == Crafting::EffectId::Tornado) {
+			EffectTornado* effect = node->AddObject<EffectTornado>();
+
+			effect->radius = potionData.radius * multiplier;
+			effect->damage = potionData.power * multiplier;
+			effect->tornadoRemainingTime = potionData.duration * multiplier;
+			effect->ingredientCount = potionData.mainEffectCount;
+			effect->special1 = potionData.modifierCount > 0;
+			effect->special2 = potionData.modifierCount > 1;
+
+			return effect;
+		}
+
+		if (effectId == Crafting::EffectId::Confuse) {
+			EffectConfuse* effect = node->AddObject<EffectConfuse>();
+
+			effect->radius = potionData.radius * multiplier;
+			effect->damage = static_cast<int>(potionData.power * multiplier);
+			effect->confuseRemainingTime = potionData.duration * multiplier;
+			effect->ingredientCount = potionData.mainEffectCount;
+			effect->special1 = potionData.modifierCount > 0;
+			effect->special2 = potionData.modifierCount > 1;
+
+			return effect;
+		}
+
+		if (effectId == Crafting::EffectId::Explosion) {
+			EffectExplosion* effect = node->AddObject<EffectExplosion>();
+
+			effect->strength = 1.0f;
+			effect->maxRange = potionData.radius * multiplier;
+			effect->maxDamage = potionData.power * multiplier;
+			effect->explosionDuration = potionData.duration;
+			effect->ingredientCount = potionData.mainEffectCount;
+			effect->special1 = potionData.modifierCount > 0;
+			effect->special2 = potionData.modifierCount > 1;
+
+			return effect;
+		}
+
+		EffectExplosion* effect = node->AddObject<EffectExplosion>();
+
+		effect->strength = 1.0f;
+		effect->maxRange = potionData.radius * multiplier;
+		effect->maxDamage = potionData.power * multiplier;
+		effect->explosionDuration = potionData.duration;
+		effect->ingredientCount = potionData.mainEffectCount;
 		
 		return effect;
+	}
+
+	std::string CanonicalPotionEffectId(const std::string& effectId){
+		if (effectId == Crafting::EffectId::Burn){
+			return Crafting::EffectId::Fire;
+		}
+
+		return effectId;
+	}
+
+	bool HasPotionEffectPair(
+		const Crafting::CraftedPotionData& potionData,
+		const std::string& firstEffectId,
+		const std::string& secondEffectId
+	){
+		std::string primaryEffectId =
+			CanonicalPotionEffectId(potionData.primaryEffectId);
+		std::string secondaryEffectId =
+			CanonicalPotionEffectId(potionData.secondaryEffectId);
+
+		return
+			(primaryEffectId == firstEffectId && secondaryEffectId == secondEffectId) ||
+			(primaryEffectId == secondEffectId && secondaryEffectId == firstEffectId);
+	}
+
+	template <typename TCombo>
+	TCombo* AddConfiguredComboEffect(
+		SceneNode* node,
+		const Crafting::CraftedPotionData& potionData
+	){
+		TCombo* combo = node->AddObject<TCombo>();
+
+		combo->Awake(
+			0.5f,
+			potionData.radius,
+			potionData.power,
+			potionData.duration
+		);
+
+		return combo;
+	}
+
+	void ConfigureExplodeFireCombo(
+		ComboExplodeFire* combo,
+		const Crafting::CraftedPotionData& potionData
+	){
+		combo->effect1Strength = 0.5f;
+		combo->effect2Strength = 0.5f;
+		combo->maxEffect1Range = potionData.radius;
+		combo->maxEffect1Damage = potionData.power;
+		combo->duration = potionData.duration;
+	}
+
+	bool TrySetThrowableComboEffect(
+		ThrowableObject* throwable,
+		const Crafting::CraftedPotionData& potionData
+	){
+		if (!potionData.HasSecondaryEffect()){
+			return false;
+		}
+
+		if (HasPotionEffectPair(potionData, Crafting::EffectId::Explosion, Crafting::EffectId::Fire)){
+			throwable->SetComboFactory(
+				[potionData](SceneNode* node){
+					ComboExplodeFire* combo = node->AddObject<ComboExplodeFire>();
+					ConfigureExplodeFireCombo(combo, potionData);
+				}
+			);
+			return true;
+		}
+
+		if (HasPotionEffectPair(potionData, Crafting::EffectId::Explosion, Crafting::EffectId::Petrify)){
+			throwable->SetComboFactory(
+				[potionData](SceneNode* node){
+					AddConfiguredComboEffect<ComboExplodePetrify>(node, potionData);
+				}
+			);
+			return true;
+		}
+
+		if (HasPotionEffectPair(potionData, Crafting::EffectId::Explosion, Crafting::EffectId::Tornado)){
+			throwable->SetComboFactory(
+				[potionData](SceneNode* node){
+					ComboExplodeTornado* combo =
+						AddConfiguredComboEffect<ComboExplodeTornado>(node, potionData);
+					combo->InitTornado();
+				}
+			);
+			return true;
+		}
+
+		if (HasPotionEffectPair(potionData, Crafting::EffectId::Explosion, Crafting::EffectId::Confuse)){
+			throwable->SetComboFactory(
+				[potionData](SceneNode* node){
+					ComboExplodeConfuse* combo =
+						AddConfiguredComboEffect<ComboExplodeConfuse>(node, potionData);
+					combo->ingredientCount = potionData.mainEffectCount;
+				}
+			);
+			return true;
+		}
+
+		if (HasPotionEffectPair(potionData, Crafting::EffectId::Fire, Crafting::EffectId::Petrify)){
+			throwable->SetComboFactory(
+				[potionData](SceneNode* node){
+					AddConfiguredComboEffect<ComboFirePetrify>(node, potionData);
+				}
+			);
+			return true;
+		}
+
+		if (HasPotionEffectPair(potionData, Crafting::EffectId::Fire, Crafting::EffectId::Tornado)){
+			throwable->SetComboFactory(
+				[potionData](SceneNode* node){
+					ComboFireTornado* combo =
+						AddConfiguredComboEffect<ComboFireTornado>(node, potionData);
+					combo->InitTornado();
+				}
+			);
+			return true;
+		}
+
+		if (HasPotionEffectPair(potionData, Crafting::EffectId::Fire, Crafting::EffectId::Confuse)){
+			throwable->SetComboFactory(
+				[potionData](SceneNode* node){
+					ComboFireConfuse* combo =
+						AddConfiguredComboEffect<ComboFireConfuse>(node, potionData);
+					combo->ingredientCount = potionData.mainEffectCount;
+				}
+			);
+			return true;
+		}
+
+		if (HasPotionEffectPair(potionData, Crafting::EffectId::Tornado, Crafting::EffectId::Petrify)){
+			throwable->SetComboFactory(
+				[potionData](SceneNode* node){
+					ComboTornadoPetrify* combo =
+						AddConfiguredComboEffect<ComboTornadoPetrify>(node, potionData);
+					combo->InitTornado();
+				}
+			);
+			return true;
+		}
+
+		if (HasPotionEffectPair(potionData, Crafting::EffectId::Tornado, Crafting::EffectId::Confuse)){
+			throwable->SetComboFactory(
+				[potionData](SceneNode* node){
+					ComboTornadoConfuse* combo =
+						AddConfiguredComboEffect<ComboTornadoConfuse>(node, potionData);
+					combo->ingredientCount = potionData.mainEffectCount;
+					combo->InitTornado();
+				}
+			);
+			return true;
+		}
+
+		if (HasPotionEffectPair(potionData, Crafting::EffectId::Petrify, Crafting::EffectId::Confuse)){
+			throwable->SetComboFactory(
+				[potionData](SceneNode* node){
+					ComboPetrifyConfuse* combo =
+						AddConfiguredComboEffect<ComboPetrifyConfuse>(node, potionData);
+					combo->ingredientCount = potionData.mainEffectCount;
+				}
+			);
+			return true;
+		}
+
+		return false;
 	}
 
 	void SetThrowablePotionEffect(
 		ThrowableObject* throwable,
 		const Crafting::CraftedPotionData& potionData
 	){
+		if (TrySetThrowableComboEffect(throwable, potionData)){
+			return;
+		}
+
 		throwable->SetDirectHitDamage(static_cast<int>(potionData.power));
+
 
 		throwable->SetEffectFactory(
 			[potionData](SceneNode* node) -> EffectBase* {
@@ -660,7 +847,6 @@ void PlayerController::TakeDamage(float damage) {
 	if (this->health < 0) {
 		Die();
 	}
-	spdlog::error("player damage" + std::to_string(this->health));
 }
 
 float PlayerController::GetHealth() const {
@@ -677,7 +863,12 @@ void PlayerController::Die() {
 }
 
 bool PlayerController::CanThrow() const {
-	return this->throwingUnlocked && this->aim != nullptr && PotionInventory::HasPotion();
+	bool isTabHeld = GetScene()->Input()->KeyPressed(Key::Tab);
+
+	return this->throwingUnlocked &&
+        this->aim != nullptr &&
+        PotionInventory::HasPotion() &&
+        !isTabHeld;
 }
 
 void PlayerController::DrawImGui() {

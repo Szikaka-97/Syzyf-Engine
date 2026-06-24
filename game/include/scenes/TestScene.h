@@ -211,8 +211,8 @@ inline void InitScene(Scene& mainScene) {
 
     auto* player = playerNode->AddObject<PlayerController>();
 
-    PotionInventory::SaveLastCraftedPotion("Basic Potion", "Explosion", 100.0f,
-                                           999, false);
+    // PotionInventory::SaveLastCraftedPotion("Basic Potion", "Explosion", 100.0f,
+    //                                        999, false);
 
 #pragma endregion
 

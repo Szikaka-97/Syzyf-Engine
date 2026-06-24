@@ -14,10 +14,15 @@ void MeleeSkeleton::StartAttack() {
     m_IsAttacking = true;
     StopMoving();
 
-    // Dodajemy brakujące wywołanie animacji ataku
     PlayAttackAnimation("attack.001");
 
-
+    glm::vec3 diff = currentPos - m_TargetPosition;
+    diff.y = 0.0f;
+    float dist = glm::length(diff);
+    if (dist <= attackRange) {
+        auto* pc = m_TargetNode->GetObject<PlayerController>();
+        if (pc) pc->TakeDamage(1);
+    }
 
 }
 
@@ -73,7 +78,7 @@ void MeleeSkeleton::Update() {
         glm::vec3 diff = currentPos - m_TargetPosition;
         diff.y = 0.0f;
         float dist = glm::length(diff);
-        spdlog::error(dist);
+        //spdlog::error(dist);
         //if      (m_hp <= 30)          currentState = States::FLEEING;
          if (dist <= attackRange) currentState = States::ATTACKING;
         else                          currentState = States::CHASING;

@@ -55,8 +55,8 @@ class SceneRegistry {
         SceneRegistry::RegisterScene("Example: Fog Volume",
                                      ExampleFogVolume::InitScene);
         SceneRegistry::RegisterScene("Main Menu", MainMenu::InitScene);
-        SceneRegistry::RegisterScene("Tutorial Throwing",
-                                     TutorialThrowingRoomScene::InitScene);
+        // SceneRegistry::RegisterScene("Tutorial Throwing",
+        //                              TutorialThrowingRoomScene::InitScene);
         SceneRegistry::RegisterScene("Crafting Scene",
                                      CraftingScene::InitScene);
         SceneRegistry::RegisterScene("Base Scene",

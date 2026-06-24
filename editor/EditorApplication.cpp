@@ -4,10 +4,10 @@
 #include "MousePickingBodySystem.h"
 #include "SceneRegistry.h"
 #include "Themes.h"
-#include "scenes/LightingTestScene.h"
 
 #include "thirdparty/ImGuizmo.h"
 #include "thirdparty/ImViewGuizmo.h"
+#include <thirdparty/IconsMaterialDesign.h>
 
 #include <Graphics.h>
 #include <Scene.h>
@@ -46,11 +46,24 @@ void EditorApplication::OnInit(int argc, char* argv[]) {
 
     io.Fonts->AddFontFromFileTTF(
         "./res/editor/fonts/Open_Sans/static/OpenSans-Regular.ttf", 15.0f);
+
+    ImFontConfig config;
+    config.MergeMode = true;
+    config.GlyphMinAdvanceX = 15.0f;
+    config.GlyphOffset.y = 3.0f;
+    config.PixelSnapH = true;
+    static const ImWchar iconRanges[] = {ICON_MIN_MD, ICON_MAX_16_MD, 0};
+    io.Fonts->AddFontFromFileTTF(
+        "./res/editor/fonts/material_icons/MaterialIcons-Regular.ttf", 15.0f,
+        &config, iconRanges);
+
     io.Fonts->AddFontFromFileTTF(
         "./res/editor/fonts/Open_Sans/static/OpenSans-Bold.ttf", 15.0f);
     this->context.consoleFont = io.Fonts->AddFontFromFileTTF(
         "./res/editor/fonts/JetBrains_Mono/static/JetBrainsMono-Regular.ttf",
         14.0f);
+
+    io.Fonts->Build();
 
     if (!std::filesystem::exists("imgui.ini") &&
         std::filesystem::exists("default_editor_layout.ini")) {

@@ -75,12 +75,13 @@ inline void InitScene(Scene& mainScene) {
     text->maxWidth   = 700.0f;
 
     SceneNode* hintNode = mainScene.CreateNode("Hint Text");
-    hintNode->AddObject<UiLayout>(glm::uvec2(500, 40), glm::ivec2(0, 200), 1,
+    hintNode->AddObject<UiLayout>(glm::uvec2(550, 40), glm::ivec2(0, 200), 1,
                                   AnchorPoint::Center);
     auto* hint = hintNode->AddObject<UiText>("[ Space / Click — continue ]", font);
     hint->fontSize  = 16.0f;
     hint->alignment = TextAlignment::Middle;
     hint->color     = glm::vec4(0.55f, 0.55f, 0.55f, 1.0f);
+    hint->maxWidth  = 1000;
 
     SceneNode* logicNode = mainScene.CreateNode("Intro Logic");
     logicNode->AddObject<IntroController>();

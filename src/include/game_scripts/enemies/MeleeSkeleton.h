@@ -19,6 +19,7 @@ class MeleeSkeleton : public EnemyBase {
   LootPool& GetLootPool() override{return LootPool::GetMeleeSkeletonLootPool();}
 MeleeSkeleton() : EnemyBase() {
 	this->attackRange = 1.0f;
+  	this->m_Speed = 2.0f;
 
   	SceneNode* enemyModel =
 	   ResourceDatabase::Global->Get<GltfScene>("./res/models/enemies/szkielet4.glb")

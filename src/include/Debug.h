@@ -116,6 +116,18 @@ bool Debug::Property(SceneNode* owner, T*& property, const std::string& name) {
 
 		ImGui::EndDragDropTarget();
 	}
+	
+	if (property) {
+		ImGui::SameLine();
+
+		ImGui::PushID(property->GetID());
+
+		if (ImGui::Button("Delete")) {
+			property = nullptr;
+		}
+
+		ImGui::PopID();
+	}
 
 	return false;
 }
@@ -171,6 +183,14 @@ bool Debug::Property(SceneNode* owner, std::vector<T*>& property, const std::str
 				}
 
 				ImGui::EndDragDropTarget();
+			}
+			
+			if (property[i]) {
+				ImGui::SameLine();
+
+				if (ImGui::Button("Delete")) {
+					property[i] = nullptr;
+				}
 			}
 
 			ImGui::PopID();
