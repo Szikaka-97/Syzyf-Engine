@@ -8,6 +8,7 @@
 #include "scenes/MainMenuScene.h"
 #include "ui/objects/UiLayout.h"
 #include "ui/systems/UiSystem.h"
+#include "scenes/IntroScene.h"
 namespace SplashScene {
 
 class SplashController : public GameObject {
@@ -19,8 +20,10 @@ class SplashController : public GameObject {
 
     void Update() {
         if (framesPassed > 2) {
+            // Application::Get()->RequestSceneBuild(
+            //     [](Scene* s) { MainMenu::InitScene(*s); });
             Application::Get()->RequestSceneBuild(
-                [](Scene* s) { MainMenu::InitScene(*s); });
+    [](Scene* s) { IntroScene::InitScene(*s); });
         }
         framesPassed++;
     }

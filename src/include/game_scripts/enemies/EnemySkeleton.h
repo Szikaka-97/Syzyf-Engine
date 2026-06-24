@@ -9,6 +9,9 @@
 
 class EnemySkeleton : public EnemyBase {
  public:
+  EnemySkeleton() : EnemyBase() { }
+
+  void Awake();
   void Update();
 //void DirectChaseWithFlock(const glm::vec3 & flockForce);
   void OnCollisionEnter();

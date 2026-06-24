@@ -352,6 +352,9 @@ namespace{
 			return;
 		}
 
+		throwable->SetDirectHitDamage(static_cast<int>(potionData.power));
+
+
 		throwable->SetEffectFactory(
 			[potionData](SceneNode* node) -> EffectBase* {
 				EffectBase* primaryEffect = AddPotionEffectToNode(
@@ -860,7 +863,7 @@ void PlayerController::Die() {
 }
 
 bool PlayerController::CanThrow() const {
-    bool isTabHeld = GetScene()->Input()->KeyPressed(Key::Tab);
+	bool isTabHeld = GetScene()->Input()->KeyPressed(Key::Tab);
 
 	return this->throwingUnlocked &&
         this->aim != nullptr &&

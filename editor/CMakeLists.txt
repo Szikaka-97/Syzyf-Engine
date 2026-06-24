@@ -10,6 +10,7 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${EDITOR_SOURCE_FILES})
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${EDITOR_HEADER_FILES})
 
 add_executable(SyzyfEditor ${EDITOR_SOURCE_FILES} ${EDITOR_HEADER_FILES})
+target_compile_options(SyzyfEditor PRIVATE "-Og")
 
 target_link_options(SyzyfEditor PRIVATE "-Wl,--allow-multiple-definition")
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
@@ -40,6 +41,8 @@ add_custom_command(TARGET SyzyfEditor POST_BUILD
 
 # Automatyczne kopiowanie wszystkich wymaganych plików DLL do folderu z plikiem .exe
 add_custom_command(TARGET SyzyfEditor POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy -t $<TARGET_FILE_DIR:SyzyfEditor> $<TARGET_RUNTIME_DLLS:SyzyfEditor>
+        COMMAND ${CMAKE_COMMAND} -E copy
+        $<TARGET_RUNTIME_DLLS:SyzyfEditor>
+        $<TARGET_FILE_DIR:SyzyfEditor>
         COMMAND_EXPAND_LISTS
 )

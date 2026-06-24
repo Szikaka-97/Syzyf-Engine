@@ -22,7 +22,7 @@ protected:
     void SearchWalkPoint();
     void LookForNextPoint();
 
-    void EnsureBody();
+
     void DirectChase();
 
     void  SetMovementSpeed(float s) { m_Speed = s; }
@@ -44,6 +44,7 @@ public:
     void StopMoving();
     void RotateNode(glm::vec3 dir);
     void LockXZRotation();
+    void EnsureBody();
     void Flee();
 
     void ChaseWithSteering(const glm::vec3& flockForce);

@@ -1,9 +1,24 @@
 #pragma once
 #include "EffectBase.h"
+#include "TweenSystem.h"
 #include "game_scripts/FireParticles.h"
 #include <glm/gtc/constants.hpp>
 #include <random>
 #include <vector>
+
+class FlameFlicker : public GameObject {
+private:
+    Light* fireLight = nullptr;
+    TweenHandle flickerTween;
+    float baseIntensity = 4.0f;
+
+public:
+    void Init(Light* light) {
+        this->fireLight = light;
+    }
+
+    void OnEnable() ;
+};
 
 class EffectFire : public EffectBase {
 public:
@@ -12,22 +27,24 @@ public:
     serialized float timeInterval     = 1.0f;
     EffectFire() = default;
 protected:
+    void  OnInit()          override;
     void OnApplySpecials() override;
     void OnApplyToEnemy(EnemyBase* enemy) override;
 };
 
 class EffectPetrify : public EffectBase {
 public:
-    serialized float petrifyRemainingTime = 5.0f;
+    serialized float petrifyRemainingTime = 10.0f;
     EffectPetrify() = default;
 protected:
+    void  OnInit()          override;
     void OnApplySpecials() override;
     void OnApplyToEnemy(EnemyBase* enemy) override;
 };
 
 class EffectTornado : public EffectBase {
 public:
-    serialized float tornadoRemainingTime = 5.0f;
+    serialized float tornadoRemainingTime = 50.0f;
     serialized float rotationSpeed        = 90.0f;
     serialized float damage               = 25.0f;
     serialized float damageInterval       = 1.0f;
@@ -41,6 +58,7 @@ protected:
 private:
     float m_DamageTimer = 0.0f;
     void  ScanAndHandleBullets();
+    void  SpinEnemies();
 };
 
 class EffectConfuse : public EffectBase {
@@ -49,6 +67,7 @@ public:
     serialized int   damage               = 25;
     EffectConfuse() = default;
 protected:
+    void  OnInit()          override;
     void OnApplySpecials() override;
     void OnApplyToEnemy(EnemyBase* enemy) override;
 };

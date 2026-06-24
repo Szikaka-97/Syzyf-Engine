@@ -76,6 +76,15 @@ static LootPool& GetMeleeSkeletonLootPool() {
     return pool;
 }
 
+    static LootPool& GetEnemyBossLootPool() {
+        static LootPool pool = []() {
+            LootPool p;
+            p.AddItem(new LootEnemyBoss(),20);
+            return p;
+        }();
+        return pool;
+    }
+
 private:
     std::vector<LootEntry> m_Entries;
     int m_TotalCount = 0;

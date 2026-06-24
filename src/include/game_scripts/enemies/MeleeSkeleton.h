@@ -20,14 +20,20 @@ class MeleeSkeleton : public EnemyBase {
 MeleeSkeleton() : EnemyBase() {
 	this->attackRange = 1.0f;
 
-	/*auto* hand = GetNode()->FindNode("EnemyModel/rig.001_deform/Cube.015");
+  	SceneNode* enemyModel =
+	   ResourceDatabase::Global->Get<GltfScene>("./res/models/enemies/szkielet4.glb")
+	       ->Instantiate(GetScene(), GetNode(), "MeleeSkeletonModel");
 
-	if (hand) {
-		sword = hand->AddObject<EnemySword>();
-	}
-	else {
-		spdlog::warn("MeleeSkeleton: could not find hand node for attack animation");
-	}*/
+  	enemyModel->LocalTransform().Position() = glm::zero<glm::vec3>();
+  	AnimationComponent* enemyAnim = GetNode()->GetObjectInChildren<AnimationComponent>();
+  	SetAttackAnimation(enemyAnim);
+
+  	SceneNode* sword = enemyModel->FindNode("rig_deform/DEF-upper_arm.L/DEF-upper_arm.L.001/DEF-forearm.L/DEF-forearm.L.001/DEF-hand.L/Plane");
+  	if (sword) {
+  		//spdlog::error("sword init2");
+  		sword->AddObject<EnemySword>();
+  	}
+  	//spdlog::error("sword init3");
 
 };
 	void StartAttack();
