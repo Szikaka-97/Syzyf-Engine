@@ -8,15 +8,28 @@
 #include "ui/objects/UiVisual.h"
 #include "ui/widgets/UiCheckbox.h"
 
+#include <algorithm>
+#include <cstdio>
 #include <functional>
-#include <spdlog/spdlog.h>
+#include <optional>
+#include <string>
 
 class UiOptionsMenu : public GameObject {
   public:
     UiInteractable* resolutionButton = nullptr;
     UiInteractable* fullscreenButton = nullptr;
-    UiInteractable* applyButton = nullptr;
+    UiInteractable* vsyncToggleButton = nullptr;
+    UiInteractable* soundVolumeDownButton = nullptr;
+    UiInteractable* soundVolumeUpButton = nullptr;
+    UiInteractable* ambientBrightnessDownButton = nullptr;
+    UiInteractable* ambientBrightnessUpButton = nullptr;
     UiInteractable* backButton = nullptr;
+
+    UiText* resolutionText = nullptr;
+    UiText* windowModeText = nullptr;
+    UiText* vsyncText = nullptr;
+    UiText* soundVolumeText = nullptr;
+    UiText* ambientBrightnessText = nullptr;
 
     UiLayout* optionsMenuLayout = nullptr;
     UiLayout* bgLayout = nullptr;
@@ -28,6 +41,8 @@ class UiOptionsMenu : public GameObject {
     bool pendingWindowed = true;
     bool pendingVsync = true;
     bool pendingSsao = true;
+    float pendingSoundVolume = 1.0f;
+    float pendingAmbientBrightness = 1.0f;
     bool initialized = false;
 
     std::function<void()> onBackClicked;
@@ -36,20 +51,12 @@ class UiOptionsMenu : public GameObject {
 
     void Update() {
         if (!initialized) {
-            auto* app = Application::Get();
-            if (app) {
-                for (int i = 0; i < 4; ++i) {
-                    if (resWidths[i] == app->GetSettings().resolutionWidth &&
-                        resHeights[i] == app->GetSettings().resolutionHeight) {
-                        pendingResolutionIndex = i;
-                        break;
-                    }
-                }
-                pendingWindowed = app->GetSettings().windowed;
-                pendingVsync = app->GetSettings().vsyncEnabled;
-                pendingSsao = app->GetSettings().ssaoEnabled;
-            }
+            LoadCurrentSettings();
             initialized = true;
+        }
+
+        if (!IsVisible()) {
+            return;
         }
 
         if (resolutionButton && resolutionButton->isDown) {
@@ -64,38 +71,46 @@ class UiOptionsMenu : public GameObject {
             spdlog::debug("Windowed toggled: {}", pendingWindowed);
         }
 
-        if (applyButton && applyButton->isDown) {
-            auto* app = Application::Get();
-            if (app) {
-                app->GetSettings().resolutionWidth =
-                    resWidths[pendingResolutionIndex];
-                app->GetSettings().resolutionHeight =
-                    resHeights[pendingResolutionIndex];
-                app->GetSettings().windowed = pendingWindowed;
-                app->GetSettings().vsyncEnabled = pendingVsync;
-                app->GetSettings().ssaoEnabled = pendingSsao;
-                app->GetSettings().Save();
-                app->ApplySettings();
-            }
-
-            spdlog::debug("Applying settings: Resolution={}x{}, Windowed={}, "
-                          "VSync={}, SSAO={}",
-                          app->GetSettings().resolutionWidth,
-                          app->GetSettings().resolutionHeight,
-                          app->GetSettings().windowed,
-                          app->GetSettings().vsyncEnabled,
-                          app->GetSettings().ssaoEnabled);
+        if (vsyncToggleButton && vsyncToggleButton->isDown) {
+            pendingVsync = !pendingVsync;
+            spdlog::debug("VSync toggled: {}", pendingVsync);
         }
 
+        if (soundVolumeDownButton && soundVolumeDownButton->isDown) {
+            pendingSoundVolume = std::clamp(pendingSoundVolume - 0.1f, 0.0f, 1.0f);
+        }
+
+        if (soundVolumeUpButton && soundVolumeUpButton->isDown) {
+            pendingSoundVolume = std::clamp(pendingSoundVolume + 0.1f, 0.0f, 1.0f);
+        }
+
+        if (ambientBrightnessDownButton && ambientBrightnessDownButton->isDown) {
+            pendingAmbientBrightness = std::clamp(pendingAmbientBrightness - 0.1f, 0.1f, 3.0f);
+        }
+
+        if (ambientBrightnessUpButton && ambientBrightnessUpButton->isDown) {
+            pendingAmbientBrightness = std::clamp(pendingAmbientBrightness + 0.1f, 0.1f, 3.0f);
+        }
+
+        UpdateValueTexts();
+
         if (backButton && backButton->isDown) {
+            SavePendingSettings();
             if (onBackClicked) {
                 spdlog::warn("calling on back clicked");
                 onBackClicked();
+            } else {
+                SetVisible(false);
             }
         }
     }
 
     void SetVisible(bool visible) {
+        if (visible) {
+            LoadCurrentSettings();
+            UpdateValueTexts();
+        }
+
         if (optionsMenuLayout) {
             spdlog::info("Set Visible");
             optionsMenuLayout->offset =
@@ -113,11 +128,167 @@ class UiOptionsMenu : public GameObject {
         }
         return false;
     }
+
+    void SavePendingSettings() {
+        auto* app = Application::Get();
+        if (app == nullptr) {
+            return;
+        }
+
+        app->GetSettings().resolutionWidth = resWidths[pendingResolutionIndex];
+        app->GetSettings().resolutionHeight = resHeights[pendingResolutionIndex];
+        app->GetSettings().windowed = pendingWindowed;
+        app->GetSettings().vsyncEnabled = pendingVsync;
+        app->GetSettings().ssaoEnabled = pendingSsao;
+        app->GetSettings().soundVolume = pendingSoundVolume;
+        app->GetSettings().ambientBrightness = pendingAmbientBrightness;
+        app->GetSettings().Save();
+        app->ApplySettings();
+    }
+
+  private:
+    void LoadCurrentSettings() {
+        auto* app = Application::Get();
+        if (app == nullptr) {
+            return;
+        }
+
+        for (int i = 0; i < 4; ++i) {
+            if (resWidths[i] == app->GetSettings().resolutionWidth &&
+                resHeights[i] == app->GetSettings().resolutionHeight) {
+                pendingResolutionIndex = i;
+                break;
+            }
+        }
+
+        pendingWindowed = app->GetSettings().windowed;
+        pendingVsync = app->GetSettings().vsyncEnabled;
+        pendingSsao = app->GetSettings().ssaoEnabled;
+        pendingSoundVolume = app->GetSettings().soundVolume;
+        pendingAmbientBrightness = app->GetSettings().ambientBrightness;
+    }
+
+    void UpdateValueTexts() {
+        if (resolutionText) {
+            char buffer[64];
+            std::snprintf(buffer, sizeof(buffer), "Resolution: %dx%d",
+                          resWidths[pendingResolutionIndex],
+                          resHeights[pendingResolutionIndex]);
+            resolutionText->text = buffer;
+        }
+
+        if (windowModeText) {
+            windowModeText->text = pendingWindowed ? "Window mode: Windowed" : "Window mode: Fullscreen";
+        }
+
+        if (vsyncText) {
+            vsyncText->text = pendingVsync ? "VSync: On" : "VSync: Off";
+        }
+
+        if (soundVolumeText) {
+            char buffer[64];
+            std::snprintf(buffer, sizeof(buffer), "Sound volume: %d%%",
+                          static_cast<int>(pendingSoundVolume * 100.0f + 0.5f));
+            soundVolumeText->text = buffer;
+        }
+
+        if (ambientBrightnessText) {
+            char buffer[64];
+            std::snprintf(buffer, sizeof(buffer), "Game brightness: %d%%",
+                          static_cast<int>(pendingAmbientBrightness * 100.0f + 0.5f));
+            ambientBrightnessText->text = buffer;
+        }
+    }
 };
 
 namespace OptionsMenu {
-inline UiOptionsMenu* Build(Scene& mainScene, Font* font) {
-    SceneNode* optionsGroup = mainScene.GetOrCreateNode("Options Menu Group");
+inline UiLayout* ConfigureLayout(
+    SceneNode* node,
+    const glm::uvec2& size,
+    const glm::ivec2& offset,
+    int zIndex,
+    AnchorPoint anchorPoint
+) {
+    UiLayout* layout = node->AddObjectIfMissing<UiLayout>();
+    layout->size = glm::ivec2(size);
+    layout->offset = offset;
+    layout->zIndex = zIndex;
+    layout->anchorPoint = anchorPoint;
+    return layout;
+}
+
+inline UiVisual* ConfigureVisual(
+    SceneNode* node,
+    const glm::vec4& color,
+    const glm::vec4& hoverColor = glm::vec4(-1.0f)
+) {
+    UiVisual* visual = node->AddObjectIfMissing<UiVisual>();
+    visual->color = color;
+    visual->colorHovered = hoverColor.x >= 0.0f ? std::optional<glm::vec4>(hoverColor) : std::nullopt;
+    return visual;
+}
+
+inline UiInteractable* CreateButton(
+    Scene& mainScene,
+    SceneNode* parent,
+    const std::string& name,
+    const std::string& text,
+    Font* font,
+    const glm::uvec2& size,
+    const glm::ivec2& offset,
+    const glm::vec4& color = glm::vec4(0.4f, 0.4f, 0.4f, 1.0f),
+    const glm::vec4& hoverColor = glm::vec4(0.6f, 0.6f, 0.6f, 1.0f),
+    int zIndex = 121
+) {
+    SceneNode* buttonNode = mainScene.GetOrCreateNode(parent, name);
+    ConfigureLayout(buttonNode, size, offset, zIndex, AnchorPoint::Center);
+    ConfigureVisual(buttonNode, color, hoverColor);
+    UiInteractable* interactable = buttonNode->AddObjectIfMissing<UiInteractable>();
+    interactable->isInteractable = true;
+
+    SceneNode* textNode = mainScene.GetOrCreateNode(buttonNode, name + " Text");
+    ConfigureLayout(textNode, size, glm::ivec2(0, 0), zIndex + 1, AnchorPoint::Center);
+    UiText* uiText = textNode->AddObjectIfMissing<UiText>();
+    uiText->text = text;
+    uiText->font = font;
+    uiText->fontSize = 20.0f;
+    uiText->alignment = TextAlignment::Middle;
+    uiText->verticalAlignment = TextVerticalAlignment::Middle;
+
+    return interactable;
+}
+
+inline UiText* CreateText(
+    Scene& mainScene,
+    SceneNode* parent,
+    const std::string& name,
+    const std::string& text,
+    Font* font,
+    const glm::uvec2& size,
+    const glm::ivec2& offset,
+    float fontSize = 20.0f,
+    int zIndex = 122
+) {
+    SceneNode* textNode = mainScene.GetOrCreateNode(parent, name);
+    ConfigureLayout(textNode, size, offset, zIndex, AnchorPoint::Center);
+    UiText* uiText = textNode->AddObjectIfMissing<UiText>();
+    uiText->text = text;
+    uiText->font = font;
+    uiText->fontSize = fontSize;
+    uiText->alignment = TextAlignment::Middle;
+    uiText->verticalAlignment = TextVerticalAlignment::Middle;
+    return uiText;
+}
+
+inline UiOptionsMenu* Build(
+    Scene& mainScene,
+    Font* font,
+    SceneNode* parent = nullptr,
+    const std::string& groupName = "Options Menu Group"
+) {
+    SceneNode* optionsGroup = parent != nullptr
+        ? mainScene.GetOrCreateNode(parent, groupName)
+        : mainScene.GetOrCreateNode(groupName);
 
     auto* app = Application::Get();
     if (app == nullptr) {
@@ -128,115 +299,78 @@ inline UiOptionsMenu* Build(Scene& mainScene, Font* font) {
 
     auto* controller = optionsGroup->AddObjectIfMissing<UiOptionsMenu>();
 
-    SceneNode* bgNode = mainScene.GetOrCreateNode(optionsGroup, "Settings Background");
-    controller->bgLayout = bgNode->AddObjectIfMissing<UiLayout>(
-        glm::uvec2(4000, 4000), glm::ivec2(9999, 9999), 90, AnchorPoint::Center);
-    bgNode->AddObjectIfMissing<UiVisual>(glm::vec4(0.0f, 0.0f, 0.0f, 0.7f));
-    bgNode->AddObjectIfMissing<UiInteractable>();
+    controller->optionsMenuLayout = ConfigureLayout(
+        optionsGroup, glm::uvec2(560, 660), glm::ivec2(9999, 9999), 120, AnchorPoint::Center);
+    ConfigureVisual(optionsGroup, glm::vec4(0.08f, 0.08f, 0.08f, 0.98f));
+    optionsGroup->AddObjectIfMissing<UiInteractable>();
 
-    controller->optionsMenuLayout = optionsGroup->AddObjectIfMissing<UiLayout>(
-        glm::uvec2(400, 500), glm::ivec2(9999, 9999), 100, AnchorPoint::Center);
+    CreateText(
+        mainScene, optionsGroup, "Options Title", "Options",
+        font, glm::uvec2(440, 44), glm::ivec2(0, -280), 28.0f, 122);
 
-    SceneNode* resolutionButtonNode =
-        mainScene.GetOrCreateNode(optionsGroup, "Resolution Button");
-    resolutionButtonNode->AddObjectIfMissing<UiLayout>(
-        glm::uvec2(200, 40), glm::ivec2(0, 200), 101, AnchorPoint::Center);
-    auto* resolutionVisual = resolutionButtonNode->AddObjectIfMissing<UiVisual>(
-        glm::vec4(0.4f, 0.4f, 0.4f, 1.0f));
-    resolutionVisual->colorHovered = glm::vec4(0.6f, 0.6f, 0.6f, 1.0f);
-    controller->resolutionButton =
-        resolutionButtonNode->AddObjectIfMissing<UiInteractable>();
-    SceneNode* resolutionTextNode =
-        mainScene.GetOrCreateNode(resolutionButtonNode, "Resolution Text");
-    resolutionTextNode->AddObjectIfMissing<UiLayout>(
-        glm::uvec2(200, 40), glm::ivec2(0, 0), 102, AnchorPoint::Center);
-    auto* resolutionText =
-        resolutionTextNode->AddObjectIfMissing<UiText>("Cycle Resolution", font);
-    resolutionText->fontSize = 20.0f;
+    controller->resolutionText = CreateText(
+        mainScene, optionsGroup, "Resolution Value Text", "Resolution: 1280x720",
+        font, glm::uvec2(380, 36), glm::ivec2(0, -220), 18.0f, 122);
+    controller->resolutionButton = CreateButton(
+        mainScene, optionsGroup, "Resolution Button", "Change resolution",
+        font, glm::uvec2(260, 40), glm::ivec2(0, -180));
 
-    SceneNode* vsyncCheckboxNode = UiCheckbox::Create(mainScene, font, 102, "VSync", settings.vsyncEnabled, optionsGroup);
+    controller->windowModeText = CreateText(
+        mainScene, optionsGroup, "Window Mode Value Text", "Window mode: Windowed",
+        font, glm::uvec2(380, 36), glm::ivec2(0, -130), 18.0f, 122);
+    controller->fullscreenButton = CreateButton(
+        mainScene, optionsGroup, "Fullscreen Button", "Toggle window mode",
+        font, glm::uvec2(260, 40), glm::ivec2(0, -90));
 
-    if (auto* layout = vsyncCheckboxNode->GetObject<UiLayout>()) {
-        layout->offset = glm::ivec2(0, 25);
-        layout->zIndex = 101;
-    }
-    if (auto* checkboxLogic = vsyncCheckboxNode->GetObject<UiCheckbox>()) {
-        checkboxLogic->OnValueChanged = [controller](bool isChecked) {
-            if (isChecked) {
-                spdlog::debug("VSync Checkbox ON");
-                controller->pendingVsync = true;
-            } else {
-                spdlog::debug("VSync Checkbox OFF");
-                controller->pendingVsync = false;
-            }
-        };
-    }
+    controller->vsyncText = CreateText(
+        mainScene, optionsGroup, "VSync Value Text", "VSync: On",
+        font, glm::uvec2(380, 36), glm::ivec2(0, -40), 18.0f, 122);
+    controller->vsyncToggleButton = CreateButton(
+        mainScene, optionsGroup, "VSync Button", "Toggle VSync",
+        font, glm::uvec2(260, 40), glm::ivec2(0, 0));
 
-    SceneNode* ssaoCheckboxNode = UiCheckbox::Create(mainScene, font, 102, "SSAO", settings.ssaoEnabled, optionsGroup);
+    SceneNode* ssaoCheckboxNode =
+        UiCheckbox::Create(mainScene, font, 121, "SSAO", settings.ssaoEnabled, optionsGroup);
 
     if (auto* layout = ssaoCheckboxNode->GetObject<UiLayout>()) {
-        layout->offset = glm::ivec2(0, 60);
-        layout->zIndex = 101;
+        layout->size = glm::ivec2(180, 40);
+        layout->offset = glm::ivec2(0, 50);
+        layout->zIndex = 121;
+        layout->anchorPoint = AnchorPoint::Center;
     }
     if (auto* checkboxLogic = ssaoCheckboxNode->GetObject<UiCheckbox>()) {
         checkboxLogic->OnValueChanged = [controller](bool isChecked) {
-            if (isChecked) {
-                spdlog::debug("SSAO Checkbox ON");
-                controller->pendingSsao = true;
-            } else {
-                spdlog::debug("SSAO Checkbox OFF");
-                controller->pendingSsao = false;
-            }
+            controller->pendingSsao = isChecked;
         };
     }
 
-    SceneNode* fullscreenCheckboxNode = UiCheckbox::Create(mainScene, font, 102, "Fullscreen", !settings.windowed, optionsGroup);
+    controller->soundVolumeText = CreateText(
+        mainScene, optionsGroup, "Sound Volume Value Text", "Sound volume: 100%",
+        font, glm::uvec2(380, 36), glm::ivec2(0, 105), 18.0f, 122);
+    controller->soundVolumeDownButton = CreateButton(
+        mainScene, optionsGroup, "Sound Volume Down Button", "-",
+        font, glm::uvec2(70, 38), glm::ivec2(-95, 145));
+    controller->soundVolumeUpButton = CreateButton(
+        mainScene, optionsGroup, "Sound Volume Up Button", "+",
+        font, glm::uvec2(70, 38), glm::ivec2(95, 145));
 
-    if (auto* layout = fullscreenCheckboxNode->GetObject<UiLayout>()) {
-        layout->offset = glm::ivec2(0, 95);
-        layout->zIndex = 101;
-    }
-    if (auto* checkboxLogic = fullscreenCheckboxNode->GetObject<UiCheckbox>()) {
-        checkboxLogic->OnValueChanged = [controller](bool isChecked) {
-            if (isChecked) {
-                spdlog::debug("Fullscreen ON");
-                controller->pendingWindowed = false;
-            } else {
-                spdlog::debug("Fullscreen OFF");
-                controller->pendingWindowed = true;
-            }
-        };
-    }
+    controller->ambientBrightnessText = CreateText(
+        mainScene, optionsGroup, "Brightness Value Text", "Game brightness: 100%",
+        font, glm::uvec2(380, 36), glm::ivec2(0, 195), 18.0f, 122);
+    controller->ambientBrightnessDownButton = CreateButton(
+        mainScene, optionsGroup, "Brightness Down Button", "-",
+        font, glm::uvec2(70, 38), glm::ivec2(-95, 235));
+    controller->ambientBrightnessUpButton = CreateButton(
+        mainScene, optionsGroup, "Brightness Up Button", "+",
+        font, glm::uvec2(70, 38), glm::ivec2(95, 235));
 
-    SceneNode* applyButtonNode =
-        mainScene.GetOrCreateNode(optionsGroup, "Apply Button");
-    applyButtonNode->AddObjectIfMissing<UiLayout>(
-        glm::uvec2(200, 40), glm::ivec2(0, -50), 101, AnchorPoint::Center);
-    auto* applyVisual =
-        applyButtonNode->AddObjectIfMissing<UiVisual>(glm::vec4(0.2f, 0.6f, 0.2f, 1.0f));
-    applyVisual->colorHovered = glm::vec4(0.3f, 0.8f, 0.3f, 1.0f);
-    controller->applyButton = applyButtonNode->AddObjectIfMissing<UiInteractable>();
-    SceneNode* applyTextNode =
-        mainScene.GetOrCreateNode(applyButtonNode, "Apply Text");
-    applyTextNode->AddObjectIfMissing<UiLayout>(glm::uvec2(200, 40), glm::ivec2(0, 0), 102,
-                                       AnchorPoint::Center);
-    auto* applyText = applyTextNode->AddObjectIfMissing<UiText>("Apply Changes", font);
-    applyText->fontSize = 20.0f;
+    controller->backButton = CreateButton(
+        mainScene, optionsGroup, "Back Button", "Back",
+        font, glm::uvec2(160, 42), glm::ivec2(0, 295),
+        glm::vec4(0.8f, 0.2f, 0.2f, 1.0f),
+        glm::vec4(1.0f, 0.3f, 0.3f, 1.0f));
 
-    SceneNode* backButtonNode =
-        mainScene.GetOrCreateNode(optionsGroup, "Back Button");
-    backButtonNode->AddObjectIfMissing<UiLayout>(glm::uvec2(150, 40), glm::ivec2(0, 50),
-                                        101, AnchorPoint::BottomCenter);
-    auto* backVisual =
-        backButtonNode->AddObjectIfMissing<UiVisual>(glm::vec4(0.8f, 0.2f, 0.2f, 1.0f));
-    backVisual->colorHovered = glm::vec4(1.0f, 0.3f, 0.3f, 1.0f);
-    controller->backButton = backButtonNode->AddObjectIfMissing<UiInteractable>();
-    SceneNode* backTextNode = mainScene.GetOrCreateNode(backButtonNode, "Back Text");
-    backTextNode->AddObjectIfMissing<UiLayout>(glm::uvec2(150, 40), glm::ivec2(0, 0), 102,
-                                      AnchorPoint::Center);
-    auto* backText = backTextNode->AddObjectIfMissing<UiText>("Back", font);
-    backText->fontSize = 20.0f;
-
+    controller->SetVisible(false);
     return controller;
 }
 } // namespace OptionsMenu

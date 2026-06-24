@@ -4,7 +4,11 @@
 #include "GameObject.h"
 #include "InputSystem.h"
 #include "Scene.h"
+#include "Graphics.h"
 #include "Texture.h"
+#include "Material.h"
+#include "MeshRenderer.h"
+#include "Shader.h"
 
 #include "game_scripts/CameraSettings.h"
 #include "game_scripts/PlayerController.h"
@@ -55,6 +59,17 @@ namespace Crafting{
                     Bottling
                 };
 
+                enum class TutorialFocus{
+                    None,
+                    IngredientInventory,
+                    IngredientCauldron,
+                    IngredientConfirm,
+                    HeatingBlower,
+                    HeatingDoor,
+                    BottlingValve,
+                    BottlingDone
+                };
+
                 bool isActive = false;
                 bool playerWasEnabled = true;
 
@@ -95,11 +110,30 @@ namespace Crafting{
                 bool dungeonPromptMessageVisible = false;
                 float dungeonPromptShowUntilTime = 0.0f;
 
+                bool craftingTutorialVisible = false;
+                TutorialFocus activeTutorialFocus = TutorialFocus::None;
+                SceneNode* tutorialTextPanelNode = nullptr;
+                UiLayout* tutorialTextPanelLayout = nullptr;
+                UiText* tutorialText = nullptr;
+                std::array<SceneNode*, 4> tutorialDimPanelNodes = {};
+                std::array<UiLayout*, 4> tutorialDimPanelLayouts = {};
+                std::array<SceneNode*, 4> tutorialBorderPanelNodes = {};
+                std::array<UiLayout*, 4> tutorialBorderPanelLayouts = {};
+
+                SceneNode* gameplayHudNode = nullptr;
+                bool gameplayHudVisibilitySaved = false;
+                bool gameplayHudWasEnabled = true;
+
                 SceneNode* bellowNode = nullptr;
                 SceneNode* bladeNode = nullptr;
+                SceneNode* stageTwoDeviceNode = nullptr;
+                SceneNode* stageTwoColorNode = nullptr;
+                Material* stageTwoTemperatureArcMaterial = nullptr;
                 SceneNode* qualityMeterNode = nullptr;
 
                 glm::vec3 bellowDefaultScale = glm::vec3(1.0f);
+                glm::quat bladeDefaultLocalRotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
+                glm::quat stageTwoColorDefaultLocalRotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
                 float bellowAnimationAmount = 0.0f;
 
                 Text3D* stageTwoQualityText = nullptr;
@@ -140,6 +174,25 @@ namespace Crafting{
           public:
                 float interactionRadius = 3.0f;
                 bool enterStationOnFirstUpdate = false;
+
+                float thermometerMinTemperature = 0.0f;
+                float thermometerNeedleMinAngleDegrees = 90.0f;
+                float thermometerNeedleMaxAngleDegrees = -90.0f;
+                bool thermometerUseHeatingRangeAsScale = true;
+                float thermometerFallbackMaxTemperature = 100.0f;
+                bool thermometerArcStartsAtTargetMinimum = false;
+                float thermometerOverheatVisualRangeMultiplier = 1.0f;
+
+                float thermometerArcLocalRadius = 0.6328577f;
+                float thermometerArcInnerRadius01 = 0.0f;
+                float thermometerArcOuterRadius01 = 0.86f;
+                float thermometerArcEdgeSoftness01 = 0.015f;
+                float thermometerArcAngleOffsetDegrees = 0.0f;
+                float thermometerArcStartDegrees = -90.0f;
+                float thermometerArcEndDegrees = 90.0f;
+                glm::vec4 thermometerSafeRangeColor = glm::vec4(0.17f, 0.48f, 0.12f, 1.0f);
+                glm::vec4 thermometerOverheatRangeColor = glm::vec4(0.02f, 0.02f, 0.018f, 1.0f);
+                glm::vec4 thermometerBaseFillColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 
                 std::string lidNodeName = "Lid";
                 std::string lidHitboxNodeName = "LidHitbox";
@@ -268,14 +321,28 @@ namespace Crafting{
                     lastStageCameraLightNode =
                         FindNodeRecursive(GetNode(), "LastStageCameraLight");
 
+                    SceneNode* stageTwoSearchRoot =
+                        stageTwoUiNode ? stageTwoUiNode : GetNode();
+
                     bellowNode =
-                        FindNodeRecursive(GetNode(), "bellow");
+                        FindNodeRecursive(stageTwoSearchRoot, "bellow");
 
                     bladeNode =
-                        FindNodeRecursive(GetNode(), "blade");
+                        FindNodeRecursive(stageTwoSearchRoot, "blade");
+
+                    stageTwoDeviceNode =
+                        FindNodeRecursive(stageTwoSearchRoot, "device");
+
+                    stageTwoColorNode =
+                        FindNodeRecursive(stageTwoSearchRoot, "color");
 
                     qualityMeterNode =
-                        FindNodeRecursive(GetNode(), "quality_metter");
+                        FindNodeRecursive(stageTwoSearchRoot, "quality_metter.003");
+
+                    if (!qualityMeterNode){
+                        qualityMeterNode =
+                            FindNodeRecursive(stageTwoSearchRoot, "quality_metter");
+                    }
 
                     qualityStarNodes[0] =
                         FindNodeRecursive(GetNode(), "Star.001");
@@ -345,6 +412,18 @@ namespace Crafting{
                             bellowNode->LocalTransform().Scale().Value();
                     }
 
+                    if (bladeNode){
+                        bladeDefaultLocalRotation =
+                            bladeNode->LocalTransform().Rotation().Value();
+                    }
+
+                    if (stageTwoColorNode){
+                        stageTwoColorDefaultLocalRotation =
+                            stageTwoColorNode->LocalTransform().Rotation().Value();
+                    }
+
+                    CreateStageTwoTemperatureArcMaterial();
+
                     RefreshPlayerInventoryFromPersistent();
 
                     CreateStageOneModelTexts();
@@ -374,6 +453,8 @@ namespace Crafting{
                     SetHeatingUiEnabled(false);
                     CreateDungeonPromptUi();
                     HideDungeonPromptMessage();
+                    CreateCraftingTutorialUi();
+                    HideCraftingTutorial();
 
                     if (stageOneUiNode){
                         stageOneUiNode->SetEnabled(false);
@@ -433,6 +514,8 @@ namespace Crafting{
                         UpdateBottlingStage();
                     }
 
+                    UpdateCraftingTutorial();
+
                     if (GetScene()->Input()->KeyDown(Key::Escape)){
                         ExitStation();
                     }
@@ -454,6 +537,7 @@ namespace Crafting{
                     lastStagePotionResultText.clear();
                     lastStagePotionPanelSlide = 0.0f;
                     HideDungeonPromptMessage();
+                    HideCraftingTutorial();
 
                     if (lastStagePotionPanelNode){
                         lastStagePotionPanelNode->SetEnabled(false);
@@ -676,15 +760,7 @@ namespace Crafting{
                         return;
                     }
 
-                    if (currentStage == CraftingStage::Ingredients){
-                        spdlog::info("Crafting UI Info: drag ingredients from backpack slots into the cauldron.");
-                    }
-                    else if (currentStage == CraftingStage::Heating){
-                        spdlog::info("Crafting UI Info: click the blower to keep the temperature inside the target range.");
-                    }
-                    else if (currentStage == CraftingStage::Bottling){
-                        spdlog::info("Crafting UI Info: click the valve while a bottle is in the fill zone.");
-                    }
+                    ToggleCraftingTutorial();
                 }
 
                 void OnUiNextClicked(){
@@ -990,6 +1066,10 @@ namespace Crafting{
                         glm::vec3(0.0f, 0.06f, 0.12f),
                         0.04f
                     );
+
+                    if (stageTwoTemperatureText){
+                        stageTwoTemperatureText->SetEnabled(false);
+                    }
                 }
 
                 void CreateLastStageModelTexts(){
@@ -1193,7 +1273,216 @@ namespace Crafting{
                         );
                 }
 
+                float GetThermometerDisplayMinTemperature() const{
+                    if (thermometerUseHeatingRangeAsScale && thermometerArcStartsAtTargetMinimum){
+                        return heatingStage.tempMin;
+                    }
+
+                    return thermometerMinTemperature;
+                }
+
+                float GetThermometerDisplayMaxTemperature() const{
+                    if (!thermometerUseHeatingRangeAsScale){
+                        return glm::max(
+                            thermometerFallbackMaxTemperature,
+                            GetThermometerDisplayMinTemperature() + 0.001f
+                        );
+                    }
+
+                    float targetRange =
+                        heatingStage.tempMax - heatingStage.tempMin;
+
+                    if (targetRange < 0.001f){
+                        targetRange = 0.001f;
+                    }
+
+                    float overheatRange =
+                        targetRange * glm::max(
+                            thermometerOverheatVisualRangeMultiplier,
+                            0.001f
+                        );
+
+                    return glm::max(
+                        heatingStage.tempMax + overheatRange,
+                        GetThermometerDisplayMinTemperature() + 0.001f
+                    );
+                }
+
+                float GetThermometerTemperature01(float temperature) const{
+                    float displayMinTemperature =
+                        GetThermometerDisplayMinTemperature();
+
+                    float displayMaxTemperature =
+                        GetThermometerDisplayMaxTemperature();
+
+                    float range =
+                        displayMaxTemperature - displayMinTemperature;
+
+                    if (range < 0.001f){
+                        range = 0.001f;
+                    }
+
+                    return glm::clamp(
+                        (temperature - displayMinTemperature) / range,
+                        0.0f,
+                        1.0f
+                    );
+                }
+
+                float GetThermometerAngleForTemperature(float temperature) const{
+                    float temperature01 =
+                        GetThermometerTemperature01(temperature);
+
+                    return glm::mix(
+                        thermometerNeedleMinAngleDegrees,
+                        thermometerNeedleMaxAngleDegrees,
+                        glm::clamp(temperature01, 0.0f, 1.0f)
+                    );
+                }
+
+                glm::quat GetThermometerLocalRotationForTemperature(float temperature) const{
+                    float angleDegrees =
+                        GetThermometerAngleForTemperature(temperature);
+
+                    return glm::angleAxis(
+                        glm::radians(angleDegrees),
+                        glm::vec3(0.0f, 0.0f, 1.0f)
+                    );
+                }
+
+                bool IsThermometerNeedleInBlackRange() const{
+                    return heatingStage.GetTemperature() > heatingStage.tempMax;
+                }
+
+                void CreateStageTwoTemperatureArcMaterial(){
+                    if (!stageTwoColorNode || !GetScene()){
+                        return;
+                    }
+
+                    ShaderProgram* arcShader =
+                        ShaderProgram::Build()
+                            .WithVertexShader("./res/shaders/gltf/crafting_temperature_arc.vert")
+                            .WithPixelShader("./res/shaders/gltf/crafting_temperature_arc.frag")
+                            .Link();
+
+                    if (!arcShader){
+                        return;
+                    }
+
+                    stageTwoTemperatureArcMaterial =
+                        new Material(arcShader);
+
+                    stageTwoTemperatureArcMaterial->name =
+                        "StageTwoTemperatureArcMaterial";
+
+                    std::vector<MeshRenderer*> colorRenderers;
+                    CollectObjectsRecursive<MeshRenderer>(
+                        stageTwoColorNode,
+                        colorRenderers
+                    );
+
+                    for (MeshRenderer* renderer : colorRenderers){
+                        if (!renderer){
+                            continue;
+                        }
+
+                        for (int materialIndex = 0; materialIndex < renderer->GetMaterialCount(); materialIndex++){
+                            renderer->SetMaterial(
+                                stageTwoTemperatureArcMaterial,
+                                materialIndex
+                            );
+                        }
+                    }
+
+                    UpdateStageTwoTemperatureArcMaterial();
+                }
+
+                void UpdateStageTwoTemperatureArcMaterial(){
+                    if (!stageTwoTemperatureArcMaterial){
+                        return;
+                    }
+
+                    stageTwoTemperatureArcMaterial->SetValue(
+                        "uGaugeLocalRadius",
+                        thermometerArcLocalRadius
+                    );
+
+                    stageTwoTemperatureArcMaterial->SetValue(
+                        "uInnerRadius01",
+                        thermometerArcInnerRadius01
+                    );
+
+                    stageTwoTemperatureArcMaterial->SetValue(
+                        "uOuterRadius01",
+                        thermometerArcOuterRadius01
+                    );
+
+                    stageTwoTemperatureArcMaterial->SetValue(
+                        "uEdgeSoftness01",
+                        thermometerArcEdgeSoftness01
+                    );
+
+                    stageTwoTemperatureArcMaterial->SetValue(
+                        "uAngleOffsetDegrees",
+                        thermometerArcAngleOffsetDegrees
+                    );
+
+                    stageTwoTemperatureArcMaterial->SetValue(
+                        "uArcStartDegrees",
+                        thermometerArcStartDegrees
+                    );
+
+                    stageTwoTemperatureArcMaterial->SetValue(
+                        "uArcEndDegrees",
+                        thermometerArcEndDegrees
+                    );
+
+                    stageTwoTemperatureArcMaterial->SetValue(
+                        "uSafeStartFraction01",
+                        GetThermometerTemperature01(heatingStage.tempMin)
+                    );
+
+                    stageTwoTemperatureArcMaterial->SetValue(
+                        "uSafeEndFraction01",
+                        GetThermometerTemperature01(heatingStage.tempMax)
+                    );
+
+                    stageTwoTemperatureArcMaterial->SetValue(
+                        "uSafeColor",
+                        thermometerSafeRangeColor
+                    );
+
+                    stageTwoTemperatureArcMaterial->SetValue(
+                        "uOverheatColor",
+                        thermometerOverheatRangeColor
+                    );
+
+                    stageTwoTemperatureArcMaterial->SetValue(
+                        "uBaseFillColor",
+                        thermometerBaseFillColor
+                    );
+                }
+
+                void UpdateStageTwoThermometer(){
+                    if (bladeNode){
+                        bladeNode->LocalTransform().Rotation() =
+                            bladeDefaultLocalRotation *
+                            GetThermometerLocalRotationForTemperature(
+                                heatingStage.GetTemperature()
+                            );
+                    }
+
+                    if (stageTwoColorNode){
+                        stageTwoColorNode->LocalTransform().Rotation() =
+                            stageTwoColorDefaultLocalRotation;
+                    }
+
+                    UpdateStageTwoTemperatureArcMaterial();
+                }
+
                 void UpdateHeatingModelUi(){
+                    UpdateStageTwoThermometer();
+
                     std::ostringstream qualityText;
                     qualityText << std::fixed << std::setprecision(1);
                     qualityText << "Heating\n";
@@ -1203,13 +1492,8 @@ namespace Crafting{
                         stageTwoQualityText->SetText(qualityText.str());
                     }
 
-                    std::ostringstream temperatureText;
-                    temperatureText << std::fixed << std::setprecision(1);
-                    temperatureText << "Temp: " << heatingStage.GetTemperature() << " C\n";
-                    temperatureText << "Range: " << heatingStage.tempMin << " - " << heatingStage.tempMax << " C";
-
                     if (stageTwoTemperatureText){
-                        stageTwoTemperatureText->SetText(temperatureText.str());
+                        stageTwoTemperatureText->SetText("");
                     }
 
                     UpdateQualityStars();
@@ -1974,6 +2258,56 @@ namespace Crafting{
                     return GetScene()->FindNode("Camera Node");
                 }
 
+                SceneNode* GetGameplayHudNode(){
+                    if (gameplayHudNode){
+                        return gameplayHudNode;
+                    }
+
+                    if (!GetScene()){
+                        return nullptr;
+                    }
+
+                    gameplayHudNode =
+                        GetScene()->FindNode("HUD");
+
+                    return gameplayHudNode;
+                }
+
+                void HideGameplayHudForCrafting(){
+                    if (gameplayHudVisibilitySaved){
+                        return;
+                    }
+
+                    SceneNode* hudNode =
+                        GetGameplayHudNode();
+
+                    if (!hudNode){
+                        return;
+                    }
+
+                    gameplayHudWasEnabled =
+                        hudNode->EnabledSelf();
+
+                    gameplayHudVisibilitySaved = true;
+
+                    hudNode->SetEnabled(false);
+                }
+
+                void RestoreGameplayHudAfterCrafting(){
+                    if (!gameplayHudVisibilitySaved){
+                        return;
+                    }
+
+                    SceneNode* hudNode =
+                        GetGameplayHudNode();
+
+                    if (hudNode){
+                        hudNode->SetEnabled(gameplayHudWasEnabled);
+                    }
+
+                    gameplayHudVisibilitySaved = false;
+                }
+
                 SceneNode* GetIngredientsRootNode(){
                     return FindNodeRecursive(GetNode(), "Crafting Ingredients");
                 }
@@ -2034,6 +2368,655 @@ namespace Crafting{
                     }
 
                     playerNode->SetEnabled(playerWasEnabled);
+                }
+
+
+                void CreateCraftingTutorialUi(){
+                    if (tutorialTextPanelNode || !GetScene()){
+                        return;
+                    }
+
+                    Font* font = LoadModelUiFont();
+
+                    if (!font){
+                        return;
+                    }
+
+                    for (int i = 0; i < 4; i++){
+                        SceneNode* panelNode =
+                            GetScene()->CreateNode(
+                                "Crafting Tutorial Dim Panel " + std::to_string(i)
+                            );
+
+                        tutorialDimPanelNodes[i] = panelNode;
+                        tutorialDimPanelLayouts[i] = panelNode->AddObject<UiLayout>(
+                            glm::ivec2(1, 1),
+                            glm::ivec2(0, 0),
+                            500,
+                            AnchorPoint::TopLeft
+                        );
+
+                        panelNode->AddObject<UiVisual>(
+                            glm::vec4(0.0f, 0.0f, 0.0f, 0.68f)
+                        );
+
+                        SceneNode* borderNode =
+                            GetScene()->CreateNode(
+                                "Crafting Tutorial Border Panel " + std::to_string(i)
+                            );
+
+                        tutorialBorderPanelNodes[i] = borderNode;
+                        tutorialBorderPanelLayouts[i] = borderNode->AddObject<UiLayout>(
+                            glm::ivec2(1, 1),
+                            glm::ivec2(0, 0),
+                            501,
+                            AnchorPoint::TopLeft
+                        );
+
+                        borderNode->AddObject<UiVisual>(
+                            glm::vec4(1.0f, 0.92f, 0.55f, 0.55f)
+                        );
+                    }
+
+                    tutorialTextPanelNode =
+                        GetScene()->CreateNode("Crafting Tutorial Text Panel");
+
+                    tutorialTextPanelLayout =
+                        tutorialTextPanelNode->AddObject<UiLayout>(
+                            glm::ivec2(820, 125),
+                            glm::ivec2(0, 0),
+                            510,
+                            AnchorPoint::TopLeft
+                        );
+
+                    tutorialTextPanelNode->AddObject<UiVisual>(
+                        glm::vec4(0.04f, 0.03f, 0.02f, 0.88f)
+                    );
+
+                    SceneNode* textNode =
+                        GetScene()->CreateNode(
+                            tutorialTextPanelNode,
+                            "Crafting Tutorial Text"
+                        );
+
+                    textNode->AddObject<UiLayout>(
+                        glm::ivec2(780, 95),
+                        glm::ivec2(20, 15),
+                        511,
+                        AnchorPoint::TopLeft
+                    );
+
+                    tutorialText =
+                        textNode->AddObject<UiText>("", font);
+
+                    tutorialText->fontSize = 28.0f;
+                    tutorialText->color = glm::vec4(1.0f, 0.93f, 0.72f, 1.0f);
+                    tutorialText->alignment = TextAlignment::Middle;
+                    tutorialText->verticalAlignment = TextVerticalAlignment::Middle;
+                    tutorialText->maxWidth = 760.0f;
+                }
+
+                void ToggleCraftingTutorial(){
+                    if (craftingTutorialVisible){
+                        HideCraftingTutorial();
+                        return;
+                    }
+
+                    craftingTutorialVisible = true;
+                    activeTutorialFocus = TutorialFocus::None;
+                    SetCraftingTutorialNodesEnabled(true);
+                    UpdateCraftingTutorial();
+                }
+
+                void HideCraftingTutorial(){
+                    craftingTutorialVisible = false;
+                    activeTutorialFocus = TutorialFocus::None;
+                    SetCraftingTutorialNodesEnabled(false);
+
+                    if (tutorialText){
+                        tutorialText->text = "";
+                    }
+                }
+
+                void SetCraftingTutorialNodesEnabled(bool enabled){
+                    for (SceneNode* node : tutorialDimPanelNodes){
+                        if (node){
+                            node->SetEnabled(enabled);
+                        }
+                    }
+
+                    for (SceneNode* node : tutorialBorderPanelNodes){
+                        if (node){
+                            node->SetEnabled(enabled);
+                        }
+                    }
+
+                    if (tutorialTextPanelNode){
+                        tutorialTextPanelNode->SetEnabled(enabled);
+                    }
+                }
+
+                bool ProjectWorldToTutorialScreen(
+                    const glm::vec3& worldPosition,
+                    glm::vec2& outVirtualScreenPosition,
+                    glm::vec2& outVirtualScreenSize
+                ) const{
+                    if (!GetScene() || !GetScene()->GetGraphics()){
+                        return false;
+                    }
+
+                    SceneNode* cameraNode = GetScene()->FindNode("Camera Node");
+
+                    if (!cameraNode){
+                        return false;
+                    }
+
+                    Camera* camera = cameraNode->GetObject<Camera>();
+
+                    if (!camera){
+                        return false;
+                    }
+
+                    glm::vec2 resolution = GetScene()->GetGraphics()->GetScreenResolution();
+
+                    if (resolution.x <= 1.0f || resolution.y <= 1.0f){
+                        return false;
+                    }
+
+                    glm::vec4 clipPosition =
+                        camera->ProjectionMatrix() *
+                        camera->ViewMatrix() *
+                        glm::vec4(worldPosition, 1.0f);
+
+                    if (clipPosition.w <= 0.0001f){
+                        return false;
+                    }
+
+                    glm::vec3 ndc = glm::vec3(clipPosition) / clipPosition.w;
+
+                    if (ndc.x < -1.2f || ndc.x > 1.2f ||
+                        ndc.y < -1.2f || ndc.y > 1.2f ||
+                        ndc.z < -1.2f || ndc.z > 1.2f){
+                        return false;
+                    }
+
+                    glm::vec2 pixelPosition;
+                    pixelPosition.x = (ndc.x * 0.5f + 0.5f) * resolution.x;
+                    pixelPosition.y = (1.0f - (ndc.y * 0.5f + 0.5f)) * resolution.y;
+
+                    float scaleFactor = resolution.y / 1080.0f;
+
+                    if (scaleFactor <= 0.0001f){
+                        return false;
+                    }
+
+                    outVirtualScreenPosition = pixelPosition / scaleFactor;
+                    outVirtualScreenSize = resolution / scaleFactor;
+                    return true;
+                }
+
+                bool ProjectNodeToTutorialScreen(
+                    SceneNode* node,
+                    glm::vec2& outVirtualScreenPosition,
+                    glm::vec2& outVirtualScreenSize
+                ) const{
+                    if (!node){
+                        return false;
+                    }
+
+                    return ProjectWorldToTutorialScreen(
+                        node->GlobalTransform().Position().Value(),
+                        outVirtualScreenPosition,
+                        outVirtualScreenSize
+                    );
+                }
+
+                bool ProjectNodesCenterToTutorialScreen(
+                    const std::vector<SceneNode*>& nodes,
+                    glm::vec2& outVirtualScreenPosition,
+                    glm::vec2& outVirtualScreenSize
+                ) const{
+                    glm::vec2 sum = glm::vec2(0.0f);
+                    glm::vec2 screenSize = glm::vec2(0.0f);
+                    int projectedNodes = 0;
+
+                    for (SceneNode* node : nodes){
+                        glm::vec2 projectedPosition;
+                        glm::vec2 projectedScreenSize;
+
+                        if (!ProjectNodeToTutorialScreen(node, projectedPosition, projectedScreenSize)){
+                            continue;
+                        }
+
+                        sum += projectedPosition;
+                        screenSize = projectedScreenSize;
+                        projectedNodes++;
+                    }
+
+                    if (projectedNodes <= 0){
+                        return false;
+                    }
+
+                    outVirtualScreenPosition = sum / static_cast<float>(projectedNodes);
+                    outVirtualScreenSize = screenSize;
+                    return true;
+                }
+
+                bool ProjectNodesBoundsToTutorialScreen(
+                    const std::vector<SceneNode*>& nodes,
+                    glm::vec4& outBounds,
+                    glm::vec2& outVirtualScreenSize
+                ) const{
+                    bool hasProjectedNode = false;
+                    glm::vec2 minPosition = glm::vec2(0.0f);
+                    glm::vec2 maxPosition = glm::vec2(0.0f);
+                    glm::vec2 screenSize = glm::vec2(0.0f);
+
+                    for (SceneNode* node : nodes){
+                        glm::vec2 projectedPosition;
+                        glm::vec2 projectedScreenSize;
+
+                        if (!ProjectNodeToTutorialScreen(node, projectedPosition, projectedScreenSize)){
+                            continue;
+                        }
+
+                        if (!hasProjectedNode){
+                            minPosition = projectedPosition;
+                            maxPosition = projectedPosition;
+                            hasProjectedNode = true;
+                        }
+                        else{
+                            minPosition.x = glm::min(minPosition.x, projectedPosition.x);
+                            minPosition.y = glm::min(minPosition.y, projectedPosition.y);
+                            maxPosition.x = glm::max(maxPosition.x, projectedPosition.x);
+                            maxPosition.y = glm::max(maxPosition.y, projectedPosition.y);
+                        }
+
+                        screenSize = projectedScreenSize;
+                    }
+
+                    if (!hasProjectedNode){
+                        return false;
+                    }
+
+                    outBounds = glm::vec4(
+                        minPosition.x,
+                        minPosition.y,
+                        maxPosition.x,
+                        maxPosition.y
+                    );
+                    outVirtualScreenSize = screenSize;
+                    return true;
+                }
+
+                TutorialFocus GetCurrentTutorialFocus() const{
+                    if (currentStage == CraftingStage::Ingredients){
+                        if (IsAnyIngredientBeingDragged()){
+                            return TutorialFocus::IngredientCauldron;
+                        }
+
+                        if (cauldron && cauldron->CanConfirm()){
+                            return TutorialFocus::IngredientConfirm;
+                        }
+
+                        return TutorialFocus::IngredientInventory;
+                    }
+
+                    if (currentStage == CraftingStage::Heating){
+                        return TutorialFocus::HeatingBlower;
+                    }
+
+                    if (currentStage == CraftingStage::Finished){
+                        return TutorialFocus::HeatingDoor;
+                    }
+
+                    if (currentStage == CraftingStage::Bottling){
+                        if (lastStagePotionPanelVisible){
+                            return TutorialFocus::BottlingDone;
+                        }
+
+                        return TutorialFocus::BottlingValve;
+                    }
+
+                    return TutorialFocus::None;
+                }
+
+                std::string GetTutorialText(TutorialFocus focus) const{
+                    switch (focus){
+                        case TutorialFocus::IngredientInventory:
+                            return "These are your ingredients. Grab one with the mouse and move it into the cauldron.";
+
+                        case TutorialFocus::IngredientCauldron:
+                            return "Drop the ingredient into the cauldron opening to add it to the potion.";
+
+                        case TutorialFocus::IngredientConfirm:
+                            return "Press Brew when all ingredients are inside.";
+
+                        case TutorialFocus::HeatingBlower:
+                            return "Use the bellows to heat the potion and keep the temperature in the green range.";
+
+                        case TutorialFocus::HeatingDoor:
+                            return "Heating is complete. Press Next to continue to bottling.";
+
+                        case TutorialFocus::BottlingValve:
+                            return "Use the valve to fill bottles with the finished potion.";
+
+                        case TutorialFocus::BottlingDone:
+                            return "Review your potion result, then press Done to finish crafting.";
+
+                        case TutorialFocus::None:
+                        default:
+                            return "";
+                    }
+                }
+
+                bool IsAnyIngredientBeingDragged() const{
+                    SceneNode* ingredientsRootNode = FindNodeRecursive(GetNode(), "Crafting Ingredients");
+
+                    if (!ingredientsRootNode){
+                        return false;
+                    }
+
+                    std::vector<DraggableCraftingItem*> items;
+                    CollectObjectsRecursive<DraggableCraftingItem>(ingredientsRootNode, items);
+
+                    for (const DraggableCraftingItem* item : items){
+                        if (item && item->isDragged){
+                            return true;
+                        }
+                    }
+
+                    return false;
+                }
+
+                bool GetTutorialFocusHole(
+                    TutorialFocus focus,
+                    glm::vec4& outHole,
+                    glm::vec2& outScreenSize
+                ){
+                    glm::vec2 center = glm::vec2(0.0f);
+                    glm::vec2 screenSize = glm::vec2(1920.0f, 1080.0f);
+                    glm::vec2 holeSize = glm::vec2(520.0f, 360.0f);
+                    bool projected = false;
+
+                    if (focus == TutorialFocus::IngredientInventory){
+                        std::vector<SceneNode*> nodes;
+
+                        for (int i = 0; i < 4; i++){
+                            if (SceneNode* slotNode = GetInventorySlotNode(i)){
+                                nodes.push_back(slotNode);
+                            }
+                        }
+
+                        projected = ProjectNodesCenterToTutorialScreen(nodes, center, screenSize);
+                        holeSize = glm::vec2(680.0f, 420.0f);
+                    }
+                    else if (focus == TutorialFocus::IngredientCauldron){
+                        SceneNode* focusNode = FindNodeRecursive(GetNode(), "Cauldron");
+
+                        if (!focusNode){
+                            focusNode = FindNodeRecursive(GetNode(), "slot_bigger.004");
+                        }
+
+                        projected = ProjectNodeToTutorialScreen(focusNode, center, screenSize);
+                        holeSize = glm::vec2(560.0f, 440.0f);
+                    }
+                    else if (focus == TutorialFocus::IngredientConfirm){
+                        SceneNode* brewButton = FindNodeRecursive(GetNode(), "przycisk_next");
+                        projected = ProjectNodeToTutorialScreen(brewButton, center, screenSize);
+                        holeSize = glm::vec2(260.0f, 150.0f);
+                    }
+                    else if (focus == TutorialFocus::HeatingBlower){
+                        SceneNode* focusNode = bellowNode ? bellowNode : blowerHitboxNode;
+                        projected = ProjectNodeToTutorialScreen(focusNode, center, screenSize);
+                        holeSize = glm::vec2(620.0f, 430.0f);
+                    }
+                    else if (focus == TutorialFocus::HeatingDoor){
+                        std::vector<SceneNode*> nodes;
+
+                        if (doorHitboxNode){
+                            nodes.push_back(doorHitboxNode);
+                        }
+
+                        if (SceneNode* nextButton = FindNodeRecursive(GetNode(), "przycisk_next.001")){
+                            nodes.push_back(nextButton);
+                        }
+
+                        projected = ProjectNodesCenterToTutorialScreen(nodes, center, screenSize);
+                        holeSize = glm::vec2(680.0f, 360.0f);
+                    }
+                    else if (focus == TutorialFocus::BottlingValve){
+                        SceneNode* focusNode = valveHitboxNode;
+
+                        if (!focusNode){
+                            focusNode = FindNodeRecursive(GetNode(), "Knob_One");
+                        }
+
+                        projected = ProjectNodeToTutorialScreen(focusNode, center, screenSize);
+
+                        if (projected){
+                            const float holeWidth = 1080.0f;
+                            const float topMargin = 140.0f;
+                            float left = center.x - holeWidth * 0.5f;
+                            float top = glm::max(0.0f, center.y - topMargin);
+
+                            left = glm::clamp(left, 0.0f, glm::max(0.0f, screenSize.x - holeWidth));
+
+                            outHole.x = left;
+                            outHole.y = top;
+                            outHole.z = glm::min(holeWidth, screenSize.x);
+                            outHole.w = glm::max(0.0f, screenSize.y - top);
+                            outScreenSize = screenSize;
+                            return true;
+                        }
+                    }
+                    else if (focus == TutorialFocus::BottlingDone){
+                        std::vector<SceneNode*> nodes;
+
+                        if (lastStagePotionPanelNode){
+                            nodes.push_back(lastStagePotionPanelNode);
+                        }
+
+                        if (SceneNode* doneButton = FindNodeRecursive(GetNode(), "przycisk_next.002")){
+                            nodes.push_back(doneButton);
+                        }
+
+                        glm::vec4 bounds = glm::vec4(0.0f);
+                        projected = ProjectNodesBoundsToTutorialScreen(nodes, bounds, screenSize);
+
+                        if (projected){
+                            float left = bounds.x - 260.0f;
+                            float top = bounds.y - 190.0f;
+                            float right = bounds.z + 280.0f;
+
+                            left = glm::clamp(left, 0.0f, screenSize.x);
+                            top = glm::clamp(top, 0.0f, screenSize.y);
+                            right = glm::clamp(right, left, screenSize.x);
+
+                            outHole.x = left;
+                            outHole.y = top;
+                            outHole.z = glm::max(0.0f, right - left);
+                            outHole.w = glm::max(0.0f, screenSize.y - top);
+                            outScreenSize = screenSize;
+                            return true;
+                        }
+                    }
+
+                    if (!projected){
+                        if (!GetScene() || !GetScene()->GetGraphics()){
+                            return false;
+                        }
+
+                        glm::vec2 resolution = GetScene()->GetGraphics()->GetScreenResolution();
+                        float scaleFactor = resolution.y / 1080.0f;
+
+                        if (scaleFactor <= 0.0001f){
+                            return false;
+                        }
+
+                        screenSize = resolution / scaleFactor;
+                        center = screenSize * 0.5f;
+                    }
+
+                    float padding = 18.0f;
+                    holeSize += glm::vec2(padding * 2.0f);
+
+                    outHole.x = glm::clamp(center.x - holeSize.x * 0.5f, 0.0f, glm::max(0.0f, screenSize.x - holeSize.x));
+                    outHole.y = glm::clamp(center.y - holeSize.y * 0.5f, 0.0f, glm::max(0.0f, screenSize.y - holeSize.y));
+                    outHole.z = glm::min(holeSize.x, screenSize.x);
+                    outHole.w = glm::min(holeSize.y, screenSize.y);
+                    outScreenSize = screenSize;
+                    return true;
+                }
+
+                void SetTutorialLayout(
+                    UiLayout* layout,
+                    const glm::vec2& position,
+                    const glm::vec2& size
+                ){
+                    if (!layout){
+                        return;
+                    }
+
+                    layout->offset = glm::ivec2(
+                        static_cast<int>(position.x),
+                        static_cast<int>(position.y)
+                    );
+
+                    layout->size = glm::ivec2(
+                        glm::max(0, static_cast<int>(size.x)),
+                        glm::max(0, static_cast<int>(size.y))
+                    );
+                }
+
+                void UpdateTutorialDimPanels(
+                    const glm::vec4& hole,
+                    const glm::vec2& screenSize
+                ){
+                    float left = hole.x;
+                    float top = hole.y;
+                    float right = hole.x + hole.z;
+                    float bottom = hole.y + hole.w;
+
+                    SetTutorialLayout(
+                        tutorialDimPanelLayouts[0],
+                        glm::vec2(0.0f, 0.0f),
+                        glm::vec2(screenSize.x, top)
+                    );
+
+                    SetTutorialLayout(
+                        tutorialDimPanelLayouts[1],
+                        glm::vec2(0.0f, bottom),
+                        glm::vec2(screenSize.x, glm::max(0.0f, screenSize.y - bottom))
+                    );
+
+                    SetTutorialLayout(
+                        tutorialDimPanelLayouts[2],
+                        glm::vec2(0.0f, top),
+                        glm::vec2(left, hole.w)
+                    );
+
+                    SetTutorialLayout(
+                        tutorialDimPanelLayouts[3],
+                        glm::vec2(right, top),
+                        glm::vec2(glm::max(0.0f, screenSize.x - right), hole.w)
+                    );
+                }
+
+                void UpdateTutorialBorderPanels(const glm::vec4& hole){
+                    const float borderThickness = 6.0f;
+                    float left = hole.x;
+                    float top = hole.y;
+                    float right = hole.x + hole.z;
+                    float bottom = hole.y + hole.w;
+
+                    SetTutorialLayout(
+                        tutorialBorderPanelLayouts[0],
+                        glm::vec2(left, glm::max(0.0f, top - borderThickness)),
+                        glm::vec2(hole.z, borderThickness)
+                    );
+
+                    SetTutorialLayout(
+                        tutorialBorderPanelLayouts[1],
+                        glm::vec2(left, bottom),
+                        glm::vec2(hole.z, borderThickness)
+                    );
+
+                    SetTutorialLayout(
+                        tutorialBorderPanelLayouts[2],
+                        glm::vec2(glm::max(0.0f, left - borderThickness), top),
+                        glm::vec2(borderThickness, hole.w)
+                    );
+
+                    SetTutorialLayout(
+                        tutorialBorderPanelLayouts[3],
+                        glm::vec2(right, top),
+                        glm::vec2(borderThickness, hole.w)
+                    );
+                }
+
+                void UpdateTutorialTextPanel(
+                    const glm::vec4& hole,
+                    const glm::vec2& screenSize,
+                    const std::string& text
+                ){
+                    if (!tutorialTextPanelLayout || !tutorialText){
+                        return;
+                    }
+
+                    tutorialText->text = text;
+
+                    glm::vec2 panelSize = glm::vec2(820.0f, 125.0f);
+                    float margin = 24.0f;
+                    float panelX = glm::clamp(
+                        screenSize.x * 0.5f - panelSize.x * 0.5f,
+                        margin,
+                        glm::max(margin, screenSize.x - panelSize.x - margin)
+                    );
+
+                    float panelY = margin;
+
+                    SetTutorialLayout(
+                        tutorialTextPanelLayout,
+                        glm::vec2(panelX, panelY),
+                        panelSize
+                    );
+                }
+
+                void UpdateCraftingTutorial(){
+                    if (!craftingTutorialVisible){
+                        return;
+                    }
+
+                    if (!tutorialTextPanelNode){
+                        CreateCraftingTutorialUi();
+                    }
+
+                    if (!tutorialTextPanelNode){
+                        return;
+                    }
+
+                    TutorialFocus focus = GetCurrentTutorialFocus();
+
+                    if (focus == TutorialFocus::None){
+                        HideCraftingTutorial();
+                        return;
+                    }
+
+                    activeTutorialFocus = focus;
+
+                    glm::vec4 hole;
+                    glm::vec2 screenSize;
+
+                    if (!GetTutorialFocusHole(focus, hole, screenSize)){
+                        HideCraftingTutorial();
+                        return;
+                    }
+
+                    SetCraftingTutorialNodesEnabled(true);
+                    UpdateTutorialDimPanels(hole, screenSize);
+                    UpdateTutorialBorderPanels(hole);
+                    UpdateTutorialTextPanel(hole, screenSize, GetTutorialText(focus));
                 }
 
 
@@ -2301,6 +3284,7 @@ namespace Crafting{
                     camera->SetAsMainCamera();
 
                     DisablePlayer();
+                    HideGameplayHudForCrafting();
                     SetIngredientsEnabled(true);
                     RefreshPlayerInventoryFromPersistent();
                     UpdateInventorySlotTexts();
@@ -2338,6 +3322,7 @@ namespace Crafting{
                     SetStationHitboxEnabled(true);
 
                     EnablePlayer();
+                    RestoreGameplayHudAfterCrafting();
                     SetIngredientsEnabled(false);
 
                     if (stageOneUiNode){

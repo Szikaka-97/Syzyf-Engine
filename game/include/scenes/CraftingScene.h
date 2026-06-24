@@ -36,9 +36,25 @@
 #include <game_scripts/PickableItemSystem.h>
 #include <game_scripts/PotionInventory.h>
 #include <game_scripts/ThrowableObjectPool.h>
+#include <game_scripts/ui/PauseMenu.h>
+#include <ui/widgets/wheel/UiWheel.h>
+#include <ui/objects/UiInteractable.h>
 #include <text/Font.h>
 #include <ui/objects/UiLayout.h>
 #include <ui/objects/UiText.h>
+#include <ui/objects/UiVisual.h>
+#include <text/Font.h>
+#include <PersistentData.h>
+#include <Application.h>
+#include <fog/FogVolume.h>
+#include <game_scripts/PotionInventory.h>
+#include "DungeonScene.h"
+#include "game_scripts/crafting/CraftingDragInteractor.h"
+#include "game_scripts/crafting/CraftingInteractable.h"
+#include "game_scripts/crafting/DraggableCraftingItem.h"
+#include "game_scripts/crafting/CraftingStation.h"
+#include "game_scripts/crafting/CraftingIngredientReceiver.h"
+#include "game_scripts/crafting/Cauldron.h"
 #include <ui/widgets/wheel/UiWheel.h>
 
 #include <game_scripts/PlayerController.h>
@@ -46,6 +62,7 @@
 
 #include <animation/AnimationSystem.h>
 #include <ui/systems/UiSystem.h>
+#include <ui/systems/UiLayoutSystem.h>
 
 #include <physics/Body.h>
 #include <physics/Helpers.h>
@@ -64,6 +81,10 @@
 #include <spdlog/spdlog.h>
 
 #include <algorithm>
+#include <array>
+#include <cmath>
+#include <optional>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -1116,55 +1137,395 @@ inline Crafting::IngredientData CreateModifierIngredient(
     return data;
 }
 
-class DungeonEntryPrompt : public GameObject {
-  private:
-    SceneNode* dungeonEntryNode = nullptr;
-    UiText* promptText = nullptr;
-    bool confirmationVisible = false;
-    bool sceneRequested = false;
-    float interactionRadius = 2.6f;
 
-    void HidePrompt() {
-        if (!this->promptText) {
-            return;
+
+    class DungeonEntryPrompt : public GameObject {
+    private:
+        static constexpr int MaxPotionRows = 6;
+
+        struct PotionRowUi {
+            UiLayout* layout = nullptr;
+            UiInteractable* interactable = nullptr;
+            UiText* text = nullptr;
+            PotionInventory::PotionInventoryEntry potion;
+            bool hasPotion = false;
+        };
+
+        SceneNode* dungeonEntryNode = nullptr;
+        UiLayout* promptLayout = nullptr;
+        UiLayout* dialogLayout = nullptr;
+        UiLayout* tooltipLayout = nullptr;
+        UiText* promptText = nullptr;
+        UiText* potionListText = nullptr;
+        UiText* potionTooltipTitleText = nullptr;
+        UiText* potionTooltipDetailsText = nullptr;
+        UiInteractable* enterButton = nullptr;
+        UiInteractable* backButton = nullptr;
+        std::array<PotionRowUi, MaxPotionRows> potionRows;
+        bool dialogVisible = false;
+        bool sceneRequested = false;
+        float interactionRadius = 2.6f;
+
+        UiLayout* ConfigureLayout(
+            SceneNode* node,
+            const glm::uvec2& size,
+            const glm::ivec2& offset,
+            int zIndex,
+            AnchorPoint anchorPoint
+        ){
+            UiLayout* layout = node->AddObjectIfMissing<UiLayout>();
+            layout->size = glm::ivec2(size);
+            layout->offset = offset;
+            layout->zIndex = zIndex;
+            layout->anchorPoint = anchorPoint;
+            return layout;
         }
 
-        this->promptText->color.w = glm::clamp(
-            this->promptText->color.w - Time::Delta() * 4.0f, 0.0f, 1.0f);
-    }
-
-    void ShowPrompt(const std::string& text) {
-        if (!this->promptText) {
-            return;
+        UiVisual* ConfigureVisual(
+            SceneNode* node,
+            const glm::vec4& color,
+            const glm::vec4& hoverColor = glm::vec4(-1.0f)
+        ){
+            UiVisual* visual = node->AddObjectIfMissing<UiVisual>();
+            visual->color = color;
+            visual->colorHovered = hoverColor.x >= 0.0f
+                ? std::optional<glm::vec4>(hoverColor)
+                : std::nullopt;
+            return visual;
         }
 
-        this->promptText->text = text;
-        this->promptText->color.w = glm::clamp(
-            this->promptText->color.w + Time::Delta() * 4.0f, 0.0f, 1.0f);
-    }
+        UiText* CreateText(
+            SceneNode* parent,
+            const std::string& nodeName,
+            const std::string& text,
+            Font* font,
+            const glm::uvec2& size,
+            const glm::ivec2& offset,
+            float fontSize,
+            int zIndex
+        ){
+            SceneNode* textNode = GetScene()->GetOrCreateNode(parent,nodeName);
+            ConfigureLayout(textNode,size,offset,zIndex,AnchorPoint::Center);
 
-    bool IsPlayerNearDungeonEntry() const {
-        if (!this->dungeonEntryNode ||
-            PlayerController::Instance() == nullptr) {
-            return false;
+            UiText* uiText = textNode->AddObjectIfMissing<UiText>();
+            uiText->text = text;
+            uiText->font = font;
+            uiText->fontSize = fontSize;
+            uiText->alignment = TextAlignment::Middle;
+            uiText->verticalAlignment = TextVerticalAlignment::Middle;
+            uiText->color = glm::vec4(1.0f);
+            return uiText;
         }
 
-        return glm::distance(PlayerController::Instance()
-                                 ->GlobalTransform()
-                                 .Position()
-                                 .Value(),
-                             this->dungeonEntryNode->GlobalTransform()
-                                 .Position()
-                                 .Value()) <= this->interactionRadius;
-    }
+        UiInteractable* CreateButton(
+            SceneNode* parent,
+            const std::string& nodeName,
+            const std::string& text,
+            Font* font,
+            const glm::uvec2& size,
+            const glm::ivec2& offset,
+            const glm::vec4& color = glm::vec4(0.4f,0.4f,0.4f,1.0f),
+            const glm::vec4& hoverColor = glm::vec4(1.0f,1.0f,1.0f,1.0f)
+        ){
+            SceneNode* buttonNode = GetScene()->GetOrCreateNode(parent,nodeName);
+            ConfigureLayout(buttonNode,size,offset,132,AnchorPoint::Center);
+            ConfigureVisual(buttonNode,color,hoverColor);
 
-    void EnterDungeon() {
-        if (this->sceneRequested) {
-            return;
+            UiInteractable* interactable = buttonNode->AddObjectIfMissing<UiInteractable>();
+            interactable->isInteractable = true;
+
+            CreateText(
+                buttonNode,
+                nodeName + " Text",
+                text,
+                font,
+                size,
+                glm::ivec2(0,0),
+                20.0f,
+                133
+            );
+
+            return interactable;
         }
 
-        this->sceneRequested = true;
-        this->confirmationVisible = false;
+        std::string QualityStars(float qualityPercent) const{
+            int filledStars = static_cast<int>(std::round(qualityPercent / 20.0f));
+            filledStars = std::clamp(filledStars,0,5);
+
+            std::string stars = "[";
+
+            for (int i = 0; i < 5; i++){
+                stars += i < filledStars ? "*" : "-";
+            }
+
+            stars += "]";
+            return stars;
+        }
+
+        std::string PotionDisplayName(
+            const Crafting::CraftedPotionData& potionData
+        ) const{
+            if (!potionData.recipeName.empty() && potionData.recipeName != "Potion"){
+                return potionData.recipeName;
+            }
+
+            std::string label = potionData.primaryEffectId;
+
+            if (!potionData.secondaryEffectId.empty() &&
+                potionData.secondaryEffectId != Crafting::EffectId::None){
+                label += " + " + potionData.secondaryEffectId;
+            }
+
+            if (label.empty() || label == Crafting::EffectId::None){
+                label = "Potion";
+            }
+            else{
+                label += " Potion";
+            }
+
+            return label;
+        }
+
+        std::string PotionLine(
+            const Crafting::CraftedPotionData& potionData,
+            int count
+        ) const{
+            return "x" + std::to_string(count) + "  " +
+                PotionDisplayName(potionData) + " " +
+                QualityStars(potionData.qualityPercent);
+        }
+
+        std::string TooltipTitle(
+            const Crafting::CraftedPotionData& potionData
+        ) const{
+            return PotionDisplayName(potionData) + " " +
+                QualityStars(potionData.qualityPercent);
+        }
+
+        std::string TooltipDetails(
+            const Crafting::CraftedPotionData& potionData
+        ) const{
+            std::stringstream stream;
+
+            stream << "Effect: " << potionData.primaryEffectId << "\n";
+
+            if (!potionData.secondaryEffectId.empty() &&
+                potionData.secondaryEffectId != Crafting::EffectId::None){
+                stream << "Second effect: " << potionData.secondaryEffectId << "\n";
+            }
+
+            if (!potionData.optionalIngredientsText.empty()){
+                stream << "Optional ingredients: "
+                       << potionData.optionalIngredientsText << "\n";
+            }
+            else if (potionData.modifierCount > 0){
+                stream << "Optional ingredients: "
+                       << potionData.modifierCount << " modifier";
+
+                if (potionData.modifierCount > 1){
+                    stream << "s";
+                }
+
+                stream << "\n";
+            }
+
+            stream << "Quality: " << QualityStars(potionData.qualityPercent)
+                   << " "
+                   << static_cast<int>(std::round(potionData.qualityPercent))
+                   << "%";
+
+            return stream.str();
+        }
+
+        std::vector<PotionInventory::PotionInventoryEntry> GetPotionRowsData() const{
+            std::vector<PotionInventory::PotionInventoryEntry> potions =
+                PotionInventory::GetPotionInventory();
+
+            if (!potions.empty()){
+                return potions;
+            }
+
+                int legacyPotionCount = PotionInventory::GetPotionCount();
+
+            if (legacyPotionCount <= 0){
+                return potions;
+            }
+
+            PotionInventory::PotionInventoryEntry legacyPotion;
+            legacyPotion.slotIndex = -1;
+            legacyPotion.count = legacyPotionCount;
+            legacyPotion.data = PotionInventory::GetLastCraftedPotion();
+            potions.push_back(legacyPotion);
+
+            return potions;
+        }
+
+        void HidePotionTooltip(){
+            if (this->tooltipLayout){
+                this->tooltipLayout->offset = glm::ivec2(9999,9999);
+            }
+        }
+
+        void PositionPotionTooltipNearMouse(){
+            if (!this->tooltipLayout || GetScene() == nullptr ||
+                GetScene()->Input() == nullptr || GetScene()->GetGraphics() == nullptr){
+                return;
+            }
+
+            glm::vec2 mousePosition = GetScene()->Input()->GetMousePosition();
+            glm::vec2 resolution = GetScene()->GetGraphics()->GetScreenResolution();
+            float scaleFactor = resolution.y /
+                static_cast<float>(UiLayoutSystem::VIRTUAL_RESOLUTION.y);
+
+            if (scaleFactor <= 0.0f){
+                scaleFactor = 1.0f;
+            }
+
+            int virtualX = static_cast<int>(mousePosition.x / scaleFactor) + 24;
+            int virtualY = static_cast<int>(mousePosition.y / scaleFactor) + 24;
+
+            virtualX = std::clamp(
+                virtualX,
+                0,
+                static_cast<int>(UiLayoutSystem::VIRTUAL_RESOLUTION.x) - 340
+            );
+            virtualY = std::clamp(
+                virtualY,
+                0,
+                static_cast<int>(UiLayoutSystem::VIRTUAL_RESOLUTION.y) - 220
+            );
+
+            this->tooltipLayout->offset = glm::ivec2(virtualX,virtualY);
+        }
+
+        void RebuildPotionRows(){
+            std::vector<PotionInventory::PotionInventoryEntry> potions =
+                GetPotionRowsData();
+
+            if (this->potionListText){
+                this->potionListText->text = potions.empty()
+                    ? "No potions"
+                    : "";
+            }
+
+            for (int i = 0; i < MaxPotionRows; i++){
+                this->potionRows[i].hasPotion = false;
+
+                if (this->potionRows[i].layout){
+                    this->potionRows[i].layout->offset = glm::ivec2(9999,9999);
+                }
+
+                if (this->potionRows[i].interactable){
+                    this->potionRows[i].interactable->isInteractable = false;
+                }
+
+                if (this->potionRows[i].text){
+                    this->potionRows[i].text->text = "";
+                }
+            }
+
+            int visiblePotionCount = std::min(
+                static_cast<int>(potions.size()),
+                MaxPotionRows
+            );
+
+            for (int i = 0; i < visiblePotionCount; i++){
+                this->potionRows[i].potion = potions[i];
+                this->potionRows[i].hasPotion = true;
+
+                if (this->potionRows[i].layout){
+                    this->potionRows[i].layout->offset = glm::ivec2(0,-45 + i * 32);
+                }
+
+                if (this->potionRows[i].interactable){
+                    this->potionRows[i].interactable->isInteractable = true;
+                }
+
+                if (this->potionRows[i].text){
+                    this->potionRows[i].text->text = PotionLine(
+                        potions[i].data,
+                        potions[i].count
+                    );
+                }
+            }
+
+            if (potions.size() > MaxPotionRows && this->potionListText){
+                this->potionListText->text = "+ " +
+                    std::to_string(static_cast<int>(potions.size()) - MaxPotionRows) +
+                    " more potion stacks";
+            }
+        }
+
+        void UpdatePotionTooltip(){
+            if (!this->dialogVisible){
+                HidePotionTooltip();
+                return;
+            }
+
+            for (const PotionRowUi& row : this->potionRows){
+                if (!row.hasPotion || !row.interactable || !row.interactable->isHovered){
+                    continue;
+                }
+
+                if (this->potionTooltipTitleText){
+                    this->potionTooltipTitleText->text = TooltipTitle(row.potion.data);
+                }
+
+                if (this->potionTooltipDetailsText){
+                    this->potionTooltipDetailsText->text = TooltipDetails(row.potion.data);
+                }
+
+                PositionPotionTooltipNearMouse();
+                return;
+            }
+
+            HidePotionTooltip();
+        }
+
+        void SetPromptVisible(bool visible){
+            if (this->promptLayout){
+                this->promptLayout->offset = visible
+                    ? glm::ivec2(-40,270)
+                    : glm::ivec2(9999,9999);
+            }
+        }
+
+        void SetDialogVisible(bool visible){
+            this->dialogVisible = visible;
+
+            if (visible){
+                RebuildPotionRows();
+            }
+            else{
+                HidePotionTooltip();
+            }
+
+            if (this->dialogLayout){
+                this->dialogLayout->offset = visible
+                    ? glm::ivec2(0,0)
+                    : glm::ivec2(9999,9999);
+            }
+        }
+
+        bool IsPlayerNearDungeonEntry() const {
+            if (!this->dungeonEntryNode || PlayerController::Instance() == nullptr) {
+                return false;
+            }
+
+            return glm::distance(
+                PlayerController::Instance()->GlobalTransform().Position().Value(),
+                this->dungeonEntryNode->GlobalTransform().Position().Value()
+            ) <= this->interactionRadius;
+        }
+
+        void EnterDungeon() {
+            if (this->sceneRequested) {
+                return;
+            }
+
+            this->sceneRequested = true;
+            SetDialogVisible(false);
+            SetPromptVisible(false);
 
         PersistentData::Set<bool>("CraftingScene_AutoEnterCrafting", false);
         PersistentData::Set<bool>("CraftingScene_ReturnedFromThrowingTutorial",
@@ -1194,64 +1555,239 @@ class DungeonEntryPrompt : public GameObject {
                                            .minFilter = TextureFilter::Linear,
                                            .magFilter = TextureFilter::Linear};
 
-        Texture2D* papyrusAtlas = GetScene()->Resources()->Get<Texture2D>(
-            "./res/fonts/Papyrus/Papyrus-Regular.png", fontTextureParams);
+            Texture2D* fontAtlas = GetScene()->Resources()->Get<Texture2D>(
+                "./res/fonts/OpenSans-Regular/OpenSans-Regular.png",
+                fontTextureParams
+            );
 
-        Font* papyrusFont = GetScene()->Resources()->Get<Font>(
-            "./res/fonts/Papyrus/Papyrus-Regular.json", papyrusAtlas, true);
+            Font* font = GetScene()->Resources()->Get<Font>(
+                "./res/fonts/OpenSans-Regular/OpenSans-Regular.json",
+                fontAtlas
+            );
 
-        SceneNode* uiTextNode =
-            GetScene()->CreateNode("Dungeon Entry Prompt UI");
-        uiTextNode->AddObject<UiLayout>(glm::uvec2(520, 150),
-                                        glm::ivec2(-40, 270), 20,
-                                        AnchorPoint::TopRight);
+            SceneNode* promptNode = GetScene()->GetOrCreateNode("Dungeon Entry Prompt UI");
+            this->promptLayout = ConfigureLayout(
+                promptNode,
+                glm::uvec2(520,150),
+                glm::ivec2(9999,9999),
+                120,
+                AnchorPoint::TopRight
+            );
 
-        this->promptText = uiTextNode->AddObject<UiText>("", papyrusFont);
-        this->promptText->fontSize = 26.0f;
-        this->promptText->alignment = TextAlignment::Right;
-        this->promptText->maxWidth = 480.0f;
-        this->promptText->color = glm::vec4(1.2f, 0.3f, 0.0f, 0.0f);
-    }
+            this->promptText = promptNode->AddObjectIfMissing<UiText>();
+            this->promptText->text = "Dungeon entrance\nPress F to inspect";
+            this->promptText->font = font;
+            this->promptText->fontSize = 24.0f;
+            this->promptText->alignment = TextAlignment::Right;
+            this->promptText->verticalAlignment = TextVerticalAlignment::Middle;
+            this->promptText->maxWidth = 480.0f;
+            this->promptText->color = glm::vec4(1.0f);
 
-    void Update() {
-        if (this->sceneRequested || !this->promptText ||
-            !this->dungeonEntryNode) {
-            return;
+            SceneNode* dialogNode = GetScene()->GetOrCreateNode("Dungeon Entry Menu");
+            this->dialogLayout = ConfigureLayout(
+                dialogNode,
+                glm::uvec2(560,460),
+                glm::ivec2(9999,9999),
+                130,
+                AnchorPoint::Center
+            );
+            ConfigureVisual(dialogNode,glm::vec4(0.08f,0.08f,0.08f,0.98f));
+            dialogNode->AddObjectIfMissing<UiInteractable>();
+
+            CreateText(
+                dialogNode,
+                "Dungeon Entry Title",
+                "Dungeon entry",
+                font,
+                glm::uvec2(480,44),
+                glm::ivec2(0,-185),
+                28.0f,
+                132
+            );
+
+            CreateText(
+                dialogNode,
+                "Dungeon Entry Question",
+                "Enter dungeon with these potions?",
+                font,
+                glm::uvec2(480,40),
+                glm::ivec2(0,-130),
+                20.0f,
+                132
+            );
+
+            CreateText(
+                dialogNode,
+                "Dungeon Entry Potions Label",
+                "Potions:",
+                font,
+                glm::uvec2(460,30),
+                glm::ivec2(0,-80),
+                18.0f,
+                132
+            );
+
+            this->potionListText = CreateText(
+                dialogNode,
+                "Dungeon Entry Potions Text",
+                "No potions",
+                font,
+                glm::uvec2(460,30),
+                glm::ivec2(0,145),
+                18.0f,
+                132
+            );
+            this->potionListText->maxWidth = 430.0f;
+
+            for (int i = 0; i < MaxPotionRows; i++){
+                SceneNode* rowNode = GetScene()->GetOrCreateNode(
+                    dialogNode,
+                    "Dungeon Entry Potion Row " + std::to_string(i)
+                );
+
+                this->potionRows[i].layout = ConfigureLayout(
+                    rowNode,
+                    glm::uvec2(460,30),
+                    glm::ivec2(9999,9999),
+                    133,
+                    AnchorPoint::Center
+                );
+                ConfigureVisual(
+                    rowNode,
+                    glm::vec4(0.12f,0.12f,0.12f,0.0f),
+                    glm::vec4(1.0f,1.0f,1.0f,0.28f)
+                );
+
+                this->potionRows[i].interactable =
+                    rowNode->AddObjectIfMissing<UiInteractable>();
+                this->potionRows[i].interactable->isInteractable = false;
+
+                this->potionRows[i].text = CreateText(
+                    rowNode,
+                    "Dungeon Entry Potion Row Text " + std::to_string(i),
+                    "",
+                    font,
+                    glm::uvec2(440,30),
+                    glm::ivec2(0,0),
+                    16.0f,
+                    134
+                );
+                this->potionRows[i].text->alignment = TextAlignment::Left;
+                this->potionRows[i].text->maxWidth = 430.0f;
+            }
+
+            this->enterButton = CreateButton(
+                dialogNode,
+                "Dungeon Entry Confirm Button",
+                "Enter dungeon",
+                font,
+                glm::uvec2(200,44),
+                glm::ivec2(-115,165),
+                glm::vec4(0.4f,0.4f,0.4f,1.0f),
+                glm::vec4(1.0f)
+            );
+
+            this->backButton = CreateButton(
+                dialogNode,
+                "Dungeon Entry Back Button",
+                "Back",
+                font,
+                glm::uvec2(200,44),
+                glm::ivec2(115,165),
+                glm::vec4(0.8f,0.2f,0.2f,1.0f),
+                glm::vec4(1.0f)
+            );
+
+            SceneNode* tooltipNode = GetScene()->GetOrCreateNode("Dungeon Entry Potion Tooltip");
+            this->tooltipLayout = ConfigureLayout(
+                tooltipNode,
+                glm::uvec2(330,210),
+                glm::ivec2(9999,9999),
+                150,
+                AnchorPoint::TopLeft
+            );
+            ConfigureVisual(tooltipNode,glm::vec4(0.05f,0.05f,0.05f,0.98f));
+            UiInteractable* tooltipInteractable = tooltipNode->AddObjectIfMissing<UiInteractable>();
+            tooltipInteractable->isInteractable = false;
+
+            this->potionTooltipTitleText = CreateText(
+                tooltipNode,
+                "Dungeon Entry Potion Tooltip Title",
+                "",
+                font,
+                glm::uvec2(300,42),
+                glm::ivec2(0,-72),
+                17.0f,
+                151
+            );
+            this->potionTooltipTitleText->alignment = TextAlignment::Left;
+            this->potionTooltipTitleText->maxWidth = 290.0f;
+
+            this->potionTooltipDetailsText = CreateText(
+                tooltipNode,
+                "Dungeon Entry Potion Tooltip Details",
+                "",
+                font,
+                glm::uvec2(300,130),
+                glm::ivec2(0,25),
+                15.0f,
+                151
+            );
+            this->potionTooltipDetailsText->alignment = TextAlignment::Left;
+            this->potionTooltipDetailsText->verticalAlignment = TextVerticalAlignment::Top;
+            this->potionTooltipDetailsText->maxWidth = 290.0f;
+
+            SetDialogVisible(false);
+            SetPromptVisible(false);
         }
+
+        void Update() {
+            if (this->sceneRequested || !this->dungeonEntryNode) {
+                return;
+            }
 
         bool playerNear = IsPlayerNearDungeonEntry();
 
-        if (!playerNear) {
-            this->confirmationVisible = false;
-            HidePrompt();
-            return;
-        }
-
-        if (!this->confirmationVisible) {
-            ShowPrompt("Dungeon entrance\nPress F to enter");
-
-            if (GetScene()->Input()->KeyDown(Key::F)) {
-                this->confirmationVisible = true;
+            if (!playerNear) {
+                SetDialogVisible(false);
+                SetPromptVisible(false);
+                return;
             }
 
-            return;
-        }
+            if (this->dialogVisible) {
+                SetPromptVisible(false);
+                UpdatePotionTooltip();
 
-        ShowPrompt("Enter the dungeon?\nY / Enter - yes\nN / Esc - no");
+                if (this->enterButton && this->enterButton->isDown) {
+                    EnterDungeon();
+                    return;
+                }
 
-        if (GetScene()->Input()->KeyDown(Key::Y) ||
-            GetScene()->Input()->KeyDown(Key::Enter) ||
-            GetScene()->Input()->KeyDown(Key::NumpadEnter)) {
-            EnterDungeon();
-            return;
-        }
+                if ((this->backButton && this->backButton->isDown) ||
+                    GetScene()->Input()->KeyDown(Key::N) ||
+                    GetScene()->Input()->KeyDown(Key::Escape)) {
+                    SetDialogVisible(false);
+                    return;
+                }
 
-        if (GetScene()->Input()->KeyDown(Key::N) ||
-            GetScene()->Input()->KeyDown(Key::Escape)) {
-            this->confirmationVisible = false;
+                if (GetScene()->Input()->KeyDown(Key::Y) ||
+                    GetScene()->Input()->KeyDown(Key::Enter) ||
+                    GetScene()->Input()->KeyDown(Key::NumpadEnter)) {
+                    EnterDungeon();
+                    return;
+                }
+
+                return;
+            }
+
+            HidePotionTooltip();
+            SetPromptVisible(true);
+
+            if (GetScene()->Input()->KeyDown(Key::F)) {
+                SetDialogVisible(true);
+            }
         }
-    }
-};
+    };
 
 inline void HideMeshRenderersRecursive(SceneNode* node) {
     if (!node) {
@@ -1751,8 +2287,12 @@ inline void InitScene(Scene& scene) {
     roomNode->AddObject<CraftingTutorialFinishedMessage>();
     roomNode->AddObject<DungeonEntryPrompt>();
 
-    SetupCraftingStation(scene, stationNode);
-    CreateCraftingIngredients(scene, stationNode);
+        // SceneNode* uiRoot = scene.CreateNode("UI");
+        // SceneNode* pauseMenu = scene.CreateNode(uiRoot, "Pause Menu");
+        // pauseMenu->AddObject<PauseMenu>();
+        //
+        SetupCraftingStation(scene, stationNode);
+        CreateCraftingIngredients(scene, stationNode);
 
     // UI
     SceneNode* uiRoot = scene.CreateNode("UI");

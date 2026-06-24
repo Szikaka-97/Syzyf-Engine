@@ -46,6 +46,8 @@ public:
 
     GameSettings& GetSettings() { return settings; }
     virtual void ApplySettings() {}
+    virtual Scene* CreateStartingScreenScene();
+    void RequestQuit();
 
     static SDL_Window* GetWindow();
     static Scene* GetCurrentScene();

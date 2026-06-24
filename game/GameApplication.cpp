@@ -3,8 +3,13 @@
 #include "imgui.h"
 #include "scenes/CraftingScene.h"
 #include "scenes/DungeonScene.h"
+#include "scenes/MainMenuScene.h"
 #include "scenes/SplashScene.h"
 
+#include <AL/al.h>
+#include <Graphics.h>
+#include <LightSystem.h>
+#include <algorithm>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 
@@ -52,6 +57,9 @@ void GameApplication::OnInit(int argc, char* argv[]) {
 }
 
 void GameApplication::ApplySettings() {
+    this->settings.soundVolume = std::clamp(this->settings.soundVolume, 0.0f, 1.0f);
+    this->settings.ambientBrightness = std::clamp(this->settings.ambientBrightness, 0.1f, 3.0f);
+
     SDL_SetWindowSize(this->window, this->settings.resolutionWidth,
                       this->settings.resolutionHeight);
 
@@ -61,12 +69,26 @@ void GameApplication::ApplySettings() {
         SDL_SetWindowFullscreen(this->window, SDL_WINDOW_FULLSCREEN);
     }
 
+    alListenerf(AL_GAIN, this->settings.soundVolume);
+
     if (this->currentScene) {
         if (this->currentScene->GetGraphics()) {
             this->currentScene->GetGraphics()->SetSSAOEnabled(
                 this->settings.ssaoEnabled);
+
+            if (auto* lightSystem =
+                    this->currentScene->GetGraphics()->GetLightSystem()) {
+                lightSystem->SetAmbientLightMultiplier(
+                    this->settings.ambientBrightness);
+            }
         }
     }
+}
+
+Scene* GameApplication::CreateStartingScreenScene() {
+    Scene* scene = Scene::CreateStandaloneScene();
+    MainMenu::InitScene(*scene);
+    return scene;
 }
 
 void GameApplication::OnUpdate() {

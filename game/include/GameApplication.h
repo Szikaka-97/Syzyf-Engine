@@ -11,6 +11,7 @@ class GameApplication : public ::Application {
     GameApplication() : ::Application("Bimberman", 1280, 720) {}
 
     void ApplySettings() override;
+    Scene* CreateStartingScreenScene() override;
 
   protected:
     void OnInit(int argc, char* argv[]) override;

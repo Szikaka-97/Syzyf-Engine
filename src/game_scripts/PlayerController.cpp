@@ -11,7 +11,16 @@
 #include <MathHelpers.h>
 #include <game_scripts/ThrowableObjectPool.h>
 #include <game_scripts/AttackEffects/EffectsManager.h>
+#include <game_scripts/AttackEffects/combos/ComboExplodeConfuse.h>
 #include <game_scripts/AttackEffects/combos/ComboExplodeFire.h>
+#include <game_scripts/AttackEffects/combos/ComboExplodePetrify.h>
+#include <game_scripts/AttackEffects/combos/ComboExplodeTornado.h>
+#include <game_scripts/AttackEffects/combos/ComboFireConfuse.h>
+#include <game_scripts/AttackEffects/combos/ComboFirePetrify.h>
+#include <game_scripts/AttackEffects/combos/ComboFireTornado.h>
+#include <game_scripts/AttackEffects/combos/ComboPetrifyConfuse.h>
+#include <game_scripts/AttackEffects/combos/ComboTornadoConfuse.h>
+#include <game_scripts/AttackEffects/combos/ComboTornadoPetrify.h>
 #include <game_scripts/ThrowableObject.h>
 #include <physics/VirtualCharacterController.h>
 #include <physics/Body.h>
@@ -19,6 +28,9 @@
 #include <game_scripts/PickableItemSystem.h>
 #include <game_scripts/PotionInventory.h>
 #include <physics/LayerMaskFilter.h>
+#include <GltfScene.h>
+#include <Material.h>
+#include <MeshRenderer.h>
 
 PlayerController* PlayerController::instance;
 
@@ -164,10 +176,182 @@ namespace{
 		return effect;
 	}
 
+	std::string CanonicalPotionEffectId(const std::string& effectId){
+		if (effectId == Crafting::EffectId::Burn){
+			return Crafting::EffectId::Fire;
+		}
+
+		return effectId;
+	}
+
+	bool HasPotionEffectPair(
+		const Crafting::CraftedPotionData& potionData,
+		const std::string& firstEffectId,
+		const std::string& secondEffectId
+	){
+		std::string primaryEffectId =
+			CanonicalPotionEffectId(potionData.primaryEffectId);
+		std::string secondaryEffectId =
+			CanonicalPotionEffectId(potionData.secondaryEffectId);
+
+		return
+			(primaryEffectId == firstEffectId && secondaryEffectId == secondEffectId) ||
+			(primaryEffectId == secondEffectId && secondaryEffectId == firstEffectId);
+	}
+
+	template <typename TCombo>
+	TCombo* AddConfiguredComboEffect(
+		SceneNode* node,
+		const Crafting::CraftedPotionData& potionData
+	){
+		TCombo* combo = node->AddObject<TCombo>();
+
+		combo->Awake(
+			0.5f,
+			potionData.radius,
+			potionData.power,
+			potionData.duration
+		);
+
+		return combo;
+	}
+
+	void ConfigureExplodeFireCombo(
+		ComboExplodeFire* combo,
+		const Crafting::CraftedPotionData& potionData
+	){
+		combo->effect1Strength = 0.5f;
+		combo->effect2Strength = 0.5f;
+		combo->maxEffect1Range = potionData.radius;
+		combo->maxEffect1Damage = potionData.power;
+		combo->duration = potionData.duration;
+	}
+
+	bool TrySetThrowableComboEffect(
+		ThrowableObject* throwable,
+		const Crafting::CraftedPotionData& potionData
+	){
+		if (!potionData.HasSecondaryEffect()){
+			return false;
+		}
+
+		if (HasPotionEffectPair(potionData, Crafting::EffectId::Explosion, Crafting::EffectId::Fire)){
+			throwable->SetComboFactory(
+				[potionData](SceneNode* node){
+					ComboExplodeFire* combo = node->AddObject<ComboExplodeFire>();
+					ConfigureExplodeFireCombo(combo, potionData);
+				}
+			);
+			return true;
+		}
+
+		if (HasPotionEffectPair(potionData, Crafting::EffectId::Explosion, Crafting::EffectId::Petrify)){
+			throwable->SetComboFactory(
+				[potionData](SceneNode* node){
+					AddConfiguredComboEffect<ComboExplodePetrify>(node, potionData);
+				}
+			);
+			return true;
+		}
+
+		if (HasPotionEffectPair(potionData, Crafting::EffectId::Explosion, Crafting::EffectId::Tornado)){
+			throwable->SetComboFactory(
+				[potionData](SceneNode* node){
+					ComboExplodeTornado* combo =
+						AddConfiguredComboEffect<ComboExplodeTornado>(node, potionData);
+					combo->InitTornado();
+				}
+			);
+			return true;
+		}
+
+		if (HasPotionEffectPair(potionData, Crafting::EffectId::Explosion, Crafting::EffectId::Confuse)){
+			throwable->SetComboFactory(
+				[potionData](SceneNode* node){
+					ComboExplodeConfuse* combo =
+						AddConfiguredComboEffect<ComboExplodeConfuse>(node, potionData);
+					combo->ingredientCount = potionData.mainEffectCount;
+				}
+			);
+			return true;
+		}
+
+		if (HasPotionEffectPair(potionData, Crafting::EffectId::Fire, Crafting::EffectId::Petrify)){
+			throwable->SetComboFactory(
+				[potionData](SceneNode* node){
+					AddConfiguredComboEffect<ComboFirePetrify>(node, potionData);
+				}
+			);
+			return true;
+		}
+
+		if (HasPotionEffectPair(potionData, Crafting::EffectId::Fire, Crafting::EffectId::Tornado)){
+			throwable->SetComboFactory(
+				[potionData](SceneNode* node){
+					ComboFireTornado* combo =
+						AddConfiguredComboEffect<ComboFireTornado>(node, potionData);
+					combo->InitTornado();
+				}
+			);
+			return true;
+		}
+
+		if (HasPotionEffectPair(potionData, Crafting::EffectId::Fire, Crafting::EffectId::Confuse)){
+			throwable->SetComboFactory(
+				[potionData](SceneNode* node){
+					ComboFireConfuse* combo =
+						AddConfiguredComboEffect<ComboFireConfuse>(node, potionData);
+					combo->ingredientCount = potionData.mainEffectCount;
+				}
+			);
+			return true;
+		}
+
+		if (HasPotionEffectPair(potionData, Crafting::EffectId::Tornado, Crafting::EffectId::Petrify)){
+			throwable->SetComboFactory(
+				[potionData](SceneNode* node){
+					ComboTornadoPetrify* combo =
+						AddConfiguredComboEffect<ComboTornadoPetrify>(node, potionData);
+					combo->InitTornado();
+				}
+			);
+			return true;
+		}
+
+		if (HasPotionEffectPair(potionData, Crafting::EffectId::Tornado, Crafting::EffectId::Confuse)){
+			throwable->SetComboFactory(
+				[potionData](SceneNode* node){
+					ComboTornadoConfuse* combo =
+						AddConfiguredComboEffect<ComboTornadoConfuse>(node, potionData);
+					combo->ingredientCount = potionData.mainEffectCount;
+					combo->InitTornado();
+				}
+			);
+			return true;
+		}
+
+		if (HasPotionEffectPair(potionData, Crafting::EffectId::Petrify, Crafting::EffectId::Confuse)){
+			throwable->SetComboFactory(
+				[potionData](SceneNode* node){
+					ComboPetrifyConfuse* combo =
+						AddConfiguredComboEffect<ComboPetrifyConfuse>(node, potionData);
+					combo->ingredientCount = potionData.mainEffectCount;
+				}
+			);
+			return true;
+		}
+
+		return false;
+	}
+
 	void SetThrowablePotionEffect(
 		ThrowableObject* throwable,
 		const Crafting::CraftedPotionData& potionData
 	){
+		if (TrySetThrowableComboEffect(throwable, potionData)){
+			return;
+		}
+
 		throwable->SetEffectFactory(
 			[potionData](SceneNode* node) -> EffectBase* {
 				EffectBase* primaryEffect = AddPotionEffectToNode(
@@ -460,6 +644,97 @@ void PlayerController::UpdateThrowing() {
 	}
 }
 
+void PlayerController::ApplyAlwaysVisiblePickupOutlines() {
+	if (!this->pickableItemSystem) {
+		return;
+	}
+
+	for (PickableItem* item : this->pickableItemSystem->IterateObjects()) {
+		if (!item || !item->GetNode() || !item->GetNode()->IsEnabled()) {
+			continue;
+		}
+
+		if (!item->ShouldAlwaysShowPickupOutline()) {
+			continue;
+		}
+
+		for (auto* renderer : item->GetNode()->GetAllObjectsInChildren<MeshRenderer>()) {
+			if (renderer) {
+				renderer->maskFlags |= MaskEffectBits::Jfa;
+			}
+		}
+	}
+}
+
+void PlayerController::EnsurePickupMarker(PickableItem* item) {
+	if (this->pickupMarkerNode || !item || !GetScene()) {
+		return;
+	}
+
+	GltfScene* markerScene = GetScene()->Resources()->Get<GltfScene>(
+		item->GetPickupMarkerModelPath()
+	);
+
+	if (!markerScene) {
+		return;
+	}
+
+	this->pickupMarkerNode = markerScene->Instantiate(
+		GetScene(),
+		nullptr,
+		"Pickup Marker"
+	);
+
+	if (!this->pickupMarkerNode) {
+		return;
+	}
+
+	for (auto* renderer : this->pickupMarkerNode->GetAllObjectsInChildren<MeshRenderer>()) {
+		if (!renderer) {
+			continue;
+		}
+
+		for (int materialIndex = 0; materialIndex < renderer->GetMaterialCount(); materialIndex++) {
+			Material* material = renderer->GetMaterial(materialIndex);
+
+			if (!material) {
+				continue;
+			}
+
+			material->SetValue("baseColorFactor", glm::vec4(1.0f));
+			material->SetValue("emissiveFactor", glm::vec3(1.0f));
+			material->SetValue("emissiveStrength", 8.0f);
+			material->SetValue("ambientBump", 1.0f);
+		}
+	}
+
+	this->pickupMarkerNode->SetEnabled(false);
+}
+
+void PlayerController::SetPickupMarkerVisible(bool visible) {
+	if (this->pickupMarkerNode) {
+		this->pickupMarkerNode->SetEnabled(visible);
+	}
+}
+
+void PlayerController::UpdatePickupMarker(PickableItem* item) {
+	if (!item || !item->GetNode() || !item->ShouldShowPickupMarkerWhenReachable()) {
+		SetPickupMarkerVisible(false);
+		return;
+	}
+
+	EnsurePickupMarker(item);
+
+	if (!this->pickupMarkerNode) {
+		return;
+	}
+
+	this->pickupMarkerNode->GlobalTransform().Position() =
+		item->GlobalTransform().Position().Value() + item->GetPickupMarkerOffset();
+	this->pickupMarkerNode->GlobalTransform().Scale() = item->GetPickupMarkerScale();
+	this->pickupMarkerNode->SetEnabled(true);
+}
+
 void PlayerController::HandleItemInteractions() {
 	if (!this->pickableItemSystem) {
 		this->pickableItemSystem = GetScene()->GetComponent<PickableItemSystem>();
@@ -512,7 +787,7 @@ void PlayerController::HandleItemInteractions() {
 
 	// Highlighting logic
 	if (newItem != this->highlightedItem) {
-		if (this->highlightedItem) {
+		if (this->highlightedItem && !this->highlightedItem->ShouldAlwaysShowPickupOutline()) {
 			for (auto* renderer : this->highlightedItem->GetNode()->GetAllObjectsInChildren<MeshRenderer>()) {
 				renderer->maskFlags &= ~MaskEffectBits::Jfa;
 			}
@@ -525,11 +800,16 @@ void PlayerController::HandleItemInteractions() {
 		this->highlightedItem = newItem;
 	}
 
+	ApplyAlwaysVisiblePickupOutlines();
+	UpdatePickupMarker(this->highlightedItem);
+
 	// On interact
 	if (this->GetScene()->Input()->KeyDown(Key::F) && this->highlightedItem != nullptr) {
-		this->highlightedItem->OnPickUp();
-		delete this->highlightedItem->GetNode();
+		PickableItem* pickedItem = this->highlightedItem;
+		SetPickupMarkerVisible(false);
 		this->highlightedItem = nullptr;
+		pickedItem->OnPickUp();
+		delete pickedItem->GetNode();
 	}
 }
 void PlayerController::Update() {

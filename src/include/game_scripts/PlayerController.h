@@ -52,6 +52,7 @@ private:
 	glm::vec3 GetStrengthFromVelocity();
 
 	PickableItem* highlightedItem = nullptr;
+	SceneNode* pickupMarkerNode = nullptr;
 	//  Cached systems
 	PickableItemSystem* pickableItemSystem = nullptr;
 	Physics::System* physics = nullptr;
@@ -61,6 +62,10 @@ private:
 	void UpdateThrowing();
 
 	void HandleItemInteractions();
+	void ApplyAlwaysVisiblePickupOutlines();
+	void EnsurePickupMarker(PickableItem* item);
+	void SetPickupMarkerVisible(bool visible);
+	void UpdatePickupMarker(PickableItem* item);
 public:
 	static inline PlayerController* Instance() {
 		return instance;
