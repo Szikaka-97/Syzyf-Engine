@@ -195,7 +195,11 @@ inline void InitScene(Scene& mainScene) {
     auto* virtualCharacter =
         playerNode->AddObject<Physics::VirtualCharacterController>(
             characterSettings);
-    virtualCharacter->SetCollisionLayerAndMask({1}, 0xFFFFFFFF);
+    //virtualCharacter->SetCollisionLayerAndMask({1}, 0xFFFFFFFF);
+    virtualCharacter->SetCollisionLayerAndMask(
+    {1},
+    ~(1u << static_cast<uint32_t>(Physics::Layers::MOVING))
+);
     virtualCharacter->SetPosition(
         playerNode->GlobalTransform().Position().Value());
     virtualCharacter->SetGravityFactor(1);
@@ -374,7 +378,7 @@ inline void InitScene(Scene& mainScene) {
     Physics::Body* bossBody = enemyNode->AddObject<Physics::Body>(bossSettings);
     bossBody->SetRestitution(0.0f);
 
-    EnemySkeleton* boss = enemyNode->AddObject<EnemySkeleton>();
+    MeleeSkeleton* boss = enemyNode->AddObject<MeleeSkeleton>();
     boss->SetTargetNode(playerNode);
     boss->SetSurface(surface);
     boss->OnPlayerEnteredRoom();
