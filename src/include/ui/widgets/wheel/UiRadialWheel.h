@@ -10,6 +10,7 @@
 #include "MeshRenderer.h"
 #include "TweenSystem.h"
 #include "Viewport.h"
+#include "game_scripts/PlayerController.h"
 #include "ui/widgets/wheel/UiWheel.h"
 #include "ui/objects/UiLayout.h"
 #include "ui/objects/UiText.h"
@@ -18,7 +19,6 @@
 #include "Graphics.h"
 #include "ui/systems/UiLayoutSystem.h"
 #include "EasingFunctions.h"
-#include "Light.h"
 
 #include <cmath>
 #include <glm/ext/quaternion_trigonometric.hpp>
@@ -40,6 +40,8 @@ public:
     glm::vec3 hoverColorAdd = glm::vec3(0.2f);
 
     std::unique_ptr<Material> material;
+
+    std::function<void(int)> onSliceSelected;
 
     // Tooltip
     std::vector<std::string> tooltipDescriptions;
@@ -114,6 +116,17 @@ public:
         numberOfSlices = gltfPaths.size();
         itemSlots.clear();
 
+        SceneNode* playerNode = GetScene()->GetRootNode();
+        auto players = GetScene()->FindObjectsOfType<PlayerController>();
+        if (!players.empty()) {
+            playerNode = players[0]->GetNode();
+        }
+
+        Camera* mainCamera = GetScene()->GetGraphics()->GetMainCamera();
+        if (mainCamera) {
+            mainCamera->RemoveLayerFromMask(ui3DLayer);
+        }
+
         for (int i = 0; i < numberOfSlices; i++) {
             ItemSlot slot;
 
@@ -122,18 +135,18 @@ public:
             slot.viewport->GetFramebuffer()->CreateDepthAttachment(true, false);
             slot.viewport->SetSize(glm::uvec2(256, 256));
 
-            slot.cameraNode = GetScene()->GetOrCreateNode("ItemCamera_" + std::to_string(i));
+            slot.cameraNode = GetScene()->GetOrCreateNode(playerNode, "ItemCamera_" + std::to_string(i));
             Camera* camera = slot.cameraNode->AddObjectIfMissing<Camera>(Camera::Perspective(60.0f, 1.0f, 0.01f, 50.0f));
             camera->AddPass(RenderPassType::Color);
             camera->AddPass(RenderPassType::DepthPrepass);
 
-            slot.cameraNode->GlobalTransform().Position() = glm::vec3(0.0f, -500.0f + (i * 10.0f), -0.02f);
+            slot.cameraNode->LocalTransform().Position() = glm::vec3(0.0f, 0.5f + (i * 0.5f), -0.02f);
 
             camera->SetRenderTarget(slot.viewport.get());
             camera->SetLayerMask(mask);
 
-            slot.itemNode = GetScene()->GetOrCreateNode("ItemPivot_" + std::to_string(i));
-            slot.itemNode->GlobalTransform().Position() = glm::vec3(0.0f, -500.0f + (i * 10.0f), 0.2f);
+            slot.itemNode = GetScene()->GetOrCreateNode(playerNode, "ItemPivot_" + std::to_string(i));
+            slot.itemNode->LocalTransform().Position() = glm::vec3(0.0f, 0.5f + (i * 0.5f), 0.2f);
 
             if (!slot.itemNode->FindNode("ItemModel_" + std::to_string(i))) {
                 SceneNode* instantiatedModel = GetScene()->Resources()->Get<GltfScene>(gltfPaths[i])->Instantiate(GetScene(), slot.itemNode, "ItemModel_" + std::to_string(i));
@@ -148,7 +161,6 @@ public:
             UiVisual* visual = slot.uiNode->AddObjectIfMissing<UiVisual>();
             visual->texture = (Texture2D*)slot.viewport->GetFramebuffer()->GetColorTexture();
             visual->color.a = 1.0f;
-            visual->SetEnabled(false);
 
             UiLayout* layout = slot.uiNode->AddObjectIfMissing<UiLayout>();
             layout->size = glm::ivec2(300, 300);
@@ -198,7 +210,11 @@ public:
             hoveredSlice = static_cast<int>(angle / sliceAngle);
 
             if (input->ButtonDown(MouseButton::Left)) {
-                spdlog::info("Clicked slice {}", hoveredSlice);
+                spdlog::debug("Clicked slice {}", hoveredSlice);
+                
+                if (onSliceSelected) {
+                    onSliceSelected(hoveredSlice);
+                }
             }
         } else {
             hoveredSlice = -1;
@@ -341,7 +357,7 @@ private:
         float midRadius = innerRadius + ((outerRadius - innerRadius) / 2.0f);
         float rotationSpeed = 0.02f;
 
-        for (int i = 0; i < numberOfSlices; i++) {
+        for (std::size_t i = 0; i < itemSlots.size(); i++) {
             auto currentRotation = itemSlots[i].itemNode->LocalTransform().Rotation();
             glm::quat deltaRotation = glm::angleAxis(rotationSpeed, glm::vec3(0.0f, 1.0f, 0.0f));
             itemSlots[i].itemNode->LocalTransform().Rotation() = currentRotation * deltaRotation;

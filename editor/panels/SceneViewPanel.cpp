@@ -780,14 +780,15 @@ void SceneViewPanel::HandleDrop(Context& context) {
                 }
             }
             if (droppedPath.extension() == ".prefab") {
-                SceneNode* instantiated = context.selectedScene->LoadPrefab(droppedPath);
+                SceneNode* instantiated =
+                    context.selectedScene->LoadPrefab(droppedPath);
 
                 if (hasValidSpawnPosition) {
                     instantiated->LocalTransform().Position() = spawnPosition;
 
                     spdlog::info("bep");
                 }
-                
+
                 context.selectedNode = instantiated;
             }
         }
@@ -895,14 +896,26 @@ void SceneViewPanel::DrawMenuBar(Context& context) {
             ImGui::GetIO().ConfigFlags &= ~ImGuiConfigFlags_NavEnableKeyboard;
 
             bool changedCamera = false;
-            for (auto* camera :
-                 context.selectedScene->FindObjectsOfType<Camera>()) {
-                if (camera != context.mainCamera) {
+            auto cameraSettingsObjects =
+                context.selectedScene->FindObjectsOfType<CameraSettings>();
+            if (!cameraSettingsObjects.empty()) {
+                auto* camera =
+                    cameraSettingsObjects.front()->GetObject<Camera>();
+                if (camera) {
                     context.mainCamera = camera;
                     context.mainCamera->SetAsMainCamera();
-                    break;
-                } else {
-                    spdlog::error("Editor: No camera was added to the scene");
+                }
+            } else {
+                for (auto* camera :
+                     context.selectedScene->FindObjectsOfType<Camera>()) {
+                    if (camera != context.mainCamera) {
+                        context.mainCamera = camera;
+                        context.mainCamera->SetAsMainCamera();
+                        break;
+                    } else {
+                        spdlog::error(
+                            "Editor: No camera was added to the scene");
+                    }
                 }
             }
         }

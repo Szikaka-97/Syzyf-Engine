@@ -1,6 +1,8 @@
 #pragma once
 
 #include "GameObject.h"
+#include "game_scripts/PotionInventory.h"
+#include "game_scripts/crafting/CraftingTypes.h"
 #include <Scene.h>
 #include <Resources.h>
 #include <TimeSystem.h>
@@ -26,6 +28,9 @@ private:
 
     bool gamePaused = false;
 
+    UiRadialWheel* radialWheel = nullptr;
+    std::vector<int> sliceToInventorySlotMap;
+
 public:
     TabMenu() = default;
 
@@ -50,16 +55,20 @@ public:
         customVisual->SetEnabled(false);
         customVisual->customMaterial = wheelUiMaterial;
 
-        auto* radialWheel = radialWheelNode->AddObjectIfMissing<UiRadialWheel>();
+        this->radialWheel = radialWheelNode->AddObjectIfMissing<UiRadialWheel>();
         radialWheel->AddObjectIfMissing<WheelTag>();
         radialWheel->material.reset(wheelUiMaterial);
-        radialWheel->SetItemModels({
-            "./res/models/butelka.glb",
-            "./res/models/butelka.glb",
-            "./res/models/butelka.glb",
-            "./res/models/butelka.glb",
-            "./res/models/butelka.glb",
-        });
+
+        this->RefreshPotionWheel();
+
+        this->radialWheel->onSliceSelected = [this](int sliceIndex) {
+            if (sliceIndex >= 0 && sliceIndex < this->sliceToInventorySlotMap.size()) {
+                int realSlotIndex = this->sliceToInventorySlotMap[sliceIndex];
+
+                PotionInventory::SetActivePotionSlot(realSlotIndex);
+                spdlog::info("Equipped potion at slot {}", realSlotIndex);
+            }
+        };
 
         TextureParams fontTextureParams = {
             .channels = TextureChannels::RGB,
@@ -121,8 +130,49 @@ public:
         minimapRootNode->AddObjectIfMissing<WheelTag>();
     }
 
+    void RefreshPotionWheel() {
+        if (!this->radialWheel) return;
+
+        std::vector<PotionInventory::PotionInventoryEntry> potions = PotionInventory::GetPotionInventory();
+
+        std::vector<fs::path> modelPaths;
+        this->sliceToInventorySlotMap.clear();
+
+        for (const auto& entry : potions) {
+            fs::path modelPath = "./res/models/bottles/fire_bottle.glb";
+
+            if (entry.data.primaryEffectId == Crafting::EffectId::Fire) {
+                modelPath = "./res/models/bottles/fire_bottle.glb";
+            } else if (entry.data.primaryEffectId == Crafting::EffectId::Explosion) {
+                modelPath = "./res/models/bottles/explode_bottle.glb";
+            } else if (entry.data.primaryEffectId == Crafting::EffectId::Confuse) {
+                modelPath = "./res/models/bottles/confuse_bottle.glb";
+            } else if (entry.data.primaryEffectId == Crafting::EffectId::Petrify) {
+                modelPath = "./res/models/bottles/petrify_bottle.glb";
+            } else if (entry.data.primaryEffectId == Crafting::EffectId::Tornado) {
+                modelPath = "./res/models/bottles/tornado_bottle.glb";
+            }
+
+            modelPaths.push_back(modelPath);
+
+            this->sliceToInventorySlotMap.push_back(entry.slotIndex);
+        }
+
+        this->radialWheel->SetItemModels(modelPaths);
+        if (!modelPaths.empty()) {
+            this->radialWheel->GetObject<UiVisual>()->SetEnabled(true);
+        } else {
+            this->radialWheel->GetObject<UiVisual>()->SetEnabled(false);
+        }
+    }
+
     void Update() {
         auto* wheelSystem = GetScene()->GetComponent<WheelSystem>();
+        auto* input = GetScene()->Input();
+
+        if (input->KeyDown(Key::Tab)) {
+            this->RefreshPotionWheel();
+        }
 
         if (this->settingsButton != nullptr && settingsButton->isDown && this->optionsMenu != nullptr && !this->optionsMenu->IsVisible()) {
             optionsMenu->SetVisible(true);

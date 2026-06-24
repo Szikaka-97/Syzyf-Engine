@@ -7,7 +7,8 @@
 #include <string>
 #include <vector>
 
-namespace PotionInventory{
+namespace PotionInventory {
+    inline const std::string ActivePotionSlotKey = "PotionInventory_ActiveSlot";
     inline const std::string PotionCountKey = "PotionInventory_Count";
     inline const std::string LastRecipeNameKey = "PotionInventory_LastRecipeName";
     inline const std::string LastEffectIdKey = "PotionInventory_LastEffectId";
@@ -441,6 +442,38 @@ namespace PotionInventory{
             PersistentData::Get<int>(key) + count
         );
     }
+
+inline int GetActivePotionSlot() {
+    return PersistentData::Get<int>(ActivePotionSlotKey);
+}
+
+inline void SetActivePotionSlot(int slotIndex) {
+    if (slotIndex >= 0 && slotIndex < MaxPotionInventorySlots) {
+        PersistentData::Set<int>(ActivePotionSlotKey, slotIndex);
+    }
+}
+
+inline bool ConsumeActivePotion(Crafting::CraftedPotionData* consumedPotionData) {
+    int activeSlot = GetActivePotionSlot();
+    int count = GetPotionSlotCount(activeSlot);
+
+    if (count <= 0) {
+        return false; 
+    }
+
+    if (consumedPotionData) {
+        *consumedPotionData = GetPotionSlotData(activeSlot);
+    }
+
+    if (count == 1) {
+        ClearPotionSlot(activeSlot);
+    } else {
+        SetPotionSlotData(activeSlot, GetPotionSlotData(activeSlot), count - 1);
+    }
+
+    PersistentData::Set<int>(PotionCountKey, CountPotionStacks());
+    return true;
+}
 
     inline void SetIngredientCount(const std::string& key, int count){
         if (key.empty()){
