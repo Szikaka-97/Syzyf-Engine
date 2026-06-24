@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Bloom.h"
-#include "Camera.h"
 #include "ColorGrading.h"
 #include "DepthOfField.h"
 #include "Fxaa.h"
@@ -10,7 +9,6 @@
 #include "MeshRenderer.h"
 #include "ParticleSpawner.h"
 #include "ReflectionProbe.h"
-#include "Skybox.h"
 #include "fog/Fog.h"
 #include "fog/FogVolume.h"
 #include "fog/VolumetricFog.h"
@@ -89,6 +87,7 @@ class ComponentRegistry {
 
         // Physics
         registry.Register("Physics Body", [](SceneNode* node) {
+            spdlog::info("Created static body");
             if (node->GetObjectInChildren<MeshRenderer>() ||
                 node->GetObject<MeshRenderer>()) {
 

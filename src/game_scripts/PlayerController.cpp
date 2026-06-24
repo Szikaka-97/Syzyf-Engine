@@ -22,6 +22,7 @@
 #include <game_scripts/AttackEffects/combos/ComboTornadoConfuse.h>
 #include <game_scripts/AttackEffects/combos/ComboTornadoPetrify.h>
 #include <game_scripts/ThrowableObject.h>
+#include <game_scripts/SpawnPoint.h>
 #include <physics/VirtualCharacterController.h>
 #include <physics/Body.h>
 #include <Formatters.h>
@@ -435,7 +436,12 @@ void PlayerController::Awake() {
 	assert(this->throwPoint);
 
 	this->charController->SetCollisionLayerAndMask({1}, {0});
-	this->charController->SetPosition(GlobalTransform().Position() + glm::vec3(0, 0.01, 0));
+
+    if (auto spawnPoints = GetScene()->FindObjectsOfType<SpawnPoint>(); !spawnPoints.empty()) {
+        this->charController->SetPosition(spawnPoints.front()->GlobalTransform().Position().Value());
+    } else {
+	    this->charController->SetPosition(GlobalTransform().Position() + glm::vec3(0, 0.01, 0));
+    }
 
 	this->defaultThrowingArmRotation = this->throwingArm->LocalTransform().Rotation();
 
@@ -483,6 +489,21 @@ void PlayerController::UpdateMovement() {
 	else {
 		movement = glm::vec3(0);
 	}
+
+    glm::vec3 currentVelocity = this->charController->GetLinearVelocity();
+
+    if (!this->physics) {
+        this->physics = this->GetScene()->GetComponent<Physics::System>();
+    }
+
+    if (this->physics) {
+        glm::vec3 gravity = this->physics->GetGravity();
+        float gravityFactor = this->charController->GetGravityFactor();
+
+        currentVelocity.y += gravity.y * gravityFactor * Time::Delta();
+    }
+
+    movement.y = currentVelocity.y;
 
 	this->charController->Move(movement, Time::Delta());
 
@@ -571,6 +592,8 @@ void PlayerController::UpdateThrowing() {
 		}
 
 		glm::vec3 hitPoint = aimDirection * glm::mix(this->minThrowDistance, this->maxThrowDistance, ThrowStrengthEasing(this->throwStrengthAccum)) + GetStrengthFromVelocity();
+
+        hitPoint.y = 0.0f;
 
 		this->aim->GlobalTransform().Position() = GlobalTransform().Position() + hitPoint;
 

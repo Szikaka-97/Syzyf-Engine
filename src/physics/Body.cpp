@@ -138,7 +138,7 @@ float Body::GetLinearDamping() const {
   if (bodyCreated) {
     if (System* physics = GetScene()->GetComponent<System>()) {
       JPH::BodyLockRead lock(physics->GetJoltSystem()->GetBodyLockInterface(), bodyID);
-      if (lock.Succeeded()) {
+      if (lock.Succeeded() && !lock.GetBody().IsStatic()) {
         if (const JPH::MotionProperties* motionProperties = lock.GetBody().GetMotionProperties()) {
           return motionProperties->GetLinearDamping();
         }
@@ -152,7 +152,7 @@ float Body::GetAngularDamping() const {
   if (bodyCreated) {
     if (System* physics = GetScene()->GetComponent<System>()) {
       JPH::BodyLockRead lock(physics->GetJoltSystem()->GetBodyLockInterface(), bodyID);
-      if (lock.Succeeded()) {
+      if (lock.Succeeded() && !lock.GetBody().IsStatic()) {
         if (const JPH::MotionProperties* motionProperties = lock.GetBody().GetMotionProperties()) {
           return motionProperties->GetAngularDamping();
         }
@@ -245,6 +245,8 @@ Body::BodyKind Body::GetBodyKind() const {
 }
 
 void Body::SetShape(JPH::ShapeRefC shape) {
+    this->bodyCreationSettings.SetShape(shape);
+
       if (!bodyCreated) {
         spdlog::warn("Tried setting the shape of a body that hasn't been created yet");
         return;
@@ -255,7 +257,11 @@ void Body::SetShape(JPH::ShapeRefC shape) {
         spdlog::warn("Tried setting the shape of a body without a `PhysicsComponent`");
       }
 
-      physics->GetBodyInterface().SetShape(bodyID, shape, true, JPH::EActivation::Activate);
+      bool isMeshShape = (shape->GetSubType() == JPH::EShapeSubType::Mesh);
+
+      bool updateMassProperties = (GetMotionType() == JPH::EMotionType::Dynamic) && !isMeshShape;
+
+      physics->GetBodyInterface().SetShape(bodyID, shape, updateMassProperties, JPH::EActivation::Activate);
 }
 
 void Body::SetCollisionLayerAndMask(uint32_t layer, uint32_t mask) {
@@ -391,7 +397,7 @@ void Body::SetLinearDamping(float damping) {
   if (System* physics = GetScene()->GetComponent<System>()) {
     JPH::BodyLockWrite lock(physics->GetJoltSystem()->GetBodyLockInterface(), bodyID);
 
-    if (lock.Succeeded()) {
+    if (lock.Succeeded() && !lock.GetBody().IsStatic()) {
       if (JPH::MotionProperties* motionProperties = lock.GetBody().GetMotionProperties()) {
         motionProperties->SetLinearDamping(damping);
       }
@@ -405,7 +411,7 @@ void Body::SetAngularDamping(float damping) {
   if (System* physics = GetScene()->GetComponent<System>()) {
     JPH::BodyLockWrite lock(physics->GetJoltSystem()->GetBodyLockInterface(), bodyID);
 
-    if (lock.Succeeded()) {
+    if (lock.Succeeded() && !lock.GetBody().IsStatic()) {
       if (JPH::MotionProperties* motionProperties = lock.GetBody().GetMotionProperties()) {
         motionProperties->SetAngularDamping(damping);
       }
@@ -677,11 +683,6 @@ void Body::OnDisable() {
 }
 
 void Body::DrawImGui() {
-  bool moving = this->GetMotionType() == JPH::EMotionType::Dynamic;
-  if (ImGui::Checkbox("Dynamic", &moving)) {
-    this->SetMotionType(moving ? JPH::EMotionType::Dynamic : JPH::EMotionType::Static);
-  }
-
   if (ImGui::TreeNode("Physics Collision")) {
     const float size = ImGui::CalcTextSize("00").x;
 
@@ -715,6 +716,42 @@ void Body::DrawImGui() {
       }
     }
     ImGui::TreePop();
+  }
+
+  if (ImGui::TreeNode("Physics Properties")) {
+      const char* motionTypeNames[] = { "Static", "Kinematic", "Dynamic" };
+      int currentMotionType = (int)GetMotionType();
+
+      if (ImGui::Combo("Motion Type", &currentMotionType, motionTypeNames, 3)) {
+          SetMotionType((JPH::EMotionType)currentMotionType);
+      }
+
+      float mGravityFactor = GetGravityFactor();
+      if (ImGui::DragFloat("Gravity Factor", &mGravityFactor, 0.1f, -10.0f, 10.0f)) {
+          SetGravityFactor(mGravityFactor);
+      }
+
+      float friction = GetFriction();
+      if (ImGui::DragFloat("Friction", &friction, 0.05f, 0.0f, 1.0f)) {
+          SetFriction(friction);
+      }
+
+      float restitution = GetRestitution();
+      if (ImGui::DragFloat("Restitution", &restitution, 0.05f, 0.0f, 1.0f)) {
+          SetRestitution(restitution);
+      }
+
+      float linearDamping = GetLinearDamping();
+      if (ImGui::DragFloat("Linear Damping", &linearDamping, 0.05f, 0.0f, 1.0f)) {
+          SetLinearDamping(linearDamping);
+      }
+
+      float angularDamping = GetAngularDamping();
+      if (ImGui::DragFloat("Angular Damping", &angularDamping, 0.05f, 0.0f, 1.0f)) {
+          SetAngularDamping(angularDamping);
+      }
+
+      ImGui::TreePop();
   }
 
   if (ImGui::TreeNode("Physics Shape")) {

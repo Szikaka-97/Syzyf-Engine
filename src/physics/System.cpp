@@ -2,7 +2,6 @@
 
 #include "Jolt/Physics/Collision/BroadPhase/BroadPhase.h"
 #include "Jolt/Physics/Collision/TransformedShape.h"
-#include "physics/Body.h"
 #include "physics/CharacterController.h"
 #include "physics/ContactListener.h"
 #include "physics/DebugRenderer.h"

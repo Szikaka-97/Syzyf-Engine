@@ -3,9 +3,7 @@
 #include "CraftingScene.h"
 #include "DungeonScene.h"
 #include "Graphics.h"
-#include "InputSystem.h"
 #include "MainMenuScene.h"
-#include "Serialization.h"
 #include "TestScene.h"
 #include "TutorialThrowingRoomScene.h"
 #include "examples/fog_volume.h"
@@ -59,8 +57,7 @@ class SceneRegistry {
         //                              TutorialThrowingRoomScene::InitScene);
         SceneRegistry::RegisterScene("Crafting Scene",
                                      CraftingScene::InitScene);
-        SceneRegistry::RegisterScene("Base Scene",
-                                     BaseScene::InitScene);
+        SceneRegistry::RegisterScene("Base Scene", BaseScene::InitScene);
         for (const auto& sceneFile :
              std::filesystem::directory_iterator("./res/scenes")) {
             GetLoadRegistry()[std::format("Loaded: {}",
