@@ -74,7 +74,7 @@ public:
 
     bool isPlayerInRoom = false;
 
-    int m_hp;
+    float m_hp;
     float attackRange = 5.0f;
     States currentState = States::PATROLLING;
     // void Update();

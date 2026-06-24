@@ -338,21 +338,24 @@ void EnemyBase::UpdateStatusEffects() {
         }
     }
  
-    if (m_Burn.active) {
-        m_Burn.remainingTime -= dt;
-        m_Burn.intervalTimer += dt;
- 
-        if (m_Burn.remainingTime <= 0.0f) {
-            m_Burn.active = false;
-            spdlog::info("EnemyBase: burn expired");
-        } else if (m_Burn.intervalTimer >= m_Burn.interval) {
-            m_Burn.intervalTimer = 0.0f;
-            m_hp -= static_cast<int>(m_Burn.damage);
-            spdlog::debug("EnemyBase: burn tick -{:.0f} hp  (remaining hp={})",
-                          m_Burn.damage, m_hp);
-            if (m_hp <= 0) Die();
-        }
+  if (m_Burn.active) {
+    m_Burn.remainingTime -= dt;
+    m_Burn.intervalTimer += dt;
+
+    if (m_Burn.remainingTime <= 0.0f) {
+      m_Burn.active = false;
+      spdlog::info("EnemyBase: burn expired");
+    } else if (m_Burn.intervalTimer >= m_Burn.interval) {
+      m_Burn.intervalTimer = 0.0f;
+
+      TakeDamage(static_cast<int>(m_Burn.damage));
+
+      if (m_hp <= 0) return;
+
+      spdlog::debug("EnemyBase: burn tick -{:.0f} hp  (remaining hp={})",
+                    m_Burn.damage, m_hp);
     }
+  }
  
     if (m_Confuse.active) {
         m_Confuse.remainingTime -= dt;
