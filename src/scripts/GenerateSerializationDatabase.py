@@ -181,7 +181,7 @@ def write_field_serializer(writer: CodeWriter, field: CppField, lhs: str) -> Non
 	for f in CppType.get_type(field.owning_type).fields:
 		if f == field:
 			break
-			
+		
 		offset_str = f"{f.type + (" *" if f.is_pointer or f.is_reference else "")}, " + offset_str
 
 	if offset_str != "":
@@ -322,18 +322,18 @@ def write_field_deserializer(writer: CodeWriter, field: CppField, lhs: str) -> N
 		offset_str = "0"
 	
 	if is_simple_type(field.type):
-		writer.line(f"new(({field.type}*) (raw + {offset_str} + {additional_offset_str})) {field.type}{{data[\"{field.name}\"].get<{field.type}>()}};")
+		writer.line(f"if (data.contains(\"{field.name}\")) new(({field.type}*) (raw + {offset_str} + {additional_offset_str})) {field.type}{{data[\"{field.name}\"].get<{field.type}>()}};")
 
 		return
 
 	field_type = CppType.get_type(field.type)
 
 	if field_type.is_enum():
-		writer.line(f"new(({get_enum_type(field_type)}*) (raw + {offset_str} + {additional_offset_str})) {get_enum_type(field_type)}{{data[\"{field.name}\"].get<{get_enum_type(field_type)}>()}};")
+		writer.line(f"if (data.contains(\"{field.name}\")) new(({get_enum_type(field_type)}*) (raw + {offset_str} + {additional_offset_str})) {get_enum_type(field_type)}{{data[\"{field.name}\"].get<{get_enum_type(field_type)}>()}};")
 	elif is_array_type(field_type):
 		write_array_deserializer(writer, field, lhs)
 	elif field_type.name in INTRINSIC_SERIALIZERS:
-		writer.line(f"new(({field.type}*) (raw + {offset_str} + {additional_offset_str})) {field.type}{{Serialization::Deserialize<{field.type}>(data[\"{field.name}\"])}};")
+		writer.line(f"if (data.contains(\"{field.name}\")) new(({field.type}*) (raw + {offset_str} + {additional_offset_str})) {field.type}{{Serialization::Deserialize<{field.type}>(data[\"{field.name}\"])}};")
 	elif is_resource_type(field_type):
 		writer.line(f"if (data.contains(\"{field.name}\")) {{")
 		writer.more_indent()
@@ -345,12 +345,12 @@ def write_field_deserializer(writer: CodeWriter, field: CppField, lhs: str) -> N
 		writer.line("}")
 	elif not field.is_pointer:
 		if field.type in serialized_types:
-			writer.line(f"InternalDeserialize{sanitize_class_name(field.type)}On(reinterpret_cast<volatile {field.type} *>(raw + {offset_str} + {additional_offset_str}), data[\"{field.name}\"]);")
+			writer.line(f"if (data.contains(\"{field.name}\")) InternalDeserialize{sanitize_class_name(field.type)}On(reinterpret_cast<volatile {field.type} *>(raw + {offset_str} + {additional_offset_str}), data[\"{field.name}\"]);")
 		else:
 			print(f"WARN: Deserializing object of non-serializable type {field_type.name}")
 	else:
 		if field.type in serialized_types:
-			writer.line(f"*((void**) (raw + {offset_str} + {additional_offset_str})) = Serialization::FetchDeserializedObject(data[\"{field.name}\"].get<int>());")
+			writer.line(f"if (data.contains(\"{field.name}\")) *((void**) (raw + {offset_str} + {additional_offset_str})) = Serialization::FetchDeserializedObject(data[\"{field.name}\"].get<int>());")
 		else:
 			print(f"WARN: Deserializing object of non-serializable type {field.type}")
 
@@ -427,7 +427,7 @@ def write_serialize_object(writer: CodeWriter, cls_name: str) -> None:
 	writer.line(f"int SerializeObject(const {cls_name}* ptr) {{")
 	writer.more_indent()
 
-	writer.line("return InternalSerializeObject(ptr, typeid(*ptr));")
+	writer.line("return ptr ? InternalSerializeObject(ptr, typeid(*ptr)) : -1;")
 
 	writer.less_indent()
 	writer.line("}")
