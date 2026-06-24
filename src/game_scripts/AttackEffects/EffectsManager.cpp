@@ -141,17 +141,15 @@ void EffectPetrify::OnInit() {
     if (myNode) myNode->GlobalTransform().Position() = glm::vec3(GlobalTransform().Position().x,0.4f,GlobalTransform().Position().z);
     SceneNode* effectModel =
             ResourceDatabase::Global
-    ->Get<GltfScene>("./res/models/effects/petrify1.glb")
+    ->Get<GltfScene>("./res/models/effects/petrify.glb")
 ->Instantiate(GetScene(), GetNode(), "petrify effect");
     effectModel->GlobalTransform().Scale()=glm::vec3(1.f,1.5f,1.5f);
     GetNode()->GlobalTransform().Scale()=glm::vec3(1.0f,1.0f,1.0f);
 
     effectModel->LocalTransform().Position() = glm::vec3(0, 0, 0);
-    auto* animComp = effectModel->GetObjectInChildren<AnimationComponent>();
-    if (animComp) {
-        animComp->Play("Cylinder.008Action");
-        animComp->Play("Cylinder.009Action");
-        animComp->Play("Cylinder.010Action");
+    for (auto& anim : effectModel->GetObject<AnimationComponent>()->animations) {
+        anim.speed = 4.0;
+        effectModel->GetObject<AnimationComponent>()->Play(anim.data.name);
     }
 }
 
@@ -168,19 +166,19 @@ void EffectPetrify::OnApplyToEnemy(EnemyBase* enemy) {
 }
 
 void EffectTornado::OnInit(){
-//     SceneNode* effectModel =
-//             ResourceDatabase::Global
-//     ->Get<GltfScene>("./res/models/effects/tornado1.glb")
-// ->Instantiate(GetScene(), GetNode(), "tornado effect");
-//     GetNode()->GlobalTransform().Scale()=glm::vec3(1.f,1.5f,1.5f);
-//     effectModel->LocalTransform().Position() = glm::vec3(0, 0, 0);
+    if (myNode) myNode->GlobalTransform().Position() = glm::vec3(GlobalTransform().Position().x,0.4f,GlobalTransform().Position().z);
+    SceneNode* effectModel =
+            ResourceDatabase::Global
+    ->Get<GltfScene>("./res/models/effects/tornado.glb")
+->Instantiate(GetScene(), GetNode(), "tornado effect");
+    effectModel->GlobalTransform().Scale()=glm::vec3(2.f,2.5f,2.f);
+    GetNode()->GlobalTransform().Scale()=glm::vec3(1.0f,1.0f,1.0f);
 
-    auto* tornado = myNode->AddObject<ExampleParticlesAndScatter::Tornado>();
-
-    // auto* animComp = effectModel->GetObjectInChildren<AnimationComponent>();
-    // if (animComp) {
-    //     animComp->Play("Cylinder.012Action");
-    // }
+    effectModel->LocalTransform().Position() = glm::vec3(0, 0, 0);
+    auto* animComp = effectModel->GetObjectInChildren<AnimationComponent>();
+    if (animComp) {
+        animComp->Play("Animation.001");
+    }
 }
 void EffectTornado::OnApplySpecials() {
     if (special1) radius               *= static_cast<float>(modifier);

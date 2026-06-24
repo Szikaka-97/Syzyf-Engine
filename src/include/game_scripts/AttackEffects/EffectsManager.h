@@ -34,7 +34,7 @@ protected:
 
 class EffectPetrify : public EffectBase {
 public:
-    serialized float petrifyRemainingTime = 5.0f;
+    serialized float petrifyRemainingTime = 10.0f;
     EffectPetrify() = default;
 protected:
     void  OnInit()          override;
