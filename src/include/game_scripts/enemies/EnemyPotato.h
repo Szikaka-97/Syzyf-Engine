@@ -13,7 +13,7 @@ enum class PotatoAttackPhase {
 
 class EnemyPotato : public EnemyBase {
 private:
-    float m_AttackCooldown       = 10.0f;
+    float m_AttackCooldown       = 0.0f;
     int   m_Damage               = 30;
     float m_ShadowChaseDuration  = 3.0f;
     float m_ShadowStayDuration   = 2.0f;

@@ -11,29 +11,17 @@ EnemyPotato::EnemyPotato() {
     SceneNode* enemyModel =
          ResourceDatabase::Global->Get<GltfScene>("./res/models/enemies/ziemniak_remake4.glb")
              ->Instantiate(GetScene(), GetNode(), "EnemyPotatoModel");
-    //enemyModel->SetParent(enemy1);
-    //enemyModel->GlobalTransform().Scale() = glm::vec3(0.1, 0.1, 0.1);
+
     enemyModel->LocalTransform().Position() = glm::zero<glm::vec3>();
     AnimationComponent* enemyAnim = GetNode()->GetObjectInChildren<AnimationComponent>();
     SetAttackAnimation(enemyAnim);
-
-    // m_ShadowNode =     ResourceDatabase::Global->Get<GltfScene>("./res/models/enemies/ziemniak_remake4.glb")
-    //          ->Instantiate(GetScene(), GetNode(), "EnemyPotatoModel");
-    //
 }
 
-// void EnemyPotato::SetShadowResources(Mesh* mesh, Material* mat) {
-//     m_ShadowMesh     = mesh;
-//     m_ShadowMaterial = mat;
-// }
-
 void EnemyPotato::SpawnShadow() {
-    if (!m_ShadowNode) return;
+    if (m_ShadowNode) return;
 
-    m_ShadowNode = GetScene()->CreateNode("PotatoShadow");
-    //m_ShadowNode->AddObject<MeshRenderer>(m_ShadowMesh, m_ShadowMaterial);
     m_ShadowNode = ResourceDatabase::Global->Get<GltfScene>("./res/models/enemies/potato_shadow.glb")
-         ->Instantiate(GetScene(), GetNode(), "EnemyPotatoModel");
+         ->Instantiate(GetScene(), GetScene()->GetRootNode(), "PotatoShadow");
 
     m_ShadowNode->GlobalTransform().Position() =
         glm::vec3(currentPos.x, 0.01f, currentPos.z);
@@ -66,6 +54,9 @@ void EnemyPotato::StartAttack() {
 
     SpawnShadow();
     StopMoving();
+
+    SetLoopingAnimation("attack.001");
+
     spdlog::info("EnemyPotato: jump attack started, apex ({:.1f},{:.1f},{:.1f})",
                  m_Apex.x, m_Apex.y, m_Apex.z);
 }
@@ -169,17 +160,43 @@ void EnemyPotato::Update() {
     EnsureBody();
     LockXZRotation();
     if (!m_TargetNode) return;
- 
+
+    if (!m_AnimInitialized) {
+        m_AnimInitialized = true;
+        AnimationComponent* anim = GetNode()->GetObjectInChildren<AnimationComponent>();
+        if (anim) {
+            SetAttackAnimation(anim);
+            for (auto& a : anim->animations)
+                spdlog::info("EnemyPotato: animation: '{}'", a.data.name);
+        } else {
+            spdlog::error("EnemyPotato: AnimationComponent NOT FOUND");
+        }
+    }
+
     m_TargetPosition = m_TargetNode->GlobalTransform().Position();
     if (!myNode) return;
- 
+
+    if (m_IsAttacking) {
+        currentPos = myNode->GlobalTransform().Position();
+        UpdateAttackAnimation();
+        UpdateAttackSequence();
+
+        if (m_Body) {
+            m_Body->SetLinearVelocity(glm::vec3(0.0f));
+            glm::vec3 visualPos = myNode->GlobalTransform().Position();
+            m_Body->SetPosition(visualPos);
+        }
+        return;
+    }
+
     currentPos = m_Body->GetPosition();
     myNode->GlobalTransform().Position() = currentPos;
     myNode->GlobalTransform().Rotation() = m_Body->GetRotation();
- 
+
+    UpdateStatusEffects();
     UpdateAttackAnimation();
     if (m_InAttackAnimation) { StopMoving(); return; }
- 
+
     if (isPlayerInRoom) {
         float dist = glm::distance(currentPos, m_TargetPosition);
         if      (m_hp <= 30)          currentState = States::FLEEING;
@@ -190,23 +207,29 @@ void EnemyPotato::Update() {
     }
 
     switch (currentState) {
-        case States::PATROLLING:
-            Patrol();
-            break;
-        case States::CHASING:
-            DirectChase();
-            break;
-        case States::ATTACKING:
-            if (!m_IsAttacking && m_AttackCooldown <= 0.0f)
-                StartAttack();
-            else {
-                StopMoving();
-                m_AttackCooldown -= Time::Delta();
-            }
-            break;
-        case States::FLEEING:
-            Flee();
-            break;
-        
+    case States::PATROLLING:
+        Patrol();
+        SetLoopingAnimation("walk.001");
+        break;
+
+    case States::CHASING:
+        DirectChase();
+        SetLoopingAnimation("walk.001");
+        break;
+
+    case States::ATTACKING:
+        if (m_AttackCooldown <= 0.0f) {
+            StartAttack();
+        } else {
+            StopMoving();
+            m_AttackCooldown -= Time::Delta();
+            SetLoopingAnimation("idle.001");
+        }
+        break;
+
+    case States::FLEEING:
+        Flee();
+        SetLoopingAnimation("walk.001");
+        break;
     }
 }

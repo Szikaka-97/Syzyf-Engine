@@ -79,6 +79,7 @@
 
 #include "Jolt/Math/Vec3.h"
 #include "game_scripts/enemies/EnemyBeetroot.h"
+#include "game_scripts/enemies/EnemyPotato.h"
 #include "text/Text3D.h"
 #include <Jolt/Jolt.h>
 #include <Jolt/Physics/Body/MotionType.h>
@@ -367,13 +368,13 @@ inline void InitScene(Scene& mainScene) {
     JPH::EOverrideMassProperties::MassAndInertiaProvided;
     JPH::MassProperties mp;
     mp.mMass = 1.0f;
-    mp.mInertia = JPH::Mat44::sIdentity() * 0.1f;  // minimalna inercja
+    mp.mInertia = JPH::Mat44::sIdentity() * 0.1f;
     bossSettings.mMassPropertiesOverride = mp;
 
     Physics::Body* bossBody = enemyNode->AddObject<Physics::Body>(bossSettings);
     bossBody->SetRestitution(0.0f);
 
-    EnemyBeetroot* boss = enemyNode->AddObject<EnemyBeetroot>();
+    EnemyPotato* boss = enemyNode->AddObject<EnemyPotato>();
     boss->SetTargetNode(playerNode);
     boss->SetSurface(surface);
     boss->OnPlayerEnteredRoom();
