@@ -2,6 +2,7 @@
 
 #include "Resources.h"
 #include <glm/glm.hpp>
+#include <nlohmann/json.hpp>
 
 class Texture2D;
 
@@ -25,8 +26,13 @@ public:
 
     bool useMsdf = true;
 
-    static Font* Load(const std::filesystem::path& jsonPath, Texture2D* atlasTexture, bool useMsdf = true);
+    fs::path path;
+
+    static Font* Load(const std::filesystem::path& jsonPath, Texture2D* atlasTexture = nullptr, bool useMsdf = true);
 	
 	virtual fs::path GetPath() const;
 	virtual uint64_t GetHash() const;
+
+    nlohmann::json Serialize() const;
+    void Deserialize(const nlohmann::json& data);
 };

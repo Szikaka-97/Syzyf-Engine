@@ -7,16 +7,21 @@
 
 class UiText : public GameObject, public ImGuiDrawable {
 public:
-    std::string text;
-    Font* font = nullptr;
-    glm::vec4 color{1.0f};
-    float fontSize = 32.0f;
-    TextAlignment alignment;
+    serialized std::string text;
+    serialized Font* font = nullptr;
+    serialized glm::vec4 color{1.0f};
+    serialized float fontSize = 32.0f;
+    serialized TextAlignment alignment = TextAlignment::Left;
+    TextVerticalAlignment verticalAlignment = TextVerticalAlignment::Top;
 
     // Max width until the text wraps around
     std::optional<float> maxWidth;
 
-    UiText(std::string text = "", Font* font = nullptr);
+    UiText() = default;
+    UiText(std::string text, Font* font);
 
     void DrawImGui();
+
+    json Serialize() const;
+    void Deserialize(const json& data);
 };

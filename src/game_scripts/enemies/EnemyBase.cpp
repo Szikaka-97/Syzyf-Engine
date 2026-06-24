@@ -31,21 +31,17 @@ void EnemyBase::Awake() {
         }
         physics = GetScene()->GetComponent<Physics::System>();
         
-  flockForce = m_FlockingSystem->GetFlockingForce(this);
+ //flockForce = m_FlockingSystem->GetFlockingForce(this);
+
     }
 
 void EnemyBase::Attack() {
-
- // glm::vec3 dirTo = m_TargetPosition - currentPos;
- // if (glm::length(dirTo) > 0.01f) RotateNode(dirTo);
-
   m_AttackTimer += Time::Delta();
   if (m_AttackTimer >= m_AttackCooldown) {
-    m_AttackTimer = 0.0f;
-    SetAnimation("attack.001");
-    m_InAttackAnimation = true;
+    m_AttackTimer            = 0.0f;
+    m_InAttackAnimation      = true;
     m_AttackAnimationElapsed = 0.0f;
-
+    m_CurrentAnimation       = "attack.001";  // ustaw bezpośrednio, omijając guard
     PlayAttackAnimation("attack.001");
     SpawnProjectile(m_TargetPosition);
   }
@@ -61,6 +57,11 @@ void EnemyBase::Die() {
       for (int i = 0; i <= rnd; ++i) {
           DropLoot();
       }
+
+      if (m_FlockingSystem) {
+          m_FlockingSystem->Unregister(this);
+      }
+
     //spdlog::error("died");
     GetScene()->QueueDelete(myNode);
     myNode = nullptr;
@@ -115,24 +116,79 @@ void EnemyBase::SpawnProjectile(const glm::vec3& targetPos) {
 
 void EnemyBase::UpdateAttackAnimation() {
   if (!m_InAttackAnimation) return;
-
   m_AttackAnimationElapsed += Time::Delta();
   if (m_AttackAnimationElapsed >= m_AttackAnimationDuration) {
     m_InAttackAnimation = false;
-
-    if (glm::length(m_Body->GetLinearVelocity()) > 0.1f)
-      SetAnimation("idle.001");
-    else
-      SetAnimation("stop.001");
+    m_CurrentAnimation  = "";
   }
 }
+
 
 void EnemyBase::SetAnimation(const std::string& name) {
   if (!m_AttackAnimation) return;
   if (m_CurrentAnimation == name) return;
-  m_AttackAnimation->Play(name);
+
+  for (auto& anim : m_AttackAnimation->animations) {
+    if (anim.data.name == name) {
+      anim.timeActive = 0.0f;
+      anim.playing    = true;
+      anim.looping    = false;
+      anim.currentKeyframes.assign(anim.data.tracks.size(), 0);
+    } else {
+      anim.playing = false;  // ← to samo
+    }
+  }
+
   m_CurrentAnimation = name;
-  spdlog::debug("AiNode: changed animation to {}", name);
+  spdlog::debug("EnemyBase: changed animation to {}", name);
+}
+
+void EnemyBase::DirectChaseNoBoundary() {
+  glm::vec3 dir = m_TargetPosition - currentPos;
+  dir.y = 0.0f;
+  float dist = glm::length(dir);
+
+  if (dist <= attackRange * 0.85f) {
+    StopMoving();
+    return;
+  }
+  if (dist < 0.1f) { StopMoving(); return; }
+
+  dir /= dist;
+
+  float speedMultiplier = 1.0f;
+  if (dist < attackRange * 1.5f)
+    speedMultiplier = 0.5f;
+
+  glm::vec3 newVel = dir * m_Speed * speedMultiplier;
+  newVel.y = m_Body->GetLinearVelocity().y;
+  m_Body->SetLinearVelocity(newVel);
+
+  float targetYaw = atan2(dir.x, dir.z);
+  glm::quat targetRot = glm::angleAxis(targetYaw, glm::vec3(0, 1, 0));
+  glm::quat currentRot = myNode->GlobalTransform().Rotation();
+  glm::quat newRot = glm::slerp(currentRot, targetRot, m_BossRotationSpeed * Time::Delta());
+  m_Body->SetRotation(newRot);
+  myNode->GlobalTransform().Rotation() = newRot;
+  m_Body->SetAngularVelocity(glm::vec3(0.0f));
+}
+
+void EnemyBase::SetLoopingAnimation(const std::string& name) {
+  if (!m_AttackAnimation) return;
+  if (m_CurrentAnimation == name) return;
+
+  for (auto& anim : m_AttackAnimation->animations) {
+    if (anim.data.name == name) {
+      anim.timeActive = 0.0f;
+      anim.playing    = true;
+      anim.looping    = true;
+      anim.currentKeyframes.assign(anim.data.tracks.size(), 0);
+    } else {
+      anim.playing = false;
+    }
+  }
+
+  m_CurrentAnimation = name;
 }
 
 //bool EnemyBase::CanSeePlayer() const {

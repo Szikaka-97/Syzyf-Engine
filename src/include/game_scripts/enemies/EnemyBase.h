@@ -24,8 +24,6 @@ private:
     float m_VisualOffset = 0.0f;
     std::string m_CurrentAnimation;
     float m_AttackAnimationDuration = 1.0f;
-    float m_AttackAnimationElapsed = 0.0f;
-    void SetAnimation(const std::string& name);
     //bool CanSeePlayer() const;
 
 
@@ -53,9 +51,17 @@ private:
 
 protected:
     void UpdateStatusEffects();
+
+    void SetAnimation(const std::string& name);
+    void SetLoopingAnimation(const std::string& name);
     virtual void DirectChaseWithFlock(const glm::vec3& flockForce);
+    void DirectChaseNoBoundary();
     float m_AttackCooldown;
     glm::vec3 flockForce;
+    States m_PreviousState = States::PATROLLING;
+    float m_AttackAnimationElapsed = 0.0f;
+    float m_BossRotationSpeed = 10.0f;
+    bool m_AnimInitialized = false;
 public:
     EnemyBase();
     ~EnemyBase();

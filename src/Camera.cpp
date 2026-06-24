@@ -76,11 +76,7 @@ perspectiveData(perspectiveData),
 orthoData(MakeOrthoFromPerspective(perspectiveData)),
 layerMask(LayerMask::All),
 priority(0),
-passes(RenderPassType::DepthPrepass | RenderPassType::Color) {
-	if (GetScene()->GetGraphics() && GetScene()->GetGraphics()->GetMainCamera() == nullptr) {
-		SetAsMainCamera();
-	}
-}
+passes(RenderPassType::DepthPrepass | RenderPassType::Color) { }
 
 Camera::Camera(Orthographic orthoData):
 type(CameraType::Orthographic),
@@ -88,11 +84,7 @@ perspectiveData(MakePerspectiveFromOrtho(orthoData)),
 orthoData(orthoData),
 layerMask(LayerMask::All),
 priority(0),
-passes(RenderPassType::DepthPrepass | RenderPassType::Color) {
-	if (GetScene()->GetGraphics() && GetScene()->GetGraphics()->GetMainCamera() == nullptr) {
-		SetAsMainCamera();
-	}
-}
+passes(RenderPassType::DepthPrepass | RenderPassType::Color) { }
 
 Camera::~Camera() {
 	if (this == this->GetScene()->GetGraphics()->GetMainCamera()) {
@@ -109,6 +101,12 @@ Camera::~Camera() {
 		}
 
 		this->GetScene()->GetGraphics()->SetMainCamera(nullptr);
+	}
+}
+
+void Camera::Awake() {
+	if (GetScene()->GetGraphics() && GetScene()->GetGraphics()->GetMainCamera() == nullptr) {
+		SetAsMainCamera();
 	}
 }
 

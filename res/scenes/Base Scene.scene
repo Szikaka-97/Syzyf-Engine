@@ -8,12 +8,16 @@
           "type": "InputSystem"
         },
         {
+          "data": null,
+          "type": "DebugInspector"
+        },
+        {
           "data": {
             "ambientLight": {
-              "w": 0.7176470756530762,
+              "w": 0.0,
               "x": 1.0,
-              "y": 1.0,
-              "z": 1.0
+              "y": 0.6000000238418579,
+              "z": 0.3019607961177826
             }
           },
           "type": "LightSystem"
@@ -24,11 +28,75 @@
         },
         {
           "data": null,
-          "type": "void"
+          "type": "Physics::CharacterControllerSystem"
+        },
+        {
+          "data": null,
+          "type": "Physics::VirtualCharacterControllerSystem"
+        },
+        {
+          "data": null,
+          "type": "Physics::BodySystem"
         },
         {
           "data": null,
           "type": "Physics::System"
+        },
+        {
+          "data": null,
+          "type": "UiLayoutSystem"
+        },
+        {
+          "data": null,
+          "type": "UiRenderSystem"
+        },
+        {
+          "data": null,
+          "type": "UiTextRenderSystem"
+        },
+        {
+          "data": null,
+          "type": "UiInteractableSystem"
+        },
+        {
+          "data": null,
+          "type": "UiSystem"
+        },
+        {
+          "data": null,
+          "type": "SkeletonSystem"
+        },
+        {
+          "data": null,
+          "type": "AnimationSystem"
+        },
+        {
+          "data": null,
+          "type": "PickableItemSystem"
+        },
+        {
+          "data": null,
+          "type": "TweenSystem"
+        },
+        {
+          "data": null,
+          "type": "WheelSystem"
+        },
+        {
+          "data": null,
+          "type": "ThrowableObjectPool"
+        },
+        {
+          "data": null,
+          "type": "Scatter::SpawnerSystem"
+        },
+        {
+          "data": null,
+          "type": "ParticleSpawnerSystem"
+        },
+        {
+          "data": null,
+          "type": "void"
         },
         {
           "data": null,
@@ -39,7 +107,7 @@
           "type": "SceneGraphics"
         }
       ],
-      "name": "New Scene",
+      "name": "Base Scene",
       "root": 1
     }
   },
@@ -47,14 +115,30 @@
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        2
+        2,
+        22,
+        32,
+        160,
+        221,
+        225,
+        227,
+        233,
+        235,
+        239,
+        241,
+        245,
+        247,
+        251,
+        253,
+        257,
+        312
       ],
       "disabledState": 0,
       "id": 0,
       "layer": 0,
       "name": "root",
       "objects": [
-        97,
+        317,
         -1
       ],
       "parent": -1,
@@ -83,46 +167,15 @@
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        3,
-        17,
-        19,
-        21,
-        23,
-        25,
-        27,
-        29,
-        31,
-        33,
-        35,
-        37,
-        39,
-        41,
-        43,
-        45,
-        47,
-        49,
-        51,
-        56,
-        59,
-        61,
-        64,
-        67,
-        70,
-        73,
-        76,
-        79,
-        82,
-        85,
-        88,
-        91,
-        93
+        3
       ],
       "disabledState": 0,
-      "id": 2,
+      "id": 49,
       "layer": 0,
-      "name": "Base",
+      "name": "Player",
       "objects": [
-        96
+        20,
+        21
       ],
       "parent": 1,
       "scene": 0,
@@ -149,15 +202,14 @@
   {
     "_class_name": "SceneNode",
     "_data": {
-      "children": [],
-      "disabledState": 0,
-      "id": 4,
-      "layer": 0,
-      "name": "Cube.005",
-      "objects": [
-        4,
-        -1
+      "children": [
+        4
       ],
+      "disabledState": 0,
+      "id": 50,
+      "layer": 0,
+      "name": "Bimberman",
+      "objects": [],
       "parent": 2,
       "scene": 0,
       "transform": {
@@ -173,9 +225,78 @@
         "_21": 0.0,
         "_22": 1.0,
         "_23": 0.0,
-        "_30": -9.941577911376953,
-        "_31": 0.205556720495224,
-        "_32": 4.443620681762695,
+        "_30": 0.0,
+        "_31": 0.0,
+        "_32": 0.0,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [
+        5,
+        9,
+        11
+      ],
+      "disabledState": 0,
+      "id": 51,
+      "layer": 0,
+      "name": "root",
+      "objects": [],
+      "parent": 3,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": 0.0,
+        "_32": 0.0,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [],
+      "disabledState": 0,
+      "id": 52,
+      "layer": 0,
+      "name": "Leg L",
+      "objects": [
+        6,
+        -1
+      ],
+      "parent": 4,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.10759390890598297,
+        "_31": 0.4945749044418335,
+        "_32": -0.011628687381744385,
         "_33": 1.0
       }
     }
@@ -185,21 +306,11 @@
     "_data": {
       "enabled": true,
       "materials": [
-        5,
-        6,
         7,
-        8,
-        9,
-        10,
-        11,
-        12,
-        13,
-        14,
-        15,
-        16
+        8
       ],
-      "mesh": "./res/models/rooms/Base.glb:Cube.051",
-      "node": 3
+      "mesh": "./res/models/bimbermann_throwing.glb:Cube.007",
+      "node": 5
     }
   },
   {
@@ -217,6 +328,7 @@
           "wrapU": 1,
           "wrapV": 1
         },
+        "ambientBump": 0.0,
         "armMap": {
           "channels": 2,
           "colorSpace": 0,
@@ -229,9 +341,9 @@
         },
         "baseColorFactor": {
           "w": 1.0,
-          "x": 0.800000011920929,
-          "y": 0.800000011920929,
-          "z": 0.800000011920929
+          "x": 0.03193129599094391,
+          "y": 0.03193129599094391,
+          "z": 0.03193129599094391
         },
         "emissiveFactor": {
           "x": 0.0,
@@ -275,11 +387,692 @@
           "colorSpace": 1,
           "format": 0,
           "magFilter": 1,
+          "minFilter": 1,
+          "path": "./res/textures/default_color.png",
+          "wrapU": 1,
+          "wrapV": 1
+        },
+        "ambientBump": 0.0,
+        "armMap": {
+          "channels": 2,
+          "colorSpace": 0,
+          "format": 0,
+          "magFilter": 1,
+          "minFilter": 1,
+          "path": "./res/textures/default_arm.png",
+          "wrapU": 1,
+          "wrapV": 1
+        },
+        "baseColorFactor": {
+          "w": 0.800000011920929,
+          "x": 0.800000011920929,
+          "y": 0.800000011920929,
+          "z": 0.800000011920929
+        },
+        "emissiveFactor": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "emissiveMap": {
+          "channels": 2,
+          "colorSpace": 1,
+          "format": 0,
+          "magFilter": 1,
+          "minFilter": 7,
+          "path": "./res/textures/default_emissive.png",
+          "wrapU": 1,
+          "wrapV": 1
+        },
+        "emissiveStrength": 0.0,
+        "metallicFactor": 0.0,
+        "normalMap": {
+          "channels": 2,
+          "colorSpace": 0,
+          "format": 0,
+          "magFilter": 1,
+          "minFilter": 1,
+          "path": "./res/textures/default_norm.png",
+          "wrapU": 1,
+          "wrapV": 1
+        },
+        "roughnessFactor": 1.0,
+        "useOcclusion": false
+      }
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [],
+      "disabledState": 0,
+      "id": 53,
+      "layer": 0,
+      "name": "Leg R",
+      "objects": [
+        10,
+        -1
+      ],
+      "parent": 4,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": -0.10759390890598297,
+        "_31": 0.4945749044418335,
+        "_32": -0.011628687381744385,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "MeshRenderer",
+    "_data": {
+      "enabled": true,
+      "materials": [
+        7,
+        8
+      ],
+      "mesh": "./res/models/bimbermann_throwing.glb:Cube.008",
+      "node": 9
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [
+        12,
+        14,
+        17
+      ],
+      "disabledState": 0,
+      "id": 54,
+      "layer": 0,
+      "name": "Torso",
+      "objects": [
+        19,
+        -1
+      ],
+      "parent": 4,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": 0.5133621692657471,
+        "_32": -0.013373224064707756,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [],
+      "disabledState": 0,
+      "id": 55,
+      "layer": 0,
+      "name": "Arm L",
+      "objects": [
+        13,
+        -1
+      ],
+      "parent": 11,
+      "scene": 0,
+      "transform": {
+        "_00": 0.6882532835006714,
+        "_01": -0.7254705429077148,
+        "_02": -0.0,
+        "_03": 0.0,
+        "_10": 0.7254705429077148,
+        "_11": 0.6882532835006714,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": -0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.2980906665325165,
+        "_31": 0.4060084819793701,
+        "_32": -0.03087848238646984,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "MeshRenderer",
+    "_data": {
+      "enabled": true,
+      "materials": [
+        7,
+        8
+      ],
+      "mesh": "./res/models/bimbermann_throwing.glb:Cube.010",
+      "node": 12
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [
+        15
+      ],
+      "disabledState": 0,
+      "id": 56,
+      "layer": 0,
+      "name": "Arm R",
+      "objects": [
+        16,
+        -1
+      ],
+      "parent": 11,
+      "scene": 0,
+      "transform": {
+        "_00": 0.5796782970428467,
+        "_01": 0.8148454427719116,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": -0.8148454427719116,
+        "_11": 0.5796782970428467,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": -0.29809069633483887,
+        "_31": 0.4060084819793701,
+        "_32": -0.03087848238646984,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [],
+      "disabledState": 0,
+      "id": 57,
+      "layer": 0,
+      "name": "Throw Point",
+      "objects": [],
+      "parent": 14,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": -0.5744988918304443,
+        "_31": -0.25478798151016235,
+        "_32": -0.01422884687781334,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "MeshRenderer",
+    "_data": {
+      "enabled": true,
+      "materials": [
+        7,
+        8
+      ],
+      "mesh": "./res/models/bimbermann_throwing.glb:Cube.009",
+      "node": 14
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [],
+      "disabledState": 0,
+      "id": 58,
+      "layer": 0,
+      "name": "Head",
+      "objects": [
+        18,
+        -1
+      ],
+      "parent": 11,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.024226905778050423,
+        "_31": 0.48744702339172363,
+        "_32": 0.033081408590078354,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "MeshRenderer",
+    "_data": {
+      "enabled": true,
+      "materials": [
+        7,
+        8
+      ],
+      "mesh": "./res/models/bimbermann_throwing.glb:Cube.004",
+      "node": 17
+    }
+  },
+  {
+    "_class_name": "MeshRenderer",
+    "_data": {
+      "enabled": true,
+      "materials": [
+        7,
+        8
+      ],
+      "mesh": "./res/models/bimbermann_throwing.glb:Cube.011",
+      "node": 11
+    }
+  },
+  {
+    "_class_name": "Physics::VirtualCharacterController",
+    "_data": {
+      "enabled": true,
+      "mBackFaceMode": 1,
+      "mCharacterPadding": 0.019999999552965164,
+      "mCollisionTolerance": 0.0010000000474974513,
+      "mHitReductionCosMaxAngle": 0.9990000128746033,
+      "mMass": 70.0,
+      "mMaxCollisionIterations": 5,
+      "mMaxConstraintIterations": 15,
+      "mMaxNumHits": 256,
+      "mMaxStrength": 100.0,
+      "mMinTimeRemaining": 9.999999747378752e-05,
+      "mPenetrationRecoverySpeed": 1.0,
+      "mPredictiveContactDistance": 0.10000000149011612,
+      "mShapeOffset": {
+        "x": 0.0,
+        "y": 1.0,
+        "z": 0.0
+      },
+      "node": 2,
+      "shape": {
+        "halfHeight": 0.5,
+        "kind": 2,
+        "radius": 0.5
+      }
+    }
+  },
+  {
+    "_class_name": "PlayerController",
+    "_data": {
+      "enabled": true,
+      "node": 2
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [],
+      "disabledState": 0,
+      "id": 63,
+      "layer": 0,
+      "name": "Camera Node",
+      "objects": [
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31
+      ],
+      "parent": 1,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": 0.0,
+        "_32": 0.0,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "Camera",
+    "_data": {
+      "enabled": true,
+      "layerMask": {
+        "value": 4294967295
+      },
+      "node": 22,
+      "orthoData": {
+        "bottom": -8.66025447845459,
+        "left": 15.396008491516113,
+        "right": -15.396008491516113,
+        "top": 8.66025447845459,
+        "zfar": 200.0,
+        "znear": 0.10000000149011612
+      },
+      "passes": 3,
+      "perspectiveData": {
+        "aspectRatio": 1.7777777910232544,
+        "farPlane": 200.0,
+        "fovyDegrees": 60.0,
+        "nearPlane": 0.10000000149011612
+      },
+      "priority": 0,
+      "type": 0
+    }
+  },
+  {
+    "_class_name": "CameraSettings",
+    "_data": {
+      "angleX": 45.0,
+      "angleY": 135.0,
+      "cameraRotationSpeed": 180.0,
+      "enabled": true,
+      "height": 5.0,
+      "node": 22,
+      "targetAngleY": 135.0
+    }
+  },
+  {
+    "_class_name": "MaskEffects",
+    "_data": {
+      "enabled": true,
+      "node": 22,
+      "outlineColor": {
+        "w": 1.0,
+        "x": 1.0,
+        "y": 0.5,
+        "z": 0.0
+      },
+      "outlineIntensity": 1.0,
+      "xrayColor": {
+        "w": 0.20000000298023224,
+        "x": 1.0,
+        "y": 0.0,
+        "z": 1.0
+      },
+      "xrayIntensity": 1.0
+    }
+  },
+  {
+    "_class_name": "JfaOutline",
+    "_data": {
+      "drawInnerLines": false,
+      "enabled": true,
+      "ignoreDepth": false,
+      "node": 22,
+      "outlineColor": {
+        "x": 1.0,
+        "y": 0.11372549086809158,
+        "z": 0.11372549086809158
+      },
+      "outlineIntensity": 1.0,
+      "outlineThickness": 4.0
+    }
+  },
+  {
+    "_class_name": "DepthOfField",
+    "_data": {
+      "blurLevel": 3,
+      "enabled": false,
+      "finalMixFactor": 1.0,
+      "focusDistance": 50.0,
+      "maxDistance": 20.0,
+      "maxThreshold": 0.5,
+      "minDistance": 5.0,
+      "minThreshold": 0.10000000149011612,
+      "node": 22,
+      "separation": 2.0,
+      "size": 2,
+      "useDilution": false
+    }
+  },
+  {
+    "_class_name": "Bloom",
+    "_data": {
+      "dirtIntensity": 0.0,
+      "enabled": true,
+      "intensity": 0.6000000238418579,
+      "knee": 0.10000000149011612,
+      "node": 22,
+      "threshold": 1.5
+    }
+  },
+  {
+    "_class_name": "Tonemapper",
+    "_data": {
+      "enabled": true,
+      "node": 22,
+      "toneOperator": 3
+    }
+  },
+  {
+    "_class_name": "ColorGrading",
+    "_data": {
+      "brightness": 1.0,
+      "chromaticAberrationStrength": 0.0,
+      "contrast": 1.0,
+      "enabled": true,
+      "filmGrainStrength": 0.0,
+      "node": 22,
+      "saturation": 1.0,
+      "vignetteStrength": 0.0
+    }
+  },
+  {
+    "_class_name": "Fxaa",
+    "_data": {
+      "edgeThreshold": 0.125,
+      "edgeThresholdMin": 0.0416666679084301,
+      "enabled": true,
+      "node": 22,
+      "searchSteps": 32.0,
+      "searchThreshold": 0.25,
+      "subpixCap": 0.75,
+      "subpixTrim": 0.25
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [
+        33,
+        46,
+        48,
+        50,
+        52,
+        54,
+        56,
+        58,
+        60,
+        62,
+        64,
+        66,
+        68,
+        70,
+        72,
+        74,
+        76,
+        78,
+        80,
+        87,
+        90,
+        92,
+        96,
+        100,
+        104,
+        108,
+        112,
+        116,
+        120,
+        124,
+        128,
+        132,
+        134,
+        135,
+        138,
+        139,
+        142,
+        143,
+        146,
+        149,
+        150,
+        151,
+        153
+      ],
+      "disabledState": 0,
+      "id": 178,
+      "layer": 0,
+      "name": "Base",
+      "objects": [
+        157,
+        158,
+        159
+      ],
+      "parent": 1,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": -1.0916380688286154e-07,
+        "_32": 0.0,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [],
+      "disabledState": 0,
+      "id": 179,
+      "layer": 0,
+      "name": "floor",
+      "objects": [
+        34,
+        -1
+      ],
+      "parent": 32,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": -9.941577911376953,
+        "_31": 0.205556720495224,
+        "_32": 4.443620681762695,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "MeshRenderer",
+    "_data": {
+      "enabled": true,
+      "materials": [
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45
+      ],
+      "mesh": "./res/models/rooms/Base.glb:Cube.051",
+      "node": 33
+    }
+  },
+  {
+    "_class_name": "Material",
+    "_data": {
+      "shader": "./res/shaders/gltf/lit.vert@@@@./res/shaders/gltf/pbr.frag@",
+      "variables": {
+        "albedoMap": {
+          "channels": 3,
+          "colorSpace": 1,
+          "format": 0,
+          "magFilter": 1,
           "minFilter": 7,
           "path": "./res/models/rooms/Base.glb:metal_Base_color",
           "wrapU": 1,
           "wrapV": 1
         },
+        "ambientBump": 0.0,
         "armMap": {
           "channels": 3,
           "colorSpace": 0,
@@ -343,6 +1136,7 @@
           "wrapU": 1,
           "wrapV": 1
         },
+        "ambientBump": 0.0,
         "armMap": {
           "channels": 2,
           "colorSpace": 0,
@@ -406,9 +1200,10 @@
           "wrapU": 1,
           "wrapV": 1
         },
+        "ambientBump": 0.0,
         "armMap": {
           "channels": 3,
-          "colorSpace": 0,
+          "colorSpace": 1,
           "format": 0,
           "magFilter": 1,
           "minFilter": 7,
@@ -440,8 +1235,8 @@
         "emissiveStrength": 1.0,
         "metallicFactor": 1.0,
         "normalMap": {
-          "channels": 2,
-          "colorSpace": 0,
+          "channels": 3,
+          "colorSpace": 1,
           "format": 0,
           "magFilter": 1,
           "minFilter": 7,
@@ -469,9 +1264,10 @@
           "wrapU": 1,
           "wrapV": 1
         },
+        "ambientBump": 0.0,
         "armMap": {
           "channels": 3,
-          "colorSpace": 0,
+          "colorSpace": 1,
           "format": 0,
           "magFilter": 1,
           "minFilter": 7,
@@ -503,8 +1299,8 @@
         "emissiveStrength": 1.0,
         "metallicFactor": 1.0,
         "normalMap": {
-          "channels": 2,
-          "colorSpace": 0,
+          "channels": 3,
+          "colorSpace": 1,
           "format": 0,
           "magFilter": 1,
           "minFilter": 7,
@@ -532,13 +1328,14 @@
           "wrapU": 1,
           "wrapV": 1
         },
+        "ambientBump": 0.0,
         "armMap": {
           "channels": 3,
-          "colorSpace": 0,
+          "colorSpace": 1,
           "format": 0,
           "magFilter": 1,
           "minFilter": 7,
-          "path": "./res/models/rooms/Base.glb:clay2.001_Metallic.png-clay2",
+          "path": "./res/models/rooms/Base.glb:clay2",
           "wrapU": 1,
           "wrapV": 1
         },
@@ -566,8 +1363,8 @@
         "emissiveStrength": 1.0,
         "metallicFactor": 1.0,
         "normalMap": {
-          "channels": 2,
-          "colorSpace": 0,
+          "channels": 3,
+          "colorSpace": 1,
           "format": 0,
           "magFilter": 1,
           "minFilter": 7,
@@ -589,81 +1386,19 @@
           "channels": 3,
           "colorSpace": 1,
           "format": 0,
-          "magFilter": 1,
-          "minFilter": 7,
-          "path": "./res/models/rooms/Base.glb:surface_Base_color",
-          "wrapU": 1,
-          "wrapV": 1
-        },
-        "armMap": {
-          "channels": 3,
-          "colorSpace": 0,
-          "format": 0,
-          "magFilter": 1,
-          "minFilter": 7,
-          "path": "./res/models/rooms/Base.glb:surface_Metallic-surface_Roughness",
-          "wrapU": 1,
-          "wrapV": 1
-        },
-        "baseColorFactor": {
-          "w": 1.0,
-          "x": 1.0,
-          "y": 1.0,
-          "z": 1.0
-        },
-        "emissiveFactor": {
-          "x": 0.0,
-          "y": 0.0,
-          "z": 0.0
-        },
-        "emissiveMap": {
-          "channels": 2,
-          "colorSpace": 1,
-          "format": 0,
-          "magFilter": 1,
-          "minFilter": 7,
-          "path": "./res/textures/default_emissive.png",
-          "wrapU": 1,
-          "wrapV": 1
-        },
-        "emissiveStrength": 1.0,
-        "metallicFactor": 1.0,
-        "normalMap": {
-          "channels": 2,
-          "colorSpace": 0,
-          "format": 0,
-          "magFilter": 1,
-          "minFilter": 7,
-          "path": "./res/models/rooms/Base.glb:surface_Normal_OpenGL",
-          "wrapU": 1,
-          "wrapV": 1
-        },
-        "roughnessFactor": 1.0,
-        "useOcclusion": false
-      }
-    }
-  },
-  {
-    "_class_name": "Material",
-    "_data": {
-      "shader": "./res/shaders/gltf/lit.vert@@@@./res/shaders/gltf/pbr.frag@",
-      "variables": {
-        "albedoMap": {
-          "channels": 3,
-          "colorSpace": 1,
-          "format": 0,
-          "magFilter": 1,
-          "minFilter": 7,
+          "magFilter": 0,
+          "minFilter": 4,
           "path": "./res/models/rooms/Base.glb:DefaultMaterial_Base_color",
           "wrapU": 1,
           "wrapV": 1
         },
+        "ambientBump": 0.0,
         "armMap": {
           "channels": 3,
           "colorSpace": 0,
           "format": 0,
-          "magFilter": 1,
-          "minFilter": 7,
+          "magFilter": 0,
+          "minFilter": 4,
           "path": "./res/models/rooms/Base.glb:DefaultMaterial_Metallic-DefaultMaterial_Roughness",
           "wrapU": 1,
           "wrapV": 1
@@ -695,8 +1430,8 @@
           "channels": 2,
           "colorSpace": 0,
           "format": 0,
-          "magFilter": 1,
-          "minFilter": 7,
+          "magFilter": 0,
+          "minFilter": 4,
           "path": "./res/models/rooms/Base.glb:DefaultMaterial_Normal_OpenGL",
           "wrapU": 1,
           "wrapV": 1
@@ -721,6 +1456,7 @@
           "wrapU": 1,
           "wrapV": 1
         },
+        "ambientBump": 0.0,
         "armMap": {
           "channels": 2,
           "colorSpace": 0,
@@ -784,6 +1520,7 @@
           "wrapU": 1,
           "wrapV": 1
         },
+        "ambientBump": 0.0,
         "armMap": {
           "channels": 2,
           "colorSpace": 0,
@@ -847,6 +1584,7 @@
           "wrapU": 1,
           "wrapV": 1
         },
+        "ambientBump": 0.0,
         "armMap": {
           "channels": 3,
           "colorSpace": 0,
@@ -898,6 +1636,70 @@
   {
     "_class_name": "Material",
     "_data": {
+      "shader": "./res/shaders/gltf/lit.vert@@@@./res/shaders/gltf/pbr_blend.frag@",
+      "variables": {
+        "albedoMap": {
+          "channels": 3,
+          "colorSpace": 1,
+          "format": 0,
+          "magFilter": 1,
+          "minFilter": 7,
+          "path": "./res/models/rooms/Base.glb:Image_2",
+          "wrapU": 1,
+          "wrapV": 1
+        },
+        "ambientBump": 0.0,
+        "armMap": {
+          "channels": 3,
+          "colorSpace": 0,
+          "format": 0,
+          "magFilter": 1,
+          "minFilter": 7,
+          "path": "./res/models/rooms/Base.glb:Image_3",
+          "wrapU": 1,
+          "wrapV": 1
+        },
+        "baseColorFactor": {
+          "w": 1.0,
+          "x": 1.0,
+          "y": 1.0,
+          "z": 1.0
+        },
+        "emissiveFactor": {
+          "x": 1.0,
+          "y": 1.0,
+          "z": 1.0
+        },
+        "emissiveMap": {
+          "channels": 2,
+          "colorSpace": 1,
+          "format": 0,
+          "magFilter": 1,
+          "minFilter": 7,
+          "path": "./res/models/rooms/Base.glb:Image_4",
+          "wrapU": 1,
+          "wrapV": 1
+        },
+        "emissiveStrength": 1.0,
+        "metallicFactor": 1.0,
+        "normalMap": {
+          "channels": 2,
+          "colorSpace": 0,
+          "format": 0,
+          "magFilter": 1,
+          "minFilter": 7,
+          "path": "./res/models/rooms/Base.glb:Image_5",
+          "wrapU": 1,
+          "wrapV": 1
+        },
+        "roughnessFactor": 0.6750496625900269,
+        "useOcclusion": false
+      }
+    }
+  },
+  {
+    "_class_name": "Material",
+    "_data": {
       "shader": "./res/shaders/gltf/lit.vert@@@@./res/shaders/gltf/pbr.frag@",
       "variables": {
         "albedoMap": {
@@ -910,6 +1712,7 @@
           "wrapU": 1,
           "wrapV": 1
         },
+        "ambientBump": 0.0,
         "armMap": {
           "channels": 2,
           "colorSpace": 0,
@@ -963,14 +1766,14 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 5,
+      "id": 180,
       "layer": 0,
       "name": "Cube.006",
       "objects": [
-        18,
+        47,
         -1
       ],
-      "parent": 2,
+      "parent": 32,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -997,21 +1800,20 @@
     "_data": {
       "enabled": true,
       "materials": [
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11,
-        12,
-        13,
-        14,
-        15,
-        16
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45
       ],
-      "mesh": "./res/models/rooms/Base.glb:Cube.001",
-      "node": 17
+      "mesh": "./res/models/rooms/Base.glb:Cube.002",
+      "node": 46
     }
   },
   {
@@ -1019,14 +1821,14 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 6,
+      "id": 181,
       "layer": 0,
       "name": "dzban_sredni.005",
       "objects": [
-        20,
+        49,
         -1
       ],
-      "parent": 2,
+      "parent": 32,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -1053,21 +1855,20 @@
     "_data": {
       "enabled": true,
       "materials": [
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11,
-        12,
-        13,
-        14,
-        15,
-        16
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45
       ],
       "mesh": "./res/models/rooms/Base.glb:Cylinder.141",
-      "node": 19
+      "node": 48
     }
   },
   {
@@ -1075,14 +1876,14 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 7,
+      "id": 182,
       "layer": 0,
       "name": "dzban_duzy_2.003",
       "objects": [
-        22,
+        51,
         -1
       ],
-      "parent": 2,
+      "parent": 32,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -1109,21 +1910,20 @@
     "_data": {
       "enabled": true,
       "materials": [
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11,
-        12,
-        13,
-        14,
-        15,
-        16
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45
       ],
       "mesh": "./res/models/rooms/Base.glb:Cylinder.147",
-      "node": 21
+      "node": 50
     }
   },
   {
@@ -1131,14 +1931,14 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 8,
+      "id": 183,
       "layer": 0,
       "name": "Cube.001",
       "objects": [
-        24,
+        53,
         -1
       ],
-      "parent": 2,
+      "parent": 32,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -1165,21 +1965,20 @@
     "_data": {
       "enabled": true,
       "materials": [
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11,
-        12,
-        13,
-        14,
-        15,
-        16
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45
       ],
       "mesh": "./res/models/rooms/Base.glb:Cube.062",
-      "node": 23
+      "node": 52
     }
   },
   {
@@ -1187,14 +1986,14 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 9,
+      "id": 184,
       "layer": 0,
       "name": "Cube.002",
       "objects": [
-        26,
+        55,
         -1
       ],
-      "parent": 2,
+      "parent": 32,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -1221,21 +2020,20 @@
     "_data": {
       "enabled": true,
       "materials": [
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11,
-        12,
-        13,
-        14,
-        15,
-        16
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45
       ],
       "mesh": "./res/models/rooms/Base.glb:Cube.063",
-      "node": 25
+      "node": 54
     }
   },
   {
@@ -1243,14 +2041,14 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 10,
+      "id": 185,
       "layer": 0,
       "name": "Cube.004",
       "objects": [
-        28,
+        57,
         -1
       ],
-      "parent": 2,
+      "parent": 32,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -1277,21 +2075,20 @@
     "_data": {
       "enabled": true,
       "materials": [
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11,
-        12,
-        13,
-        14,
-        15,
-        16
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45
       ],
       "mesh": "./res/models/rooms/Base.glb:Cube.065",
-      "node": 27
+      "node": 56
     }
   },
   {
@@ -1299,14 +2096,14 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 11,
+      "id": 186,
       "layer": 0,
       "name": "wazon.003",
       "objects": [
-        30,
+        59,
         -1
       ],
-      "parent": 2,
+      "parent": 32,
       "scene": 0,
       "transform": {
         "_00": 0.6203697919845581,
@@ -1333,21 +2130,20 @@
     "_data": {
       "enabled": true,
       "materials": [
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11,
-        12,
-        13,
-        14,
-        15,
-        16
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45
       ],
       "mesh": "./res/models/rooms/Base.glb:Cylinder.149",
-      "node": 29
+      "node": 58
     }
   },
   {
@@ -1355,14 +2151,14 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 12,
+      "id": 187,
       "layer": 0,
       "name": "dzban_sredni.006",
       "objects": [
-        32,
+        61,
         -1
       ],
-      "parent": 2,
+      "parent": 32,
       "scene": 0,
       "transform": {
         "_00": 0.6203697919845581,
@@ -1389,21 +2185,20 @@
     "_data": {
       "enabled": true,
       "materials": [
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11,
-        12,
-        13,
-        14,
-        15,
-        16
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45
       ],
       "mesh": "./res/models/rooms/Base.glb:Cylinder.150",
-      "node": 31
+      "node": 60
     }
   },
   {
@@ -1411,14 +2206,14 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 13,
+      "id": 188,
       "layer": 0,
       "name": "dzban_duzy_2.004",
       "objects": [
-        34,
+        63,
         -1
       ],
-      "parent": 2,
+      "parent": 32,
       "scene": 0,
       "transform": {
         "_00": 0.6203697919845581,
@@ -1445,21 +2240,20 @@
     "_data": {
       "enabled": true,
       "materials": [
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11,
-        12,
-        13,
-        14,
-        15,
-        16
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45
       ],
       "mesh": "./res/models/rooms/Base.glb:Cylinder.152",
-      "node": 33
+      "node": 62
     }
   },
   {
@@ -1467,14 +2261,14 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 14,
+      "id": 189,
       "layer": 0,
       "name": "Cube.024",
       "objects": [
-        36,
+        65,
         -1
       ],
-      "parent": 2,
+      "parent": 32,
       "scene": 0,
       "transform": {
         "_00": 0.6203697919845581,
@@ -1501,21 +2295,20 @@
     "_data": {
       "enabled": true,
       "materials": [
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11,
-        12,
-        13,
-        14,
-        15,
-        16
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45
       ],
       "mesh": "./res/models/rooms/Base.glb:Cube.068",
-      "node": 35
+      "node": 64
     }
   },
   {
@@ -1523,14 +2316,14 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 15,
+      "id": 190,
       "layer": 0,
       "name": "Plane",
       "objects": [
-        38,
+        67,
         -1
       ],
-      "parent": 2,
+      "parent": 32,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -1557,21 +2350,20 @@
     "_data": {
       "enabled": true,
       "materials": [
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11,
-        12,
-        13,
-        14,
-        15,
-        16
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45
       ],
       "mesh": "./res/models/rooms/Base.glb:Plane.028",
-      "node": 37
+      "node": 66
     }
   },
   {
@@ -1579,14 +2371,14 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 16,
+      "id": 191,
       "layer": 0,
       "name": "Walls",
       "objects": [
-        40,
+        69,
         -1
       ],
-      "parent": 2,
+      "parent": 32,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -1613,21 +2405,20 @@
     "_data": {
       "enabled": true,
       "materials": [
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11,
-        12,
-        13,
-        14,
-        15,
-        16
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45
       ],
       "mesh": "./res/models/rooms/Base.glb:Plane.029",
-      "node": 39
+      "node": 68
     }
   },
   {
@@ -1635,14 +2426,14 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 17,
+      "id": 192,
       "layer": 0,
       "name": "Cube.014",
       "objects": [
-        42,
+        71,
         -1
       ],
-      "parent": 2,
+      "parent": 32,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -1669,21 +2460,20 @@
     "_data": {
       "enabled": true,
       "materials": [
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11,
-        12,
-        13,
-        14,
-        15,
-        16
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45
       ],
       "mesh": "./res/models/rooms/Base.glb:Cube.070",
-      "node": 41
+      "node": 70
     }
   },
   {
@@ -1691,14 +2481,14 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 18,
+      "id": 193,
       "layer": 0,
       "name": "Entrance",
       "objects": [
-        44,
+        73,
         -1
       ],
-      "parent": 2,
+      "parent": 32,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -1715,7 +2505,7 @@
         "_23": 0.0,
         "_30": 1.6685969829559326,
         "_31": 0.0,
-        "_32": -10.400664329528809,
+        "_32": -4.476322650909424,
         "_33": 1.0
       }
     }
@@ -1725,21 +2515,20 @@
     "_data": {
       "enabled": true,
       "materials": [
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11,
-        12,
-        13,
-        14,
-        15,
-        16
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45
       ],
       "mesh": "./res/models/rooms/Base.glb:Cube.071",
-      "node": 43
+      "node": 72
     }
   },
   {
@@ -1747,14 +2536,14 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 19,
+      "id": 194,
       "layer": 0,
       "name": "Cube.015",
       "objects": [
-        46,
+        75,
         -1
       ],
-      "parent": 2,
+      "parent": 32,
       "scene": 0,
       "transform": {
         "_00": -1.0,
@@ -1769,9 +2558,9 @@
         "_21": -0.0,
         "_22": -1.0,
         "_23": 0.0,
-        "_30": 9.94157886505127,
+        "_30": 5.93242073059082,
         "_31": 0.205556720495224,
-        "_32": 3.2975001335144043,
+        "_32": 5.680301666259766,
         "_33": 1.0
       }
     }
@@ -1781,21 +2570,20 @@
     "_data": {
       "enabled": true,
       "materials": [
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11,
-        12,
-        13,
-        14,
-        15,
-        16
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45
       ],
       "mesh": "./res/models/rooms/Base.glb:Cube.072",
-      "node": 45
+      "node": 74
     }
   },
   {
@@ -1803,14 +2591,14 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 20,
+      "id": 195,
       "layer": 0,
       "name": "Cube.016",
       "objects": [
-        48,
+        77,
         -1
       ],
-      "parent": 2,
+      "parent": 32,
       "scene": 0,
       "transform": {
         "_00": -1.0,
@@ -1825,9 +2613,9 @@
         "_21": -0.0,
         "_22": -1.0,
         "_23": 0.0,
-        "_30": 9.9415864944458,
+        "_30": 5.932428359985352,
         "_31": 0.3244478106498718,
-        "_32": 3.288424491882324,
+        "_32": 5.671226501464844,
         "_33": 1.0
       }
     }
@@ -1837,21 +2625,20 @@
     "_data": {
       "enabled": true,
       "materials": [
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11,
-        12,
-        13,
-        14,
-        15,
-        16
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45
       ],
       "mesh": "./res/models/rooms/Base.glb:Cube.073",
-      "node": 47
+      "node": 76
     }
   },
   {
@@ -1859,14 +2646,14 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 21,
+      "id": 196,
       "layer": 0,
       "name": "NextRoom",
       "objects": [
-        50,
+        79,
         -1
       ],
-      "parent": 2,
+      "parent": 32,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -1893,38 +2680,38 @@
     "_data": {
       "enabled": true,
       "materials": [
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11,
-        12,
-        13,
-        14,
-        15,
-        16
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45
       ],
       "mesh": "./res/models/rooms/Base.glb:Cube.074",
-      "node": 49
+      "node": 78
     }
   },
   {
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        52
+        81,
+        84
       ],
       "disabledState": 0,
-      "id": 22,
+      "id": 197,
       "layer": 0,
       "name": "Exit Gate",
       "objects": [
-        55,
+        86,
         -1
       ],
-      "parent": 2,
+      "parent": 32,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -1951,15 +2738,15 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 23,
+      "id": 198,
       "layer": 0,
       "name": "Exit Gate Collider",
       "objects": [
-        53,
-        -1,
-        54
+        82,
+        83,
+        -1
       ],
-      "parent": 51,
+      "parent": 80,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -1986,21 +2773,20 @@
     "_data": {
       "enabled": false,
       "materials": [
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11,
-        12,
-        13,
-        14,
-        15,
-        16
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45
       ],
       "mesh": "./res/models/rooms/Base.glb:Cube.078",
-      "node": 52
+      "node": 81
     }
   },
   {
@@ -2025,15 +2811,49 @@
       "mMaxAngularVelocity": 47.1238899230957,
       "mMaxLinearVelocity": 500.0,
       "mMotionQuality": 0,
-      "mMotionType": 0,
+      "mMotionType": 2,
       "mObjectLayer": 0,
       "mOverrideMassProperties": 2,
       "mRestitution": 0.0,
       "mUseManifoldReduction": true,
-      "node": 52,
+      "node": 81,
       "shape": {
         "kind": 4,
         "mesh": "./res/models/rooms/Base.glb:Cube.078"
+      }
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [],
+      "disabledState": 0,
+      "id": 199,
+      "layer": 0,
+      "name": "Exit Gate Lock",
+      "objects": [
+        85,
+        -1
+      ],
+      "parent": 80,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": 0.0,
+        "_32": 0.0,
+        "_33": 1.0
       }
     }
   },
@@ -2042,21 +2862,41 @@
     "_data": {
       "enabled": true,
       "materials": [
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11,
-        12,
-        13,
-        14,
-        15,
-        16
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45
+      ],
+      "mesh": "./res/models/rooms/Base.glb:Cube.003",
+      "node": 84
+    }
+  },
+  {
+    "_class_name": "MeshRenderer",
+    "_data": {
+      "enabled": true,
+      "materials": [
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45
       ],
       "mesh": "./res/models/rooms/Base.glb:Cube.075",
-      "node": 51
+      "node": 80
     }
   },
   {
@@ -2064,15 +2904,15 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 24,
+      "id": 200,
       "layer": 0,
       "name": "Gate Key",
       "objects": [
-        57,
-        -1,
-        58
+        88,
+        89,
+        -1
       ],
-      "parent": 2,
+      "parent": 32,
       "scene": 0,
       "transform": {
         "_00": 0.307923823595047,
@@ -2099,28 +2939,27 @@
     "_data": {
       "enabled": true,
       "materials": [
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11,
-        12,
-        13,
-        14,
-        15,
-        16
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45
       ],
       "mesh": "./res/models/rooms/Base.glb:Cylinder",
-      "node": 56
+      "node": 87
     }
   },
   {
     "_class_name": "GateKey",
     "_data": {
       "enabled": true,
-      "node": 56
+      "node": 87
     }
   },
   {
@@ -2128,14 +2967,14 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 25,
+      "id": 201,
       "layer": 0,
       "name": "Exit Gate.001",
       "objects": [
-        60,
+        91,
         -1
       ],
-      "parent": 2,
+      "parent": 32,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -2152,7 +2991,7 @@
         "_23": 0.0,
         "_30": 1.6685969829559326,
         "_31": 0.0,
-        "_32": -10.259936332702637,
+        "_32": -4.298993110656738,
         "_33": 1.0
       }
     }
@@ -2162,38 +3001,37 @@
     "_data": {
       "enabled": true,
       "materials": [
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11,
-        12,
-        13,
-        14,
-        15,
-        16
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45
       ],
       "mesh": "./res/models/rooms/Base.glb:Cube.077",
-      "node": 59
+      "node": 90
     }
   },
   {
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        62
+        93
       ],
       "disabledState": 0,
-      "id": 26,
+      "id": 202,
       "layer": 0,
       "name": "Light.000",
       "objects": [
-        63,
+        95,
         -1
       ],
-      "parent": 2,
+      "parent": 32,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -2220,11 +3058,14 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 27,
+      "id": 203,
       "layer": 0,
       "name": "PointLight.000",
-      "objects": [],
-      "parent": 61,
+      "objects": [
+        94,
+        -1
+      ],
+      "parent": 92,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -2247,42 +3088,60 @@
     }
   },
   {
+    "_class_name": "Light",
+    "_data": {
+      "color": {
+        "x": 1.0,
+        "y": 0.5,
+        "z": 0.10000000149011612
+      },
+      "enabled": true,
+      "intensity": 0.0,
+      "linearAttenuation": 0.09000000357627869,
+      "node": 93,
+      "quadraticAttenuation": 0.03200000151991844,
+      "range": 10.0,
+      "shadowCasting": false,
+      "spotlightAngle": 0.0,
+      "type": 0
+    }
+  },
+  {
     "_class_name": "MeshRenderer",
     "_data": {
       "enabled": true,
       "materials": [
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11,
-        12,
-        13,
-        14,
-        15,
-        16
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45
       ],
       "mesh": "./res/models/rooms/Base.glb:Cylinder.208",
-      "node": 61
+      "node": 92
     }
   },
   {
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        65
+        97
       ],
       "disabledState": 0,
-      "id": 28,
+      "id": 204,
       "layer": 0,
       "name": "Light.001",
       "objects": [
-        66,
+        99,
         -1
       ],
-      "parent": 2,
+      "parent": 32,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -2309,11 +3168,14 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 29,
+      "id": 205,
       "layer": 0,
       "name": "PointLight.001",
-      "objects": [],
-      "parent": 64,
+      "objects": [
+        98,
+        -1
+      ],
+      "parent": 96,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -2336,42 +3198,60 @@
     }
   },
   {
+    "_class_name": "Light",
+    "_data": {
+      "color": {
+        "x": 1.0,
+        "y": 0.5,
+        "z": 0.10000000149011612
+      },
+      "enabled": true,
+      "intensity": 0.0,
+      "linearAttenuation": 0.09000000357627869,
+      "node": 97,
+      "quadraticAttenuation": 0.03200000151991844,
+      "range": 10.0,
+      "shadowCasting": false,
+      "spotlightAngle": 0.0,
+      "type": 0
+    }
+  },
+  {
     "_class_name": "MeshRenderer",
     "_data": {
       "enabled": true,
       "materials": [
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11,
-        12,
-        13,
-        14,
-        15,
-        16
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45
       ],
       "mesh": "./res/models/rooms/Base.glb:Cylinder.209",
-      "node": 64
+      "node": 96
     }
   },
   {
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        68
+        101
       ],
       "disabledState": 0,
-      "id": 30,
+      "id": 206,
       "layer": 0,
       "name": "Light.002",
       "objects": [
-        69,
+        103,
         -1
       ],
-      "parent": 2,
+      "parent": 32,
       "scene": 0,
       "transform": {
         "_00": -1.1920930376163597e-07,
@@ -2386,9 +3266,9 @@
         "_21": 0.0,
         "_22": -1.1920930376163597e-07,
         "_23": 0.0,
-        "_30": 9.982864379882813,
+        "_30": 5.935361862182617,
         "_31": 1.2084975242614746,
-        "_32": 5.813112258911133,
+        "_32": 8.195914268493652,
         "_33": 1.0
       }
     }
@@ -2398,11 +3278,14 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 31,
+      "id": 207,
       "layer": 0,
       "name": "PointLight.002",
-      "objects": [],
-      "parent": 67,
+      "objects": [
+        102,
+        -1
+      ],
+      "parent": 100,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -2417,11 +3300,30 @@
         "_21": 0.0,
         "_22": 1.0,
         "_23": 0.0,
-        "_30": 0.010242581367492676,
-        "_31": 0.20250606536865234,
-        "_32": -0.2218053936958313,
+        "_30": 0.01023978739976883,
+        "_31": 0.20250654220581055,
+        "_32": -0.22180286049842834,
         "_33": 1.0
       }
+    }
+  },
+  {
+    "_class_name": "Light",
+    "_data": {
+      "color": {
+        "x": 1.0,
+        "y": 0.5,
+        "z": 0.10000000149011612
+      },
+      "enabled": true,
+      "intensity": 0.0,
+      "linearAttenuation": 0.09000000357627869,
+      "node": 101,
+      "quadraticAttenuation": 0.03200000151991844,
+      "range": 10.0,
+      "shadowCasting": false,
+      "spotlightAngle": 0.0,
+      "type": 0
     }
   },
   {
@@ -2429,38 +3331,37 @@
     "_data": {
       "enabled": true,
       "materials": [
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11,
-        12,
-        13,
-        14,
-        15,
-        16
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45
       ],
       "mesh": "./res/models/rooms/Base.glb:Cylinder.210",
-      "node": 67
+      "node": 100
     }
   },
   {
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        71
+        105
       ],
       "disabledState": 0,
-      "id": 32,
+      "id": 208,
       "layer": 0,
       "name": "Light.003",
       "objects": [
-        72,
+        107,
         -1
       ],
-      "parent": 2,
+      "parent": 32,
       "scene": 0,
       "transform": {
         "_00": -1.1920930376163597e-07,
@@ -2475,9 +3376,9 @@
         "_21": 0.0,
         "_22": -1.1920930376163597e-07,
         "_23": 0.0,
-        "_30": 9.982864379882813,
+        "_30": 5.973706245422363,
         "_31": 1.2084975242614746,
-        "_32": 0.4168376922607422,
+        "_32": 2.7996394634246826,
         "_33": 1.0
       }
     }
@@ -2487,11 +3388,234 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 33,
+      "id": 209,
       "layer": 0,
       "name": "PointLight.003",
-      "objects": [],
-      "parent": 70,
+      "objects": [
+        106,
+        -1
+      ],
+      "parent": 104,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.010242881253361702,
+        "_31": 0.20250654220581055,
+        "_32": -0.22180260717868805,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "Light",
+    "_data": {
+      "color": {
+        "x": 1.0,
+        "y": 0.5,
+        "z": 0.10000000149011612
+      },
+      "enabled": true,
+      "intensity": 0.0,
+      "linearAttenuation": 0.09000000357627869,
+      "node": 105,
+      "quadraticAttenuation": 0.03200000151991844,
+      "range": 10.0,
+      "shadowCasting": false,
+      "spotlightAngle": 0.0,
+      "type": 0
+    }
+  },
+  {
+    "_class_name": "MeshRenderer",
+    "_data": {
+      "enabled": true,
+      "materials": [
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45
+      ],
+      "mesh": "./res/models/rooms/Base.glb:Cylinder.211",
+      "node": 104
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [
+        109
+      ],
+      "disabledState": 0,
+      "id": 210,
+      "layer": 0,
+      "name": "Light.004",
+      "objects": [
+        111,
+        -1
+      ],
+      "parent": 32,
+      "scene": 0,
+      "transform": {
+        "_00": -1.1920930376163597e-07,
+        "_01": 0.0,
+        "_02": -1.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 1.0,
+        "_21": 0.0,
+        "_22": -1.1920930376163597e-07,
+        "_23": 0.0,
+        "_30": 5.973706245422363,
+        "_31": 1.2084975242614746,
+        "_32": -3.2186362743377686,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [],
+      "disabledState": 0,
+      "id": 211,
+      "layer": 0,
+      "name": "PointLight.004",
+      "objects": [
+        110,
+        -1
+      ],
+      "parent": 108,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.01024574227631092,
+        "_31": 0.20250654220581055,
+        "_32": -0.2218027561903,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "Light",
+    "_data": {
+      "color": {
+        "x": 1.0,
+        "y": 0.5,
+        "z": 0.10000000149011612
+      },
+      "enabled": true,
+      "intensity": 0.0,
+      "linearAttenuation": 0.09000000357627869,
+      "node": 109,
+      "quadraticAttenuation": 0.03200000151991844,
+      "range": 10.0,
+      "shadowCasting": false,
+      "spotlightAngle": 0.0,
+      "type": 0
+    }
+  },
+  {
+    "_class_name": "MeshRenderer",
+    "_data": {
+      "enabled": true,
+      "materials": [
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45
+      ],
+      "mesh": "./res/models/rooms/Base.glb:Cylinder.212",
+      "node": 108
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [
+        113
+      ],
+      "disabledState": 0,
+      "id": 212,
+      "layer": 0,
+      "name": "Light.005",
+      "objects": [
+        115,
+        -1
+      ],
+      "parent": 32,
+      "scene": 0,
+      "transform": {
+        "_00": -0.463664174079895,
+        "_01": 0.0,
+        "_02": 0.8860110640525818,
+        "_03": 0.0,
+        "_10": -0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": -0.8860110640525818,
+        "_21": -0.0,
+        "_22": -0.463664174079895,
+        "_23": 0.0,
+        "_30": -4.380451202392578,
+        "_31": 1.2895053625106812,
+        "_32": -3.443662405014038,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [],
+      "disabledState": 0,
+      "id": 213,
+      "layer": 0,
+      "name": "PointLight.005",
+      "objects": [
+        114,
+        -1
+      ],
+      "parent": 112,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -2507,188 +3631,29 @@
         "_22": 1.0,
         "_23": 0.0,
         "_30": 0.010243415832519531,
-        "_31": 0.20250606536865234,
-        "_32": -0.2218056321144104,
-        "_33": 1.0
-      }
-    }
-  },
-  {
-    "_class_name": "MeshRenderer",
-    "_data": {
-      "enabled": true,
-      "materials": [
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11,
-        12,
-        13,
-        14,
-        15,
-        16
-      ],
-      "mesh": "./res/models/rooms/Base.glb:Cylinder.211",
-      "node": 70
-    }
-  },
-  {
-    "_class_name": "SceneNode",
-    "_data": {
-      "children": [
-        74
-      ],
-      "disabledState": 0,
-      "id": 34,
-      "layer": 0,
-      "name": "Light.004",
-      "objects": [
-        75,
-        -1
-      ],
-      "parent": 2,
-      "scene": 0,
-      "transform": {
-        "_00": -1.1920930376163597e-07,
-        "_01": 0.0,
-        "_02": -1.0,
-        "_03": 0.0,
-        "_10": 0.0,
-        "_11": 1.0,
-        "_12": 0.0,
-        "_13": 0.0,
-        "_20": 1.0,
-        "_21": 0.0,
-        "_22": -1.1920930376163597e-07,
-        "_23": 0.0,
-        "_30": 9.982864379882813,
-        "_31": 1.2084975242614746,
-        "_32": -5.601438045501709,
-        "_33": 1.0
-      }
-    }
-  },
-  {
-    "_class_name": "SceneNode",
-    "_data": {
-      "children": [],
-      "disabledState": 0,
-      "id": 35,
-      "layer": 0,
-      "name": "PointLight.004",
-      "objects": [],
-      "parent": 73,
-      "scene": 0,
-      "transform": {
-        "_00": 1.0,
-        "_01": 0.0,
-        "_02": 0.0,
-        "_03": 0.0,
-        "_10": 0.0,
-        "_11": 1.0,
-        "_12": 0.0,
-        "_13": 0.0,
-        "_20": 0.0,
-        "_21": 0.0,
-        "_22": 1.0,
-        "_23": 0.0,
-        "_30": 0.010244488716125488,
-        "_31": 0.20250606536865234,
-        "_32": -0.22180576622486115,
-        "_33": 1.0
-      }
-    }
-  },
-  {
-    "_class_name": "MeshRenderer",
-    "_data": {
-      "enabled": true,
-      "materials": [
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11,
-        12,
-        13,
-        14,
-        15,
-        16
-      ],
-      "mesh": "./res/models/rooms/Base.glb:Cylinder.212",
-      "node": 73
-    }
-  },
-  {
-    "_class_name": "SceneNode",
-    "_data": {
-      "children": [
-        77
-      ],
-      "disabledState": 0,
-      "id": 36,
-      "layer": 0,
-      "name": "Light.005",
-      "objects": [
-        78,
-        -1
-      ],
-      "parent": 2,
-      "scene": 0,
-      "transform": {
-        "_00": -0.463664174079895,
-        "_01": 0.0,
-        "_02": 0.8860110640525818,
-        "_03": 0.0,
-        "_10": -0.0,
-        "_11": 1.0,
-        "_12": 0.0,
-        "_13": 0.0,
-        "_20": -0.8860110640525818,
-        "_21": -0.0,
-        "_22": -0.463664174079895,
-        "_23": 0.0,
-        "_30": -4.048355579376221,
-        "_31": 1.2084975242614746,
-        "_32": -9.20534896850586,
-        "_33": 1.0
-      }
-    }
-  },
-  {
-    "_class_name": "SceneNode",
-    "_data": {
-      "children": [],
-      "disabledState": 0,
-      "id": 37,
-      "layer": 0,
-      "name": "PointLight.005",
-      "objects": [],
-      "parent": 76,
-      "scene": 0,
-      "transform": {
-        "_00": 1.0,
-        "_01": 0.0,
-        "_02": 0.0,
-        "_03": 0.0,
-        "_10": 0.0,
-        "_11": 1.0,
-        "_12": 0.0,
-        "_13": 0.0,
-        "_20": 0.0,
-        "_21": 0.0,
-        "_22": 1.0,
-        "_23": 0.0,
-        "_30": 0.010243773460388184,
         "_31": 0.2025059461593628,
-        "_32": -0.22180581092834473,
+        "_32": -0.22180628776550293,
         "_33": 1.0
       }
+    }
+  },
+  {
+    "_class_name": "Light",
+    "_data": {
+      "color": {
+        "x": 1.0,
+        "y": 0.5,
+        "z": 0.10000000149011612
+      },
+      "enabled": true,
+      "intensity": 0.0,
+      "linearAttenuation": 0.09000000357627869,
+      "node": 113,
+      "quadraticAttenuation": 0.03200000151991844,
+      "range": 10.0,
+      "shadowCasting": false,
+      "spotlightAngle": 0.0,
+      "type": 0
     }
   },
   {
@@ -2696,38 +3661,37 @@
     "_data": {
       "enabled": true,
       "materials": [
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11,
-        12,
-        13,
-        14,
-        15,
-        16
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45
       ],
       "mesh": "./res/models/rooms/Base.glb:Cylinder.213",
-      "node": 76
+      "node": 112
     }
   },
   {
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        80
+        117
       ],
       "disabledState": 0,
-      "id": 38,
+      "id": 214,
       "layer": 0,
       "name": "Light.006",
       "objects": [
-        81,
+        119,
         -1
       ],
-      "parent": 2,
+      "parent": 32,
       "scene": 0,
       "transform": {
         "_00": -0.463664174079895,
@@ -2742,9 +3706,9 @@
         "_21": -0.0,
         "_22": -0.463664174079895,
         "_23": 0.0,
-        "_30": -6.261108875274658,
+        "_30": -6.7864179611206055,
         "_31": 1.2084975242614746,
-        "_32": -4.977024078369141,
+        "_32": -1.6281790733337402,
         "_33": 1.0
       }
     }
@@ -2754,11 +3718,14 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 39,
+      "id": 215,
       "layer": 0,
       "name": "PointLight.006",
-      "objects": [],
-      "parent": 79,
+      "objects": [
+        118,
+        -1
+      ],
+      "parent": 116,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -2773,11 +3740,30 @@
         "_21": 0.0,
         "_22": 1.0,
         "_23": 0.0,
-        "_30": 0.010243654251098633,
+        "_30": 0.01024329662322998,
         "_31": 0.2025059461593628,
-        "_32": -0.22180700302124023,
+        "_32": -0.22180670499801636,
         "_33": 1.0
       }
+    }
+  },
+  {
+    "_class_name": "Light",
+    "_data": {
+      "color": {
+        "x": 1.0,
+        "y": 0.5,
+        "z": 0.10000000149011612
+      },
+      "enabled": true,
+      "intensity": 0.0,
+      "linearAttenuation": 0.09000000357627869,
+      "node": 117,
+      "quadraticAttenuation": 0.03200000151991844,
+      "range": 10.0,
+      "shadowCasting": false,
+      "spotlightAngle": 0.0,
+      "type": 0
     }
   },
   {
@@ -2785,38 +3771,37 @@
     "_data": {
       "enabled": true,
       "materials": [
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11,
-        12,
-        13,
-        14,
-        15,
-        16
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45
       ],
       "mesh": "./res/models/rooms/Base.glb:Cylinder.214",
-      "node": 79
+      "node": 116
     }
   },
   {
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        83
+        121
       ],
       "disabledState": 0,
-      "id": 40,
+      "id": 216,
       "layer": 0,
       "name": "Light.007",
       "objects": [
-        84,
+        123,
         -1
       ],
-      "parent": 2,
+      "parent": 32,
       "scene": 0,
       "transform": {
         "_00": -0.463664174079895,
@@ -2843,11 +3828,14 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 41,
+      "id": 217,
       "layer": 0,
       "name": "PointLight.007",
-      "objects": [],
-      "parent": 82,
+      "objects": [
+        122,
+        -1
+      ],
+      "parent": 120,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -2862,11 +3850,30 @@
         "_21": 0.0,
         "_22": 1.0,
         "_23": 0.0,
-        "_30": 0.010243341326713562,
+        "_30": 0.010243237018585205,
         "_31": 0.2025059461593628,
-        "_32": -0.22180654108524323,
+        "_32": -0.22180649638175964,
         "_33": 1.0
       }
+    }
+  },
+  {
+    "_class_name": "Light",
+    "_data": {
+      "color": {
+        "x": 1.0,
+        "y": 0.5,
+        "z": 0.10000000149011612
+      },
+      "enabled": true,
+      "intensity": 0.0,
+      "linearAttenuation": 0.09000000357627869,
+      "node": 121,
+      "quadraticAttenuation": 0.03200000151991844,
+      "range": 10.0,
+      "shadowCasting": false,
+      "spotlightAngle": 0.0,
+      "type": 0
     }
   },
   {
@@ -2874,38 +3881,37 @@
     "_data": {
       "enabled": true,
       "materials": [
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11,
-        12,
-        13,
-        14,
-        15,
-        16
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45
       ],
       "mesh": "./res/models/rooms/Base.glb:Cylinder.215",
-      "node": 82
+      "node": 120
     }
   },
   {
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        86
+        125
       ],
       "disabledState": 0,
-      "id": 42,
+      "id": 218,
       "layer": 0,
       "name": "Light.008",
       "objects": [
-        87,
+        127,
         -1
       ],
-      "parent": 2,
+      "parent": 32,
       "scene": 0,
       "transform": {
         "_00": -1.1920930376163597e-07,
@@ -2932,11 +3938,14 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 43,
+      "id": 219,
       "layer": 0,
       "name": "PointLight.008",
-      "objects": [],
-      "parent": 85,
+      "objects": [
+        126,
+        -1
+      ],
+      "parent": 124,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -2951,11 +3960,30 @@
         "_21": 0.0,
         "_22": 1.0,
         "_23": 0.0,
-        "_30": 0.010243299417197704,
-        "_31": 0.20250606536865234,
-        "_32": -0.22180546820163727,
+        "_30": 0.010245206765830517,
+        "_31": 0.20250654220581055,
+        "_32": -0.22180165350437164,
         "_33": 1.0
       }
+    }
+  },
+  {
+    "_class_name": "Light",
+    "_data": {
+      "color": {
+        "x": 1.0,
+        "y": 0.5,
+        "z": 0.10000000149011612
+      },
+      "enabled": true,
+      "intensity": 0.0,
+      "linearAttenuation": 0.09000000357627869,
+      "node": 125,
+      "quadraticAttenuation": 0.03200000151991844,
+      "range": 10.0,
+      "shadowCasting": false,
+      "spotlightAngle": 0.0,
+      "type": 0
     }
   },
   {
@@ -2963,38 +3991,37 @@
     "_data": {
       "enabled": true,
       "materials": [
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11,
-        12,
-        13,
-        14,
-        15,
-        16
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45
       ],
       "mesh": "./res/models/rooms/Base.glb:Cylinder.216",
-      "node": 85
+      "node": 124
     }
   },
   {
     "_class_name": "SceneNode",
     "_data": {
       "children": [
-        89
+        129
       ],
       "disabledState": 0,
-      "id": 44,
+      "id": 220,
       "layer": 0,
       "name": "Light.009",
       "objects": [
-        90,
+        131,
         -1
       ],
-      "parent": 2,
+      "parent": 32,
       "scene": 0,
       "transform": {
         "_00": -1.1920930376163597e-07,
@@ -3021,11 +4048,14 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 45,
+      "id": 221,
       "layer": 0,
       "name": "PointLight.009",
-      "objects": [],
-      "parent": 88,
+      "objects": [
+        130,
+        -1
+      ],
+      "parent": 128,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -3040,11 +4070,30 @@
         "_21": 0.0,
         "_22": 1.0,
         "_23": 0.0,
-        "_30": 0.010242603719234467,
-        "_31": 0.2025061845779419,
+        "_30": 0.010240696370601654,
+        "_31": 0.2025066614151001,
         "_32": -0.22180651128292084,
         "_33": 1.0
       }
+    }
+  },
+  {
+    "_class_name": "Light",
+    "_data": {
+      "color": {
+        "x": 1.0,
+        "y": 0.5,
+        "z": 0.10000000149011612
+      },
+      "enabled": true,
+      "intensity": 0.0,
+      "linearAttenuation": 0.09000000357627869,
+      "node": 129,
+      "quadraticAttenuation": 0.03200000151991844,
+      "range": 10.0,
+      "shadowCasting": false,
+      "spotlightAngle": 0.0,
+      "type": 0
     }
   },
   {
@@ -3052,21 +4101,20 @@
     "_data": {
       "enabled": true,
       "materials": [
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11,
-        12,
-        13,
-        14,
-        15,
-        16
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45
       ],
       "mesh": "./res/models/rooms/Base.glb:Cylinder.217",
-      "node": 88
+      "node": 128
     }
   },
   {
@@ -3074,14 +4122,14 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 46,
+      "id": 222,
       "layer": 0,
       "name": "Cube.019",
       "objects": [
-        92,
+        133,
         -1
       ],
-      "parent": 2,
+      "parent": 32,
       "scene": 0,
       "transform": {
         "_00": 0.6203697919845581,
@@ -3108,21 +4156,20 @@
     "_data": {
       "enabled": true,
       "materials": [
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11,
-        12,
-        13,
-        14,
-        15,
-        16
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45
       ],
       "mesh": "./res/models/rooms/Base.glb:Cube.094",
-      "node": 91
+      "node": 132
     }
   },
   {
@@ -3130,15 +4177,372 @@
     "_data": {
       "children": [],
       "disabledState": 0,
-      "id": 47,
+      "id": 223,
+      "layer": 0,
+      "name": "crate",
+      "objects": [],
+      "parent": 32,
+      "scene": 0,
+      "transform": {
+        "_00": 0.009999999776482582,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": -3.57627816249817e-09,
+        "_12": 0.009999997913837433,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": -0.009999997913837433,
+        "_22": -3.57627816249817e-09,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": 0.0,
+        "_32": 0.0,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [
+        136
+      ],
+      "disabledState": 0,
+      "id": 224,
+      "layer": 0,
+      "name": "screws",
+      "objects": [],
+      "parent": 32,
+      "scene": 0,
+      "transform": {
+        "_00": 0.009999999776482582,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": -3.57627816249817e-09,
+        "_12": 0.009999997913837433,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": -0.009999997913837433,
+        "_22": -3.57627816249817e-09,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": 0.0,
+        "_32": 0.0,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [],
+      "disabledState": 0,
+      "id": 225,
+      "layer": 0,
+      "name": "screws_screw_0",
+      "objects": [
+        137,
+        -1
+      ],
+      "parent": 135,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": 0.0,
+        "_32": 0.0,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "MeshRenderer",
+    "_data": {
+      "enabled": true,
+      "materials": [
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45
+      ],
+      "mesh": "./res/models/rooms/Base.glb:screws_screw_0",
+      "node": 136
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [],
+      "disabledState": 0,
+      "id": 226,
+      "layer": 0,
+      "name": "crate.001",
+      "objects": [],
+      "parent": 32,
+      "scene": 0,
+      "transform": {
+        "_00": 0.009999999776482582,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": -3.57627816249817e-09,
+        "_12": 0.009999997913837433,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": -0.009999997913837433,
+        "_22": -3.57627816249817e-09,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": 0.0,
+        "_32": 0.0,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [
+        140
+      ],
+      "disabledState": 0,
+      "id": 227,
+      "layer": 0,
+      "name": "screws.001",
+      "objects": [],
+      "parent": 32,
+      "scene": 0,
+      "transform": {
+        "_00": 0.009999999776482582,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": -3.57627816249817e-09,
+        "_12": 0.009999997913837433,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": -0.009999997913837433,
+        "_22": -3.57627816249817e-09,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": 0.0,
+        "_32": 0.0,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [],
+      "disabledState": 0,
+      "id": 228,
+      "layer": 0,
+      "name": "screws_screw_0.001",
+      "objects": [
+        141,
+        -1
+      ],
+      "parent": 139,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": 0.0,
+        "_32": 0.0,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "MeshRenderer",
+    "_data": {
+      "enabled": true,
+      "materials": [
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45
+      ],
+      "mesh": "./res/models/rooms/Base.glb:screws_screw_0.001",
+      "node": 140
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [],
+      "disabledState": 0,
+      "id": 229,
+      "layer": 0,
+      "name": "crate.002",
+      "objects": [],
+      "parent": 32,
+      "scene": 0,
+      "transform": {
+        "_00": 0.009999999776482582,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": -3.57627816249817e-09,
+        "_12": 0.009999997913837433,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": -0.009999997913837433,
+        "_22": -3.57627816249817e-09,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": 0.0,
+        "_32": 0.0,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [
+        144
+      ],
+      "disabledState": 0,
+      "id": 230,
+      "layer": 0,
+      "name": "screws.002",
+      "objects": [],
+      "parent": 32,
+      "scene": 0,
+      "transform": {
+        "_00": 0.009999999776482582,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": -3.57627816249817e-09,
+        "_12": 0.009999997913837433,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": -0.009999997913837433,
+        "_22": -3.57627816249817e-09,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": 0.0,
+        "_32": 0.0,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [],
+      "disabledState": 0,
+      "id": 231,
+      "layer": 0,
+      "name": "screws_screw_0.002",
+      "objects": [
+        145,
+        -1
+      ],
+      "parent": 143,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": 0.0,
+        "_32": 0.0,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "MeshRenderer",
+    "_data": {
+      "enabled": true,
+      "materials": [
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45
+      ],
+      "mesh": "./res/models/rooms/Base.glb:screws_screw_0.002",
+      "node": 144
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [],
+      "disabledState": 0,
+      "id": 232,
       "layer": 0,
       "name": "Walls Collider",
       "objects": [
-        94,
-        -1,
-        95
+        147,
+        148,
+        -1
       ],
-      "parent": 2,
+      "parent": 32,
       "scene": 0,
       "transform": {
         "_00": 1.0,
@@ -3165,21 +4569,20 @@
     "_data": {
       "enabled": false,
       "materials": [
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11,
-        12,
-        13,
-        14,
-        15,
-        16
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45
       ],
-      "mesh": "./res/models/rooms/Base.glb:Plane.030",
-      "node": 93
+      "mesh": "./res/models/rooms/Base.glb:Plane.001",
+      "node": 146
     }
   },
   {
@@ -3200,27 +4603,3163 @@
       "mInertiaMultiplier": 1.0,
       "mIsSensor": false,
       "mLinearDamping": 0.05000000074505806,
-      "mMass": 0.0,
+      "mMass": 1.0,
       "mMaxAngularVelocity": 47.1238899230957,
       "mMaxLinearVelocity": 500.0,
       "mMotionQuality": 0,
-      "mMotionType": 0,
+      "mMotionType": 2,
       "mObjectLayer": 0,
-      "mOverrideMassProperties": 0,
+      "mOverrideMassProperties": 2,
       "mRestitution": 0.0,
       "mUseManifoldReduction": true,
-      "node": 93,
+      "node": 146,
       "shape": {
-        "kind": 4,
-        "mesh": "./res/models/rooms/Base.glb:Plane.030"
+        "kind": 5,
+        "mesh": "./res/models/rooms/Base.glb:Plane.001"
       }
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [],
+      "disabledState": 0,
+      "id": 494,
+      "layer": 0,
+      "name": "WASD Text",
+      "objects": [],
+      "parent": 32,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.05001058429479599,
+        "_31": 1.9378941059112549,
+        "_32": 0.0,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [],
+      "disabledState": 0,
+      "id": 498,
+      "layer": 0,
+      "name": "Gate Locked Text",
+      "objects": [],
+      "parent": 32,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 1.4770196676254272,
+        "_31": 2.255640745162964,
+        "_32": 8.782835960388184,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [],
+      "disabledState": 0,
+      "id": 500,
+      "layer": 0,
+      "name": "Exit",
+      "objects": [
+        152
+      ],
+      "parent": 32,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 1.5243418216705322,
+        "_31": 1.0916380688286154e-07,
+        "_32": 17.104534149169922,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "BaseExitToTutorialThrowingRoom",
+    "_data": {
+      "enabled": true,
+      "node": 151
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [
+        154
+      ],
+      "disabledState": 0,
+      "id": 502,
+      "layer": 0,
+      "name": "Exit Fog",
+      "objects": [
+        156
+      ],
+      "parent": 32,
+      "scene": 0,
+      "transform": {
+        "_00": 4.925007343292236,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 2.925987958908081,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 10.721023559570313,
+        "_23": 0.0,
+        "_30": 1.5362554788589478,
+        "_31": 0.6149990558624268,
+        "_32": 19.160476684570313,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [],
+      "disabledState": 0,
+      "id": 503,
+      "layer": 0,
+      "name": "Fog Entrance",
+      "objects": [
+        155
+      ],
+      "parent": 153,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 0.9354370832443237,
+        "_12": 0.3534882366657257,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": -0.14139562845230103,
+        "_22": 0.3741769790649414,
+        "_23": 0.0,
+        "_30": 0.027321994304656982,
+        "_31": 0.05748675763607025,
+        "_32": -0.5123554468154907,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "FogVolume",
+    "_data": {
+      "enabled": true,
+      "node": 154
+    }
+  },
+  {
+    "_class_name": "FogVolume",
+    "_data": {
+      "enabled": true,
+      "node": 153
     }
   },
   {
     "_class_name": "BaseScript",
     "_data": {
       "enabled": true,
-      "node": 2
+      "node": 32
+    }
+  },
+  {
+    "_class_name": "BaseLights",
+    "_data": {
+      "enabled": true,
+      "node": 32
+    }
+  },
+  {
+    "_class_name": "BaseTutorialManager",
+    "_data": {
+      "enabled": true,
+      "node": 32
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [
+        161,
+        186,
+        208,
+        212
+      ],
+      "disabledState": 0,
+      "id": 441,
+      "layer": 0,
+      "name": "UI",
+      "objects": [
+        220
+      ],
+      "parent": 1,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": 0.0,
+        "_32": 0.0,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [
+        162,
+        166,
+        170,
+        174,
+        178
+      ],
+      "disabledState": 0,
+      "id": 442,
+      "layer": 0,
+      "name": "Wheel",
+      "objects": [
+        182,
+        183,
+        184,
+        185
+      ],
+      "parent": 160,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": 0.0,
+        "_32": 0.0,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [],
+      "disabledState": 0,
+      "id": 448,
+      "layer": 0,
+      "name": "ItemVisual_0",
+      "objects": [
+        163,
+        164,
+        165
+      ],
+      "parent": 161,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": 0.0,
+        "_32": 0.0,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "UiLayout",
+    "_data": {
+      "enabled": true,
+      "node": 162
+    }
+  },
+  {
+    "_class_name": "WheelTag",
+    "_data": {
+      "enabled": true,
+      "node": 162
+    }
+  },
+  {
+    "_class_name": "UiVisual",
+    "_data": {
+      "enabled": false,
+      "node": 162
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [],
+      "disabledState": 0,
+      "id": 453,
+      "layer": 0,
+      "name": "ItemVisual_1",
+      "objects": [
+        167,
+        168,
+        169
+      ],
+      "parent": 161,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": 0.0,
+        "_32": 0.0,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "UiLayout",
+    "_data": {
+      "enabled": true,
+      "node": 166
+    }
+  },
+  {
+    "_class_name": "WheelTag",
+    "_data": {
+      "enabled": true,
+      "node": 166
+    }
+  },
+  {
+    "_class_name": "UiVisual",
+    "_data": {
+      "enabled": false,
+      "node": 166
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [],
+      "disabledState": 0,
+      "id": 458,
+      "layer": 0,
+      "name": "ItemVisual_2",
+      "objects": [
+        171,
+        172,
+        173
+      ],
+      "parent": 161,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": 0.0,
+        "_32": 0.0,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "UiLayout",
+    "_data": {
+      "enabled": true,
+      "node": 170
+    }
+  },
+  {
+    "_class_name": "WheelTag",
+    "_data": {
+      "enabled": true,
+      "node": 170
+    }
+  },
+  {
+    "_class_name": "UiVisual",
+    "_data": {
+      "enabled": false,
+      "node": 170
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [],
+      "disabledState": 0,
+      "id": 463,
+      "layer": 0,
+      "name": "ItemVisual_3",
+      "objects": [
+        175,
+        176,
+        177
+      ],
+      "parent": 161,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": 0.0,
+        "_32": 0.0,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "UiLayout",
+    "_data": {
+      "enabled": true,
+      "node": 174
+    }
+  },
+  {
+    "_class_name": "WheelTag",
+    "_data": {
+      "enabled": true,
+      "node": 174
+    }
+  },
+  {
+    "_class_name": "UiVisual",
+    "_data": {
+      "enabled": false,
+      "node": 174
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [],
+      "disabledState": 0,
+      "id": 468,
+      "layer": 0,
+      "name": "ItemVisual_4",
+      "objects": [
+        179,
+        180,
+        181
+      ],
+      "parent": 161,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": 0.0,
+        "_32": 0.0,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "UiLayout",
+    "_data": {
+      "enabled": true,
+      "node": 178
+    }
+  },
+  {
+    "_class_name": "WheelTag",
+    "_data": {
+      "enabled": true,
+      "node": 178
+    }
+  },
+  {
+    "_class_name": "UiVisual",
+    "_data": {
+      "enabled": false,
+      "node": 178
+    }
+  },
+  {
+    "_class_name": "UiLayout",
+    "_data": {
+      "enabled": true,
+      "node": 161
+    }
+  },
+  {
+    "_class_name": "UiRadialWheel",
+    "_data": {
+      "enabled": true,
+      "node": 161
+    }
+  },
+  {
+    "_class_name": "UiVisual",
+    "_data": {
+      "enabled": false,
+      "node": 161
+    }
+  },
+  {
+    "_class_name": "WheelTag",
+    "_data": {
+      "enabled": true,
+      "node": 161
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [
+        187,
+        192,
+        197,
+        202
+      ],
+      "disabledState": 0,
+      "id": 469,
+      "layer": 0,
+      "name": "Right Menu UI",
+      "objects": [
+        207
+      ],
+      "parent": 160,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": 0.0,
+        "_32": 0.0,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [],
+      "disabledState": 0,
+      "id": 470,
+      "layer": 0,
+      "name": "Settings Button",
+      "objects": [
+        188,
+        189,
+        190,
+        191
+      ],
+      "parent": 186,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": 0.0,
+        "_32": 0.0,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "UiLayout",
+    "_data": {
+      "enabled": true,
+      "node": 187
+    }
+  },
+  {
+    "_class_name": "UiVisual",
+    "_data": {
+      "enabled": false,
+      "node": 187
+    }
+  },
+  {
+    "_class_name": "UiInteractable",
+    "_data": {
+      "enabled": true,
+      "node": 187
+    }
+  },
+  {
+    "_class_name": "WheelTag",
+    "_data": {
+      "enabled": true,
+      "node": 187
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [],
+      "disabledState": 0,
+      "id": 471,
+      "layer": 0,
+      "name": "Backpack Button",
+      "objects": [
+        193,
+        194,
+        195,
+        196
+      ],
+      "parent": 186,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": 0.0,
+        "_32": 0.0,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "UiLayout",
+    "_data": {
+      "enabled": true,
+      "node": 192
+    }
+  },
+  {
+    "_class_name": "UiVisual",
+    "_data": {
+      "enabled": false,
+      "node": 192
+    }
+  },
+  {
+    "_class_name": "UiInteractable",
+    "_data": {
+      "enabled": true,
+      "node": 192
+    }
+  },
+  {
+    "_class_name": "WheelTag",
+    "_data": {
+      "enabled": true,
+      "node": 192
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [],
+      "disabledState": 0,
+      "id": 472,
+      "layer": 0,
+      "name": "Pause Button",
+      "objects": [
+        198,
+        199,
+        200,
+        201
+      ],
+      "parent": 186,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": 0.0,
+        "_32": 0.0,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "UiLayout",
+    "_data": {
+      "enabled": true,
+      "node": 197
+    }
+  },
+  {
+    "_class_name": "UiVisual",
+    "_data": {
+      "enabled": false,
+      "node": 197
+    }
+  },
+  {
+    "_class_name": "UiInteractable",
+    "_data": {
+      "enabled": true,
+      "node": 197
+    }
+  },
+  {
+    "_class_name": "WheelTag",
+    "_data": {
+      "enabled": true,
+      "node": 197
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [],
+      "disabledState": 0,
+      "id": 473,
+      "layer": 0,
+      "name": "Map Button",
+      "objects": [
+        203,
+        204,
+        205,
+        206
+      ],
+      "parent": 186,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": 0.0,
+        "_32": 0.0,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "UiLayout",
+    "_data": {
+      "enabled": true,
+      "node": 202
+    }
+  },
+  {
+    "_class_name": "UiVisual",
+    "_data": {
+      "enabled": false,
+      "node": 202
+    }
+  },
+  {
+    "_class_name": "UiInteractable",
+    "_data": {
+      "enabled": true,
+      "node": 202
+    }
+  },
+  {
+    "_class_name": "WheelTag",
+    "_data": {
+      "enabled": true,
+      "node": 202
+    }
+  },
+  {
+    "_class_name": "UiLayout",
+    "_data": {
+      "enabled": true,
+      "node": 186
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [],
+      "disabledState": 0,
+      "id": 474,
+      "layer": 0,
+      "name": "Potion Slots UI",
+      "objects": [
+        209,
+        210,
+        211
+      ],
+      "parent": 160,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": 0.0,
+        "_32": 0.0,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "UiLayout",
+    "_data": {
+      "enabled": true,
+      "node": 208
+    }
+  },
+  {
+    "_class_name": "UiVisual",
+    "_data": {
+      "enabled": false,
+      "node": 208
+    }
+  },
+  {
+    "_class_name": "WheelTag",
+    "_data": {
+      "enabled": true,
+      "node": 208
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [
+        213
+      ],
+      "disabledState": 0,
+      "id": 475,
+      "layer": 0,
+      "name": "Health UI",
+      "objects": [
+        217,
+        218,
+        219
+      ],
+      "parent": 160,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": 0.0,
+        "_32": 0.0,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [],
+      "disabledState": 0,
+      "id": 476,
+      "layer": 0,
+      "name": "Health Vial",
+      "objects": [
+        214,
+        215,
+        216
+      ],
+      "parent": 212,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": 0.0,
+        "_32": 0.0,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "UiLayout",
+    "_data": {
+      "enabled": true,
+      "node": 213
+    }
+  },
+  {
+    "_class_name": "UiVisual",
+    "_data": {
+      "enabled": false,
+      "node": 213
+    }
+  },
+  {
+    "_class_name": "WheelTag",
+    "_data": {
+      "enabled": true,
+      "node": 213
+    }
+  },
+  {
+    "_class_name": "UiLayout",
+    "_data": {
+      "enabled": true,
+      "node": 212
+    }
+  },
+  {
+    "_class_name": "UiVisual",
+    "_data": {
+      "enabled": false,
+      "node": 212
+    }
+  },
+  {
+    "_class_name": "WheelTag",
+    "_data": {
+      "enabled": true,
+      "node": 212
+    }
+  },
+  {
+    "_class_name": "InGameUi",
+    "_data": {
+      "enabled": true,
+      "node": 160
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [],
+      "disabledState": 0,
+      "id": 443,
+      "layer": 0,
+      "name": "Tooltip Node",
+      "objects": [
+        222,
+        223,
+        224
+      ],
+      "parent": 1,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 121.11111450195313,
+        "_31": 121.11111450195313,
+        "_32": 0.0,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "UiLayout",
+    "_data": {
+      "enabled": true,
+      "node": 221
+    }
+  },
+  {
+    "_class_name": "UiText",
+    "_data": {
+      "alignment": 0,
+      "color": {
+        "w": 1.0,
+        "x": 1.0,
+        "y": 1.0,
+        "z": 1.0
+      },
+      "enabled": true,
+      "font": "./res/fonts/OpenSans-Regular/OpenSans-Regular.json",
+      "fontSize": 32.0,
+      "maxWidth": 400.0,
+      "node": 221,
+      "text": "Tooltip, tooltip tooltip tooltiptooltip. TooltipTooltip tooltip tooltip"
+    }
+  },
+  {
+    "_class_name": "UiVisual",
+    "_data": {
+      "enabled": true,
+      "node": 221
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [],
+      "disabledState": 0,
+      "id": 444,
+      "layer": 0,
+      "name": "ItemCamera_0",
+      "objects": [
+        226
+      ],
+      "parent": 1,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": -500.0,
+        "_32": 0.0,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "Camera",
+    "_data": {
+      "enabled": true,
+      "layerMask": {
+        "value": 4
+      },
+      "node": 225,
+      "orthoData": {
+        "bottom": -8.66025447845459,
+        "left": 8.66025447845459,
+        "right": -8.66025447845459,
+        "top": 8.66025447845459,
+        "zfar": 50.0,
+        "znear": 0.009999999776482582
+      },
+      "passes": 3,
+      "perspectiveData": {
+        "aspectRatio": 1.0,
+        "farPlane": 50.0,
+        "fovyDegrees": 60.0,
+        "nearPlane": 0.009999999776482582
+      },
+      "priority": 0,
+      "type": 0
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [
+        228
+      ],
+      "disabledState": 0,
+      "id": 445,
+      "layer": 2,
+      "name": "ItemPivot_0",
+      "objects": [],
+      "parent": 1,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": -500.0,
+        "_32": 0.20000000298023224,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [
+        229
+      ],
+      "disabledState": 0,
+      "id": 446,
+      "layer": 2,
+      "name": "ItemModel_0",
+      "objects": [],
+      "parent": 227,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": 500.0,
+        "_32": -0.20000000298023224,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [],
+      "disabledState": 0,
+      "id": 447,
+      "layer": 2,
+      "name": "Cylinder.009",
+      "objects": [
+        230,
+        -1
+      ],
+      "parent": 228,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": 0.0,
+        "_32": 0.0,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "MeshRenderer",
+    "_data": {
+      "enabled": true,
+      "materials": [
+        231,
+        232
+      ],
+      "mesh": "./res/models/butelka.glb:Cylinder.010",
+      "node": 229
+    }
+  },
+  {
+    "_class_name": "Material",
+    "_data": {
+      "shader": "./res/shaders/gltf/lit.vert@@@@./res/shaders/gltf/pbr.frag@",
+      "variables": {
+        "albedoMap": {
+          "channels": 3,
+          "colorSpace": 1,
+          "format": 0,
+          "magFilter": 1,
+          "minFilter": 1,
+          "path": "./res/textures/default_color.png",
+          "wrapU": 1,
+          "wrapV": 1
+        },
+        "ambientBump": 0.0,
+        "armMap": {
+          "channels": 2,
+          "colorSpace": 0,
+          "format": 0,
+          "magFilter": 1,
+          "minFilter": 1,
+          "path": "./res/textures/default_arm.png",
+          "wrapU": 1,
+          "wrapV": 1
+        },
+        "baseColorFactor": {
+          "w": 1.0,
+          "x": 0.12979823350906372,
+          "y": 0.10808981955051422,
+          "z": 0.8000315427780151
+        },
+        "emissiveFactor": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "emissiveMap": {
+          "channels": 2,
+          "colorSpace": 1,
+          "format": 0,
+          "magFilter": 1,
+          "minFilter": 7,
+          "path": "./res/textures/default_emissive.png",
+          "wrapU": 1,
+          "wrapV": 1
+        },
+        "emissiveStrength": 1.0,
+        "metallicFactor": 0.0,
+        "normalMap": {
+          "channels": 2,
+          "colorSpace": 0,
+          "format": 0,
+          "magFilter": 1,
+          "minFilter": 1,
+          "path": "./res/textures/default_norm.png",
+          "wrapU": 1,
+          "wrapV": 1
+        },
+        "roughnessFactor": 0.375,
+        "useOcclusion": false
+      }
+    }
+  },
+  {
+    "_class_name": "Material",
+    "_data": {
+      "shader": "./res/shaders/gltf/lit.vert@@@@./res/shaders/gltf/pbr.frag@",
+      "variables": {
+        "albedoMap": {
+          "channels": 3,
+          "colorSpace": 1,
+          "format": 0,
+          "magFilter": 1,
+          "minFilter": 1,
+          "path": "./res/textures/default_color.png",
+          "wrapU": 1,
+          "wrapV": 1
+        },
+        "ambientBump": 0.0,
+        "armMap": {
+          "channels": 2,
+          "colorSpace": 0,
+          "format": 0,
+          "magFilter": 1,
+          "minFilter": 1,
+          "path": "./res/textures/default_arm.png",
+          "wrapU": 1,
+          "wrapV": 1
+        },
+        "baseColorFactor": {
+          "w": 0.800000011920929,
+          "x": 0.800000011920929,
+          "y": 0.800000011920929,
+          "z": 0.800000011920929
+        },
+        "emissiveFactor": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "emissiveMap": {
+          "channels": 2,
+          "colorSpace": 1,
+          "format": 0,
+          "magFilter": 1,
+          "minFilter": 7,
+          "path": "./res/textures/default_emissive.png",
+          "wrapU": 1,
+          "wrapV": 1
+        },
+        "emissiveStrength": 0.0,
+        "metallicFactor": 0.0,
+        "normalMap": {
+          "channels": 2,
+          "colorSpace": 0,
+          "format": 0,
+          "magFilter": 1,
+          "minFilter": 1,
+          "path": "./res/textures/default_norm.png",
+          "wrapU": 1,
+          "wrapV": 1
+        },
+        "roughnessFactor": 1.0,
+        "useOcclusion": false
+      }
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [],
+      "disabledState": 0,
+      "id": 449,
+      "layer": 0,
+      "name": "ItemCamera_1",
+      "objects": [
+        234
+      ],
+      "parent": 1,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": -490.0,
+        "_32": 0.0,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "Camera",
+    "_data": {
+      "enabled": true,
+      "layerMask": {
+        "value": 4
+      },
+      "node": 233,
+      "orthoData": {
+        "bottom": -8.66025447845459,
+        "left": 8.66025447845459,
+        "right": -8.66025447845459,
+        "top": 8.66025447845459,
+        "zfar": 50.0,
+        "znear": 0.009999999776482582
+      },
+      "passes": 3,
+      "perspectiveData": {
+        "aspectRatio": 1.0,
+        "farPlane": 50.0,
+        "fovyDegrees": 60.0,
+        "nearPlane": 0.009999999776482582
+      },
+      "priority": 0,
+      "type": 0
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [
+        236
+      ],
+      "disabledState": 0,
+      "id": 450,
+      "layer": 2,
+      "name": "ItemPivot_1",
+      "objects": [],
+      "parent": 1,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": -490.0,
+        "_32": 0.20000000298023224,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [
+        237
+      ],
+      "disabledState": 0,
+      "id": 451,
+      "layer": 2,
+      "name": "ItemModel_1",
+      "objects": [],
+      "parent": 235,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": 490.0,
+        "_32": -0.20000000298023224,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [],
+      "disabledState": 0,
+      "id": 452,
+      "layer": 2,
+      "name": "Cylinder.009",
+      "objects": [
+        238,
+        -1
+      ],
+      "parent": 236,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": 0.0,
+        "_32": 0.0,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "MeshRenderer",
+    "_data": {
+      "enabled": true,
+      "materials": [
+        231,
+        232
+      ],
+      "mesh": "./res/models/butelka.glb:Cylinder.010",
+      "node": 237
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [],
+      "disabledState": 0,
+      "id": 454,
+      "layer": 0,
+      "name": "ItemCamera_2",
+      "objects": [
+        240
+      ],
+      "parent": 1,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": -480.0,
+        "_32": 0.0,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "Camera",
+    "_data": {
+      "enabled": true,
+      "layerMask": {
+        "value": 4
+      },
+      "node": 239,
+      "orthoData": {
+        "bottom": -8.66025447845459,
+        "left": 8.66025447845459,
+        "right": -8.66025447845459,
+        "top": 8.66025447845459,
+        "zfar": 50.0,
+        "znear": 0.009999999776482582
+      },
+      "passes": 3,
+      "perspectiveData": {
+        "aspectRatio": 1.0,
+        "farPlane": 50.0,
+        "fovyDegrees": 60.0,
+        "nearPlane": 0.009999999776482582
+      },
+      "priority": 0,
+      "type": 0
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [
+        242
+      ],
+      "disabledState": 0,
+      "id": 455,
+      "layer": 2,
+      "name": "ItemPivot_2",
+      "objects": [],
+      "parent": 1,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": -480.0,
+        "_32": 0.20000000298023224,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [
+        243
+      ],
+      "disabledState": 0,
+      "id": 456,
+      "layer": 2,
+      "name": "ItemModel_2",
+      "objects": [],
+      "parent": 241,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": 480.0,
+        "_32": -0.20000000298023224,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [],
+      "disabledState": 0,
+      "id": 457,
+      "layer": 2,
+      "name": "Cylinder.009",
+      "objects": [
+        244,
+        -1
+      ],
+      "parent": 242,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": 0.0,
+        "_32": 0.0,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "MeshRenderer",
+    "_data": {
+      "enabled": true,
+      "materials": [
+        231,
+        232
+      ],
+      "mesh": "./res/models/butelka.glb:Cylinder.010",
+      "node": 243
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [],
+      "disabledState": 0,
+      "id": 459,
+      "layer": 0,
+      "name": "ItemCamera_3",
+      "objects": [
+        246
+      ],
+      "parent": 1,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": -470.0,
+        "_32": 0.0,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "Camera",
+    "_data": {
+      "enabled": true,
+      "layerMask": {
+        "value": 4
+      },
+      "node": 245,
+      "orthoData": {
+        "bottom": -8.66025447845459,
+        "left": 8.66025447845459,
+        "right": -8.66025447845459,
+        "top": 8.66025447845459,
+        "zfar": 50.0,
+        "znear": 0.009999999776482582
+      },
+      "passes": 3,
+      "perspectiveData": {
+        "aspectRatio": 1.0,
+        "farPlane": 50.0,
+        "fovyDegrees": 60.0,
+        "nearPlane": 0.009999999776482582
+      },
+      "priority": 0,
+      "type": 0
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [
+        248
+      ],
+      "disabledState": 0,
+      "id": 460,
+      "layer": 2,
+      "name": "ItemPivot_3",
+      "objects": [],
+      "parent": 1,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": -470.0,
+        "_32": 0.20000000298023224,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [
+        249
+      ],
+      "disabledState": 0,
+      "id": 461,
+      "layer": 2,
+      "name": "ItemModel_3",
+      "objects": [],
+      "parent": 247,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": 470.0,
+        "_32": -0.20000000298023224,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [],
+      "disabledState": 0,
+      "id": 462,
+      "layer": 2,
+      "name": "Cylinder.009",
+      "objects": [
+        250,
+        -1
+      ],
+      "parent": 248,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": 0.0,
+        "_32": 0.0,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "MeshRenderer",
+    "_data": {
+      "enabled": true,
+      "materials": [
+        231,
+        232
+      ],
+      "mesh": "./res/models/butelka.glb:Cylinder.010",
+      "node": 249
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [],
+      "disabledState": 0,
+      "id": 464,
+      "layer": 0,
+      "name": "ItemCamera_4",
+      "objects": [
+        252
+      ],
+      "parent": 1,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": -460.0,
+        "_32": 0.0,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "Camera",
+    "_data": {
+      "enabled": true,
+      "layerMask": {
+        "value": 4
+      },
+      "node": 251,
+      "orthoData": {
+        "bottom": -8.66025447845459,
+        "left": 8.66025447845459,
+        "right": -8.66025447845459,
+        "top": 8.66025447845459,
+        "zfar": 50.0,
+        "znear": 0.009999999776482582
+      },
+      "passes": 3,
+      "perspectiveData": {
+        "aspectRatio": 1.0,
+        "farPlane": 50.0,
+        "fovyDegrees": 60.0,
+        "nearPlane": 0.009999999776482582
+      },
+      "priority": 0,
+      "type": 0
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [
+        254
+      ],
+      "disabledState": 0,
+      "id": 465,
+      "layer": 2,
+      "name": "ItemPivot_4",
+      "objects": [],
+      "parent": 1,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": -460.0,
+        "_32": 0.20000000298023224,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [
+        255
+      ],
+      "disabledState": 0,
+      "id": 466,
+      "layer": 2,
+      "name": "ItemModel_4",
+      "objects": [],
+      "parent": 253,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": 460.0,
+        "_32": -0.20000000298023224,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [],
+      "disabledState": 0,
+      "id": 467,
+      "layer": 2,
+      "name": "Cylinder.009",
+      "objects": [
+        256,
+        -1
+      ],
+      "parent": 254,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": 0.0,
+        "_32": 0.0,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "MeshRenderer",
+    "_data": {
+      "enabled": true,
+      "materials": [
+        231,
+        232
+      ],
+      "mesh": "./res/models/butelka.glb:Cylinder.010",
+      "node": 255
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [
+        258,
+        262,
+        269,
+        276,
+        283,
+        296,
+        303
+      ],
+      "disabledState": 0,
+      "id": 477,
+      "layer": 0,
+      "name": "Options Menu Group",
+      "objects": [
+        310,
+        311
+      ],
+      "parent": 1,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 6054.94970703125,
+        "_31": 6054.94970703125,
+        "_32": 0.0,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [],
+      "disabledState": 0,
+      "id": 478,
+      "layer": 0,
+      "name": "Settings Background",
+      "objects": [
+        259,
+        260,
+        261
+      ],
+      "parent": 257,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 6054.94970703125,
+        "_31": 6054.94970703125,
+        "_32": 0.0,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "UiLayout",
+    "_data": {
+      "enabled": true,
+      "node": 258
+    }
+  },
+  {
+    "_class_name": "UiVisual",
+    "_data": {
+      "enabled": true,
+      "node": 258
+    }
+  },
+  {
+    "_class_name": "UiInteractable",
+    "_data": {
+      "enabled": true,
+      "node": 258
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [
+        263
+      ],
+      "disabledState": 0,
+      "id": 479,
+      "layer": 0,
+      "name": "Resolution Button",
+      "objects": [
+        266,
+        267,
+        268
+      ],
+      "parent": 257,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": 0.0,
+        "_32": 0.0,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [],
+      "disabledState": 0,
+      "id": 480,
+      "layer": 0,
+      "name": "Resolution Text",
+      "objects": [
+        264,
+        265
+      ],
+      "parent": 262,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": 0.0,
+        "_32": 0.0,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "UiLayout",
+    "_data": {
+      "enabled": true,
+      "node": 263
+    }
+  },
+  {
+    "_class_name": "UiText",
+    "_data": {
+      "alignment": 0,
+      "color": {
+        "w": 1.0,
+        "x": 1.0,
+        "y": 1.0,
+        "z": 1.0
+      },
+      "enabled": true,
+      "font": "./res/fonts/OpenSans-Regular/OpenSans-Regular.json",
+      "fontSize": 20.0,
+      "node": 263,
+      "text": "Cycle Resolution"
+    }
+  },
+  {
+    "_class_name": "UiLayout",
+    "_data": {
+      "enabled": true,
+      "node": 262
+    }
+  },
+  {
+    "_class_name": "UiVisual",
+    "_data": {
+      "enabled": true,
+      "node": 262
+    }
+  },
+  {
+    "_class_name": "UiInteractable",
+    "_data": {
+      "enabled": true,
+      "node": 262
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [
+        270
+      ],
+      "disabledState": 0,
+      "id": 481,
+      "layer": 0,
+      "name": "Fullscreen Button",
+      "objects": [
+        273,
+        274,
+        275
+      ],
+      "parent": 257,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": 0.0,
+        "_32": 0.0,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [],
+      "disabledState": 0,
+      "id": 482,
+      "layer": 0,
+      "name": "Fullscreen Text",
+      "objects": [
+        271,
+        272
+      ],
+      "parent": 269,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": 0.0,
+        "_32": 0.0,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "UiLayout",
+    "_data": {
+      "enabled": true,
+      "node": 270
+    }
+  },
+  {
+    "_class_name": "UiText",
+    "_data": {
+      "alignment": 0,
+      "color": {
+        "w": 1.0,
+        "x": 1.0,
+        "y": 1.0,
+        "z": 1.0
+      },
+      "enabled": true,
+      "font": "./res/fonts/OpenSans-Regular/OpenSans-Regular.json",
+      "fontSize": 20.0,
+      "node": 270,
+      "text": "Toggle Windowed"
+    }
+  },
+  {
+    "_class_name": "UiLayout",
+    "_data": {
+      "enabled": true,
+      "node": 269
+    }
+  },
+  {
+    "_class_name": "UiVisual",
+    "_data": {
+      "enabled": true,
+      "node": 269
+    }
+  },
+  {
+    "_class_name": "UiInteractable",
+    "_data": {
+      "enabled": true,
+      "node": 269
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [
+        277
+      ],
+      "disabledState": 0,
+      "id": 483,
+      "layer": 0,
+      "name": "VSync Button",
+      "objects": [
+        280,
+        281,
+        282
+      ],
+      "parent": 257,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": 0.0,
+        "_32": 0.0,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [],
+      "disabledState": 0,
+      "id": 484,
+      "layer": 0,
+      "name": "VSync Text",
+      "objects": [
+        278,
+        279
+      ],
+      "parent": 276,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": 0.0,
+        "_32": 0.0,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "UiLayout",
+    "_data": {
+      "enabled": true,
+      "node": 277
+    }
+  },
+  {
+    "_class_name": "UiText",
+    "_data": {
+      "alignment": 0,
+      "color": {
+        "w": 1.0,
+        "x": 1.0,
+        "y": 1.0,
+        "z": 1.0
+      },
+      "enabled": true,
+      "font": "./res/fonts/OpenSans-Regular/OpenSans-Regular.json",
+      "fontSize": 20.0,
+      "node": 277,
+      "text": "Toggle VSync"
+    }
+  },
+  {
+    "_class_name": "UiLayout",
+    "_data": {
+      "enabled": true,
+      "node": 276
+    }
+  },
+  {
+    "_class_name": "UiVisual",
+    "_data": {
+      "enabled": true,
+      "node": 276
+    }
+  },
+  {
+    "_class_name": "UiInteractable",
+    "_data": {
+      "enabled": true,
+      "node": 276
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [
+        284,
+        291
+      ],
+      "disabledState": 0,
+      "id": 485,
+      "layer": 0,
+      "name": "Checkbox Root",
+      "objects": [
+        294,
+        295
+      ],
+      "parent": 257,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": 30.27777671813965,
+        "_32": 0.0,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [
+        285
+      ],
+      "disabledState": 0,
+      "id": 486,
+      "layer": 0,
+      "name": "Background",
+      "objects": [
+        288,
+        289,
+        290
+      ],
+      "parent": 283,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": 0.0,
+        "_32": 0.0,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [],
+      "disabledState": 0,
+      "id": 487,
+      "layer": 0,
+      "name": "Checkmark",
+      "objects": [
+        286,
+        287
+      ],
+      "parent": 284,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": 0.0,
+        "_32": 0.0,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "UiLayout",
+    "_data": {
+      "enabled": true,
+      "node": 285
+    }
+  },
+  {
+    "_class_name": "UiVisual",
+    "_data": {
+      "enabled": true,
+      "node": 285
+    }
+  },
+  {
+    "_class_name": "UiLayout",
+    "_data": {
+      "enabled": true,
+      "node": 284
+    }
+  },
+  {
+    "_class_name": "UiVisual",
+    "_data": {
+      "enabled": true,
+      "node": 284
+    }
+  },
+  {
+    "_class_name": "UiInteractable",
+    "_data": {
+      "enabled": true,
+      "node": 284
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [],
+      "disabledState": 0,
+      "id": 488,
+      "layer": 0,
+      "name": "Label",
+      "objects": [
+        292,
+        293
+      ],
+      "parent": 283,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": 0.0,
+        "_32": 0.0,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "UiLayout",
+    "_data": {
+      "enabled": true,
+      "node": 291
+    }
+  },
+  {
+    "_class_name": "UiText",
+    "_data": {
+      "alignment": 0,
+      "color": {
+        "w": 1.0,
+        "x": 1.0,
+        "y": 1.0,
+        "z": 1.0
+      },
+      "enabled": true,
+      "font": "./res/fonts/OpenSans-Regular/OpenSans-Regular.json",
+      "fontSize": 24.0,
+      "node": 291,
+      "text": "SSAO Checkbox"
+    }
+  },
+  {
+    "_class_name": "UiLayout",
+    "_data": {
+      "enabled": true,
+      "node": 283
+    }
+  },
+  {
+    "_class_name": "UiCheckbox",
+    "_data": {
+      "enabled": true,
+      "node": 283
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [
+        297
+      ],
+      "disabledState": 0,
+      "id": 489,
+      "layer": 0,
+      "name": "Apply Button",
+      "objects": [
+        300,
+        301,
+        302
+      ],
+      "parent": 257,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": 0.0,
+        "_32": 0.0,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [],
+      "disabledState": 0,
+      "id": 490,
+      "layer": 0,
+      "name": "Apply Text",
+      "objects": [
+        298,
+        299
+      ],
+      "parent": 296,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": 0.0,
+        "_32": 0.0,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "UiLayout",
+    "_data": {
+      "enabled": true,
+      "node": 297
+    }
+  },
+  {
+    "_class_name": "UiText",
+    "_data": {
+      "alignment": 0,
+      "color": {
+        "w": 1.0,
+        "x": 1.0,
+        "y": 1.0,
+        "z": 1.0
+      },
+      "enabled": true,
+      "font": "./res/fonts/OpenSans-Regular/OpenSans-Regular.json",
+      "fontSize": 20.0,
+      "node": 297,
+      "text": "Apply Changes"
+    }
+  },
+  {
+    "_class_name": "UiLayout",
+    "_data": {
+      "enabled": true,
+      "node": 296
+    }
+  },
+  {
+    "_class_name": "UiVisual",
+    "_data": {
+      "enabled": true,
+      "node": 296
+    }
+  },
+  {
+    "_class_name": "UiInteractable",
+    "_data": {
+      "enabled": true,
+      "node": 296
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [
+        304
+      ],
+      "disabledState": 0,
+      "id": 491,
+      "layer": 0,
+      "name": "Back Button",
+      "objects": [
+        307,
+        308,
+        309
+      ],
+      "parent": 257,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": 0.0,
+        "_32": 0.0,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [],
+      "disabledState": 0,
+      "id": 492,
+      "layer": 0,
+      "name": "Back Text",
+      "objects": [
+        305,
+        306
+      ],
+      "parent": 303,
+      "scene": 0,
+      "transform": {
+        "_00": 1.0,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 1.0,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 1.0,
+        "_23": 0.0,
+        "_30": 0.0,
+        "_31": 0.0,
+        "_32": 0.0,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "UiLayout",
+    "_data": {
+      "enabled": true,
+      "node": 304
+    }
+  },
+  {
+    "_class_name": "UiText",
+    "_data": {
+      "alignment": 0,
+      "color": {
+        "w": 1.0,
+        "x": 1.0,
+        "y": 1.0,
+        "z": 1.0
+      },
+      "enabled": true,
+      "font": "./res/fonts/OpenSans-Regular/OpenSans-Regular.json",
+      "fontSize": 20.0,
+      "node": 304,
+      "text": "Back"
+    }
+  },
+  {
+    "_class_name": "UiLayout",
+    "_data": {
+      "enabled": true,
+      "node": 303
+    }
+  },
+  {
+    "_class_name": "UiVisual",
+    "_data": {
+      "enabled": true,
+      "node": 303
+    }
+  },
+  {
+    "_class_name": "UiInteractable",
+    "_data": {
+      "enabled": true,
+      "node": 303
+    }
+  },
+  {
+    "_class_name": "UiOptionsMenu",
+    "_data": {
+      "enabled": true,
+      "node": 257
+    }
+  },
+  {
+    "_class_name": "UiLayout",
+    "_data": {
+      "enabled": true,
+      "node": 257
+    }
+  },
+  {
+    "_class_name": "SceneNode",
+    "_data": {
+      "children": [],
+      "disabledState": 0,
+      "id": 496,
+      "layer": 0,
+      "name": "Text 3D",
+      "objects": [
+        313,
+        314,
+        316,
+        -1
+      ],
+      "parent": 1,
+      "scene": 0,
+      "transform": {
+        "_00": 0.4000000059604645,
+        "_01": 0.0,
+        "_02": 0.0,
+        "_03": 0.0,
+        "_10": 0.0,
+        "_11": 0.4000000059604645,
+        "_12": 0.0,
+        "_13": 0.0,
+        "_20": 0.0,
+        "_21": 0.0,
+        "_22": 0.4000000059604645,
+        "_23": 0.0,
+        "_30": 3.0,
+        "_31": 2.0,
+        "_32": 1.0,
+        "_33": 1.0
+      }
+    }
+  },
+  {
+    "_class_name": "Text3D",
+    "_data": {
+      "alignment": 1,
+      "billboardMode": 1,
+      "color": {
+        "w": 0.0,
+        "x": 1.2000000476837158,
+        "y": 0.30000001192092896,
+        "z": 0.0
+      },
+      "enabled": true,
+      "font": "./res/fonts/Papyrus/Papyrus-Regular.json",
+      "node": 312,
+      "renderer": 314,
+      "text": " "
+    }
+  },
+  {
+    "_class_name": "MeshRenderer",
+    "_data": {
+      "enabled": true,
+      "materials": [
+        315
+      ],
+      "mesh": "",
+      "node": 312
+    }
+  },
+  {
+    "_class_name": "Material",
+    "_data": {
+      "shader": "./res/shaders/text3d/text3d.vert@@@@./res/shaders/text3d/text3d.frag@",
+      "variables": {
+        "billboardMode": 1,
+        "fontAtlas": {
+          "channels": 2,
+          "colorSpace": 0,
+          "format": 0,
+          "magFilter": 1,
+          "minFilter": 1,
+          "path": "./res/fonts/Papyrus/Papyrus-Regular.png",
+          "wrapU": 0,
+          "wrapV": 0
+        },
+        "pxRange": 4.0,
+        "textColor": {
+          "w": 0.0,
+          "x": 1.2000000476837158,
+          "y": 0.30000001192092896,
+          "z": 0.0
+        },
+        "useMsdf": true
+      }
+    }
+  },
+  {
+    "_class_name": "Text3D",
+    "_data": {
+      "alignment": 1,
+      "billboardMode": 1,
+      "color": {
+        "w": 0.0,
+        "x": 1.2000000476837158,
+        "y": 0.30000001192092896,
+        "z": 0.0
+      },
+      "enabled": true,
+      "font": "./res/fonts/Papyrus/Papyrus-Regular.json",
+      "node": 312,
+      "renderer": 314,
+      "text": " "
     }
   },
   {

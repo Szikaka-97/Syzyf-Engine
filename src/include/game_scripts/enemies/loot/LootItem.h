@@ -11,6 +11,8 @@
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
 #include <physics/Body.h>
 #include <Scene.h>
+#include <Random.h>
+#include <Formatters.h>
 
 #include <glm/glm.hpp>
 #include <string>
@@ -32,7 +34,14 @@ inline SceneNode* SpawnIngredientLootModel(
         ->Get<GltfScene>(modelPath)
         ->Instantiate(scene,nullptr,nodeName);
 
-            node->GlobalTransform().Position() = position;
+    node->GlobalTransform().Position() = position;
+    
+    for (MeshRenderer* itemPart : node->GetAllObjectsInChildren<MeshRenderer>()) {
+		// ratPart->maskFlags |= MaskEffectBits::Outline;
+		for (int materialIndex = 0; materialIndex < itemPart->GetMaterialCount(); materialIndex++) {
+			itemPart->GetMaterial(materialIndex)->SetValue("ambientBump", 0.5f);
+		}
+	}
 
     JPH::ShapeRefC lootShape =
         new JPH::BoxShape(JPH::Vec3(0.18f,0.18f,0.18f));
@@ -47,6 +56,15 @@ inline SceneNode* SpawnIngredientLootModel(
 
     Physics::Body* lootBody = node->AddObject<Physics::Body>(lootSettings);
     lootBody->SetCollisionLayerAndMask({0},0xFFFFFFFF);
+
+    glm::vec3 randomVel = Random::RandomOnUnitSphere();
+
+    randomVel.y = glm::abs(randomVel.y);
+
+    spdlog::info(randomVel);
+
+    // lootBody->ApplyForce(randomVel * 100.0f);
+    lootBody->ApplyImpulse(randomVel * 100.0f);
 
     return node;
 }
@@ -217,4 +235,16 @@ public:
             1
         );
     }
+};
+
+class LootEnemyBoss : public LootItem {
+    public:
+    ///placeholder model
+    void Spawn(Scene* scene, const glm::vec3& position) const override {
+        SceneNode* node = SpawnIngredientLootModel(
+        scene,position,"./res/models/ingredients/deserter_ear.glb",
+        "LootEnemyBoss");
+        node->AddObject<LootEnemyBoss>();
+    }
+
 };

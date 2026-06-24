@@ -69,7 +69,6 @@ public:
 class BaseExitToTutorialThrowingRoom : public GameObject {
 private:
 	bool sceneRequested = false;
-	glm::vec3 triggerPosition = glm::vec3(1.6686f, 0.0f, 20.0f);
 	float triggerRadius = 2.5f;
 
 	bool cameraStopped = false;

@@ -1,11 +1,11 @@
 #pragma once
 
 #include "Application.h"
+#include "BaseScene.h"
 #include "GameObject.h"
 #include "ui/objects/UiLayout.h"
 #include "ui/objects/UiText.h"
 #include "ui/systems/UiSystem.h"
-#include "BaseScene.h"
 
 namespace LoadingScene {
 
@@ -18,9 +18,13 @@ class LoadingController : public GameObject {
 
     void Update() {
         if (framesPassed > 2) {
-            Application::Get()->RequestSceneBuild(
-                // [](Scene* s) { BaseScene::InitScene(*s); });
-                [](Scene* s) { BaseScene::InitScene(*s); });
+
+            Scene* base = Scene::LoadScene("./res/scenes/Base Scene.scene");
+
+            Application::Get()->RequestSceneChange(base);
+            // Application::Get()->RequestSceneBuild(
+            // [](Scene* s) { BaseScene::InitScene(*s); });
+            // [](Scene* s) { BaseScene::InitScene(*s); });
         }
         framesPassed++;
     }

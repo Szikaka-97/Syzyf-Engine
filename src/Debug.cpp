@@ -1,10 +1,23 @@
 #include <Debug.h>
 
-#include <imgui.h>
 #include <glm/gtc/matrix_access.hpp>
 
 #include <animation/AnimationComponent.h>
 #include <Scene.h>
+
+struct NodeCoupling {
+	SceneNode* owner;
+	SceneNode** value;
+};
+
+struct GameObjectCoupling {
+	SceneNode* owner;
+	GameObject** value;
+};
+
+
+std::vector<NodeCoupling> registeredNodeCouplings;
+std::vector<GameObjectCoupling> registeredGameObjectCouplings;
 
 DebugInspector::DebugInspector(Scene* scene):
 SceneComponent(scene) { }
@@ -353,4 +366,72 @@ bool Debug::Property(glm::mat4& property, const std::string& name) {
 	property[3][3] = row3[3];
 
 	return origVal != property;
+}
+
+bool Debug::Property(SceneNode* owner, SceneNode*& property, const std::string& name) {
+	std::string displayName = "";
+
+	if (property) {
+		displayName = property->GetName();
+	}
+
+	ImGui::InputTextWithHint(name.c_str(), "nullptr", displayName.data(), displayName.size(), ImGuiInputTextFlags_ReadOnly);
+
+	if (ImGui::BeginDragDropTarget()) {
+		if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("GRAPH_SCENE_NODE")) {
+			SceneNode* droppedNode = *(SceneNode**) payload->Data;
+
+			if (property != droppedNode) {
+				property = droppedNode;
+
+				registeredNodeCouplings.push_back({ owner, &property });
+
+				ImGui::EndDragDropTarget();
+				
+				return true;
+			}
+		}
+
+		ImGui::EndDragDropTarget();
+	}
+
+	return false;
+}
+
+void Debug::RegisterGameObjectProperty(SceneNode* owner, GameObject** property) {
+	registeredGameObjectCouplings.push_back({ owner, property });
+}
+
+void Debug::CheckDeletedNode(SceneNode* deleted) {
+	for (auto& coupling : registeredNodeCouplings) {
+		if (*coupling.value == deleted) {
+			*coupling.value = nullptr;
+		}
+	}
+
+	for (auto& coupling : registeredGameObjectCouplings) {
+		if ((*coupling.value)->GetNode() == deleted) {
+			*coupling.value = nullptr;
+		}
+	}
+
+	std::erase_if(registeredNodeCouplings, [deleted](auto& coupling) -> bool {
+		return coupling.owner == deleted || *coupling.value == deleted;
+	});
+
+	std::erase_if(registeredGameObjectCouplings, [deleted](auto& coupling) -> bool {
+		return coupling.owner == deleted;
+	});
+}
+
+void Debug::CheckDeletedObject(GameObject* deleted) {
+	for (auto& coupling : registeredGameObjectCouplings) {
+		if (*coupling.value == deleted) {
+			*coupling.value = nullptr;
+		}
+	}
+
+	std::erase_if(registeredGameObjectCouplings, [deleted](auto& coupling) -> bool {
+		return *coupling.value == deleted;
+	});
 }

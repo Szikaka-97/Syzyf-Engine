@@ -9,7 +9,7 @@ void Messenger::Call() {
 	(*this->receiver.*this->message)();
 }
 
-bool MessageTree::TryFindNode(SceneNode* sceneNode, MessageTree::MessageNode** result) {
+bool MessageTree::TryFindNode(SceneNode* sceneNode, MessageTree::MessengerNode** result) {
 	std::stack<SceneNode*> parentChain;
 
 	parentChain.push(sceneNode);
@@ -35,7 +35,7 @@ bool MessageTree::TryFindNode(SceneNode* sceneNode, MessageTree::MessageNode** r
 
 		bool found = false;
 
-		for (MessageNode* child : (*result)->children) {
+		for (MessengerNode* child : (*result)->children) {
 			if (child->type == 0 && child->content.node == top) {
 				*result = child;
 
@@ -59,36 +59,51 @@ bool MessageTree::TryFindNode(SceneNode* sceneNode, MessageTree::MessageNode** r
 	return true;
 }
 
-bool MessageTree::TryFindObjectNode(GameObject* obj, MessageNode** result) {
+bool MessageTree::TryFindObjectNode(GameObject* obj, MessengerNode** result) {
 	assert(obj->GetNode());
 
 	return TryFindNode(obj->GetNode(), result);
 }
 
+void MessageTree::MessageNodeInternal(SceneNode* node, int messageId) {
+	MessengerNode* messageRoot = nullptr;
+
+	if (!TryFindNode(node, &messageRoot)) {
+		spdlog::warn("MessageNodeInternal: Node not found - {}", node->GetID());
+		return;
+	}
+
+	for (MessengerNode* child : messageRoot->children) {
+		if (child->type == messageId && child->content.msg.receiver->EnabledSelf()) {
+			child->content.msg.Call();
+		}
+	}
+}
+
 void MessageTree::PropagateMessageInternal(SceneNode* startNode, int messageId) {
 	assert(startNode != nullptr);
 
-	MessageNode* messageRoot = nullptr;
+	MessengerNode* messageRoot = nullptr;
 
 	if (!TryFindNode(startNode, &messageRoot)) {
 		spdlog::warn("PropagateMessageInternal: Node not found - {}", startNode->GetID());
 		return;
 	}
 
-	std::stack<MessageNode*> nodeStack;
+	std::stack<MessengerNode*> nodeStack;
 	std::stack<Messenger> messengers;
 
 	nodeStack.push(messageRoot);
 
 	while (!nodeStack.empty()) {
-		MessageNode* top = nodeStack.top();
+		MessengerNode* top = nodeStack.top();
 		nodeStack.pop();
 
 		if (!top->content.node->EnabledSelf()) {
 			continue;
 		}
 
-		for (MessageNode* child : top->children) {
+		for (MessengerNode* child : top->children) {
 			if (child->type == 0) {
 				nodeStack.push(child);
 			}
@@ -110,7 +125,7 @@ void MessageTree::PropagateMessageInternal(SceneNode* startNode, int messageId) 
 }
 
 void MessageTree::SendMessageInternal(GameObject* obj, int messageId) {
-	MessageNode* messagedNode = nullptr;
+	MessengerNode* messagedNode = nullptr;
 
 	if (!TryFindObjectNode(obj, &messagedNode)) {
 		spdlog::warn("SendMessageInternal: Node not found - {}", obj->GetID());
@@ -126,8 +141,8 @@ void MessageTree::SendMessageInternal(GameObject* obj, int messageId) {
 	}
 }
 
-void MessageTree::AddMessageReceiverInternal(MessageNode* node, Messenger msg, int type) {
-	MessageNode* added = new MessageNode();
+void MessageTree::AddMessageReceiverInternal(MessengerNode* node, Messenger msg, int type) {
+	MessengerNode* added = new MessengerNode();
 	added->content.msg = msg;
 	added->type = type;
 	added->parent = node;
@@ -135,7 +150,7 @@ void MessageTree::AddMessageReceiverInternal(MessageNode* node, Messenger msg, i
 	node->children.push_back(added);
 }
 
-void MessageTree::RemoveNode(MessageNode* node) {
+void MessageTree::RemoveNode(MessengerNode* node) {
 	for (auto child : node->children) {
 		if (child->type == 0) {
             RemoveNode(child);
@@ -163,13 +178,13 @@ MessageTree::~MessageTree() {
 void MessageTree::AddNode(SceneNode* node) {
 	assert(node != nullptr);
 
-	MessageNode* added = new MessageNode();
+	MessengerNode* added = new MessengerNode();
 	added->content.node = node;
 	added->type = 0;
 	added->parent = nullptr;
 
 	if (node->GetParent()) {
-		MessageNode* parent = nullptr;
+		MessengerNode* parent = nullptr;
 
 		if (TryFindNode(node->GetParent(), &parent)) {
 			added->parent = parent;
@@ -188,7 +203,7 @@ void MessageTree::AddNode(SceneNode* node) {
 void MessageTree::RemoveNode(SceneNode* node) {
 	assert(node != nullptr);
 
-	MessageNode* removed = nullptr;
+	MessengerNode* removed = nullptr;
 
 	if (!TryFindNode(node, &removed)) {
 		spdlog::warn("RemoveNode: Node not found - {}", node->GetID());
@@ -202,8 +217,8 @@ void MessageTree::MoveNode(SceneNode* node, SceneNode* newParent) {
 	assert(node != nullptr);
 	assert(newParent != nullptr);
 
-	MessageNode* movedNode = nullptr;
-	MessageNode* newParentNode = nullptr;
+	MessengerNode* movedNode = nullptr;
+	MessengerNode* newParentNode = nullptr;
 
 	if (!TryFindNode(node, &movedNode)) {
 		spdlog::warn("MoveNode: Node not found - {}", node->GetID());
@@ -231,14 +246,14 @@ void MessageTree::MoveNode(SceneNode* node, SceneNode* newParent) {
 void MessageTree::RemoveMessageReceiver(GameObject* obj) {
 	assert(obj != nullptr);
 
-	MessageNode* ownerNode = nullptr;
+	MessengerNode* ownerNode = nullptr;
 
 	if(!TryFindObjectNode(obj, &ownerNode)) {
 		spdlog::warn("RemoveMessageReceiver: Node not found - {}", obj->GetNode()->GetID());
 		return;
 	}
 
-	std::vector<MessageNode*> newChildren;
+	std::vector<MessengerNode*> newChildren;
 
 	for (auto child : ownerNode->children) {
 		if (child->type != 0 && child->content.msg.receiver == obj) {

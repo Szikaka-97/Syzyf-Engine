@@ -77,7 +77,6 @@ void BaseLights::Awake() {
 
 		this->lights.push_back(light);
 		this->baseIntensities.push_back(3.0f);
-		this->torchSpawned.push_back(false);
 	}
 }
 
@@ -98,30 +97,9 @@ void BaseLights::Update() {
 				float sequenceDelay = float(index - 2) * 0.25f;
 				float fadeDuration = 0.6f;
 				turnOnAmount = glm::clamp((Time::Current() - lightsOnTime - sequenceDelay) / fadeDuration, 0.0f, 1.0f);
-				if (turnOnAmount > 0.75f && !this->torchSpawned[index]) {
-					this->torchSpawned[index] = true;
-
-					SceneNode* lightNode = light->GetNode();
-					glm::vec3 pos = lightNode->GlobalTransform().Position();
-
-					SceneNode* torchNode = lightNode->GetScene()->CreateNode(lightNode, "torch");
-					torchNode->GlobalTransform().Position() = pos;
-					torchNode->AddObject<FireParticles>();
-				}
 			}
 		}
-		else {
-			if (!this->torchSpawned[index]) {
-				this->torchSpawned[index] = true;
 
-				SceneNode* lightNode = light->GetNode();
-				glm::vec3 pos = lightNode->GlobalTransform().Position();
-
-				SceneNode* torchNode = lightNode->GetScene()->CreateNode(lightNode, "torch");
-				torchNode->GlobalTransform().Position() = pos;
-				torchNode->AddObject<FireParticles>();
-			}
-		}
 		light->SetIntensity(targetIntensity * turnOnAmount);
 	}
 }
@@ -133,7 +111,7 @@ void BaseScript::Awake() {
 	assert(this->gate != nullptr);
 	assert(this->key != nullptr);
 
-	this->key->AddObject<GateKey>();
+	// this->key->AddObject<GateKey>();
 
 	if (PersistentData::Get<bool>("Base_PlayerPickedUpKey")) {
 		this->key->SetEnabled(false);
@@ -143,32 +121,37 @@ void BaseScript::Awake() {
 
 	assert(wallsColliderNode);
 
-	auto* wallsBody = wallsColliderNode->AddObject<Physics::Body>(
-		JPH::BodyCreationSettings{
-			Physics::MeshShape(wallsColliderNode->GetObject<MeshRenderer>()->GetMesh()),
-			JPH::RVec3::sZero(), JPH::Quat::sZero(), JPH::EMotionType::Static,
-			Physics::Layers::NON_MOVING
-		}
-	);
-	wallsBody->SetCollisionLayerAndMask({0}, 0xFFFFFFFF);
-	wallsColliderNode->GetObject<MeshRenderer>()->SetEnabled(false);
+	if (!wallsColliderNode->GetObject<Physics::Body>()) {
+		auto* wallsBody = wallsColliderNode->AddObjectIfMissing<Physics::Body>(
+			JPH::BodyCreationSettings{
+				Physics::MeshShape(wallsColliderNode->GetObject<MeshRenderer>()->GetMesh()),
+				JPH::RVec3::sZero(), JPH::Quat::sZero(), JPH::EMotionType::Static,
+				Physics::Layers::NON_MOVING
+			}
+		);
+		wallsBody->SetCollisionLayerAndMask({0}, 0xFFFFFFFF);
+		wallsColliderNode->GetObject<MeshRenderer>()->SetEnabled(false);
+	}
 
 	auto* gateColliderNode = this->gate->FindNode("Exit Gate Collider");
 	gateColliderNode->GlobalTransform().Position() = this->gate->GlobalTransform().Position().Value();
 
 	assert(gateColliderNode);
 
-	auto gateBodySettings = JPH::BodyCreationSettings{
-		Physics::MeshShape(gateColliderNode->GetObject<MeshRenderer>()->GetMesh()),
-		JPH::RVec3(0, 0, 0), JPH::Quat::sZero(), JPH::EMotionType::Static,
-		Physics::Layers::NON_MOVING
-	};
-	gateBodySettings.mOverrideMassProperties = JPH::EOverrideMassProperties::MassAndInertiaProvided;
-	gateBodySettings.mMassPropertiesOverride.mMass = 1.0;
-
-	auto* gateBody = gateColliderNode->AddObject<Physics::Body>(gateBodySettings);
-	gateBody->SetCollisionLayerAndMask({0}, 0xFFFFFFFF);
-	gateBody->SetPosition(gateColliderNode->GlobalTransform().Position());
+	if (!gateColliderNode->GetObject<Physics::Body>()) {
+		auto gateBodySettings = JPH::BodyCreationSettings{
+			Physics::MeshShape(gateColliderNode->GetObject<MeshRenderer>()->GetMesh()),
+			JPH::RVec3(0, 0, 0), JPH::Quat::sZero(), JPH::EMotionType::Static,
+			Physics::Layers::NON_MOVING
+		};
+		gateBodySettings.mOverrideMassProperties = JPH::EOverrideMassProperties::MassAndInertiaProvided;
+		gateBodySettings.mMassPropertiesOverride.mMass = 1.0;
+	
+		auto* gateBody = gateColliderNode->AddObject<Physics::Body>(gateBodySettings);
+		gateBody->SetCollisionLayerAndMask({0}, 0xFFFFFFFF);
+		gateBody->SetPosition(gateColliderNode->GlobalTransform().Position());
+	}
+	
 	gateColliderNode->GetObject<MeshRenderer>()->SetEnabled(false);
 }
 
@@ -219,10 +202,10 @@ void BaseTutorialManager::Awake() {
 		true
 	);
 
-	SceneNode* text3dNode = GetScene()->CreateNode("Text 3D");
+	SceneNode* text3dNode = GetScene()->GetOrCreateNode("Text 3D");
 	text3dNode->LocalTransform().Position() = {3.0f, 2.0f, 1.0f};
 	text3dNode->GlobalTransform().Scale() = glm::vec3(0.4f);
-	this->tutorialText = text3dNode->AddObject<Text3D>(" ", papyrusFont);
+	this->tutorialText = text3dNode->AddObjectIfMissing<Text3D>(" ", papyrusFont);
 	this->tutorialText->color = {1.2f, 0.3f, 0.0f, 0.0f};
 	this->tutorialText->billboardMode = BillboardMode::Enabled;
 	this->tutorialText->SetAlignment(TextAlignment::Middle);
@@ -240,6 +223,7 @@ void BaseTutorialManager::Update() {
 
 		if (TimeSincePoint() > 3) {
 			this->tutorialText->SetText("You can use WASD to move around");
+			this->tutorialText->GlobalTransform().Position() = GetNode()->FindNode("WASD Text")->GlobalTransform().Position();
 			this->tutorialText->color.w = glm::clamp(this->tutorialText->color.w + Time::Delta(), 0.f, 1.f);
 		}
 		return;
@@ -255,7 +239,7 @@ void BaseTutorialManager::Update() {
 			this->timePoint = Time::Current();
 		}
 
-		this->tutorialText->GlobalTransform().Position() = glm::vec3(1.6, 2, 8.5);
+		this->tutorialText->GlobalTransform().Position() = GetNode()->FindNode("Gate Locked Text")->GlobalTransform().Position();
 
 		if (TimeSincePoint() > 0.8 && PersistentData::Get<float>("Base_TurnLightsOn") == 0) {
 			PersistentData::Set<float>("Base_TurnLightsOn", Time::Current());
@@ -336,25 +320,7 @@ void BaseTutorialManager::Update() {
 	}
 }
 
-void BaseExitToTutorialThrowingRoom::Awake() {
-	SceneNode* triggerNode = GetNode()->FindNode("NextRoom");
-
-	if (triggerNode) {
-		this->triggerPosition = triggerNode->GlobalTransform().Position().Value();
-
-	}
-
-	if (auto* baseScript = GetNode()->GetObject<BaseScript>()) {
-		if (baseScript->gate) {
-			gatePosition = baseScript->gate->GlobalTransform().Position();
-		}
-	}
-
-
-	if (auto* mainCam = GetScene()->GetGraphics()->GetMainCamera()) {
-		cameraSettings = mainCam->GetNode()->GetObject<CameraSettings>();
-	}
-}
+void BaseExitToTutorialThrowingRoom::Awake() { }
 
 void BaseExitToTutorialThrowingRoom::Update() {
 	if (this->sceneRequested) {
@@ -365,52 +331,18 @@ void BaseExitToTutorialThrowingRoom::Update() {
 		return;
 	}
 
-	auto* player = PlayerController::Instance();
-	if (!player) return;
-
-	if (!cameraStopped && !cameraSettings) {
-		if (auto* mainCam = GetScene()->GetGraphics()->GetMainCamera()) {
-			cameraSettings = mainCam->GetNode()->GetObject<CameraSettings>();
-		}
-	}
-
-	glm::vec3 playerPos = player->GlobalTransform().Position();
-	playerPos.y = 0.0f;
-
-	glm::vec3 gateFlat = gatePosition;    gateFlat.y = 0.0f;
-	glm::vec3 exitFlat = triggerPosition; exitFlat.y = 0.0f;
-
-	if (!cameraStopped && cameraSettings) {
-		glm::vec3 pathDir = exitFlat - gateFlat;
-		float pathLen = glm::length(pathDir);
-
-		if (pathLen > 0.0001f) {
-			pathDir /= pathLen;
-
-			float projected = glm::dot(playerPos - gateFlat, pathDir);
-
-			if (projected >= 0.0f) {
-				cameraSettings->Freeze();
-				cameraStopped = true;
-			}
-		}
-	}
-
 	float distanceToTrigger = glm::distance(
-			PlayerController::Instance()->GlobalTransform().Position().Value(),
-			this->triggerPosition
+		PlayerController::Instance()->GlobalTransform().Position().Value(),
+		GlobalTransform().Position().Value()
 	);
 
 	if (distanceToTrigger < this->triggerRadius) {
-			this->sceneRequested = true;
+		this->sceneRequested = true;
 
-			spdlog::error("BUILD");
-
-			Application::Get()->RequestSceneBuild(
+		Application::Get()->RequestSceneBuild(
 			[](Scene* s) {
-				// DungeonScene::InitScene(*s);
 				TutorialThrowingRoomScene::InitScene(*s);
 			}
-			);
+		);
 	}
 }

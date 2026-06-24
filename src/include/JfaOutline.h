@@ -10,12 +10,12 @@ class ComputeShaderProgram;
 
 class JfaOutline : public PostProcessEffect, public ImGuiDrawable {
 public:
-    bool ignoreDepth = false;
-    bool drawInnerLines = false;
+    serialized bool ignoreDepth = false;
+    serialized bool drawInnerLines = false;
 
-    glm::vec3 outlineColor = glm::vec3(1.0f);
-    float outlineIntensity = 1.0f;
-    float outlineThickness = 10.0f;
+    serialized glm::vec3 outlineColor = glm::vec3(1.0f);
+    serialized float outlineIntensity = 1.0f;
+    serialized float outlineThickness = 10.0f;
 private:
     glm::vec2 savedResolution;
 

@@ -5,20 +5,17 @@
 #include <glm/glm.hpp>
 #include <spdlog/spdlog.h>
 
-// ──────────────────────────────────────────────────────────────────────────────
 EnemyBeetroot::EnemyBeetroot() {
-    attackRange = 6.0f; // matches Unity Awake() override
+    attackRange = 8.0f;
+    m_Speed = 2.5f;
+    SceneNode* enemyModel =
+         ResourceDatabase::Global->Get<GltfScene>("./res/models/enemies/burak_macki3_bisect.glb")
+             ->Instantiate(GetScene(), GetNode(), "EnemyBeetrootModel");
+    enemyModel->LocalTransform().Position() = glm::zero<glm::vec3>();
+    AnimationComponent* enemyAnim = GetNode()->GetObjectInChildren<AnimationComponent>();
+   // SetAttackAnimation(enemyAnim);
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
-void EnemyBeetroot::SetSegmentResources(Mesh* mesh, Material* mat) {
-    m_SegmentMesh     = mesh;
-    m_SegmentMaterial = mat;
-}
-
-// ──────────────────────────────────────────────────────────────────────────────
-//  Reproduces Unity's spawnDelays[] computation exactly.
-//  Mathf.Lerp(a, b, t) == glm::mix(a, b, t) for floats.
 void EnemyBeetroot::ComputeSpawnDelays() {
     const float firstDelay     = m_FirstSegmentTime;
     const float remainingTime  = m_AttackDuration - firstDelay;
@@ -27,13 +24,11 @@ void EnemyBeetroot::ComputeSpawnDelays() {
     m_SpawnDelays[0] = firstDelay;
     for (int i = 1; i < 8; ++i) {
         float ratio    = static_cast<float>(i) / 7.0f;
-        // Lerp from (fast) 1.5x to (slow) 0.5x so segments accelerate
         float interval = glm::mix(baseInterval * 1.5f, baseInterval * 0.5f, ratio);
         m_SpawnDelays[i] = m_SpawnDelays[i - 1] + interval;
     }
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
 void EnemyBeetroot::StartAttack() {
     m_IsAttacking         = true;
     m_HasHealedThisAttack = false;
@@ -43,21 +38,28 @@ void EnemyBeetroot::StartAttack() {
     m_ClearTimer          = 0.0f;
     ComputeSpawnDelays();
     StopMoving();
-    spdlog::info("BeetrootEnemy: attack sequence started");
+
+    if (m_Body) {
+        glm::vec3 vel = m_Body->GetLinearVelocity();
+        m_Body->SetLinearVelocity(glm::vec3(0.0f, vel.y, 0.0f));
+    }
+
+    glm::vec3 toPlayer = m_TargetPosition - currentPos;
+    toPlayer.y = 0.0f;
+    float len = glm::length(toPlayer);
+    m_AttackDir = (len > 0.01f) ? (toPlayer / len) : glm::vec3(0, 0, 1);
+SetLoopingAnimation("attack.001");
+
+    spdlog::info("BeetrootEnemy: attack sequence started, dir=({:.2f},{:.2f},{:.2f})",
+                 m_AttackDir.x, m_AttackDir.y, m_AttackDir.z);
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
 void EnemyBeetroot::SpawnSegmentAt(int index, const glm::vec3& dirToPlayer) {
-    // Segments appear 1 m away from the beetroot, each 1 m further
     glm::vec3 segPos = currentPos + dirToPlayer * (1.0f + static_cast<float>(index));
 
     auto* segNode = GetScene()->CreateNode("BeetrootSeg_" + std::to_string(index));
     segNode->GlobalTransform().Position() = segPos;
 
-    if (m_SegmentMesh && m_SegmentMaterial)
-        segNode->AddObject<MeshRenderer>(m_SegmentMesh, m_SegmentMaterial);
-
-    // Add the trigger-like component that deals damage on proximity
     auto* seg = segNode->AddObject<BeetrootSegment>();
     seg->Initialize(this, m_TargetNode);
 
@@ -66,44 +68,31 @@ void EnemyBeetroot::SpawnSegmentAt(int index, const glm::vec3& dirToPlayer) {
                   index, segPos.x, segPos.y, segPos.z);
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
-//  Replaces the IEnumerator AttackSequence coroutine.
-//  Must be called every frame while m_IsAttacking == true.
 void EnemyBeetroot::UpdateAttackSequence() {
     m_AttackElapsed += Time::Delta();
 
     if (!m_WaitingClear) {
-        // Direction is captured at attack-start moment; use currentPos snapshot
-        glm::vec3 dir(0.0f);
-        glm::vec3 toTarget = m_TargetPosition - currentPos;
-        if (glm::length(toTarget) > 0.01f)
-            dir = glm::normalize(toTarget);
-
-        // Spawn every segment whose timestamp has been reached
         while (m_NextSegmentIndex < 8 &&
                m_AttackElapsed >= m_SpawnDelays[m_NextSegmentIndex]) {
-            SpawnSegmentAt(m_NextSegmentIndex, dir);
+            SpawnSegmentAt(m_NextSegmentIndex, m_AttackDir);
             ++m_NextSegmentIndex;
         }
 
-        // All 8 spawned → enter the 1-second "stay alive" wait
         if (m_NextSegmentIndex >= 8) {
             m_WaitingClear = true;
             m_ClearTimer   = 0.0f;
         }
     } else {
-        // yield return new WaitForSeconds(1f) equivalent
         m_ClearTimer += Time::Delta();
         if (m_ClearTimer >= 1.0f) {
             ClearSegments();
-            m_IsAttacking  = false;
+            m_IsAttacking    = false;
             m_AttackCooldown = 7.0f;
             spdlog::info("BeetrootEnemy: attack sequence finished");
         }
     }
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
 void EnemyBeetroot::ClearSegments() {
     for (auto* seg : m_SpawnedSegments) {
         if (seg) GetScene()->QueueDelete(seg);
@@ -111,7 +100,6 @@ void EnemyBeetroot::ClearSegments() {
     m_SpawnedSegments.clear();
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
 void EnemyBeetroot::OnSegmentHitPlayer() {
     if (!m_HasHealedThisAttack) {
         if (m_hp < 100) m_hp += 15;
@@ -120,51 +108,84 @@ void EnemyBeetroot::OnSegmentHitPlayer() {
     }
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
 void EnemyBeetroot::Update() {
     EnsureBody();
     LockXZRotation();
-    EnsureBody();
+    if (!m_Body) { spdlog::error("EnemyBeetroot: no body"); return; }
     if (!m_TargetNode) return;
- 
+
+    if (!m_AnimInitialized) {
+        m_AnimInitialized = true;
+        AnimationComponent* anim = GetNode()->GetObjectInChildren<AnimationComponent>();
+        if (anim) {
+            SetAttackAnimation(anim);
+            spdlog::info("EnemyBeetroot: AnimationComponent found and set");
+        } else {
+            spdlog::error("EnemyBeetroot: AnimationComponent NOT FOUND in children");
+        }
+    }
+
     m_TargetPosition = m_TargetNode->GlobalTransform().Position();
     if (!myNode) return;
- 
+
     currentPos = m_Body->GetPosition();
     myNode->GlobalTransform().Position() = currentPos;
     myNode->GlobalTransform().Rotation() = m_Body->GetRotation();
- 
+
+    UpdateStatusEffects();
     UpdateAttackAnimation();
     if (m_InAttackAnimation) { StopMoving(); return; }
 
-    // ── Normal FSM ──────────────────────────────────────────────────────────
-   if (isPlayerInRoom) {
+    if (!m_IsAttacking && m_AttackCooldown > 0.0f) {
+        m_AttackCooldown -= Time::Delta();
+    }
+
+    if (isPlayerInRoom) {
         float dist = glm::distance(currentPos, m_TargetPosition);
-        if      (m_hp <= 30)          currentState = States::FLEEING;
-        else if (dist <= attackRange) currentState = States::ATTACKING;
-        else                          currentState = States::CHASING;
+        if (dist <= attackRange && (m_AttackCooldown <= 0.0f || m_IsAttacking)) {
+            currentState = States::ATTACKING;
+        } else {
+            currentState = States::CHASING;
+        }
     } else {
         currentState = States::PATROLLING;
     }
 
     switch (currentState) {
-        case States::PATROLLING:
-            Patrol();
-            break;
-        case States::CHASING:
+    case States::PATROLLING:
+        Patrol();
+        SetLoopingAnimation("walk.001");
+        break;
+
+    case States::CHASING: {
+        float dist = glm::distance(currentPos, m_TargetPosition);
+        if (dist > 2.5f) {
             DirectChase();
-            break;
-        case States::ATTACKING:
-            if (!m_IsAttacking && m_AttackCooldown <= 0.0f)
-                StartAttack();
-            else {
-                StopMoving();
-                m_AttackCooldown -= Time::Delta();
-            }
-            break;
-        case States::FLEEING:
-            Flee();
-            break;
-       
+            SetLoopingAnimation("walk.001");
+        } else {
+            StopMoving();
+            glm::vec3 toPlayer = m_TargetPosition - currentPos;
+            toPlayer.y = 0.0f;
+            if (glm::length(toPlayer) > 0.01f)
+                RotateNode(glm::normalize(toPlayer));
+            SetLoopingAnimation("idle.001");
+        }
+        break;
+    }
+
+    case States::ATTACKING:
+        StopMoving();
+        if (m_IsAttacking) {
+            SetLoopingAnimation("attack.001");
+            UpdateAttackSequence();
+        } else if (m_AttackCooldown <= 0.0f) {
+            StartAttack();
+        } else {
+            SetLoopingAnimation("idle.001");
+        }
+        break;
+
+    default:
+        break;
     }
 }

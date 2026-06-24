@@ -22,6 +22,8 @@ private:
 	Surface* surface;
 	float timeout = 1;
 public:
+	bool isFinal = false;
+
 	DungeonRoomScript();
 
 	void Update();
@@ -87,6 +89,10 @@ public:
 
 	void Update();
 	void Render();
+
+    const std::vector<PlacedRoom>& GetRooms() const {
+        return this->dungeonRooms;
+    }
 
 	virtual void DrawImGui() override;
 };

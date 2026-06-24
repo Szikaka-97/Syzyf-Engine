@@ -243,9 +243,6 @@ void EffectExplosion::OnInit() {
         explosionModel->GetObject<AnimationComponent>()->Play(anim.data.name);
     }
 
-    // explosionModel->GetObject<AnimationComponent>()->Play("CylinderAction");
-    // explosionModel->GetObject<AnimationComponent>()->Play("TorusAction");
-    // explosionModel->GetObject<AnimationComponent>()->Play("SphereAction");
     explosionModel->FindNode("SphereScaler")->LocalTransform().Scale() = glm::vec3(this->radius);
 }
 

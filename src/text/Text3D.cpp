@@ -10,7 +10,12 @@
 #include <imgui.h>
 #include <misc/cpp/imgui_stdlib.h>
 
-Text3D::Text3D(std::string text, Font* font, std::shared_ptr<Material> material) : text(text), font(font), material(material), alignment(TextAlignment::Left) {
+Text3D::Text3D():
+Text3D("") { }
+
+Text3D::Text3D(std::string text, Font* font, std::shared_ptr<Material> material) : text(text), font(font), material(material), alignment(TextAlignment::Left) { }
+
+void Text3D::Awake() {
 
     if (material == nullptr) {
         this->shader.reset(
@@ -26,7 +31,7 @@ Text3D::Text3D(std::string text, Font* font, std::shared_ptr<Material> material)
     this->material->SetValue("textColor", glm::vec4(1.0f));
     this->material->SetValue("pxRange", static_cast<float>(font->distanceRange));
 
-    this->renderer = this->GetNode()->AddObject<MeshRenderer>();
+    this->renderer = this->GetNode()->AddObjectIfMissing<MeshRenderer>();
     this->RebuildMesh();
     this->renderer->SetMaterial(this->material.get());
     this->material->SetValue("textColor", this->color);

@@ -15,13 +15,17 @@
 #include "fog/Fog.h"
 #include "game_scripts/FireParticles.h"
 #include "game_scripts/PickableItemSystem.h"
+#include "game_scripts/ui/InGame.h"
+#include "game_scripts/ui/PauseMenu.h"
+#include "game_scripts/ui/TabMenu.h"
 #include "ui/widgets/wheel/UiWheel.h"
 #include <game_scripts/AimCrosshair.h>
 #include <game_scripts/PlayerController.h>
 
+#include "game_scripts/PotionInventory.h"
 #include "game_scripts/enemies/FlockingSystem.h"
 #include "game_scripts/enemies/MeleeSkeleton.h"
-#include "game_scripts/PotionInventory.h"
+#include "game_scripts/enemies/EnemyBoss.h"
 #include <Bloom.h>
 #include <Camera.h>
 #include <ColorGrading.h>
@@ -74,6 +78,8 @@
 #include <ui/widgets/wheel/UiRadialWheel.h>
 
 #include "Jolt/Math/Vec3.h"
+#include "game_scripts/enemies/EnemyBeetroot.h"
+#include "game_scripts/enemies/EnemyPotato.h"
 #include "text/Text3D.h"
 #include <Jolt/Jolt.h>
 #include <Jolt/Physics/Body/MotionType.h>
@@ -143,8 +149,8 @@ inline void InitScene(Scene& mainScene) {
     // auto* room1Body = room1MeshRenderer->GetNode()->AddObject<Physics::Body>(
     //     JPH::BodyCreationSettings{
     //         Physics::MeshShape(room1MeshRenderer->GetMesh()),
-    //         JPH::RVec3::sZero(), JPH::Quat::sZero(), JPH::EMotionType::Static,
-    //         Physics::Layers::NON_MOVING});
+    //         JPH::RVec3::sZero(), JPH::Quat::sZero(),
+    //         JPH::EMotionType::Static, Physics::Layers::NON_MOVING});
     // auto* room1Surface =
     //     room1->AddObject<Surface>(room1MeshRenderer->GetMesh(), 1.0f);
 
@@ -159,8 +165,8 @@ inline void InitScene(Scene& mainScene) {
     // auto* room2Body = room2MeshRenderer->GetNode()->AddObject<Physics::Body>(
     //     JPH::BodyCreationSettings{
     //         Physics::MeshShape(room2MeshRenderer->GetMesh()),
-    //         JPH::RVec3::sZero(), JPH::Quat::sZero(), JPH::EMotionType::Static,
-    //         Physics::Layers::NON_MOVING});
+    //         JPH::RVec3::sZero(), JPH::Quat::sZero(),
+    //         JPH::EMotionType::Static, Physics::Layers::NON_MOVING});
     // auto* room2Surface =
     //     room2->AddObject<Surface>(room2MeshRenderer->GetMesh(), 1.0f);
 
@@ -175,9 +181,10 @@ inline void InitScene(Scene& mainScene) {
     characterSettings->mShape = new JPH::CapsuleShape(0.5f, 0.5f);
     characterSettings->mShapeOffset = JPH::Vec3(0, 1, 0);
     characterSettings->mMaxSlopeAngle = JPH::DegreesToRadians(45.0f);
+    characterSettings->mMass = 1e10f;
 
     SceneNode* playerNode = mainScene.CreateNode("Player");
-	playerNode->GlobalTransform().Position() = glm::vec3(3, 0, 0);
+    playerNode->GlobalTransform().Position() = glm::vec3(3, 0, 0);
 
     SceneNode* bimberman =
         ResourceDatabase::Global
@@ -188,7 +195,11 @@ inline void InitScene(Scene& mainScene) {
     auto* virtualCharacter =
         playerNode->AddObject<Physics::VirtualCharacterController>(
             characterSettings);
-    virtualCharacter->SetCollisionLayerAndMask({1}, 0xFFFFFFFF);
+    //virtualCharacter->SetCollisionLayerAndMask({1}, 0xFFFFFFFF);
+    virtualCharacter->SetCollisionLayerAndMask(
+    {1},
+    ~(1u << static_cast<uint32_t>(Physics::Layers::MOVING))
+);
     virtualCharacter->SetPosition(
         playerNode->GlobalTransform().Position().Value());
     virtualCharacter->SetGravityFactor(1);
@@ -200,13 +211,8 @@ inline void InitScene(Scene& mainScene) {
 
     auto* player = playerNode->AddObject<PlayerController>();
 
-    PotionInventory::SaveLastCraftedPotion(
-        "Basic Potion",
-        "Explosion",
-        100.0f,
-        999,
-        false
-    );
+    PotionInventory::SaveLastCraftedPotion("Basic Potion", "Explosion", 100.0f,
+                                           999, false);
 
 #pragma endregion
 
@@ -243,165 +249,143 @@ inline void InitScene(Scene& mainScene) {
 #pragma endregion
 #pragma region Enemy
 
-    // auto* flockingSystem = mainScene.AddComponent<FlockingSystem>();
-    // flockingSystem->separationRadius = 2.5f;
-    // flockingSystem->separationWeight = 1.8f;
-    // flockingSystem->alignmentRadius = 5.0f;
-    // flockingSystem->alignmentWeight = 0.3f;
-    // flockingSystem->cohesionRadius = 6.0f;
-    // flockingSystem->cohesionWeight = 0.2f;
-    // JPH::ShapeRefC enemyShape = new JPH::CapsuleShape(0.5f, 1.0f);
-    // JPH::BodyCreationSettings enemySettingsTemplate(
-    //     enemyShape, JPH::RVec3(0, 1.5f, 0), JPH::Quat::sIdentity(),
-    //     JPH::EMotionType::Dynamic, Physics::Layers::MOVING);
-    // Material* enemyMat =
-    //     mainScene.Resources()->Get<Material>("./res/materials/jake.mat");
-    // Mesh* cubeMesh =
-    //     mainScene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
+// auto* flockingSystem = mainScene.AddComponent<FlockingSystem>();
+// flockingSystem->separationRadius = 2.5f;
+// flockingSystem->separationWeight = 1.8f;
+// flockingSystem->alignmentRadius  = 5.0f;
+// flockingSystem->alignmentWeight  = 0.3f;
+// flockingSystem->cohesionRadius   = 6.0f;
+// flockingSystem->cohesionWeight   = 0.2f;
+
+// JPH::ShapeRefC enemyShape = new JPH::CapsuleShape(0.5f, 1.0f);
+// JPH::BodyCreationSettings enemySettingsTemplate(
+//     enemyShape, JPH::RVec3(0, 1.5f, 0), JPH::Quat::sIdentity(),
+//     JPH::EMotionType::Dynamic, Physics::Layers::MOVING);
+// enemySettingsTemplate.mAllowedDOFs =
+//     JPH::EAllowedDOFs::TranslationX |
+//     JPH::EAllowedDOFs::TranslationY |
+//     JPH::EAllowedDOFs::TranslationZ |
+//     JPH::EAllowedDOFs::RotationY;
+//
+// Material* enemyMat =
+//     mainScene.Resources()->Get<Material>("./res/materials/jake.mat");
+// Mesh* cubeMesh =
+//     mainScene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
+//
+// for (int i = 0; i < 8; i++) {
+//     SceneNode* enemy1 = mainScene.CreateNode("Enemy 1");
+//     enemy1->GlobalTransform().Scale()    = glm::vec3(0.5f, 0.5f, 0.5f);
+//     enemy1->GlobalTransform().Position() = glm::vec3(15.f + i * 2.0f, 0.f, 0.f);
+//
+//     JPH::BodyCreationSettings settings = enemySettingsTemplate;
+//     settings.mPosition = JPH::RVec3(15.f + i * 2.0f, 1.5f, 0.f);
+//
+//     Physics::Body* enemyBody1 = enemy1->AddObject<Physics::Body>(settings);
+//     enemyBody1->SetRestitution(0.0f);
+//
+//     auto* enemyAi1 = enemy1->AddObject<MeleeSkeleton>();
+//     enemyAi1->SetSurface(surface);
+//     enemyAi1->SetTargetNode(player->GetNode());
+//     enemyAi1->SetProjectileResources(cubeMesh, enemyMat);
+//     enemyAi1->SetAttackCooldown(1.2f);
+//     enemyAi1->SetRoomID(floorNode->GetID());
+//     enemyAi1->OnPlayerEnteredRoom();
+//     //enemyAi1->RegisterToFlockingSystem(flockingSystem);
+//
+//     SceneNode* enemyModel =
+//         ResourceDatabase::Global->Get<GltfScene>("./res/models/szkielet6.glb")
+//             ->Instantiate(&mainScene, mainScene.root, "EnemyModel");
+//     enemyModel->SetParent(enemy1);
+//     enemyModel->GlobalTransform().Scale()    = glm::vec3(0.1f, 0.1f, 0.1f);
+//     enemyModel->LocalTransform().Position()  = glm::zero<glm::vec3>();
+//
+//     auto* animComp = enemyModel->GetObjectInChildren<AnimationComponent>();
+//     if (animComp) {
+//         enemyAi1->SetAttackAnimation(animComp);
+//     }
+// }
+
+
+#pragma endregion
+
+    // // Torch fire particles
+    // SceneNode* sprayNode = mainScene.CreateNode("Fire");
+    // sprayNode->GlobalTransform().Position() = {0.0f, 0.0f, 0.0f};
+    // sprayNode->AddObject<FireParticles>();
     //
-    // SceneNode* enemy1 = mainScene.CreateNode("Enemy 1");
-    // // enemy1->GlobalTransform().Position() = glm::vec3(10.5f, 0.0f, -5.0f);
-    // enemy1->GlobalTransform().Scale() = glm::vec3(0.5f, 0.5f, 0.5f);
-    // enemy1->GlobalTransform().Position() = glm::vec3(15.f, 0.f, 0.f);
-    // Physics::Body* enemyBody1 =
-    // enemy1->AddObject<Physics::Body>(enemySettings);
-    // enemyBody1->SetRestitution(0.0f);
-    // auto* enemyAi1 = enemy1->AddObject<EnemySkeleton>();
-    // enemyAi1->SetSurface(surface);
-    // enemyAi1->SetTargetNode(player->GetNode());
-    // enemyAi1->SetProjectileResources(cubeMesh, enemyMat);
-    // enemyAi1->SetAttackCooldown(1.2f);
-    // enemyAi1->SetRoomID(floorNode->GetID());
-
-    // SceneNode* enemyModel =
-    //     ResourceDatabase::Global->Get<GltfScene>("./res/models/szkielet6.glb")
-    //         ->Instantiate(&mainScene, mainScene.root, "EnemyModel");
-    // enemyModel->SetParent(enemy1);
-    // enemyModel->GlobalTransform().Scale() = glm::vec3(0.1, 0.1, 0.1);
-    // enemyModel->LocalTransform().Position() = glm::zero<glm::vec3>();
-
-#pragma endregion
-#pragma region UI
-
-    SceneNode* uiRoot = mainScene.CreateNode("UI");
-
-    // Move this into the wheel system
-    SceneNode* uiNode = mainScene.CreateNode(uiRoot, "Ui Node");
-    uiNode->AddObject<WheelTag>();
-    uiNode->AddObject<UiLayout>(glm::uvec2(400, 400), glm::uvec2(150, 0), 0,
-                                AnchorPoint::CenterLeft);
-    auto* uiVisual = uiNode->AddObject<UiVisual>(
-        glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-        mainScene.Resources()->Get<Texture2D>(
-            "./res/textures/1147437805040054272.png",
-            Texture2D::ColorTextureRGBA));
-    uiVisual->SetEnabled(false);
-    uiVisual->colorHovered = {1.0f, 0.0f, 0.0f, 1.0f};
-    uiVisual->colorClicked = {0.0f, 1.0f, 0.0f, 1.0f};
-    uiNode->AddObject<UiInteractable>();
-
-    SceneNode* cursorNode = mainScene.CreateNode(uiRoot, "Cursor");
-    cursorNode->AddObject<UiLayout>(glm::uvec2(64, 64), glm::uvec2(0, 0), 9999);
-
-    cursorNode->AddObject<UiVisual>(
-        glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-        mainScene.Resources()->Get<Texture2D>(
-            "./res/textures/1147437805040054272.png",
-            Texture2D::ColorTextureRGBA));
-    cursorNode->AddObject<UiCursor>();
-
-    ShaderProgram* customUiProgram =
-        ShaderProgram::Build()
-            .WithVertexShader("./res/shaders/ui/ui.vert")
-            .WithPixelShader("./res/shaders/ui/custom/radial_wheel.frag")
-            .Link();
-    Material* customUiMaterial = new Material(customUiProgram);
-    SceneNode* radialWheelNode = mainScene.CreateNode(uiRoot, "Radial Wheel");
-    radialWheelNode->AddObject<UiLayout>(
-        glm::uvec2(600, 600), glm::uvec2(-150, 0), 0, AnchorPoint::CenterRight);
-    auto* customVisual =
-        radialWheelNode->AddObject<UiVisual>(glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
-    customVisual->SetEnabled(false);
-    customVisual->customMaterial = customUiMaterial;
-    auto* radialWheel = radialWheelNode->AddObject<UiRadialWheel>();
-    radialWheel->AddObject<WheelTag>();
-    radialWheel->material.reset(customUiMaterial);
-    radialWheel->SetItemModels({
-        "./res/models/butelka.glb",
-        "./res/models/butelka.glb",
-        "./res/models/butelka.glb",
-        "./res/models/butelka.glb",
-        "./res/models/butelka.glb",
-    });
-
-    SceneNode* gridRoot = mainScene.CreateNode(uiRoot, "Grid");
-    gridRoot->AddObject<UiLayout>(glm::uvec2(360, 475), glm::uvec2(50, 50), 0,
-                                  AnchorPoint::TopLeft);
-    auto* gridRootVisual =
-        gridRoot->AddObject<UiVisual>(glm::vec4(0.2f, 0.2f, 0.2f, 0.8f));
-    gridRootVisual->SetEnabled(false);
-    gridRoot->AddObject<WheelTag>();
-    SceneNode* gridContainer = mainScene.CreateNode(gridRoot, "Grid Container");
-    auto* gridLayout = gridContainer->AddObject<UiLayout>(
-        glm::uvec2(330, 445), glm::uvec2(0, 0), 0, AnchorPoint::Center);
-    // gridContainer->AddObject<UiVisual>(glm::vec4(0.2f, 0.2f, 0.2f, 0.8f));
-    gridContainer->AddObject<UiInteractable>();
-
-    auto* grid = gridContainer->AddObject<UiScrollableGrid>();
-    for (int i = 0; i < 20; i++) {
-        SceneNode* itemNode =
-            mainScene.CreateNode(uiRoot, "Item_" + std::to_string(i));
-        itemNode->SetParent(gridContainer);
-
-        auto* layout = itemNode->AddObject<UiLayout>(
-            glm::uvec2(100, 100), glm::uvec2(0, 0), 1, AnchorPoint::Center);
-
-        auto* visual =
-            itemNode->AddObject<UiVisual>(glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
-        visual->SetEnabled(false);
-        itemNode->AddObject<UiInteractable>();
-        itemNode->AddObject<WheelTag>();
-    }
-#pragma endregion
-
-    // Torch fire particles
-    SceneNode* sprayNode = mainScene.CreateNode("Fire");
-    sprayNode->GlobalTransform().Position() = {0.0f, 0.0f, 0.0f};
-    sprayNode->AddObject<FireParticles>();
-
-    // Szkielet blendowanie
-    SceneNode* skeletonNode =
-        ResourceDatabase::Global
-            ->Get<GltfScene>("./res/models/enemies/szkielet4.glb")
-            ->Instantiate(&mainScene, mainScene.root, "SkeletonNode");
-
-    auto* animComp = skeletonNode->GetObjectInChildren<AnimationComponent>();
-    if (animComp) {
-        animComp->SetAnimationLayer("walk.001", 0);
-        animComp->SetAnimationLayer("attack.001", 1);
-
-        SceneNode* spineNode =
-            skeletonNode->FindNode("rig_deform/DEF-upper_arm.L");
-        if (spineNode) {
-            animComp->SetAnimationMask("attack.001", spineNode);
-        }
-
-        animComp->Play("walk.001");
-        animComp->Play("attack.001");
-
-        for (auto& anim : animComp->animations) {
-            if (anim.data.name == "walk.001" ||
-                anim.data.name == "attack.001") {
-                anim.looping = true;
-            }
-            if (anim.data.name == "attack.001") {
-                anim.blendWeight = 1.0f;
-            }
-        }
-    }
+    // // Szkielet blendowanie
+    // SceneNode* skeletonNode =
+    //     ResourceDatabase::Global
+    //         ->Get<GltfScene>("./res/models/enemies/szkielet4.glb")
+    //         ->Instantiate(&mainScene, mainScene.root, "SkeletonNode");
+    //
+    // auto* animComp = skeletonNode->GetObjectInChildren<AnimationComponent>();
+    // if (animComp) {
+    //     animComp->SetAnimationLayer("walk.001", 0);
+    //     animComp->SetAnimationLayer("attack.001", 1);
+    //
+    //     SceneNode* spineNode =
+    //         skeletonNode->FindNode("rig_deform/DEF-upper_arm.L");
+    //     if (spineNode) {
+    //         animComp->SetAnimationMask("attack.001", spineNode);
+    //     }
+    //
+    //     animComp->Play("walk.001");
+    //     animComp->Play("attack.001");
+    //
+    //     for (auto& anim : animComp->animations) {
+    //         if (anim.data.name == "walk.001" ||
+    //             anim.data.name == "attack.001") {
+    //             anim.looping = true;
+    //         }
+    //         if (anim.data.name == "attack.001") {
+    //             anim.blendWeight = 1.0f;
+    //         }
+    //     }
+    // }
 
     SceneNode* audio = mainScene.CreateNode("Audio");
     audio->AddObject<AudioSource>(
         mainScene.Resources()->Get<AudioClip>("./res/audio/Click.wav"));
+
+    // UI
+    SceneNode* uiRoot = mainScene.CreateNode("UI");
+    SceneNode* tabMenu = mainScene.CreateNode(uiRoot, "Tab Menu");
+    tabMenu->AddObject<TabMenu>();
+    SceneNode* pauseMenu = mainScene.CreateNode(uiRoot, "Pause Menu");
+    pauseMenu->AddObject<PauseMenu>();
+    SceneNode* inGameUi = mainScene.CreateNode("HUD");
+    inGameUi->AddObject<InGameUi>();
+
+    SceneNode* enemyNode = mainScene.CreateNode("Enemy Boss");
+    enemyNode->GlobalTransform().Position() = glm::vec3(2.0f);
+
+    JPH::ShapeRefC bossShape = new JPH::CapsuleShape(0.5f, 1.0f);
+    JPH::BodyCreationSettings bossSettings(
+        bossShape,
+        JPH::RVec3(2.0f, 1.0f, 0.0f),
+        JPH::Quat::sIdentity(),
+        JPH::EMotionType::Dynamic,
+        Physics::Layers::MOVING);
+
+    bossSettings.mOverrideMassProperties =
+    JPH::EOverrideMassProperties::MassAndInertiaProvided;
+    JPH::MassProperties mp;
+    mp.mMass = 1.0f;
+    mp.mInertia = JPH::Mat44::sIdentity() * 0.1f;
+    bossSettings.mMassPropertiesOverride = mp;
+
+    Physics::Body* bossBody = enemyNode->AddObject<Physics::Body>(bossSettings);
+    bossBody->SetRestitution(0.0f);
+
+    MeleeSkeleton* boss = enemyNode->AddObject<MeleeSkeleton>();
+    boss->SetTargetNode(playerNode);
+    boss->SetSurface(surface);
+    boss->OnPlayerEnteredRoom();
+    AnimationComponent* enemyAnim = enemyNode->GetObjectInChildren<AnimationComponent>();
+    if (enemyAnim) {
+        boss->SetAttackAnimation(enemyAnim);
+    }
+
 }
 } // namespace TestScene

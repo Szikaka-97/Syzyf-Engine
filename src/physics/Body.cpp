@@ -10,6 +10,7 @@
 #include <imgui.h>
 #include <Serialization.h>
 #include <Mesh.h>
+#include <MeshRenderer.h>
 #include <physics/Helpers.h>
 
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
@@ -25,14 +26,11 @@
 namespace Physics {
 using namespace JPH::literals;
 
-enum class BodyKind {
-  Sphere,
-  Box,
-  Capsule,
-  Plane,
-  ConvexHullMesh,
-  Mesh,
-};
+Body::Body():
+bodyCreationSettings() {
+  this->bodyCreationSettings.mOverrideMassProperties = JPH::EOverrideMassProperties::MassAndInertiaProvided;
+  this->bodyCreationSettings.mMassPropertiesOverride.mMass = 1;
+}
 
 Body::Body(const JPH::BodyCreationSettings& settings): bodyCreationSettings(settings) {}
 
@@ -192,6 +190,58 @@ bool Body::IsSensor() const {
     }
   }
   return bodyCreationSettings.mIsSensor;
+}
+
+Body::BodyKind Body::GetBodyKind() const {
+  const JPH::Shape* shape = GetScene()->GetComponent<Physics::System>()->GetBodyInterface().GetShape(this->GetBodyID());
+  
+  if (!shape) {
+    return BodyKind::Invalid;
+  }
+
+  if (dynamic_cast<const JPH::DecoratedShape *>(shape)) {
+    shape = dynamic_cast<const JPH::DecoratedShape *>(shape)->GetInnerShape();
+  }
+
+  const JPH::SphereShape* sphere = dynamic_cast<const JPH::SphereShape*>(shape);
+
+  if (sphere) {
+    return BodyKind::Sphere;
+  }
+
+  const JPH::BoxShape* box = dynamic_cast<const JPH::BoxShape*>(shape);
+
+  if (box) {
+    return BodyKind::Box;
+  }
+
+  const JPH::CapsuleShape* capsule = dynamic_cast<const JPH::CapsuleShape*>(shape);
+
+  if (capsule) {
+    return BodyKind::Capsule;
+  }
+
+  const JPH::PlaneShape* plane = dynamic_cast<const JPH::PlaneShape*>(shape);
+
+  if (plane) {
+    return BodyKind::Plane;
+  }
+
+  const JPH::ConvexHullShape* hull = dynamic_cast<const JPH::ConvexHullShape*>(shape);
+
+  if (hull) {
+    return BodyKind::ConvexHullMesh;
+  }
+
+  const JPH::MeshShape* mesh = dynamic_cast<const JPH::MeshShape*>(shape);
+
+  if (mesh) {
+    return BodyKind::Mesh;
+  }
+
+  spdlog::error("Failed to create shape settings for body on node {}", GetNode()->GetName());
+
+  return BodyKind::Invalid;
 }
 
 void Body::SetShape(JPH::ShapeRefC shape) {
@@ -460,7 +510,6 @@ void Body::ApplyAngularImpulse(const glm::vec3& impulse) {
 // Syncs the node when moving it in the editor
 void Body::SyncToNode() {
     if (!bodyCreated) {
-        // spdlog::warn("Tried syncing a body that hasn't been created yet");
         return;
     }
     
@@ -477,34 +526,38 @@ void Body::SyncToNode() {
     this->SetRotation(rotation);
 
     if (scale != this->lastScale && this->originalShape != nullptr) {
-        JPH::ShapeRefC newShape;
-
         if (glm::abs(scale.x) < 0.001f) scale.x = scale.x < 0.0f ? -0.001f : 0.001f;
         if (glm::abs(scale.y) < 0.001f) scale.y = scale.y < 0.0f ? -0.001f : 0.001f;
         if (glm::abs(scale.z) < 0.001f) scale.z = scale.z < 0.0f ? -0.001f : 0.001f;
-            
+
+        JPH::ShapeRefC newShape;
+        JPH::EShapeSubType subType = this->originalShape->GetSubType();
+
         if (scale == glm::vec3(1.0f)) {
             newShape = this->originalShape;
-        } else {
-            JPH::EShapeSubType subType = this->originalShape->GetSubType();
-
-            if (subType == JPH::EShapeSubType::Sphere || subType == JPH::EShapeSubType::Capsule) {
-                float maxScale = std::max({glm::abs(scale.x), glm::abs(scale.y), glm::abs(scale.z)});
-
-                if (glm::abs(scale.x - scale.y) > glm::epsilon<float>() || glm::abs(scale.y - scale.z) > glm::epsilon<float>()) {
-                    spdlog::warn("Physics::Body::SyncToNode: Forced uniform scale for Sphere/Capsule");  
-                }
-
-                newShape = new JPH::ScaledShape(
-                    this->originalShape,
-                    JPH::Vec3(maxScale, maxScale, maxScale)
-                );
+        } else if (subType == JPH::EShapeSubType::Mesh) {
+            Mesh* mesh = reinterpret_cast<Mesh*>(this->originalShape->GetUserData());
+            if (mesh) {
+                newShape = Physics::MeshShape(mesh, scale);
             } else {
-                newShape = new JPH::ScaledShape(
-                    this->originalShape,
-                    JPH::Vec3(scale.x, scale.y, scale.z)
-                );
+                newShape = this->originalShape;
             }
+        } else if (subType == JPH::EShapeSubType::Sphere || subType == JPH::EShapeSubType::Capsule) {
+            float maxScale = std::max({glm::abs(scale.x), glm::abs(scale.y), glm::abs(scale.z)});
+
+            if (glm::abs(scale.x - scale.y) > glm::epsilon<float>() || glm::abs(scale.y - scale.z) > glm::epsilon<float>()) {
+                spdlog::warn("Physics::Body::SyncToNode: Forced uniform scale for Sphere/Capsule");  
+            }
+
+            newShape = new JPH::ScaledShape(
+                this->originalShape,
+                JPH::Vec3(maxScale, maxScale, maxScale)
+            );
+        } else {
+            newShape = new JPH::ScaledShape(
+                this->originalShape,
+                JPH::Vec3(scale.x, scale.y, scale.z)
+            );
         }
 
         if (Physics::System* system = this->GetScene()->GetComponent<Physics::System>()) {
@@ -517,9 +570,6 @@ void Body::SyncToNode() {
             this->lastScale = scale;
         }
     }
-    // This activates the body after it's been moved
-    //  not sure if having this happen while editing won't cause issues
-    // the same is true for character controllers
 }
 
 void Body::Awake() {
@@ -541,18 +591,31 @@ void Body::Awake() {
   position = JPH::RVec3(nodePosition.x, nodePosition.y, nodePosition.z);
   rotation = JPH::Quat(nodeRotation.x, nodeRotation.y, nodeRotation.z, nodeRotation.w).Normalized();
 
-if (bodyCreationSettings.GetShapeSettings() != nullptr) {
+  if (bodyCreationSettings.GetShapeSettings() != nullptr) {
       JPH::Shape::ShapeResult result = bodyCreationSettings.GetShapeSettings()->Create();
       if (result.IsValid()) {
           this->originalShape = result.Get();
       }
   } else if (bodyCreationSettings.GetShape() != nullptr) {
       this->originalShape = bodyCreationSettings.GetShape();
+  } else {
+    MeshRenderer* renderer = nullptr;
+
+    if (TryGetObject<MeshRenderer>(renderer)) {
+      auto shape = Physics::MeshShape(renderer->GetMesh());
+
+      this->originalShape = shape;
+    }
+    else {
+      auto shape = Physics::BoxShape(glm::vec3(0.5));
+
+      this->originalShape = shape;
+    }
   }
 
-    if (glm::abs(nodeScale.x) < 0.001f) nodeScale.x = nodeScale.x < 0.0f ? -0.001f : 0.001f;
-    if (glm::abs(nodeScale.y) < 0.001f) nodeScale.y = nodeScale.y < 0.0f ? -0.001f : 0.001f;
-    if (glm::abs(nodeScale.z) < 0.001f) nodeScale.z = nodeScale.z < 0.0f ? -0.001f : 0.001f;
+  if (glm::abs(nodeScale.x) < 0.001f) nodeScale.x = nodeScale.x < 0.0f ? -0.001f : 0.001f;
+  if (glm::abs(nodeScale.y) < 0.001f) nodeScale.y = nodeScale.y < 0.0f ? -0.001f : 0.001f;
+  if (glm::abs(nodeScale.z) < 0.001f) nodeScale.z = nodeScale.z < 0.0f ? -0.001f : 0.001f;
 
   JPH::ShapeRefC activeShape = this->originalShape;
   if (nodeScale != glm::vec3(1.0f)) {
@@ -648,6 +711,85 @@ void Body::DrawImGui() {
     }
     ImGui::TreePop();
   }
+
+  if (ImGui::TreeNode("Physics Shape")) {
+    const char* shapeKinds[] = {
+      "None",
+      "Sphere",
+      "Box",
+      "Capsule",
+      "Plane",
+      "Convex Hull",
+      "Mesh",
+    };
+
+    int kind = (int) GetBodyKind() + 1;
+
+    int choice = kind;
+
+    ImGui::Combo("Body Shape Type", &choice, shapeKinds, 7);
+
+    if (choice != kind) {
+      BodyKind newKind = (BodyKind) (choice - 1);
+      if (newKind == BodyKind::Invalid) {
+        // Nothing
+      }
+      else if (newKind == BodyKind::Sphere) {
+        this->SetShape(Physics::SphereShape(0.5));
+      }
+      else if (newKind == BodyKind::Box) {
+        this->SetShape(Physics::BoxShape(glm::vec3(0.5)));
+      }
+      else if (newKind == BodyKind::Capsule) {
+        this->SetShape(Physics::CapsuleShape(0.5, 0.5));
+      }
+      else if (newKind == BodyKind::Plane) {
+        this->SetShape(Physics::PlaneShape(GlobalTransform().Forward()));
+      }
+      else if (newKind == BodyKind::ConvexHullMesh) {
+        MeshRenderer* renderer;
+        if (kind == (int) BodyKind::Mesh) {
+          const JPH::Shape* shape = GetScene()->GetComponent<Physics::System>()->GetBodyInterface().GetShape(this->GetBodyID());
+
+          if (dynamic_cast<const JPH::DecoratedShape *>(shape)) {
+            shape = dynamic_cast<const JPH::DecoratedShape *>(shape)->GetInnerShape();
+          }
+
+          shape = dynamic_cast<const JPH::MeshShape*>(shape);
+
+          this->SetShape(Physics::ConvexHullMeshShape((Mesh*) shape->GetUserData()));
+        }
+        else if (TryGetObject<MeshRenderer>(renderer)) {
+          this->SetShape(Physics::ConvexHullMeshShape(renderer->GetMesh()));
+        }
+        else {
+          spdlog::error("Cannot fetch body shape with no MeshRenderer attached");
+        }
+      }
+      else if (newKind == BodyKind::Mesh) {
+        MeshRenderer* renderer;
+        if (kind == (int) BodyKind::ConvexHullMesh) {
+          const JPH::Shape* shape = GetScene()->GetComponent<Physics::System>()->GetBodyInterface().GetShape(this->GetBodyID());
+
+          if (dynamic_cast<const JPH::DecoratedShape *>(shape)) {
+            shape = dynamic_cast<const JPH::DecoratedShape *>(shape)->GetInnerShape();
+          }
+
+          shape = dynamic_cast<const JPH::MeshShape*>(shape);
+
+          this->SetShape(Physics::MeshShape((Mesh*) shape->GetUserData()));
+        }
+        else if (TryGetObject<MeshRenderer>(renderer)) {
+          this->SetShape(Physics::MeshShape(renderer->GetMesh()));
+        }
+        else {
+          spdlog::error("Cannot fetch body shape with no MeshRenderer attached");
+        }
+      }
+    }
+
+    ImGui::TreePop();
+  }
 }
 
 json Body::Serialize() const {
@@ -680,7 +822,7 @@ json Body::Serialize() const {
 
   json shapeData;
 
-  const JPH::Shape* shape = this->bodyCreationSettings.GetShape();
+  const JPH::Shape* shape = GetScene()->GetComponent<Physics::System>()->GetBodyInterface().GetShape(this->GetBodyID());
 
   if (dynamic_cast<const JPH::DecoratedShape *>(shape)) {
     shape = dynamic_cast<const JPH::DecoratedShape *>(shape)->GetInnerShape();
@@ -738,7 +880,7 @@ json Body::Serialize() const {
     const JPH::MeshShape* mesh = dynamic_cast<const JPH::MeshShape*>(shape);
 
     if (mesh) {
-      shapeData["kind"] = BodyKind::ConvexHullMesh;
+      shapeData["kind"] = BodyKind::Mesh;
       shapeData["mesh"] = ((Mesh*) mesh->GetUserData())->GetPath();
 
       break;
@@ -811,14 +953,24 @@ void Body::Deserialize(const json& data) {
   case BodyKind::ConvexHullMesh: {
     Mesh* hullMesh = ResourceDatabase::Global->Get<Mesh>(shapeData["mesh"]);
 
-    this->bodyCreationSettings.SetShape(Physics::ConvexHullMeshShape(hullMesh));
+    if (hullMesh) {
+      this->bodyCreationSettings.SetShape(Physics::ConvexHullMeshShape(hullMesh));
+    }
+    else {
+      SetEnabled(false);
+    }
 
     break;
   }
   case BodyKind::Mesh: {
     Mesh* bodyMesh = ResourceDatabase::Global->Get<Mesh>(shapeData["mesh"]);
 
-    this->bodyCreationSettings.SetShape(Physics::MeshShape(bodyMesh));
+    if (bodyMesh) {
+      this->bodyCreationSettings.SetShape(Physics::MeshShape(bodyMesh));
+    }
+    else {
+      SetEnabled(false);
+    }
 
     break;
   }
