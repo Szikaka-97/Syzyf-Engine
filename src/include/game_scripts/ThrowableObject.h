@@ -24,6 +24,8 @@ public:
 
     using ComboFactory = std::function<void(SceneNode*)>;
 
+    void SetDirectHitDamage(int dmg) { m_DirectHitDamage = dmg; }
+
     template <typename TEffect>
     void SetEffect(std::function<void(TEffect*)> configure = nullptr) {
         m_ComboFactory  = nullptr;    
@@ -153,6 +155,8 @@ public:
     void OnCollisionExit(SceneNode* /*other*/) override {}
 
 private:
+    int m_DirectHitDamage = 0;
+
     EnemyBase* FindEnemyOnNodeOrParents(SceneNode* node) {
         SceneNode* current = node;
 
@@ -202,7 +206,9 @@ private:
             enemy->myNode->GetName()
         );
 
-        enemy->TakeDamage(999);
+        //enemy->Die();
+        if (m_DirectHitDamage > 0)
+            enemy->TakeDamage(m_DirectHitDamage);
         m_ShouldSpawn = true;
     }
 

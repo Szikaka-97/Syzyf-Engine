@@ -171,6 +171,8 @@ namespace{
 		ThrowableObject* throwable,
 		const Crafting::CraftedPotionData& potionData
 	){
+		throwable->SetDirectHitDamage(static_cast<int>(potionData.power));
+
 		throwable->SetEffectFactory(
 			[potionData](SceneNode* node) -> EffectBase* {
 				EffectBase* primaryEffect = AddPotionEffectToNode(
