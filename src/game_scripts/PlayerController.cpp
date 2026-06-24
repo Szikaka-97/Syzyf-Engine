@@ -156,14 +156,16 @@ namespace{
 		// 	return effect;
 		// }
 
-		EffectFire* effect = node->AddObject<EffectFire>();
+		EffectConfuse* effect = node->AddObject<EffectConfuse>();
 
-		effect->radius = potionData.radius * multiplier;
-		effect->damage = potionData.power * multiplier;
-		effect->dotRemainingTime = potionData.duration * multiplier;
-		effect->ingredientCount = potionData.mainEffectCount;
-		effect->special1 = potionData.modifierCount > 0;
-		effect->special2 = potionData.modifierCount > 1;
+			effect->radius = potionData.radius * multiplier;
+			effect->damage = static_cast<int>(potionData.power * multiplier);
+			effect->confuseRemainingTime = potionData.duration * multiplier;
+			effect->ingredientCount = potionData.mainEffectCount;
+			effect->special1 = potionData.modifierCount > 0;
+			effect->special2 = potionData.modifierCount > 1;
+
+			return effect;
 		
 		return effect;
 	}

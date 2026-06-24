@@ -216,6 +216,22 @@ void EffectTornado::ScanAndHandleBullets() {
     }
 }
 
+void EffectConfuse::OnInit() {
+    if (myNode) myNode->GlobalTransform().Position() = glm::vec3(GlobalTransform().Position().x,0.4f,GlobalTransform().Position().z);
+    SceneNode* effectModel =
+            ResourceDatabase::Global
+    ->Get<GltfScene>("./res/models/effects/confuse.glb")
+->Instantiate(GetScene(), GetNode(), "confuse effect");
+    effectModel->GlobalTransform().Scale()=glm::vec3(1.f,1.5f,1.5f);
+    GetNode()->GlobalTransform().Scale()=glm::vec3(1.0f,1.0f,1.0f);
+
+    effectModel->LocalTransform().Position() = glm::vec3(0, 0, 0);
+    auto* animComp = effectModel->GetObjectInChildren<AnimationComponent>();
+    if (animComp) {
+        animComp->Play("Animation");
+    }
+}
+
 void EffectConfuse::OnApplySpecials() {
     if (special1) confuseRemainingTime *= static_cast<float>(modifier);
     if (special2) damage *= modifier;

@@ -140,14 +140,21 @@ void EnemyBeetroot::Update() {
         m_AttackCooldown -= Time::Delta();
     }
 
-    if (isPlayerInRoom) {
-        float dist = glm::distance(currentPos, m_TargetPosition);
-        if (dist <= attackRange && (m_AttackCooldown <= 0.0f || m_IsAttacking)) {
+    if (IsConfused()) {
+        currentState = States::PATROLLING;
+    }
+    else if (isPlayerInRoom) {
+        glm::vec3 diff = currentPos - m_TargetPosition;
+        diff.y = 0.0f;
+        float dist = glm::length(diff);
+
+        if (dist <= attackRange) {
             currentState = States::ATTACKING;
         } else {
             currentState = States::CHASING;
         }
-    } else {
+    }
+    else {
         currentState = States::PATROLLING;
     }
 

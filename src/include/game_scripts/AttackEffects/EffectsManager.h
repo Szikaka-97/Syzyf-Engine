@@ -66,6 +66,7 @@ public:
     serialized int   damage               = 25;
     EffectConfuse() = default;
 protected:
+    void  OnInit()          override;
     void OnApplySpecials() override;
     void OnApplyToEnemy(EnemyBase* enemy) override;
 };
