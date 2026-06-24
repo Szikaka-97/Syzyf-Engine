@@ -3,10 +3,22 @@
 #include "game_scripts/enemies/FlockingSystem.h"
 #include <Scene.h>
 #include <glm/glm.hpp>
+#include <spdlog/spdlog.h> // Potrzebne do logowania błędów/sukcesu szukania komponentu
 
 void EnemySkeleton::Update() {
     EnsureBody();
     if (!m_Body || !myNode || !m_TargetNode) return;
+    LockXZRotation();
+    if (!m_AnimInitialized) {
+        m_AnimInitialized = true;
+        AnimationComponent* anim = GetNode()->GetObjectInChildren<AnimationComponent>();
+        if (anim) {
+            SetAttackAnimation(anim);
+            spdlog::info("EnemySkeleton: AnimationComponent found and initialized");
+        } else {
+            spdlog::error("EnemySkeleton: AnimationComponent NOT FOUND in children!");
+        }
+    }
 
     if (GlobalTransform().Position().y < -10)
         TakeDamage(9999999);
@@ -38,15 +50,26 @@ void EnemySkeleton::Update() {
     switch (currentState) {
     case States::ATTACKING:
         StopMoving();
+        {
+            glm::vec3 toPlayer = m_TargetPosition - currentPos;
+            toPlayer.y = 0.0f;
+            if (glm::length(toPlayer) > 0.01f)
+                RotateNode(glm::normalize(toPlayer));
+        }
+        SetLoopingAnimation("idle.001");
         Attack();
         break;
+
     case States::CHASING:
-        SetLoopingAnimation("idle.001");
+        DirectChase();
+        SetLoopingAnimation("walk.001");
         break;
+
     case States::PATROLLING:
-        SetLoopingAnimation("idle.001");
         Patrol();
+        SetLoopingAnimation("walk.001");
         break;
+
     default:
         break;
     }
