@@ -6,7 +6,7 @@
 
 class EnemyBeetroot : public EnemyBase {
 private:
-    float m_AttackCooldown   = 7.0f;
+    float m_AttackCooldown   = 0.0f;
     int   m_Damage           = 15;
     float m_AttackDuration   = 2.0f;
     float m_FirstSegmentTime = 0.5f;

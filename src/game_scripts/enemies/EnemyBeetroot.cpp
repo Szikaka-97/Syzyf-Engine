@@ -39,11 +39,16 @@ void EnemyBeetroot::StartAttack() {
     ComputeSpawnDelays();
     StopMoving();
 
+    if (m_Body) {
+        glm::vec3 vel = m_Body->GetLinearVelocity();
+        m_Body->SetLinearVelocity(glm::vec3(0.0f, vel.y, 0.0f));
+    }
 
     glm::vec3 toPlayer = m_TargetPosition - currentPos;
     toPlayer.y = 0.0f;
     float len = glm::length(toPlayer);
     m_AttackDir = (len > 0.01f) ? (toPlayer / len) : glm::vec3(0, 0, 1);
+SetLoopingAnimation("attack.001");
 
     spdlog::info("BeetrootEnemy: attack sequence started, dir=({:.2f},{:.2f},{:.2f})",
                  m_AttackDir.x, m_AttackDir.y, m_AttackDir.z);
@@ -151,29 +156,35 @@ void EnemyBeetroot::Update() {
         Patrol();
         SetLoopingAnimation("walk.001");
         break;
+
     case States::CHASING: {
         float dist = glm::distance(currentPos, m_TargetPosition);
         if (dist > 2.5f) {
             DirectChase();
+            SetLoopingAnimation("walk.001");
         } else {
             StopMoving();
             glm::vec3 toPlayer = m_TargetPosition - currentPos;
             toPlayer.y = 0.0f;
             if (glm::length(toPlayer) > 0.01f)
                 RotateNode(glm::normalize(toPlayer));
+            SetLoopingAnimation("idle.001");
         }
-        SetLoopingAnimation("walk.001");
         break;
     }
+
     case States::ATTACKING:
         StopMoving();
-        SetLoopingAnimation("attack.001");
         if (m_IsAttacking) {
+            SetLoopingAnimation("attack.001");
             UpdateAttackSequence();
         } else if (m_AttackCooldown <= 0.0f) {
             StartAttack();
+        } else {
+            SetLoopingAnimation("idle.001");
         }
         break;
+
     default:
         break;
     }
