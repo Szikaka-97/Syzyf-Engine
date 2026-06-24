@@ -4,6 +4,7 @@
 #include "Camera.h"
 #include "GameObject.h"
 #include "Scene.h"
+#include "TutorialThrowingRoomScene.h"
 #include "scenes/MainMenuScene.h"
 #include "ui/objects/UiLayout.h"
 #include "ui/systems/UiSystem.h"
@@ -19,7 +20,7 @@ class SplashController : public GameObject {
     void Update() {
         if (framesPassed > 2) {
             Application::Get()->RequestSceneBuild(
-                [](Scene* s) { MainMenu::InitScene(*s); });
+                [](Scene* s) { CraftingScene::InitScene(*s); });
         }
         framesPassed++;
     }

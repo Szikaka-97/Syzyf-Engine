@@ -26,6 +26,10 @@ void UiTextRenderSystem::OnPreRender() {
             continue;
         }
 
+        if (!text->IsEnabled()) {
+            continue;
+        }
+
         if (!text->font) {
             spdlog::warn("UiTextRenderSystem::OnPreRender: Tried drawing text with an incomplete UiText component");
             continue;

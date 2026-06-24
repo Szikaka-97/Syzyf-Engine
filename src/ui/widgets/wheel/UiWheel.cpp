@@ -146,7 +146,7 @@ void WheelSystem::OnPreUpdate() {
 		return;
 	}
 
-	if (inputSystem->KeyPressed(Key::Tab)) {
+	if (inputSystem->KeyDown(Key::Tab)) {
 		auto lists = GetScene()->FindObjectsOfType<ScrollingList>();
 		if (!lists.empty()) {
 		std::vector<ScrollingListItemData> itemsData;

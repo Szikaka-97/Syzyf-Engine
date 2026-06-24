@@ -580,7 +580,12 @@ void PlayerController::Die() {
 }
 
 bool PlayerController::CanThrow() const {
-	return this->throwingUnlocked && this->aim != nullptr && PotionInventory::HasPotion();
+    bool isTabHeld = GetScene()->Input()->KeyPressed(Key::Tab);
+
+	return this->throwingUnlocked &&
+        this->aim != nullptr &&
+        PotionInventory::HasPotion() &&
+        !isTabHeld;
 }
 
 void PlayerController::DrawImGui() {

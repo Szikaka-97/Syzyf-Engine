@@ -22,6 +22,10 @@ void UiRenderSystem::OnPreRender() {
             continue;
         }
 
+        if (!layout->GetNode()->IsEnabled()) {
+            continue;
+        }
+
         glm::vec4 finalColor = visual->color;
         Texture2D* finalTexture = visual->texture;
 

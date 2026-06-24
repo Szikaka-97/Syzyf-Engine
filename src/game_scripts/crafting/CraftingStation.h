@@ -16,6 +16,7 @@
 #include "game_scripts/crafting/CraftingNodeUtils.h"
 #include "game_scripts/crafting/DraggableCraftingItem.h"
 #include "game_scripts/crafting/HeatingStage.h"
+#include "game_scripts/ui/InGame.h"
 
 #include <text/Font.h>
 #include <text/Text3D.h>
@@ -128,6 +129,8 @@ namespace Crafting{
                 SceneNode* stageTwoCameraLightNode = nullptr;
                 SceneNode* lastStageCameraLightNode = nullptr;
 
+                SceneNode* inGameUiNode = nullptr;
+
                 int inventoryPage = 0;
 
                 std::vector<PotionInventory::IngredientInventoryEntry> playerInventory;
@@ -158,12 +161,16 @@ namespace Crafting{
                 std::string heatingCameraNodeName = "StageTwoCamera";
                 std::string bottlingCameraNodeName = "LastStageCamera";
 
-                void Awake(){
+                void Awake() {
                     SceneNode* cauldronNode =
                         FindNodeRecursive(GetNode(), "Cauldron");
 
                     if (!cauldronNode){
                         return;
+                    }
+
+                    if (auto objects = GetScene()->FindObjectsOfType<InGameUi>(); !objects.empty()) {
+                        this->inGameUiNode = objects.front()->GetNode();
                     }
 
                     cauldron =
@@ -2220,6 +2227,16 @@ namespace Crafting{
                         return;
                     }
 
+                    // chuj
+                    if (auto objects = GetScene()->FindObjectsOfType<InGameUi>(); !objects.empty()) {
+                        this->inGameUiNode = objects.front()->GetNode();
+                    }
+                    if (inGameUiNode != nullptr) {
+                        inGameUiNode->SetEnabled(false);
+                    } else {
+                        spdlog::warn("CraftingStation::EnterStation: inGameUiNode is null");
+                    }
+
                     Camera* camera = cameraNode->GetObject<Camera>();
 
                     if (!camera){
@@ -2302,6 +2319,10 @@ namespace Crafting{
                     }
 
                     ResetCraftingSession();
+
+                    if (inGameUiNode != nullptr) {
+                        inGameUiNode->SetEnabled(true);
+                    }
 
                     SetBlowerInteractionEnabled(false);
                     SetDoorInteractionEnabled(false);
