@@ -365,6 +365,25 @@ void EnemyBase::UpdateStatusEffects() {
         }
     }
 }
+
+void EnemyBase::ApplyOrbitalVelocity(const glm::vec3& tornadoCenter, float angularSpeedDeg) {
+  if (!m_Body || !myNode) return;
+
+  glm::vec3 epos = myNode->GlobalTransform().Position();
+  glm::vec3 toEnemy = epos - tornadoCenter;
+  toEnemy.y = 0.0f;
+  float dist = glm::length(toEnemy);
+  if (dist < 0.1f) return;
+
+  glm::vec3 radial  = toEnemy / dist;
+  glm::vec3 tangent = glm::vec3(-radial.z, 0.0f, radial.x);
+
+  float linearSpeed = glm::radians(angularSpeedDeg) * dist;
+  glm::vec3 vel = tangent * linearSpeed;
+  vel.y = m_Body->GetLinearVelocity().y;
+  m_Body->SetLinearVelocity(vel);
+}
+
 void EnemyBase::DirectChaseWithFlock(const glm::vec3& ) {
     DirectChase();  
 }

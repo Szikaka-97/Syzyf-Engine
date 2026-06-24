@@ -106,6 +106,8 @@ public:
     void ApplyPetrify(float slowFactor, float duration);
  
     void ApplyConfuse(float duration, bool isPrecise);
+
+    void ApplyOrbitalVelocity(const glm::vec3& tornadoCenter, float angularSpeedDeg);
  
     bool IsPetrified() const { return m_Petrify.active; }
     bool IsBurning()   const { return m_Burn.active;    }

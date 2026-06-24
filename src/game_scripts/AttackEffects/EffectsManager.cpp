@@ -193,6 +193,7 @@ void EffectTornado::OnUpdate() {
         myNode->GlobalTransform().Rotation() =
             delta * glm::quat(myNode->GlobalTransform().Rotation());
     }
+    SpinEnemies();
     m_DamageTimer += Time::Delta();
     if (m_DamageTimer >= damageInterval) {
         m_DamageTimer = 0.0f;
@@ -201,6 +202,14 @@ void EffectTornado::OnUpdate() {
     }
     ScanAndHandleBullets();
 }
+
+void EffectTornado::SpinEnemies() {
+    glm::vec3 center = GetPosition();
+    for (auto* enemy : ScanEnemiesInRadius()) {
+        enemy->ApplyOrbitalVelocity(center, rotationSpeed);
+    }
+}
+
 void EffectTornado::ScanAndHandleBullets() {
     glm::vec3 pos = GetPosition();
     for (auto* bullet : GetScene()->FindObjectsOfType<EnemyBullet>()) {

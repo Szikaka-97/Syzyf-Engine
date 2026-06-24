@@ -113,14 +113,6 @@ namespace{
 		//
 		// 	effect->radius = potionData.radius * multiplier;
 		// 	effect->damage = potionDaEffectPetrify* effect = node->AddObject<EffectPetrify>();
-		//		//
-		//		// 	effect->radius = potionData.radius * multiplier;
-		//		// 	effect->petrifyRemainingTime = potionData.duration * multiplier;
-		//		// 	effect->ingredientCount = potionData.mainEffectCount;
-		//		// 	effect->special1 = potionData.modifierCount > 0;
-		//		// 	effect->special2 = potionData.modifierCount > 1;
-		//		//
-		//		// 	return effect;ta.power * multiplier;
 		// 	effect->tornadoRemainingTime = potionData.duration * multiplier;
 		// 	effect->ingredientCount = potionData.mainEffectCount;
 		// 	effect->special1 = potionData.modifierCount > 0;
@@ -156,10 +148,11 @@ namespace{
 		// 	return effect;
 		// }
 
-		EffectPetrify* effect = node->AddObject<EffectPetrify>();
+			EffectTornado* effect = node->AddObject<EffectTornado>();
 
 			effect->radius = potionData.radius * multiplier;
-			effect->petrifyRemainingTime = potionData.duration * multiplier;
+		effect->damage = static_cast<int>(potionData.power * multiplier);
+			effect->tornadoRemainingTime = potionData.duration * multiplier*6;
 			effect->ingredientCount = potionData.mainEffectCount;
 			effect->special1 = potionData.modifierCount > 0;
 			effect->special2 = potionData.modifierCount > 1;

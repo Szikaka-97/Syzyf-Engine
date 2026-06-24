@@ -44,7 +44,7 @@ protected:
 
 class EffectTornado : public EffectBase {
 public:
-    serialized float tornadoRemainingTime = 5.0f;
+    serialized float tornadoRemainingTime = 50.0f;
     serialized float rotationSpeed        = 90.0f;
     serialized float damage               = 25.0f;
     serialized float damageInterval       = 1.0f;
@@ -58,6 +58,7 @@ protected:
 private:
     float m_DamageTimer = 0.0f;
     void  ScanAndHandleBullets();
+    void  SpinEnemies();
 };
 
 class EffectConfuse : public EffectBase {
