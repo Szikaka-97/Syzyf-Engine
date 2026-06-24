@@ -6,6 +6,7 @@
 
 #include <imgui.h>
 #include <stb_image_write.h>
+#include <thirdparty/IconsMaterialDesign.h>
 
 namespace Editor {
 TextureToolPanel::TextureToolPanel() {
@@ -153,7 +154,7 @@ void TextureToolPanel::DrawNoiseTab(Context& context) {
             ImGui::Separator();
             ImGui::Text("Cellular Settings");
             const char* cellularDistanceFunctions[] = {
-                "Euclidean", "EuclideanSq", "Manhattan", "Hybrid"};
+                "OpenSimplex2", "EuclideanSq", "Manhattan", "Hybrid"};
             if (ImGui::Combo("Distance Function", &cellularDistanceFunction,
                              cellularDistanceFunctions,
                              IM_ARRAYSIZE(cellularDistanceFunctions)))
@@ -240,17 +241,52 @@ void TextureToolPanel::DrawGradientTab(Context& context) {
 
         for (size_t i = 0; i < gradientKeys.size(); i++) {
             ImGui::PushID((int)i);
+
+            ImGui::TextUnformatted(ICON_MD_DRAG_HANDLE);
+
+            if (ImGui::BeginDragDropSource(
+                    ImGuiDragDropFlags_SourceAllowNullID)) {
+                ImGui::SetDragDropPayload("GRADIENT_NODE", &i, sizeof(size_t));
+                ImGui::ColorButton(
+                    "##DragPreview",
+                    ImVec4(gradientKeys[i].color.x, gradientKeys[i].color.y,
+                           gradientKeys[i].color.z, gradientKeys[i].color.w));
+                ImGui::EndDragDropSource();
+            }
+            if (ImGui::BeginDragDropTarget()) {
+                if (const ImGuiPayload* payload =
+                        ImGui::AcceptDragDropPayload("GRADIENT_NODE")) {
+                    size_t sourceIdx = *(const size_t*)payload->Data;
+                    std::swap(gradientKeys[sourceIdx].color,
+                              gradientKeys[i].color);
+                    gradientNeedsUpdate = true;
+                }
+                ImGui::EndDragDropTarget();
+            }
+
+            ImGui::SameLine();
+
             if (ImGui::ColorEdit4("##Color", &gradientKeys[i].color.r,
                                   ImGuiColorEditFlags_NoInputs))
                 gradientNeedsUpdate = true;
             ImGui::SameLine();
             if (ImGui::SliderFloat("##Pos", &gradientKeys[i].position, 0.0f,
-                                   1.0f))
+                                   1.0f)) {
+                if (i > 0 &&
+                    gradientKeys[i].position < gradientKeys[i - 1].position) {
+                    gradientKeys[i].position = gradientKeys[i - 1].position;
+                }
+                if (i < gradientKeys.size() - 1 &&
+                    gradientKeys[i].position > gradientKeys[i + 1].position) {
+                    gradientKeys[i].position = gradientKeys[i + 1].position;
+                }
+
                 gradientNeedsUpdate = true;
+            }
 
             if (gradientKeys.size() > 2) {
                 ImGui::SameLine();
-                if (ImGui::Button("-")) {
+                if (ImGui::Button(ICON_MD_DELETE)) {
                     gradientKeys.erase(gradientKeys.begin() + i);
                     gradientNeedsUpdate = true;
                     ImGui::PopID();
@@ -350,7 +386,7 @@ void TextureToolPanel::GenerateGradientTexture() {
 
     gradientTextureData.resize(width * height * 4);
 
-    std::sort(gradientKeys.begin(), gradientKeys.end());
+    std::stable_sort(gradientKeys.begin(), gradientKeys.end());
 
     for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x++) {
