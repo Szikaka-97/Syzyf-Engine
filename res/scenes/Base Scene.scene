@@ -2792,7 +2792,7 @@
   {
     "_class_name": "Physics::Body",
     "_data": {
-      "collisionLayer": 1,
+      "collisionLayer": 0,
       "collisionMask": 4294967295,
       "enabled": true,
       "mAllowDynamicOrKinematic": false,
@@ -2811,7 +2811,7 @@
       "mMaxAngularVelocity": 47.1238899230957,
       "mMaxLinearVelocity": 500.0,
       "mMotionQuality": 0,
-      "mMotionType": 2,
+      "mMotionType": 0,
       "mObjectLayer": 0,
       "mOverrideMassProperties": 2,
       "mRestitution": 0.0,
@@ -4588,7 +4588,7 @@
   {
     "_class_name": "Physics::Body",
     "_data": {
-      "collisionLayer": 1,
+      "collisionLayer": 0,
       "collisionMask": 4294967295,
       "enabled": true,
       "mAllowDynamicOrKinematic": false,
@@ -4599,7 +4599,7 @@
       "mCollideKinematicVsNonDynamic": false,
       "mEnhancedInternalEdgeRemoval": false,
       "mFriction": 0.20000000298023224,
-      "mGravityFactor": 1.0,
+      "mGravityFactor": 0.0,
       "mInertiaMultiplier": 1.0,
       "mIsSensor": false,
       "mLinearDamping": 0.05000000074505806,
@@ -4607,7 +4607,7 @@
       "mMaxAngularVelocity": 47.1238899230957,
       "mMaxLinearVelocity": 500.0,
       "mMotionQuality": 0,
-      "mMotionType": 2,
+      "mMotionType": 0,
       "mObjectLayer": 0,
       "mOverrideMassProperties": 2,
       "mRestitution": 0.0,

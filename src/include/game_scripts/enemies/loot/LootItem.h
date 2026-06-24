@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Jolt/Physics/Body/BodyCreationSettings.h"
 #include "game_scripts/PickableItem.h"
 #include <game_scripts/PotionInventory.h>
 
@@ -54,6 +55,11 @@ inline SceneNode* SpawnIngredientLootModel(
                 Physics::Layers::MOVING
             );
 
+            lootSettings.mOverrideMassProperties = JPH::EOverrideMassProperties::CalculateInertia;
+            lootSettings.mMassPropertiesOverride.mMass = 0.4f;
+
+            lootSettings.mFriction = 0.1f;
+
     Physics::Body* lootBody = node->AddObject<Physics::Body>(lootSettings);
     lootBody->SetCollisionLayerAndMask({0},0xFFFFFFFF);
 
@@ -64,7 +70,7 @@ inline SceneNode* SpawnIngredientLootModel(
     spdlog::info(randomVel);
 
     // lootBody->ApplyForce(randomVel * 100.0f);
-    lootBody->ApplyImpulse(randomVel * 100.0f);
+    lootBody->ApplyImpulse(randomVel * 0.4f);
 
     return node;
 }

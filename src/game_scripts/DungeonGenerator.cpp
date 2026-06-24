@@ -343,6 +343,20 @@ EnemyBase* SpawnEnemy(SceneNode* position) {
 }
 
 void DungeonGenerator::Awake() {
+    JPH::ShapeRefC globalFloorShape = Physics::PlaneShape(glm::vec3(0.0f, 1.0f, 0.0f));
+    
+    auto* globalFloorBody = GetNode()->AddObject<Physics::Body>(
+        JPH::BodyCreationSettings{
+            globalFloorShape,
+            JPH::RVec3::sZero(),
+            JPH::Quat::sZero(), 
+            JPH::EMotionType::Static,
+            Physics::Layers::NON_MOVING
+        }
+    );
+    
+    globalFloorBody->SetCollisionLayerAndMask({0}, 0xFFFFFFFF);
+
 	for (const auto& roomFile : std::filesystem::directory_iterator(this->rootRoomPath)) {
 		if (roomFile.path().extension() == ".glb") {
 			RoomPrefab prefab;
@@ -440,9 +454,17 @@ void DungeonGenerator::Update() {
 			}
 			
 			for (MeshRenderer* mesh : spawnedRoom->GetAllObjectsInChildren<MeshRenderer>()) {
+                JPH::ShapeRefC collisionShape;
+
+                if (mesh->GetNode() == floorNode || mesh->GetNode()->GetName().find("floor") != std::string::npos) {
+                    continue;
+                } else {
+                    collisionShape = Physics::MeshShape(mesh->GetMesh());
+                }
+
 				auto* body = mesh->GetNode()->AddObject<Physics::Body>(
 				JPH::BodyCreationSettings{
-					Physics::MeshShape(mesh->GetMesh()),
+                    collisionShape,
 					JPH::RVec3::sZero(), JPH::Quat::sZero(), JPH::EMotionType::Static,
 					Physics::Layers::NON_MOVING});
 				

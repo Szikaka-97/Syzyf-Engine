@@ -24,6 +24,7 @@
 #include "DungeonScene.h"
 #include "game_scripts/AimCrosshair.h"
 #include "game_scripts/CameraSettings.h"
+#include "game_scripts/SpawnPoint.h"
 #include "game_scripts/crafting/Cauldron.h"
 #include "game_scripts/crafting/CraftingDragInteractor.h"
 #include "game_scripts/crafting/CraftingIngredientReceiver.h"
@@ -540,6 +541,9 @@ inline void AddRoomPhysics(SceneNode* roomNode) {
     CollectRoomColliderNodesRecursive(roomNode, colliderNodes);
 
     for (SceneNode* colliderNode : colliderNodes) {
+        if (colliderNode->GetName().find("floor") != std::string::npos) {
+            continue;
+        }
         AddStaticRoomCollider(colliderNode);
     }
 
@@ -1629,6 +1633,11 @@ inline void InitScene(Scene& scene) {
     scene.AddComponent<AnimationSystem>();
     scene.AddComponent<TweenSystem>();
     scene.AddComponent<WheelSystem>();
+
+    scene.CreateNode("Spawn Point")
+        ->AddObject<SpawnPoint>()
+        ->GlobalTransform()
+        .Position() = {11.0f, 0.0f, 0.0f};
 
     if (auto* lightSystem = scene.GetComponent<LightSystem>()) {
         lightSystem->SetAmbientLight(glm::vec4(1.0f, 0.65f, 0.25f, 0.12f));
