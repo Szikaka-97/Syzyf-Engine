@@ -148,11 +148,11 @@ namespace{
 		// 	return effect;
 		// }
 
-			EffectTornado* effect = node->AddObject<EffectTornado>();
+		EffectFire* effect = node->AddObject<EffectFire>();
 
 			effect->radius = potionData.radius * multiplier;
-		effect->damage = static_cast<int>(potionData.power * multiplier);
-			effect->tornadoRemainingTime = potionData.duration * multiplier*6;
+			effect->damage = potionData.power ;
+			effect->dotRemainingTime = potionData.duration * multiplier;
 			effect->ingredientCount = potionData.mainEffectCount;
 			effect->special1 = potionData.modifierCount > 0;
 			effect->special2 = potionData.modifierCount > 1;

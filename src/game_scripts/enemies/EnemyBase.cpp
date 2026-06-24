@@ -293,6 +293,12 @@ void EnemyBase::OnPlayerExitedRoom() {
 //
 void EnemyBase::TakeDamage(int damage) {
   spdlog::info("AiNode: Took {} damage", damage);
+
+  if (m_AttackAnimation) {
+    m_AttackAnimation->Play("attacked.001");
+    m_CurrentAnimation = "attacked.001";
+  }
+
   if (m_hp > 0 && m_hp - damage <= 0) {
     Die();
   }
