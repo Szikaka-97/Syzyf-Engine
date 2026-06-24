@@ -665,6 +665,9 @@ Texture2D* GltfScene::LoadImage(GltfScene* scene, fastgltf::Image& image, const 
       const unsigned char* data = reinterpret_cast<const unsigned char*>(vector.bytes.data());
       int length = static_cast<int>(vector.bytes.size());
       // SKIPS RESOURCE MANAGER -> no caching
+      
+      spdlog::info("Loading gltf texture: {}", image.name);
+
       result = Texture2D::Load(data, length, loadParams, true, scene->GetPath().string() + ":" + std::string(image.name));
       scene->textures.push_back(result);
     },
@@ -677,6 +680,9 @@ Texture2D* GltfScene::LoadImage(GltfScene* scene, fastgltf::Image& image, const 
         [&](fastgltf::sources::Array& vector) {
           const unsigned char* data = reinterpret_cast<const unsigned char*>(vector.bytes.data() + bufferView.byteOffset);
           int length = static_cast<int>(bufferView.byteLength);
+
+          spdlog::info("Loading gltf texture: {}", image.name);
+
           result = Texture2D::Load(data, length, loadParams, true, scene->GetPath().string() + ":" + std::string(image.name));
           scene->textures.push_back(result);
         }

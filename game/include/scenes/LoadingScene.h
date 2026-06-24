@@ -19,7 +19,7 @@ class LoadingController : public GameObject {
     void Update() {
         if (framesPassed > 2) {
 
-            Scene* base = Scene::LoadScene("./res/scenes/Base Scene.scene");
+            Scene* base = Scene::LoadScene("./res/scenes/Tutorial Scene.scene");
 
             Application::Get()->RequestSceneChange(base);
             // Application::Get()->RequestSceneBuild(

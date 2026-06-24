@@ -9,7 +9,7 @@ Skybox* Skybox::currentSkybox = nullptr;
 Skybox::Skybox():
 skyMaterial(nullptr) {
 	if (!skyMesh) {
-		skyMesh = GetScene()->Resources()->Get<Mesh>("./res/models/sky.obj");
+		skyMesh = ResourceDatabase::Global->Get<Mesh>("./res/models/sky.obj");
 	}
 }
 

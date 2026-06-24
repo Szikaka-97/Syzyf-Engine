@@ -76,6 +76,21 @@ void MeshRenderer::Render() const {
 
 void MeshRenderer::DrawImGui() {
 	if (ImGui::TreeNode(std::format("SubMesh count: {}", this->mesh->GetSubMeshCount()).c_str())) {
+		for (int i = 0; i < this->mesh->GetSubMeshCount(); i++) {
+			ImGui::PushID(i);
+
+			if (ImGui::TreeNode(std::to_string(i).c_str())) {
+				const Mesh::SubMesh& submesh = this->mesh->SubMeshAt(i);
+
+				ImGui::LabelText("Material Index", "%i", submesh.GetMaterialIndex());
+				ImGui::LabelText("Face Count", "%i", submesh.GetFaceCount());
+
+				ImGui::TreePop();
+			}
+
+			ImGui::PopID();
+		}
+
 		ImGui::TreePop();
 	}
    

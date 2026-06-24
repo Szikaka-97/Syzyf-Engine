@@ -20,7 +20,7 @@ class SplashController : public GameObject {
     void Update() {
         if (framesPassed > 2) {
             Application::Get()->RequestSceneBuild(
-                [](Scene* s) { CraftingScene::InitScene(*s); });
+                [](Scene* s) { MainMenu::InitScene(*s); });
         }
         framesPassed++;
     }

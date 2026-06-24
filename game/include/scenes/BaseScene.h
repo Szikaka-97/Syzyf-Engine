@@ -115,10 +115,10 @@ inline void InitScene(Scene& mainScene) {
     exitFog->sharpness = 3.5;
     exitFog->emissiveStrength = 0.06;
 
-    floorNode->AddObject<BaseScript>();
-    floorNode->AddObject<BaseLights>();
-    floorNode->AddObject<BaseTutorialManager>();
-    floorNode->AddObject<BaseExitToTutorialThrowingRoom>();
+    // floorNode->AddObject<BaseScript>();
+    // floorNode->AddObject<BaseLights>();
+    // floorNode->AddObject<BaseTutorialManager>();
+    // floorNode->AddObject<BaseExitToTutorialThrowingRoom>();
 #pragma endregion
 
 #pragma region Player

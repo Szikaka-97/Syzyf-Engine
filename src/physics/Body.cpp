@@ -677,6 +677,11 @@ void Body::OnDisable() {
 }
 
 void Body::DrawImGui() {
+  bool moving = this->GetMotionType() == JPH::EMotionType::Dynamic;
+  if (ImGui::Checkbox("Dynamic", &moving)) {
+    this->SetMotionType(moving ? JPH::EMotionType::Dynamic : JPH::EMotionType::Static);
+  }
+
   if (ImGui::TreeNode("Physics Collision")) {
     const float size = ImGui::CalcTextSize("00").x;
 
@@ -786,6 +791,39 @@ void Body::DrawImGui() {
           spdlog::error("Cannot fetch body shape with no MeshRenderer attached");
         }
       }
+    }
+
+    BodyKind shape = GetBodyKind();
+
+    if (shape == BodyKind::Box) {
+        const JPH::Shape* shape = GetScene()->GetComponent<Physics::System>()->GetBodyInterface().GetShape(this->GetBodyID()).GetPtr();
+
+        if (dynamic_cast<const JPH::DecoratedShape *>(shape)) {
+          shape = dynamic_cast<const JPH::DecoratedShape *>(shape)->GetInnerShape();
+        }
+
+        const JPH::BoxShape* boxShape = dynamic_cast<const JPH::BoxShape*>(shape);
+
+        glm::vec3 extents = glm::vec3(boxShape->GetHalfExtent().GetX(), boxShape->GetHalfExtent().GetY(), boxShape->GetHalfExtent().GetZ());
+
+        if (Debug::Property(extents, "Half Extents")) {
+          this->SetShape(Physics::BoxShape(extents));
+        }
+    }
+    if (shape == BodyKind::Sphere) {
+        const JPH::Shape* shape = GetScene()->GetComponent<Physics::System>()->GetBodyInterface().GetShape(this->GetBodyID()).GetPtr();
+
+        if (dynamic_cast<const JPH::DecoratedShape *>(shape)) {
+          shape = dynamic_cast<const JPH::DecoratedShape *>(shape)->GetInnerShape();
+        }
+
+        const JPH::SphereShape* sphereShape = dynamic_cast<const JPH::SphereShape*>(shape);
+
+        float radius = sphereShape->GetRadius();
+
+        if (Debug::Property(radius, "Radius")) {
+          this->SetShape(Physics::SphereShape(radius));
+        }
     }
 
     ImGui::TreePop();

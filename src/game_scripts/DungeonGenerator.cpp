@@ -54,9 +54,9 @@ void DungeonRoomScript::Update() {
 		}
 		else {
 			if (this->isFinal) {
-				Application::Get()->RequestSceneBuild(
-					[](Scene* s) { CraftingScene::InitScene(*s); }
-				);
+				// Application::Get()->RequestSceneBuild(
+				// 	[](Scene* s) { CraftingScene::InitScene(*s); }
+				// );
 			}
 
 			for (auto* door : this->doors) {

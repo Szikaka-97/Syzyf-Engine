@@ -410,6 +410,19 @@ bool Debug::Property(SceneNode* owner, SceneNode*& property, const std::string& 
 		ImGui::EndDragDropTarget();
 	}
 
+	
+	if (property) {
+		ImGui::SameLine();
+
+		ImGui::PushID(property->GetID());
+
+		if (ImGui::Button("Delete")) {
+			property = nullptr;
+		}
+
+		ImGui::PopID();
+	}
+
 	return false;
 }
 
@@ -448,11 +461,17 @@ bool Debug::Property(SceneNode* owner, std::vector<SceneNode*>& property, const 
 					SceneNode* droppedNode = *(SceneNode**) payload->Data;
 
 					property[i] = droppedNode;
-					
-
 				}
 
 				ImGui::EndDragDropTarget();
+			}
+
+			if (property[i]) {
+				ImGui::SameLine();
+
+				if (ImGui::Button("Delete")) {
+					property[i] = nullptr;
+				}
 			}
 
 			ImGui::PopID();
@@ -492,6 +511,14 @@ void Debug::CheckDeletedNode(SceneNode* deleted) {
 	for (auto& coupling : registeredNodeVectorCouplings) {
 		for (int i = 0; i < coupling.value->size(); i++) {
 			if ((*coupling.value)[i] == deleted) {
+				(*coupling.value)[i] = nullptr;
+			}
+		}
+	}
+
+	for (auto& coupling : registeredGameObjectVectorCouplings) {
+		for (int i = 0; i < coupling.value->size(); i++) {
+			if ((*coupling.value)[i] && (*coupling.value)[i]->GetNode() == deleted) {
 				(*coupling.value)[i] = nullptr;
 			}
 		}

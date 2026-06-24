@@ -82,12 +82,11 @@ private:
 	ShaderVariableStorage shaderVariables;
 	static std::vector<Material*> allMaterials;
 
-
 	Material();
 
 	static void OnReloadShader(ShaderProgram* shader);
 public:
-	std::string name;
+	serialized std::string name;
 
 	Material(const ShaderProgram* shader);
 
