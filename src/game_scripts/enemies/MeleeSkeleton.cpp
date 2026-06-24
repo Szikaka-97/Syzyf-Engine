@@ -17,6 +17,8 @@ void MeleeSkeleton::StartAttack() {
     // Dodajemy brakujące wywołanie animacji ataku
     PlayAttackAnimation("attack.001");
 
+
+
 }
 
 void MeleeSkeleton::UpdateAttackSequence() {

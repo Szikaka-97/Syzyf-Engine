@@ -378,7 +378,7 @@ inline void InitScene(Scene& mainScene) {
     Physics::Body* bossBody = enemyNode->AddObject<Physics::Body>(bossSettings);
     bossBody->SetRestitution(0.0f);
 
-    MeleeSkeleton* boss = enemyNode->AddObject<MeleeSkeleton>();
+    EnemyBeetroot* boss = enemyNode->AddObject<EnemyBeetroot>();
     boss->SetTargetNode(playerNode);
     boss->SetSurface(surface);
     boss->OnPlayerEnteredRoom();

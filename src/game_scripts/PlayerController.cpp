@@ -665,6 +665,7 @@ void PlayerController::TakeDamage(float damage) {
 	if (this->health < 0) {
 		Die();
 	}
+	spdlog::error("player damage" + std::to_string(this->health));
 }
 
 float PlayerController::GetHealth() const {
