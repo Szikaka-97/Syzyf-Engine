@@ -169,7 +169,7 @@ inline void InitScene(Scene& mainScene) {
     SceneNode* uiRoot = mainScene.CreateNode("UI");
     SceneNode* tabMenu = mainScene.CreateNode(uiRoot, "Tab Menu");
     tabMenu->AddObject<TabMenu>();
-    SceneNode* pauseMenu = mainScene.CreateNode(pauseMenu, "Pause Menu");
+    SceneNode* pauseMenu = mainScene.CreateNode(uiRoot, "Pause Menu");
     pauseMenu->AddObject<PauseMenu>();
     SceneNode* inGameUi = mainScene.CreateNode("HUD");
     inGameUi->AddObject<InGameUi>();

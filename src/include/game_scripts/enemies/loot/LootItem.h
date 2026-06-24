@@ -17,10 +17,29 @@
 #include <glm/glm.hpp>
 #include <string>
 
+inline constexpr float LootPickupMarkerScale = 0.35f;
+inline constexpr float LootPickupMarkerHeight = 0.65f;
+
 class LootItem : public PickableItem {
 public:
     virtual ~LootItem() = default;
     virtual void Spawn(Scene* scene, const glm::vec3& position) const = 0;
+
+    bool ShouldAlwaysShowPickupOutline() const override{
+        return true;
+    }
+
+    bool ShouldShowPickupMarkerWhenReachable() const override{
+        return true;
+    }
+
+    glm::vec3 GetPickupMarkerOffset() const override{
+        return glm::vec3(0.0f,LootPickupMarkerHeight,0.0f);
+    }
+
+    glm::vec3 GetPickupMarkerScale() const override{
+        return glm::vec3(LootPickupMarkerScale);
+    }
 };
 
 inline SceneNode* SpawnIngredientLootModel(

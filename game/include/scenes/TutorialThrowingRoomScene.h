@@ -157,7 +157,7 @@ inline void InitScene(Scene& mainScene) {
 
     auto* jfa = cameraNode->AddObject<JfaOutline>();
     jfa->outlineThickness = 4.0f;
-    jfa->outlineColor = {1.0f, 29.0f / 255.0f, 29.0f / 255.0f};
+    jfa->outlineColor = {1.0f, 1.0f, 1.0f};
 
     auto* dof = cameraNode->AddObject<DepthOfField>();
     dof->SetEnabled(false);

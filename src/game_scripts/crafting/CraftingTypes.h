@@ -58,6 +58,7 @@ namespace Crafting{
 
         int mainEffectCount = 0;
         int modifierCount = 0;
+        std::string optionalIngredientsText;
 
         float qualityPercent = 0.0f;
         float radius = 3.0f;

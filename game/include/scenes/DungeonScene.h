@@ -12,6 +12,7 @@
 #include <Framebuffer.h>
 #include <Fxaa.h>
 #include <InputSystem.h>
+#include <JfaOutline.h>
 #include <Light.h>
 #include <Material.h>
 #include <Mesh.h>
@@ -56,16 +57,19 @@
 #include <Jolt/Physics/Collision/Shape/Shape.h>
 #include <game_scripts/AimCrosshair.h>
 #include <game_scripts/ThrowableObjectPool.h>
+#include <game_scripts/ui/PauseMenu.h>
+#include <ui/systems/UiSystem.h>
 #include <game_scripts/enemies/FlockingSystem.h>
 #include <imgui.h>
 #include <physics/VirtualCharacterController.h>
 
 namespace DungeonScene {
 inline void InitScene(Scene& mainScene) {
-    mainScene.AddComponent<Physics::System>();
-    mainScene.AddComponent<DebugInspector>();
-    mainScene.AddComponent<AnimationSystem>();
-    auto* tweenSystem = mainScene.AddComponent<TweenSystem>();
+	mainScene.AddComponent<Physics::System>();
+	mainScene.AddComponent<DebugInspector>();
+	mainScene.AddComponent<UiSystem>();
+	mainScene.AddComponent<AnimationSystem>();
+	auto* tweenSystem = mainScene.AddComponent<TweenSystem>();
     mainScene.AddComponent<PickableItemSystem>();
     mainScene.AddComponent<UiSystem>();
     mainScene.AddComponent<WheelSystem>();
@@ -143,6 +147,10 @@ inline void InitScene(Scene& mainScene) {
     camera->SetHeight(7);
     camera->SetAngleY(225);
 
+	auto* jfa = cameraNode->AddObjectIfMissing<JfaOutline>();
+	jfa->outlineThickness = 4.0f;
+	jfa->outlineColor = {1.0f, 1.0f, 1.0f};
+
 #pragma endregion
 #pragma region Miscellaneous
     mainScene.GetComponent<LightSystem>()->SetAmbientLight(
@@ -157,6 +165,13 @@ inline void InitScene(Scene& mainScene) {
     dungeon->RemakeDungeon();
 
 #pragma endregion
+// #pragma region Ui
+//
+//     SceneNode* uiRoot = mainScene.CreateNode("UI");
+//     SceneNode* pauseMenu = mainScene.CreateNode(uiRoot, "Pause Menu");
+//     pauseMenu->AddObject<PauseMenu>();
+//
+// #pragma endregion
 
 #pragma region Ui
 
@@ -172,4 +187,4 @@ inline void InitScene(Scene& mainScene) {
 
     return;
 }
-} // namespace DungeonScene
+} // namespace DungeonGeneratorScene
