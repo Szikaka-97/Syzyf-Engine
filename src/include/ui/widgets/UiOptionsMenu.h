@@ -15,7 +15,6 @@ class UiOptionsMenu : public GameObject {
   public:
     UiInteractable* resolutionButton = nullptr;
     UiInteractable* fullscreenButton = nullptr;
-    UiInteractable* vsyncToggleButton = nullptr;
     UiInteractable* applyButton = nullptr;
     UiInteractable* backButton = nullptr;
 
@@ -63,11 +62,6 @@ class UiOptionsMenu : public GameObject {
         if (fullscreenButton && fullscreenButton->isDown) {
             pendingWindowed = !pendingWindowed;
             spdlog::debug("Windowed toggled: {}", pendingWindowed);
-        }
-
-        if (vsyncToggleButton && vsyncToggleButton->isDown) {
-            pendingVsync = !pendingVsync;
-            spdlog::debug("VSync toggled: {}", pendingVsync);
         }
 
         if (applyButton && applyButton->isDown) {
@@ -160,43 +154,28 @@ inline UiOptionsMenu* Build(Scene& mainScene, Font* font) {
         resolutionTextNode->AddObjectIfMissing<UiText>("Cycle Resolution", font);
     resolutionText->fontSize = 20.0f;
 
-    SceneNode* fullscreenButtonNode =
-        mainScene.GetOrCreateNode(optionsGroup, "Fullscreen Button");
-    fullscreenButtonNode->AddObjectIfMissing<UiLayout>(
-        glm::uvec2(200, 40), glm::ivec2(0, 150), 101, AnchorPoint::Center);
-    auto* fullscreenVisual = fullscreenButtonNode->AddObjectIfMissing<UiVisual>(
-        glm::vec4(0.4f, 0.4f, 0.4f, 1.0f));
-    fullscreenVisual->colorHovered = glm::vec4(0.6f, 0.6f, 0.6f, 1.0f);
-    controller->fullscreenButton =
-        fullscreenButtonNode->AddObjectIfMissing<UiInteractable>();
-    SceneNode* fullscreenTextNode =
-        mainScene.GetOrCreateNode(fullscreenButtonNode, "Fullscreen Text");
-    fullscreenTextNode->AddObjectIfMissing<UiLayout>(
-        glm::uvec2(200, 40), glm::ivec2(0, 0), 102, AnchorPoint::Center);
-    auto* fullscreenText =
-        fullscreenTextNode->AddObjectIfMissing<UiText>("Toggle Windowed", font);
-    fullscreenText->fontSize = 20.0f;
+    SceneNode* vsyncCheckboxNode = UiCheckbox::Create(mainScene, font, 102, "VSync", settings.vsyncEnabled, optionsGroup);
 
-    SceneNode* vsyncButtonNode =
-        mainScene.GetOrCreateNode(optionsGroup, "VSync Button");
-    vsyncButtonNode->AddObjectIfMissing<UiLayout>(
-        glm::uvec2(200, 40), glm::ivec2(0, 100), 101, AnchorPoint::Center);
-    auto* vsyncVisual =
-        vsyncButtonNode->AddObjectIfMissing<UiVisual>(glm::vec4(0.4f, 0.4f, 0.4f, 1.0f));
-    vsyncVisual->colorHovered = glm::vec4(0.6f, 0.6f, 0.6f, 1.0f);
-    controller->vsyncToggleButton =
-        vsyncButtonNode->AddObjectIfMissing<UiInteractable>();
-    SceneNode* vsyncTextNode =
-        mainScene.GetOrCreateNode(vsyncButtonNode, "VSync Text");
-    vsyncTextNode->AddObjectIfMissing<UiLayout>(glm::uvec2(200, 40), glm::ivec2(0, 0), 102,
-                                       AnchorPoint::Center);
-    auto* vsyncText = vsyncTextNode->AddObjectIfMissing<UiText>("Toggle VSync", font);
-    vsyncText->fontSize = 20.0f;
+    if (auto* layout = vsyncCheckboxNode->GetObject<UiLayout>()) {
+        layout->offset = glm::ivec2(0, 25);
+        layout->zIndex = 101;
+    }
+    if (auto* checkboxLogic = vsyncCheckboxNode->GetObject<UiCheckbox>()) {
+        checkboxLogic->OnValueChanged = [controller](bool isChecked) {
+            if (isChecked) {
+                spdlog::debug("VSync Checkbox ON");
+                controller->pendingVsync = true;
+            } else {
+                spdlog::debug("VSync Checkbox OFF");
+                controller->pendingVsync = false;
+            }
+        };
+    }
 
-    SceneNode* ssaoCheckboxNode = UiCheckbox::Create(mainScene, font, 102, "SSAO Checkbox", settings.ssaoEnabled, optionsGroup);
+    SceneNode* ssaoCheckboxNode = UiCheckbox::Create(mainScene, font, 102, "SSAO", settings.ssaoEnabled, optionsGroup);
 
     if (auto* layout = ssaoCheckboxNode->GetObject<UiLayout>()) {
-        layout->offset = glm::ivec2(0, 50);
+        layout->offset = glm::ivec2(0, 60);
         layout->zIndex = 101;
     }
     if (auto* checkboxLogic = ssaoCheckboxNode->GetObject<UiCheckbox>()) {
@@ -207,6 +186,24 @@ inline UiOptionsMenu* Build(Scene& mainScene, Font* font) {
             } else {
                 spdlog::debug("SSAO Checkbox OFF");
                 controller->pendingSsao = false;
+            }
+        };
+    }
+
+    SceneNode* fullscreenCheckboxNode = UiCheckbox::Create(mainScene, font, 102, "Fullscreen", !settings.windowed, optionsGroup);
+
+    if (auto* layout = fullscreenCheckboxNode->GetObject<UiLayout>()) {
+        layout->offset = glm::ivec2(0, 95);
+        layout->zIndex = 101;
+    }
+    if (auto* checkboxLogic = fullscreenCheckboxNode->GetObject<UiCheckbox>()) {
+        checkboxLogic->OnValueChanged = [controller](bool isChecked) {
+            if (isChecked) {
+                spdlog::debug("Fullscreen ON");
+                controller->pendingWindowed = false;
+            } else {
+                spdlog::debug("Fullscreen OFF");
+                controller->pendingWindowed = true;
             }
         };
     }
