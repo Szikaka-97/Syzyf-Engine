@@ -5,6 +5,8 @@
 #include "imgui.h"
 
 #include <Scene.h>
+#include <cfloat>
+#include <thirdparty/IconsMaterialDesign.h>
 
 namespace Editor {
 void GraphPanel::Draw(Context& context) {
@@ -33,6 +35,10 @@ void GraphPanel::Draw(Context& context) {
     if (root != nullptr) {
         ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, 10.0f);
 
+        ImVec2 originalPadding = ImGui::GetStyle().CellPadding;
+        ImGui::PushStyleVar(ImGuiStyleVar_CellPadding,
+                            ImVec2(0.0f, originalPadding.y));
+
         ImGuiTableFlags tableFlags =
             ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable |
             ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_NoBordersInBody;
@@ -42,16 +48,16 @@ void GraphPanel::Draw(Context& context) {
 
             // change so the 30px isnt hardcoded
             ImGui::TableSetupColumn("Visibility",
-                                    ImGuiTableColumnFlags_WidthFixed, 30.0f);
+                                    ImGuiTableColumnFlags_WidthFixed, 24.0f);
 
-            ImGui::TableSetupColumn("Drag",
-                                    ImGuiTableColumnFlags_WidthFixed, 10.0f);
+            ImGui::TableSetupColumn("Drag", ImGuiTableColumnFlags_WidthFixed,
+                                    24.0f);
 
             this->DrawGraphNode(context, *root, searchString);
 
             ImGui::EndTable();
         }
-        ImGui::PopStyleVar();
+        ImGui::PopStyleVar(2);
     }
 
     this->DrawContextMenu(context);
@@ -132,28 +138,37 @@ void GraphPanel::DrawGraphNode(Context& context, SceneNode& node,
     if ((ImGui::IsItemClicked(ImGuiMouseButton_Left) ||
          ImGui::IsItemClicked(ImGuiMouseButton_Right)) &&
         !ImGui::IsItemToggledOpen()) {
-            context.selectedNode = &node;
+        context.selectedNode = &node;
     }
 
     ImGui::TableNextColumn();
 
-    const bool isEnabled = node.IsEnabled();
+    const char* visibilityIcon =
+        node.EnabledSelf() ? ICON_MD_VISIBILITY : ICON_MD_VISIBILITY_OFF;
 
-    if (!isEnabled) {
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered,
-                              ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive,
-                              ImVec4(0.4f, 0.4f, 0.4f, 1.0f));
-    }
+    ImVec2 buttonSize =
+        ImVec2(ImGui::GetFrameHeight(), ImGui::GetFrameHeight());
 
-    if (ImGui::Button(node.EnabledSelf() ? "X" : " ",
-                      ImVec2(24, ImGui::GetFrameHeight()))) {
+    float availableWidth = ImGui::GetContentRegionAvail().x;
+    ImGui::SetCursorPosX(ImGui::GetCursorPosX() +
+                         (availableWidth - buttonSize.x) * 0.5f);
+
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+
+    if (ImGui::Button(visibilityIcon, buttonSize)) {
         node.SetEnabled(!node.EnabledSelf());
     }
 
     ImGui::TableNextColumn();
-    ImGui::Selectable("Move", false, ImGuiSelectableFlags_None, ImGui::CalcTextSize("Move"));
+
+    availableWidth = ImGui::GetContentRegionAvail().x;
+    ImGui::SetCursorPosX(ImGui::GetCursorPosX() +
+                         (availableWidth - buttonSize.x) * 0.5f);
+
+    ImGui::Button(ICON_MD_OPEN_WITH, buttonSize);
+
+    ImGui::PopStyleColor();
+
     if (ImGui::BeginDragDropSource()) {
         SceneNode* nodePtr = &node;
         ImGui::SetDragDropPayload("GRAPH_SCENE_NODE", &nodePtr,
@@ -161,9 +176,6 @@ void GraphPanel::DrawGraphNode(Context& context, SceneNode& node,
         ImGui::Text("Move %s", treeHeader.c_str());
         ImGui::EndDragDropSource();
     }
-
-    if (!isEnabled)
-        ImGui::PopStyleColor(3);
 
     if (nodeOpen) {
         if (!isLeaf) {
