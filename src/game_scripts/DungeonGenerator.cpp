@@ -1,6 +1,9 @@
 #include "Surface.h"
 #include "game_scripts/PlayerController.h"
+#include "game_scripts/enemies/EnemyBeetroot.h"
 #include "game_scripts/enemies/FlockingSystem.h"
+#include "game_scripts/enemies/MeleeSkeleton.h"
+
 #include <game_scripts/DungeonGenerator.h>
 
 #include <numeric>
@@ -305,10 +308,10 @@ void DungeonGenerator::RemakeDungeon() {
 }
 
 EnemyBase* SpawnEnemy(SceneNode* position) {
-    Material* enemyMat =
-        position->GetScene()->Resources()->Get<Material>("./res/materials/jake.mat");
-    Mesh* cubeMesh =
-        position->GetScene()->Resources()->Get<Mesh>("./res/models/not_cube.obj");
+    // Material* enemyMat =
+    //     position->GetScene()->Resources()->Get<Material>("./res/materials/jake.mat");
+    // Mesh* cubeMesh =
+    //     position->GetScene()->Resources()->Get<Mesh>("./res/models/not_cube.obj");
 
     SceneNode* enemy1 = position->GetScene()->CreateNode(position, "Enemy 1");
     // enemy1->GlobalTransform().Position() = glm::vec3(10.5f, 0.0f, -5.0f);
@@ -322,22 +325,22 @@ EnemyBase* SpawnEnemy(SceneNode* position) {
 
     Physics::Body* enemyBody1 = enemy1->AddObject<Physics::Body>(enemySettings);
     enemyBody1->SetRestitution(0.0f);
-    auto* enemyAi1 = enemy1->AddObject<EnemySkeleton>();
-    enemyAi1->SetProjectileResources(cubeMesh, enemyMat);
-    enemyAi1->SetProjectileResources(cubeMesh, enemyMat);
+    auto* enemyAi1 = enemy1->AddObject<MeleeSkeleton>();
+    //enemyAi1->SetProjectileResources(cubeMesh, enemyMat);
+    //enemyAi1->SetProjectileResources(cubeMesh, enemyMat);
 	enemyAi1->SetTargetNode(PlayerController::Instance()->GetNode());
     enemyAi1->SetAttackCooldown(1.2f);
-	enemyAi1->m_hp = 5;
-	enemyAi1->m_FlockingSystem = position->GetScene()->GetComponent<FlockingSystem>();
+	//enemyAi1->m_hp = 5;
+	//enemyAi1->m_FlockingSystem = position->GetScene()->GetComponent<FlockingSystem>();
 
-    enemyAi1->RegisterToFlockingSystem(position->GetScene()->GetComponent<FlockingSystem>());
+    //enemyAi1->RegisterToFlockingSystem(position->GetScene()->GetComponent<FlockingSystem>());
 
-    SceneNode* enemyModel =
-        ResourceDatabase::Global->Get<GltfScene>("./res/models/szkielet6.glb")
-            ->Instantiate(position->GetScene(), enemy1, "EnemyModel");
-    enemyModel->SetParent(enemy1);
-    enemyModel->GlobalTransform().Scale() = glm::vec3(0.1, 0.1, 0.1);
-    enemyModel->LocalTransform().Position() = glm::zero<glm::vec3>();
+    // SceneNode* enemyModel =
+    //     ResourceDatabase::Global->Get<GltfScene>("./res/models/szkielet6.glb")
+    //         ->Instantiate(position->GetScene(), enemy1, "EnemyModel");
+    // enemyModel->SetParent(enemy1);
+    // enemyModel->GlobalTransform().Scale() = glm::vec3(0.1, 0.1, 0.1);
+    // enemyModel->LocalTransform().Position() = glm::zero<glm::vec3>();
 
 	return enemyAi1;
 }

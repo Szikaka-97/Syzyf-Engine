@@ -27,6 +27,8 @@ void ComboEffectBase::Update() {
         m_Expired = true;
         GetScene()->QueueDelete(myNode);  
     }
+
+
 }
 
 std::vector<EnemyBase*> ComboEffectBase::ScanNearbyEnemies() const {

@@ -14,6 +14,15 @@ private:
     SceneNode*      myNode     = nullptr;
 
 public:
+    // BeetrootSegment() : GameObject() {
+    //     SceneNode* enemyModel =
+    //      ResourceDatabase::Global->Get<GltfScene>("./res/models/enemies/burak_segment.glb")
+    //          ->Instantiate(GetScene(), GetNode(), "BeetrootSegmentModel");
+    //     //enemyModel->SetParent(enemy1);
+    //     //enemyModel->GlobalTransform().Scale() = glm::vec3(0.1, 0.1, 0.1);
+    //     enemyModel->LocalTransform().Position() = glm::zero<glm::vec3>();
+    // };
+
     void Initialize(EnemyBeetroot* owner, SceneNode* playerNode);
 
     void Update();

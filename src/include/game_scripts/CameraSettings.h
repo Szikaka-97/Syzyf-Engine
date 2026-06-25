@@ -12,6 +12,7 @@ private:
 	serialized float targetAngleY = 0;
 	serialized float angleX = 45;
 	serialized float cameraRotationSpeed = 180.0f;
+	bool frozen = false;
 public:
 	CameraSettings();
 	

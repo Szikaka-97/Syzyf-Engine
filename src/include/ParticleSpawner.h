@@ -96,6 +96,9 @@ struct ParticleSpawnerSettings {
     
     // maybe have the particlespawner hold textures itself instead?
     serialized bool useColorRamp = false;
+
+    serialized bool spawnLights;
+    serialized float lightStrength;
 };
 
 class ParticleSpawner : public GameObject, public ImGuiDrawable {

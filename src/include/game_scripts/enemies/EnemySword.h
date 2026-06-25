@@ -11,6 +11,11 @@
 
 class EnemySword : public GameObject, public Physics::ICollisionReceiver {
 public:
+    SceneNode*     m_PlayerNode = nullptr;
+    bool           m_HasHit   = false;
+    float          m_HitRadius = 0.7f; // approx half of 1x1 segment
+    SceneNode*      myNode     = nullptr;
+
     EnemySword();
 
     void Update();

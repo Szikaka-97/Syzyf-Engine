@@ -54,6 +54,8 @@
 #include <imgui.h>
 #include <memory>
 #include <physics/VirtualCharacterController.h>
+#include <fog/FluidSimulation.h>
+#include <FastNoiseLite.h>
 
 namespace ExampleFogVolume {
 

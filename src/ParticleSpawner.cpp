@@ -4,6 +4,7 @@
 #include "Material.h"
 #include "TimeSystem.h"
 #include "Graphics.h"
+#include <Formatters.h>
 
 #include "imgui.h"
 #include <glm/gtc/random.hpp>
@@ -67,6 +68,12 @@ void ParticleSpawner::ReallocateParticleBuffer() {
         p.lifetime.y = randomLifetime;
         p.lifetime.z = randomAngle;
         p.lifetime.w = randomAngularVelocity;
+
+        glm::vec3 finalPos = GlobalTransform().Position() + p.position;
+
+        p.position.x = finalPos.x;
+        p.position.y = finalPos.y;
+        p.position.z = finalPos.z;
 
         this->initialParticleData.push_back(p);
     }
@@ -147,7 +154,12 @@ void ParticleSpawner::Update() {
     computeDispatchData->SetValue("uDeltaTime", Time::Delta());
     computeDispatchData->SetValue("uWrapAround", static_cast<unsigned int>(this->settings.wrapAround));
     computeDispatchData->SetValue("uEnableLifetime", static_cast<unsigned int>(this->settings.enableLifetime));
+    computeDispatchData->SetValue("uModelMatrix", GlobalTransform().Value());
+    computeDispatchData->SetValue("uSpawnParticleLights", (unsigned int) this->settings.spawnLights);
+    computeDispatchData->SetValue("uParticleLightStrength", this->settings.lightStrength);
+    computeDispatchData->SetValue("uParticleColor", glm::vec3(this->settings.color));
 
+    
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, this->particleBuffer);
 
     GLuint workGroups = (this->settings.maxParticles + 63) / 64;
@@ -335,5 +347,11 @@ void ParticleSpawner::DrawImGui() {
 
     if (this->mesh == nullptr || this->material == nullptr) {
         ImGui::EndDisabled();
+    }
+
+    ImGui::Checkbox("Spawn Lights", &this->settings.spawnLights);
+
+    if (this->settings.spawnLights) {
+        ImGui::InputFloat("Light Strength", &this->settings.lightStrength);
     }
 }

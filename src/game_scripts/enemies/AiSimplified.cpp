@@ -86,6 +86,7 @@ void AiSimplified::LookForNextPoint() {
 }
 
 void AiSimplified::MoveInDirection(const glm::vec3& direction) {
+    if (!myNode || !m_Body) return;
     if (glm::length(direction) < 0.001f) { StopMoving(); return; }
 
     glm::vec3 dir    = glm::normalize(direction);
@@ -110,6 +111,7 @@ void AiSimplified::StopMoving() {
 }
 
 void AiSimplified::RotateNode(glm::vec3 dir) {
+    if (!myNode || !m_Body) return;
     if (glm::length(dir) < 0.01f) return;
     dir = glm::normalize(dir);
     float     targetYaw = atan2(dir.x, dir.z);
