@@ -23,7 +23,7 @@ class SplashController : public GameObject {
             // Application::Get()->RequestSceneBuild(
             //     [](Scene* s) { MainMenu::InitScene(*s); });
             Application::Get()->RequestSceneBuild(
-    [](Scene* s) { IntroScene::InitScene(*s); });
+                [](Scene* s) { MainMenu::InitScene(*s); });
         }
         framesPassed++;
     }
