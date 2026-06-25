@@ -11,6 +11,7 @@
 #include "Shader.h"
 
 #include "game_scripts/CameraSettings.h"
+#include "game_scripts/GameAudio.h"
 #include "game_scripts/PlayerController.h"
 #include "../../include/game_scripts/PotionInventory.h"
 #include "game_scripts/crafting/BottlingStage.h"
@@ -100,6 +101,9 @@ namespace Crafting{
 
                 HeatingStage heatingStage;
                 BottlingStage bottlingStage;
+
+                AudioSource* heatingLoopAudioSource = nullptr;
+                SceneNode* heatingLoopAudioNode = nullptr;
 
                 bool blowerClickRequested = false;
 
@@ -699,6 +703,33 @@ namespace Crafting{
                         valveHitboxNode->IsEnabled();
                 }
 
+                void StopHeatingLoopAudio(){
+                    if (heatingLoopAudioSource){
+                        heatingLoopAudioSource->Stop();
+                        heatingLoopAudioSource = nullptr;
+                    }
+
+                    if (heatingLoopAudioNode){
+                        GetScene()->QueueDelete(heatingLoopAudioNode);
+                        heatingLoopAudioNode = nullptr;
+                    }
+                }
+
+                void StartHeatingLoopAudio(){
+                    StopHeatingLoopAudio();
+
+                    heatingLoopAudioSource = GameAudio::AddLooping2D(
+                        *GetScene(),
+                        "Crafting Heating Loop Audio",
+                        GameAudio::CraftingBoilingLoopPath,
+                        0.22f
+                    );
+
+                    if (heatingLoopAudioSource){
+                        heatingLoopAudioNode = heatingLoopAudioSource->GetNode();
+                    }
+                }
+
                 void ConfirmIngredientStage(){
                     if (!cauldron || !cauldron->CanConfirm()){
                         spdlog::info("Crafting UI Next: add at least one main ingredient before brewing.");
@@ -706,6 +737,14 @@ namespace Crafting{
                     }
 
                     CloseLid();
+
+                    GameAudio::PlayOneShot2D(
+                        *GetScene(),
+                        "Crafting Lid Audio",
+                        GameAudio::CraftingLidPath,
+                        0.45f,
+                        0.10f
+                    );
 
                     SetLidInteractionEnabled(false);
 
@@ -729,12 +768,35 @@ namespace Crafting{
 
                     blowerClickRequested = true;
                     bellowAnimationAmount = 1.0f;
+
+                    glm::vec3 blowerAudioPosition = GetNode()->GlobalTransform().Position().Value();
+
+                    if (blowerHitboxNode){
+                        blowerAudioPosition = blowerHitboxNode->GlobalTransform().Position().Value();
+                    }
+
+                    GameAudio::PlayOneShot3D(
+                        *GetScene(),
+                        "Crafting Blower Audio",
+                        GameAudio::CraftingBlowerPath,
+                        blowerAudioPosition,
+                        0.40f,
+                        0.16f
+                    );
                 }
 
                 void OnDoorClicked(){
                     if (!CanUseDoor()){
                         return;
                     }
+
+                    GameAudio::PlayOneShot2D(
+                        *GetScene(),
+                        "Crafting Stage Change Audio",
+                        GameAudio::CraftingStageChangePath,
+                        0.38f,
+                        0.12f
+                    );
 
                     StartBottlingStage();
                 }
@@ -745,6 +807,21 @@ namespace Crafting{
                     }
 
                     bottlingStage.TryFillCurrentBottle();
+
+                    glm::vec3 valveAudioPosition = GetNode()->GlobalTransform().Position().Value();
+
+                    if (valveHitboxNode){
+                        valveAudioPosition = valveHitboxNode->GlobalTransform().Position().Value();
+                    }
+
+                    GameAudio::PlayOneShot3D(
+                        *GetScene(),
+                        "Crafting Valve Audio",
+                        GameAudio::CraftingValvePath,
+                        valveAudioPosition,
+                        0.35f,
+                        0.12f
+                    );
                 }
 
                 void OnUiBackClicked(){
@@ -1730,6 +1807,7 @@ namespace Crafting{
                     }
 
                     heatingStage.Start();
+                     StartHeatingLoopAudio();
 
                     bellowAnimationAmount = 0.0f;
 
@@ -1749,6 +1827,7 @@ namespace Crafting{
 
                 void FinishHeatingStage(){
                     currentStage = CraftingStage::Finished;
+                    StopHeatingLoopAudio();
 
                     if (stageOneUiNode){
                         stageOneUiNode->SetEnabled(false);
@@ -1787,6 +1866,7 @@ namespace Crafting{
 
                 void StartBottlingStage(){
                     currentStage = CraftingStage::Bottling;
+                    StopHeatingLoopAudio();
 
                     if (stageOneUiNode){
                         stageOneUiNode->SetEnabled(false);
@@ -3210,7 +3290,6 @@ namespace Crafting{
                         return;
                     }
 
-                    // chuj
                     if (auto objects = GetScene()->FindObjectsOfType<InGameUi>(); !objects.empty()) {
                         this->inGameUiNode = objects.front()->GetNode();
                     }
@@ -3312,6 +3391,7 @@ namespace Crafting{
                     SetDoorInteractionEnabled(false);
                     SetValveInteractionEnabled(false);
                     SetHeatingUiEnabled(false);
+                    StopHeatingLoopAudio();
                     bottlingStage.Stop();
 
                     SetDragInteractorEnabled(true);

@@ -19,6 +19,7 @@
 #include "ui/systems/UiLayoutSystem.h"
 #include "ui/systems/UiSystem.h"
 #include "ui/widgets/UiOptionsMenu.h"
+#include "game_scripts/GameAudio.h"
 
 #include <SDL3/SDL_events.h>
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
@@ -416,6 +417,7 @@ class MainMenuController : public GameObject {
         switch (action) {
             case MenuBottleAction::Start:
                 if (this->loadingScene != nullptr) {
+                    GameAudio::StopActiveLooping2D();
                     Application::Get()->RequestSceneChange(this->loadingScene);
                     this->loadingScene = nullptr;
                 }
@@ -723,6 +725,12 @@ inline void AddBottleMeshPhysics(SceneNode* bottleNode) {
 inline void InitScene(Scene& mainScene) {
     mainScene.AddComponent<UiSystem>();
     mainScene.AddComponent<Physics::System>();
+    GameAudio::AddLooping2D(
+        mainScene,
+        "Main Menu Music Audio",
+        GameAudio::MainMenuMusicPath,
+        0.32f
+    );
 
     SceneNode* cameraNode = mainScene.CreateNode("Camera Node");
     cameraNode->LocalTransform().Position() =

@@ -32,6 +32,7 @@
 #include <game_scripts/CameraSettings.h>
 #include <game_scripts/PickableItemSystem.h>
 #include <game_scripts/PlayerController.h>
+#include <game_scripts/GameAudio.h>
 // #include <game_scripts/ThrowBottle.h>
 #include <glm/fwd.hpp>
 #include <glm/geometric.hpp>
@@ -74,6 +75,12 @@ inline void InitScene(Scene& mainScene) {
     mainScene.AddComponent<UiSystem>();
     mainScene.AddComponent<WheelSystem>();
     mainScene.AddComponent<ThrowableObjectPool>();
+    GameAudio::AddLooping2D(
+        mainScene,
+        "Dungeon Ambient Audio",
+        GameAudio::DungeonAmbientPath,
+        0.24f
+    );
     auto* flockingSystem = mainScene.AddComponent<FlockingSystem>();
     // Opcjonalne tunowanie:
     flockingSystem->separationRadius = 2.5f;

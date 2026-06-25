@@ -5,6 +5,7 @@
 #include "GameObject.h"
 #include <Graphics.h>
 #include <game_scripts/ui/PauseMenu.h>
+#include <game_scripts/GameAudio.h>
 #include <LightSystem.h>
 #include "ui/objects/UiLayout.h"
 #include "ui/objects/UiText.h"
@@ -29,6 +30,12 @@ class LoadingController : public GameObject {
                     glm::vec4(1.0f, 0.68f, 0.38f, 0.025f));
 
                 base->GetOrCreateComponent<UiSystem>();
+                GameAudio::AddLooping2D(
+                    *base,
+                    "Tutorial Ambient Audio",
+                    GameAudio::TutorialAmbientPath,
+                    0.14f
+                );
                 SceneNode* uiRoot = base->GetOrCreateNode("UI");
                 SceneNode* pauseMenu = base->GetOrCreateNode(uiRoot, "Pause Menu");
                 pauseMenu->AddObjectIfMissing<PauseMenu>();

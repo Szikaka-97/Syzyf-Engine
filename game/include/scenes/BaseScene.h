@@ -31,6 +31,7 @@
 #include <Tonemapper.h>
 #include <game_scripts/CameraSettings.h>
 #include <game_scripts/PlayerController.h>
+#include <game_scripts/GameAudio.h>
 #include <physics/Body.h>
 #include <physics/Helpers.h>
 #include <physics/VirtualCharacterController.h>
@@ -69,6 +70,12 @@ inline void InitScene(Scene& mainScene) {
     auto* tweenSystem = mainScene.AddComponent<TweenSystem>();
     mainScene.AddComponent<WheelSystem>();
     mainScene.AddComponent<ThrowableObjectPool>();
+    GameAudio::AddLooping2D(
+        mainScene,
+        "Base Ambient Audio",
+        GameAudio::BaseAmbientPath,
+        0.18f
+    );
 
     mainScene.GetComponent<LightSystem>()->SetAmbientLight(
         glm::vec4(1, 0.6, 0.3, 0.13));

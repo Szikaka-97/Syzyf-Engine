@@ -23,6 +23,7 @@
 
 #include "DungeonScene.h"
 #include "game_scripts/AimCrosshair.h"
+#include "game_scripts/GameAudio.h"
 #include "game_scripts/CameraSettings.h"
 #include "game_scripts/crafting/Cauldron.h"
 #include "game_scripts/crafting/CraftingDragInteractor.h"
@@ -2165,6 +2166,12 @@ inline void InitScene(Scene& scene) {
     scene.AddComponent<AnimationSystem>();
     scene.AddComponent<TweenSystem>();
     scene.AddComponent<WheelSystem>();
+    GameAudio::AddLooping2D(
+        scene,
+        "Crafting Ambient Audio",
+        GameAudio::CraftingAmbientPath,
+        0.16f
+    );
 
     if (auto* lightSystem = scene.GetComponent<LightSystem>()) {
         lightSystem->SetAmbientLight(glm::vec4(1.0f, 0.65f, 0.25f, 0.12f));
