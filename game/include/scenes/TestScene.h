@@ -381,7 +381,7 @@ inline void InitScene(Scene& mainScene) {
     Crafting::CraftedPotionData testPotion;
     testPotion.recipeName = "Explosion + Fire Test Potion";
     testPotion.primaryEffectId = Crafting::EffectId::Fire;
-    testPotion.secondaryEffectId = Crafting::EffectId::Petrify;
+    testPotion.secondaryEffectId = Crafting::EffectId::Confuse;
     testPotion.qualityPercent = 100.0f;
     testPotion.radius = 7.0f;
     testPotion.duration = 6.0f;
