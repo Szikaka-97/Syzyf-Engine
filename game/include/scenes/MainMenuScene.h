@@ -9,6 +9,7 @@
 #include "GltfScene.h"
 #include "JfaOutline.h"
 #include "Light.h"
+#include "IntroScene.h"
 #include "LoadingScene.h"
 #include "MaskEffects.h"
 #include "MeshRenderer.h"
@@ -418,7 +419,11 @@ class MainMenuController : public GameObject {
             case MenuBottleAction::Start:
                 if (this->loadingScene != nullptr) {
                     GameAudio::StopActiveLooping2D();
-                    Application::Get()->RequestSceneChange(this->loadingScene);
+
+                    Scene* introScene = Scene::CreateStandaloneScene();
+                    IntroScene::InitScene(*introScene, this->loadingScene);
+
+                    Application::Get()->RequestSceneChange(introScene);
                     this->loadingScene = nullptr;
                 }
                 break;

@@ -51,7 +51,7 @@ void GameApplication::OnInit(int argc, char* argv[]) {
     this->settings.Load();
 
     Scene* newScene = Scene::CreateStandaloneScene();
-    CraftingScene::InitScene(*newScene);
+    SplashScene::InitScene(*newScene);
     this->currentScene = newScene;
     this->ApplySettings();
 }
