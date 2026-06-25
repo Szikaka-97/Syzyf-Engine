@@ -492,15 +492,15 @@ namespace PotionInventory{
 
         int count = GetPotionSlotCount(slotIndex);
 
-        if (count <= 0){
-            return false;
-        }
+            if (count <= 0){
+                return false;
+            }
 
-        Crafting::CraftedPotionData potionData = GetPotionSlotData(slotIndex);
+                Crafting::CraftedPotionData potionData = GetPotionSlotData(slotIndex);
 
-        if (consumedPotionData){
-            *consumedPotionData = potionData;
-        }
+            if (consumedPotionData){
+                *consumedPotionData = GetPotionSlotData(slotIndex);
+            }
 
         if (count == 1){
             ClearPotionSlot(slotIndex);

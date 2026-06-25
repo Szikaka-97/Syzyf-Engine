@@ -212,6 +212,7 @@ void TutorialElevator::Update() {
 			player->SetPosition(GlobalTransform().Position());
 
 			if (GlobalTransform().Position().y <= -5) {
+				PotionInventory::ClearTutorialPotions();
 				Application::Get()->RequestSceneBuild(
 					[](Scene* s) { CraftingScene::InitScene(*s); }
 				);
