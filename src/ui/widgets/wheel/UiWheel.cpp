@@ -1,4 +1,5 @@
 #include <ui/widgets/wheel/UiWheel.h>
+#include <ui/widgets/wheel/UiRadialWheel.h>
 
 #include <InputSystem.h>
 #include <DepthOfField.h>
@@ -9,6 +10,7 @@
 #include "ui/objects/UiVisual.h"
 #include "ui/objects/UiText.h"
 #include "game_scripts/ui/ScrollingList.h"
+#include <filesystem>
 
 void WheelSystem::OpenWheel() {
 	Time::SetTimeScale(0.1f);
@@ -147,33 +149,40 @@ void WheelSystem::OnPreUpdate() {
 	}
 
 	if (inputSystem->KeyDown(Key::Tab)) {
+		auto potionInventory = PotionInventory::GetPotionInventory();
+
 		auto lists = GetScene()->FindObjectsOfType<ScrollingList>();
 		if (!lists.empty()) {
-		std::vector<ScrollingListItemData> itemsData;
-		auto playerInventory = PotionInventory::GetOwnedIngredientDefinitions();
+			std::vector<ScrollingListItemData> itemsData;
 
-		for (const auto& entry : playerInventory) {
-			int count = PotionInventory::GetIngredientCount(entry.inventoryKey);
-			if (count > 0) {
-				std::string cleanName = entry.displayName;
-				std::size_t lastSpace = cleanName.find_last_of(' ');
+			for (const auto& entry : potionInventory) {
+				itemsData.push_back({
+					PotionInventory::PotionDisplayName(entry.data),
+					entry.count,
+					nullptr,
+					entry.slotIndex
+				});
+			}
+		
+			lists[0]->RefreshItems(itemsData);
+		}
 
-				if (lastSpace != std::string::npos) {
-					cleanName = cleanName.substr(0, lastSpace);
+		auto wheels = GetScene()->FindObjectsOfType<UiRadialWheel>();
+		if (!wheels.empty()) {
+			std::vector<fs::path> bottleModels;
+			std::vector<int> potionSlotIndices;
+
+			for (const auto& entry : potionInventory) {
+				if (bottleModels.size() >= 5) {
+					break;
 				}
 
-                std::string iconPath = "./res/textures/ui/2d/item_icons/" + cleanName + ".png";
-
-                auto texParams = Texture2D::ColorTextureRGBA;
-                texParams.colorSpace = TextureColor::Linear;
-                Texture2D* itemIcon = GetScene()->Resources()->Get<Texture2D>(iconPath, texParams);
-
-				itemsData.push_back({ cleanName, count, itemIcon });
+				bottleModels.push_back(PotionInventory::PotionBottleModelPath(entry.data));
+				potionSlotIndices.push_back(entry.slotIndex);
 			}
+
+			wheels[0]->SetItemModels(bottleModels,potionSlotIndices);
 		}
-		
-		lists[0]->RefreshItems(itemsData); 
-	}
 	}
 
 	if (inputSystem->KeyDown(Key::Tab)) isTabHeld = true;

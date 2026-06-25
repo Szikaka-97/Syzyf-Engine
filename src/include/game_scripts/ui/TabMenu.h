@@ -12,6 +12,7 @@
 #include <ui/widgets/wheel/UiWheel.h>
 #include <game_scripts/ui/ScrollingList.h>
 #include <game_scripts/ui/UiMinimap.h>
+#include <game_scripts/PotionInventory.h>
 
 
 class TabMenu : public GameObject {
@@ -53,13 +54,20 @@ public:
         auto* radialWheel = radialWheelNode->AddObjectIfMissing<UiRadialWheel>();
         radialWheel->AddObjectIfMissing<WheelTag>();
         radialWheel->material.reset(wheelUiMaterial);
-        radialWheel->SetItemModels({
-            "./res/models/butelka.glb",
-            "./res/models/butelka.glb",
-            "./res/models/butelka.glb",
-            "./res/models/butelka.glb",
-            "./res/models/butelka.glb",
-        });
+
+        std::vector<fs::path> bottleModels;
+        std::vector<int> potionSlotIndices;
+
+        for (const auto& entry : PotionInventory::GetPotionInventory()) {
+            if (bottleModels.size() >= 5) {
+                break;
+            }
+
+            bottleModels.push_back(PotionInventory::PotionBottleModelPath(entry.data));
+            potionSlotIndices.push_back(entry.slotIndex);
+        }
+
+        radialWheel->SetItemModels(bottleModels,potionSlotIndices);
 
         TextureParams fontTextureParams = {
             .channels = TextureChannels::RGB,

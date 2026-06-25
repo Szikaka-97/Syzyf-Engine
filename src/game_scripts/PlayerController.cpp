@@ -590,7 +590,7 @@ void PlayerController::UpdateThrowing() {
 		if (this->throwStrengthCache > 0 && this->throwStrengthAccum < 0.7f) {
 			Crafting::CraftedPotionData consumedPotionData;
 
-			if (!PotionInventory::ConsumePotion(&consumedPotionData)) {
+			if (!PotionInventory::ConsumeSelectedPotion(&consumedPotionData)) {
 				this->throwStrengthCache = -1;
 				return;
 			}

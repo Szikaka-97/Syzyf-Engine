@@ -17,6 +17,7 @@
 #include <string>
 #include <algorithm>
 #include <ui/widgets/wheel/UiWheel.h>
+#include <game_scripts/PotionInventory.h>
 #include <TweenSystem.h>
 #include <EasingFunctions.h>
 
@@ -24,6 +25,7 @@ struct ScrollingListItemData {
     std::string text;
     int count;
     Texture2D* icon;
+    int potionSlotIndex = -1;
 };
 
 class ScrollingList : public GameObject {
@@ -38,6 +40,7 @@ public:
     std::vector<UiVisual*> itemIcons;
     std::vector<UiVisual*> itemOutlines;
     std::vector<TweenHandle> itemTweens;
+    std::vector<ScrollingListItemData> currentItems;
 
     UiInteractable* scrollbarHandle = nullptr;
     SceneNode* scrollbarHandleNode = nullptr;
@@ -103,6 +106,7 @@ public:
         
         float listWidth = 440.0f;
 
+        this->currentItems = itemsData;
         activeItemCount = static_cast<int>(itemsData.size());
 
         for (size_t i = 0; i < itemsData.size(); i++) {
@@ -119,20 +123,22 @@ public:
                     glm::uvec2(itemHeight - 6, itemHeight - 6), glm::ivec2(5, -2), 11, AnchorPoint::CenterLeft);
                 outlineNode->AddObjectIfMissing<WheelTag>();
                 auto* outlineVisual = outlineNode->AddObjectIfMissing<UiVisual>(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
-                
+                outlineVisual->SetEnabled(false);
+
                 SceneNode* iconNode = mainScene->GetOrCreateNode(itemNode, "Icon_" + std::to_string(i));
                 iconNode->AddObjectIfMissing<UiLayout>(
                     glm::uvec2(itemHeight - 10, itemHeight - 10), glm::ivec2(5, 0), 12, AnchorPoint::CenterLeft);
                 iconNode->AddObjectIfMissing<WheelTag>();
                 auto* iconVis = iconNode->AddObjectIfMissing<UiVisual>(glm::vec4(1.0f));
+                iconVis->SetEnabled(false);
 
                 SceneNode* textContainerNode = mainScene->GetOrCreateNode(itemNode, "TextContainer_" + std::to_string(i));
                 textContainerNode->AddObjectIfMissing<UiLayout>(
-                    glm::uvec2(listWidth - itemHeight - 20, itemHeight), glm::ivec2(itemHeight + 10, 0), 12, AnchorPoint::CenterLeft);
+                    glm::uvec2(listWidth - 40, itemHeight), glm::ivec2(20, 0), 12, AnchorPoint::CenterLeft);
 
                 SceneNode* textNode = mainScene->GetOrCreateNode(textContainerNode, "NameText_" + std::to_string(i));
                 textNode->AddObjectIfMissing<UiLayout>(
-                    glm::uvec2(listWidth - itemHeight - 70, itemHeight), glm::ivec2(0, 0), 13, AnchorPoint::CenterLeft);
+                    glm::uvec2(listWidth - 110, itemHeight), glm::ivec2(0, 0), 13, AnchorPoint::CenterLeft);
                 textNode->AddObjectIfMissing<WheelTag>();
                 auto* nameTxt = textNode->AddObjectIfMissing<UiText>("", listFont);
                 nameTxt->fontSize = 24.0f;
@@ -201,25 +207,19 @@ public:
             itemNodes[i]->SetEnabled(true);
             itemNameTexts[i]->text = itemsData[i].text;
             itemCountTexts[i]->text = "x" + std::to_string(itemsData[i].count);
-            
+
             if (!itemInteractables[i]->isHovered && (!tweenSystem || !tweenSystem->IsValid(itemTweens[i]))) {
                 itemIcons[i]->GetNode()->LocalTransform().Scale() = glm::vec3(1.0f);
                 itemOutlines[i]->GetNode()->LocalTransform().Scale() = glm::vec3(1.0f);
             }
-            
-            if (itemsData[i].icon) {
-                itemIcons[i]->texture = itemsData[i].icon;
-                itemIcons[i]->color = glm::vec4(1.0f);
 
-                itemOutlines[i]->texture = itemsData[i].icon;
-                itemOutlines[i]->color = glm::vec4(0.0f, 0.0f, 0.0f, 0.8f);
-            } else {
-                itemIcons[i]->texture = nullptr;
-                itemIcons[i]->color = glm::vec4(0.5f, 0.5f, 0.5f, 1.0f);
+            itemIcons[i]->texture = nullptr;
+            itemIcons[i]->color = glm::vec4(0.0f);
+            itemIcons[i]->SetEnabled(false);
 
-                itemOutlines[i]->texture = nullptr;
-                itemOutlines[i]->color = glm::vec4(0.0f);
-            }
+            itemOutlines[i]->texture = nullptr;
+            itemOutlines[i]->color = glm::vec4(0.0f);
+            itemOutlines[i]->SetEnabled(false);
         }
 
         for (size_t i = itemsData.size(); i < itemNodes.size(); i++) {
@@ -229,6 +229,31 @@ public:
         int maxIndex = activeItemCount - 1;
         if (maxIndex < 0) maxIndex = 0;
         selectedIndex = std::clamp(selectedIndex, 0, maxIndex);
+
+        int selectedPotionSlotIndex = PotionInventory::GetSelectedPotionSlotIndex();
+
+        for (int i = 0; i < activeItemCount; i++) {
+            if (this->currentItems[i].potionSlotIndex == selectedPotionSlotIndex) {
+                selectedIndex = i;
+                break;
+            }
+        }
+    }
+
+    void SelectCurrentPotion() {
+        if (selectedIndex < 0 || selectedIndex >= activeItemCount) {
+            return;
+        }
+
+        if (selectedIndex >= static_cast<int>(this->currentItems.size())) {
+            return;
+        }
+
+        int potionSlotIndex = this->currentItems[selectedIndex].potionSlotIndex;
+
+        if (potionSlotIndex >= 0) {
+            PotionInventory::SetSelectedPotionSlotIndex(potionSlotIndex);
+        }
     }
 
     void Update() {
@@ -237,19 +262,28 @@ public:
 
         int maxIndex = activeItemCount - 1;
 
+        bool selectionChanged = false;
+
         if (input->KeyDown(Key::Down) && selectedIndex < maxIndex) {
             selectedIndex++;
+            selectionChanged = true;
         }
         if (input->KeyDown(Key::Up) && selectedIndex > 0) {
             selectedIndex--;
+            selectionChanged = true;
         }
 
         selectedIndex = std::clamp(selectedIndex, 0, maxIndex);
 
         for (size_t i = 0; i < activeItemCount; i++) {
             if (itemInteractables[i]->isHovered) {
-                selectedIndex = i;
+                selectedIndex = static_cast<int>(i);
+                selectionChanged = true;
             }
+        }
+
+        if (selectionChanged) {
+            SelectCurrentPotion();
         }
 
         float rowHeight = itemHeight + spacing;

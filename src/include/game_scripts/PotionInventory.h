@@ -21,6 +21,7 @@ namespace PotionInventory{
     inline const std::string LastOptionalIngredientsTextKey = "PotionInventory_LastOptionalIngredientsText";
     inline const std::string FirstPotionCreatedKey = "Crafting_FirstPotionCreated";
     inline const std::string ShowTutorialFinishedMessageKey = "Crafting_ShowTutorialFinishedMessage";
+    inline const std::string SelectedPotionSlotIndexKey = "PotionInventory_SelectedPotionSlotIndex";
 
     inline const std::string IngredientInventoryInitializedKey = "IngredientInventory_Initialized";
 
@@ -361,27 +362,169 @@ namespace PotionInventory{
         return GetPotionCount() > 0;
     }
 
-    inline bool ConsumePotion(Crafting::CraftedPotionData* consumedPotionData){
+    inline std::string PotionDisplayName(
+        const Crafting::CraftedPotionData& potionData
+    ){
+        Crafting::CraftedPotionData normalizedPotionData =
+            NormalizePotionData(potionData);
+
+        if (!normalizedPotionData.recipeName.empty() &&
+            normalizedPotionData.recipeName != "Potion"){
+            return normalizedPotionData.recipeName;
+        }
+
+        std::string label = normalizedPotionData.primaryEffectId;
+
+        if (!normalizedPotionData.secondaryEffectId.empty() &&
+            normalizedPotionData.secondaryEffectId != Crafting::EffectId::None){
+            label += " + " + normalizedPotionData.secondaryEffectId;
+        }
+
+        if (label.empty() || label == Crafting::EffectId::None){
+            return "Potion";
+        }
+
+        return label + " Potion";
+    }
+
+    inline std::string PotionBottleModelPath(
+        const Crafting::CraftedPotionData& potionData
+    ){
+        Crafting::CraftedPotionData normalizedPotionData =
+            NormalizePotionData(potionData);
+
+        const std::string& effectId = normalizedPotionData.primaryEffectId;
+
+        if (effectId == Crafting::EffectId::Fire ||
+            effectId == Crafting::EffectId::Burn){
+            return "./res/models/bottles/fire_bottle.glb";
+        }
+
+        if (effectId == Crafting::EffectId::Petrify){
+            return "./res/models/bottles/petrify_bottle.glb";
+        }
+
+        if (effectId == Crafting::EffectId::Tornado){
+            return "./res/models/bottles/tornado_bottle.glb";
+        }
+
+        if (effectId == Crafting::EffectId::Confuse){
+            return "./res/models/bottles/confuse_bottle.glb";
+        }
+
+        return "./res/models/bottles/explode_bottle.glb";
+    }
+
+    inline std::string PotionIconPath(
+        const Crafting::CraftedPotionData& potionData
+    ){
+        Crafting::CraftedPotionData normalizedPotionData =
+            NormalizePotionData(potionData);
+
+        const std::string& effectId = normalizedPotionData.primaryEffectId;
+
+        if (effectId == Crafting::EffectId::Fire ||
+            effectId == Crafting::EffectId::Burn){
+            return "./res/textures/ui/2d/item_icons/fire_bottle.png";
+        }
+
+        if (effectId == Crafting::EffectId::Petrify){
+            return "./res/textures/ui/2d/item_icons/petrify_bottle.png";
+        }
+
+        if (effectId == Crafting::EffectId::Tornado){
+            return "./res/textures/ui/2d/item_icons/tornado_bottle.png";
+        }
+
+        if (effectId == Crafting::EffectId::Confuse){
+            return "./res/textures/ui/2d/item_icons/confuse_bottle.png";
+        }
+
+        return "./res/textures/ui/2d/item_icons/explode_bottle.png";
+    }
+
+    inline void SetSelectedPotionSlotIndex(int slotIndex){
+        PersistentData::Set<int>(SelectedPotionSlotIndexKey,slotIndex);
+    }
+
+    inline int GetSelectedPotionSlotIndex(){
+        int selectedSlotIndex = PersistentData::Get<int>(SelectedPotionSlotIndexKey);
+
+        if (selectedSlotIndex >= 0 && selectedSlotIndex < MaxPotionInventorySlots &&
+            IsPotionSlotUsed(selectedSlotIndex)){
+            return selectedSlotIndex;
+        }
+
         for (int i = 0; i < MaxPotionInventorySlots; i++){
-            int count = GetPotionSlotCount(i);
-
-            if (count <= 0){
-                continue;
+            if (IsPotionSlotUsed(i)){
+                SetSelectedPotionSlotIndex(i);
+                return i;
             }
+        }
 
-            if (consumedPotionData){
-                *consumedPotionData = GetPotionSlotData(i);
-            }
+        SetSelectedPotionSlotIndex(-1);
+        return -1;
+    }
 
-            if (count == 1){
-                ClearPotionSlot(i);
-            }
-            else{
-                SetPotionSlotData(i,GetPotionSlotData(i),count - 1);
-            }
+    inline bool GetSelectedPotion(PotionInventoryEntry* selectedPotion){
+        int selectedSlotIndex = GetSelectedPotionSlotIndex();
 
-            PersistentData::Set<int>(PotionCountKey,CountPotionStacks());
+        if (selectedSlotIndex < 0){
+            return false;
+        }
+
+        if (selectedPotion){
+            selectedPotion->slotIndex = selectedSlotIndex;
+            selectedPotion->count = GetPotionSlotCount(selectedSlotIndex);
+            selectedPotion->data = GetPotionSlotData(selectedSlotIndex);
+        }
+
+        return true;
+    }
+
+    inline bool ConsumePotionSlot(
+        int slotIndex,
+        Crafting::CraftedPotionData* consumedPotionData
+    ){
+        if (slotIndex < 0 || slotIndex >= MaxPotionInventorySlots){
+            return false;
+        }
+
+        int count = GetPotionSlotCount(slotIndex);
+
+        if (count <= 0){
+            return false;
+        }
+
+        Crafting::CraftedPotionData potionData = GetPotionSlotData(slotIndex);
+
+        if (consumedPotionData){
+            *consumedPotionData = potionData;
+        }
+
+        if (count == 1){
+            ClearPotionSlot(slotIndex);
+        }
+        else{
+            SetPotionSlotData(slotIndex,potionData,count - 1);
+        }
+
+        PersistentData::Set<int>(PotionCountKey,CountPotionStacks());
+        GetSelectedPotionSlotIndex();
+        return true;
+    }
+
+    inline bool ConsumeSelectedPotion(Crafting::CraftedPotionData* consumedPotionData){
+        int selectedSlotIndex = GetSelectedPotionSlotIndex();
+
+        if (ConsumePotionSlot(selectedSlotIndex,consumedPotionData)){
             return true;
+        }
+
+        for (int i = 0; i < MaxPotionInventorySlots; i++){
+            if (ConsumePotionSlot(i,consumedPotionData)){
+                return true;
+            }
         }
 
         int legacyPotionCount = PersistentData::Get<int>(PotionCountKey);
@@ -396,6 +539,10 @@ namespace PotionInventory{
 
         SetPotionCount(legacyPotionCount - 1);
         return true;
+    }
+
+    inline bool ConsumePotion(Crafting::CraftedPotionData* consumedPotionData){
+        return ConsumeSelectedPotion(consumedPotionData);
     }
 
     inline bool ConsumePotion(){

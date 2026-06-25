@@ -19,6 +19,7 @@
 #include "ui/systems/UiLayoutSystem.h"
 #include "EasingFunctions.h"
 #include "Light.h"
+#include "game_scripts/PotionInventory.h"
 
 #include <cmath>
 #include <glm/ext/quaternion_trigonometric.hpp>
@@ -54,6 +55,9 @@ private:
     };
 
     std::vector<ItemSlot> itemSlots;
+    std::vector<fs::path> currentModelPaths;
+    std::vector<int> itemPotionSlotIndices;
+    int modelVersion = 0;
 
     int hoveredSlice = -1;
 
@@ -107,12 +111,39 @@ public:
         text->text = "Tooltip, tooltip tooltip tooltiptooltip. TooltipTooltip tooltip tooltip";
     } 
 
-    void SetItemModels(const std::vector<fs::path>& gltfPaths) {
+    void SetItemModels(
+        const std::vector<fs::path>& gltfPaths,
+        const std::vector<int>& potionSlotIndices = {}
+    ) {
+        if (gltfPaths == this->currentModelPaths &&
+            potionSlotIndices == this->itemPotionSlotIndices) {
+            return;
+        }
+
+        for (ItemSlot& slot : this->itemSlots) {
+            if (slot.uiNode) {
+                slot.uiNode->SetEnabled(false);
+            }
+
+            if (slot.itemNode) {
+                slot.itemNode->SetEnabled(false);
+            }
+        }
+
         uint32_t ui3DLayer = 2;
         uint32_t mask = (1 << ui3DLayer);
 
-        numberOfSlices = gltfPaths.size();
+        this->currentModelPaths = gltfPaths;
+        this->itemPotionSlotIndices = potionSlotIndices;
+        this->modelVersion++;
+        numberOfSlices = static_cast<int>(gltfPaths.size());
         itemSlots.clear();
+
+        if (numberOfSlices <= 0) {
+            hoveredSlice = -1;
+            lastHoveredSlice = -1;
+            return;
+        }
 
         for (int i = 0; i < numberOfSlices; i++) {
             ItemSlot slot;
@@ -133,17 +164,37 @@ public:
             camera->SetLayerMask(mask);
 
             slot.itemNode = GetScene()->GetOrCreateNode("ItemPivot_" + std::to_string(i));
+            slot.itemNode->SetEnabled(true);
             slot.itemNode->GlobalTransform().Position() = glm::vec3(0.0f, -500.0f + (i * 10.0f), 0.2f);
 
-            if (!slot.itemNode->FindNode("ItemModel_" + std::to_string(i))) {
-                SceneNode* instantiatedModel = GetScene()->Resources()->Get<GltfScene>(gltfPaths[i])->Instantiate(GetScene(), slot.itemNode, "ItemModel_" + std::to_string(i));
-                instantiatedModel->LocalTransform().Position() = glm::vec3(0.0f);
-                instantiatedModel->LocalTransform().Rotation() = glm::angleAxis(glm::radians(30.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+            for (SceneNode* child : slot.itemNode->GetChildren()) {
+                if (child && child->GetName().rfind("ItemModel_", 0) == 0) {
+                    child->SetEnabled(false);
+                }
+            }
 
-                SetLayerRecursive(slot.itemNode, ui3DLayer);
+            GltfScene* model = GetScene()->Resources()->Get<GltfScene>(gltfPaths[i]);
+
+            if (model) {
+                SceneNode* instantiatedModel = model->Instantiate(
+                    GetScene(),
+                    slot.itemNode,
+                    "ItemModel_" + std::to_string(i) + "_" +
+                        std::to_string(this->modelVersion)
+                );
+
+                if (instantiatedModel) {
+                    instantiatedModel->LocalTransform().Position() = glm::vec3(0.0f);
+                    instantiatedModel->LocalTransform().Rotation() =
+                        glm::angleAxis(glm::radians(30.0f),
+                                       glm::vec3(1.0f, 0.0f, 0.0f));
+
+                    SetLayerRecursive(slot.itemNode, ui3DLayer);
+                }
             }
 
             slot.uiNode = GetScene()->GetOrCreateNode(GetNode(), "ItemVisual_" + std::to_string(i));
+            slot.uiNode->SetEnabled(true);
             slot.uiNode->AddObjectIfMissing<WheelTag>();
             UiVisual* visual = slot.uiNode->AddObjectIfMissing<UiVisual>();
             visual->texture = (Texture2D*)slot.viewport->GetFramebuffer()->GetColorTexture();
@@ -168,6 +219,13 @@ public:
         auto* layout = GetNode()->GetObject<UiLayout>();
 
         if (!material || !input || !layout) return;
+
+        if (this->itemSlots.empty()) {
+            hoveredSlice = -1;
+            material->SetValue("hoveredSlice", (unsigned int)0);
+            material->SetValue("numberOfSlices", (unsigned int)1);
+            return;
+        }
 
         glm::vec3 globalPosition = GetNode()->GlobalTransform().Position();
         glm::vec2 wheelCenter = glm::vec2(globalPosition.x, globalPosition.y);
@@ -197,8 +255,15 @@ public:
             float sliceAngle = glm::two_pi<float>() / numberOfSlices;
             hoveredSlice = static_cast<int>(angle / sliceAngle);
 
+            if (hoveredSlice >= 0 &&
+                hoveredSlice < static_cast<int>(this->itemPotionSlotIndices.size())) {
+                PotionInventory::SetSelectedPotionSlotIndex(
+                    this->itemPotionSlotIndices[hoveredSlice]
+                );
+            }
+
             if (input->ButtonDown(MouseButton::Left)) {
-                spdlog::info("Clicked slice {}", hoveredSlice);
+                spdlog::info("Selected potion wheel slice {}", hoveredSlice);
             }
         } else {
             hoveredSlice = -1;
@@ -341,7 +406,7 @@ private:
         float midRadius = innerRadius + ((outerRadius - innerRadius) / 2.0f);
         float rotationSpeed = 0.02f;
 
-        for (int i = 0; i < numberOfSlices; i++) {
+        for (int i = 0; i < static_cast<int>(itemSlots.size()); i++) {
             auto currentRotation = itemSlots[i].itemNode->LocalTransform().Rotation();
             glm::quat deltaRotation = glm::angleAxis(rotationSpeed, glm::vec3(0.0f, 1.0f, 0.0f));
             itemSlots[i].itemNode->LocalTransform().Rotation() = currentRotation * deltaRotation;
