@@ -46,6 +46,8 @@ void EnemyPotato::StartAttack() {
     m_PhaseTimer   = 0.0f;
     m_JumpStart    = currentPos;
 
+    if (m_Body) m_Body->SetIsSensor(true);
+
     glm::vec3 dir   = glm::normalize(m_TargetPosition - currentPos);
     float     hDist = glm::length(glm::vec3(m_TargetPosition.x - currentPos.x,
                                             0.0f,
@@ -142,16 +144,46 @@ void EnemyPotato::UpdateAttackSequence() {
 
             DestroyShadow();
 
-            if (m_Body) m_Body->SetLinearVelocity(glm::vec3(0.0f));
+            m_LandStart = myNode->GlobalTransform().Position();
+            m_LandTarget = glm::vec3(m_FinalShadowPos.x, m_JumpStart.y, m_FinalShadowPos.z);
+
+            m_AttackPhase = PotatoAttackPhase::LAND;
+            m_PhaseTimer  = 0.0f;
+        }
+
+        break;
+    }
+    case PotatoAttackPhase::LAND: {
+        constexpr float duration = 0.3f;
+        float t = glm::clamp(m_PhaseTimer / duration, 0.0f, 1.0f);
+        // ease out — na początku szybko, na końcu zwalnia
+        float tEased = 1.0f - (1.0f - t) * (1.0f - t);
+
+        glm::vec3 pos = glm::mix(m_LandStart, m_LandTarget, tEased);
+        myNode->GlobalTransform().Position() = pos;
+
+        if (m_Body) {
+            m_Body->SetPosition(pos);
+            m_Body->SetLinearVelocity(glm::vec3(0.0f));
+            m_Body->SetAngularVelocity(glm::vec3(0.0f));
+        }
+
+        if (m_PhaseTimer >= duration) {
+            if (m_Body) {
+                m_Body->SetIsSensor(false);
+                m_Body->SetPosition(m_LandTarget);
+                m_Body->SetLinearVelocity(glm::vec3(0.0f));
+            }
+            myNode->GlobalTransform().Position() = m_LandTarget;
+            currentPos = m_LandTarget;
 
             m_IsAttacking    = false;
             m_AttackCooldown = 10.0f;
             m_AttackPhase    = PotatoAttackPhase::NONE;
-            spdlog::info("EnemyPotato: attack sequence finished");
+            spdlog::info("EnemyPotato: landing finished");
         }
         break;
     }
-
     default: break;
     }
 }
@@ -183,8 +215,8 @@ void EnemyPotato::Update() {
 
         if (m_Body) {
             m_Body->SetLinearVelocity(glm::vec3(0.0f));
-            glm::vec3 visualPos = myNode->GlobalTransform().Position();
-            m_Body->SetPosition(visualPos);
+            m_Body->SetAngularVelocity(glm::vec3(0.0f));
+            m_Body->SetPosition(myNode->GlobalTransform().Position());
         }
         return;
     }

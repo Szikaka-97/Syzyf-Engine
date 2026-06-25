@@ -9,6 +9,7 @@ enum class PotatoAttackPhase {
     CHASE,
     STAY,
     PLUNGE,
+  LAND,
 };
 
 class EnemyPotato : public EnemyBase {
@@ -17,6 +18,8 @@ private:
     int   m_Damage               = 30;
     float m_ShadowChaseDuration  = 3.0f;
     float m_ShadowStayDuration   = 2.0f;
+  glm::vec3 m_LandStart  = glm::vec3(0.0f);
+  glm::vec3 m_LandTarget = glm::vec3(0.0f);
 
     bool             m_IsAttacking  = false;
     PotatoAttackPhase m_AttackPhase = PotatoAttackPhase::NONE;
