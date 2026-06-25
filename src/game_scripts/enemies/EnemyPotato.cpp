@@ -229,12 +229,21 @@ void EnemyPotato::Update() {
     UpdateAttackAnimation();
     if (m_InAttackAnimation) { StopMoving(); return; }
 
-    if (isPlayerInRoom) {
-        float dist = glm::distance(currentPos, m_TargetPosition);
-        if      (m_hp <= 30)          currentState = States::FLEEING;
-        else if (dist <= attackRange) currentState = States::ATTACKING;
-        else                          currentState = States::CHASING;
-    } else {
+    if (IsConfused()) {
+        currentState = States::PATROLLING;
+    }
+    else if (isPlayerInRoom) {
+        glm::vec3 diff = currentPos - m_TargetPosition;
+        diff.y = 0.0f;
+        float dist = glm::length(diff);
+
+        if (dist <= attackRange) {
+            currentState = States::ATTACKING;
+        } else {
+            currentState = States::CHASING;
+        }
+    }
+    else {
         currentState = States::PATROLLING;
     }
 

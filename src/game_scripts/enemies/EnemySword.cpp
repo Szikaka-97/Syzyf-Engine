@@ -8,7 +8,7 @@
 EnemySword::EnemySword() {
 	//SceneNode* enemyModel = GetScene()->resources.Get<GltfScene>("./res/models/sword.glb")->Instantiate(GetScene(), GetNode(), "sword");
 	//m_Owner      = owner;
-	//spdlog::error("init sword");
+	spdlog::error("init sword");
 	m_PlayerNode = GetScene()->FindNode("PlayerController");
 
 	myNode = GetNode();
@@ -26,7 +26,6 @@ void EnemySword::Update() {
 		auto* pc = m_PlayerNode->GetObject<PlayerController>();
 		if (pc) pc->TakeDamage(15);
 
-		//if (m_Owner) m_Owner->OnSegmentHitPlayer();
 	}
 }
 

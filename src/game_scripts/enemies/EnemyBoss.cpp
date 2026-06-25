@@ -1,3 +1,6 @@
+#include "game_scripts/PlayerController.h"
+
+
 #include <./include/game_scripts/enemies/EnemyBoss.h>
 #include <TimeSystem.h>
 
@@ -9,9 +12,18 @@ void EnemyBoss::StartAttack() {
 
     m_InAttackAnimation      = true;
     m_AttackAnimationElapsed = 0.0f;
+    m_CurrentAnimation       = "attack.001";   // guard, identycznie jak EnemyBase::Attack()
 
-    PlayAttackAnimation("attack.001");
+    SetAnimation("attack.001");                // zatrzymuje walk, startuje attack
     m_normalAttackCounter++;
+
+    glm::vec3 diff = currentPos - m_TargetPosition;
+    diff.y = 0.0f;
+    float dist = glm::length(diff);
+    if (dist <= attackRange) {
+        auto* pc = m_TargetNode->GetObject<PlayerController>();
+        if (pc) pc->TakeDamage(5);
+    }
 }
 
 void EnemyBoss::StartSpecialAttack() {
@@ -24,8 +36,17 @@ void EnemyBoss::StartSpecialAttack() {
 
     m_InAttackAnimation      = true;
     m_AttackAnimationElapsed = 0.0f;
+    m_CurrentAnimation       = "special_start.001";
 
-    PlayAttackAnimation("special_start.001");
+    SetAnimation("special_start.001");
+
+    glm::vec3 diff = currentPos - m_TargetPosition;
+    diff.y = 0.0f;
+    float dist = glm::length(diff);
+    if (dist <= attackRange) {
+        auto* pc = m_TargetNode->GetObject<PlayerController>();
+        if (pc) pc->TakeDamage(10);
+    }
 }
 
 void EnemyBoss::Update() {
@@ -35,6 +56,17 @@ void EnemyBoss::Update() {
     LockXZRotation();
     if (!m_TargetNode || !myNode) return;
 
+    if (!m_AnimInitialized) {
+        m_AnimInitialized = true;
+        AnimationComponent* anim = GetNode()->GetObjectInChildren<AnimationComponent>();
+        if (anim) {
+            SetAttackAnimation(anim);
+            spdlog::info("EnemyBoss: AnimationComponent found and set");
+        } else {
+            spdlog::error("EnemyBoss: AnimationComponent NOT FOUND in children");
+        }
+    }
+
     m_TargetPosition = m_TargetNode->GlobalTransform().Position();
     currentPos       = m_Body->GetPosition();
 
@@ -42,6 +74,7 @@ void EnemyBoss::Update() {
     myNode->GlobalTransform().Rotation() = m_Body->GetRotation();
 
     UpdateAttackAnimation();
+    UpdateStatusEffects();
 
     if (m_isSpecialAttacking && !m_InAttackAnimation) {
         if (m_specialAttackPhase == 1) {
@@ -82,38 +115,47 @@ void EnemyBoss::Update() {
 
     m_IsAttacking = false;
 
-    if (isPlayerInRoom) {
-        glm::vec3 toTarget = m_TargetPosition - currentPos;
-        toTarget.y = 0.0f;
-        float dist = glm::length(toTarget);
-
-        if (currentState == States::ATTACKING)
-            currentState = (dist <= attackRange * 1.3f) ? States::ATTACKING : States::CHASING;
-        else
-            currentState = (dist <= attackRange) ? States::ATTACKING : States::CHASING;
-    } else {
+    if (IsConfused()) {
+        currentState = States::PATROLLING;
+    }
+    else if (isPlayerInRoom) {
+        glm::vec3 diff = currentPos - m_TargetPosition;
+        diff.y = 0.0f;
+        float dist = glm::length(diff);
+        spdlog::error(dist);
+        if (dist <= attackRange) {
+            currentState = States::ATTACKING;
+        } else {
+            currentState = States::CHASING;
+        }
+    }
+    else {
         currentState = States::PATROLLING;
     }
 
     switch (currentState) {
     case States::PATROLLING:
         Patrol();
+        SetLoopingAnimation("walk.001");
         break;
     case States::CHASING:
-            DirectChaseNoBoundary();
+        DirectChaseNoBoundary();
+        SetLoopingAnimation("walk.001");
         break;
-    case States::ATTACKING:
+    case States::ATTACKING: {
+        StopMoving();
+        glm::vec3 dir = m_TargetPosition - currentPos;
+        dir.y = 0.0f;
+        if (glm::length(dir) > 0.01f)
+            RotateNode(glm::normalize(dir));
+        SetLoopingAnimation("attack.001");
         if (m_normalAttackCounter >= m_maxNormalAttackInterval)
             StartSpecialAttack();
         else
             StartAttack();
-        return;
+        break;
     }
-
-    if (currentState != m_PreviousState) {
-        if (currentState == States::CHASING || currentState == States::PATROLLING)
-            SetLoopingAnimation("walk.001");   // ← loop
-        m_PreviousState = currentState;
+    default:
+        break;
     }
-
 }

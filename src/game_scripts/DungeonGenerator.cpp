@@ -330,7 +330,7 @@ EnemyBase* SpawnEnemy(SceneNode* position) {
     //enemyAi1->SetProjectileResources(cubeMesh, enemyMat);
 	enemyAi1->SetTargetNode(PlayerController::Instance()->GetNode());
     enemyAi1->SetAttackCooldown(1.2f);
-	enemyAi1->m_hp = 5;
+	//enemyAi1->m_hp = 5;
 	//enemyAi1->m_FlockingSystem = position->GetScene()->GetComponent<FlockingSystem>();
 
     //enemyAi1->RegisterToFlockingSystem(position->GetScene()->GetComponent<FlockingSystem>());

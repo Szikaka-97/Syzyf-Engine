@@ -273,6 +273,9 @@ void Surface::Update() {
         spdlog::error("Player enter");
 
 		InformEnter();
+
+	    auto* pc = player->GetObject<PlayerController>();
+	    if (pc) pc->SetHealth(100);
 	}
 }
 

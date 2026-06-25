@@ -69,20 +69,25 @@ void MeleeSkeleton::Update() {
     //     myNode->GlobalTransform().Position() = safePos;
     //     currentPos = safePos;
     // }
-
+    UpdateStatusEffects();
     UpdateAttackAnimation();
     if (m_InAttackAnimation) { StopMoving(); return; }
 
-    if (isPlayerInRoom) {
-        // XZ distance — ignoruj różnicę Y między capsule
+    if (IsConfused()) {
+        currentState = States::PATROLLING;
+    }
+    else if (isPlayerInRoom) {
         glm::vec3 diff = currentPos - m_TargetPosition;
         diff.y = 0.0f;
         float dist = glm::length(diff);
-        //spdlog::error(dist);
-        //if      (m_hp <= 30)          currentState = States::FLEEING;
-         if (dist <= attackRange) currentState = States::ATTACKING;
-        else                          currentState = States::CHASING;
-    } else {
+
+        if (dist <= attackRange) {
+            currentState = States::ATTACKING;
+        } else {
+            currentState = States::CHASING;
+        }
+    }
+    else {
         currentState = States::PATROLLING;
     }
 

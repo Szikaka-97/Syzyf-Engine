@@ -22,7 +22,6 @@ private:
     bool playerInSightRange, playerInAttackRange;
     int m_RoomID = 0;
     float m_VisualOffset = 0.0f;
-    std::string m_CurrentAnimation;
     float m_AttackAnimationDuration = 1.0f;
     //bool CanSeePlayer() const;
 
@@ -62,6 +61,8 @@ protected:
     float m_AttackAnimationElapsed = 0.0f;
     float m_BossRotationSpeed = 10.0f;
     bool m_AnimInitialized = false;
+
+    std::string m_CurrentAnimation;
 public:
     EnemyBase();
     ~EnemyBase();

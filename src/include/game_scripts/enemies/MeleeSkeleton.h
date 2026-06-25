@@ -29,11 +29,11 @@ MeleeSkeleton() : EnemyBase() {
   	AnimationComponent* enemyAnim = GetNode()->GetObjectInChildren<AnimationComponent>();
   	SetAttackAnimation(enemyAnim);
 
-  	SceneNode* sword = enemyModel->FindNode("rig_deform/DEF-upper_arm.L/DEF-upper_arm.L.001/DEF-forearm.L/DEF-forearm.L.001/DEF-hand.L/Plane");
-  	if (sword) {
-  		//spdlog::error("sword init2");
-  		sword->AddObject<EnemySword>();
-  	}
+  	// SceneNode* sword = enemyModel->FindNode("rig_deform/DEF-upper_arm.L/DEF-upper_arm.L.001/DEF-forearm.L/DEF-forearm.L.001/DEF-hand.L/Plane");
+  	// if (sword) {
+  	// 	//spdlog::error("sword init2");
+  	// 	sword->AddObject<EnemySword>();
+  	// }
   	//spdlog::error("sword init3");
 
 };
