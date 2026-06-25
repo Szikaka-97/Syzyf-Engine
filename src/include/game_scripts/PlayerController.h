@@ -85,6 +85,8 @@ public:
 	float GetHealth() const;
 	void SetHealth(float newHealth);
 
+	Physics::VirtualCharacterController* GetCharacterController();
+
 	void Die();
 
 	bool CanThrow() const;

@@ -9,22 +9,27 @@
 class GltfScene;
 class Surface;
 
-class ElevatorScript : public GameObject {
-private:
-	
-public:
-	void Update();
-};
-
 class DungeonRoomScript : public GameObject {
 private:
 	std::vector<SceneNode*> doors;
 	Surface* surface;
-	float timeout = 1;
 public:
-	bool isFinal = false;
+	DungeonRoomScript() = default;
 
-	DungeonRoomScript();
+	void Awake();
+	void Update();
+};
+
+class DungeonStartElevator : public GameObject {
+public:
+	DungeonStartElevator() = default;
+
+	void Update();
+};
+
+class DungeonEndElevator : public GameObject {
+public:
+	DungeonEndElevator() = default;
 
 	void Update();
 };

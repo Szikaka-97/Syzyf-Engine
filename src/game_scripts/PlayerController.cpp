@@ -862,6 +862,7 @@ void PlayerController::OnDisable() {
 
 void PlayerController::SetPosition(const glm::vec3& position) {
 	this->charController->SetPosition(position);
+	GlobalTransform().Position() = position;
 }
 
 void PlayerController::TakeDamage(float damage) {
@@ -877,6 +878,10 @@ float PlayerController::GetHealth() const {
 }
 void PlayerController::SetHealth(float newHealth) {
 	this->health = newHealth;
+}
+
+Physics::VirtualCharacterController* PlayerController::GetCharacterController() {
+	return this->charController;
 }
 
 void PlayerController::Die() {

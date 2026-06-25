@@ -18,6 +18,7 @@
 #include <../game/include/scenes/CraftingScene.h>
 
 
+
 template<class T_Loot>
 void SpawnTutorialIngredientLoot(
     Scene* scene,

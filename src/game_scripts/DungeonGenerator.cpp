@@ -20,14 +20,14 @@
 #include <MathHelpers.h>
 #include <TimeSystem.h>
 #include <Application.h>
-
+#include <game_scripts/CameraSettings.h>
 
 namespace CraftingScene {
 inline void InitScene(Scene& mainScene);
 }
 
 
-DungeonRoomScript::DungeonRoomScript() {
+void DungeonRoomScript::Awake() {
 	this->surface = GetNode()->FindNode("floor")->GetObject<Surface>();
 
 	for (auto* node : GetNode()->GetChildren()) {
@@ -35,16 +35,26 @@ DungeonRoomScript::DungeonRoomScript() {
 			this->doors.push_back(node);
 		}
 	}
+
+	SceneNode* elevator = GetNode()->FindNode("Elevator");
+
+	if (elevator) {
+		if (GetNode()->FindNode("ROOM_TAG_START")) {
+			elevator->AddObject<DungeonStartElevator>();
+		}
+		else {
+			elevator->AddObject<DungeonEndElevator>();
+		}
+	}
 }
 
 void DungeonRoomScript::Update() {
-	if (this->surface->PlayerInside()) {
-		this->timeout -= Time::Delta();
+	PlayerController* player = PlayerController::Instance();
 
-		if (this->timeout > 0) {
-			return;
-		}
-
+	if (glm::max(
+		glm::abs(player->GlobalTransform().Position().x - GlobalTransform().Position().x),
+		glm::abs(player->GlobalTransform().Position().z - GlobalTransform().Position().z)
+	) < 30) {
 		if (this->surface->GetEnemies().size() > 0) {
 			for (auto* door : this->doors) {
 				glm::vec3 pos = door->GetObject<Physics::Body>()->GetPosition();
@@ -56,12 +66,6 @@ void DungeonRoomScript::Update() {
 			}
 		}
 		else {
-			if (this->isFinal) {
-				// Application::Get()->RequestSceneBuild(
-				// 	[](Scene* s) { CraftingScene::InitScene(*s); }
-				// );
-			}
-
 			for (auto* door : this->doors) {
 				glm::vec3 pos = door->GetObject<Physics::Body>()->GetPosition();
 				
@@ -74,22 +78,62 @@ void DungeonRoomScript::Update() {
 	}
 }
 
-void ElevatorScript::Update() {
+void DungeonStartElevator::Update() {
 	glm::vec3 pos = GlobalTransform().Position();
 
-	if (pos.y > 0) {
-		pos.y = Math::MoveTowards(pos.y, 0, Time::Delta());
+	glm::vec3 rot = GetNode()->FindNode("Drzwi")->LocalTransform().Rotation().EulerAngles();
 
-		PlayerController::Instance()->GlobalTransform().Position() = GlobalTransform().Position().Value();
+	if (pos.y > 0 && rot.y > -glm::tau<float>() / 3) {
+		pos.y = Math::MoveTowards(pos.y, -glm::tau<float>() / 3, Time::Delta());
+
+		spdlog::info(rot.y);
+
+		if (pos.y == 0) {
+			rot.x = 0;
+			rot.y = Math::MoveTowards(rot.y, -glm::tau<float>() / 3, Time::Delta());
+			rot.z = 0;
+		}
+
+		PlayerController::Instance()->GlobalTransform().Position() = glm::vec3(0, 0, 0);
+		PlayerController::Instance()->GetCharacterController()->SetEnabled(false);
 		
+		GetNode()->GetScene()->FindObjectsOfType<CameraSettings>()[0]->SetEnabled(false);
+
+		GetNode()->FindNode("Drzwi")->LocalTransform().Rotation().EulerAngles() = rot;
 		GlobalTransform().Position() = pos;
 	}
 	else {
-		PlayerController::Instance()->SetEnabled(true);
+		GetNode()->GetScene()->FindObjectsOfType<CameraSettings>()[0]->SetEnabled(false);
 
-		delete this;
+		SetEnabled(false);
 	}
+}
 
+void DungeonEndElevator::Update() {
+	PlayerController* player = PlayerController::Instance();
+
+	if (glm::distance(player->GlobalTransform().Position().WithY(0), GlobalTransform().Position().WithY(0)) < 1) {
+		Application::Get()->RequestSceneBuild(
+			[](Scene* s) { CraftingScene::InitScene(*s); }
+		);
+	}	
+
+	// glm::vec3 rot = GetNode()->FindNode("Drzwi")->LocalTransform().Rotation().EulerAngles();
+	
+	// if (pos.y > 0 && rot.y < glm::tau<float>() / 3) {
+	// 	pos.y = Math::MoveTowards(pos.y, 0, Time::Delta());
+
+	// 	if (pos.y == 0) {
+	// 		rot.x = 0;
+	// 		rot.y = Math::MoveTowards(rot.y, glm::tau<float>() / 3, Time::Delta());
+	// 		rot.z = 0;
+	// 	}
+
+	// 	PlayerController::Instance()->SetPosition(pos);
+		
+	// 	GetNode()->FindNode("Drzwi")->LocalTransform().Rotation().EulerAngles() = rot;
+	// 	GlobalTransform().Position() = pos;
+	// }
 }
 
 SceneNode* DungeonGenerator::PlaceRoom() {
@@ -420,6 +464,9 @@ void DungeonGenerator::Update() {
 		if (room.position == glm::vec2(0, 0)) {
 			roomPrefab = GetPrefabWithTag("START")->prefab;
 		}
+		else if (this->roomsToSpawn.empty()) {
+			roomPrefab = GetPrefabWithTag("END")->prefab;
+		}
 		else {
 			roomPrefab = GetPrefabWithShape(room.type)->prefab;
 		}
@@ -441,9 +488,10 @@ void DungeonGenerator::Update() {
 			}
 
 			if (room.position == glm::vec2(0, 0)) {
-				auto* elevatorNode = spawnedRoom->FindNode("Elevator");
+				spawnedRoom->AddObject<DungeonRoomScript>();
+				// auto* elevatorNode = spawnedRoom->FindNode("Elevator");
 				// elevatorNode->AddObject<ElevatorScript>();
-				elevatorNode->GlobalTransform().Position() = glm::vec3(0, 0, 0);
+				// elevatorNode->GlobalTransform().Position() = glm::vec3(0, 0, 0);
 
 				// PlayerController::Instance()->SetEnabled(false);
 				// PlayerController::Instance()->GlobalTransform().Position() = elevatorNode->GlobalTransform().Position().Value();
@@ -451,9 +499,6 @@ void DungeonGenerator::Update() {
 			else {
 				auto* roomScript = spawnedRoom->AddObject<DungeonRoomScript>();
 
-				if (this->roomsToSpawn.empty()) {
-					roomScript->isFinal = true;
-				}
 			}
 			
 			for (MeshRenderer* mesh : spawnedRoom->GetAllObjectsInChildren<MeshRenderer>()) {
