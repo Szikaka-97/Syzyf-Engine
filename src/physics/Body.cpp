@@ -726,6 +726,11 @@ void Body::DrawImGui() {
           SetMotionType((JPH::EMotionType)currentMotionType);
       }
 
+      bool isSensor = IsSensor();
+      if (ImGui::Checkbox("Is Sensor", &isSensor)) {
+          SetIsSensor(isSensor);
+      }
+
       float mGravityFactor = GetGravityFactor();
       if (ImGui::DragFloat("Gravity Factor", &mGravityFactor, 0.1f, -10.0f, 10.0f)) {
           SetGravityFactor(mGravityFactor);
