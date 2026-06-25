@@ -144,6 +144,7 @@ void EnemyBase::SetAnimation(const std::string& name) {
 }
 
 void EnemyBase::DirectChaseNoBoundary() {
+  if (!myNode || !m_Body) return;
   glm::vec3 dir = m_TargetPosition - currentPos;
   dir.y = 0.0f;
   float dist = glm::length(dir);

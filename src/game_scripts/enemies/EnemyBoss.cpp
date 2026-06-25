@@ -50,6 +50,7 @@ void EnemyBoss::StartSpecialAttack() {
 }
 
 void EnemyBoss::Update() {
+    //if (!myNode || !m_Body || m_hp <= 0) return;
     EnsureBody();
     if (!m_Body) { spdlog::error("EnemyBoss: body is null"); return; }
 

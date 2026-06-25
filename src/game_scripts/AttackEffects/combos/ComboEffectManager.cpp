@@ -29,11 +29,20 @@ static void SetXZScale(SceneNode* node, float radius) {
 
 void ComboExplodeFire::OnInit() {
     SceneNode* explosionModel =
-            ResourceDatabase::Global
-    ->Get<GltfScene>("./res/models/effects/explode.glb")
+           ResourceDatabase::Global
+   ->Get<GltfScene>("./res/models/effects/explode.glb")
 ->Instantiate(GetScene(), GetNode(), "explosion effect");
     explosionModel->GlobalTransform().Scale()=glm::vec3(1.0f,1.0f,1.0f);
+    explosionModel->LocalTransform().Position() = GetFlatPosition();
     GetNode()->GlobalTransform().Scale()=glm::vec3(1.0f,1.0f,1.0f);
+    //this->radius = GetRange();
+
+    for (auto& anim : explosionModel->GetObject<AnimationComponent>()->animations) {
+        anim.speed = 2.0;
+        explosionModel->GetObject<AnimationComponent>()->Play(anim.data.name);
+    }
+
+    //explosionModel->FindNode("SphereScaler")->LocalTransform().Scale() = glm::vec3(this->radius);
 }
 
 void ComboExplodeFire::ApplyTo(EnemyBase* enemy) {
@@ -108,33 +117,107 @@ void ComboExplodeFire::CleanupDebris() {
 
 void ComboExplodeFire::Update() {
     ComboEffectBase::Update();
-
     if (m_Expired) return;
 
     if (!m_Initialized) {
         SceneNode* explosionModel = ResourceDatabase::Global
             ->Get<GltfScene>("./res/models/effects/explode.glb")
             ->Instantiate(GetScene(), GetNode(), "explosion effect");
-
+        explosionModel->GlobalTransform().Position() = GetFlatPosition();
         if (explosionModel) {
-            explosionModel->GlobalTransform().Scale() = glm::vec3(1.0f, 1.0f, 1.0f);
+            explosionModel->GlobalTransform().Scale() = glm::vec3(1.0f);
+
+            if (auto* anim = explosionModel->GetObject<AnimationComponent>()) {
+                for (auto& a : anim->animations) {
+                    a.speed = 2.0f;
+                    anim->Play(a.data.name);
+                }
+            }
         }
 
-        if (GetNode()) {
-            GetNode()->GlobalTransform().Scale() = glm::vec3(1.0f, 1.0f, 1.0f);
-        }
+        if (GetNode())
+            GetNode()->GlobalTransform().Scale() = glm::vec3(1.0f);
 
         SpawnDebris();
-
         m_Initialized = true;
     }
 
     UpdateDebris(Time::Delta());
+
+    for (auto* enemy : ScanNearbyEnemies()) {
+        if (m_HitEnemies.count(enemy)) continue;
+        m_HitEnemies.insert(enemy);
+        ApplyTo(enemy);
+    }
+}
+
+void ComboFirePetrify::SpawnDebris() {
+    static const float g = 9.81f;
+
+    const int count = std::clamp(debrisCount, 5, 10);
+    m_Debris.reserve(count);
+
+    std::uniform_real_distribution<float> angleDist(0.0f, glm::two_pi<float>());
+    std::uniform_real_distribution<float> rangeDist(debrisMinRange, debrisMaxRange);
+
+    glm::vec3 origin = GetFlatPosition();
+
+    for (int i = 0; i < count; ++i) {
+        float angle = angleDist(m_Rng);
+        float range = rangeDist(m_Rng);
+        float v     = std::sqrt(range * g);
+
+        glm::vec3 horiz(std::cos(angle), 0.0f, std::sin(angle));
+
+        constexpr float cos45 = 0.7071068f;
+        glm::vec3 vel = horiz * (v * cos45) + glm::vec3(0.0f, v * cos45, 0.0f);
+
+        SceneNode* fireNode = GetScene()->CreateNode("Fire");
+        fireNode->GlobalTransform().Position() = origin;
+        fireNode->AddObject<FireParticles>();
+
+        m_Debris.push_back({ fireNode, vel, false });
+    }
+
+    spdlog::info("ComboFirePetrify: spawned {} fire debris (range {:.1f}–{:.1f})",
+                 count, debrisMinRange, debrisMaxRange);
+}
+
+void ComboFirePetrify::UpdateDebris(float dt) {
+    static const float g = 9.81f;
+    float groundY = GetFlatPosition().y;
+
+    for (auto& d : m_Debris) {
+        if (d.landed || !d.node) continue;
+
+        d.velocity.y -= g * dt;
+        glm::vec3 pos  = d.node->GlobalTransform().Position();
+        pos            += d.velocity * dt;
+
+        if (pos.y <= groundY) {
+            pos.y      = groundY;
+            d.velocity = glm::vec3(0.0f);
+            d.landed   = true;
+        }
+
+        d.node->GlobalTransform().Position() = pos;
+    }
+}
+
+void ComboFirePetrify::CleanupDebris() {
+    for (auto& d : m_Debris)
+        if (d.node) GetScene()->QueueDelete(d.node);
+    m_Debris.clear();
+}
+
+void ComboFirePetrify::OnInit() {
+
 }
 
 void ComboFirePetrify::ApplyTo(EnemyBase* enemy) {
     float burnDuration = duration * (1.0f - effect2Strength);
     enemy->ApplyBurn(GetDamage(), burnDuration);
+    enemy->ApplyConfuse(duration,false);
 
     float slowFactor    = 0.5f + 0.5f * (1.0f - effect2Strength);
     float petrifyDur    = duration * (1.0f - effect2Strength);
@@ -152,6 +235,30 @@ void ComboFirePetrify::Update() {
         m_HitEnemies.insert(enemy);
         ApplyTo(enemy);
     }
+    if (!m_Initialized) {
+        SceneNode* explosionModel = ResourceDatabase::Global
+            ->Get<GltfScene>("./res/models/effects/petrify.glb")
+            ->Instantiate(GetScene(), GetNode(), "ComboFirePetrify effect");
+        //explosionModel->GlobalTransform().Position() = GetFlatPosition();
+        explosionModel->GlobalTransform().Position() = glm::vec3(GetFlatPosition().x ,0.f, GetFlatPosition().z);
+        if (explosionModel) {
+            explosionModel->GlobalTransform().Scale() = glm::vec3(1.0f);
+
+            if (auto* anim = explosionModel->GetObject<AnimationComponent>()) {
+                for (auto& a : anim->animations) {
+                    a.speed = 2.0f;
+                    anim->Play(a.data.name);
+                }
+            }
+        }
+
+        if (GetNode())
+            GetNode()->GlobalTransform().Scale() = glm::vec3(1.0f);
+
+        SpawnDebris();
+        m_Initialized = true;
+    }
+
 }
 
 void ComboFireTornado::InitTornado() {
@@ -230,6 +337,8 @@ void ComboExplodePetrify::Update() {
         m_HitEnemies.insert(enemy);
         ApplyTo(enemy);
     }
+
+
 }
 
 void ComboExplodeTornado::InitTornado() {
@@ -255,6 +364,21 @@ void ComboExplodeTornado::Update() {
 
     // TODO: EnemyBullet capture (see note at top of file)
 }
+void ComboExplodeConfuse::OnInit() {
+    SceneNode* explosionModel =
+          ResourceDatabase::Global
+  ->Get<GltfScene>("./res/models/effects/combos/confuse_explode.glb")
+->Instantiate(GetScene(), GetNode(), "ComboExplodeConfuse effect");
+    explosionModel->GlobalTransform().Scale()=glm::vec3(1.0f,1.0f,1.0f);
+    explosionModel->LocalTransform().Position() = glm::vec3(0.0f);
+    GetNode()->GlobalTransform().Scale()=glm::vec3(1.0f,1.0f,1.0f);
+    //this->radius = GetRange();
+
+    for (auto& anim : explosionModel->GetObject<AnimationComponent>()->animations) {
+        anim.speed = 2.0;
+        explosionModel->GetObject<AnimationComponent>()->Play(anim.data.name);
+    }
+}
 
 static bool PreciseFromCount(int count) { return count == 2; }
 
@@ -269,12 +393,12 @@ void ComboExplodeConfuse::ApplyTo(EnemyBase* enemy) {
 }
 
 void ComboExplodeConfuse::Update() {
-    if (myNode) {
-        glm::vec3 s = myNode->GlobalTransform().Scale();
-        s.x += Time::Delta();
-        s.z += Time::Delta();
-        myNode->GlobalTransform().Scale() = s;
-    }
+    // if (myNode) {
+    //     glm::vec3 s = myNode->GlobalTransform().Scale();
+    //     s.x += Time::Delta();
+    //     s.z += Time::Delta();
+    //     myNode->GlobalTransform().Scale() = s;
+    // }
 
     ComboEffectBase::Update();
     if (m_Expired) return;
@@ -283,6 +407,28 @@ void ComboExplodeConfuse::Update() {
         if (m_HitEnemies.count(enemy)) continue;
         m_HitEnemies.insert(enemy);
         ApplyTo(enemy);
+    }
+
+    if (!m_Initialized) {
+        SceneNode* explosionModel =
+          ResourceDatabase::Global
+  ->Get<GltfScene>("./res/models/effects/combos/confuse_explode.glb")
+->Instantiate(GetScene(), GetNode(), "ComboExplodeConfuse effect");
+        explosionModel->GlobalTransform().Scale()=glm::vec3(1.0f,1.0f,1.0f);
+        explosionModel->LocalTransform().Position() = glm::vec3(0.0f);
+        GetNode()->GlobalTransform().Scale()=glm::vec3(1.0f,1.0f,1.0f);
+        //this->radius = GetRange();
+
+        for (auto& anim : explosionModel->GetObject<AnimationComponent>()->animations) {
+            anim.speed = 2.0;
+            explosionModel->GetObject<AnimationComponent>()->Play(anim.data.name);
+        }
+
+        if (GetNode())
+            GetNode()->GlobalTransform().Scale() = glm::vec3(1.0f);
+
+        //SpawnDebris();
+        m_Initialized = true;
     }
 }
 

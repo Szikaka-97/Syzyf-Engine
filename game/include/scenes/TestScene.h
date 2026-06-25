@@ -378,6 +378,20 @@ inline void InitScene(Scene& mainScene) {
     Physics::Body* bossBody = enemyNode->AddObject<Physics::Body>(bossSettings);
     bossBody->SetRestitution(0.0f);
 
+    Crafting::CraftedPotionData testPotion;
+    testPotion.recipeName = "Explosion + Fire Test Potion";
+    testPotion.primaryEffectId = Crafting::EffectId::Fire;
+    testPotion.secondaryEffectId = Crafting::EffectId::Petrify;
+    testPotion.qualityPercent = 100.0f;
+    testPotion.radius = 7.0f;
+    testPotion.duration = 6.0f;
+    testPotion.power = 45.0f;
+    testPotion.mainEffectCount = 2;
+    testPotion.modifierCount = 0;
+
+    PotionInventory::SaveLastCraftedPotion(testPotion, 50, false);
+    player->SetThrowingUnlocked(true);
+
     EnemyBoss* boss = enemyNode->AddObject<EnemyBoss>();
     boss->SetTargetNode(playerNode);
     boss->SetSurface(surface);
