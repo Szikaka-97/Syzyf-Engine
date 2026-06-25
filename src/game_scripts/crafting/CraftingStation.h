@@ -1288,8 +1288,12 @@ namespace Crafting{
                         text << "secondary=" << craftedPotionData.secondaryEffectId << "\n";
                     }
 
+                    const int filledBottles = bottlingStage.GetFilledBottles();
+                    const int craftedPotionCount = filledBottles * 4;
+
                     text << "radius=" << craftedPotionData.radius << " power=" << craftedPotionData.power << "\n";
-                    text << "duration=" << craftedPotionData.duration << " bottles=" << bottlingStage.GetFilledBottles();
+                    text << "duration=" << craftedPotionData.duration << " bottles=" << filledBottles;
+                    text << " potions=" << craftedPotionCount;
 
                     lastStagePotionResultText = text.str();
                 }
@@ -1958,20 +1962,24 @@ namespace Crafting{
 
                     craftedPotionDataValid = true;
 
+                    const int filledBottles = bottlingStage.GetFilledBottles();
+                    const int craftedPotionCount = filledBottles * 4;
+
                     PotionInventory::SaveLastCraftedPotion(
                         craftedPotionData,
-                        bottlingStage.GetFilledBottles()
+                        craftedPotionCount
                     );
 
                     spdlog::error(
-                        "CraftingStation: crafted '{}' effect={} secondary={} radius={:.2f} duration={:.2f} power={:.2f} bottles={}",
+                        "CraftingStation: crafted '{}' effect={} secondary={} radius={:.2f} duration={:.2f} power={:.2f} filledBottles={} potions={}",
                         craftedPotionData.recipeName,
                         craftedPotionData.primaryEffectId,
                         craftedPotionData.secondaryEffectId,
                         craftedPotionData.radius,
                         craftedPotionData.duration,
                         craftedPotionData.power,
-                        bottlingStage.GetFilledBottles()
+                        filledBottles,
+                        craftedPotionCount
                     );
 
                     if (PlayerController::Instance()){

@@ -19,13 +19,13 @@ namespace Crafting{
     public:
         static constexpr int BottleCount = 4;
 
-        int requiredFilledBottles = BottleCount;
+        int requiredFilledBottles = BottleCount - 1;
 
         float bottleTravelTime = 4.0f;
         float bottleSpawnDelay = 0.85f;
         float fillWindowRadius = 0.28f;
 
-        glm::vec3 bottleVisualOffset = glm::vec3(0.0f, 0.22f, 0.0f);
+        glm::vec3 bottleVisualOffset = glm::vec3(0.0f, 0.08f, 0.0f);
 
         std::string startPointNodeName = "Bottle_Start";
         std::string endPointNodeName = "Bottle_stop";

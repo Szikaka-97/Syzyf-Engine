@@ -989,36 +989,38 @@ inline Material* CreateColorMaterial(const glm::vec4& color) {
     return material;
 }
 
-inline SceneNode* CreateBottlingDebugCube(Scene& scene, SceneNode* parent,
-                                          const std::string& nodeName,
-                                          Mesh* mesh, Material* material,
-                                          const glm::vec3& worldPosition,
-                                          const glm::vec3& localScale) {
-    SceneNode* node = scene.CreateNode(parent, nodeName);
+inline SceneNode* CreateBottlingBottleModel(Scene& scene, SceneNode* parent,
+                                             const std::string& nodeName,
+                                             const std::string& modelPath,
+                                             const glm::vec3& localPosition,
+                                             const glm::vec3& localScale,
+                                             const glm::vec3& localRotationDegrees) {
+    GltfScene* bottleModel = scene.Resources()->Get<GltfScene>(modelPath);
+    SceneNode* node = nullptr;
 
-    node->LocalTransform().Scale() = localScale;
-    node->GlobalTransform().Position() = worldPosition;
-
-    if (mesh && material) {
-        node->AddObject<MeshRenderer>(mesh, material);
+    if (bottleModel) {
+        node = bottleModel->Instantiate(&scene, parent, nodeName);
     }
+
+    if (!node) {
+        node = scene.CreateNode(parent, nodeName);
+    }
+
+    const glm::vec3 bottlePositionOffset = glm::vec3(0.0f, 0.0f, 0.0f);
+
+    node->LocalTransform().Position() = localPosition + bottlePositionOffset;
+    node->LocalTransform().Scale() = localScale;
+    node->LocalTransform().Rotation() = glm::quat(glm::radians(localRotationDegrees));
 
     return node;
 }
 
-inline SceneNode* CreateBottlingLocalCube(Scene& scene, SceneNode* parent,
-                                          const std::string& nodeName,
-                                          Mesh* mesh, Material* material,
-                                          const glm::vec3& localPosition,
-                                          const glm::vec3& localScale) {
+inline SceneNode* CreateBottlingMarkerNode(Scene& scene, SceneNode* parent,
+                                           const std::string& nodeName,
+                                           const glm::vec3& localPosition) {
     SceneNode* node = scene.CreateNode(parent, nodeName);
 
     node->LocalTransform().Position() = localPosition;
-    node->LocalTransform().Scale() = localScale;
-
-    if (mesh && material) {
-        node->AddObject<MeshRenderer>(mesh, material);
-    }
 
     return node;
 }
@@ -1075,30 +1077,23 @@ inline void CreateBottlingStageNodes(Scene& scene, SceneNode* roomNode) {
     const glm::vec3 bottleFillPoint =
         glm::mix(bottleStartPoint, bottleEndPoint, fillT);
 
-    const glm::vec3 bottleScale = glm::vec3(0.16f, 0.36f, 0.16f);
-
-    Mesh* cubeMesh = scene.Resources()->Get<Mesh>("./res/models/not_cube.obj");
-
-    Material* bottleMaterial =
-        CreateColorMaterial(glm::vec4(0.35f, 0.75f, 1.0f, 0.9f));
-
-    Material* liquidMaterial =
-        CreateColorMaterial(glm::vec4(0.9f, 0.25f, 0.15f, 0.95f));
+    const std::string bottleModelPath = "./res/models/bottles/fire_bottle.glb";
+    const glm::vec3 bottleScale = glm::vec3(3.0f);
+    const glm::vec3 bottleRotation = glm::vec3(0.0f, 0.0f, 0.0f);
 
     SceneNode* bottlesRoot = scene.CreateNode(roomNode, "BottlingBottlesRoot");
 
     bottlesRoot->LocalTransform().Position() = glm::vec3(0.0f);
 
     for (int i = 0; i < 4; ++i) {
-        SceneNode* bottleNode = CreateBottlingLocalCube(
+        SceneNode* bottleNode = CreateBottlingBottleModel(
             scene, bottlesRoot, "BottlingBottle_0" + std::to_string(i + 1),
-            cubeMesh, bottleMaterial, bottleStartPoint, bottleScale);
+            bottleModelPath, bottleStartPoint, bottleScale, bottleRotation);
 
-        SceneNode* liquidNode = CreateBottlingLocalCube(
+        SceneNode* liquidNode = CreateBottlingMarkerNode(
             scene, bottleNode,
-            "BottlingBottle_0" + std::to_string(i + 1) + "_Liquid", cubeMesh,
-            liquidMaterial, glm::vec3(0.0f, -0.08f, 0.0f),
-            glm::vec3(0.11f, 0.23f, 0.11f));
+            "BottlingBottle_0" + std::to_string(i + 1) + "_Liquid",
+            glm::vec3(0.0f, -1.0f, 0.0f));
 
         liquidNode->SetEnabled(false);
     }
